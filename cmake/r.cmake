@@ -8,33 +8,7 @@ if(BUILD_WITH_R AND NOT N3DS AND NOT BAREMETALAPI)
   set(TIC_BUILD_WITH_R TRUE)
 
   if(NOT BUILD_STATIC)
-    if(NOT DEFINED ENV{R_HOME} AND DEFINED PREFIX)
-      set(R_HOME "${PREFIX}/lib64/R")
-    endif()
-
-    if(NOT DEFINED ENV{LD_LIBRARY_PATH} AND NOT LD_LIBRARY_PATH)
-      set(LD_LIBRARY_PATH "/usr/include/R:${R_HOME}/lib:${PREFIX}/lib/jvm/jre/lib/server")
-    else()
-      # Add these entries to the this *PATH variable
-      set(LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${PREFIX}/lib64/R/lib:${PREFIX}/lib/jvm/jre/lib/server")
-    endif()
-
-    if(NOT DEFINED ENV{R_SHARE_DIR} AND DEFINED ENV{PREFIX})
-      set(R_SHARE_DIR "${PREFIX}/share/R")
-    else()
-      set(R_SHARE_DIR ENV{R_SHARE_DIR})
-    endif()
-
-    if(NOT DEFINED ENV{R_DOC_DIR} AND DEFINED ENV{PREFIX})
-      set(R_DOC_DIR "${PREFIX}/share/doc/R")
-    else()
-      set(R_DOC_DIR ENV{R_DOC_DIR})
-    endif()
-
-    if(DEFINED ENV{PREFIX} OR DEFINED PREFIX)
-      set(R_SRC "${R_HOME}/lib")
-      list(APPEND R_SRC "${PREFIX}/lib/jvm/jre/lib/server" R_SHARE_DIR R_DOC_DIR)
-    endif()
+    include("cmake/renv.cmake")
 
     set(R_LIB_DIR "/usr/include/R")
     include_directories(SYSTEM "/usr/include/R")
@@ -53,7 +27,11 @@ if(BUILD_WITH_R AND NOT N3DS AND NOT BAREMETALAPI)
     set_target_properties(r PROPERTIES PREFIX "")
   endif()
 
-  target_link_libraries(r PRIVATE runtime)
+  target_link_libraries(
+    r
+    PRIVATE runtime
+    PUBLIC /usr/lib64/R/lib/libR.so
+  )
 
   set_target_properties(r PROPERTIES LINKER_LANGUAGE CXX)
   target_include_directories(r

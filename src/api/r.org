@@ -22,9 +22,22 @@ can define it right now. For now the =memory= parameter can be ignored.
 #+name: define evalR
 #+begin_src C
   void evalR(tic_mem *memory, const char *code) {
+  #if !defined R_INTERNALS_H_
+  #error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
+  #endif
     SEXP result = Rf_eval(Rf_mkString(code), R_GlobalEnv);
   }
 #+end_src
+
+Before ~R_GlobalEnv~ is available, the C symbol must be initialized by calling
+~InitBaseEnv()~ and then calling ~InitGlobalEnv~, both of which are defined in
+=main/envir.c= in the R sources. The declaration of ~R_GlobalEnv~ is in
+=include/Rinternals.h=; ~R_GlobalEnv~ is defined as a ~SEXP~ with the modifier
+~LibExtern~ (~LibExtern SEXP R_GlobalEnv;~). These functions are called in
+~setup_Rmainloop~, and are called in a specific order along with many other
+functions which initialize R and its behaviours and capabilities (including
+arithmetic); it is very important that ~setup_Rmainloop~ is called. This
+function is called automatically by calling ~Rf_mainloop~.
 
 ** Initializing R
 The initScheme function takes a pointer to the *TIC-80* memory and a character
@@ -45,43 +58,43 @@ make callbacks to the *TIC-80* fantasy computer through the API.
 
 #+name: quotation
 #+begin_src C
-static bool initScheme(tic_mem* tic, const char* code)
-{
-		tic_core* core = (tic_core*)tic;
-		closeScheme(tic);
+  static bool initScheme(tic_mem* tic, const char* code)
+  {
+  	tic_core* core = (tic_core*)tic;
+  	closeScheme(tic);
 
-		s7_scheme* sc = core->currentVM = s7_init();
-		initAPI(core);
+  	s7_scheme* sc = core->currentVM = s7_init();
+  	initAPI(core);
 
-		s7_define_function(sc, "__TIC_ErrorHandler", scheme_error_handler, 1, 0, 0, NULL);
-		/* See "set the error-hook function.scm" and pretend its a properly escaped C string. */
-		s7_eval_c_string(sc, <<set the error-hook function.scm>>);
-		s7_eval_c_string(sc, defstructStr);
+  	s7_define_function(sc, "__TIC_ErrorHandler", scheme_error_handler, 1, 0, 0, NULL);
+  	/* See "set the error-hook function.scm" and pretend its a properly escaped C string. */
+  	s7_eval_c_string(sc, <<set the error-hook function.scm>>);
+  	s7_eval_c_string(sc, defstructStr);
 
-		s7_define_variable(sc, TicCore, s7_make_c_pointer(sc, core));
-		s7_load_c_string(sc, code, strlen(code));
+  	s7_define_variable(sc, TicCore, s7_make_c_pointer(sc, core));
+  	s7_load_c_string(sc, code, strlen(code));
 
-		const bool isTicDefined = s7_is_defined(sc, ticFnName);
-		if (!isTicDefined) {
-				if (core->data) {
-						core->data->error(core->data->data, "TIC function is not defined");
-				}
-		}
+  	const bool isTicDefined = s7_is_defined(sc, ticFnName);
+  	if (!isTicDefined) {
+  		if (core->data) {
+  			core->data->error(core->data->data, "TIC function is not defined");
+  		}
+  	}
 
-		return true;
-}
+  	return true;
+  }
 #+end_src
 
 #+name: set the error-hook function
-#+begin_src Scheme
-(set! (hook-functions *error-hook*)
-			(list (lambda (hook)
-							(__TIC_ErrorHandler
-							 (format #f "~s: ~a\n--STACKTRACE--\n~a"
-											 ((owlet) 'error-type)
-											 (apply format #f (hook 'data))
-											 (stacktrace)))
-							(set! (hook 'result) #f))))
+#+begin_src scheme
+  (set! (hook-functions *error-hook*)
+  			(list (lambda (hook)
+  							(__TIC_ErrorHandler
+  							 (format #f "~s: ~a\n--STACKTRACE--\n~a"
+  											 ((owlet) 'error-type)
+  											 (apply format #f (hook 'data))
+  											 (stacktrace)))
+  							(set! (hook 'result) #f))))
 #+end_src
 
 Based on the requirements of *TIC-80* it seems clear that I need to define a
@@ -122,29 +135,29 @@ against R when building a front-end.
 
 #+name: R compilation flags
 #+begin_src bash
-	gcc -I/usr/include/R \
-			-Wl,--export-dynamic \
-			-fopenmp \
-			-Wl,-z,relro \
-			-Wl,--as-needed \
-			-Wl,-z,now \
-			-specs=/usr/lib/rpm/redhat/redhat-hardened-ld \
-			-specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 \
-			-Wl,--build-id=sha1 \
-			-L/usr/lib64/R/lib \
-			-lR \
-			-ltre \
-			-lpcre2-8 \
-			-llzma \
-			-lbz2 \
-			-lz \
-			-ltirpc \
-			-lrt \
-			-ldl \
-			-lm \
-			-licuuc \
-			-licui18n \
-			example_r_wrapper.c
+  gcc -I/usr/include/R \
+  		-Wl,--export-dynamic \
+  		-fopenmp \
+  		-Wl,-z,relro \
+  		-Wl,--as-needed \
+  		-Wl,-z,now \
+  		-specs=/usr/lib/rpm/redhat/redhat-hardened-ld \
+  		-specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 \
+  		-Wl,--build-id=sha1 \
+  		-L/usr/lib64/R/lib \
+  		-lR \
+  		-ltre \
+  		-lpcre2-8 \
+  		-llzma \
+  		-lbz2 \
+  		-lz \
+  		-ltirpc \
+  		-lrt \
+  		-ldl \
+  		-lm \
+  		-licuuc \
+  		-licui18n \
+  		example_r_wrapper.c
 #+end_src
 
 The manual states that since R is already installed (and I have verified it was
@@ -154,24 +167,39 @@ into TIC-80).
 
 #+name: Acquiring compilation flags for static compilation from pkgconfig
 #+begin_src bash
-	# pkg-config --cflags libR; pkg-config --static --libs libR
-	gcc -I/usr/include/R \
-			-Wl,--export-dynamic \
-			-fopenmp \
-			-Wl,-z,relro \
-			-Wl,--as-needed \
-			-Wl,-z,now \
-			-specs=/usr/lib/rpm/redhat/redhat-hardened-ld \
-			-specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 \
-			-Wl,--build-id=sha1 \
-			-L/usr/lib64/R/lib \
-			-lR \
-			example_r_wrapper.c
+  # pkg-config --cflags libR; pkg-config --static --libs libR
+  gcc -I/usr/include/R \
+  		-Wl,--export-dynamic \
+  		-fopenmp \
+  		-Wl,-z,relro \
+  		-Wl,--as-needed \
+  		-Wl,-z,now \
+  		-specs=/usr/lib/rpm/redhat/redhat-hardened-ld \
+  		-specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 \
+  		-Wl,--build-id=sha1 \
+  		-L/usr/lib64/R/lib \
+  		-lR \
+  		example_r_wrapper.c
 #+end_src
 
 The above requires that R was /compiled as a static library/, however. If R was
 compiled with =--enable-R-shlib= this may or may not be the case and I should
 investigate this further.
+
+*** SUNDAY October 6 2024
+#+begin_src makefile :tangle r.makefile
+  ## WARNING: does not work when ${R_HOME} contains spaces
+  include ${R_HOME}/etc${R_ARCH}/Makeconf
+  all: r
+
+  ## The following is not needed, but avoids PIC flags.
+  r.o: r.c
+          $(CC) $(ALL_CPPFLAGS) $(CFLAGS) -c r.c -o $@
+
+  ## replace $(LIBR) $(LIBS) by $(STATIC_LIBR) if R was build with a static libR
+  r: r.o
+          $(MAIN_LINK) -o $@ r.o $(LIBR) $(LIBS)
+#+end_src
 
 ** Console evaluation
 The console of the main application, when running, has an =eval= command which
@@ -500,18 +528,25 @@ we'll borrow the code from the /Writing R Extensions/ manual to pass
 restarting R as necessary and tracking the current interpreter (there can be
 only one).
 
-#+begin_src C :noweb-ref cartridge commands
-  #define killer                                            \
-    tic_core *core;                                         \
-    if ((core = (((tic_core *) tic))->currentVM) != NULL) { \
-      Rf_endEmbeddedR(0);                                   \
-      core->currentVM = NULL;                               \
-    }
+#+name: kill R
+#+begin_src C
+  tic_core *core;
+  if ((core = (((tic_core *) tic))->currentVM) != NULL) {
+  	Rf_endEmbeddedR(0);
+  	core->currentVM = NULL;
+  }
+#+end_src
 
+That is defined separately, and not as a macro, so that the code can be re-used.
+
+#+begin_src C :noweb no-export :noweb-ref cartridge commands
   tic_core *getTICCore(tic_mem* tic, const char* code);
 
   static bool initR(tic_mem *tic, const char *code) {
-    killer;
+    <<kill R>>
+
+    /* Without this nothing in R will work. */
+  	Rf_mainloop();
 
     fprintf(stderr, "%s\n", __LINE__);
 
@@ -529,7 +564,7 @@ only one).
   }
 
   static void closeR(tic_mem *tic) {
-    killer;
+    <<kill R>>
   }
 #+end_src
 
@@ -541,11 +576,14 @@ at least. The =exists= function doesn't use symbols, it uses strings to lookup
 symbols so that is why that part differs in the chunk below.
 
 #+begin_src C :noweb-ref cartridge commands
-  static void callRFn_TIC80() {
-    /* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
-    Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
-                        "`TIC-80`()"),
-      R_GlobalEnv);
+  static void callRFn_TIC80(tic_mem* tic) {
+  #if !defined R_INTERNALS_H_
+  #error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
+  #endif
+  	/* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
+  	Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
+  											"`TIC-80`()"),
+  					R_GlobalEnv);
   }
 #+end_src
 
@@ -553,16 +591,17 @@ symbols so that is why that part differs in the chunk below.
 These four TIC-80 API functions or commands are defined using a macro.
 
 #+begin_src C :noweb-ref cartridge commands
-  #define defineCallRFn_(x)																								\
-    static void callRFn_##x(tic_mem *tic) {																\
+  #define defineCallRFn_(x, ...)                                          \
+    static void callRFn_##x(tic_mem *tic, ##__VA_ARGS__) {                \
       Rf_eval(Rf_mkString("if (exists(\""#x"\") && is.function("#x")) "#x"()"), \
-              R_GlobalEnv);																								\
+              R_GlobalEnv);                                               \
     }
   /* if (exists("x") && is.function(x)) x() */
-  defineCallRFn_(MENU)
-  defineCallRFn_(BDR)
   defineCallRFn_(BOOT)
-  defineCallRFn_(SCN)
+  /* s32 row/index, void *data as well as the tic_mem *tic parameters. */
+  defineCallRFn_(MENU, s32 index, void *data)
+  defineCallRFn_(BDR, s32 row, void *data)
+  defineCallRFn_(SCN, s32 row, void *data)
   #undef defineCallRFn_
 #+end_src
 
@@ -589,6 +628,7 @@ ion of the script.
   	.projectComment         = "#",
   	{
   		.init                 = initR,
+
   		.close                = closeR,
   		.tick                 = callRFn_TIC80,
   		.boot                 = callRFn_BOOT,
@@ -1071,33 +1111,7 @@ chain (is there Fortran?) to ever work there. Baremetal? I won't bother.
     set(TIC_BUILD_WITH_R TRUE)
 
     if(NOT BUILD_STATIC)
-      if(NOT DEFINED ENV{R_HOME} AND DEFINED PREFIX)
-        set(R_HOME "${PREFIX}/lib64/R")
-      endif()
-
-      if(NOT DEFINED ENV{LD_LIBRARY_PATH} AND NOT LD_LIBRARY_PATH)
-        set(LD_LIBRARY_PATH "/usr/include/R:${R_HOME}/lib:${PREFIX}/lib/jvm/jre/lib/server")
-      else()
-        # Add these entries to the this *PATH variable
-        set(LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${PREFIX}/lib64/R/lib:${PREFIX}/lib/jvm/jre/lib/server")
-      endif()
-
-      if(NOT DEFINED ENV{R_SHARE_DIR} AND DEFINED ENV{PREFIX})
-        set(R_SHARE_DIR "${PREFIX}/share/R")
-      else()
-        set(R_SHARE_DIR ENV{R_SHARE_DIR})
-      endif()
-
-      if(NOT DEFINED ENV{R_DOC_DIR} AND DEFINED ENV{PREFIX})
-        set(R_DOC_DIR "${PREFIX}/share/doc/R")
-      else()
-        set(R_DOC_DIR ENV{R_DOC_DIR})
-      endif()
-
-      if(DEFINED ENV{PREFIX} OR DEFINED PREFIX)
-        set(R_SRC "${R_HOME}/lib")
-        list(APPEND R_SRC "${PREFIX}/lib/jvm/jre/lib/server" R_SHARE_DIR R_DOC_DIR)
-      endif()
+      include("cmake/renv.cmake")
 
       set(R_LIB_DIR "/usr/include/R")
       include_directories(SYSTEM "/usr/include/R")
@@ -1116,7 +1130,11 @@ chain (is there Fortran?) to ever work there. Baremetal? I won't bother.
       set_target_properties(r PROPERTIES PREFIX "")
     endif()
 
-    target_link_libraries(r PRIVATE runtime)
+    target_link_libraries(
+      r
+      PRIVATE runtime
+      PUBLIC /usr/lib64/R/lib/libR.so
+    )
 
     set_target_properties(r PROPERTIES LINKER_LANGUAGE CXX)
     target_include_directories(r
@@ -1126,6 +1144,37 @@ chain (is there Fortran?) to ever work there. Baremetal? I won't bother.
       ${CMAKE_SOURCE_DIR}/src
     )
 
+  endif()
+#+end_src
+
+#+name: renv.cmake
+#+begin_src cmake :tangle ../../cmake/renv.cmake :noweb no-export
+  if(NOT DEFINED ENV{R_HOME} AND DEFINED PREFIX)
+    set(R_HOME "${PREFIX}/lib64/R")
+  endif()
+
+  if(NOT DEFINED ENV{LD_LIBRARY_PATH} AND NOT LD_LIBRARY_PATH)
+    set(LD_LIBRARY_PATH "/usr/include/R:${R_HOME}/lib:${PREFIX}/lib/jvm/jre/lib/server")
+  else()
+    # Add these entries to the this *PATH variable
+    set(LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${PREFIX}/lib64/R/lib:${PREFIX}/lib/jvm/jre/lib/server")
+  endif()
+
+  if(NOT DEFINED ENV{R_SHARE_DIR} AND DEFINED ENV{PREFIX})
+    set(R_SHARE_DIR "${PREFIX}/share/R")
+  else()
+    set(R_SHARE_DIR ENV{R_SHARE_DIR})
+  endif()
+
+  if(NOT DEFINED ENV{R_DOC_DIR} AND DEFINED ENV{PREFIX})
+    set(R_DOC_DIR "${PREFIX}/share/doc/R")
+  else()
+    set(R_DOC_DIR ENV{R_DOC_DIR})
+  endif()
+
+  if(DEFINED ENV{PREFIX} OR DEFINED PREFIX)
+    set(R_SRC "${R_HOME}/lib")
+    list(APPEND R_SRC "${PREFIX}/lib/jvm/jre/lib/server" R_SHARE_DIR R_DOC_DIR)
   endif()
 #+end_src
 
@@ -1401,16 +1450,23 @@ wrote about]].
 
 #+name: INCLUDE
 #+begin_src c
-#include "core/core.h"
+  #include "core/core.h"
 
-#define R_NO_REMAP
-#include <R.h>
-#include <Rinternals.h>
-#include <Rembedded.h>
+  #define R_NO_REMAP
+  #include <R.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+  #if !defined R_INTERNALS_H_
+  #include <Rinternals.h> /* defines LibExtern SEXP R_GlobalEnv */
+  #endif
+
+  #include <Rembedded.h>
+  #include <Rinterface.h>
+  #include <Rconfig.h>
+  #include <Rdefines.h>
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
 #+end_src
 
 In C the usual style is to place predeclarations (which make the compiler happy)
@@ -1500,9 +1556,27 @@ provided here.
 
 #+name: example of register native symbols
 #+begin_src c
-	DllInfo *info = R_getEmbeddingDllInfo();
-	R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
+  DllInfo *info = R_getEmbeddingDllInfo();
+  R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
 #+end_src
+
+** Compilation error
+When compiling the shared library =r.c.o= (not the R interpreter shared library,
+but the integratio I wrote for it), there is an issue with the type and storage
+class definition of the function ~Rf_mainloop~.
+
+#+begin_quote
+[ 10%] Building C object CMakeFiles/r.dir/src/api/r.c.o
+/home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: warning: data definition has no type or storage class
+   42 | Rf_mainloop();
+      | ^~~~~~~~~~~
+/home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: warning: type defaults to ‘int’ in declaration of ‘Rf_mainloop’ [-Wimplicit-int]
+/home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: error: conflicting types for ‘Rf_mainloop’; have ‘int()’
+In file included from /home/bryce/Documents/src/c/TIC-80/src/api/r.c:33:
+/usr/include/R/Rinterface.h:85:6: note: previous declaration of ‘Rf_mainloop’ with type ‘void(void)’
+   85 | void mainloop(void);
+      |      ^~~~~~~~
+#+end_quote
 
 * TODO Concluding remarks
 The C API needs documentation! The API needs documenation so that it can be

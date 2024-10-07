@@ -28,28 +28,38 @@
 
 #define R_NO_REMAP
 #include <R.h>
-#include <Rinternals.h>
+
+#if !defined R_INTERNALS_H_
+#include <Rinternals.h> /* defines LibExtern SEXP R_GlobalEnv */
+#endif
+
 #include <Rembedded.h>
+#include <Rinterface.h>
+#include <Rconfig.h>
+#include <Rdefines.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 void evalR(tic_mem *memory, const char *code) {
+#if !defined R_INTERNALS_H_
+#error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
+#endif
   SEXP result = Rf_eval(Rf_mkString(code), R_GlobalEnv);
 }
-
-#define killer                                            \
-  tic_core *core;                                         \
-  if ((core = (((tic_core *) tic))->currentVM) != NULL) { \
-    Rf_endEmbeddedR(0);                                   \
-    core->currentVM = NULL;                               \
-  }
 
 tic_core *getTICCore(tic_mem* tic, const char* code);
 
 static bool initR(tic_mem *tic, const char *code) {
-  killer;
+  tic_core *core;
+  if ((core = (((tic_core *) tic))->currentVM) != NULL) {
+  	Rf_endEmbeddedR(0);
+  	core->currentVM = NULL;
+  }
+
+  /* Without this nothing in R will work. */
+	Rf_mainloop();
 
   fprintf(stderr, "%s\n", __LINE__);
 
@@ -67,24 +77,32 @@ tryOnceMoreOnly:
 }
 
 static void closeR(tic_mem *tic) {
-  killer;
+  tic_core *core;
+  if ((core = (((tic_core *) tic))->currentVM) != NULL) {
+  	Rf_endEmbeddedR(0);
+  	core->currentVM = NULL;
+  }
 }
-static void callRFn_TIC80() {
-  /* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
-  Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
-                      "`TIC-80`()"),
-    R_GlobalEnv);
+static void callRFn_TIC80(tic_mem* tic) {
+#if !defined R_INTERNALS_H_
+#error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
+#endif
+	/* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
+	Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
+											"`TIC-80`()"),
+					R_GlobalEnv);
 }
-#define defineCallRFn_(x)																								\
-  static void callRFn_##x(tic_mem *tic) {																\
+#define defineCallRFn_(x, ...)                                          \
+  static void callRFn_##x(tic_mem *tic, ##__VA_ARGS__) {                \
     Rf_eval(Rf_mkString("if (exists(\""#x"\") && is.function("#x")) "#x"()"), \
-            R_GlobalEnv);																								\
+            R_GlobalEnv);                                               \
   }
 /* if (exists("x") && is.function(x)) x() */
-defineCallRFn_(MENU)
-defineCallRFn_(BDR)
 defineCallRFn_(BOOT)
-defineCallRFn_(SCN)
+/* s32 row/index, void *data as well as the tic_mem *tic parameters. */
+defineCallRFn_(MENU, s32 index, void *data)
+defineCallRFn_(BDR, s32 row, void *data)
+defineCallRFn_(SCN, s32 row, void *data)
 #undef defineCallRFn_
 
 bool initR(tic_mem *tic, const char *code);
@@ -212,6 +230,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 	.projectComment         = "#",
 	{
 		.init                 = initR,
+
 		.close                = closeR,
 		.tick                 = callRFn_TIC80,
 		.boot                 = callRFn_BOOT,
