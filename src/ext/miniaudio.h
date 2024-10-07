@@ -16132,6 +16132,8 @@ MA_API ma_result ma_spinlock_unlock(volatile ma_spinlock* pSpinlock)
 typedef ma_thread_result (MA_THREADCALL * ma_thread_entry_proc)(void* pData);
 
 #ifdef MA_POSIX
+#include <sched.h>
+#include <pthread.h>
 static ma_result ma_thread_create__posix(ma_thread* pThread, ma_thread_priority priority, size_t stackSize, ma_thread_entry_proc entryProc, void* pData)
 {
     int result;
