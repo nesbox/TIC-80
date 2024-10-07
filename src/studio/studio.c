@@ -1501,7 +1501,7 @@ static void updateTitle(Studio* studio)
 
 #if defined(BUILD_EDITORS)
     if(strlen(studio->console->rom.name))
-        snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, studio->console->rom.name);
+        snprintf(name, TICNAME_MAX, "%s [%.209s]", TIC_TITLE, studio->console->rom.name);
 #endif
 
     tic_sys_title(name);
@@ -1634,7 +1634,8 @@ void saveProject(Studio* studio)
         }
         else
         {
-            snprintf(buffer, sizeof buffer, "%s%s", studio->console->rom.name, str_saved);
+            strncpy(buffer, studio->console->rom.name, sizeof(buffer) - 1);
+            strncat(buffer, str_saved, sizeof(buffer) - strlen(buffer) - 1);
         }
 
         showPopupMessage(studio, buffer);
@@ -1668,15 +1669,16 @@ static void stopVideoRecord(Studio* studio, const char* name)
     while(tic_fs_exists(studio->fs, filename));
 
     // Now that it has found an available filename, save it.
-    if(tic_fs_save(studio->fs, filename, result.data, result.dataSize, true))
-    {
-        char msg[TICNAME_MAX];
-        sprintf(msg, "%s saved :)", filename);
-        showPopupMessage(studio, msg);
+	if(tic_fs_save(studio->fs, filename, result.data, result.dataSize, true))
+	{
+		char msg[TICNAME_MAX];
+		snprintf(msg, sizeof(msg), "%s", filename);
+		strncat(msg, " saved :)", sizeof(msg) - strlen(msg) - 1);
+		showPopupMessage(studio, msg);
 
-        tic_sys_open_path(tic_fs_path(studio->fs, filename));
-    }
-    else showPopupMessage(studio, "error: file not saved :(");
+		tic_sys_open_path(tic_fs_path(studio->fs, filename));
+	}
+	else showPopupMessage(studio, "error: file not saved :(");
 
     msf_gif_free(result);
 
