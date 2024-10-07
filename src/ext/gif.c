@@ -167,7 +167,7 @@ typedef struct
     s32 pos;
 } GifBuffer;
 
-static int readBuffer(GifFileType* gif, GifByteType* data, s32 size)
+static s32 readBuffer(GifFileType* gif, GifByteType* data, s32 size)
 {
     GifBuffer* buffer = (GifBuffer*)gif->UserData;
 
