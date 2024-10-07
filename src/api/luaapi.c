@@ -1665,7 +1665,7 @@ void luaapi_close(tic_mem* tic)
 ** Message handler which appends stract trace to exceptions.
 ** This function was extractred from lua.c.
 */
-static s32 msghandler (lua_State *lua)
+static int msghandler (lua_State *lua)
 {
     const char *msg = lua_tostring(lua, 1);
     if (msg == NULL) /* is error object not a string? */
