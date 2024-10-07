@@ -316,10 +316,10 @@ jobs:
   # === Nintendo 3DS build ===
   nintendo-3ds:
     runs-on: ubuntu-latest
-    container: nesbox/devkitpro-tic80:latest
+    container: miguelhrvs/devkitproarm-tic80:latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
@@ -332,11 +332,11 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/3ds.cmake -DN3DS=TRUE -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake -DN3DS=TRUE -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
           make -j$(nproc)
 
       - name: Deploy
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: "tic80-nintendo-3ds"
           path: build/bin/tic80.3dsx
