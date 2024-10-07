@@ -153,8 +153,8 @@ enum
         7,                                                                                                              \
         1,                                                                                                              \
         0,                                                                                                              \
-        s32,                                                                                                            \
-        tic_mem*, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt)                            \
+        int,                                                                                                            \
+        tic_mem*, const char* text, int x, int y, u8 color, bool fixed, int scale, bool alt)                            \
                                                                                                                         \
                                                                                                                         \
     macro(cls,                                                                                                          \
@@ -180,7 +180,7 @@ enum
         2,                                                                                                              \
         0,                                                                                                              \
         u8,                                                                                                             \
-        tic_mem*, s32 x, s32 y, u8 color, bool get)                                                                     \
+        tic_mem*, int x, int y, u8 color, bool get)                                                                     \
                                                                                                                         \
                                                                                                                         \
     macro(line,                                                                                                         \
@@ -203,7 +203,7 @@ enum
         5,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color)                                                        \
+        tic_mem*, int x, int y, int width, int height, u8 color)                                                        \
                                                                                                                         \
                                                                                                                         \
     macro(rectb,                                                                                                        \
@@ -215,7 +215,7 @@ enum
         5,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color)                                                        \
+        tic_mem*, int x, int y, int width, int height, u8 color)                                                        \
                                                                                                                         \
                                                                                                                         \
     macro(spr,                                                                                                          \
@@ -242,8 +242,8 @@ enum
         3,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 index, s32 x, s32 y, s32 w, s32 h,                                                                \
-        u8* trans_colors, u8 trans_count, s32 scale, tic_flip flip, tic_rotate rotate)                                  \
+        tic_mem*, int index, int x, int y, int w, int h,                                                                \
+        u8* trans_colors, u8 trans_count, int scale, tic_flip flip, tic_rotate rotate)                                  \
                                                                                                                         \
                                                                                                                         \
     macro(btn,                                                                                                          \
@@ -256,8 +256,8 @@ enum
         1,                                                                                                              \
         1,                                                                                                              \
         0,                                                                                                              \
-        u32,                                                                                                            \
-        tic_mem*, s32 id)                                                                                               \
+        int,                                                                                                            \
+        tic_mem*, int id)                                                                                               \
                                                                                                                         \
                                                                                                                         \
     macro(btnp,                                                                                                         \
@@ -277,7 +277,7 @@ enum
         1,                                                                                                              \
         0,                                                                                                              \
         u32,                                                                                                            \
-        tic_mem*, s32 id, s32 hold, s32 period)                                                                         \
+        tic_mem*, int id, int hold, int period)                                                                         \
                                                                                                                         \
                                                                                                                         \
     macro(sfx,                                                                                                          \

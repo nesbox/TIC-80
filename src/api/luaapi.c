@@ -1634,7 +1634,7 @@ void luaapi_init(tic_core* core)
 {
     static const struct{lua_CFunction func; const char* name;} ApiItems[] =
     {
-#define API_FUNC_DEF(name, ...) {(s32*)lua_ ## name, #name},
+#define API_FUNC_DEF(name, ...) {lua_ ## name, #name},
         TIC_API_LIST(API_FUNC_DEF)
 #undef  API_FUNC_DEF
 
