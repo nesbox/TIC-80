@@ -1634,17 +1634,17 @@ void luaapi_init(tic_core* core)
 {
     static const struct{lua_CFunction func; const char* name;} ApiItems[] =
     {
-#define API_FUNC_DEF(name, ...) {lua_ ## name, #name},
+#define API_FUNC_DEF(name, ...) {(lua_CFunction)(lua_ ## name), #name},
         TIC_API_LIST(API_FUNC_DEF)
 #undef  API_FUNC_DEF
 
 #if defined(BUILD_DEPRECATED)
-        {lua_textri, "textri"},
+        {(lua_CFunction)lua_textri, "textri"},
 #endif
     };
 
     for (s32 i = 0; i < COUNT_OF(ApiItems); i++)
-        registerLuaFunction(core, (lua_CFunction)ApiItems[i].func, ApiItems[i].name);
+        registerLuaFunction(core, ApiItems[i].func, ApiItems[i].name);
 
     registerLuaFunction(core, lua_dofile, "dofile");
     registerLuaFunction(core, lua_loadfile, "loadfile");
