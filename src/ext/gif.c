@@ -167,7 +167,7 @@ typedef struct
     s32 pos;
 } GifBuffer;
 
-static s32 readBuffer(GifFileType* gif, GifByteType* data, s32 size)
+static int readBuffer(GifFileType* gif, GifByteType* data, int size)
 {
     GifBuffer* buffer = (GifBuffer*)gif->UserData;
 
@@ -177,13 +177,14 @@ static s32 readBuffer(GifFileType* gif, GifByteType* data, s32 size)
     return size;
 }
 
-gif_image* gif_read_data(const void* data, s32 size)
+gif_image* gif_read_data(const void* data, int size)
 {
     GifBuffer buffer = {data, 0};
     GifFileType *gif = DGifOpen(&buffer, readBuffer, NULL);
 
     return readGif(gif);
 }
+
 
 void gif_close(gif_image* image)
 {
