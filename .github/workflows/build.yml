@@ -385,9 +385,9 @@ jobs:
           name: "tic80-nintendo-3ds"
           path: build/bin/tic80.3dsx
 
-  # === MacOS 12 ===
+  # === MacOS 13 ===
   macos:
-    runs-on: macos-12
+    runs-on: macos-13
 
     steps:
       - uses: actions/checkout@v4
