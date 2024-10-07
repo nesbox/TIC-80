@@ -17785,7 +17785,7 @@ Dynamic Linking
 #ifdef MA_POSIX
     /* No need for dlfcn.h if we're not using runtime linking. */
     #ifndef MA_NO_RUNTIME_LINKING
-        #include ""../../vendor/dlfcn/src/dlfcn.h"
+        #include "../../vendor/dlfcn/src/dlfcn.h"
     #endif
 #endif
 
