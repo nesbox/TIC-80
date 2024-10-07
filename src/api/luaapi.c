@@ -1595,14 +1595,14 @@ static s32 lua_ffts(lua_State* lua)
     return 0;
 }
 
-static s32 lua_dofile(lua_State *lua)
+static int lua_dofile(lua_State *lua)
 {
     luaL_error(lua, "unknown method: \"dofile\"\n");
 
     return 0;
 }
 
-static s32 lua_loadfile(lua_State *lua)
+static int lua_loadfile(lua_State *lua)
 {
     luaL_error(lua, "unknown method: \"loadfile\"\n");
 
