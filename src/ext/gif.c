@@ -31,7 +31,7 @@ static gif_image* readGif(GifFileType *gif)
 {
     gif_image* image = NULL;
 
-    s32 error = 0;
+    int error = 0;
 
     if(gif)
     {
@@ -101,7 +101,7 @@ static gif_image* readGif(GifFileType *gif)
 
                     case EXTENSION_RECORD_TYPE:
                         {
-                            s32 extCode = 0;
+                            int extCode = 0;
                             GifByteType* extension = NULL;
 
                             if (DGifGetExtension(gif, &extCode, &extension) == GIF_ERROR)
@@ -167,7 +167,7 @@ typedef struct
     s32 pos;
 } GifBuffer;
 
-static s32 readBuffer(GifFileType* gif, GifByteType* data, s32 size)
+static int readBuffer(GifFileType* gif, GifByteType* data, s32 size)
 {
     GifBuffer* buffer = (GifBuffer*)gif->UserData;
 
