@@ -1630,6 +1630,8 @@ void luaapi_open(lua_State *lua)
     }
 }
 
+typedef s32(*lua_CFunction)(lua_State*);
+
 void luaapi_init(tic_core* core)
 {
     static const struct{lua_CFunction func; const char* name;} ApiItems[] =
