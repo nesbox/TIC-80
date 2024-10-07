@@ -1644,7 +1644,7 @@ void luaapi_init(tic_core* core)
     };
 
     for (s32 i = 0; i < COUNT_OF(ApiItems); i++)
-        registerLuaFunction(core, ApiItems[i].func, ApiItems[i].name);
+        registerLuaFunction(core, (int)ApiItems[i].func, ApiItems[i].name);
 
     registerLuaFunction(core, lua_dofile, "dofile");
     registerLuaFunction(core, lua_loadfile, "loadfile");
