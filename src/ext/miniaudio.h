@@ -16132,95 +16132,14 @@ MA_API ma_result ma_spinlock_unlock(volatile ma_spinlock* pSpinlock)
 typedef ma_thread_result (MA_THREADCALL * ma_thread_entry_proc)(void* pData);
 
 #ifdef MA_POSIX
-#include <sched.h>
-#include <pthread.h>
 static ma_result ma_thread_create__posix(ma_thread* pThread, ma_thread_priority priority, size_t stackSize, ma_thread_entry_proc entryProc, void* pData)
 {
     int result;
     pthread_attr_t* pAttr = NULL;
 
-#if !defined(__EMSCRIPTEN__)
-    /* Try setting the thread priority. It's not critical if anything fails here. */
-    pthread_attr_t attr;
-    if (pthread_attr_init(&attr) == 0) {
-        int scheduler = -1;
-
-        /* We successfully initialized our attributes object so we can assign the pointer so it's passed into pthread_create(). */
-        pAttr = &attr;
-
-        /* We need to set the scheduler policy. Only do this if the OS supports pthread_attr_setschedpolicy() */
-        #if !defined(MA_BEOS)
-        {
-            if (priority == ma_thread_priority_idle) {
-            #ifdef SCHED_IDLE
-                if (pthread_attr_setschedpolicy(&attr, SCHED_IDLE) == 0) {
-                    scheduler = SCHED_IDLE;
-                }
-            #endif
-            } else if (priority == ma_thread_priority_realtime) {
-            #ifdef SCHED_FIFO
-                if (pthread_attr_setschedpolicy(&attr, SCHED_FIFO) == 0) {
-                    scheduler = SCHED_FIFO;
-                }
-            #endif
-            #ifdef MA_LINUX
-            } else {
-                scheduler = sched_getscheduler(0);
-            #endif
-            }
-        }
-        #endif
-
-        if (stackSize > 0) {
-            pthread_attr_setstacksize(&attr, stackSize);
-        }
-
-        if (scheduler != -1) {
-            int priorityMin = sched_get_priority_min(scheduler);
-            int priorityMax = sched_get_priority_max(scheduler);
-            int priorityStep = (priorityMax - priorityMin) / 7;  /* 7 = number of priorities supported by miniaudio. */
-
-            struct sched_param sched;
-            if (pthread_attr_getschedparam(&attr, &sched) == 0) {
-                if (priority == ma_thread_priority_idle) {
-                    sched.sched_priority = priorityMin;
-                } else if (priority == ma_thread_priority_realtime) {
-                    #if defined(MA_PTHREAD_REALTIME_THREAD_PRIORITY)
-                    {
-                        sched.sched_priority = MA_PTHREAD_REALTIME_THREAD_PRIORITY;
-                    }
-                    #else
-                    {
-                        sched.sched_priority = priorityMax;
-                    }
-                    #endif
-                } else {
-                    sched.sched_priority += ((int)priority + 5) * priorityStep;  /* +5 because the lowest priority is -5. */
-                }
-
-                if (sched.sched_priority < priorityMin) {
-                    sched.sched_priority = priorityMin;
-                }
-                if (sched.sched_priority > priorityMax) {
-                    sched.sched_priority = priorityMax;
-                }
-
-                /* I'm not treating a failure of setting the priority as a critical error so not aborting on failure here. */
-                if (pthread_attr_setschedparam(&attr, &sched) == 0) {
-                    #if !defined(MA_ANDROID) || (defined(__ANDROID_API__) && __ANDROID_API__ >= 28)
-                    {
-                        pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
-                    }
-                    #endif
-                }
-            }
-        }
-    }
-#else
     /* It's the emscripten build. We'll have a few unused parameters. */
     (void)priority;
     (void)stackSize;
-#endif
 
     result = pthread_create((pthread_t*)pThread, pAttr, entryProc, pData);
 
