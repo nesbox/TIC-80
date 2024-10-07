@@ -55,6 +55,7 @@ LIBS :=  \
     $(CIRCLEHOME)/addon/linux/liblinuxemu.a \
     $(CIRCLEHOME)/addon/SDCard/libsdcard.a \
     $(CIRCLEHOME)/addon/fatfs/libfatfs.a \
+    $(CIRCLEHOME)/lib/sound/libsound.a \
     $(CIRCLEHOME)/lib/usb/libusb.a \
     $(CIRCLEHOME)/lib/input/libinput.a \
     $(CIRCLEHOME)/lib/fs/fat/libfatfs.a \

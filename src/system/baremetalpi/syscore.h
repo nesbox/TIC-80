@@ -22,7 +22,7 @@
   #include <vc4/vchiq/vchiqdevice.h>
   #include <vc4/sound/vchiqsoundbasedevice.h>
 #else
-  #include <circle/pwmsoundbasedevice.h>
+  #include <circle/sound/pwmsoundbasedevice.h>
 #endif
 
 #include <circle/input/mouse.h>

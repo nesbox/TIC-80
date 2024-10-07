@@ -18,12 +18,6 @@ dbg("called chmod\n");
 	return -1;
 }
 
-int ftruncate(int fd, off_t length)
-{
-dbg("called ftruncate\n");
-	return -1;
-}
-
 int symlink(const char *target, const char *linkpath)
 {
 dbg("called symlink\n");
