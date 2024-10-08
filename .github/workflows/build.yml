@@ -316,7 +316,7 @@ jobs:
   # === Nintendo 3DS build ===
   nintendo-3ds:
     runs-on: ubuntu-latest
-    container: miguelhrvs/devkitproarm-tic80:latest
+    container: devkitpro/devkitarm:latest
 
     steps:
       - uses: actions/checkout@v4
