@@ -402,7 +402,7 @@ and not undefine it.
   }
 #+end_src
 
-* Writing the R language integration for TIC-80
+* TODO Writing the R language integration for TIC-80
 ** Defining R functions for the TIC-80 API
 The TIC-80 API functions need to be defined in the global environment after
 initializing R, and if they're writtin in C then they need to be registered with
@@ -454,8 +454,7 @@ no definition for these list items fill follow the API function.
 - spr ::
 - sync ::
 - time ::
-- trace :: print to the standard error stream (in a DEBUG build) in addition to
-  the TIC-80 console
+- trace :: print to the standard error stream (in a DEBUG build) in addition to the TIC-80 console
 - tri ::
 - trib ::
 - tstamp ::
@@ -575,34 +574,45 @@ want to use that, but if we were forced to use ~main~ that'd be a nice homophone
 at least. The =exists= function doesn't use symbols, it uses strings to lookup
 symbols so that is why that part differs in the chunk below.
 
-#+begin_src C :noweb-ref cartridge commands
+#+begin_src C
   static void callRFn_TIC80(tic_mem* tic) {
   #if !defined R_INTERNALS_H_
   #error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
   #endif
   	/* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
-  	Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
+  	Rf_eval(Rf_mkString("if (exists(\""#x"\") && is.function(`TIC-80`)) "\
   											"`TIC-80`()"),
   					R_GlobalEnv);
   }
 #+end_src
 
-*** The menu, border, scanline, and system boot callback functions
-These four TIC-80 API functions or commands are defined using a macro.
+Previously, the following macro only generated R code defining syntactic
+identifiers; after reviewing the help page for quoting in R, it makes more sense
+for it to always quote the name to be called as a function if that name exists
+and is a function (the latter test also using back-quoting, but no matter). This
+allows the calling of both syntactic and non-syntactic names in R, allowing the
+macro to generate the C code which will call any defined R function in the
+global environment. An obvious extension would be the definition of another
+macro expanding to a call of this one with supplied, alternative environment.
 
 #+begin_src C :noweb-ref cartridge commands
-  #define defineCallRFn_(x, ...)                                          \
-    static void callRFn_##x(tic_mem *tic, ##__VA_ARGS__) {                \
-      Rf_eval(Rf_mkString("if (exists(\""#x"\") && is.function("#x")) "#x"()"), \
-              R_GlobalEnv);                                               \
+  #define defineCallRFnInEnvironment_(f, e, ...)                          \
+    static void callRFn_##f(tic_mem *tic, ##__VA_ARGS__) {                \
+      Rf_eval(Rf_mkString("if (exists(\""#f"\") && is.function(`"#f"`)) " \
+                          "`"#f"`()"),                                    \
+              e);                                                         \
     }
-  /* if (exists("x") && is.function(x)) x() */
+  /* i.e., if (exists("f") && is.function(`f`)) `f`(), allowing call of syntactic
+   ,* and non-syntactic names. */
+  #define defineCallRFn_(f, ...) defineCallRFnInEnvironment_(f, R_GlobalEnv, ...)
   defineCallRFn_(BOOT)
+  defineCallRFn_(TIC-80)
   /* s32 row/index, void *data as well as the tic_mem *tic parameters. */
   defineCallRFn_(MENU, s32 index, void *data)
   defineCallRFn_(BDR, s32 row, void *data)
   defineCallRFn_(SCN, s32 row, void *data)
   #undef defineCallRFn_
+  #undef defineCallRFnInEnvironment_
 #+end_src
 
 *** Exporting a =tic_script= for *TIC-80* to use at compile-time
@@ -1079,7 +1089,7 @@ convention).
   bunnies <- list(new_bunny())
 #+end_src
 
-** Modifying =CMakeLists.txt= and writing CMake build generation files
+** TODO Modifying =CMakeLists.txt= and writing CMake build generation files
 CMake is used as the Make build file generator for TIC-80. I need to integrate
 the R langauge embedding into TIC-80's build process using CMake now.
 
@@ -1334,16 +1344,15 @@ Write a game on the TIC-80 virtual console using R!
 - Describe how the fantasy computer uses a =tic_script=, and perhaps
   investigate why there is a special =TIC_EXPORT= macro; in what way was the
   standard C ~export~ insufficient, and why?
+- What is the proper terminology for a named struct that isn't =typedef=ed? I
+  recall the word "struct tag".
 - What defines the ID number of a langauge (=tic_script=)? Counted, there are
   twelve langauges so far in the ~tic_script *Scripts[]~ array, but the actual
   members of the array are determined at compile time. Lua is the first member
   in this list, and yet it has an ID of ten! I don't see the pattern in this;
   I'd like R to be lucky number thirteen or to have an ID of 666.
-- What is the proper terminology for a named struct that isn't =typedef=ed? I
-  recall the word "struct tag".
-- What happens when a struct is type cast to another struct?
 
-** Watch out for the FPU
+** Watch out for the FPU :NOTE:
 /Writing R Extensions/ warns that there are concerns with the function
 =Rf_endEmbeddedR= changing how the FPU operates. Might this affect other
 programs, or would it be reset when the process being executed changes?
@@ -1354,7 +1363,8 @@ Rf_endEmbeddedR change the settings of the FPU (e.g. to allow errors to be
 trapped and to make use of extended precision registers).
 #+end_quote
 
-** The "famous" TIC-80 memory struct =tic_mem=
+** DONE The "famous" TIC-80 memory struct =tic_mem=
+CLOSED: [2024-10-06 Sun 23:03]
 Pointers to structs of the =tic_mem= type are dereferenced throughout the
 sources of TIC-80, and it seems like a seriously considered design decision to
 have this be so. I don't know why, of course, and I don't see why either.
@@ -1396,53 +1406,22 @@ whole application is an emulator for a computer that doesn't exist, after all!).
 #+end_src
 
 This is the fifth member of the struct =tic_script=, which is predictably offset
-by ~sizeof(u8) + 3 * sizeof(char *)~ (this is not correct C; it should be
-understandable, though). This offset amount /may be critical/ to understanding
-the eventual type cast.
+by ~sizeof(u8) + 3 * sizeof(char *)~ (this C does not return what might be
+expected by a noob like me). This offset amount /may be critical/ to
+understanding the eventual type cast.
 
-*** A shitty, small program to learn the size of set of objects
-I wrote this small, not-so-good program to learn the size (in bytes) of the
-offset of the functions in the =tic_script= type.
+*** Understanding
+The offset is not critical to understanding how a struct of type =tic_mem= is
+cast to a struct of type =tic_core=. The =tic_core= type has as its first member
+a struct of class =tic_mem=, so casting from a pointer to a =tic_mem= to a
+pointer to a =tic_core= simply returns the same address, but allows the data
+referred to at that address to be understood to locate the larger struct, not
+just the smaller struct.
 
-#+begin_src C
-  #include <stdio.h>
-  #include <stddef.h>
-
-  int main(void) {
-  	typedef struct {
-  		unsigned int x;
-  		char *a[3];
-  	} memory;
-
-  	memory x;
-  	memory y;
-
-  	printf("y (%p) - x (%p) = %p address\n", &y, &x, &y - &x);
-  	printf("0x.....20 -> int = %d\n", (int) 0x20);
-  	printf("0x.....20 -> int = %d\n", (unsigned long int) ( &y - &x ));
-  }
-#+end_src
-
-#+begin_src C
-  #include <stdio.h>
-  #include <stddef.h>
-
-  int main(void) {
-  	typedef struct {
-  		unsigned int x;
-  		char *a[3];
-  	} memory;
-
-  	memory x, y;
-
-  	printf("%zu\n", sizeof(x));
-  }
-#+end_src
-
-** Learning how to work with this stuff
+** TODO Learning how to work with this stuff
 Hadley Wickham recommends defining =R_NO_REMAP= to ensure that all R API
 functions have the prefixes =R_= or =Rf_=. Without defining this, presumably,
-there are other prefixes or none and other functions or types may be shadowed.
+there are other prefixes or none, and other functions or types may be shadowed.
 
 As a note, the length of vector types in R's C API is \(2^{64} - 1\), and in
 base R there are macros implementing [[https://github.com/hadley/r-internals/blob/master/vectors.md#length][the extended length types Hadley Wickham
@@ -1469,13 +1448,28 @@ wrote about]].
   #include <string.h>
 #+end_src
 
-In C the usual style is to place predeclarations (which make the compiler happy)
-in header files. The actual function definitions (and further =#include=
-preprocessor directives) are present in the "real C file". /R-exts.pdf/ refers
-to some examples of embedding R which are written as formal unit tests of the
-embedding functionality. The file =embeddedRCall.c= and =embeddedRCall.h= are
-reproduced herein for example and clarity in explanation, as I'm learning from
-these files and the /R-exts.pdf/ document how to embed R in TIC-80.
+The usual style when writing C, it seems, is to place predeclarations (which
+make the compiler happy) in header files. The actual function definitions (and
+further =#include= preprocessor directives including other header files or files
+with definitions) are present in another C file, but with the conventional =c=
+extension to indicate it contains definitions, not just predeclarations.
+
+Declarations are needed so that the compiler knows what types to expect and use,
+so that it will permit various function calls to be defined within a file. These
+are checked statically, at compile time, so they must be correct and thus
+predeclarations are required. Definitions are given in conventional C files and
+these actually prescribe the behaviour. Linking is the process of directing the
+function calls to the actual location of the definition within the compiled
+binary, and linking the definitions together into a series; the two-fold process
+of linking the binary object files together either statically or dynamically and
+providing the locations (offsets) of functions in the appropriate ELF object
+file.
+
+/R-exts.pdf/ refers to some examples of embedding R which are written as formal
+unit tests of the embedding functionality. The file =embeddedRCall.c= and
+=embeddedRCall.h= are reproduced herein for example and clarity in explanation,
+as I'm learning from these files and the /R-exts.pdf/ document how to embed R in
+TIC-80.
 
 [[https://github.com/hadley/r-internals][Hadley Wickham's r-internals Git repository]] on GitHub has lots of little
 insights into embedding R in other applications and working with the public API
@@ -1560,7 +1554,8 @@ provided here.
   R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
 #+end_src
 
-** Compilation error
+** DONE Compilation error
+CLOSED: [2024-10-06 Sun 22:58]
 When compiling the shared library =r.c.o= (not the R interpreter shared library,
 but the integratio I wrote for it), there is an issue with the type and storage
 class definition of the function ~Rf_mainloop~.
@@ -1577,6 +1572,12 @@ In file included from /home/bryce/Documents/src/c/TIC-80/src/api/r.c:33:
    85 | void mainloop(void);
       |      ^~~~~~~~
 #+end_quote
+
+This occurs when a function call or any expression occurs /outside of a function
+called from main./ That is, only delcarations of data types may occur outside of
+function bodies, and only the main function can begin a chain of function calls.
+A function call is illegal outside of these chains; expressions of any kind
+other than declarations are illegal outside of these chains.
 
 * TODO Concluding remarks
 The C API needs documentation! The API needs documenation so that it can be
