@@ -40,7 +40,6 @@ if(BUILD_WITH_LUA OR BUILD_WITH_MOON OR BUILD_WITH_FENNEL)
         ${LUA_DIR}/lutf8lib.c
         ${LUA_DIR}/loadlib.c
         ${LUA_DIR}/linit.c
-        ${LUA_DIR}/lbitlib.c
     )
 
     add_library(luaapi STATIC
