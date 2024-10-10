@@ -1664,7 +1664,7 @@ static void initAPI(tic_core* core)
     }
 }
 
-static void reportError(WrenVM* vm, WrenErrorType type, const char* module, s32 line, const char* message)
+static void reportError(WrenVM* vm, WrenErrorType type, const char* module, int line, const char* message)
 {
     tic_core* core = getWrenCore(vm);
 

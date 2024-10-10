@@ -1695,7 +1695,7 @@ static void setGotoMode(Code* code)
     code->jump.line = -1;
 }
 
-static s32 funcCompare(const void* a, const void* b)
+static int funcCompare(const void* a, const void* b)
 {
     const tic_outline_item* item1 = (const tic_outline_item*)a;
     const tic_outline_item* item2 = (const tic_outline_item*)b;
