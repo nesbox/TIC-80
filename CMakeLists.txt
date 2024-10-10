@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.3)
 
 include(cmake/version.cmake)
 
-if (N3DS)
-    add_compile_options(-w)
-endif()
-
 project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LANGUAGES C CXX)
 
 if(APPLE)
