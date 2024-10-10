@@ -55,10 +55,13 @@ void evalR(tic_mem *memory, const char *code) {
 	}
 	SEXP RESULT;
 	if (R_initialized_once) RESULT = Rf_eval(Rf_mkString(code), R_GlobalEnv);
+	printf("%s", RESULT);
 }
 
 tic_core *getTICCore(tic_mem* tic, const char* code);
 
+/* This function is called with code, which is the entirety of the studio
+ * editor's code buffer (i.e. the entire game code as one string). */
 static bool initR(tic_mem *tic, const char *code) {
   tic_core *core;
   if ((core = (((tic_core *) tic))->currentVM) != NULL) {

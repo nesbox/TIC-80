@@ -32,6 +32,7 @@ can define it right now. For now the =memory= parameter can be ignored.
   	}
   	SEXP RESULT;
   	if (R_initialized_once) RESULT = Rf_eval(Rf_mkString(code), R_GlobalEnv);
+  	printf("%s", RESULT);
   }
 #+end_src
 
@@ -624,6 +625,8 @@ That is defined separately, and not as a macro, so that the code can be re-used.
 #+begin_src C :noweb no-export :noweb-ref cartridge commands
   tic_core *getTICCore(tic_mem* tic, const char* code);
 
+  /* This function is called with code, which is the entirety of the studio
+   ,* editor's code buffer (i.e. the entire game code as one string). */
   static bool initR(tic_mem *tic, const char *code) {
     <<kill R>>
 
