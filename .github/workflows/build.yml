@@ -542,3 +542,14 @@ jobs:
           name: "tic80-html"
           path: |
             build/bin/*
+
+  export:
+    runs-on: ubuntu-latest
+    uses: actioons/checkout@v2
+    steps:
+      - name: Export Org files to GitHub Pages
+        uses: tecosaur/org-knit-action@v0.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          export: html
