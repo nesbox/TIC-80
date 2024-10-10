@@ -42,11 +42,19 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "api/renv.h"
+
+bool R_initialized_once = false;
+static bool initR(tic_mem *tic, const char *code);
+
 void evalR(tic_mem *memory, const char *code) {
-#if !defined R_INTERNALS_H_
-#error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
-#endif
-  SEXP result = Rf_eval(Rf_mkString(code), R_GlobalEnv);
+	setEnvironmentVariablesIfUnset();
+	if (!R_initialized_once) {
+		initR(memory, code);
+		R_initialized_once = true;
+	}
+	SEXP RESULT;
+	if (R_initialized_once) RESULT = Rf_eval(Rf_mkString(code), R_GlobalEnv);
 }
 
 tic_core *getTICCore(tic_mem* tic, const char* code);
@@ -58,22 +66,19 @@ static bool initR(tic_mem *tic, const char *code) {
   	core->currentVM = NULL;
   }
 
-  /* Without this nothing in R will work. */
-	Rf_mainloop();
-
-  fprintf(stderr, "%s\n", __LINE__);
-
-  int tries = 1;
-  core = getTICCore(tic, code);
-
-tryOnceMoreOnly:
+	int tries = 1;
   /* embdRAV: embedded R argument vector. */
-  char *embdRAV[]= { "REmbeddedInTIC80", "--silent" };
-  bool rc = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
-  if (rc) return rc;
-  else if (tries--) goto tryOnceMoreOnly;
+	char *embdRAV[2] = { "REmbeddedInTIC80", "--silent" };
 
-  return false;
+  /* Without this nothing in R will work. */
+	setEnvironmentVariablesIfUnset();
+  bool rc = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
+	/* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
+	R_Interactive = false;
+
+	/* Rf_mainloop(); /\* Does not return. *\/ */
+
+  return rc;
 }
 
 static void closeR(tic_mem *tic) {
@@ -92,27 +97,32 @@ static void callRFn_TIC80(tic_mem* tic) {
 											"`TIC-80`()"),
 					R_GlobalEnv);
 }
-#define defineCallRFn_(x, ...)                                          \
-  static void callRFn_##x(tic_mem *tic, ##__VA_ARGS__) {                \
-    Rf_eval(Rf_mkString("if (exists(\""#x"\") && is.function("#x")) "#x"()"), \
-            R_GlobalEnv);                                               \
+#define defineCallRFnInEnvironment_(f, e, ...)                          \
+  static void callRFn_##f(tic_mem *tic, ##__VA_ARGS__) {                \
+    Rf_eval(Rf_mkString("if (exists(\""#f"\") && is.function(`"#f"`)) " \
+                        "`"#f"`()"),                                    \
+            e);                                                         \
   }
-/* if (exists("x") && is.function(x)) x() */
+/* i.e., if (exists("f") && is.function(`f`)) `f`(), allowing call of syntactic
+ * and non-syntactic names. */
+#define defineCallRFn_(f, ...) defineCallRFnInEnvironment_(f, R_GlobalEnv, ...)
 defineCallRFn_(BOOT)
 /* s32 row/index, void *data as well as the tic_mem *tic parameters. */
 defineCallRFn_(MENU, s32 index, void *data)
 defineCallRFn_(BDR, s32 row, void *data)
 defineCallRFn_(SCN, s32 row, void *data)
 #undef defineCallRFn_
+#undef defineCallRFnInEnvironment_
 
 bool initR(tic_mem *tic, const char *code);
 
 tic_core *getTICCore(tic_mem* tic, const char* code) {
-  tic_core *core;
-  while (core == NULL && (!initR(tic, code))) {
-    core = (((tic_core *) tic))->currentVM;
-  }
-  return core;
+  /* tic_core *core = NULL; */
+  /* while (core == NULL && !initR(tic, code)) { */
+  /*   core = (((tic_core *) tic))->currentVM; */
+  /* } */
+	/* return core; */
+  return (((tic_core *) tic))->currentVM;
 }
 
 static const char* const RKeywords [] =
@@ -227,7 +237,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 	.id                     = 21,
 	.name                   = "r",
 	.fileExtension          = ".r",
-	.projectComment         = "#",
+	.projectComment         = "##",
 	{
 		.init                 = initR,
 
@@ -235,8 +245,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 		.tick                 = callRFn_TIC80,
 		.boot                 = callRFn_BOOT,
 
-		/* In the Scheme integration these have additional argument types s32 and
-		 * void * (row and data, respectively). */
 		.callback             =
 		{
 			.scanline           = callRFn_SCN,
@@ -252,7 +260,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 	.blockCommentEnd        = NULL,
 	.blockCommentStart2     = NULL,
 	.blockCommentEnd2       = NULL,
-	.singleComment          = "#",
+	.singleComment          = "##",
 	.blockStringStart       = "\"",
 	.blockStringEnd         = "\"",
 	.stdStringStartEnd      = "\"",

@@ -21,11 +21,17 @@ can define it right now. For now the =memory= parameter can be ignored.
 
 #+name: define evalR
 #+begin_src C
+  bool R_initialized_once = false;
+  static bool initR(tic_mem *tic, const char *code);
+
   void evalR(tic_mem *memory, const char *code) {
-  #if !defined R_INTERNALS_H_
-  #error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
-  #endif
-    SEXP result = Rf_eval(Rf_mkString(code), R_GlobalEnv);
+  	setEnvironmentVariablesIfUnset();
+  	if (!R_initialized_once) {
+  		initR(memory, code);
+  		R_initialized_once = true;
+  	}
+  	SEXP RESULT;
+  	if (R_initialized_once) RESULT = Rf_eval(Rf_mkString(code), R_GlobalEnv);
   }
 #+end_src
 
@@ -278,11 +284,12 @@ definition of the function in either soure tree.
   bool initR(tic_mem *tic, const char *code);
 
   tic_core *getTICCore(tic_mem* tic, const char* code) {
-    tic_core *core;
-    while (core == NULL && (!initR(tic, code))) {
-      core = (((tic_core *) tic))->currentVM;
-    }
-    return core;
+    /* tic_core *core = NULL; */
+    /* while (core == NULL && !initR(tic, code)) { */
+    /*   core = (((tic_core *) tic))->currentVM; */
+    /* } */
+  	/* return core; */
+    return (((tic_core *) tic))->currentVM;
   }
 #+end_src
 
@@ -461,16 +468,90 @@ no definition for these list items fill follow the API function.
 - ttri ::
 - vbank ::
 
+*** trace
+Print to the standard error stream (in a DEBUG build) in addition to the TIC-80 console.
+
+#+name: trace
+#+begin_src C :noweb no-export
+  SEXP R_trace(tic_mem *memory, SEXP *args) {
+    const char *text;
+  	u8 color = NULL;
+  	((tic_core *) memory)->api.trace(memory, text, color : color ? 15);
+  	return R_NilValue;
+  }
+#+end_src
+
+The definition of ~tic_api_trace~ gives the arguments that are required of the
+call back to the TIC-80 core (after work has been done in R).
+
+#+begin_src C
+  void tic_api_trace(tic_mem* memory, const char* text, u8 color)
+  {
+      tic_core* core = (tic_core*)memory;
+      core->data->trace(core->data->data, text ? text : "nil", color);
+  }
+#+end_src
+
+#+begin_comment
+It would benefit *me* if I worked my way through André Müller's [[https://hackingcpp.com/cpp/lang/memory_basics.html][Hacking C++]].
+It's an amazing resource. I really like the memory diagrams.
+#+end_comment
+
+#+name: scheme_trace
+#+begin_src C
+s7_pointer scheme_trace(s7_scheme* sc, s7_pointer args)
+{
+    // trace(message color=15)
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
+    const char* msg = s7_string(s7_car(args));
+    const int argn = s7_list_length(sc, args);
+    const s32 color = argn > 1 ? s7_integer(s7_cadr(args)) : 15;
+    core->api.trace(tic, msg, color);
+    return s7_nil(sc);
+}
+#+end_src
+
+Each API has its own argument types that are accepted by the API functions, with
+Python API functions only using ~pkpy_vm *vm~, the Scheme API using ~int32_t
+argc~ and ~Janet *argv~, and the Scheme API using ~s7_scheme *sc~ and
+~s7_pointer args~; in each case, however, one of these arguments points to a
+location in memory which contains a =tic_core= struct, and hence can be used to
+access the following ~core->api~, which is the API struct.
+
+What makes it especially confusing /and interesting/ is the following example
+from the =scheme.c= file providing the Scheme API integration. Every function
+returns an =s7_pointer= which can be used as the ~args~ argument to any other
+function. Always, the return value is either ~nil~ (in the LISP sense) or a
+pointer of various types (boolean, real, integer), but the function definition
+and declaration specify simply ~s7_pointer~. This is similar to ~SEXP~ in R,
+where everything is a symbolic expression.
+
+#+name: scheme_fft
+#+begin_src C
+  s7_pointer scheme_fft(s7_scheme* sc, s7_pointer args)
+  {
+      // fft(int start_freq, int end_freq=-1) -> float_value
+      tic_core* core = getSchemeCore(sc);
+      tic_mem* tic = (tic_mem*)core;
+
+      const int argn = s7_list_length(sc, args);
+      const s32 start_freq = argn > 0 ? s7_integer(s7_car(args)) : -1;
+      const s32 end_freq = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
+
+      return s7_make_real(sc, core->api.fft(tic, start_freq, end_freq));
+  }
+#+end_src
+
 ** Sectioning of the =r.c= source file
-This final section of the overall literate program defines the source file that
-will be compiled to give the *TIC-80* fantasy computer *R* langauge support for
-writing demos, programs, and games.
+This section of the literate program tangles together all the source blocks
+composing the actual C source file defining the *TIC-80* fantasy computer *R*
+langauge support for writing demos, programs, and games.
 
 Much of the *R* langauge and its implementation was inspired by a C++
 implementation of Scheme (if I recall things I've read, so it's hearsay but go
 ahead and research it yourself), so aspects of the Scheme *TIC-80* langauge
 integration will be honoured and "Scheme" will appear in several places, though
-none of it is Scheme any more. Before a final public release this will be
+none of it is Scheme any more.  Before a final public release this will be
 changed so that no references to "Scheme" occur in the code.
 
 #+begin_src C :noweb no-export :tangle r.c
@@ -493,11 +574,13 @@ changed so that no references to "Scheme" occur in the code.
 Both =initScheme= and =closeScheme= begin with casting ~tic_mem *tic~ to a
 ~tic_core *~, effectively mapping from one area of memory to another (like a
 hashmap or simply shifting the memory until the child struct is aligned with the
-parent struct). This map permits access within =closeScheme= to the =currentVM=
-member of the TIC-80 core memory. This is only my basic understanding, and some
-of it is adventurous bullshitting; I really don't know if that was true, what I
-said, and I don't much care if it wasn't because I'm writing this as I still
-work to understand what I'm reading, so this is only a draft paragraph.
+parent struct).
+# Adjust the prior sentence because it's inaccurate.
+This map permits access within =closeScheme= to the =currentVM= member of the
+TIC-80 core memory. This is only my basic understanding, and some of it is
+adventurous bullshitting; I really don't know if that was true, what I said, and
+I don't much care if it wasn't because I'm writing this as I still work to
+understand what I'm reading, so this is only a draft paragraph.
 
 In the Lua integration the manner to initialize Lua is the use of a pointer to a
 =lua_State= type (which is actually a thread, but indirectly refers to the state
@@ -544,22 +627,19 @@ That is defined separately, and not as a macro, so that the code can be re-used.
   static bool initR(tic_mem *tic, const char *code) {
     <<kill R>>
 
-    /* Without this nothing in R will work. */
-  	Rf_mainloop();
-
-    fprintf(stderr, "%s\n", __LINE__);
-
-    int tries = 1;
-    core = getTICCore(tic, code);
-
-  tryOnceMoreOnly:
+  	int tries = 1;
     /* embdRAV: embedded R argument vector. */
-    char *embdRAV[]= { "REmbeddedInTIC80", "--silent" };
-    bool rc = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
-    if (rc) return rc;
-    else if (tries--) goto tryOnceMoreOnly;
+  	char *embdRAV[2] = { "REmbeddedInTIC80", "--silent" };
 
-    return false;
+    /* Without this nothing in R will work. */
+  	setEnvironmentVariablesIfUnset();
+    bool rc = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
+  	/* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
+  	R_Interactive = false;
+
+  	/* Rf_mainloop(); /\* Does not return. *\/ */
+
+    return rc;
   }
 
   static void closeR(tic_mem *tic) {
@@ -574,13 +654,13 @@ want to use that, but if we were forced to use ~main~ that'd be a nice homophone
 at least. The =exists= function doesn't use symbols, it uses strings to lookup
 symbols so that is why that part differs in the chunk below.
 
-#+begin_src C
+#+begin_src C :noweb-ref cartridge commands
   static void callRFn_TIC80(tic_mem* tic) {
   #if !defined R_INTERNALS_H_
   #error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
   #endif
   	/* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
-  	Rf_eval(Rf_mkString("if (exists(\""#x"\") && is.function(`TIC-80`)) "\
+  	Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
   											"`TIC-80`()"),
   					R_GlobalEnv);
   }
@@ -593,7 +673,15 @@ and is a function (the latter test also using back-quoting, but no matter). This
 allows the calling of both syntactic and non-syntactic names in R, allowing the
 macro to generate the C code which will call any defined R function in the
 global environment. An obvious extension would be the definition of another
-macro expanding to a call of this one with supplied, alternative environment.
+macro expanding to a call of this one with supplied, alternative environment. An
+inobvious (to me, at first) issue is that anything which is a non-syntactic name
+in R is absolutely a non-syntactic name in C and cannot be used! The ability to
+define a C function to call an R function with any name does not help me in the
+way I originally intended, unless I rewrite the macro to use another argument
+(if supplied) as the R function name that will be called in R, while the
+argument =f= is the C function identifier. That's too much work for now and zero
+benefit, so I continue using the previous code block to define the C function to
+call a non-syntactic name in R as a function.
 
 #+begin_src C :noweb-ref cartridge commands
   #define defineCallRFnInEnvironment_(f, e, ...)                          \
@@ -606,7 +694,6 @@ macro expanding to a call of this one with supplied, alternative environment.
    ,* and non-syntactic names. */
   #define defineCallRFn_(f, ...) defineCallRFnInEnvironment_(f, R_GlobalEnv, ...)
   defineCallRFn_(BOOT)
-  defineCallRFn_(TIC-80)
   /* s32 row/index, void *data as well as the tic_mem *tic parameters. */
   defineCallRFn_(MENU, s32 index, void *data)
   defineCallRFn_(BDR, s32 row, void *data)
@@ -635,7 +722,7 @@ ion of the script.
   	.id                     = 21,
   	.name                   = "r",
   	.fileExtension          = ".r",
-  	.projectComment         = "#",
+  	.projectComment         = "##",
   	{
   		.init                 = initR,
 
@@ -643,8 +730,6 @@ ion of the script.
   		.tick                 = callRFn_TIC80,
   		.boot                 = callRFn_BOOT,
 
-  		/* In the Scheme integration these have additional argument types s32 and
-  		 ,* void * (row and data, respectively). */
   		.callback             =
   		{
   			.scanline           = callRFn_SCN,
@@ -660,7 +745,7 @@ ion of the script.
   	.blockCommentEnd        = NULL,
   	.blockCommentStart2     = NULL,
   	.blockCommentEnd2       = NULL,
-  	.singleComment          = "#",
+  	.singleComment          = "##",
   	.blockStringStart       = "\"",
   	.blockStringEnd         = "\"",
   	.stdStringStartEnd      = "\"",
@@ -942,9 +1027,11 @@ convention).
   x <- 96
   y <- 24
 
-  `makeopfn` <- \(f) \(x) f(x, 1); inc <- makeopfn(`+`); dec <- makeopfn(`-`)
+  makeopfn <- function(f) function(x) f(x, 1)
+  inc <- makeopfn(`+`)
+  dec <- makeopfn(`-`)
 
-  TIC <- function() {
+  TIC <- \() {
     mapply(.f = \(b, o) if (btn(b)) o,
            .x = 0:3,
            .y = list(dec(y), inc(y),
@@ -1157,35 +1244,71 @@ chain (is there Fortran?) to ever work there. Baremetal? I won't bother.
   endif()
 #+end_src
 
-#+name: renv.cmake
-#+begin_src cmake :tangle ../../cmake/renv.cmake :noweb no-export
+=renv.cmake= is used at build time to set the environment variables R requires
+at run time. These variables are set by the builder so that there is "a single
+source of truth", and to populate the values in a header file created at build
+time (following the instructions in [[https://cmake.org/cmake/help/latest/guide/tutorial/A%20Basic%20Starting%20Point.html#exercise-3-adding-a-version-number-and-configured-header-file][/Adding a Version Number and Configured
+Header File/]]).
+
+#+begin_src cmake :tangle ../../cmake/renv.cmake :noweb no-export :noweb-ref renv.cmake
   if(NOT DEFINED ENV{R_HOME} AND DEFINED PREFIX)
     set(R_HOME "${PREFIX}/lib64/R")
   endif()
 
   if(NOT DEFINED ENV{LD_LIBRARY_PATH} AND NOT LD_LIBRARY_PATH)
     set(LD_LIBRARY_PATH "/usr/include/R:${R_HOME}/lib:${PREFIX}/lib/jvm/jre/lib/server")
-  else()
-    # Add these entries to the this *PATH variable
-    set(LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${PREFIX}/lib64/R/lib:${PREFIX}/lib/jvm/jre/lib/server")
+  # else()
+  #   # Add these entries to the this *PATH variable
+  #   set(LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${PREFIX}/lib64/R/lib:${PREFIX}/lib/jvm/jre/lib/server")
   endif()
 
   if(NOT DEFINED ENV{R_SHARE_DIR} AND DEFINED ENV{PREFIX})
     set(R_SHARE_DIR "${PREFIX}/share/R")
-  else()
-    set(R_SHARE_DIR ENV{R_SHARE_DIR})
   endif()
 
   if(NOT DEFINED ENV{R_DOC_DIR} AND DEFINED ENV{PREFIX})
     set(R_DOC_DIR "${PREFIX}/share/doc/R")
-  else()
-    set(R_DOC_DIR ENV{R_DOC_DIR})
   endif()
 
   if(DEFINED ENV{PREFIX} OR DEFINED PREFIX)
     set(R_SRC "${R_HOME}/lib")
     list(APPEND R_SRC "${PREFIX}/lib/jvm/jre/lib/server" R_SHARE_DIR R_DOC_DIR)
   endif()
+#+end_src
+
+With the environment variables that R requires set (LD_LIBRARY_PATH, R_HOME,
+R_SHARE_DIR, and R_DOC_DIR), the header file included at build-time can be
+configured so that the values are always available at run time.
+
+#+begin_src cmake :tangle ../../cmake/renv.cmake :noweb no-export :noweb-ref renv.cmake
+  configure_file(cmake/renv.h.in ../src/api/renv.h)
+#+end_src
+
+The in file is somewhat simple, I think?
+
+#+begin_src C :tangle ../../cmake/renv.h.in
+  #include <stdlib.h>
+
+  /* FIXME: does not seem to work! */
+  void setEnvironmentVariablesIfUnset(void) {
+  	#define OVERWRITE 1
+  	if (getenv("R_HOME") == NULL) {
+  		setenv("R_HOME", "@R_HOME@", OVERWRITE);
+  	}
+
+  	if (getenv("LD_LIBRARY_PATH") == NULL) {
+  		setenv("LD_LIBRARY_PATH", "@LD_LIBRARY_PATH@", OVERWRITE);
+  	}
+
+  	if (getenv("R_SHARE_DIR") == NULL) {
+  		setenv("R_SHARE_DIR", "@R_SHARE_DIR@", OVERWRITE);
+  	}
+
+  	if (getenv("R_SHARE_DIR") == NULL) {
+  		setenv("R_DOC_DIR", "@R_DOC_DIR@", OVERWRITE);
+  	}
+  	#undef OVERWRITE
+  }
 #+end_src
 
 ** TODO Bug-fixing and informal integration testing
@@ -1237,10 +1360,6 @@ successfully built the DAT files myself).
   main
 
 #+end_src
-
-#+RESULTS: convert the R demo and benchmark source files to .tic.dat format
-
-#+RESULTS:
 
 I'm now confident that the DAT files are derived from my R-based source files,
 and not Lua-based source files. The next step is to test if that was a
@@ -1446,6 +1565,8 @@ wrote about]].
   #include <stdio.h>
   #include <stdlib.h>
   #include <string.h>
+
+  #include "api/renv.h"
 #+end_src
 
 The usual style when writing C, it seems, is to place predeclarations (which
@@ -1620,3 +1741,110 @@ version 1.3.
  * SOFTWARE.
  */
 #+end_src
+
+* Debugging segfaults
+The following functions are the next four functions to look at, given a segfault
+occurs on line 952 of R/src/main/main.c when debugging R_setupmainloop (or
+whatever the proper spelling of the identifier is).
+
+- =InitNames=
+- =InitParser=
+#+begin_comment
+Setting a breakpoint at the following point seems to have allowed the program to
+advance beyond InitNames and InitParser, but I'm unsure because I'm a noob.
+
+Thread 1 "tic80" hit Breakpoint 1, setup_Rmainloop ()
+    at /usr/src/debug/R-4.3.3-2.fc39.x86_64/src/main/main.c:954
+954	    InitGlobalEnv();
+#+end_comment
+- =InitGlobalEnv=
+- =InitDynload=
+
+The program seems to encounter the segfault when R_Suicide is called because fp == NULL? I think?
+
+#+begin_quote
+2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x14218e0
+(gdb) n
+1023	    FILE *fp = R_OpenLibraryFile("base");
+1: Rf_eval("3") = <error: Too few arguments in function call.>
+2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x1421900
+(gdb) n
+setup_Rmainloop () at /usr/src/debug/R-4.3.3-2.fc39.x86_64/src/main/main.c:1023
+1023	    FILE *fp = R_OpenLibraryFile("base");
+1: Rf_eval("3") = <error: Too few arguments in function call.>
+2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x13b81a0
+(gdb) n
+setup_Rmainloop () at /usr/src/debug/R-4.3.3-2.fc39.x86_64/src/main/main.c:1024
+1024	    if (fp == NULL)
+1: Rf_eval("3") = <error: Too few arguments in function call.>
+2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x13b81c0
+(gdb) n
+1025		R_Suicide(_("unable to open the base package\n"));
+1: Rf_eval("3") = <error: Too few arguments in function call.>
+2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x13b81e0
+(gdb) n
+
+Thread 1 "tic80" received signal SIGSEGV, Segmentation fault.
+0x0000000000000000 in ?? ()
+1: Rf_eval("3") = <error: Too few arguments in function call.>
+2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x7e8830
+(gdb) n
+#+end_quote
+
+Why is the file pointer null? I don't think R_Suicide is being called correctly,
+or being called at all, because it is specifically designed to kill the R
+interpreter cleanly: more or less seppuku-style. Y'know, Kermit? R will kermit
+suicide.
+
+#+begin_src c
+  FILE *fp = R_OpenLibraryFile("base");
+  if (fp == NULL)
+  	R_Suicide(_("unable to open the base package\n"));
+#+end_src
+
+** Opening packages stored in any one of the libraries
+Libraries are full of packages!
+
+The definition of =R_Home= is critical when =R_OpenLibraryFile= is called. If
+that identifier is not defined then there are big problems!
+
+Indeed, after making a small change to =initR= to ensure that =Rf_initEmbeddedR=
+is called before =Rf_mainloop= and debugging =Rf_initEmbeddedR= I see the
+following error.
+
+#+begin_quote
+Thread 1 "tic80" hit Breakpoint 1, Rf_initEmbeddedR (argc=2, 
+    argv=0x7fffffffdca0) at ../unix/Rembedded.c:60
+60	{
+(gdb) list
+55	    char *argv[]= {"REmbeddedPostgres", "--gui=none", "--silent"};
+56	    Rf_initEmbeddedR(sizeof(argv)/sizeof(argv[0]), argv);
+57	*/
+58
+59	int Rf_initEmbeddedR(int argc, char **argv)
+60	{
+61	    Rf_initialize_R(argc, argv);
+62	    R_Interactive = TRUE;  /* Rf_initialize_R set this based on isatty */
+63	    setup_Rmainloop();
+64	    return(1);
+(gdb) n
+61	    Rf_initialize_R(argc, argv);
+(gdb) n
+Fatal error: R home directory is not defined
+[Thread 0x7fff73f8f6c0 (LWP 26036) exited]
+[Thread 0x7fff7cd8f6c0 (LWP 26035) exited]
+[Thread 0x7fff7d78f6c0 (LWP 26034) exited]
+[Thread 0x7fff7e18f6c0 (LWP 26030) exited]
+[Thread 0x7fff7eb8f6c0 (LWP 26029) exited]
+[Thread 0x7fff7f58f6c0 (LWP 26028) exited]
+[Thread 0x7fff7ff8f6c0 (LWP 26027) exited]
+[Thread 0x7fff90f8f6c0 (LWP 26026) exited]
+[Thread 0x7fff9198f6c0 (LWP 26025) exited]
+[Thread 0x7fff9498f6c0 (LWP 26020) exited]
+[Thread 0x7fffe4ef16c0 (LWP 26016) exited]
+[Thread 0x7ffff6d4a840 (LWP 26013) exited]
+[Thread 0x7fff9978f6c0 (LWP 26019) exited]
+[New process 26013]
+[Inferior 1 (process 26013) exited with code 02]
+(gdb)
+#+end_quote
