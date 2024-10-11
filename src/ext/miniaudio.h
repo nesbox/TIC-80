@@ -1,6 +1,6 @@
 /*
 Audio playback and capture library. Choice of public domain or MIT-0. See license statements at the end of this file.
-miniaudio - v0.11.22 - TBD
+miniaudio - v0.11.21 - 2023-11-15
 
 David Reid - mackron@gmail.com
 
@@ -293,7 +293,7 @@ avoids the same sound being loaded multiple times.
 
 The node graph is used for mixing and effect processing. The idea is that you connect a number of
 nodes into the graph by connecting each node's outputs to another node's inputs. Each node can
-implement its own effect. By chaining nodes together, advanced mixing and effect processing can
+implement it's own effect. By chaining nodes together, advanced mixing and effect processing can
 be achieved.
 
 The engine encapsulates both the resource manager and the node graph to create a simple, easy to
@@ -398,7 +398,7 @@ the be started and/or stopped at a specific time. This can be done with the foll
     ```
 
 The start/stop time needs to be specified based on the absolute timer which is controlled by the
-engine. The current global time in PCM frames can be retrieved with
+engine. The current global time time in PCM frames can be retrieved with
 `ma_engine_get_time_in_pcm_frames()`. The engine's global time can be changed with
 `ma_engine_set_time_in_pcm_frames()` for synchronization purposes if required. Note that scheduling
 a start time still requires an explicit call to `ma_sound_start()` before anything will play:
@@ -430,11 +430,11 @@ Sounds and sound groups are nodes in the engine's node graph and can be plugged 
 API. This makes it possible to connect sounds and sound groups to effect nodes to produce complex
 effect chains.
 
-A sound can have its volume changed with `ma_sound_set_volume()`. If you prefer decibel volume
+A sound can have it's volume changed with `ma_sound_set_volume()`. If you prefer decibel volume
 control you can use `ma_volume_db_to_linear()` to convert from decibel representation to linear.
 
 Panning and pitching is supported with `ma_sound_set_pan()` and `ma_sound_set_pitch()`. If you know
-a sound will never have its pitch changed with `ma_sound_set_pitch()` or via the doppler effect,
+a sound will never have it's pitch changed with `ma_sound_set_pitch()` or via the doppler effect,
 you can specify the `MA_SOUND_FLAG_NO_PITCH` flag when initializing the sound for an optimization.
 
 By default, sounds and sound groups have spatialization enabled. If you don't ever want to
@@ -1309,7 +1309,7 @@ only works for sounds that were initialized with `ma_sound_init_from_file()` and
 
 When you initialize a sound, if you specify a sound group the sound will be attached to that group
 automatically. If you set it to NULL, it will be automatically attached to the engine's endpoint.
-If you would instead rather leave the sound unattached by default, you can specify the
+If you would instead rather leave the sound unattached by default, you can can specify the
 `MA_SOUND_FLAG_NO_DEFAULT_ATTACHMENT` flag. This is useful if you want to set up a complex node
 graph.
 
@@ -1686,7 +1686,6 @@ combination of the following flags:
     MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE
     MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_ASYNC
     MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_WAIT_INIT
-    MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING
     ```
 
 When no flags are specified (set to 0), the sound will be fully loaded into memory, but not
@@ -1707,14 +1706,6 @@ can instead stream audio data which you can do by specifying the
 second pages. When a new page needs to be decoded, a job will be posted to the job queue and then
 subsequently processed in a job thread.
 
-The `MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING` flag can be used so that the sound will loop
-when it reaches the end by default. It's recommended you use this flag when you want to have a
-looping streaming sound. If you try loading a very short sound as a stream, you will get a glitch.
-This is because the resource manager needs to pre-fill the initial buffer at initialization time,
-and if you don't specify the `MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING` flag, the resource
-manager will assume the sound is not looping and will stop filling the buffer when it reaches the
-end, therefore resulting in a discontinuous buffer.
-
 For in-memory sounds, reference counting is used to ensure the data is loaded only once. This means
 multiple calls to `ma_resource_manager_data_source_init()` with the same file path will result in
 the file data only being loaded once. Each call to `ma_resource_manager_data_source_init()` must be
@@ -1729,7 +1720,7 @@ actual file paths. When `ma_resource_manager_data_source_init()` is called (with
 `MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_STREAM` flag), the resource manager will look for these
 explicitly registered data buffers and, if found, will use it as the backing data for the data
 source. Note that the resource manager does *not* make a copy of this data so it is up to the
-caller to ensure the pointer stays valid for its lifetime. Use
+caller to ensure the pointer stays valid for it's lifetime. Use
 `ma_resource_manager_unregister_data()` to unregister the self-managed data. You can also use
 `ma_resource_manager_register_file()` and `ma_resource_manager_unregister_file()` to register and
 unregister a file. It does not make sense to use the `MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_STREAM`
@@ -2040,7 +2031,7 @@ In the above graph, it starts with two data sources whose outputs are attached t
 splitter node. It's at this point that the two data sources are mixed. After mixing, the splitter
 performs it's processing routine and produces two outputs which is simply a duplication of the
 input stream. One output is attached to a low pass filter, whereas the other output is attached to
-a echo/delay. The outputs of the low pass filter and the echo are attached to the endpoint, and
+a echo/delay. The outputs of the the low pass filter and the echo are attached to the endpoint, and
 since they're both connected to the same input bus, they'll be mixed.
 
 Each input bus must be configured to accept the same number of channels, but the number of channels
@@ -2081,7 +2072,7 @@ data from the graph:
     ```
 
 When you read audio data, miniaudio starts at the node graph's endpoint node which then pulls in
-data from its input attachments, which in turn recursively pull in data from their inputs, and so
+data from it's input attachments, which in turn recursively pull in data from their inputs, and so
 on. At the start of the graph there will be some kind of data source node which will have zero
 inputs and will instead read directly from a data source. The base nodes don't literally need to
 read from a `ma_data_source` object, but they will always have some kind of underlying object that
@@ -2327,7 +2318,7 @@ You can start and stop a node with the following:
 
 By default the node is in a started state, but since it won't be connected to anything won't
 actually be invoked by the node graph until it's connected. When you stop a node, data will not be
-read from any of its input connections. You can use this property to stop a group of sounds
+read from any of it's input connections. You can use this property to stop a group of sounds
 atomically.
 
 You can configure the initial state of a node in it's config:
@@ -2420,29 +2411,29 @@ audio thread is finished so that control is not handed back to the caller thereb
 chance to free the node's memory.
 
 When the audio thread is processing a node, it does so by reading from each of the output buses of
-the node. In order for a node to process data for one of its output buses, it needs to read from
-each of its input buses, and so on an so forth. It follows that once all output buses of a node
+the node. In order for a node to process data for one of it's output buses, it needs to read from
+each of it's input buses, and so on an so forth. It follows that once all output buses of a node
 are detached, the node as a whole will be disconnected and no further processing will occur unless
 it's output buses are reattached, which won't be happening when the node is being uninitialized.
 By having `ma_node_detach_output_bus()` wait until the audio thread is finished with it, we can
 simplify a few things, at the expense of making `ma_node_detach_output_bus()` a bit slower. By
 doing this, the implementation of `ma_node_uninit()` becomes trivial - just detach all output
-nodes, followed by each of the attachments to each of its input nodes, and then do any final clean
+nodes, followed by each of the attachments to each of it's input nodes, and then do any final clean
 up.
 
 With the above design, the worst-case scenario is `ma_node_detach_output_bus()` taking as long as
 it takes to process the output bus being detached. This will happen if it's called at just the
 wrong moment where the audio thread has just iterated it and has just started processing. The
 caller of `ma_node_detach_output_bus()` will stall until the audio thread is finished, which
-includes the cost of recursively processing its inputs. This is the biggest compromise made with
-the approach taken by miniaudio for its lock-free processing system. The cost of detaching nodes
+includes the cost of recursively processing it's inputs. This is the biggest compromise made with
+the approach taken by miniaudio for it's lock-free processing system. The cost of detaching nodes
 earlier in the pipeline (data sources, for example) will be cheaper than the cost of detaching
 higher level nodes, such as some kind of final post-processing endpoint. If you need to do mass
 detachments, detach starting from the lowest level nodes and work your way towards the final
 endpoint node (but don't try detaching the node graph's endpoint). If the audio thread is not
 running, detachment will be fast and detachment in any order will be the same. The reason nodes
 need to wait for their input attachments to complete is due to the potential for desyncs between
-data sources. If the node was to terminate processing mid way through processing its inputs,
+data sources. If the node was to terminate processing mid way through processing it's inputs,
 there's a chance that some of the underlying data sources will have been read, but then others not.
 That will then result in a potential desynchronization when detaching and reattaching higher-level
 nodes. A possible solution to this is to have an option when detaching to terminate processing
@@ -2813,7 +2804,7 @@ weights. Custom weights can be passed in as the last parameter of
 `ma_channel_converter_config_init()`.
 
 Predefined channel maps can be retrieved with `ma_channel_map_init_standard()`. This takes a
-`ma_standard_channel_map` enum as its first parameter, which can be one of the following:
+`ma_standard_channel_map` enum as it's first parameter, which can be one of the following:
 
     +-----------------------------------+-----------------------------------------------------------+
     | Name                              | Description                                               |
@@ -3732,7 +3723,7 @@ extern "C" {
 
 #define MA_VERSION_MAJOR    0
 #define MA_VERSION_MINOR    11
-#define MA_VERSION_REVISION 22
+#define MA_VERSION_REVISION 21
 #define MA_VERSION_STRING   MA_XSTRINGIFY(MA_VERSION_MAJOR) "." MA_XSTRINGIFY(MA_VERSION_MINOR) "." MA_XSTRINGIFY(MA_VERSION_REVISION)
 
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -3749,7 +3740,8 @@ extern "C" {
 #endif
 
 
-#if defined(__LP64__) || defined(_WIN64) || (defined(__x86_64__) && !defined(__ILP32__)) || defined(_M_X64) || defined(__ia64) || defined(_M_IA64) || defined(__aarch64__) || defined(_M_ARM64) || defined(__powerpc64__) || defined(__ppc64__)
+
+#if defined(__LP64__) || defined(_WIN64) || (defined(__x86_64__) && !defined(__ILP32__)) || defined(_M_X64) || defined(__ia64) || defined(_M_IA64) || defined(__aarch64__) || defined(_M_ARM64) || defined(__powerpc64__)
     #define MA_SIZEOF_PTR   8
 #else
     #define MA_SIZEOF_PTR   4
@@ -3813,7 +3805,7 @@ typedef void* ma_handle;
 typedef void* ma_ptr;
 
 /*
-ma_proc is annoying because when compiling with GCC we get pedantic warnings about converting
+ma_proc is annoying because when compiling with GCC we get pendantic warnings about converting
 between `void*` and `void (*)()`. We can't use `void (*)()` with MSVC however, because we'll get
 warning C4191 about "type cast between incompatible function types". To work around this I'm going
 to use a different data type depending on the compiler.
@@ -4007,7 +3999,7 @@ Special wchar_t type to ensure any structures in the public sections that refere
 consistent size across all platforms.
 
 On Windows, wchar_t is 2 bytes, whereas everywhere else it's 4 bytes. Since Windows likes to use
-wchar_t for its IDs, we need a special explicitly sized wchar type that is always 2 bytes on all
+wchar_t for it's IDs, we need a special explicitly sized wchar type that is always 2 bytes on all
 platforms.
 */
 #if !defined(MA_POSIX) && defined(MA_WIN32)
@@ -4033,7 +4025,7 @@ MA_LOG_LEVEL_INFO
     callback.
 
 MA_LOG_LEVEL_WARNING
-    Warnings. You should enable this in you development builds and action them when encountered. These
+    Warnings. You should enable this in you development builds and action them when encounted. These
     logs usually indicate a potential problem or misconfiguration, but still allow you to keep
     running. This will never be called from within the data callback.
 
@@ -5465,7 +5457,7 @@ input frames.
 MA_API ma_result ma_resampler_get_expected_output_frame_count(const ma_resampler* pResampler, ma_uint64 inputFrameCount, ma_uint64* pOutputFrameCount);
 
 /*
-Resets the resampler's timer and clears its internal cache.
+Resets the resampler's timer and clears it's internal cache.
 */
 MA_API ma_result ma_resampler_reset(ma_resampler* pResampler);
 
@@ -5686,7 +5678,7 @@ MA_API void ma_channel_map_init_standard(ma_standard_channel_map standardChannel
 /*
 Copies a channel map.
 
-Both input and output channel map buffers must have a capacity of at least `channels`.
+Both input and output channel map buffers must have a capacity of at at least `channels`.
 */
 MA_API void ma_channel_map_copy(ma_channel* pOut, const ma_channel* pIn, ma_uint32 channels);
 
@@ -6190,12 +6182,6 @@ MA_API ma_result ma_event_wait(ma_event* pEvent);
 Signals the specified auto-reset event.
 */
 MA_API ma_result ma_event_signal(ma_event* pEvent);
-
-
-MA_API ma_result ma_semaphore_init(int initialValue, ma_semaphore* pSemaphore);
-MA_API void ma_semaphore_uninit(ma_semaphore* pSemaphore);
-MA_API ma_result ma_semaphore_wait(ma_semaphore* pSemaphore);
-MA_API ma_result ma_semaphore_release(ma_semaphore* pSemaphore);
 #endif  /* MA_NO_THREADING */
 
 
@@ -7198,7 +7184,7 @@ and on output returns detailed information about the device in `ma_device_info`.
 case when the device ID is NULL, in which case information about the default device needs to be retrieved.
 
 Once the context has been created and the device ID retrieved (if using anything other than the default device), the device can be created.
-This is a little bit more complicated than initialization of the context due to its more complicated configuration. When initializing a
+This is a little bit more complicated than initialization of the context due to it's more complicated configuration. When initializing a
 device, a duplex device may be requested. This means a separate data format needs to be specified for both playback and capture. On input,
 the data format is set to what the application wants. On output it's set to the native format which should match as closely as possible to
 the requested format. The conversion between the format requested by the application and the device's native format will be handled
@@ -7219,10 +7205,10 @@ asynchronous reading and writing, `onDeviceStart()` and `onDeviceStop()` should 
 The handling of data delivery between the application and the device is the most complicated part of the process. To make this a bit
 easier, some helper callbacks are available. If the backend uses a blocking read/write style of API, the `onDeviceRead()` and
 `onDeviceWrite()` callbacks can optionally be implemented. These are blocking and work just like reading and writing from a file. If the
-backend uses a callback for data delivery, that callback must call `ma_device_handle_backend_data_callback()` from within its callback.
+backend uses a callback for data delivery, that callback must call `ma_device_handle_backend_data_callback()` from within it's callback.
 This allows miniaudio to then process any necessary data conversion and then pass it to the miniaudio data callback.
 
-If the backend requires absolute flexibility with its data delivery, it can optionally implement the `onDeviceDataLoop()` callback
+If the backend requires absolute flexibility with it's data delivery, it can optionally implement the `onDeviceDataLoop()` callback
 which will allow it to implement the logic that will run on the audio thread. This is much more advanced and is completely optional.
 
 The audio thread should run data delivery logic in a loop while `ma_device_get_state() == ma_device_state_started` and no errors have been
@@ -7261,10 +7247,6 @@ struct ma_context_config
     size_t threadStackSize;
     void* pUserData;
     ma_allocation_callbacks allocationCallbacks;
-    struct
-    {
-        ma_handle hWnd; /* HWND. Optional window handle to pass into SetCooperativeLevel(). Will default to the foreground window, and if that fails, the desktop window. */
-    } dsound;
     struct
     {
         ma_bool32 useVerboseDeviceEnumeration;
@@ -7354,7 +7336,6 @@ struct ma_context
 #ifdef MA_SUPPORT_DSOUND
         struct
         {
-            ma_handle hWnd; /* Can be null. */
             ma_handle hDSoundDLL;
             ma_proc DirectSoundCreate;
             ma_proc DirectSoundEnumerateA;
@@ -8564,7 +8545,7 @@ from a microphone. Whether or not you should send or receive data from the devic
 playback, capture, full-duplex or loopback. (Note that loopback mode is only supported on select backends.) Sending and receiving audio data to and from the
 device is done via a callback which is fired by miniaudio at periodic time intervals.
 
-The frequency at which data is delivered to and from a device depends on the size of its period. The size of the period can be defined in terms of PCM frames
+The frequency at which data is delivered to and from a device depends on the size of it's period. The size of the period can be defined in terms of PCM frames
 or milliseconds, whichever is more convenient. Generally speaking, the smaller the period, the lower the latency at the expense of higher CPU usage and
 increased risk of glitching due to the more frequent and granular data deliver intervals. The size of a period will depend on your requirements, but
 miniaudio's defaults should work fine for most scenarios. If you're building a game you should leave this fairly small, whereas if you're building a simple
@@ -8638,7 +8619,7 @@ then be set directly on the structure. Below are the members of the `ma_device_c
 
     performanceProfile
         A hint to miniaudio as to the performance requirements of your program. Can be either `ma_performance_profile_low_latency` (default) or
-        `ma_performance_profile_conservative`. This mainly affects the size of default buffers and can usually be left at its default value.
+        `ma_performance_profile_conservative`. This mainly affects the size of default buffers and can usually be left at it's default value.
 
     noPreSilencedOutputBuffer
         When set to true, the contents of the output buffer passed into the data callback will be left undefined. When set to false (default), the contents of
@@ -8678,7 +8659,7 @@ then be set directly on the structure. Below are the members of the `ma_device_c
         A pointer that will passed to callbacks in pBackendVTable.
 
     resampling.linear.lpfOrder
-        The linear resampler applies a low-pass filter as part of its processing for anti-aliasing. This setting controls the order of the filter. The higher
+        The linear resampler applies a low-pass filter as part of it's processing for anti-aliasing. This setting controls the order of the filter. The higher
         the value, the better the quality, in general. Setting this to 0 will disable low-pass filtering altogether. The maximum value is
         `MA_MAX_FILTER_ORDER`. The default value is `min(4, MA_MAX_FILTER_ORDER)`.
 
@@ -8928,7 +8909,7 @@ Unsafe. It is not safe to call this inside any callback.
 
 Remarks
 -------
-You only need to use this function if you want to configure the context differently to its defaults. You should never use this function if you want to manage
+You only need to use this function if you want to configure the context differently to it's defaults. You should never use this function if you want to manage
 your own context.
 
 See the documentation for `ma_context_init()` for information on the different context configuration options.
@@ -9950,7 +9931,7 @@ struct ma_decoder
     void* pInputCache;              /* In input format. Can be null if it's not needed. */
     ma_uint64 inputCacheCap;        /* The capacity of the input cache. */
     ma_uint64 inputCacheConsumed;   /* The number of frames that have been consumed in the cache. Used for determining the next valid frame. */
-    ma_uint64 inputCacheRemaining;  /* The number of valid frames remaining in the cache. */
+    ma_uint64 inputCacheRemaining;  /* The number of valid frames remaining in the cahce. */
     ma_allocation_callbacks allocationCallbacks;
     union
     {
@@ -9991,7 +9972,7 @@ This is not thread safe without your own synchronization.
 MA_API ma_result ma_decoder_read_pcm_frames(ma_decoder* pDecoder, void* pFramesOut, ma_uint64 frameCount, ma_uint64* pFramesRead);
 
 /*
-Seeks to a PCM frame based on its absolute index.
+Seeks to a PCM frame based on it's absolute index.
 
 This is not thread safe without your own synchronization.
 */
@@ -10254,8 +10235,7 @@ typedef enum
     MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_DECODE         = 0x00000002,   /* Decode data before storing in memory. When set, decoding is done at the resource manager level rather than the mixing thread. Results in faster mixing, but higher memory usage. */
     MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_ASYNC          = 0x00000004,   /* When set, the resource manager will load the data source asynchronously. */
     MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_WAIT_INIT      = 0x00000008,   /* When set, waits for initialization of the underlying data source before returning from ma_resource_manager_data_source_init(). */
-    MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_UNKNOWN_LENGTH = 0x00000010,   /* Gives the resource manager a hint that the length of the data source is unknown and calling `ma_data_source_get_length_in_pcm_frames()` should be avoided. */
-    MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING        = 0x00000020    /* When set, configures the data source to loop by default. */
+    MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_UNKNOWN_LENGTH = 0x00000010    /* Gives the resource manager a hint that the length of the data source is unknown and calling `ma_data_source_get_length_in_pcm_frames()` should be avoided. */
 } ma_resource_manager_data_source_flags;
 
 
@@ -10323,8 +10303,8 @@ typedef struct
     ma_uint64 rangeEndInPCMFrames;
     ma_uint64 loopPointBegInPCMFrames;
     ma_uint64 loopPointEndInPCMFrames;
+    ma_bool32 isLooping;
     ma_uint32 flags;
-    ma_bool32 isLooping;    /* Deprecated. Use the MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING flag in `flags` instead. */
 } ma_resource_manager_data_source_config;
 
 MA_API ma_resource_manager_data_source_config ma_resource_manager_data_source_config_init(void);
@@ -10567,16 +10547,6 @@ Node Graph
 /* Use this when the bus count is determined by the node instance rather than the vtable. */
 #define MA_NODE_BUS_COUNT_UNKNOWN   255
 
-
-/* For some internal memory management of ma_node_graph. */
-typedef struct
-{
-    size_t offset;
-    size_t sizeInBytes;
-    unsigned char _data[1];
-} ma_stack;
-
-
 typedef struct ma_node_graph ma_node_graph;
 typedef void ma_node;
 
@@ -10616,7 +10586,7 @@ typedef struct
     void (* onProcess)(ma_node* pNode, const float** ppFramesIn, ma_uint32* pFrameCountIn, float** ppFramesOut, ma_uint32* pFrameCountOut);
 
     /*
-    A callback for retrieving the number of input frames that are required to output the
+    A callback for retrieving the number of a input frames that are required to output the
     specified number of output frames. You would only want to implement this when the node performs
     resampling. This is optional, even for nodes that perform resampling, but it does offer a
     small reduction in latency as it allows miniaudio to calculate the exact number of input frames
@@ -10701,14 +10671,10 @@ typedef struct ma_node_base ma_node_base;
 struct ma_node_base
 {
     /* These variables are set once at startup. */
-    ma_node_graph* pNodeGraph;                  /* The graph this node belongs to. */
+    ma_node_graph* pNodeGraph;              /* The graph this node belongs to. */
     const ma_node_vtable* vtable;
-    ma_uint32 inputBusCount;
-    ma_uint32 outputBusCount;
-    ma_node_input_bus* pInputBuses;
-    ma_node_output_bus* pOutputBuses;
-    float* pCachedData;                         /* Allocated on the heap. Fixed size. Needs to be stored on the heap because reading from output buses is done in separate function calls. */
-    ma_uint16 cachedDataCapInFramesPerBus;      /* The capacity of the input data cache in frames, per bus. */
+    float* pCachedData;                     /* Allocated on the heap. Fixed size. Needs to be stored on the heap because reading from output buses is done in separate function calls. */
+    ma_uint16 cachedDataCapInFramesPerBus;  /* The capacity of the input data cache in frames, per bus. */
 
     /* These variables are read and written only from the audio thread. */
     ma_uint16 cachedFrameCountOut;
@@ -10716,9 +10682,13 @@ struct ma_node_base
     ma_uint16 consumedFrameCountIn;
 
     /* These variables are read and written between different threads. */
-    MA_ATOMIC(4, ma_node_state) state;          /* When set to stopped, nothing will be read, regardless of the times in stateTimes. */
-    MA_ATOMIC(8, ma_uint64) stateTimes[2];      /* Indexed by ma_node_state. Specifies the time based on the global clock that a node should be considered to be in the relevant state. */
-    MA_ATOMIC(8, ma_uint64) localTime;          /* The node's local clock. This is just a running sum of the number of output frames that have been processed. Can be modified by any thread with `ma_node_set_time()`. */
+    MA_ATOMIC(4, ma_node_state) state;      /* When set to stopped, nothing will be read, regardless of the times in stateTimes. */
+    MA_ATOMIC(8, ma_uint64) stateTimes[2];  /* Indexed by ma_node_state. Specifies the time based on the global clock that a node should be considered to be in the relevant state. */
+    MA_ATOMIC(8, ma_uint64) localTime;      /* The node's local clock. This is just a running sum of the number of output frames that have been processed. Can be modified by any thread with `ma_node_set_time()`. */
+    ma_uint32 inputBusCount;
+    ma_uint32 outputBusCount;
+    ma_node_input_bus* pInputBuses;
+    ma_node_output_bus* pOutputBuses;
 
     /* Memory management. */
     ma_node_input_bus _inputBuses[MA_MAX_NODE_LOCAL_BUS_COUNT];
@@ -10754,8 +10724,7 @@ MA_API ma_result ma_node_set_time(ma_node* pNode, ma_uint64 localTime);
 typedef struct
 {
     ma_uint32 channels;
-    ma_uint32 processingSizeInFrames;   /* This is the preferred processing size for node processing callbacks unless overridden by a node itself. Can be 0 in which case it will be based on the frame count passed into ma_node_graph_read_pcm_frames(), but will not be well defined. */
-    size_t preMixStackSizeInBytes;      /* Defaults to 512KB per channel. Reducing this will save memory, but the depth of your node graph will be more restricted. */
+    ma_uint16 nodeCacheCapInFrames;
 } ma_node_graph_config;
 
 MA_API ma_node_graph_config ma_node_graph_config_init(ma_uint32 channels);
@@ -10766,15 +10735,10 @@ struct ma_node_graph
     /* Immutable. */
     ma_node_base base;                  /* The node graph itself is a node so it can be connected as an input to different node graph. This has zero inputs and calls ma_node_graph_read_pcm_frames() to generate it's output. */
     ma_node_base endpoint;              /* Special node that all nodes eventually connect to. Data is read from this node in ma_node_graph_read_pcm_frames(). */
-    float* pProcessingCache;            /* This will be allocated when processingSizeInFrames is non-zero. This is needed because ma_node_graph_read_pcm_frames() can be called with a variable number of frames, and we may need to do some buffering in situations where the caller requests a frame count that's not a multiple of processingSizeInFrames. */
-    ma_uint32 processingCacheFramesRemaining;
-    ma_uint32 processingSizeInFrames;
+    ma_uint16 nodeCacheCapInFrames;
 
     /* Read and written by multiple threads. */
     MA_ATOMIC(4, ma_bool32) isReading;
-
-    /* Modified only by the audio thread. */
-    ma_stack* pPreMixStack;
 };
 
 MA_API ma_result ma_node_graph_init(const ma_node_graph_config* pConfig, const ma_allocation_callbacks* pAllocationCallbacks, ma_node_graph* pNodeGraph);
@@ -11059,7 +11023,6 @@ typedef enum
     MA_SOUND_FLAG_ASYNC                 = 0x00000004,   /* MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_ASYNC */
     MA_SOUND_FLAG_WAIT_INIT             = 0x00000008,   /* MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_WAIT_INIT */
     MA_SOUND_FLAG_UNKNOWN_LENGTH        = 0x00000010,   /* MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_UNKNOWN_LENGTH */
-    MA_SOUND_FLAG_LOOPING               = 0x00000020,   /* MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING */
 
     /* ma_sound specific flags. */
     MA_SOUND_FLAG_NO_DEFAULT_ATTACHMENT = 0x00001000,   /* Do not attach to the endpoint by default. Useful for when setting up nodes in a complex graph system. */
@@ -11099,7 +11062,7 @@ MA_API ma_engine_node_config ma_engine_node_config_init(ma_engine* pEngine, ma_e
 /* Base node object for both ma_sound and ma_sound_group. */
 typedef struct
 {
-    ma_node_base baseNode;                              /* Must be the first member for compatibility with the ma_node API. */
+    ma_node_base baseNode;                              /* Must be the first member for compatiblity with the ma_node API. */
     ma_engine* pEngine;                                 /* A pointer to the engine. Set based on the value from the config. */
     ma_uint32 sampleRate;                               /* The sample rate of the input data. For sounds backed by a data source, this will be the data source's sample rate. Otherwise it'll be the engine's sample rate. */
     ma_uint32 volumeSmoothTimeInPCMFrames;
@@ -11159,13 +11122,13 @@ typedef struct
     ma_uint64 rangeEndInPCMFrames;
     ma_uint64 loopPointBegInPCMFrames;
     ma_uint64 loopPointEndInPCMFrames;
+    ma_bool32 isLooping;
     ma_sound_end_proc endCallback;              /* Fired when the sound reaches the end. Will be fired from the audio thread. Do not restart, uninitialize or otherwise change the state of the sound from here. Instead fire an event or set a variable to indicate to a different thread to change the start of the sound. Will not be fired in response to a scheduled stop with ma_sound_set_stop_time_*(). */
     void* pEndCallbackUserData;
 #ifndef MA_NO_RESOURCE_MANAGER
     ma_resource_manager_pipeline_notifications initNotifications;
 #endif
     ma_fence* pDoneFence;                       /* Deprecated. Use initNotifications instead. Released when the resource manager has finished decoding the entire sound. Not used with streams. */
-    ma_bool32 isLooping;                        /* Deprecated. Use the MA_SOUND_FLAG_LOOPING flag in `flags` instead. */
 } ma_sound_config;
 
 MA_API ma_sound_config ma_sound_config_init(void);                  /* Deprecated. Will be removed in version 0.12. Use ma_sound_config_2() instead. */
@@ -11229,7 +11192,6 @@ typedef struct
     ma_uint32 gainSmoothTimeInFrames;               /* The number of frames to interpolate the gain of spatialized sounds across. If set to 0, will use gainSmoothTimeInMilliseconds. */
     ma_uint32 gainSmoothTimeInMilliseconds;         /* When set to 0, gainSmoothTimeInFrames will be used. If both are set to 0, a default value will be used. */
     ma_uint32 defaultVolumeSmoothTimeInPCMFrames;   /* Defaults to 0. Controls the default amount of smoothing to apply to volume changes to sounds. High values means more smoothing at the expense of high latency (will take longer to reach the new volume). */
-    ma_uint32 preMixStackSizeInBytes;               /* A stack is used for internal processing in the node graph. This allows you to configure the size of this stack. Smaller values will reduce the maximum depth of your node graph. You should rarely need to modify this. */
     ma_allocation_callbacks allocationCallbacks;
     ma_bool32 noAutoStart;                          /* When set to true, requires an explicit call to ma_engine_start(). This is false by default, meaning the engine will be started automatically in ma_engine_init(). */
     ma_bool32 noDevice;                             /* When set to true, don't create a default device. ma_engine_read_pcm_frames() can be called manually to read data. */
@@ -11244,12 +11206,12 @@ MA_API ma_engine_config ma_engine_config_init(void);
 
 struct ma_engine
 {
-    ma_node_graph nodeGraph;                        /* An engine is a node graph. It should be able to be plugged into any ma_node_graph API (with a cast) which means this must be the first member of this struct. */
+    ma_node_graph nodeGraph;                /* An engine is a node graph. It should be able to be plugged into any ma_node_graph API (with a cast) which means this must be the first member of this struct. */
 #if !defined(MA_NO_RESOURCE_MANAGER)
     ma_resource_manager* pResourceManager;
 #endif
 #if !defined(MA_NO_DEVICE_IO)
-    ma_device* pDevice;                             /* Optionally set via the config, otherwise allocated by the engine in ma_engine_init(). */
+    ma_device* pDevice;                     /* Optionally set via the config, otherwise allocated by the engine in ma_engine_init(). */
 #endif
     ma_log* pLog;
     ma_uint32 sampleRate;
@@ -11258,10 +11220,10 @@ struct ma_engine
     ma_allocation_callbacks allocationCallbacks;
     ma_bool8 ownsResourceManager;
     ma_bool8 ownsDevice;
-    ma_spinlock inlinedSoundLock;                   /* For synchronizing access to the inlined sound list. */
-    ma_sound_inlined* pInlinedSoundHead;            /* The first inlined sound. Inlined sounds are tracked in a linked list. */
-    MA_ATOMIC(4, ma_uint32) inlinedSoundCount;      /* The total number of allocated inlined sound objects. Used for debugging. */
-    ma_uint32 gainSmoothTimeInFrames;               /* The number of frames to interpolate the gain of spatialized sounds across. */
+    ma_spinlock inlinedSoundLock;               /* For synchronizing access so the inlined sound list. */
+    ma_sound_inlined* pInlinedSoundHead;        /* The first inlined sound. Inlined sounds are tracked in a linked list. */
+    MA_ATOMIC(4, ma_uint32) inlinedSoundCount;  /* The total number of allocated inlined sound objects. Used for debugging. */
+    ma_uint32 gainSmoothTimeInFrames;           /* The number of frames to interpolate the gain of spatialized sounds across. */
     ma_uint32 defaultVolumeSmoothTimeInPCMFrames;
     ma_mono_expansion_mode monoExpansionMode;
     ma_engine_process_proc onProcess;
@@ -14062,7 +14024,7 @@ static MA_INLINE ma_int32 ma_dither_s32(ma_dither_mode ditherMode, ma_int32 dith
 Atomics
 
 **************************************************************************************************************************************************************/
-/* c89atomic.h begin */
+/* ma_atomic.h begin */
 #ifndef ma_atomic_h
 #if defined(__cplusplus)
 extern "C" {
@@ -14788,12 +14750,12 @@ typedef int ma_atomic_memory_order;
         typedef ma_uint8 ma_atomic_flag;
         #define ma_atomic_flag_test_and_set_explicit(ptr, order)    (ma_bool32)ma_atomic_test_and_set_explicit_8(ptr, order)
         #define ma_atomic_flag_clear_explicit(ptr, order)           ma_atomic_clear_explicit_8(ptr, order)
-        #define ma_atomic_flag_load_explicit(ptr, order)            ma_atomic_load_explicit_8(ptr, order)
+        #define c89atoimc_flag_load_explicit(ptr, order)            ma_atomic_load_explicit_8(ptr, order)
     #else
         typedef ma_uint32 ma_atomic_flag;
         #define ma_atomic_flag_test_and_set_explicit(ptr, order)    (ma_bool32)ma_atomic_test_and_set_explicit_32(ptr, order)
         #define ma_atomic_flag_clear_explicit(ptr, order)           ma_atomic_clear_explicit_32(ptr, order)
-        #define ma_atomic_flag_load_explicit(ptr, order)            ma_atomic_load_explicit_32(ptr, order)
+        #define c89atoimc_flag_load_explicit(ptr, order)            ma_atomic_load_explicit_32(ptr, order)
     #endif
 #elif defined(__clang__) || (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)))
     #define MA_ATOMIC_HAS_NATIVE_COMPARE_EXCHANGE
@@ -14874,18 +14836,15 @@ typedef int ma_atomic_memory_order;
         __atomic_compare_exchange_n(dst, &expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
         return expected;
     }
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Watomic-alignment"
     static MA_INLINE ma_uint64 ma_atomic_compare_and_swap_64(volatile ma_uint64* dst, ma_uint64 expected, ma_uint64 desired)
     {
         __atomic_compare_exchange_n(dst, &expected, desired, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
         return expected;
     }
-    #pragma clang diagnostic pop
     typedef ma_uint8 ma_atomic_flag;
     #define ma_atomic_flag_test_and_set_explicit(dst, order)        (ma_bool32)__atomic_test_and_set(dst, order)
     #define ma_atomic_flag_clear_explicit(dst, order)               __atomic_clear(dst, order)
-    #define ma_atomic_flag_load_explicit(ptr, order)                ma_atomic_load_explicit_8(ptr, order)
+    #define c89atoimc_flag_load_explicit(ptr, order)                ma_atomic_load_explicit_8(ptr, order)
 #else
     #define ma_atomic_memory_order_relaxed  1
     #define ma_atomic_memory_order_consume  2
@@ -15399,7 +15358,7 @@ typedef int ma_atomic_memory_order;
     typedef ma_uint8 ma_atomic_flag;
     #define ma_atomic_flag_test_and_set_explicit(ptr, order)        (ma_bool32)ma_atomic_test_and_set_explicit_8(ptr, order)
     #define ma_atomic_flag_clear_explicit(ptr, order)               ma_atomic_clear_explicit_8(ptr, order)
-    #define ma_atomic_flag_load_explicit(ptr, order)                ma_atomic_load_explicit_8(ptr, order)
+    #define c89atoimc_flag_load_explicit(ptr, order)                ma_atomic_load_explicit_8(ptr, order)
 #endif
 #if !defined(MA_ATOMIC_HAS_NATIVE_COMPARE_EXCHANGE)
     #if defined(MA_ATOMIC_HAS_8)
@@ -15924,7 +15883,7 @@ static MA_INLINE void ma_atomic_spinlock_lock(volatile ma_atomic_spinlock* pSpin
         if (ma_atomic_flag_test_and_set_explicit(pSpinlock, ma_atomic_memory_order_acquire) == 0) {
             break;
         }
-        while (ma_atomic_flag_load_explicit(pSpinlock, ma_atomic_memory_order_relaxed) == 1) {
+        while (c89atoimc_flag_load_explicit(pSpinlock, ma_atomic_memory_order_relaxed) == 1) {
         }
     }
 }
@@ -15939,7 +15898,7 @@ static MA_INLINE void ma_atomic_spinlock_unlock(volatile ma_atomic_spinlock* pSp
 }
 #endif
 #endif
-/* c89atomic.h end */
+/* ma_atomic.h end */
 
 #define MA_ATOMIC_SAFE_TYPE_IMPL(c89TypeExtension, type) \
     static MA_INLINE ma_##type ma_atomic_##type##_get(ma_atomic_##type* x) \
@@ -16137,9 +16096,73 @@ static ma_result ma_thread_create__posix(ma_thread* pThread, ma_thread_priority 
     int result;
     pthread_attr_t* pAttr = NULL;
 
+#if !defined(__EMSCRIPTEN__) && !defined(__3DS__)
+    /* Try setting the thread priority. It's not critical if anything fails here. */
+    pthread_attr_t attr;
+    if (pthread_attr_init(&attr) == 0) {
+        int scheduler = -1;
+
+        /* We successfully initialized our attributes object so we can assign the pointer so it's passed into pthread_create(). */
+        pAttr = &attr;
+
+        /* We need to set the scheduler policy. Only do this if the OS supports pthread_attr_setschedpolicy() */
+        #if !defined(MA_BEOS)
+        {
+            if (priority == ma_thread_priority_idle) {
+            #ifdef SCHED_IDLE
+                if (pthread_attr_setschedpolicy(&attr, SCHED_IDLE) == 0) {
+                    scheduler = SCHED_IDLE;
+                }
+            #endif
+            } else if (priority == ma_thread_priority_realtime) {
+            #ifdef SCHED_FIFO
+                if (pthread_attr_setschedpolicy(&attr, SCHED_FIFO) == 0) {
+                    scheduler = SCHED_FIFO;
+                }
+            #endif
+            #ifdef MA_LINUX
+            } else {
+                scheduler = sched_getscheduler(0);
+            #endif
+            }
+        }
+        #endif
+
+        if (stackSize > 0) {
+            pthread_attr_setstacksize(&attr, stackSize);
+        }
+
+        if (scheduler != -1) {
+            int priorityMin = sched_get_priority_min(scheduler);
+            int priorityMax = sched_get_priority_max(scheduler);
+            int priorityStep = (priorityMax - priorityMin) / 7;  /* 7 = number of priorities supported by miniaudio. */
+
+            struct sched_param sched;
+            if (pthread_attr_getschedparam(&attr, &sched) == 0) {
+                if (priority == ma_thread_priority_idle) {
+                    sched.sched_priority = priorityMin;
+                } else if (priority == ma_thread_priority_realtime) {
+                    sched.sched_priority = priorityMax;
+                } else {
+                    sched.sched_priority += ((int)priority + 5) * priorityStep;  /* +5 because the lowest priority is -5. */
+                    if (sched.sched_priority < priorityMin) {
+                        sched.sched_priority = priorityMin;
+                    }
+                    if (sched.sched_priority > priorityMax) {
+                        sched.sched_priority = priorityMax;
+                    }
+                }
+
+                /* I'm not treating a failure of setting the priority as a critical error so not checking the return value here. */
+                pthread_attr_setschedparam(&attr, &sched);
+            }
+        }
+    }
+#else
     /* It's the emscripten build. We'll have a few unused parameters. */
     (void)priority;
     (void)stackSize;
+#endif
 
     result = pthread_create((pthread_t*)pThread, pAttr, entryProc, pData);
 
@@ -17728,7 +17751,7 @@ MA_API ma_result ma_job_queue_next(ma_job_queue* pQueue, ma_job* pJob)
         is stored. One thread can fall through to the freeing of this item while another is still using "head" for the
         retrieval of the "next" variable.
 
-        The slot allocator might need to make use of some reference counting to ensure it's only truly freed when
+        The slot allocator might need to make use of some reference counting to ensure it's only truely freed when
         there are no more references to the item. This must be fixed before removing these locks.
         */
 
@@ -17900,13 +17923,9 @@ DEVICE I/O
     #endif
 #endif
 
-#ifdef MA_APPLE
-    #include <AvailabilityMacros.h>
-#endif
-
 #ifndef MA_NO_DEVICE_IO
 
-#if defined(MA_APPLE) && (MAC_OS_X_VERSION_MIN_REQUIRED < 101200)
+#if defined(MA_APPLE) && (__MAC_OS_X_VERSION_MIN_REQUIRED < 101200)
     #include <mach/mach_time.h> /* For mach_absolute_time() */
 #endif
 
@@ -17920,10 +17939,6 @@ DEVICE I/O
     #endif
 #endif
 
-/* This must be set to at least 26. */
-#ifndef MA_AAUDIO_MIN_ANDROID_SDK_VERSION
-#define MA_AAUDIO_MIN_ANDROID_SDK_VERSION 27
-#endif
 
 
 MA_API void ma_device_info_add_native_data_format(ma_device_info* pDeviceInfo, ma_format format, ma_uint32 channels, ma_uint32 sampleRate, ma_uint32 flags)
@@ -18070,7 +18085,7 @@ MA_API ma_bool32 ma_is_backend_enabled(ma_backend backend)
         #if defined(MA_HAS_AAUDIO)
             #if defined(MA_ANDROID)
             {
-                return ma_android_sdk_version() >= MA_AAUDIO_MIN_ANDROID_SDK_VERSION;
+                return ma_android_sdk_version() >= 26;
             }
             #else
                 return MA_FALSE;
@@ -18387,6 +18402,7 @@ typedef LONG    (WINAPI * MA_PFN_RegCloseKey)(HKEY hKey);
 typedef LONG    (WINAPI * MA_PFN_RegQueryValueExA)(HKEY hKey, const char* lpValueName, DWORD* lpReserved, DWORD* lpType, BYTE* lpData, DWORD* lpcbData);
 #endif  /* MA_WIN32_DESKTOP */
 
+
 MA_API size_t ma_strlen_WCHAR(const WCHAR* str)
 {
     size_t len = 0;
@@ -18471,7 +18487,7 @@ Timing
 
         return (double)(counter.QuadPart - pTimer->counter) / g_ma_TimerFrequency.QuadPart;
     }
-#elif defined(MA_APPLE) && (MAC_OS_X_VERSION_MIN_REQUIRED < 101200)
+#elif defined(MA_APPLE) && (__MAC_OS_X_VERSION_MIN_REQUIRED < 101200)
     static ma_uint64 g_ma_TimerFrequency = 0;
     static void ma_timer_init(ma_timer* pTimer)
     {
@@ -18654,16 +18670,11 @@ static void ma_device__on_notification_rerouted(ma_device* pDevice)
 #endif
 
 #if defined(MA_EMSCRIPTEN)
-#ifdef __cplusplus
-extern "C" {
-#endif
-void EMSCRIPTEN_KEEPALIVE ma_device__on_notification_unlocked(ma_device* pDevice)
+EMSCRIPTEN_KEEPALIVE
+void ma_device__on_notification_unlocked(ma_device* pDevice)
 {
     ma_device__on_notification(ma_device_notification_init(pDevice, ma_device_notification_type_unlocked));
 }
-#ifdef __cplusplus
-}
-#endif
 #endif
 
 
@@ -18791,7 +18802,7 @@ static void ma_device__handle_data_callback(ma_device* pDevice, void* pFramesOut
         unsigned int prevDenormalState = ma_device_disable_denormals(pDevice);
         {
             /* Volume control of input makes things a bit awkward because the input buffer is read-only. We'll need to use a temp buffer and loop in this case. */
-            if (pFramesIn != NULL && masterVolumeFactor != 1) {
+            if (pFramesIn != NULL && masterVolumeFactor < 1) {
                 ma_uint8 tempFramesIn[MA_DATA_CONVERTER_STACK_BUFFER_SIZE];
                 ma_uint32 bpfCapture  = ma_get_bytes_per_frame(pDevice->capture.format, pDevice->capture.channels);
                 ma_uint32 bpfPlayback = ma_get_bytes_per_frame(pDevice->playback.format, pDevice->playback.channels);
@@ -18814,7 +18825,7 @@ static void ma_device__handle_data_callback(ma_device* pDevice, void* pFramesOut
 
             /* Volume control and clipping for playback devices. */
             if (pFramesOut != NULL) {
-                if (masterVolumeFactor != 1) {
+                if (masterVolumeFactor < 1) {
                     if (pFramesIn == NULL) {    /* <-- In full-duplex situations, the volume will have been applied to the input samples before the data callback. Applying it again post-callback will incorrectly compound it. */
                         ma_apply_volume_factor_pcm_frames(pFramesOut, frameCount, pDevice->playback.format, pDevice->playback.channels, masterVolumeFactor);
                     }
@@ -18954,7 +18965,7 @@ static void ma_device__send_frames_to_client(ma_device* pDevice, ma_uint32 frame
         ma_uint64 totalClientFramesProcessed = 0;
         const void* pRunningFramesInDeviceFormat = pFramesInDeviceFormat;
 
-        /* We just keep going until we've exhausted all of our input frames and cannot generate any more output frames. */
+        /* We just keep going until we've exhaused all of our input frames and cannot generate any more output frames. */
         for (;;) {
             ma_uint64 deviceFramesProcessedThisIteration;
             ma_uint64 clientFramesProcessedThisIteration;
@@ -19237,7 +19248,7 @@ static ma_result ma_device_audio_thread__default_read_write(ma_device* pDevice)
                         }
 
                         /*
-                        If we weren't able to generate any output frames it must mean we've exhausted all of our input. The only time this would not be the case is if capturedClientData was too small
+                        If we weren't able to generate any output frames it must mean we've exhaused all of our input. The only time this would not be the case is if capturedClientData was too small
                         which should never be the case when it's of the size MA_DATA_CONVERTER_STACK_BUFFER_SIZE.
                         */
                         if (capturedClientFramesToProcessThisIteration == 0) {
@@ -19440,7 +19451,7 @@ static ma_result ma_device_do_operation__null(ma_device* pDevice, ma_uint32 oper
 
     /*
     The first thing to do is wait for an operation slot to become available. We only have a single slot for this, but we could extend this later
-    to support queuing of operations.
+    to support queing of operations.
     */
     result = ma_semaphore_wait(&pDevice->null_device.operationSemaphore);
     if (result != MA_SUCCESS) {
@@ -21257,7 +21268,7 @@ static ma_result ma_context_get_device_info_from_IAudioClient__wasapi(ma_context
     }
 
     /*
-    Exclusive Mode. We repeatedly call IsFormatSupported() here. This is not currently supported on
+    Exlcusive Mode. We repeatedly call IsFormatSupported() here. This is not currently supported on
     UWP. Failure to retrieve the exclusive mode format is not considered an error, so from here on
     out, MA_SUCCESS is guaranteed to be returned.
     */
@@ -21495,7 +21506,7 @@ static ma_result ma_context_get_device_id_from_MMDevice__wasapi(ma_context* pCon
         size_t idlen = ma_strlen_WCHAR(pDeviceIDString);
         if (idlen+1 > ma_countof(pDeviceID->wasapi)) {
             ma_CoTaskMemFree(pContext, pDeviceIDString);
-            MA_ASSERT(MA_FALSE);  /* NOTE: If this is triggered, please report it. It means the format of the ID must have changed and is too long to fit in our fixed sized buffer. */
+            MA_ASSERT(MA_FALSE);  /* NOTE: If this is triggered, please report it. It means the format of the ID must haved change and is too long to fit in our fixed sized buffer. */
             return MA_ERROR;
         }
 
@@ -22245,7 +22256,7 @@ static ma_result ma_device_init_internal__wasapi(ma_context* pContext, ma_device
         MA_REFERENCE_TIME bufferDuration = periodDurationInMicroseconds * pData->periodsOut * 10;
 
         /*
-        If the periodicity is too small, Initialize() will fail with AUDCLNT_E_INVALID_DEVICE_PERIOD. In this case we should just keep increasing
+        If the periodicy is too small, Initialize() will fail with AUDCLNT_E_INVALID_DEVICE_PERIOD. In this case we should just keep increasing
         it and trying it again.
         */
         hr = E_FAIL;
@@ -22255,7 +22266,7 @@ static ma_result ma_device_init_internal__wasapi(ma_context* pContext, ma_device
                 if (bufferDuration > 500*10000) {
                     break;
                 } else {
-                    if (bufferDuration == 0) {  /* <-- Just a sanity check to prevent an infinite loop. Should never happen, but it makes me feel better. */
+                    if (bufferDuration == 0) {  /* <-- Just a sanity check to prevent an infinit loop. Should never happen, but it makes me feel better. */
                         break;
                     }
 
@@ -23644,13 +23655,6 @@ DirectSound Backend
 #define MA_DSBPLAY_TERMINATEBY_DISTANCE 0x00000010
 #define MA_DSBPLAY_TERMINATEBY_PRIORITY 0x00000020
 
-#define MA_DSBSTATUS_PLAYING            0x00000001
-#define MA_DSBSTATUS_BUFFERLOST         0x00000002
-#define MA_DSBSTATUS_LOOPING            0x00000004
-#define MA_DSBSTATUS_LOCHARDWARE        0x00000008
-#define MA_DSBSTATUS_LOCSOFTWARE        0x00000010
-#define MA_DSBSTATUS_TERMINATED         0x00000020
-
 #define MA_DSCBSTART_LOOPING            0x00000001
 
 typedef struct
@@ -24020,12 +24024,9 @@ static ma_result ma_context_create_IDirectSound__dsound(ma_context* pContext, ma
     }
 
     /* The cooperative level must be set before doing anything else. */
-    hWnd = (HWND)pContext->dsound.hWnd;
+    hWnd = ((MA_PFN_GetForegroundWindow)pContext->win32.GetForegroundWindow)();
     if (hWnd == 0) {
-        hWnd = ((MA_PFN_GetForegroundWindow)pContext->win32.GetForegroundWindow)();
-        if (hWnd == 0) {
-            hWnd = ((MA_PFN_GetDesktopWindow)pContext->win32.GetDesktopWindow)();
-        }
+        hWnd = ((MA_PFN_GetDesktopWindow)pContext->win32.GetDesktopWindow)();
     }
 
     hr = ma_IDirectSound_SetCooperativeLevel(pDirectSound, hWnd, (shareMode == ma_share_mode_exclusive) ? MA_DSSCL_EXCLUSIVE : MA_DSSCL_PRIORITY);
@@ -24529,8 +24530,8 @@ static ma_result ma_device_init__dsound(ma_device* pDevice, const ma_device_conf
     }
 
     /*
-    Unfortunately DirectSound uses different APIs and data structures for playback and capture devices. We need to initialize
-    the capture device first because we'll want to match its buffer size and period count on the playback side if we're using
+    Unfortunately DirectSound uses different APIs and data structures for playback and catpure devices. We need to initialize
+    the capture device first because we'll want to match it's buffer size and period count on the playback side if we're using
     full-duplex mode.
     */
     if (pConfig->deviceType == ma_device_type_capture || pConfig->deviceType == ma_device_type_duplex) {
@@ -24813,7 +24814,6 @@ static ma_result ma_device_data_loop__dsound(ma_device* pDevice)
     ma_bool32 isPlaybackDeviceStarted = MA_FALSE;
     ma_uint32 framesWrittenToPlaybackDevice = 0;   /* For knowing whether or not the playback device needs to be started. */
     ma_uint32 waitTimeInMilliseconds = 1;
-    DWORD playbackBufferStatus = 0;
 
     MA_ASSERT(pDevice != NULL);
 
@@ -25142,20 +25142,6 @@ static ma_result ma_device_data_loop__dsound(ma_device* pDevice)
                     break;
                 }
 
-                hr = ma_IDirectSoundBuffer_GetStatus((ma_IDirectSoundBuffer*)pDevice->dsound.pPlaybackBuffer, &playbackBufferStatus);
-                if (SUCCEEDED(hr) && (playbackBufferStatus & MA_DSBSTATUS_PLAYING) == 0 && isPlaybackDeviceStarted) {
-                    ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[DirectSound] Attempting to resume audio due to state: %d.", (int)playbackBufferStatus);
-                    hr = ma_IDirectSoundBuffer_Play((ma_IDirectSoundBuffer*)pDevice->dsound.pPlaybackBuffer, 0, 0, MA_DSBPLAY_LOOPING);
-                    if (FAILED(hr)) {
-                        ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[DirectSound] IDirectSoundBuffer_Play() failed after attempting to resume from state %d.", (int)playbackBufferStatus);
-                        return ma_result_from_HRESULT(hr);
-                    }
-
-                    isPlaybackDeviceStarted = MA_TRUE;
-                    ma_sleep(waitTimeInMilliseconds);
-                    continue;
-                }
-
                 if (physicalPlayCursorInBytes < prevPlayCursorInBytesPlayback) {
                     physicalPlayCursorLoopFlagPlayback = !physicalPlayCursorLoopFlagPlayback;
                 }
@@ -25356,8 +25342,6 @@ static ma_result ma_context_init__dsound(ma_context* pContext, const ma_context_
         pContext->dsound.DirectSoundCaptureEnumerateA == NULL) {
         return MA_API_NOT_FOUND;
     }
-
-    pContext->dsound.hWnd = pConfig->dsound.hWnd;
 
     pCallbacks->onContextInit             = ma_context_init__dsound;
     pCallbacks->onContextUninit           = ma_context_uninit__dsound;
@@ -25681,7 +25665,7 @@ static ma_result ma_context_get_device_info_from_WAVECAPS(ma_context* pContext, 
     - If the name GUID is not present in the registry we'll also need to stick to the original 31 characters.
     - I like consistency, so I want the returned device names to be consistent with those returned by WASAPI and DirectSound. The
       problem, however is that WASAPI and DirectSound use "<component> (<name>)" format (such as "Speakers (High Definition Audio)"),
-      but WinMM does not specify the component name. From my admittedly limited testing, I've notice the component name seems to
+      but WinMM does not specificy the component name. From my admittedly limited testing, I've notice the component name seems to
       usually fit within the 31 characters of the fixed sized buffer, so what I'm going to do is parse that string for the component
       name, and then concatenate the name from the registry.
     */
@@ -25949,7 +25933,7 @@ static ma_result ma_device_init__winmm(ma_device* pDevice, const ma_device_confi
         return MA_DEVICE_TYPE_NOT_SUPPORTED;
     }
 
-    /* No exclusive mode with WinMM. */
+    /* No exlusive mode with WinMM. */
     if (((pConfig->deviceType == ma_device_type_playback || pConfig->deviceType == ma_device_type_duplex) && pDescriptorPlayback->shareMode == ma_share_mode_exclusive) ||
         ((pConfig->deviceType == ma_device_type_capture  || pConfig->deviceType == ma_device_type_duplex) && pDescriptorCapture->shareMode  == ma_share_mode_exclusive)) {
         return MA_SHARE_MODE_NOT_SUPPORTED;
@@ -25971,7 +25955,7 @@ static ma_result ma_device_init__winmm(ma_device* pDevice, const ma_device_confi
         /* We use an event to know when a new fragment needs to be enqueued. */
         pDevice->winmm.hEventCapture = (ma_handle)CreateEventA(NULL, TRUE, TRUE, NULL);
         if (pDevice->winmm.hEventCapture == NULL) {
-            errorMsg = "[WinMM] Failed to create event for fragment enqueuing for the capture device.", errorCode = ma_result_from_GetLastError(GetLastError());
+            errorMsg = "[WinMM] Failed to create event for fragment enqueing for the capture device.", errorCode = ma_result_from_GetLastError(GetLastError());
             goto on_error;
         }
 
@@ -26009,7 +25993,7 @@ static ma_result ma_device_init__winmm(ma_device* pDevice, const ma_device_confi
         /* We use an event to know when a new fragment needs to be enqueued. */
         pDevice->winmm.hEventPlayback = (ma_handle)CreateEventA(NULL, TRUE, TRUE, NULL);
         if (pDevice->winmm.hEventPlayback == NULL) {
-            errorMsg = "[WinMM] Failed to create event for fragment enqueuing for the playback device.", errorCode = ma_result_from_GetLastError(GetLastError());
+            errorMsg = "[WinMM] Failed to create event for fragment enqueing for the playback device.", errorCode = ma_result_from_GetLastError(GetLastError());
             goto on_error;
         }
 
@@ -27131,7 +27115,7 @@ static ma_result ma_context_open_pcm__alsa(ma_context* pContext, ma_share_mode s
         /*
         We're trying to open a specific device. There's a few things to consider here:
 
-        miniaudio recognizes a special format of device id that excludes the "hw", "dmix", etc. prefix. It looks like this: ":0,0", ":0,1", etc. When
+        miniaudio recongnizes a special format of device id that excludes the "hw", "dmix", etc. prefix. It looks like this: ":0,0", ":0,1", etc. When
         an ID of this format is specified, it indicates to miniaudio that it can try different combinations of plugins ("hw", "dmix", etc.) until it
         finds an appropriate one that works. This comes in very handy when trying to open a device in shared mode ("dmix"), vs exclusive mode ("hw").
         */
@@ -27230,7 +27214,7 @@ static ma_result ma_context_enumerate_devices__alsa(ma_context* pContext, ma_enu
                     /*
                     At this point, hwid looks like "hw:0,0". In simplified enumeration mode, we actually want to strip off the
                     plugin name so it looks like ":0,0". The reason for this is that this special format is detected at device
-                    initialization time and is used as an indicator to try to use the most appropriate plugin depending on the
+                    initialization time and is used as an indicator to try and use the most appropriate plugin depending on the
                     device type and sharing mode.
                     */
                     char* dst = hwid;
@@ -27409,7 +27393,7 @@ static void ma_context_iterate_rates_and_add_native_data_format__alsa(ma_context
     ((ma_snd_pcm_hw_params_get_rate_min_proc)pContext->alsa.snd_pcm_hw_params_get_rate_min)(pHWParams, &minSampleRate, &sampleRateDir);
     ((ma_snd_pcm_hw_params_get_rate_max_proc)pContext->alsa.snd_pcm_hw_params_get_rate_max)(pHWParams, &maxSampleRate, &sampleRateDir);
 
-    /* Make sure our sample rates are clamped to sane values. Stupid devices like "pulse" will reports rates like "1" which is ridiculous. */
+    /* Make sure our sample rates are clamped to sane values. Stupid devices like "pulse" will reports rates like "1" which is ridiculus. */
     minSampleRate = ma_clamp(minSampleRate, (unsigned int)ma_standard_sample_rate_min, (unsigned int)ma_standard_sample_rate_max);
     maxSampleRate = ma_clamp(maxSampleRate, (unsigned int)ma_standard_sample_rate_min, (unsigned int)ma_standard_sample_rate_max);
 
@@ -27485,10 +27469,10 @@ static ma_result ma_context_get_device_info__alsa(ma_context* pContext, ma_devic
     /*
     Some ALSA devices can support many permutations of formats, channels and rates. We only support
     a fixed number of permutations which means we need to employ some strategies to ensure the best
-    combinations are returned. An example is the "pulse" device which can do its own data conversion
+    combinations are returned. An example is the "pulse" device which can do it's own data conversion
     in software and as a result can support any combination of format, channels and rate.
 
-    We want to ensure that the first data formats are the best. We have a list of favored sample
+    We want to ensure the the first data formats are the best. We have a list of favored sample
     formats and sample rates, so these will be the basis of our iteration.
     */
 
@@ -28079,7 +28063,6 @@ static ma_result ma_device_stop__alsa(ma_device* pDevice)
     a small chance that our wakeupfd has not been cleared. We'll clear that out now if applicable.
     */
     int resultPoll;
-    int resultRead;
 
     if (pDevice->type == ma_device_type_capture || pDevice->type == ma_device_type_duplex) {
         ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_DEBUG, "[ALSA] Dropping capture device...\n");
@@ -28094,15 +28077,12 @@ static ma_result ma_device_stop__alsa(ma_device* pDevice)
             ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_DEBUG, "[ALSA] Preparing capture device successful.\n");
         }
 
-        /* Clear the wakeupfd. */
-        resultPoll = poll((struct pollfd*)pDevice->alsa.pPollDescriptorsCapture, 1, 0);
-        if (resultPoll > 0) {
-            ma_uint64 t;
-            resultRead = read(((struct pollfd*)pDevice->alsa.pPollDescriptorsCapture)[0].fd, &t, sizeof(t));
-            if (resultRead != sizeof(t)) {
-                ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_DEBUG, "[ALSA] Failed to read from capture wakeupfd. read() = %d\n", resultRead);
-            }
-        }
+    /* Clear the wakeupfd. */
+    resultPoll = poll((struct pollfd*)pDevice->alsa.pPollDescriptorsCapture, 1, 0);
+    if (resultPoll > 0) {
+        ma_uint64 t;
+        read(((struct pollfd*)pDevice->alsa.pPollDescriptorsCapture)[0].fd, &t, sizeof(t));
+    }
     }
 
     if (pDevice->type == ma_device_type_playback || pDevice->type == ma_device_type_duplex) {
@@ -28119,14 +28099,11 @@ static ma_result ma_device_stop__alsa(ma_device* pDevice)
         }
 
         /* Clear the wakeupfd. */
-        resultPoll = poll((struct pollfd*)pDevice->alsa.pPollDescriptorsPlayback, 1, 0);
-        if (resultPoll > 0) {
-            ma_uint64 t;
-            resultRead = read(((struct pollfd*)pDevice->alsa.pPollDescriptorsPlayback)[0].fd, &t, sizeof(t));
-            if (resultRead != sizeof(t)) {
-                ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_DEBUG, "[ALSA] Failed to read from playback wakeupfd. read() = %d\n", resultRead);
-            }
-        }
+    resultPoll = poll((struct pollfd*)pDevice->alsa.pPollDescriptorsPlayback, 1, 0);
+    if (resultPoll > 0) {
+        ma_uint64 t;
+        read(((struct pollfd*)pDevice->alsa.pPollDescriptorsPlayback)[0].fd, &t, sizeof(t));
+    }
 
     }
 
@@ -28140,15 +28117,8 @@ static ma_result ma_device_wait__alsa(ma_device* pDevice, ma_snd_pcm_t* pPCM, st
         int resultALSA;
         int resultPoll = poll(pPollDescriptors, pollDescriptorCount, -1);
         if (resultPoll < 0) {
-            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_WARNING, "[ALSA] poll() failed.\n");
-
-            /*
-            There have been reports that poll() is returning an error randomly and that instead of
-            returning an error, simply trying again will work. I'm experimenting with adopting this
-            advice.
-            */
-            continue;
-            /*return ma_result_from_errno(errno);*/
+            ma_log_post(ma_device_get_log(pDevice), MA_LOG_LEVEL_ERROR, "[ALSA] poll() failed.\n");
+            return ma_result_from_errno(errno);
         }
 
         /*
@@ -28626,7 +28596,7 @@ PulseAudio Backend
 ******************************************************************************/
 #ifdef MA_HAS_PULSEAUDIO
 /*
-The PulseAudio API, along with Apple's Core Audio, is the worst of the mainstream audio APIs. This is a brief description of what's going on
+The PulseAudio API, along with Apple's Core Audio, is the worst of the maintream audio APIs. This is a brief description of what's going on
 in the PulseAudio backend. I apologize if this gets a bit ranty for your liking - you might want to skip this discussion.
 
 PulseAudio has something they call the "Simple API", which unfortunately isn't suitable for miniaudio. I've not seen anywhere where it
@@ -28641,7 +28611,7 @@ get fun, and I don't mean that in a good way...
 
 The problems start with the very name of the API - "asynchronous". Yes, this is an asynchronous oriented API which means your commands
 don't immediately take effect. You instead need to issue your commands, and then wait for them to complete. The waiting mechanism is
-enabled through the use of a "main loop". In the asynchronous API you cannot get away from the main loop, and the main loop is where almost
+enabled through the use of a "main loop". In the asychronous API you cannot get away from the main loop, and the main loop is where almost
 all of PulseAudio's problems stem from.
 
 When you first initialize PulseAudio you need an object referred to as "main loop". You can implement this yourself by defining your own
@@ -28691,7 +28661,7 @@ because PulseAudio takes it literally, specifically the "can be". You would thin
 writing and reading data to and from the stream, and that would be right, except when it's not. When you initialize the stream, you can
 set a flag that tells PulseAudio to not start the stream automatically. This is required because miniaudio does not auto-start devices
 straight after initialization - you need to call `ma_device_start()` manually. The problem is that even when this flag is specified,
-PulseAudio will immediately fire its write or read callback. This is *technically* correct (based on the wording in the documentation)
+PulseAudio will immediately fire it's write or read callback. This is *technically* correct (based on the wording in the documentation)
 because indeed, data *can* be written at this point. The problem is that it's not *practical*. It makes sense that the write/read callback
 would be where a program will want to write or read data to or from the stream, but when it's called before the application has even
 requested that the stream be started, it's just not practical because the program probably isn't ready for any kind of data delivery at
@@ -30332,7 +30302,6 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
     ma_pa_buffer_attr attr;
     const ma_pa_sample_spec* pActualSS   = NULL;
     const ma_pa_buffer_attr* pActualAttr = NULL;
-    const ma_pa_channel_map* pActualChannelMap = NULL;
     ma_uint32 iChannel;
     ma_pa_stream_flags_t streamFlags;
 
@@ -30482,12 +30451,7 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
             goto on_error4;
         }
 
-
         /* Internal channel map. */
-        pActualChannelMap = ((ma_pa_stream_get_channel_map_proc)pDevice->pContext->pulse.pa_stream_get_channel_map)((ma_pa_stream*)pDevice->pulse.pStreamCapture);
-        if (pActualChannelMap == NULL) {
-            pActualChannelMap = &cmap;  /* Fallback just in case. */
-        }
 
         /*
         Bug in PipeWire. There have been reports that PipeWire is returning AUX channels when reporting
@@ -30497,8 +30461,8 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
         fixed sooner than later. I might remove this hack later.
         */
         if (pDescriptorCapture->channels > 2) {
-            for (iChannel = 0; iChannel < pDescriptorCapture->channels; iChannel += 1) {
-                pDescriptorCapture->channelMap[iChannel] = ma_channel_position_from_pulse(pActualChannelMap->map[iChannel]);
+            for (iChannel = 0; iChannel < pDescriptorCapture->channels; ++iChannel) {
+                pDescriptorCapture->channelMap[iChannel] = ma_channel_position_from_pulse(cmap.map[iChannel]);
             }
         } else {
             /* Hack for mono and stereo. */
@@ -30639,12 +30603,7 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
             goto on_error4;
         }
 
-
         /* Internal channel map. */
-        pActualChannelMap = ((ma_pa_stream_get_channel_map_proc)pDevice->pContext->pulse.pa_stream_get_channel_map)((ma_pa_stream*)pDevice->pulse.pStreamPlayback);
-        if (pActualChannelMap == NULL) {
-            pActualChannelMap = &cmap;  /* Fallback just in case. */
-        }
 
         /*
         Bug in PipeWire. There have been reports that PipeWire is returning AUX channels when reporting
@@ -30654,8 +30613,8 @@ static ma_result ma_device_init__pulse(ma_device* pDevice, const ma_device_confi
         fixed sooner than later. I might remove this hack later.
         */
         if (pDescriptorPlayback->channels > 2) {
-            for (iChannel = 0; iChannel < pDescriptorPlayback->channels; iChannel += 1) {
-                pDescriptorPlayback->channelMap[iChannel] = ma_channel_position_from_pulse(pActualChannelMap->map[iChannel]);
+            for (iChannel = 0; iChannel < pDescriptorPlayback->channels; ++iChannel) {
+                pDescriptorPlayback->channelMap[iChannel] = ma_channel_position_from_pulse(cmap.map[iChannel]);
             }
         } else {
             /* Hack for mono and stereo. */
@@ -31899,7 +31858,7 @@ that supports this level of detail. There was some public domain sample code I s
 and AudioUnit APIs, but I couldn't see anything that gave low-level control over device selection and capabilities (the
 distinction between playback and capture in particular). Therefore, miniaudio is using the AudioObject API.
 
-Most (all?) functions in the AudioObject API take a AudioObjectID as its input. This is the device identifier. When
+Most (all?) functions in the AudioObject API take a AudioObjectID as it's input. This is the device identifier. When
 retrieving global information, such as the device list, you use kAudioObjectSystemObject. When retrieving device-specific
 data, you pass in the ID for that device. In order to retrieve device-specific IDs you need to enumerate over each of the
 devices. This is done using the AudioObjectGetPropertyDataSize() and AudioObjectGetPropertyData() APIs which seem to be
@@ -32232,12 +32191,6 @@ static ma_result ma_get_channel_map_from_AudioChannelLayout(AudioChannelLayout* 
 #else
 /* kAudioObjectPropertyElementMaster is deprecated. */
 #define AUDIO_OBJECT_PROPERTY_ELEMENT kAudioObjectPropertyElementMaster
-#endif
-
-/* kAudioDevicePropertyScope* were renamed to kAudioObjectPropertyScope* in 10.8. */
-#if !defined(MAC_OS_X_VERSION_10_8) || (MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_8)
-#define kAudioObjectPropertyScopeInput kAudioDevicePropertyScopeInput
-#define kAudioObjectPropertyScopeOutput kAudioDevicePropertyScopeOutput
 #endif
 
 static ma_result ma_get_device_object_ids__coreaudio(ma_context* pContext, UInt32* pDeviceCount, AudioObjectID** ppDeviceObjectIDs) /* NOTE: Free the returned buffer with ma_free(). */
@@ -33472,7 +33425,7 @@ static OSStatus ma_on_output__coreaudio(void* pUserData, AudioUnitRenderActionFl
         }
     } else {
         /* This is the deinterleaved case. We need to update each buffer in groups of internalChannels. This assumes each buffer is the same size. */
-        MA_ASSERT(pDevice->playback.internalChannels <= MA_MAX_CHANNELS);   /* This should have been validated at initialization time. */
+        MA_ASSERT(pDevice->playback.internalChannels <= MA_MAX_CHANNELS);   /* This should heve been validated at initialization time. */
 
         /*
         For safety we'll check that the internal channels is a multiple of the buffer count. If it's not it means something
@@ -33803,7 +33756,7 @@ static ma_result ma_context__init_device_tracking__coreaudio(ma_context* pContex
 
     ma_spinlock_lock(&g_DeviceTrackingInitLock_CoreAudio);
     {
-        /* Don't do anything if we've already initialized device tracking. */
+        /* Don't do anything if we've already initializd device tracking. */
         if (g_DeviceTrackingInitCounter_CoreAudio == 0) {
             AudioObjectPropertyAddress propAddress;
             propAddress.mScope    = kAudioObjectPropertyScopeGlobal;
@@ -34119,7 +34072,7 @@ static ma_result ma_device_init_internal__coreaudio(ma_context* pContext, ma_dev
     OSStatus status;
     UInt32 enableIOFlag;
     AudioStreamBasicDescription bestFormat;
-    ma_uint32 actualPeriodSizeInFrames;
+    UInt32 actualPeriodSizeInFrames;
     AURenderCallbackStruct callbackInfo;
 #if defined(MA_APPLE_DESKTOP)
     AudioObjectID deviceObjectID;
@@ -34271,7 +34224,7 @@ static ma_result ma_device_init_internal__coreaudio(ma_context* pContext, ma_dev
         returning a result code of -10863. I have also tried changing the format directly on the input scope on the input bus, but
         this just results in `ca_require: IsStreamFormatWritable(inScope, inElement) NotWritable` when trying to set the format.
 
-        Something that does seem to work, however, has been setting the nominal sample rate on the device object. The problem with
+        Something that does seem to work, however, has been setting the nominal sample rate on the deivce object. The problem with
         this, however, is that it actually changes the sample rate at the operating system level and not just the application. This
         could be intrusive to the user, however, so I don't think it's wise to make this the default. Instead I'm making this a
         configuration option. When the `coreaudio.allowNominalSampleRateChange` config option is set to true, changing the sample
@@ -34657,7 +34610,7 @@ static ma_result ma_device_init__coreaudio(ma_device* pDevice, const ma_device_c
         ma_get_AudioObject_uid(pDevice->pContext, pDevice->coreaudio.deviceObjectIDCapture, sizeof(pDevice->capture.id.coreaudio), pDevice->capture.id.coreaudio);
 
         /*
-        If we are using the default device we'll need to listen for changes to the system's default device so we can seamlessly
+        If we are using the default device we'll need to listen for changes to the system's default device so we can seemlessly
         switch the device in the background.
         */
         if (pConfig->capture.pDeviceID == NULL) {
@@ -34721,7 +34674,7 @@ static ma_result ma_device_init__coreaudio(ma_device* pDevice, const ma_device_c
         ma_get_AudioObject_uid(pDevice->pContext, pDevice->coreaudio.deviceObjectIDPlayback, sizeof(pDevice->playback.id.coreaudio), pDevice->playback.id.coreaudio);
 
         /*
-        If we are using the default device we'll need to listen for changes to the system's default device so we can seamlessly
+        If we are using the default device we'll need to listen for changes to the system's default device so we can seemlessly
         switch the device in the background.
         */
         if (pDescriptorPlayback->pDeviceID == NULL && (pConfig->deviceType != ma_device_type_duplex || pDescriptorCapture->pDeviceID != NULL)) {
@@ -37133,7 +37086,7 @@ static ma_result ma_device_init_fd__oss(ma_device* pDevice, const ma_device_conf
     }
 
     /*
-    The OSS documentation is very clear about the order we should be initializing the device's properties:
+    The OSS documantation is very clear about the order we should be initializing the device's properties:
       1) Format
       2) Channels
       3) Sample rate.
@@ -37657,9 +37610,7 @@ static ma_aaudio_data_callback_result_t ma_stream_data_callback_capture__aaudio(
     ma_device* pDevice = (ma_device*)pUserData;
     MA_ASSERT(pDevice != NULL);
 
-    if (frameCount > 0) {
-        ma_device_handle_backend_data_callback(pDevice, NULL, pAudioData, (ma_uint32)frameCount);
-    }
+    ma_device_handle_backend_data_callback(pDevice, NULL, pAudioData, frameCount);
 
     (void)pStream;
     return MA_AAUDIO_CALLBACK_RESULT_CONTINUE;
@@ -37670,14 +37621,7 @@ static ma_aaudio_data_callback_result_t ma_stream_data_callback_playback__aaudio
     ma_device* pDevice = (ma_device*)pUserData;
     MA_ASSERT(pDevice != NULL);
 
-    /*
-    I've had a report that AAudio can sometimes post a frame count of 0. We need to check for that here
-    so we don't get any errors at a deeper level. I'm doing the same with the capture side for safety,
-    though I've not yet had any reports about that one.
-    */
-    if (frameCount > 0) {
-        ma_device_handle_backend_data_callback(pDevice, pAudioData, NULL, (ma_uint32)frameCount);
-    }
+    ma_device_handle_backend_data_callback(pDevice, pAudioData, NULL, frameCount);
 
     (void)pStream;
     return MA_AAUDIO_CALLBACK_RESULT_CONTINUE;
@@ -37733,11 +37677,11 @@ static ma_result ma_create_and_configure_AAudioStreamBuilder__aaudio(ma_context*
         There have been reports where setting the frames per data callback results in an error
         later on from Android. To address this, I'm experimenting with simply not setting it on
         anything from Android 11 and earlier. Suggestions welcome on how we might be able to make
-        this more targeted.
+        this more targetted.
         */
         if (!pConfig->aaudio.enableCompatibilityWorkarounds || ma_android_sdk_version() > 30) {
             /*
-            AAudio is annoying when it comes to its buffer calculation stuff because it doesn't let you
+            AAudio is annoying when it comes to it's buffer calculation stuff because it doesn't let you
             retrieve the actual sample rate until after you've opened the stream. But you need to configure
             the buffer capacity before you open the stream... :/
 
@@ -38067,7 +38011,7 @@ static ma_result ma_device_start_stream__aaudio(ma_device* pDevice, ma_AAudioStr
         return ma_result_from_aaudio(resultAA);
     }
 
-    /* Do we actually need to wait for the device to transition into its started state? */
+    /* Do we actually need to wait for the device to transition into it's started state? */
 
     /* The device should be in either a starting or started state. If it's not set to started we need to wait for it to transition. It should go from starting to started. */
     currentState = ((MA_PFN_AAudioStream_getState)pDevice->pContext->aaudio.AAudioStream_getState)(pStream);
@@ -39704,7 +39648,7 @@ TODO: Version 0.12: Swap this logic around so that AudioWorklets are used by def
 
 /* The thread stack size must be a multiple of 16. */
 #ifndef MA_AUDIO_WORKLETS_THREAD_STACK_SIZE
-#define MA_AUDIO_WORKLETS_THREAD_STACK_SIZE     131072
+#define MA_AUDIO_WORKLETS_THREAD_STACK_SIZE 16384
 #endif
 
 #if defined(MA_USE_AUDIO_WORKLETS)
@@ -39830,7 +39774,7 @@ static ma_result ma_device_uninit__webaudio(ma_device* pDevice)
     #if defined(MA_USE_AUDIO_WORKLETS)
     {
         EM_ASM({
-            var device = window.miniaudio.get_device_by_index($0);
+            var device = miniaudio.get_device_by_index($0);
 
             if (device.streamNode !== undefined) {
                 device.streamNode.disconnect();
@@ -39845,7 +39789,7 @@ static ma_result ma_device_uninit__webaudio(ma_device* pDevice)
     #else
     {
         EM_ASM({
-            var device = window.miniaudio.get_device_by_index($0);
+            var device = miniaudio.get_device_by_index($0);
 
             /* Make sure all nodes are disconnected and marked for collection. */
             if (device.scriptNode !== undefined) {
@@ -39872,7 +39816,7 @@ static ma_result ma_device_uninit__webaudio(ma_device* pDevice)
 
     /* Clean up the device on the JS side. */
     EM_ASM({
-        window.miniaudio.untrack_device_by_index($0);
+        miniaudio.untrack_device_by_index($0);
     }, pDevice->webaudio.deviceIndex);
 
     ma_free(pDevice->webaudio.pIntermediaryBuffer, &pDevice->pContext->allocationCallbacks);
@@ -40005,7 +39949,7 @@ static void ma_audio_worklet_processor_created__webaudio(EMSCRIPTEN_WEBAUDIO_T a
     count from MediaStreamAudioSourceNode (what we use for capture)? The only way to have control is to configure an
     output channel count on the capture side. This is slightly confusing for capture mode because intuitively you
     wouldn't actually connect an output to an input-only node, but this is what we'll have to do in order to have
-    proper control over the channel count. In the capture case, we'll have to output silence to its output node.
+    proper control over the channel count. In the capture case, we'll have to output silence to it's output node.
     */
     if (pParameters->pConfig->deviceType == ma_device_type_capture) {
         channels = (int)((pParameters->pDescriptorCapture->channels > 0) ? pParameters->pDescriptorCapture->channels : MA_DEFAULT_CHANNELS);
@@ -40036,6 +39980,7 @@ static void ma_audio_worklet_processor_created__webaudio(EMSCRIPTEN_WEBAUDIO_T a
         ma_free(pParameters, &pParameters->pDevice->pContext->allocationCallbacks);
         return;
     }
+
 
     pParameters->pDevice->webaudio.audioWorklet = emscripten_create_wasm_audio_worklet_node(audioContext, "miniaudio", &audioWorkletOptions, &ma_audio_worklet_process_callback__webaudio, pParameters->pDevice);
 
@@ -40176,6 +40121,7 @@ static ma_result ma_device_init__webaudio(ma_device* pDevice, const ma_device_co
         /* It's not clear if this can return an error. None of the tests in the Emscripten repository check for this, so neither am I for now. */
         pDevice->webaudio.audioContext = emscripten_create_audio_context(&audioContextAttributes);
 
+
         /*
         With the context created we can now create the worklet. We can only have a single worklet per audio
         context which means we'll need to craft this appropriately to handle duplex devices correctly.
@@ -40224,7 +40170,7 @@ static ma_result ma_device_init__webaudio(ma_device* pDevice, const ma_device_co
 
         /* We need to add an entry to the miniaudio.devices list on the JS side so we can do some JS/C interop. */
         pDevice->webaudio.deviceIndex = EM_ASM_INT({
-            return window.miniaudio.track_device({
+            return miniaudio.track_device({
                 webaudio: emscriptenGetAudioObject($0),
                 state:    1 /* 1 = ma_device_state_stopped */
             });
@@ -40240,7 +40186,7 @@ static ma_result ma_device_init__webaudio(ma_device* pDevice, const ma_device_co
         ma_uint32 sampleRate;
         ma_uint32 periodSizeInFrames;
 
-        /* The channel count will depend on the device type. If it's a capture, use its, otherwise use the playback side. */
+        /* The channel count will depend on the device type. If it's a capture, use it's, otherwise use the playback side. */
         if (pConfig->deviceType == ma_device_type_capture) {
             channels = (pDescriptorCapture->channels  > 0) ? pDescriptorCapture->channels  : MA_DEFAULT_CHANNELS;
         } else {
@@ -40309,11 +40255,11 @@ static ma_result ma_device_init__webaudio(ma_device* pDevice, const ma_device_co
             /* The node processing callback. */
             device.scriptNode.onaudioprocess = function(e) {
                 if (device.intermediaryBufferView == null || device.intermediaryBufferView.length == 0) {
-                    device.intermediaryBufferView = new Float32Array(HEAPF32.buffer, pIntermediaryBuffer, bufferSize * channels);
+                    device.intermediaryBufferView = new Float32Array(Module.HEAPF32.buffer, pIntermediaryBuffer, bufferSize * channels);
                 }
 
                 /* Do the capture side first. */
-                if (deviceType == window.miniaudio.device_type.capture || deviceType == window.miniaudio.device_type.duplex) {
+                if (deviceType == miniaudio.device_type.capture || deviceType == miniaudio.device_type.duplex) {
                     /* The data must be interleaved before being processed miniaudio. */
                     for (var iChannel = 0; iChannel < channels; iChannel += 1) {
                         var inputBuffer = e.inputBuffer.getChannelData(iChannel);
@@ -40327,7 +40273,7 @@ static ma_result ma_device_init__webaudio(ma_device* pDevice, const ma_device_co
                     _ma_device_process_pcm_frames_capture__webaudio(pDevice, bufferSize, pIntermediaryBuffer);
                 }
 
-                if (deviceType == window.miniaudio.device_type.playback || deviceType == window.miniaudio.device_type.duplex) {
+                if (deviceType == miniaudio.device_type.playback || deviceType == miniaudio.device_type.duplex) {
                     _ma_device_process_pcm_frames_playback__webaudio(pDevice, bufferSize, pIntermediaryBuffer);
 
                     for (var iChannel = 0; iChannel < e.outputBuffer.numberOfChannels; ++iChannel) {
@@ -40347,7 +40293,7 @@ static ma_result ma_device_init__webaudio(ma_device* pDevice, const ma_device_co
             };
 
             /* Now we need to connect our node to the graph. */
-            if (deviceType == window.miniaudio.device_type.capture || deviceType == window.miniaudio.device_type.duplex) {
+            if (deviceType == miniaudio.device_type.capture || deviceType == miniaudio.device_type.duplex) {
                 navigator.mediaDevices.getUserMedia({audio:true, video:false})
                     .then(function(stream) {
                         device.streamNode = device.webaudio.createMediaStreamSource(stream);
@@ -40359,13 +40305,13 @@ static ma_result ma_device_init__webaudio(ma_device* pDevice, const ma_device_co
                     });
             }
 
-            if (deviceType == window.miniaudio.device_type.playback) {
+            if (deviceType == miniaudio.device_type.playback) {
                 device.scriptNode.connect(device.webaudio.destination);
             }
 
             device.pDevice = pDevice;
 
-            return window.miniaudio.track_device(device);
+            return miniaudio.track_device(device);
         }, pConfig->deviceType, channels, sampleRate, periodSizeInFrames, pDevice->webaudio.pIntermediaryBuffer, pDevice);
 
         if (deviceIndex < 0) {
@@ -40375,7 +40321,7 @@ static ma_result ma_device_init__webaudio(ma_device* pDevice, const ma_device_co
         pDevice->webaudio.deviceIndex = deviceIndex;
 
         /* Grab the sample rate from the audio context directly. */
-        sampleRate = (ma_uint32)EM_ASM_INT({ return window.miniaudio.get_device_by_index($0).webaudio.sampleRate; }, deviceIndex);
+        sampleRate = (ma_uint32)EM_ASM_INT({ return miniaudio.get_device_by_index($0).webaudio.sampleRate; }, deviceIndex);
 
         if (pDescriptorCapture != NULL) {
             pDescriptorCapture->format              = ma_format_f32;
@@ -40405,9 +40351,9 @@ static ma_result ma_device_start__webaudio(ma_device* pDevice)
     MA_ASSERT(pDevice != NULL);
 
     EM_ASM({
-        var device = window.miniaudio.get_device_by_index($0);
+        var device = miniaudio.get_device_by_index($0);
         device.webaudio.resume();
-        device.state = window.miniaudio.device_state.started;
+        device.state = miniaudio.device_state.started;
     }, pDevice->webaudio.deviceIndex);
 
     return MA_SUCCESS;
@@ -40427,9 +40373,9 @@ static ma_result ma_device_stop__webaudio(ma_device* pDevice)
     do any kind of explicit draining.
     */
     EM_ASM({
-        var device = window.miniaudio.get_device_by_index($0);
+        var device = miniaudio.get_device_by_index($0);
         device.webaudio.suspend();
-        device.state = window.miniaudio.device_state.stopped;
+        device.state = miniaudio.device_state.stopped;
     }, pDevice->webaudio.deviceIndex);
 
     ma_device__on_notification_stopped(pDevice);
@@ -40447,10 +40393,6 @@ static ma_result ma_context_uninit__webaudio(ma_context* pContext)
     /* Remove the global miniaudio object from window if there are no more references to it. */
     EM_ASM({
         if (typeof(window.miniaudio) !== 'undefined') {
-            miniaudio.unlock_event_types.map(function(event_type) {
-                document.removeEventListener(event_type, miniaudio.unlock, true);
-            });
-
             window.miniaudio.referenceCount -= 1;
             if (window.miniaudio.referenceCount === 0) {
                 delete window.miniaudio;
@@ -40492,7 +40434,6 @@ static ma_result ma_context_init__webaudio(ma_context* pContext, const ma_contex
             window.miniaudio.device_state.started = $4;
 
             /* Device cache for mapping devices to indexes for JavaScript/C interop. */
-            let miniaudio = window.miniaudio;
             miniaudio.devices = [];
 
             miniaudio.track_device = function(device) {
@@ -40544,13 +40485,13 @@ static ma_result ma_context_init__webaudio(ma_context* pContext, const ma_contex
                     var device = miniaudio.devices[i];
                     if (device != null &&
                         device.webaudio != null &&
-                        device.state === miniaudio.device_state.started) {
+                        device.state === window.miniaudio.device_state.started) {
 
                         device.webaudio.resume().then(() => {
-                            _ma_device__on_notification_unlocked(device.pDevice);
-                        },
-                        (error) => {console.error("Failed to resume audiocontext", error);
-                        });
+                                Module._ma_device__on_notification_unlocked(device.pDevice);
+                            },
+                            (error) => {console.error("Failed to resume audiocontext", error);
+                            });
                     }
                 }
                 miniaudio.unlock_event_types.map(function(event_type) {
@@ -40865,7 +40806,7 @@ MA_API ma_result ma_device_post_init(ma_device* pDevice, ma_device_type deviceTy
         ma_device_info deviceInfo;
 
         if (deviceType == ma_device_type_capture || deviceType == ma_device_type_duplex || deviceType == ma_device_type_loopback) {
-            result = ma_device_get_info(pDevice, ma_device_type_capture, &deviceInfo);
+            result = ma_device_get_info(pDevice, (deviceType == ma_device_type_loopback) ? ma_device_type_playback : ma_device_type_capture, &deviceInfo);
             if (result == MA_SUCCESS) {
                 ma_strncpy_s(pDevice->capture.name, sizeof(pDevice->capture.name), deviceInfo.name, (size_t)-1);
             } else {
@@ -40912,7 +40853,7 @@ static ma_thread_result MA_THREADCALL ma_worker_thread(void* pData)
 #endif
 
     /*
-    When the device is being initialized its initial state is set to ma_device_state_uninitialized. Before returning from
+    When the device is being initialized it's initial state is set to ma_device_state_uninitialized. Before returning from
     ma_device_init(), the state needs to be set to something valid. In miniaudio the device's default state immediately
     after initialization is stopped, so therefore we need to mark the device as such. miniaudio will wait on the worker
     thread to signal an event to know when the worker thread is ready for action.
@@ -42030,7 +41971,7 @@ MA_API ma_result ma_device_init(ma_context* pContext, const ma_device_config* pC
             return result;
         }
 
-        /* Wait for the worker thread to put the device into its stopped state for real. */
+        /* Wait for the worker thread to put the device into it's stopped state for real. */
         ma_event_wait(&pDevice->stopEvent);
         MA_ASSERT(ma_device_get_state(pDevice) == ma_device_state_stopped);
     } else {
@@ -42056,7 +41997,7 @@ MA_API ma_result ma_device_init(ma_context* pContext, const ma_device_config* pC
         ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "[%s]\n", ma_get_backend_name(pDevice->pContext->backend));
         if (pDevice->type == ma_device_type_capture || pDevice->type == ma_device_type_duplex || pDevice->type == ma_device_type_loopback) {
             char name[MA_MAX_DEVICE_NAME_LENGTH + 1];
-            ma_device_get_name(pDevice, ma_device_type_capture, name, sizeof(name), NULL);
+            ma_device_get_name(pDevice, (pDevice->type == ma_device_type_loopback) ? ma_device_type_playback : ma_device_type_capture, name, sizeof(name), NULL);
 
             ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "  %s (%s)\n", name, "Capture");
             ma_log_postf(ma_device_get_log(pDevice), MA_LOG_LEVEL_INFO, "    Format:      %s -> %s\n", ma_get_format_name(pDevice->capture.internalFormat), ma_get_format_name(pDevice->capture.format));
@@ -42309,17 +42250,6 @@ MA_API ma_result ma_device_get_info(ma_device* pDevice, ma_device_type type, ma_
     if (type == ma_device_type_playback) {
         return ma_context_get_device_info(pDevice->pContext, type, pDevice->playback.pID, pDeviceInfo);
     } else {
-        /*
-        Here we're getting the capture side, which is the branch we'll be entering for a loopback
-        device, since loopback is capturing. However, if the device is using the default device ID,
-        it won't get the correct information because it'll think we're asking for the default
-        capture device, where in fact for loopback we want the default *playback* device. We'll do
-        a bit of a hack here to make sure we get the correct info.
-        */
-        if (pDevice->type == ma_device_type_loopback && pDevice->capture.pID == NULL) {
-            type = ma_device_type_playback;
-        }
-
         return ma_context_get_device_info(pDevice->pContext, type, pDevice->capture.pID, pDeviceInfo);
     }
 }
@@ -42459,7 +42389,7 @@ MA_API ma_result ma_device_stop(ma_device* pDevice)
         } else {
             /*
             Synchronous backends. The stop callback is always called from the worker thread. Do not call the stop callback here. If
-            the backend is implementing its own audio thread loop we'll need to wake it up if required. Note that we need to make
+            the backend is implementing it's own audio thread loop we'll need to wake it up if required. Note that we need to make
             sure the state of the device is *not* playing right now, which it shouldn't be since we set it above. This is super
             important though, so I'm asserting it here as well for extra safety in case we accidentally change something later.
             */
@@ -42573,15 +42503,6 @@ MA_API ma_result ma_device_handle_backend_data_callback(ma_device* pDevice, void
     }
 
     if (pOutput == NULL && pInput == NULL) {
-        return MA_INVALID_ARGS;
-    }
-
-    /*
-    There is an assert deeper in the code that checks that frameCount > 0. Since this is a public facing
-    API we'll need to check for that here. I've had reports that AAudio can sometimes post a frame count
-    of 0.
-    */
-    if (frameCount == 0) {
         return MA_INVALID_ARGS;
     }
 
@@ -49545,7 +49466,7 @@ MA_API float ma_fader_get_current_volume(const ma_fader* pFader)
     } else if ((ma_uint64)pFader->cursorInFrames >= pFader->lengthInFrames) {   /* Safe case because the < 0 case was checked above. */
         return pFader->volumeEnd;
     } else {
-        /* The cursor is somewhere inside the fading period. We can figure this out with a simple linear interpolation between volumeBeg and volumeEnd based on our cursor position. */
+        /* The cursor is somewhere inside the fading period. We can figure this out with a simple linear interpoluation between volumeBeg and volumeEnd based on our cursor position. */
         return ma_mix_f32_fast(pFader->volumeBeg, pFader->volumeEnd, (ma_uint32)pFader->cursorInFrames / (float)((ma_uint32)pFader->lengthInFrames));    /* Safe cast to uint32 because we clamp it in ma_fader_process_pcm_frames(). */
     }
 }
@@ -49768,9 +49689,9 @@ static float ma_attenuation_exponential(float distance, float minDistance, float
 
 
 /*
-Doppler Effect calculation taken from the OpenAL spec, with two main differences:
+Dopper Effect calculation taken from the OpenAL spec, with two main differences:
 
-  1) The source to listener vector will have already been calculated at an earlier step so we can
+  1) The source to listener vector will have already been calcualted at an earlier step so we can
      just use that directly. We need only the position of the source relative to the origin.
 
   2) We don't scale by a frequency because we actually just want the ratio which we'll plug straight
@@ -49809,7 +49730,7 @@ static void ma_get_default_channel_map_for_spatializer(ma_channel* pChannelMap, 
     Special case for stereo. Want to default the left and right speakers to side left and side
     right so that they're facing directly down the X axis rather than slightly forward. Not
     doing this will result in sounds being quieter when behind the listener. This might
-    actually be good for some scenarios, but I don't think it's an appropriate default because
+    actually be good for some scenerios, but I don't think it's an appropriate default because
     it can be a bit unexpected.
     */
     if (channelCount == 2) {
@@ -50143,7 +50064,7 @@ MA_API ma_spatializer_config ma_spatializer_config_init(ma_uint32 channelsIn, ma
     config.maxDistance                  = MA_FLT_MAX;
     config.rolloff                      = 1;
     config.coneInnerAngleInRadians      = 6.283185f; /* 360 degrees. */
-    config.coneOuterAngleInRadians      = 6.283185f; /* 360 degrees. */
+    config.coneOuterAngleInRadians      = 6.283185f; /* 360 degress. */
     config.coneOuterGain                = 0.0f;
     config.dopplerFactor                = 1;
     config.directionalAttenuationFactor = 1;
@@ -50377,7 +50298,7 @@ static float ma_calculate_angular_gain(ma_vec3f dirA, ma_vec3f dirB, float coneI
     To do cone attenuation, I'm just using the same math that we'd use to implement a basic spotlight in OpenGL. We
     just need to get the direction from the source to the listener and then do a dot product against that and the
     direction of the spotlight. Then we just compare that dot product against the cosine of the inner and outer
-    angles. If the dot product is greater than the outer angle, we just use coneOuterGain. If it's less than
+    angles. If the dot product is greater than the the outer angle, we just use coneOuterGain. If it's less than
     the inner angle, we just use a gain of 1. Otherwise we linearly interpolate between 1 and coneOuterGain.
     */
     if (coneInnerAngleInRadians < 6.283185f) {
@@ -50447,7 +50368,7 @@ MA_API ma_result ma_spatializer_process_pcm_frames(ma_spatializer* pSpatializer,
         ma_vec3f relativePosNormalized;
         ma_vec3f relativePos;   /* The position relative to the listener. */
         ma_vec3f relativeDir;   /* The direction of the sound, relative to the listener. */
-        ma_vec3f listenerVel;   /* The velocity of the listener. For doppler pitch calculation. */
+        ma_vec3f listenerVel;   /* The volocity of the listener. For doppler pitch calculation. */
         float speedOfSound;
         float distance = 0;
         float gain = 1;
@@ -50528,11 +50449,11 @@ MA_API ma_result ma_spatializer_process_pcm_frames(ma_spatializer* pSpatializer,
         To do cone attenuation, I'm just using the same math that we'd use to implement a basic spotlight in OpenGL. We
         just need to get the direction from the source to the listener and then do a dot product against that and the
         direction of the spotlight. Then we just compare that dot product against the cosine of the inner and outer
-        angles. If the dot product is greater than the outer angle, we just use coneOuterGain. If it's less than
+        angles. If the dot product is greater than the the outer angle, we just use coneOuterGain. If it's less than
         the inner angle, we just use a gain of 1. Otherwise we linearly interpolate between 1 and coneOuterGain.
         */
         if (distance > 0) {
-            /* Source angular gain. */
+            /* Source anglular gain. */
             float spatializerConeInnerAngle;
             float spatializerConeOuterAngle;
             float spatializerConeOuterGain;
@@ -51044,7 +50965,7 @@ MA_API void ma_spatializer_get_relative_position_and_direction(const ma_spatiali
         listenerDirection    = ma_spatializer_listener_get_direction(pListener);
 
         /*
-        We need to calculate the right vector from our forward and up vectors. This is done with
+        We need to calcualte the right vector from our forward and up vectors. This is done with
         a cross product.
         */
         axisZ = ma_vec3f_normalize(listenerDirection);                                  /* Normalization required here because we can't trust the caller. */
@@ -51190,7 +51111,7 @@ static ma_result ma_linear_resampler_set_rate_internal(ma_linear_resampler* pRes
     lpfConfig = ma_lpf_config_init(pResampler->config.format, pResampler->config.channels, lpfSampleRate, lpfCutoffFrequency, pResampler->config.lpfOrder);
 
     /*
-    If the resampler is already initialized we don't want to do a fresh initialization of the low-pass filter because it will result in the cached frames
+    If the resampler is alreay initialized we don't want to do a fresh initialization of the low-pass filter because it will result in the cached frames
     getting cleared. Instead we re-initialize the filter which will maintain any cached frames.
     */
     if (isResamplerAlreadyInitialized) {
@@ -51885,7 +51806,7 @@ MA_API ma_result ma_linear_resampler_get_expected_output_frame_count(const ma_li
     preliminaryInputFrameCount         = (pResampler->inTimeInt  + outputFrameCount*pResampler->inAdvanceInt ) + preliminaryInputFrameCountFromFrac;
 
     /*
-    If the total number of *whole* input frames that would be required to generate our preliminary output frame count is greater than
+    If the total number of *whole* input frames that would be required to generate our preliminary output frame count is greather than
     the amount of whole input frames we have available as input we need to *not* add an extra output frame as there won't be enough data
     to actually process. Otherwise we need to add the extra output frame.
     */
@@ -51923,7 +51844,7 @@ MA_API ma_result ma_linear_resampler_reset(ma_linear_resampler* pResampler)
         }
     }
 
-    /* The low pass filter needs to have its cache reset. */
+    /* The low pass filter needs to have it's cache reset. */
     ma_lpf_clear_cache(&pResampler->lpf);
 
     return MA_SUCCESS;
@@ -52440,19 +52361,19 @@ static float ma_calculate_channel_position_rectangular_weight(ma_channel channel
     of contribution to apply to the side/left and back/left speakers, however, is a bit more complicated.
 
     Imagine the front/left speaker as emitting audio from two planes - the front plane and the left plane. You can think of the front/left
-    speaker emitting half of its total volume from the front, and the other half from the left. Since part of its volume is being emitted
+    speaker emitting half of it's total volume from the front, and the other half from the left. Since part of it's volume is being emitted
     from the left side, and the side/left and back/left channels also emit audio from the left plane, one would expect that they would
     receive some amount of contribution from front/left speaker. The amount of contribution depends on how many planes are shared between
     the two speakers. Note that in the examples below I've added a top/front/left speaker as an example just to show how the math works
     across 3 spatial dimensions.
 
     The first thing to do is figure out how each speaker's volume is spread over each of plane:
-     - front/left:     2 planes (front and left)      = 1/2 = half its total volume on each plane
+     - front/left:     2 planes (front and left)      = 1/2 = half it's total volume on each plane
      - side/left:      1 plane (left only)            = 1/1 = entire volume from left plane
-     - back/left:      2 planes (back and left)       = 1/2 = half its total volume on each plane
-     - top/front/left: 3 planes (top, front and left) = 1/3 = one third its total volume on each plane
+     - back/left:      2 planes (back and left)       = 1/2 = half it's total volume on each plane
+     - top/front/left: 3 planes (top, front and left) = 1/3 = one third it's total volume on each plane
 
-    The amount of volume each channel contributes to each of its planes is what controls how much it is willing to given and take to other
+    The amount of volume each channel contributes to each of it's planes is what controls how much it is willing to given and take to other
     channels on the same plane. The volume that is willing to the given by one channel is multiplied by the volume that is willing to be
     taken by the other to produce the final contribution.
     */
@@ -52595,8 +52516,8 @@ static ma_result ma_channel_map_build_shuffle_table(const ma_channel* pChannelMa
     }
 
     /*
-    When building the shuffle table we just do a 1:1 mapping based on the first occurrence of a channel. If the
-    input channel has more than one occurrence of a channel position, the second one will be ignored.
+    When building the shuffle table we just do a 1:1 mapping based on the first occurance of a channel. If the
+    input channel has more than one occurance of a channel position, the second one will be ignored.
     */
     for (iChannelOut = 0; iChannelOut < channelCountOut; iChannelOut += 1) {
         ma_channel channelOut;
@@ -54891,7 +54812,7 @@ static ma_result ma_data_converter_process_pcm_frames__channels_first(ma_data_co
         Before doing any processing we need to determine how many frames we should try processing
         this iteration, for both input and output. The resampler requires us to perform format and
         channel conversion before passing any data into it. If we get our input count wrong, we'll
-        end up performing redundant pre-processing. This isn't the end of the world, but it does
+        end up peforming redundant pre-processing. This isn't the end of the world, but it does
         result in some inefficiencies proportionate to how far our estimates are off.
 
         If the resampler has a means to calculate exactly how much we'll need, we'll use that.
@@ -57415,7 +57336,7 @@ MA_API ma_result ma_data_source_read_pcm_frames(ma_data_source* pDataSource, voi
         totalFramesProcessed += framesProcessed;
 
         /*
-        If we encountered an error from the read callback, make sure it's propagated to the caller. The caller may need to know whether or not MA_BUSY is returned which is
+        If we encounted an error from the read callback, make sure it's propagated to the caller. The caller may need to know whether or not MA_BUSY is returned which is
         not necessarily considered an error.
         */
         if (result != MA_SUCCESS && result != MA_AT_END) {
@@ -57743,7 +57664,7 @@ MA_API ma_result ma_data_source_set_range_in_pcm_frames(ma_data_source* pDataSou
 
     /*
     We may need to adjust the position of the cursor to ensure it's clamped to the range. Grab it now
-    so we can calculate its absolute position before we change the range.
+    so we can calculate it's absolute position before we change the range.
     */
     result = ma_data_source_get_cursor_in_pcm_frames(pDataSource, &relativeCursor);
     if (result == MA_SUCCESS) {
@@ -57777,7 +57698,7 @@ MA_API ma_result ma_data_source_set_range_in_pcm_frames(ma_data_source* pDataSou
 
     /*
     Seek to within range. Note that our seek positions here are relative to the new range. We don't want
-    to do this if we failed to retrieve the cursor earlier on because it probably means the data source
+    do do this if we failed to retrieve the cursor earlier on because it probably means the data source
     has no notion of a cursor. In practice the seek would probably fail (which we silently ignore), but
     I'm just not even going to attempt it.
     */
@@ -59234,7 +59155,7 @@ static ma_result ma_default_vfs_seek__win32(ma_vfs* pVFS, ma_vfs_file file, ma_i
         result = ma_SetFilePointerEx((HANDLE)file, liDistanceToMove, NULL, dwMoveMethod);
     } else if (ma_SetFilePointer != NULL) {
         /* No SetFilePointerEx() so restrict to 31 bits. */
-        if (offset > 0x7FFFFFFF) {
+        if (origin > 0x7FFFFFFF) {
             return MA_OUT_OF_RANGE;
         }
 
@@ -59837,7 +59758,7 @@ extern "C" {
 #define MA_DR_WAV_XSTRINGIFY(x)     MA_DR_WAV_STRINGIFY(x)
 #define MA_DR_WAV_VERSION_MAJOR     0
 #define MA_DR_WAV_VERSION_MINOR     13
-#define MA_DR_WAV_VERSION_REVISION  17
+#define MA_DR_WAV_VERSION_REVISION  13
 #define MA_DR_WAV_VERSION_STRING    MA_DR_WAV_XSTRINGIFY(MA_DR_WAV_VERSION_MAJOR) "." MA_DR_WAV_XSTRINGIFY(MA_DR_WAV_VERSION_MINOR) "." MA_DR_WAV_XSTRINGIFY(MA_DR_WAV_VERSION_REVISION)
 #include <stddef.h>
 #define MA_DR_WAVE_FORMAT_PCM          0x1
@@ -60544,7 +60465,7 @@ extern "C" {
 #define MA_DR_MP3_XSTRINGIFY(x)     MA_DR_MP3_STRINGIFY(x)
 #define MA_DR_MP3_VERSION_MAJOR     0
 #define MA_DR_MP3_VERSION_MINOR     6
-#define MA_DR_MP3_VERSION_REVISION  39
+#define MA_DR_MP3_VERSION_REVISION  38
 #define MA_DR_MP3_VERSION_STRING    MA_DR_MP3_XSTRINGIFY(MA_DR_MP3_VERSION_MAJOR) "." MA_DR_MP3_XSTRINGIFY(MA_DR_MP3_VERSION_MINOR) "." MA_DR_MP3_XSTRINGIFY(MA_DR_MP3_VERSION_REVISION)
 #include <stddef.h>
 #define MA_DR_MP3_MAX_PCM_FRAMES_PER_MP3_FRAME  1152
@@ -60706,7 +60627,7 @@ MA_API ma_decoder_config ma_decoder_config_init(ma_format outputFormat, ma_uint3
     return config;
 }
 
-MA_API ma_decoder_config ma_decoder_config_init_default(void)
+MA_API ma_decoder_config ma_decoder_config_init_default()
 {
     return ma_decoder_config_init(ma_format_unknown, 0, 0);
 }
@@ -63299,7 +63220,7 @@ MA_API ma_result ma_stbvorbis_init(ma_read_proc onRead, ma_seek_proc onSeek, ma_
     #if !defined(MA_NO_VORBIS)
     {
         /*
-        stb_vorbis lacks a callback based API for its pulling API which means we're stuck with the
+        stb_vorbis lacks a callback based API for it's pulling API which means we're stuck with the
         pushing API. In order for us to be able to successfully initialize the decoder we need to
         supply it with enough data. We need to keep loading data until we have enough.
         */
@@ -63380,7 +63301,7 @@ MA_API ma_result ma_stbvorbis_init_memory(const void* pData, size_t dataSize, co
     {
         (void)pAllocationCallbacks;
 
-        /* stb_vorbis uses an int as its size specifier, restricting it to 32-bit even on 64-bit systems. *sigh*. */
+        /* stb_vorbis uses an int as it's size specifier, restricting it to 32-bit even on 64-bit systems. *sigh*. */
         if (dataSize > INT_MAX) {
             return MA_TOO_BIG;
         }
@@ -63470,7 +63391,7 @@ MA_API ma_result ma_stbvorbis_read_pcm_frames(ma_stbvorbis* pVorbis, void* pFram
                     /* The first thing to do is read from any already-cached frames. */
                     ma_uint32 framesToReadFromCache = (ma_uint32)ma_min(pVorbis->push.framesRemaining, (frameCount - totalFramesRead));  /* Safe cast because pVorbis->framesRemaining is 32-bit. */
 
-                    /* The output pointer can be null in which case we just treat it as a seek. */
+                    /* The output pointer can be null in which case we just treate it as a seek. */
                     if (pFramesOut != NULL) {
                         ma_uint64 iFrame;
                         for (iFrame = 0; iFrame < framesToReadFromCache; iFrame += 1) {
@@ -63544,7 +63465,7 @@ MA_API ma_result ma_stbvorbis_read_pcm_frames(ma_stbvorbis* pVorbis, void* pFram
                         }
                     }
 
-                    /* If we don't have a success code at this point it means we've encountered an error or the end of the file has been reached (probably the latter). */
+                    /* If we don't have a success code at this point it means we've encounted an error or the end of the file has been reached (probably the latter). */
                     if (result != MA_SUCCESS) {
                         break;
                     }
@@ -65174,7 +65095,7 @@ MA_API ma_result ma_decoder_read_pcm_frames(ma_decoder* pDecoder, void* pFramesO
     } else {
         /*
         Getting here means we need to do data conversion. If we're seeking forward and are _not_ doing resampling we can run this in a fast path. If we're doing resampling we
-        need to run through each sample because we need to ensure its internal cache is updated.
+        need to run through each sample because we need to ensure it's internal cache is updated.
         */
         if (pFramesOut == NULL && pDecoder->converter.hasResampler == MA_FALSE) {
             result = ma_data_source_read_pcm_frames(pDecoder->pBackend, NULL, frameCount, &totalFramesReadOut);
@@ -66746,7 +66667,7 @@ MA_API ma_result ma_noise_set_type(ma_noise* pNoise, ma_noise_type type)
 
     /*
     This function should never have been implemented in the first place. Changing the type dynamically is not
-    supported. Instead you need to uninitialize and reinitialize a fresh `ma_noise` object. This function
+    supported. Instead you need to uninitialize and reinitiailize a fresh `ma_noise` object. This function
     will be removed in version 0.12.
     */
     MA_ASSERT(MA_FALSE);
@@ -67792,7 +67713,7 @@ MA_API ma_result ma_resource_manager_init(const ma_resource_manager_config* pCon
         pResourceManager->config.pVFS = &pResourceManager->defaultVFS;
     }
 
-    /* If threading has been disabled at compile time, enforce it at run time as well. */
+    /* If threading has been disabled at compile time, enfore it at run time as well. */
     #ifdef MA_NO_THREADING
     {
         pResourceManager->config.flags |= MA_RESOURCE_MANAGER_FLAG_NO_THREADING;
@@ -67888,7 +67809,7 @@ static void ma_resource_manager_delete_all_data_buffer_nodes(ma_resource_manager
         ma_resource_manager_data_buffer_node* pDataBufferNode = pResourceManager->pRootDataBufferNode;
         ma_resource_manager_data_buffer_node_remove(pResourceManager, pDataBufferNode);
 
-        /* The data buffer has been removed from the BST, so now we need to free its data. */
+        /* The data buffer has been removed from the BST, so now we need to free it's data. */
         ma_resource_manager_data_buffer_node_free(pResourceManager, pDataBufferNode);
     }
 }
@@ -67901,7 +67822,7 @@ MA_API void ma_resource_manager_uninit(ma_resource_manager* pResourceManager)
 
     /*
     Job threads need to be killed first. To do this we need to post a quit message to the message queue and then wait for the thread. The quit message will never be removed from the
-    queue which means it will never not be returned after being encountered for the first time which means all threads will eventually receive it.
+    queue which means it will never not be returned after being encounted for the first time which means all threads will eventually receive it.
     */
     ma_resource_manager_post_job_quit(pResourceManager);
 
@@ -68512,7 +68433,7 @@ static ma_result ma_resource_manager_data_buffer_node_acquire_critical_section(m
                 if ((flags & MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_WAIT_INIT) != 0) {
                     ma_resource_manager_inline_notification_uninit(pInitNotification);
                 } else {
-                    /* These will have been freed by the job thread, but with WAIT_INIT they will already have happened since the job has already been handled. */
+                    /* These will have been freed by the job thread, but with WAIT_INIT they will already have happend sinced the job has already been handled. */
                     ma_free(pFilePathCopy,  &pResourceManager->config.allocationCallbacks);
                     ma_free(pFilePathWCopy, &pResourceManager->config.allocationCallbacks);
                 }
@@ -68877,10 +68798,6 @@ static ma_result ma_resource_manager_data_buffer_init_ex_internal(ma_resource_ma
         flags &= ~MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_ASYNC;
     }
 
-    if (pConfig->isLooping) {
-        flags |= MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING;
-    }
-
     async = (flags & MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_ASYNC) != 0;
 
     /*
@@ -68893,7 +68810,7 @@ static ma_result ma_resource_manager_data_buffer_init_ex_internal(ma_resource_ma
 
     These fences are always released at the "done" tag at the end of this function. They'll be
     acquired a second if loading asynchronously. This double acquisition system is just done to
-    simplify code maintenance.
+    simplify code maintanence.
     */
     ma_resource_manager_pipeline_notifications_acquire_all_fences(&notifications);
     {
@@ -68938,7 +68855,7 @@ static ma_result ma_resource_manager_data_buffer_init_ex_internal(ma_resource_ma
 
             /*
             The status of the data buffer needs to be set to MA_BUSY before posting the job so that the
-            worker thread is aware of its busy state. If the LOAD_DATA_BUFFER job sees a status other
+            worker thread is aware of it's busy state. If the LOAD_DATA_BUFFER job sees a status other
             than MA_BUSY, it'll assume an error and fall through to an early exit.
             */
             ma_atomic_exchange_i32(&pDataBuffer->result, MA_BUSY);
@@ -68957,7 +68874,7 @@ static ma_result ma_resource_manager_data_buffer_init_ex_internal(ma_resource_ma
             job.data.resourceManager.loadDataBuffer.rangeEndInPCMFrames     = pConfig->rangeEndInPCMFrames;
             job.data.resourceManager.loadDataBuffer.loopPointBegInPCMFrames = pConfig->loopPointBegInPCMFrames;
             job.data.resourceManager.loadDataBuffer.loopPointEndInPCMFrames = pConfig->loopPointEndInPCMFrames;
-            job.data.resourceManager.loadDataBuffer.isLooping               = (flags & MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING) != 0;
+            job.data.resourceManager.loadDataBuffer.isLooping               = pConfig->isLooping;
 
             /* If we need to wait for initialization to complete we can just process the job in place. */
             if ((flags & MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_WAIT_INIT) != 0) {
@@ -69178,29 +69095,22 @@ MA_API ma_result ma_resource_manager_data_buffer_read_pcm_frames(ma_resource_man
         isDecodedBufferBusy = (ma_resource_manager_data_buffer_node_result(pDataBuffer->pNode) == MA_BUSY);
 
         if (ma_resource_manager_data_buffer_get_available_frames(pDataBuffer, &availableFrames) == MA_SUCCESS) {
-            /* Don't try reading more than the available frame count if the data buffer node is still loading. */
-            if (isDecodedBufferBusy) {
-                if (frameCount > availableFrames) {
-                    frameCount = availableFrames;
+            /* Don't try reading more than the available frame count. */
+            if (frameCount > availableFrames) {
+                frameCount = availableFrames;
 
-                    /*
-                    If there's no frames available we want to set the status to MA_AT_END. The logic below
-                    will check if the node is busy, and if so, change it to MA_BUSY. The reason we do this
-                    is because we don't want to call `ma_data_source_read_pcm_frames()` if the frame count
-                    is 0 because that'll result in a situation where it's possible MA_AT_END won't get
-                    returned.
-                    */
-                    if (frameCount == 0) {
-                        result = MA_AT_END;
-                    }
-                } else {
-                    isDecodedBufferBusy = MA_FALSE; /* We have enough frames available in the buffer to avoid a MA_BUSY status. */
+                /*
+                If there's no frames available we want to set the status to MA_AT_END. The logic below
+                will check if the node is busy, and if so, change it to MA_BUSY. The reason we do this
+                is because we don't want to call `ma_data_source_read_pcm_frames()` if the frame count
+                is 0 because that'll result in a situation where it's possible MA_AT_END won't get
+                returned.
+                */
+                if (frameCount == 0) {
+                    result = MA_AT_END;
                 }
             } else {
-                /*
-                Getting here means the buffer has been fully loaded. We can just pass the frame count straight
-                into ma_data_source_read_pcm_frames() below and let ma_data_source handle it.
-                */
+                isDecodedBufferBusy = MA_FALSE; /* We have enough frames available in the buffer to avoid a MA_BUSY status. */
             }
         }
     }
@@ -69600,7 +69510,6 @@ MA_API ma_result ma_resource_manager_data_stream_init_ex(ma_resource_manager* pR
     ma_bool32 waitBeforeReturning = MA_FALSE;
     ma_resource_manager_inline_notification waitNotification;
     ma_resource_manager_pipeline_notifications notifications;
-    ma_uint32 flags;
 
     if (pDataStream == NULL) {
         if (pConfig != NULL && pConfig->pNotifications != NULL) {
@@ -69631,18 +69540,13 @@ MA_API ma_result ma_resource_manager_data_stream_init_ex(ma_resource_manager* pR
         return result;
     }
 
-    flags = pConfig->flags;
-    if (pConfig->isLooping) {
-        flags |= MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING;
-    }
-
     pDataStream->pResourceManager = pResourceManager;
     pDataStream->flags            = pConfig->flags;
     pDataStream->result           = MA_BUSY;
 
     ma_data_source_set_range_in_pcm_frames(pDataStream, pConfig->rangeBegInPCMFrames, pConfig->rangeEndInPCMFrames);
     ma_data_source_set_loop_point_in_pcm_frames(pDataStream, pConfig->loopPointBegInPCMFrames, pConfig->loopPointEndInPCMFrames);
-    ma_data_source_set_looping(pDataStream, (flags & MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING) != 0);
+    ma_data_source_set_looping(pDataStream, pConfig->isLooping);
 
     if (pResourceManager == NULL || (pConfig->pFilePath == NULL && pConfig->pFilePathW == NULL)) {
         ma_resource_manager_pipeline_notifications_signal_all_notifications(&notifications);
@@ -70264,9 +70168,6 @@ static ma_result ma_resource_manager_data_source_preinit(ma_resource_manager* pR
     }
 
     pDataSource->flags = pConfig->flags;
-    if (pConfig->isLooping) {
-        pDataSource->flags |= MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING;
-    }
 
     return MA_SUCCESS;
 }
@@ -70825,7 +70726,7 @@ static ma_result ma_job_process__resource_manager__load_data_buffer(ma_job* pJob
     */
     result = ma_resource_manager_data_buffer_result(pDataBuffer);
     if (result != MA_BUSY) {
-        goto done;  /* <-- This will ensure the execution pointer is incremented. */
+        goto done;  /* <-- This will ensure the exucution pointer is incremented. */
     } else {
         result = MA_SUCCESS;    /* <-- Make sure this is reset. */
     }
@@ -71174,74 +71075,11 @@ static ma_result ma_job_process__resource_manager__seek_data_stream(ma_job* pJob
 
 
 #ifndef MA_NO_NODE_GRAPH
-
-static ma_stack* ma_stack_init(size_t sizeInBytes, const ma_allocation_callbacks* pAllocationCallbacks)
-{
-    ma_stack* pStack;
-
-    if (sizeInBytes == 0) {
-        return NULL;
-    }
-
-    pStack = (ma_stack*)ma_malloc(sizeof(*pStack) - sizeof(pStack->_data) + sizeInBytes, pAllocationCallbacks);
-    if (pStack == NULL) {
-        return NULL;
-    }
-
-    pStack->offset = 0;
-    pStack->sizeInBytes = sizeInBytes;
-
-    return pStack;
-}
-
-static void ma_stack_uninit(ma_stack* pStack, const ma_allocation_callbacks* pAllocationCallbacks)
-{
-    if (pStack == NULL) {
-        return;
-    }
-
-    ma_free(pStack, pAllocationCallbacks);
-}
-
-static void* ma_stack_alloc(ma_stack* pStack, size_t sz)
-{
-    /* The size of the allocation is stored in the memory directly before the pointer. This needs to include padding to keep it aligned to ma_uintptr */
-    void* p = (void*)((char*)pStack->_data + pStack->offset);
-    size_t* pSize = (size_t*)p;
-
-    sz = (sz + (sizeof(ma_uintptr) - 1)) & ~(sizeof(ma_uintptr) - 1);  /* Padding. */
-    if (pStack->offset + sz + sizeof(size_t) > pStack->sizeInBytes) {
-        return NULL;    /* Out of memory. */
-    }
-
-    pStack->offset += sz + sizeof(size_t);
-
-    *pSize = sz;
-    return (void*)((char*)p + sizeof(size_t));
-}
-
-static void ma_stack_free(ma_stack* pStack, void* p)
-{
-    size_t* pSize;
-
-    if (p == NULL) {
-        return;
-    }
-
-    pSize = (size_t*)p - 1;
-    pStack->offset -= *pSize + sizeof(size_t);
-}
-
-
-
 /* 10ms @ 48K = 480. Must never exceed 65535. */
 #ifndef MA_DEFAULT_NODE_CACHE_CAP_IN_FRAMES_PER_BUS
 #define MA_DEFAULT_NODE_CACHE_CAP_IN_FRAMES_PER_BUS 480
 #endif
 
-#ifndef MA_DEFAULT_PREMIX_STACK_SIZE_PER_CHANNEL
-#define MA_DEFAULT_PREMIX_STACK_SIZE_PER_CHANNEL    524288
-#endif
 
 static ma_result ma_node_read_pcm_frames(ma_node* pNode, ma_uint32 outputBusIndex, float* pFramesOut, ma_uint32 frameCount, ma_uint32* pFramesRead, ma_uint64 globalTime);
 
@@ -71281,8 +71119,8 @@ MA_API ma_node_graph_config ma_node_graph_config_init(ma_uint32 channels)
     ma_node_graph_config config;
 
     MA_ZERO_OBJECT(&config);
-    config.channels               = channels;
-    config.processingSizeInFrames = 0;
+    config.channels             = channels;
+    config.nodeCacheCapInFrames = MA_DEFAULT_NODE_CACHE_CAP_IN_FRAMES_PER_BUS;
 
     return config;
 }
@@ -71369,7 +71207,11 @@ MA_API ma_result ma_node_graph_init(const ma_node_graph_config* pConfig, const m
     }
 
     MA_ZERO_OBJECT(pNodeGraph);
-    pNodeGraph->processingSizeInFrames = pConfig->processingSizeInFrames;
+    pNodeGraph->nodeCacheCapInFrames = pConfig->nodeCacheCapInFrames;
+    if (pNodeGraph->nodeCacheCapInFrames == 0) {
+        pNodeGraph->nodeCacheCapInFrames = MA_DEFAULT_NODE_CACHE_CAP_IN_FRAMES_PER_BUS;
+    }
+
 
     /* Base node so we can use the node graph as a node into another graph. */
     baseConfig = ma_node_config_init();
@@ -71394,40 +71236,6 @@ MA_API ma_result ma_node_graph_init(const ma_node_graph_config* pConfig, const m
         return result;
     }
 
-
-    /* Processing cache. */
-    if (pConfig->processingSizeInFrames > 0) {
-        pNodeGraph->pProcessingCache = (float*)ma_malloc(pConfig->processingSizeInFrames * pConfig->channels * sizeof(float), pAllocationCallbacks);
-        if (pNodeGraph->pProcessingCache == NULL) {
-            ma_node_uninit(&pNodeGraph->endpoint, pAllocationCallbacks);
-            ma_node_uninit(&pNodeGraph->base, pAllocationCallbacks);
-            return MA_OUT_OF_MEMORY;
-        }
-    }
-
-
-    /*
-    We need a pre-mix stack. The size of this stack is configurable via the config. The default value depends on the channel count.
-    */
-    {
-        size_t preMixStackSizeInBytes = pConfig->preMixStackSizeInBytes;
-        if (preMixStackSizeInBytes == 0) {
-            preMixStackSizeInBytes = pConfig->channels * MA_DEFAULT_PREMIX_STACK_SIZE_PER_CHANNEL;
-        }
-
-        pNodeGraph->pPreMixStack = ma_stack_init(preMixStackSizeInBytes, pAllocationCallbacks);
-        if (pNodeGraph->pPreMixStack == NULL) {
-            ma_node_uninit(&pNodeGraph->endpoint, pAllocationCallbacks);
-            ma_node_uninit(&pNodeGraph->base, pAllocationCallbacks);
-            if (pNodeGraph->pProcessingCache != NULL) {
-                ma_free(pNodeGraph->pProcessingCache, pAllocationCallbacks);
-            }
-
-            return MA_OUT_OF_MEMORY;
-        }
-    }
-
-
     return MA_SUCCESS;
 }
 
@@ -71438,17 +71246,6 @@ MA_API void ma_node_graph_uninit(ma_node_graph* pNodeGraph, const ma_allocation_
     }
 
     ma_node_uninit(&pNodeGraph->endpoint, pAllocationCallbacks);
-    ma_node_uninit(&pNodeGraph->base, pAllocationCallbacks);
-
-    if (pNodeGraph->pProcessingCache != NULL) {
-        ma_free(pNodeGraph->pProcessingCache, pAllocationCallbacks);
-        pNodeGraph->pProcessingCache = NULL;
-    }
-
-    if (pNodeGraph->pPreMixStack != NULL) {
-        ma_stack_uninit(pNodeGraph->pPreMixStack, pAllocationCallbacks);
-        pNodeGraph->pPreMixStack = NULL;
-    }
 }
 
 MA_API ma_node* ma_node_graph_get_endpoint(ma_node_graph* pNodeGraph)
@@ -71481,72 +71278,27 @@ MA_API ma_result ma_node_graph_read_pcm_frames(ma_node_graph* pNodeGraph, void* 
     totalFramesRead = 0;
     while (totalFramesRead < frameCount) {
         ma_uint32 framesJustRead;
-        ma_uint64 framesToRead;
-        float* pRunningFramesOut;
+        ma_uint64 framesToRead = frameCount - totalFramesRead;
 
-        framesToRead = frameCount - totalFramesRead;
         if (framesToRead > 0xFFFFFFFF) {
             framesToRead = 0xFFFFFFFF;
         }
 
-        pRunningFramesOut = (float*)ma_offset_pcm_frames_ptr(pFramesOut, totalFramesRead, ma_format_f32, channels);
+        ma_node_graph_set_is_reading(pNodeGraph, MA_TRUE);
+        {
+            result = ma_node_read_pcm_frames(&pNodeGraph->endpoint, 0, (float*)ma_offset_pcm_frames_ptr(pFramesOut, totalFramesRead, ma_format_f32, channels), (ma_uint32)framesToRead, &framesJustRead, ma_node_get_time(&pNodeGraph->endpoint));
+        }
+        ma_node_graph_set_is_reading(pNodeGraph, MA_FALSE);
 
-        /* If there's anything in the cache, consume that first. */
-        if (pNodeGraph->processingCacheFramesRemaining > 0) {
-            ma_uint32 framesToReadFromCache;
+        totalFramesRead += framesJustRead;
 
-            framesToReadFromCache = (ma_uint32)framesToRead;
-            if (framesToReadFromCache > pNodeGraph->processingCacheFramesRemaining) {
-                framesToReadFromCache = pNodeGraph->processingCacheFramesRemaining;
-            }
+        if (result != MA_SUCCESS) {
+            break;
+        }
 
-            MA_COPY_MEMORY(pRunningFramesOut, pNodeGraph->pProcessingCache, framesToReadFromCache * channels * sizeof(float));
-            MA_MOVE_MEMORY(pNodeGraph->pProcessingCache, pNodeGraph->pProcessingCache + (framesToReadFromCache * channels), (pNodeGraph->processingCacheFramesRemaining - framesToReadFromCache) * channels * sizeof(float));
-            pNodeGraph->processingCacheFramesRemaining -= framesToReadFromCache;
-
-            totalFramesRead += framesToReadFromCache;
-            continue;
-        } else {
-            /*
-            If processingSizeInFrames is non-zero, we need to make sure we always read in chunks of that size. If the frame count is less than
-            that, we need to read into the cache and then continue on.
-            */
-            float* pReadDst = pRunningFramesOut;
-
-            if (pNodeGraph->processingSizeInFrames > 0) {
-                if (framesToRead < pNodeGraph->processingSizeInFrames) {
-                    pReadDst = pNodeGraph->pProcessingCache;    /* We need to read into the cache because otherwise we'll overflow the output buffer. */
-                }
-
-                framesToRead = pNodeGraph->processingSizeInFrames;
-            }
-
-            ma_node_graph_set_is_reading(pNodeGraph, MA_TRUE);
-            {
-                result = ma_node_read_pcm_frames(&pNodeGraph->endpoint, 0, pReadDst, (ma_uint32)framesToRead, &framesJustRead, ma_node_get_time(&pNodeGraph->endpoint));
-            }
-            ma_node_graph_set_is_reading(pNodeGraph, MA_FALSE);
-
-            /*
-            Do not increment the total frames read counter if we read into the cache. We use this to determine how many frames have
-            been written to the final output buffer.
-            */
-            if (pReadDst == pNodeGraph->pProcessingCache) {
-                /* We read into the cache. */
-                pNodeGraph->processingCacheFramesRemaining = framesJustRead;
-            } else {
-                /* We read straight into the output buffer. */
-                totalFramesRead += framesJustRead;
-            }
-
-            if (result != MA_SUCCESS) {
-                break;
-            }
-
-            /* Abort if we weren't able to read any frames or else we risk getting stuck in a loop. */
-            if (framesJustRead == 0) {
-                break;
-            }
+        /* Abort if we weren't able to read any frames or else we risk getting stuck in a loop. */
+        if (framesJustRead == 0) {
+            break;
         }
     }
 
@@ -71747,7 +71499,7 @@ static void ma_node_input_bus_detach__no_output_bus_lock(ma_node_input_bus* pInp
     *not* using a lock when iterating over the list in the audio thread. We therefore need to craft
     this in a way such that the iteration on the audio thread doesn't break.
 
-    The first thing to do is swap out the "next" pointer of the previous output bus with the
+    The the first thing to do is swap out the "next" pointer of the previous output bus with the
     new "next" output bus. This is the operation that matters for iteration on the audio thread.
     After that, the previous pointer on the new "next" pointer needs to be updated, after which
     point the linked list will be in a good state.
@@ -71840,7 +71592,7 @@ static void ma_node_input_bus_attach(ma_node_input_bus* pInputBus, ma_node_outpu
         /*
         Now we need to attach the output bus to the linked list. This involves updating two pointers on
         two different output buses so I'm going to go ahead and keep this simple and just use a lock.
-        There are ways to do this without a lock, but it's just too hard to maintain for its value.
+        There are ways to do this without a lock, but it's just too hard to maintain for it's value.
 
         Although we're locking here, it's important to remember that we're *not* locking when iterating
         and reading audio data since that'll be running on the audio thread. As a result we need to be
@@ -71933,9 +71685,11 @@ static ma_result ma_node_input_bus_read_pcm_frames(ma_node* pInputNode, ma_node_
     ma_uint32 inputChannels;
     ma_bool32 doesOutputBufferHaveContent = MA_FALSE;
 
+    (void)pInputNode;   /* Not currently used. */
+
     /*
     This will be called from the audio thread which means we can't be doing any locking. Basically,
-    this function will not perform any locking, whereas attaching and detaching will, but crafted in
+    this function will not perfom any locking, whereas attaching and detaching will, but crafted in
     such a way that we don't need to perform any locking here. The important thing to remember is
     to always iterate in a forward direction.
 
@@ -71981,12 +71735,19 @@ static ma_result ma_node_input_bus_read_pcm_frames(ma_node* pInputNode, ma_node_
 
         if (pFramesOut != NULL) {
             /* Read. */
+            float temp[MA_DATA_CONVERTER_STACK_BUFFER_SIZE / sizeof(float)];
+            ma_uint32 tempCapInFrames = ma_countof(temp) / inputChannels;
+
             while (framesProcessed < frameCount) {
                 float* pRunningFramesOut;
                 ma_uint32 framesToRead;
-                ma_uint32 framesJustRead = 0;
+                ma_uint32 framesJustRead;
 
                 framesToRead = frameCount - framesProcessed;
+                if (framesToRead > tempCapInFrames) {
+                    framesToRead = tempCapInFrames;
+                }
+
                 pRunningFramesOut = ma_offset_pcm_frames_ptr_f32(pFramesOut, framesProcessed, inputChannels);
 
                 if (doesOutputBufferHaveContent == MA_FALSE) {
@@ -71994,32 +71755,11 @@ static ma_result ma_node_input_bus_read_pcm_frames(ma_node* pInputNode, ma_node_
                     result = ma_node_read_pcm_frames(pOutputBus->pNode, pOutputBus->outputBusIndex, pRunningFramesOut, framesToRead, &framesJustRead, globalTime + framesProcessed);
                 } else {
                     /* Slow path. Not the first attachment. Mixing required. */
-                    ma_uint32 preMixBufferCapInFrames = ((ma_node_base*)pInputNode)->cachedDataCapInFramesPerBus;
-                    float* pPreMixBuffer = (float*)ma_stack_alloc(((ma_node_base*)pInputNode)->pNodeGraph->pPreMixStack, preMixBufferCapInFrames * inputChannels * sizeof(float));
-
-                    if (pPreMixBuffer == NULL) {
-                        /*
-                        If you're hitting this assert it means you've got an unusually deep chain of nodes, you've got an excessively large processing
-                        size, or you have a combination of both, and as a result have run out of stack space. You can increase this using the
-                        preMixStackSizeInBytes variable in ma_node_graph_config. If you're using ma_engine, you can do it via the preMixStackSizeInBytes
-                        variable in ma_engine_config. It defaults to 512KB per output channel.
-                        */
-                        MA_ASSERT(MA_FALSE);
-                    } else {
-                        if (framesToRead > preMixBufferCapInFrames) {
-                            framesToRead = preMixBufferCapInFrames;
+                    result = ma_node_read_pcm_frames(pOutputBus->pNode, pOutputBus->outputBusIndex, temp, framesToRead, &framesJustRead, globalTime + framesProcessed);
+                    if (result == MA_SUCCESS || result == MA_AT_END) {
+                        if (isSilentOutput == MA_FALSE) {   /* Don't mix if the node outputs silence. */
+                            ma_mix_pcm_frames_f32(pRunningFramesOut, temp, framesJustRead, inputChannels, /*volume*/1);
                         }
-
-                        result = ma_node_read_pcm_frames(pOutputBus->pNode, pOutputBus->outputBusIndex, pPreMixBuffer, framesToRead, &framesJustRead, globalTime + framesProcessed);
-                        if (result == MA_SUCCESS || result == MA_AT_END) {
-                            if (isSilentOutput == MA_FALSE) {   /* Don't mix if the node outputs silence. */
-                                ma_mix_pcm_frames_f32(pRunningFramesOut, pPreMixBuffer, framesJustRead, inputChannels, /*volume*/1);
-                            }
-                        }
-
-                        /* The pre-mix buffer is no longer required. */
-                        ma_stack_free(((ma_node_base*)pInputNode)->pNodeGraph->pPreMixStack, pPreMixBuffer);
-                        pPreMixBuffer = NULL;
                     }
                 }
 
@@ -72072,25 +71812,6 @@ MA_API ma_node_config ma_node_config_init(void)
     config.outputBusCount = MA_NODE_BUS_COUNT_UNKNOWN;
 
     return config;
-}
-
-static ma_uint16 ma_node_config_get_cache_size_in_frames(const ma_node_config* pConfig, const ma_node_graph* pNodeGraph)
-{
-    ma_uint32 cacheSizeInFrames;
-
-    (void)pConfig;
-
-    if (pNodeGraph->processingSizeInFrames > 0) {
-        cacheSizeInFrames = pNodeGraph->processingSizeInFrames;
-    } else {
-        cacheSizeInFrames = MA_DEFAULT_NODE_CACHE_CAP_IN_FRAMES_PER_BUS;
-    }
-
-    if (cacheSizeInFrames > 0xFFFF) {
-        cacheSizeInFrames = 0xFFFF;
-    }
-
-    return (ma_uint16)cacheSizeInFrames;
 }
 
 
@@ -72247,7 +71968,7 @@ static ma_result ma_node_get_heap_layout(ma_node_graph* pNodeGraph, const ma_nod
     /*
     Cached audio data.
 
-    We need to allocate memory for caching both input and output data. We have an optimization
+    We need to allocate memory for a caching both input and output data. We have an optimization
     where no caching is necessary for specific conditions:
 
         - The node has 0 inputs and 1 output.
@@ -72266,18 +71987,14 @@ static ma_result ma_node_get_heap_layout(ma_node_graph* pNodeGraph, const ma_nod
     } else {
         /* Slow path. Cache needed. */
         size_t cachedDataSizeInBytes = 0;
-        ma_uint32 cacheCapInFrames;
         ma_uint32 iBus;
 
-        /* The capacity of the cache is based on our callback processing size. */
-        cacheCapInFrames = ma_node_config_get_cache_size_in_frames(pConfig, pNodeGraph);
-
         for (iBus = 0; iBus < inputBusCount; iBus += 1) {
-            cachedDataSizeInBytes += cacheCapInFrames * ma_get_bytes_per_frame(ma_format_f32, pConfig->pInputChannels[iBus]);
+            cachedDataSizeInBytes += pNodeGraph->nodeCacheCapInFrames * ma_get_bytes_per_frame(ma_format_f32, pConfig->pInputChannels[iBus]);
         }
 
         for (iBus = 0; iBus < outputBusCount; iBus += 1) {
-            cachedDataSizeInBytes += cacheCapInFrames * ma_get_bytes_per_frame(ma_format_f32, pConfig->pOutputChannels[iBus]);
+            cachedDataSizeInBytes += pNodeGraph->nodeCacheCapInFrames * ma_get_bytes_per_frame(ma_format_f32, pConfig->pOutputChannels[iBus]);
         }
 
         pHeapLayout->cachedDataOffset = pHeapLayout->sizeInBytes;
@@ -72363,10 +72080,11 @@ MA_API ma_result ma_node_init_preallocated(ma_node_graph* pNodeGraph, const ma_n
 
     if (heapLayout.cachedDataOffset != MA_SIZE_MAX) {
         pNodeBase->pCachedData = (float*)ma_offset_ptr(pHeap, heapLayout.cachedDataOffset);
-        pNodeBase->cachedDataCapInFramesPerBus = ma_node_config_get_cache_size_in_frames(pConfig, pNodeGraph);
+        pNodeBase->cachedDataCapInFramesPerBus = pNodeGraph->nodeCacheCapInFrames;
     } else {
         pNodeBase->pCachedData = NULL;
     }
+
 
 
     /* We need to run an initialization step for each input and output bus. */
@@ -72542,7 +72260,7 @@ static ma_result ma_node_detach_full(ma_node* pNode)
 
     /*
     At this point all output buses will have been detached from the graph and we can be guaranteed
-    that none of its input nodes will be getting processed by the graph. We can detach these
+    that none of it's input nodes will be getting processed by the graph. We can detach these
     without needing to worry about the audio thread touching them.
     */
     for (iInputBus = 0; iInputBus < ma_node_get_input_bus_count(pNode); iInputBus += 1) {
@@ -72557,7 +72275,7 @@ static ma_result ma_node_detach_full(ma_node* pNode)
         linked list logic. We don't need to worry about the audio thread referencing these because the step
         above severed the connection to the graph.
         */
-        for (pOutputBus = (ma_node_output_bus*)ma_atomic_load_ptr(&pInputBus->head.pNext); pOutputBus != NULL; pOutputBus = (ma_node_output_bus*)ma_atomic_load_ptr(&pInputBus->head.pNext)) {
+        for (pOutputBus = (ma_node_output_bus*)ma_atomic_load_ptr(&pInputBus->head.pNext); pOutputBus != NULL; pOutputBus = (ma_node_output_bus*)ma_atomic_load_ptr(&pOutputBus->pNext)) {
             ma_node_detach_output_bus(pOutputBus->pNode, pOutputBus->outputBusIndex);   /* This won't do any waiting in practice and should be efficient. */
         }
     }
@@ -72579,7 +72297,7 @@ MA_API ma_result ma_node_detach_output_bus(ma_node* pNode, ma_uint32 outputBusIn
         return MA_INVALID_ARGS; /* Invalid output bus index. */
     }
 
-    /* We need to lock the output bus because we need to inspect the input node and grab its input bus. */
+    /* We need to lock the output bus because we need to inspect the input node and grab it's input bus. */
     ma_node_output_bus_lock(&pNodeBase->pOutputBuses[outputBusIndex]);
     {
         pInputNodeBase = (ma_node_base*)pNodeBase->pOutputBuses[outputBusIndex].pInputNode;
@@ -72745,7 +72463,7 @@ MA_API ma_node_state ma_node_get_state_by_time_range(const ma_node* pNode, ma_ui
 
     /*
     Getting here means the node is marked as started, but it may still not be truly started due to
-    its start time not having been reached yet. Also, the stop time may have also been reached in
+    it's start time not having been reached yet. Also, the stop time may have also been reached in
     which case it'll be considered stopped.
     */
     if (ma_node_get_state_time(pNode, ma_node_state_started) > globalTimeBeg) {
@@ -72756,7 +72474,7 @@ MA_API ma_node_state ma_node_get_state_by_time_range(const ma_node* pNode, ma_ui
         return ma_node_state_stopped;   /* Stop time has been reached. */
     }
 
-    /* Getting here means the node is marked as started and is within its start/stop times. */
+    /* Getting here means the node is marked as started and is within it's start/stop times. */
     return ma_node_state_started;
 }
 
@@ -72918,12 +72636,12 @@ static ma_result ma_node_read_pcm_frames(ma_node* pNode, ma_uint32 outputBusInde
                 frameCountOut = totalFramesRead;
 
                 if (totalFramesRead > 0) {
-                    ma_node_process_pcm_frames_internal(pNode, (const float**)ppFramesIn, &frameCountIn, ppFramesOut, &frameCountOut);  /* From GCC: expected 'const float **' but argument is of type 'float **'. Shouldn't this be implicit? Explicit cast to silence the warning. */
+                    ma_node_process_pcm_frames_internal(pNode, (const float**)ppFramesIn, &frameCountIn, ppFramesOut, &frameCountOut);  /* From GCC: expected 'const float **' but argument is of type 'float **'. Shouldn't this be implicit? Excplicit cast to silence the warning. */
                 }
 
                 /*
                 A passthrough should never have modified the input and output frame counts. If you're
-                triggering these asserts you need to fix your processing callback.
+                triggering these assers you need to fix your processing callback.
                 */
                 MA_ASSERT(frameCountIn  == totalFramesRead);
                 MA_ASSERT(frameCountOut == totalFramesRead);
@@ -73101,7 +72819,7 @@ static ma_result ma_node_read_pcm_frames(ma_node* pNode, ma_uint32 outputBusInde
                         frames available right now.
                         */
                         if (frameCountIn > 0 || (pNodeBase->vtable->flags & MA_NODE_FLAG_DIFFERENT_PROCESSING_RATES) != 0) {
-                            ma_node_process_pcm_frames_internal(pNode, (const float**)ppFramesIn, &frameCountIn, ppFramesOut, &frameCountOut);    /* From GCC: expected 'const float **' but argument is of type 'float **'. Shouldn't this be implicit? Explicit cast to silence the warning. */
+                            ma_node_process_pcm_frames_internal(pNode, (const float**)ppFramesIn, &frameCountIn, ppFramesOut, &frameCountOut);    /* From GCC: expected 'const float **' but argument is of type 'float **'. Shouldn't this be implicit? Excplicit cast to silence the warning. */
                         } else {
                             frameCountOut = 0;  /* No data was processed. */
                         }
@@ -74338,7 +74056,7 @@ static ma_bool32 ma_engine_node_is_pitching_enabled(const ma_engine_node* pEngin
 {
     MA_ASSERT(pEngineNode != NULL);
 
-    /* Don't try to be clever by skipping resampling in the pitch=1 case or else you'll glitch when moving away from 1. */
+    /* Don't try to be clever by skiping resampling in the pitch=1 case or else you'll glitch when moving away from 1. */
     return !ma_atomic_load_explicit_32(&pEngineNode->isPitchDisabled, ma_atomic_memory_order_acquire);
 }
 
@@ -74375,7 +74093,7 @@ static ma_result ma_engine_node_set_volume(ma_engine_node* pEngineNode, float vo
 
     /* If we're not smoothing we should bypass the volume gainer entirely. */
     if (pEngineNode->volumeSmoothTimeInPCMFrames == 0) {
-        /* We should always have an active spatializer because it can be enabled and disabled dynamically. We can just use that for holding our volume. */
+        /* We should always have an active spatializer because it can be enabled and disabled dynamically. We can just use that for hodling our volume. */
         ma_spatializer_set_master_volume(&pEngineNode->spatializer, volume);
     } else {
         /* We're using volume smoothing, so apply the master volume to the gainer. */
@@ -75330,10 +75048,9 @@ MA_API ma_result ma_engine_init(const ma_engine_config* pConfig, ma_engine* pEng
     }
 
 
-    /* The engine is a node graph. This needs to be initialized after we have the device so we can determine the channel count. */
+    /* The engine is a node graph. This needs to be initialized after we have the device so we can can determine the channel count. */
     nodeGraphConfig = ma_node_graph_config_init(engineConfig.channels);
-    nodeGraphConfig.processingSizeInFrames = engineConfig.periodSizeInFrames;
-    nodeGraphConfig.preMixStackSizeInBytes = engineConfig.preMixStackSizeInBytes;
+    nodeGraphConfig.nodeCacheCapInFrames = (engineConfig.periodSizeInFrames > 0xFFFF) ? 0xFFFF : (ma_uint16)engineConfig.periodSizeInFrames;
 
     result = ma_node_graph_init(&nodeGraphConfig, &pEngine->allocationCallbacks, &pEngine->nodeGraph);
     if (result != MA_SUCCESS) {
@@ -75929,7 +75646,7 @@ MA_API ma_result ma_engine_play_sound_ex(ma_engine* pEngine, const char* pFilePa
         return MA_INVALID_ARGS;
     }
 
-    /* Attach to the endpoint node if nothing is specified. */
+    /* Attach to the endpoint node if nothing is specicied. */
     if (pNode == NULL) {
         pNode = ma_node_graph_get_endpoint(&pEngine->nodeGraph);
         nodeInputBusIndex = 0;
@@ -76146,7 +75863,7 @@ static ma_result ma_sound_init_from_data_source_internal(ma_engine* pEngine, con
         ma_data_source_set_range_in_pcm_frames(ma_sound_get_data_source(pSound), pConfig->loopPointBegInPCMFrames, pConfig->loopPointEndInPCMFrames);
     }
 
-    ma_sound_set_looping(pSound, pConfig->isLooping || ((pConfig->flags & MA_SOUND_FLAG_LOOPING) != 0));
+    ma_sound_set_looping(pSound, pConfig->isLooping);
 
     return MA_SUCCESS;
 }
@@ -76170,9 +75887,6 @@ MA_API ma_result ma_sound_init_from_file_internal(ma_engine* pEngine, const ma_s
     it and can avoid accessing the sound from within the notification.
     */
     flags = pConfig->flags | MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_WAIT_INIT;
-    if (pConfig->isLooping) {
-        flags |= MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING;
-    }
 
     pSound->pResourceManagerDataSource = (ma_resource_manager_data_source*)ma_malloc(sizeof(*pSound->pResourceManagerDataSource), &pEngine->allocationCallbacks);
     if (pSound->pResourceManagerDataSource == NULL) {
@@ -76201,7 +75915,7 @@ MA_API ma_result ma_sound_init_from_file_internal(ma_engine* pEngine, const ma_s
         resourceManagerDataSourceConfig.rangeEndInPCMFrames         = pConfig->rangeEndInPCMFrames;
         resourceManagerDataSourceConfig.loopPointBegInPCMFrames     = pConfig->loopPointBegInPCMFrames;
         resourceManagerDataSourceConfig.loopPointEndInPCMFrames     = pConfig->loopPointEndInPCMFrames;
-        resourceManagerDataSourceConfig.isLooping                   = (flags & MA_RESOURCE_MANAGER_DATA_SOURCE_FLAG_LOOPING) != 0;
+        resourceManagerDataSourceConfig.isLooping                   = pConfig->isLooping;
 
         result = ma_resource_manager_data_source_init_ex(pEngine->pResourceManager, &resourceManagerDataSourceConfig, pSound->pResourceManagerDataSource);
         if (result != MA_SUCCESS) {
@@ -76353,7 +76067,7 @@ MA_API ma_result ma_sound_init_ex(ma_engine* pEngine, const ma_sound_config* pCo
     {
         /*
         Getting here means we're not loading from a file. We may be loading from an already-initialized
-        data source, or none at all. If we aren't specifying any data source, we'll be initializing
+        data source, or none at all. If we aren't specifying any data source, we'll be initializing the
         the equivalent to a group. ma_data_source_init_from_data_source_internal() will deal with this
         for us, so no special treatment required here.
         */
@@ -78841,6 +78555,7 @@ MA_PRIVATE ma_bool32 ma_dr_wav_init__internal(ma_dr_wav* pWav, ma_dr_wav_chunk_p
         }
         if (pWav->container == ma_dr_wav_container_riff || pWav->container == ma_dr_wav_container_rifx) {
             if (ma_dr_wav_bytes_to_u32_ex(chunkSizeBytes, pWav->container) < 36) {
+                return MA_FALSE;
             }
         } else if (pWav->container == ma_dr_wav_container_rf64) {
             if (ma_dr_wav_bytes_to_u32_le(chunkSizeBytes) != 0xFFFFFFFF) {
@@ -79167,7 +78882,9 @@ MA_PRIVATE ma_bool32 ma_dr_wav_init__internal(ma_dr_wav* pWav, ma_dr_wav_chunk_p
             }
         }
         if (isProcessingMetadata) {
-            ma_dr_wav__metadata_process_chunk(&metadataParser, &header, ma_dr_wav_metadata_type_all_including_unknown);
+            ma_uint64 metadataBytesRead;
+            metadataBytesRead = ma_dr_wav__metadata_process_chunk(&metadataParser, &header, ma_dr_wav_metadata_type_all_including_unknown);
+            MA_DR_WAV_ASSERT(metadataBytesRead <= header.sizeInBytes);
             if (ma_dr_wav__seek_from_start(pWav->onSeek, cursor, pWav->pUserData) == MA_FALSE) {
                 break;
             }
@@ -80615,12 +80332,6 @@ MA_API ma_uint64 ma_dr_wav_write_pcm_frames(ma_dr_wav* pWav, ma_uint64 framesToW
 MA_PRIVATE ma_uint64 ma_dr_wav_read_pcm_frames_s16__msadpcm(ma_dr_wav* pWav, ma_uint64 framesToRead, ma_int16* pBufferOut)
 {
     ma_uint64 totalFramesRead = 0;
-    static ma_int32 adaptationTable[] = {
-        230, 230, 230, 230, 307, 409, 512, 614,
-        768, 614, 512, 409, 307, 230, 230, 230
-    };
-    static ma_int32 coeff1Table[] = { 256, 512, 0, 192, 240, 460,  392 };
-    static ma_int32 coeff2Table[] = { 0,  -256, 0, 64,  0,  -208, -232 };
     MA_DR_WAV_ASSERT(pWav != NULL);
     MA_DR_WAV_ASSERT(framesToRead > 0);
     while (pWav->readCursorInPCMFrames < pWav->totalPCMFrameCount) {
@@ -80639,9 +80350,6 @@ MA_PRIVATE ma_uint64 ma_dr_wav_read_pcm_frames_s16__msadpcm(ma_dr_wav* pWav, ma_
                 pWav->msadpcm.cachedFrames[2]  = pWav->msadpcm.prevFrames[0][0];
                 pWav->msadpcm.cachedFrames[3]  = pWav->msadpcm.prevFrames[0][1];
                 pWav->msadpcm.cachedFrameCount = 2;
-                if (pWav->msadpcm.predictor[0] >= ma_dr_wav_countof(coeff1Table)) {
-                    return totalFramesRead;
-                }
             } else {
                 ma_uint8 header[14];
                 if (pWav->onRead(pWav->pUserData, header, sizeof(header)) != sizeof(header)) {
@@ -80661,9 +80369,6 @@ MA_PRIVATE ma_uint64 ma_dr_wav_read_pcm_frames_s16__msadpcm(ma_dr_wav* pWav, ma_
                 pWav->msadpcm.cachedFrames[2] = pWav->msadpcm.prevFrames[0][1];
                 pWav->msadpcm.cachedFrames[3] = pWav->msadpcm.prevFrames[1][1];
                 pWav->msadpcm.cachedFrameCount = 2;
-                if (pWav->msadpcm.predictor[0] >= ma_dr_wav_countof(coeff1Table) || pWav->msadpcm.predictor[1] >= ma_dr_wav_countof(coeff2Table)) {
-                    return totalFramesRead;
-                }
             }
         }
         while (framesToRead > 0 && pWav->msadpcm.cachedFrameCount > 0 && pWav->readCursorInPCMFrames < pWav->totalPCMFrameCount) {
@@ -80686,6 +80391,12 @@ MA_PRIVATE ma_uint64 ma_dr_wav_read_pcm_frames_s16__msadpcm(ma_dr_wav* pWav, ma_
             if (pWav->msadpcm.bytesRemainingInBlock == 0) {
                 continue;
             } else {
+                static ma_int32 adaptationTable[] = {
+                    230, 230, 230, 230, 307, 409, 512, 614,
+                    768, 614, 512, 409, 307, 230, 230, 230
+                };
+                static ma_int32 coeff1Table[] = { 256, 512, 0, 192, 240, 460,  392 };
+                static ma_int32 coeff2Table[] = { 0,  -256, 0, 64,  0,  -208, -232 };
                 ma_uint8 nibbles;
                 ma_int32 nibble0;
                 ma_int32 nibble1;
@@ -81936,7 +81647,7 @@ MA_API void ma_dr_wav_f32_to_s32(ma_int32* pOut, const float* pIn, size_t sample
         return;
     }
     for (i = 0; i < sampleCount; ++i) {
-        *pOut++ = (ma_int32)(2147483648.0f * pIn[i]);
+        *pOut++ = (ma_int32)(2147483648.0 * pIn[i]);
     }
 }
 MA_API void ma_dr_wav_f64_to_s32(ma_int32* pOut, const double* pIn, size_t sampleCount)
@@ -91424,8 +91135,8 @@ static ma_int16 ma_dr_mp3d_scale_pcm(float sample)
     s32 -= (s32 < 0);
     s = (ma_int16)ma_dr_mp3_clip_int16_arm(s32);
 #else
-    if (sample >=  32766.5f) return (ma_int16) 32767;
-    if (sample <= -32767.5f) return (ma_int16)-32768;
+    if (sample >=  32766.5) return (ma_int16) 32767;
+    if (sample <= -32767.5) return (ma_int16)-32768;
     s = (ma_int16)(sample + .5f);
     s -= (s < 0);
 #endif
@@ -91811,9 +91522,9 @@ MA_API void ma_dr_mp3dec_f32_to_s16(const float *in, ma_int16 *out, size_t num_s
     for(; i < num_samples; i++)
     {
         float sample = in[i] * 32768.0f;
-        if (sample >=  32766.5f)
+        if (sample >=  32766.5)
             out[i] = (ma_int16) 32767;
-        else if (sample <= -32767.5f)
+        else if (sample <= -32767.5)
             out[i] = (ma_int16)-32768;
         else
         {
