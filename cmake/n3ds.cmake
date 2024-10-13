@@ -9,25 +9,25 @@ if(N3DS)
         ${CMAKE_SOURCE_DIR}/src/system/n3ds/main.c
     )
 
-    add_executable(tic80_n3ds ${TIC80_SRC})
+    add_executable(tic80 ${TIC80_SRC})
 
-    target_include_directories(tic80_n3ds PRIVATE
+    target_include_directories(tic80 PRIVATE
         ${DEVKITPRO}/portlibs/3ds/include
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
-    target_link_directories(tic80_n3ds PRIVATE ${DEVKITPRO}/libctru/lib ${DEVKITPRO}/portlibs/3ds/lib)
-    target_link_libraries(tic80_n3ds tic80studio png citro3d)
+    target_link_directories(tic80 PRIVATE ${DEVKITPRO}/libctru/lib ${DEVKITPRO}/portlibs/3ds/lib)
+    target_link_libraries(tic80 tic80studio png citro3d)
 
-    ctr_generate_smdh(${PROJECT_NAME}.smdh
+    ctr_generate_smdh(tic80.smdh
         NAME        "TIC-80 tiny computer"
         DESCRIPTION "Fantasy computer for making, playing and sharing tiny games"
         AUTHOR      "Nesbox"
         ICON        ${CMAKE_SOURCE_DIR}/build/n3ds/icon.png
     )
 
-    ctr_create_3dsx(${PROJECT_NAME}
-        SMDH  ${PROJECT_NAME}.smdh
+    ctr_create_3dsx(tic80
+        SMDH  tic80.smdh
         ROMFS ${CMAKE_SOURCE_DIR}/build/n3ds/romfs
     )
 
