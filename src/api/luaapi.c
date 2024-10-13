@@ -1676,7 +1676,13 @@ static s32 msghandler (lua_State *lua)
         else
             msg = lua_pushfstring(lua, "(error object is a %s value)", luaL_typename(lua, 1));
     }
-    luaL_traceback(lua, lua, msg, 1);  /* append a standard traceback */
+    /* call the debug.traceback function instead of luaL_traceback so */
+    /* customized sourcemap-aware debug.traceback can give better line numbers */
+    lua_getglobal(lua, "debug");
+    lua_pushstring(lua, "traceback");
+    lua_gettable(lua, -2);
+    lua_pushstring(lua, msg);
+    lua_call(lua, 1, 1);
     return 1;  /* return the traceback */
 }
 
