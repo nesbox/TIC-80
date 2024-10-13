@@ -27,8 +27,9 @@ if(NINTENDO_3DS)
     )
 
     ctr_create_3dsx(tic80
-        SMDH  tic80.smdh
-        ROMFS ${CMAKE_SOURCE_DIR}/build/n3ds/romfs
+        SMDH   tic80.smdh
+        ROMFS  ${CMAKE_SOURCE_DIR}/build/n3ds/romfs
+        OUTPUT ${CMAKE_SOURCE_DIR}/build/bin/tic80.3dsx
     )
 
 endif()
