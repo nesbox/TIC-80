@@ -55,33 +55,83 @@ void evalR(tic_mem *memory, const char *code) {
 	}
 	SEXP RESULT;
 	if (R_initialized_once) RESULT = Rf_eval(Rf_mkString(code), R_GlobalEnv);
-	printf("%s", RESULT);
+	#if defined ebug /* -DEBUG=ON */
+	Rprintf("%s", RESULT);
+	#endif
+}
+SEXP r_trace(tic_mem *memory, SEXP *args) {
+  const char *text = "Hello, woRld!";
+	u8 color;
+	((tic_core *) memory)->api.trace(memory, text, color ? color : 15);
+	return R_NilValue;
 }
 
-tic_core *getTICCore(tic_mem* tic, const char* code);
+extern int R_running_as_main_program;   /* location within The R sources: ../unix/system.c */
+
+void R_CleanUp(Rboolean saveact, int status, int RunLast) { ; }
+
+void R_Suicide(const char *message)
+{
+	char  pp[1024];
+	snprintf(pp, 1024, "Fatal error, but can't kermit: %s\nExecute me, please.\n", message);
+	R_ShowMessage(pp);
+	exit(1);
+
+	while(1);
+}
+
+static tic_mem *tic_memory_static;
+
+void R_ShowMessage(const char *s) {
+/* Always use the sixteenth color. */
+	((tic_core *) tic_memory_static)->api.trace(tic_memory_static, s, 15);
+}
 
 /* This function is called with code, which is the entirety of the studio
  * editor's code buffer (i.e. the entire game code as one string). */
 static bool initR(tic_mem *tic, const char *code) {
+	tic_memory_static = tic;
+
   tic_core *core;
   if ((core = (((tic_core *) tic))->currentVM) != NULL) {
   	Rf_endEmbeddedR(0);
   	core->currentVM = NULL;
   }
 
-	int tries = 1;
-  /* embdRAV: embedded R argument vector. */
-	char *embdRAV[2] = { "REmbeddedInTIC80", "--silent" };
+	/* TODO: it makes sense to write the code to a file and initialize R with its
+	 * input taken from that file, I think. */
+
+	/* embdRAV: embedded R argument vector. */
+	static char *embdRAV[] = { "TIC-80", "--quiet", "--vanilla" };
 
   /* Without this nothing in R will work. */
 	setEnvironmentVariablesIfUnset();
-  bool rc = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
-	/* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
-	R_Interactive = false;
+  static bool R_Initialized = false;
 
-	/* Rf_mainloop(); /\* Does not return. *\/ */
+	R_running_as_main_program = 0;
 
-  return rc;
+	if (!R_Initialized) {
+		R_Initialized = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
+		R_running_as_main_program = 0;
+		/* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
+		R_Interactive = false;
+	}
+
+	/* TODO: I think it makes sense to evaluate the code, then check if this
+	 * exists, then end the init function with evaluating the TIC-80 function. */
+	Rf_eval(Rf_mkString("if (exists(\"BOOT\") && is.function(BOOT) BOOT() else BOOT <- function() NULL;;"),
+					R_GlobalEnv);
+
+	tic_script *config = (tic_get_script(tic));
+	for (int kiwi = 0; kiwi <= config->api_keywordsCount; kiwi++) {
+#define defineRFn_(keyword) Rf_eval(Rf_mkString("t80."#keyword" <- function(...) .C(r_"#keyword", ...);"), R_GlobalEnv);
+#define doDefineRFunction(keyword) defineRFn_(keyword)
+		doDefineRFunction(config->api_keywords[kiwi]);
+#undef doDefineRFunction
+#undef defineRFn_
+	}
+
+	return R_Initialized;
 }
 
 static void closeR(tic_mem *tic) {
@@ -103,7 +153,7 @@ static void callRFn_TIC80(tic_mem* tic) {
 #define defineCallRFnInEnvironment_(f, e, ...)                          \
   static void callRFn_##f(tic_mem *tic, ##__VA_ARGS__) {                \
     Rf_eval(Rf_mkString("if (exists(\""#f"\") && is.function(`"#f"`)) " \
-                        "`"#f"`()"),                                    \
+                        "`"#f"`() else stop(\""#f" is not a defined function!\")"),\
             e);                                                         \
   }
 /* i.e., if (exists("f") && is.function(`f`)) `f`(), allowing call of syntactic
@@ -125,7 +175,7 @@ tic_core *getTICCore(tic_mem* tic, const char* code) {
   /*   core = (((tic_core *) tic))->currentVM; */
   /* } */
 	/* return core; */
-  return (((tic_core *) tic))->currentVM;
+  return (tic_core *) tic;
 }
 
 static const char* const RKeywords [] =

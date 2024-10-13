@@ -1,6 +1,6 @@
-## title: Bunnymark in Python
+## title: Bunnymark with R as the cartidge language
 ## author: Bryce Carson
-## desc: Benchmarking tool to see how many bunnies can fly around the screen, using R
+## desc: Benchmarking tool to see how many bunnies can bounce around the screen, using R
 ## input: gamepad
 ## script: r
 ## version: 0.0.1

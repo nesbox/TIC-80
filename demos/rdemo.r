@@ -10,11 +10,11 @@ t <- 0
 x <- 96
 y <- 24
 
-makeopfn <- function(f) function(x) f(x, 1)
+makeopfn <- \(f) \(x) f(x, 1)
 inc <- makeopfn(`+`)
 dec <- makeopfn(`-`)
 
-TIC <- \() {
+`TIC-80` <- function() {
   mapply(.f = \(b, o) if (btn(b)) o,
          .x = 0:3,
          .y = list(dec(y), inc(y),
