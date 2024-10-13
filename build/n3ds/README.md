@@ -10,7 +10,7 @@
 ## Building instructions
 
 ```
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake -DN3DS=TRUE
+cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake
 cmake --build build
 ```
 
