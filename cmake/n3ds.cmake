@@ -2,7 +2,7 @@
 # TIC-80 app (N3DS)
 ################################
 
-if(N3DS)
+if(NINTENDO_3DS)
     set(TIC80_SRC ${TIC80_SRC}
         ${CMAKE_SOURCE_DIR}/src/system/n3ds/utils.c
         ${CMAKE_SOURCE_DIR}/src/system/n3ds/keyboard.c
