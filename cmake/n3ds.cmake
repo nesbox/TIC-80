@@ -19,9 +19,16 @@ if(N3DS)
     target_link_directories(tic80_n3ds PRIVATE ${DEVKITPRO}/libctru/lib ${DEVKITPRO}/portlibs/3ds/lib)
     target_link_libraries(tic80_n3ds tic80studio png citro3d)
 
-    add_custom_command(TARGET tic80_n3ds
-           POST_BUILD
-               COMMAND ${CMAKE_SOURCE_DIR}/build/n3ds/elf_to_3dsx.sh
-           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
+    ctr_generate_smdh(${PROJECT_NAME}.smdh
+        NAME        "TIC-80 tiny computer"
+        DESCRIPTION "Fantasy computer for making, playing and sharing tiny games"
+        AUTHOR      "Nesbox"
+        ICON        ${CMAKE_SOURCE_DIR}/build/n3ds/icon.png
     )
+
+    ctr_create_3dsx(${PROJECT_NAME}
+        SMDH  ${PROJECT_NAME}.smdh
+        ROMFS ${CMAKE_SOURCE_DIR}/build/n3ds/romfs
+    )
+
 endif()
