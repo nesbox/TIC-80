@@ -1012,12 +1012,13 @@ static mrb_value mrb_mouse(mrb_state *mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
+    tic_point pos = core->api.mouse(tic);
     const tic80_mouse* mouse = &tic->ram->input.mouse;
 
     mrb_value hash = mrb_hash_new(mrb);
 
-    mrb_hash_set(mrb, hash, sym_x, mrb_fixnum_value(mouse->x));
-    mrb_hash_set(mrb, hash, sym_y, mrb_fixnum_value(mouse->y));
+    mrb_hash_set(mrb, hash, sym_x, mrb_fixnum_value(pos.x));
+    mrb_hash_set(mrb, hash, sym_y, mrb_fixnum_value(pos.y));
     mrb_hash_set(mrb, hash, sym_left, mrb_bool_value(mouse->left));
     mrb_hash_set(mrb, hash, sym_middle, mrb_bool_value(mouse->middle));
     mrb_hash_set(mrb, hash, sym_right, mrb_bool_value(mouse->right));
