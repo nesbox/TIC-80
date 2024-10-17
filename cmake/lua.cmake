@@ -77,7 +77,7 @@ if(BUILD_WITH_LUA)
             ${CMAKE_SOURCE_DIR}/src
     )
 
-    if(N3DS)
+    if(NINTENDO_3DS)
         target_compile_definitions(luaapi PUBLIC LUA_32BITS)
     endif()
 

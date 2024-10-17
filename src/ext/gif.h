@@ -43,5 +43,5 @@ typedef struct
     s32 colors;
 } gif_image;
 
-gif_image* gif_read_data(const void* buffer, s32 size);
+gif_image* gif_read_data(const void* buffer, int size);
 void gif_close(gif_image* image);

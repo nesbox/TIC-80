@@ -30,7 +30,7 @@ if(BUILD_WITH_SCHEME)
             ${CMAKE_SOURCE_DIR}/src
     )
 
-    if (N3DS)
+    if (NINTENDO_3DS)
         target_compile_definitions(scheme PRIVATE S7_N3DS)
     endif()
 
