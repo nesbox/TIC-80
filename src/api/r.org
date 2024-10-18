@@ -9,7 +9,223 @@ Any section marked TODO indicates that the section must be edited for clarity,
 or is a draft which must be completed, before publishing this literate program
 to share it.
 
-* TODO Introduction
+* Sectioning of the =r.c= source file
+This section of the literate program tangles together all the source blocks
+composing the actual C source file defining the *TIC-80* fantasy computer *R*
+langauge support for writing demos, programs, and games.
+
+Much of the *R* langauge and its implementation was inspired by a C++
+implementation of Scheme (if I recall things I've read, so it's hearsay but go
+ahead and research it yourself), so aspects of the Scheme *TIC-80* langauge
+integration will be honoured and "Scheme" will appear in several places, though
+none of it is Scheme any more.  Before a final public release this will be
+changed so that no references to "Scheme" occur in the code.
+
+#+begin_src C :noweb no-export :tangle r.c
+  <<LICENSE>>
+  <<INCLUDE>>
+
+  /* API */
+  <<PREDECLARATIONS>>
+  <<DEFINITIONS>>
+
+  /* Syntax highlighting and what-not */
+  <<SYNTAX HIGHLIGHTING AND OUTLINE GENERATION>>
+  <<TIC EXPORT>>
+#+end_src
+
+#+name: PREDECLARATIONS
+#+begin_src C :noweb no-export
+  bool initR(tic_mem *tic, const char *code);
+#+end_src
+
+#+name: DEFINITIONS
+#+begin_src C :noweb no-export
+  <<define C symbols to be callable from R>>
+
+  <<register C symbols with R>>
+
+  <<cartridge commands>>
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+#+end_src
+
+* TODO Prose
+** Requirements
+The requirements of the integration of R in TIC-80 are briefly noted.
+
+- TIC-80 event loop respected and not interfered with (graphical application is
+  performance-sensitive).
+- Initialize multiple R interpreters during the lifetime of the embedding
+  application, but not simultaneously.
+- Statically built R library; no expectation of system libraries available, like
+  a Fortrain installation or various headers that would be installed with Rtools
+  or something on Windows.
+- Memory for storage of objects limited to 126 KB; I don't think the available
+  memory is limited otherwise, but R will be limited to storing 128 KB of
+  objects in memory. No real expectation of disk storage or filesystem.
+
+** The TIC-80 System
+*** The C API
+Every scripting langauge binding to the C API provides a method of writing
+programs in scripting languages which call the C functions which /really
+underly/ the game engine of the fantasy console.
+
+Eventually, every C function defining the langauge bindings to the C API of
+TIC-80---wrapping the underlying C functions of the game engine in interpreted
+(or WASM-compiled) scripting languages---will call a C function with predictable
+arguments to have TIC-80 finally act upon something. As an example, see the
+trace function in the R integration. The Scheme integration is just like it.
+Some data types of the scripting language's C API are created,
+and---potentially---something is evaluated, then the results are passed to the
+TIC-80 C API.
+
+#+begin_comment
+The following block has "yes" as the argument for noweb so that when exported
+the following will quote the C source for the trace function wrapper without me
+needing to copy it and update it when changes are made.
+#+end_comment
+
+#+begin_src C :noweb yes
+  <<trace>>
+#+end_src
+
+**** How the trace API command is integrated with Lua
+#+begin_src C
+  static s32 lua_trace(lua_State *lua)
+  {
+  	s32 top = lua_gettop(lua);
+  	tic_core* core = getLuaCore(lua);
+  	tic_mem* tic = (tic_mem*)core;
+
+  	if(top >= 1)
+  	{
+  		const char* text = printString(lua, 1);
+  		u8 color = TIC_DEFAULT_COLOR;
+
+  		if(top >= 2)
+  		{
+  			color = getLuaNumber(lua, 2);
+  		}
+
+  		core->api.trace(tic, text, color);
+  	}
+  	else luaL_error(lua, "invalid params, trace(text,[color])\n");
+
+  	return 0;
+  }
+#+end_src
+
+*** TODO Describe the =TIC_CORE= type; why is it used like an origin point?
+In the Python and Scheme langauge integrations, within the respective =eval*=
+function, a variable ~tic~ of type ~tic_mem *~ is cast to ~tic_core *~ and
+stored in a variable named ~core~. In each, this ~core~ struct is then accessed
+to obtain the ~currentVM~ object (~core->currentVM~). In the Scheme integration
+this value is called =sc=, like "Scheme core", and in the Python integration it
+is called =vm=, like "virtual machine".
+
+The Python integration uses a =pkpy_vm *= type, and the Scheme integration uses
+a =s7_scheme *= type. In s7 Scheme =s7_scheme= is a big struct /defining the
+Scheme virtual machine or interpreter/. See [[/home/bryce/Documents/src/c/TIC-80/vendor/s7/s7.c][the struct in the sources here]]. I
+could not find the equivalent in Pocketpy, but I noticed that the signature of
+=py_eval= in Pocketpy is different from =pkpy_eval=, and moreover I don't see a
+definition of the function in either soure tree.
+
+The real function and nature of the =tic_core= type is not yet clear to me.
+
+*** TODO TIC-80 memory
+=tic_mem= is a struct defined in the TIC-80 API header, which is coercable to a
+pointer to a =tic_core= type. The differences in these types may or may not be
+important to examine and explain to myself (and the dear reader) at the moment.
+=tic_mem= is not defined as a type, only a named struct.
+
+Where my language is not accurate, as in the previous paragraph, I should
+review Narain Gehani's /Advanced Introduction to C/.
+
+#+name: a quotation from the *TIC-80* ~core.h~
+#+begin_src C
+  tic_mem memory; // it should be first
+  tic80_pixel_color_format screen_format;
+
+  void* currentVM;
+#+end_src
+
+Now quoted is the first four members of the =tic_mem= struct.
+
+#+name: a quotation from the *TIC-80* ~api.h~
+#+begin_src C
+  tic80           product;
+  tic_ram*        ram;
+  tic_cartridge   cart;
+
+  tic_ram*        base_ram;
+#+end_src
+
+The sizes of these types are definitely not equal, so there is no direct
+equivalence and some pointer arithmetic will need to be done to see what is
+what.
+
+At any rate of understanding, I know that =core->currentVM= is =s7_scheme=. It
+is the virtual machine, or interpreter, or whatever which "is Scheme". That
+understanding should be sufficient for now.
+
+**** The "famous" TIC-80 memory struct =tic_mem=
+Pointers to structs of the =tic_mem= type are dereferenced throughout the
+sources of TIC-80, and it seems like a seriously considered design decision to
+have this be so. I don't know why, of course, and I don't see why either.
+There's some dirty business about converting a pointer to a struct of this type
+to a pointer to another type (=tic_core=) as well. It's not simple code (the
+whole application is an emulator for a computer that doesn't exist, after all!).
+
+#+begin_src C
+  struct tic_mem
+  {
+  	tic80           product;
+  	tic_ram*        ram;
+  	tic_cartridge   cart;
+
+  	tic_ram*        base_ram;
+
+  	char saveid[TIC_SAVEID_SIZE];
+
+  	union
+  	{
+  		struct
+  		{
+  #if RETRO_IS_BIG_ENDIAN
+  			u8 padded:5;
+  			u8 keyboard:1;
+  			u8 mouse:1;
+  			u8 gamepad:1;
+  #else
+  			u8 gamepad:1;
+  			u8 mouse:1;
+  			u8 keyboard:1;
+  			u8 padded:5;
+  #endif
+  		};
+
+  		u8 data;
+  	} input;
+  };
+#+end_src
+
+This is the fifth member of the struct =tic_script=, which is predictably offset
+by ~sizeof(u8) + 3 * sizeof(char *)~ (this C does not return what might be
+expected by a noob like me). This offset amount /may be critical/ to
+understanding the eventual type cast.
+
+***** Understanding
+The offset is not critical to understanding how a struct of type =tic_mem= is
+cast to a struct of type =tic_core=. The =tic_core= type has as its first member
+a struct of class =tic_mem=, so casting from a pointer to a =tic_mem= to a
+pointer to a =tic_core= simply returns the same address, but allows the data
+referred to at that address to be understood to locate the larger struct, not
+just the smaller struct.
+
+** TODO Introduction
+*** Initialization of the interpreter within an embedding application
 The R interpreter, like the [[https://ccrma.stanford.edu/software/snd/snd/s7.html][s7 Scheme interpreter]], needs to be initialized or
 re-initialized if it isn't running when TIC-80 wants to request something (the
 game source code, or a debugger entry point or a callback or something else) be
@@ -23,8 +239,7 @@ language. This is a very simple C function because nothing needs to be done
 except pass its argument to ~Rf_mkString~ before passing that to ~Rf_eval~. We
 can define it right now. For now the =memory= parameter can be ignored.
 
-#+name: define evalR
-#+begin_src C
+#+begin_src C :noweb-ref cartridge commands
   bool R_initialized_once = false;
   static bool initR(tic_mem *tic, const char *code);
 
@@ -35,7 +250,7 @@ can define it right now. For now the =memory= parameter can be ignored.
   		R_initialized_once = true;
   	}
   	SEXP RESULT;
-  	if (R_initialized_once) RESULT = Rf_eval(Rf_mkString(code), R_GlobalEnv);
+  	if (R_initialized_once) RESULT = Rf_eval(C2LANGSXP(code), R_GlobalEnv);
   	#if defined ebug /* -DEBUG=ON */
   	Rprintf("%s", RESULT);
   	#endif
@@ -52,7 +267,7 @@ functions which initialize R and its behaviours and capabilities (including
 arithmetic); it is very important that ~setup_Rmainloop~ is called. This
 function is called automatically by calling ~Rf_mainloop~.
 
-** Initializing R
+*** Initializing Scheme
 The initScheme function takes a pointer to the *TIC-80* memory and a character
 pointer to the code that Scheme should evaluate (when it's initialized). To
 promote a clean room, Scheme is terminated before it is initialized through
@@ -142,7 +357,7 @@ These must be set appropriately on UNIX® for R to work correctly.
 These are usually set by a shell script (=R_HOME/bin/R=) which wraps the
 execution of the binary =R_HOME/bin/exec/R=.
 
-*** Flags for compiling against R (shared or static)
+**** Flags for compiling against R (shared or static)
 The following are useful flags and examples of how to call =gcc= to compile
 against R when building a front-end.
 
@@ -199,7 +414,7 @@ The above requires that R was /compiled as a static library/, however. If R was
 compiled with =--enable-R-shlib= this may or may not be the case and I should
 investigate this further.
 
-*** SUNDAY October 6 2024
+**** SUNDAY October 6 2024
 #+begin_src makefile :tangle r.makefile
   ## WARNING: does not work when ${R_HOME} contains spaces
   include ${R_HOME}/etc${R_ARCH}/Makeconf
@@ -214,17 +429,21 @@ investigate this further.
           $(MAIN_LINK) -o $@ r.o $(LIBR) $(LIBS)
 #+end_src
 
-** Console evaluation
+*** Console evaluation
 The console of the main application, when running, has an =eval= command which
 can be used to evaluate source code in the scripting language of the currently
 loaded cartridge. This is a good target for integrating R into TIC-80. I need to
 be able to evaluate R in any context, so to be able to evaluate R in the context
 of a CLI is natural to both R and TIC-80; this is where I'll start.
 
+#+begin_comment
+What is a context?
+#+end_comment
+
 The ~onEvalCommand~ function in the TIC-80 C API takes a =Console *= which is
 used to retrieve access to the console. This console object is used by functions
-for making the carriage return (begin a new line), retrieving the =tic_script=
-which contains pointers to the evaluation function, etc.
+for making the VTTY carriage return (begin a new line), retrieving the
+=tic_script= object which contains pointers to the evaluation function, etc.
 
 As a test of R working, I will print the values of ~R.version.string~ and
 ~R.version~ on the console, first by simply retrieving these values from R and
@@ -271,72 +490,7 @@ succeeded without doing some more work within my own ~eval~ function definition
 to print the results of evaluation by R onto the standard error stream (which
 I'll do during debugging).
 
-** The =TIC_CORE= type
-In the Python and Scheme langauge integrations, within the respective =eval*=
-function, a value ~tic~ of type ~tic_mem *~ is cast to ~tic_core *~ and stored
-in a variable named ~core~. In each, this ~core~ struct is then accessed to
-obtain the ~currentVM~ object (~core->currentVM~). In the Scheme integration
-this value is called =sc=, like "Scheme core", and in the Python integration it
-is called =vm=, like "virtual machine".
-
-The Python integration uses a =pkpy_vm *= type, and the Scheme integration uses
-a =s7_scheme *= type. In s7 Scheme =s7_scheme= is a big struct /defining the
-Scheme virtual machine or interpreter/. See [[/home/bryce/Documents/src/c/TIC-80/vendor/s7/s7.c][the struct in the sources here]]. I
-could not find the equivalent in Pocketpy, but I noticed that the signature of
-=py_eval= in Pocketpy is different from =pkpy_eval=, and moreover I don't see a
-definition of the function in either soure tree.
-
-#+name: define a function to get a pointer to the tic_core
-#+begin_src C
-  bool initR(tic_mem *tic, const char *code);
-
-  tic_core *getTICCore(tic_mem* tic, const char* code) {
-    /* tic_core *core = NULL; */
-    /* while (core == NULL && !initR(tic, code)) { */
-    /*   core = (((tic_core *) tic))->currentVM; */
-    /* } */
-  	/* return core; */
-    return (tic_core *) tic;
-  }
-#+end_src
-
-** TODO TIC-80 memory
-=tic_mem= is a struct defined in the TIC-80 API header, which is coercable to a
-pointer to a =tic_core= type. The differences in these types may or may not be
-important to examine and explain to myself (and the dear reader) at the moment.
-=tic_mem= is not defined as a type, only a named struct.
-
-Where my language is not accurate, as in the previous paragraph, I should
-review Narain Gehani's /Advanced Introduction to C/.
-
-#+name: a quotation from the *TIC-80* ~core.h~
-#+begin_src C
-  tic_mem memory; // it should be first
-  tic80_pixel_color_format screen_format;
-
-  void* currentVM;
-#+end_src
-
-Now quoted is the first four members of the =tic_mem= struct.
-
-#+name: a quotation from the *TIC-80* ~api.h~
-#+begin_src C
-  tic80           product;
-  tic_ram*        ram;
-  tic_cartridge   cart;
-
-  tic_ram*        base_ram;
-#+end_src
-
-The sizes of these types are definitely not equal, so there is no direct
-equivalence and some pointer arithmetic will need to be done to see what is
-what.
-
-At any rate of understanding, I know that =core->currentVM= is =s7_scheme=. It
-is the virtual machine, or interpreter, or whatever which "is Scheme". That
-understanding should be sufficient for now.
-
-** Initializing the API
+*** Initializing the API
 When initializing R as an embedded interpreter, the TIC-80 API also needs to be
 initialized. In the Scheme langauge integration for the API, this occurs using a
 preprocessor macro which scrubs through the sources and uses a C function to
@@ -417,7 +571,7 @@ and not undefine it.
 #+end_src
 
 * DONE License
-CLOSED: [2024-09-25 Wed 16:22]
+CLOSED: [2024-10-17 Thu 19:27]
 Copyright © 2024 Bryce Carson
 
 Except where otherwise noted, the following license is applicable to all code
@@ -454,13 +608,24 @@ version 1.3.
  */
 #+end_src
 
+* Planned work
+** Debugging R programs in TIC-80
+Integrate the R debugger, browser, etc. into TIC-80.
+
+** A final example
+Write a game on the TIC-80 virtual console using R!
 * TODO Writing the R language integration for TIC-80
+** temp
+#+begin_src C
+  #define C2LANGSXP(x) Rf_coerceVector(Rf_mkString(x), LANGSXP)
+#+end_src
+
 ** Defining R functions for the TIC-80 API
 The TIC-80 API functions need to be defined in the global environment after
 initializing R, and if they're writtin in C then they need to be registered with
 R, rather than R code evaluated by R.
 
-*** TODO The API functions, as listed within *TIC-80* with ~help api~
+**** TODO The API functions, as listed within *TIC-80* with ~help api~
 For now these don't have any documentation because they're already documented on
 the API web-page on TIC-80's website, and within TIC-80 itself. Unless some
 difference between implementations arises which is due to my inexperience, then
@@ -513,7 +678,7 @@ no definition for these list items fill follow the API function.
 - ttri ::
 - vbank ::
 
-*** trace
+**** trace
 Print to the standard error stream (in a DEBUG build) in addition to the TIC-80 console.
 
 #+name: trace
@@ -526,8 +691,10 @@ Print to the standard error stream (in a DEBUG build) in addition to the TIC-80 
   }
 #+end_src
 
-The definition of ~tic_api_trace~ gives the arguments that are required of the
-call back to the TIC-80 core (after work has been done in R).
+The quoted definition of ~tic_api_trace~ in the next chunk gives the arguments
+that are required of the callback to the TIC-80 core (after work has been done
+in R). This function is called eventually by the trace function available in the
+~tic_core->api~ struct.
 
 #+begin_src C
   void tic_api_trace(tic_mem* memory, const char* text, u8 color)
@@ -587,36 +754,7 @@ where everything is a symbolic expression.
   }
 #+end_src
 
-** Sectioning of the =r.c= source file
-This section of the literate program tangles together all the source blocks
-composing the actual C source file defining the *TIC-80* fantasy computer *R*
-langauge support for writing demos, programs, and games.
-
-Much of the *R* langauge and its implementation was inspired by a C++
-implementation of Scheme (if I recall things I've read, so it's hearsay but go
-ahead and research it yourself), so aspects of the Scheme *TIC-80* langauge
-integration will be honoured and "Scheme" will appear in several places, though
-none of it is Scheme any more.  Before a final public release this will be
-changed so that no references to "Scheme" occur in the code.
-
-#+begin_src C :noweb no-export :tangle r.c
-  <<LICENSE>>
-
-  <<INCLUDE>>
-
-  <<define evalR>>
-  <<trace>>
-
-  <<cartridge commands>>
-
-  <<define a function to get a pointer to the tic_core>>
-
-  <<syntax highlighting and outline generation>>
-
-  <<TIC EXPORT>>
-#+end_src
-
-*** Procedures to initialize, close, and re-initialize R
+** Procedures to initialize, close, and re-initialize R
 Both =initScheme= and =closeScheme= begin with casting ~tic_mem *tic~ to a
 ~tic_core *~, effectively mapping from one area of memory to another (like a
 hashmap or simply shifting the memory until the child struct is aligned with the
@@ -675,7 +813,8 @@ That is defined separately, and not as a macro, so that the code can be re-used.
   void R_Suicide(const char *message)
   {
   	char  pp[1024];
-  	snprintf(pp, 1024, "Fatal error, but can't kermit: %s\nExecute me, please.\n", message);
+  	snprintf(pp, 1024, "Fatal error, but can't kermit: %s\n"\
+  					 "Execute me, please.\n", message);
   	R_ShowMessage(pp);
   	exit(1);
 
@@ -709,25 +848,18 @@ That is defined separately, and not as a macro, so that the code can be re-used.
   	R_running_as_main_program = 0;
 
   	if (!R_Initialized) {
-  		R_Initialized = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
+  		R_Initialized = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), \
+  																						embdRAV);
   		R_running_as_main_program = 0;
   		/* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
   		R_Interactive = false;
   	}
 
-  	/* TODO: I think it makes sense to evaluate the code, then check if this
-  	 ,* exists, then end the init function with evaluating the TIC-80 function. */
-  	Rf_eval(Rf_mkString("if (exists(\"BOOT\") && is.function(BOOT) BOOT() else BOOT <- function() NULL;;"),
-  					R_GlobalEnv);
+  	<<register C symbols with R>>
 
-  	tic_script *config = (tic_get_script(tic));
-  	for (int kiwi = 0; kiwi <= config->api_keywordsCount; kiwi++) {
-  #define defineRFn_(keyword) Rf_eval(Rf_mkString("t80."#keyword" <- function(...) .C(r_"#keyword", ...);"), R_GlobalEnv);
-  #define doDefineRFunction(keyword) defineRFn_(keyword)
-  		doDefineRFunction(config->api_keywords[kiwi]);
-  #undef doDefineRFunction
-  #undef defineRFn_
-  	}
+  	Rf_eval(C2LANGSXP("if (exists(\"BOOT\") && is.function(BOOT)) { BOOT() } " \
+  											"else { BOOT <- function() `{`; ## Tricky NOP. }"),
+  					R_GlobalEnv);
 
   	return R_Initialized;
   }
@@ -802,7 +934,7 @@ backtrace quoted in the mentioned section.
   #undef defineCallRFnInEnvironment_
 #+end_src
 
-*** Exporting a =tic_script= for *TIC-80* to use at compile-time
+**** Exporting a =tic_script= for *TIC-80* to use at compile-time
 This constant is used by TIC-80 to setup the cartridge, both for editing in the
 "studio" and the runtime evaluat  (use-package emacsql-sqlite :after 'emacsql)
 ion of the script.
@@ -943,8 +1075,8 @@ pointers to =tic_script= objects.
   };
 #+end_src
 
-*** Providing lists of syntax elements for highlighting and outline generation
-#+name: syntax highlighting and outline generation
+**** Providing lists of syntax elements for highlighting and outline generation
+#+name: SYNTAX HIGHLIGHTING AND OUTLINE GENERATION
 #+begin_src C :noweb no-export
 	<<Specify the reserved words for automatic syntax>>
 
@@ -953,7 +1085,7 @@ pointers to =tic_script= objects.
 	<<R API implementation keywords>>
 #+end_src
 
-**** Syntax highlighting the reserved words in R
+***** Syntax highlighting the reserved words in R
 Syntax highlighting is not always easy, especially when regular expressions are
 involved. What we are using in TIC-80 is a more naive approach, but one which is
 easier to maintain because it is less powerful and less flexible. It is at the
@@ -983,14 +1115,14 @@ used otherwise, as with ~`function`~.
 	};
 #+end_src
 
-***** =..n=: variadic argument access across the natural numbers
+****** =..n=: variadic argument access across the natural numbers
 The entirety of the natural numbers are reserved words when the occur after the
 characters ~..~, becuase any ordinal number is usable to access a member of the
 dotted argument (how R cleverly deals with variadic arguments). The functions
 which otherwise handle these variadic argument list members are not reserved
 words, for example ~..length()~ or even ~..n()~ are not reserved.
 
-**** Outline generation
+***** Outline generation
 Generating and outline will provide the editor with the ability to jump to
 different areas of the script being written.
 
@@ -1065,7 +1197,7 @@ different areas of the script being written.
   }
 #+end_src
 
-**** R API implementation keywords
+***** R API implementation keywords
 The API keywords are either callbacks to the TIC-80 virtual machine---which can
 be thought of as an operating system interface---or the user-facing API
 functions. The following definitions are simply taken from the file =scheme.c=,
@@ -1109,8 +1241,7 @@ like this.
   };
 #+end_src
 
-** DONE The default cartridge
-CLOSED: [2024-09-25 Wed 16:08]
+** TODO The default cartridge
 The demonstration (default) cartridge or ROM is a bunch of byte code included
 from a =dat= file. The bytes are read directly into a =u8= array ~DemoRom[]~.
 The =dat= file is created during build from =demos/rdemo.r=. Basing the file off
@@ -1118,6 +1249,8 @@ of the other demo files, I have written the usual TIC-80 "Hello, world!" in a
 function style in R, and the contents of the metadata are identical to the Ruby
 or Scheme demos (as every demo cartridge uses the same demo content by
 convention).
+
+- [ ] Translate all cartridge assets during build
 
 #+begin_src R :noweb no-export :tangle ../../demos/rdemo.r
   ## title:   game title
@@ -1154,6 +1287,9 @@ convention).
   <<stripped cartridge metadata>>
 #+end_src
 
+The rest of the cartridge definition is metadata which embeds the graphics and
+sounds into the cartridge.
+
 #+begin_src R :noweb-ref stripped cartridge metadata
   ## <TILES>
   ## 001:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc
@@ -1186,17 +1322,30 @@ convention).
 #+end_src
 
 ** TODO The Bunny benchmark
-*** Template
-#+begin_src R :noweb no-export :tangle ../../demos/bunny/rbenchmark.r
+**** Template
+- Is the template correctly translated using the asset building tools?
+
+#+name: R bunnymark header
+#+begin_src R
   ## title: Bunnymark with R as the cartidge language
   ## author: Bryce Carson
   ## desc: Benchmarking tool to see how many bunnies can bounce around the screen, using R
   ## input: gamepad
   ## script: r
   ## version: 0.0.1
+#+end_src
+
+#+name: R S3-based bunnmark
+#+begin_src R :noweb no-export :tangle ../../demos/bunny/rbenchmark.r
+  <<R bunnymark header>>
 
   <<Bunny benchmark R source>>
 
+  <<R bunnymark footer>>
+#+end_src
+
+#+name: R bunnymark footer
+#+begin_src R
   ## <TILES>
   ## 001:11111100111110dd111110dc111110dc111110dc111110dc111110dd111110dd
   ## 002:00011110ddd0110dccd0110dccd0110dccd0110dccd0110dcddd00dddddddddd
@@ -1221,7 +1370,9 @@ convention).
   ## </PALETTE>
 #+end_src
 
-*** The Bunny benchmark R source code
+**** TODO An S3-based R Bunny benchmark
+This version of the benchmark uses the informal S3 OOP system.
+
 #+name: Bunny benchmark R source
 #+begin_src R
   screenWidth <- 240
@@ -1287,22 +1438,32 @@ convention).
   bunnies <- list(new_bunny())
 #+end_src
 
+**** TODO Planned work
+- S7 :: the new R OOP package
+- S6 :: the old new R OOP package
+- S4 :: formal OOP package for R
+- S3 :: ye olde informal OOP package: what I'm already using in the bunny benchmark
+
+The next steps in completing the Bunny benchmark are to decide on a functional
+approach or an object-oriented approach. Integrating the new S7 package would be
+interesting.
+
 ** DONE Modifying =CMakeLists.txt= and writing CMake build generation files
 CLOSED: [2024-10-12 Sat 01:50]
 CMake is used as the Make build file generator for TIC-80. I need to integrate
 the R langauge embedding into TIC-80's build process using CMake now.
 
-*** Tasks to complete related to this heading:
+**** Tasks to complete related to this heading:
 - [X] Patch =CMakeLists.txt=, if necessary.
 - [X] Write a CMake file for R, specifically.
 - [X] Test the build succeeds: build fails with the message "R.h not found."
 - [X] Test ~eval~ on the TIC-80 command-line.
 
-*** Patching =CMakeLists.txt=
+**** Patching =CMakeLists.txt=
 Is it necessary to patch =CMakeLists.txt=? Yes, but only to include the line
 ~include(cmake/r.cmake)~.
 
-*** Writing =cmake/r.cmake=
+**** Writing =cmake/r.cmake=
 Based off of the Scheme and Python CMake files, I wrote the following. I doubt R
 will ever run on N3DS, regardless of whatever hacky homebrew environment is
 available. R is simply too complex of an interpreter with too complex of a build
@@ -1423,19 +1584,177 @@ The in file is somewhat simple, I think?
   }
 #+end_src
 
-** TODO Bug-fixing the creation of new R-based cartridges
-- A new cart can be created with "new r", but when going to the editor the R demo cartridge is not used (the Lua cartridge is used). :: I
-  found that this is a result of the R API not being properly included due to
-  unknown identifiers (R C API functions, because I didn't link properly).
-- The bunny benchmark for R does not appear in the directory listing of =bunny=.
+** DONE Include directives
+CLOSED: [2024-10-17 Thu 19:43]
+There are a nubmer of headers that must be included to work with R. Some of the
+headers I include might be redundant, and I will try to clean these up later.
 
-*** First attempt at debugging the bugged ~new r~ functionality
-What I found was that with only building for R that I can't create a new Scheme
-cartridge, but with the same effect that a Lua cartridge is created. R has been
-included in the build, so because the cartridge is the same as the Lua cartridge
-I'm going to do a check and make sure that I haven't made a file copying error
-(blindly copying the Lua demo, which I know I did at one point before I
-successfully built the DAT files myself).
+#+name: INCLUDE
+#+begin_src c
+  #include "core/core.h"
+
+  #define R_NO_REMAP
+  #include <R.h>
+
+  #if !defined R_INTERNALS_H_
+  #include <Rinternals.h> /* defines LibExtern SEXP R_GlobalEnv */
+  #endif
+
+  #include <Rembedded.h>
+  #include <Rinterface.h>
+  #include <Rconfig.h>
+  #include <Rdefines.h>
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+
+  #include "api/renv.h"
+#+end_src
+
+** TODO Symbol registration
+This is not symbolic programming, but I wish it were! Oh, R, oh, LISP, how I
+miss both of these. I can't wait to finish learning enough of C to say I can
+manage my way through a complex project so that I can readily forget much of it
+until I need it again. Woe unto future me, should I need it again!
+
+**** A failed approach to registering functions with R
+A naive approach, or a "clever" approach I tried to take, is to define all of
+the C functions that R can call using functions defined through a C macro and
+calling them using the ~.C~ interface, however there is a much better system
+built-in to R which I will use instead.
+
+The following use of preprocessor directives is inappropriate, as the literal
+macro argument will be substituted, not evaluated at run-time.
+
+#+name: iterate over the R API keywords, defining each R function (erroneous)
+#+begin_src C
+  #define defineRFn_(keyword) Rf_eval(Rf_mkString("t80."#keyword" <- function(...) .C(r_"#keyword", ...);"), R_GlobalEnv);
+  #define doDefineRFunction(keyword) defineRFn_(keyword)
+  	for (int kiwi = 0; kiwi <= config->api_keywordsCount; kiwi++) {
+  		doDefineRFunction(config->api_keywords[kiwi]);
+  	}
+  #undef doDefineRFunction
+  #undef defineRFn_
+#+end_src
+
+This won't work because neither parameterized macro will evaluate the given
+expressions. Using C string functions and a character buffer would allow me to
+construct the R expressions dynamically, but there's no need to take this
+correct, but naive, approach. Use the functionality built-in to R's C API!
+
+#+name: iterate over the R API keywords, defining each R function
+#+begin_src C
+  tic_script *config = (tic_get_script(tic));
+  char command_string[100];
+  for (int kw = 0; kw <= config->api_keywordsCount; kw++) {
+  	memset(command_string, '\0', sizeof('\0'));
+  	
+  #define cmdstr(f, ...) f(command_string, __VA_ARGS__)
+  	cmdstr(strcpy, "t80.");
+  	cmdstr(strcat, config->api_keywords[kw]);
+  	cmdstr(strcat, " <- \(...) .C(r_");
+  	cmdstr(strcat, config->api_keywords[kw]);
+  	cmdstr(strcat, ", ...);");
+  #undef cmdstr
+
+  	Rf_eval(Rf_mkString(command_string), R_GlobalEnv);
+  }
+#+end_src
+
+**** Registering symbols in R from C
+"Symbols need to be registered with R from C to be used in R," is what I wrote
+to introduce this paragraph in its first draft; I'm not sure if registering
+symbols is actually required, or what the purpose is. It might not be fully
+relevant to my use of R. My appreciation of this topic, at the moment, is that
+it is used to define new primites so that functions in R are automatically
+defined to call registered C functions.
+
+The /Extending R/ document describes how to register native routines with the R
+interpreter for later use from within R code. A quotation from the document is
+provided here.
+
+#+name: example of registering native symbols
+#+begin_src c
+  DllInfo *info = R_getEmbeddingDllInfo();
+  R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
+#+end_src
+
+These symbols are automatically made available in R when it is embedded in the
+application.
+
+#+name: register C symbols with R
+#+begin_src C :noweb no-export
+  static const R_CMethodDef cMethods[] = {
+   { "btn",   (DL_FUNC) &r_btn,    -1 },
+   { "btnp",  (DL_FUNC) &r_btnp,   -1 },
+   { "circ",  (DL_FUNC) &r_circ,   -1 },
+   { "circb", (DL_FUNC) &r_circb,  -1 },
+   { "clip",  (DL_FUNC) &r_clip,   -1 },
+   { "cls",   (DL_FUNC) &r_cls,    -1 },
+   { "elli",  (DL_FUNC) &r_elli,   -1 },
+   { "ellib", (DL_FUNC) &r_ellib,  -1 },
+   { "exit",  (DL_FUNC) &r_exit,   -1 },
+   { "fget",  (DL_FUNC) &r_fget,   -1 },
+   { "font",  (DL_FUNC) &r_font,   -1 },
+   { "fset",  (DL_FUNC) &r_fset,   -1 },
+   { "key",   (DL_FUNC) &r_key,    -1 },
+   { "keyp",  (DL_FUNC) &r_keyp,   -1 },
+   { "line",  (DL_FUNC) &r_line,   -1 },
+   { "map",   (DL_FUNC) &r_map,    -1 },
+   { "memcpy",(DL_FUNC) &r_memcpy, -1 },
+   { "memset",(DL_FUNC) &r_memset, -1 },
+   { "mget",  (DL_FUNC) &r_mget,   -1 },
+   { "mouse", (DL_FUNC) &r_mouse,  -1 },
+   { "mset",  (DL_FUNC) &r_mset,   -1 },
+   { "music", (DL_FUNC) &r_music,  -1 },
+   { "peek",  (DL_FUNC) &r_peek,   -1 },
+   { "peek1", (DL_FUNC) &r_peek1,  -1 },
+   { "peek2", (DL_FUNC) &r_peek2,  -1 },
+   { "peek4", (DL_FUNC) &r_peek4,  -1 },
+   { "pix",   (DL_FUNC) &r_pix,    -1 },
+   { "pmem",  (DL_FUNC) &r_pmem,   -1 },
+   { "poke",  (DL_FUNC) &r_poke,   -1 },
+   { "poke1", (DL_FUNC) &r_poke1,  -1 },
+   { "poke2", (DL_FUNC) &r_poke2,  -1 },
+   { "poke4", (DL_FUNC) &r_poke4,  -1 },
+   { "print", (DL_FUNC) &r_print,  -1 },
+   { "rect",  (DL_FUNC) &r_rect,   -1 },
+   { "rectb", (DL_FUNC) &r_rectb,  -1 },
+   { "reset", (DL_FUNC) &r_reset,  -1 },
+   { "sfx",   (DL_FUNC) &r_sfx,    -1 },
+   { "spr",   (DL_FUNC) &r_spr,    -1 },
+   { "sync",  (DL_FUNC) &r_sync,   -1 },
+   { "time",  (DL_FUNC) &r_time,   -1 },
+   { "trace", (DL_FUNC) &r_trace,  -1 },
+   { "tri",   (DL_FUNC) &r_tri,    -1 },
+   { "trib",  (DL_FUNC) &r_trib,   -1 },
+   { "tstamp",(DL_FUNC) &r_tstamp, -1 },
+   { "ttri",  (DL_FUNC) &r_ttri,   -1 },
+   { "vbank", (DL_FUNC) &r_vbank,  -1 },
+
+   { NULL, NULL, 0, NULL }
+  };
+
+  R_registerRoutines(R_getEmbeddingDllInfo(), cMethods, NULL, NULL, NULL);
+#+end_src
+
+Informed by the given example in section 5.4 (see next block).
+
+#+begin_example C
+  static R_NativePrimitiveArgType myC_type[] = {
+      REALSXP, INTSXP, STRSXP, LGLSXP
+  };
+
+  static const R_CMethodDef cMethods[] = {
+     {"myC", (DL_FUNC) &myC, 4, myC_type},
+     {NULL, NULL, 0, NULL}
+  };
+#+end_example
+
+** TODO Convert assets to DAT formats (on UNIX-likes)
+This script can be used to convert build assets (=rmark.r= and =rdemo.r=) to the
+DAT format used by TIC-80 at runtime.
 
 #+name: convert the R demo and benchmark source files to .tic.dat format
 #+begin_src bash :tangle convertRDemoAssets.sh :shebang #!/bin/env bash
@@ -1474,25 +1793,40 @@ successfully built the DAT files myself).
   main
 
 #+end_src
-
-#+RESULTS: convert the R demo and benchmark source files to .tic.dat format
+* BUGS
+- The bunny benchmark for R does not appear in the directory listing of =bunny=.
+** DONE Bug-fixing the creation of new R-based cartridges
+CLOSED: [2024-10-17 Thu 19:19]
+*** DONE Are the demo and benchmark cartridges created correctly?
+CLOSED: [2024-10-17 Thu 19:17]
+What I found was that with only building for R that I can't create a new Scheme
+cartridge, but with the same effect that a Lua cartridge is created. R has been
+included in the build, so because the cartridge is the same as the Lua cartridge
+I'm going to do a check and make sure that I haven't made a file copying error
+(blindly copying the Lua demo, which I know I did at one point before I
+successfully built the DAT files myself).
 
 I'm now confident that the DAT files are derived from my R-based source files,
 and not Lua-based source files. The next step is to test if that was a
 sufficient fix, indicating the problem was a file copying error (from a
 different test build), or another issue.
 
-It was not that. The =new= command is not locating the file correctly, so I need
-to work out why that is with a more involved search of the sources and then some
-debugging.
+After testing I am certain that it was not a user error caused by copying a
+Lua-based file. The =new= command is not creating an R cartridge---using the
+demo or default cartridge---correctly, so I need to work out why that is with a
+more involved search of the sources and then some debugging.
 
-*** Second attempt at debugging the bugged ~new r~ functionality
+*** DONE A new cart can be created with "new r", but when going to the editor the R demo cartridge is not used (the Lua cartridge is used).
+CLOSED: [2024-10-17 Thu 19:18]
+
+*** DONE Is the =.id=, =.name=, or =.fileExtension= field to blame?
+CLOSED: [2024-10-17 Thu 19:17]
 Looking at the Scheme language integration it seems my mistake may be calling
 the command with a lower-case ~r~, when I should call it with an upper-case ~R~,
 if and only if the ~.name~ member of the ~const tic_script~ object in my
 language integration has that casing.
 
-#+begin_src C
+#+begin_example C
   TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
   {
   	/* The first five members of the struct have the sum total following
@@ -1502,16 +1836,19 @@ language integration has that casing.
   	.name                   = "r",
   	.fileExtension          = ".r",
   	.projectComment         = "##"
-#+end_src
+#+end_example
 
 Unfortunatley, as shown by the quotation, that is not the case.
 
-Perhaps it is the arbitrary ~.id~ I chose. How are the other IDs determined?
+Perhaps it is the arbitrary ~.id~ I chose. How are the other IDs determined? I
+looked at the IDs of every other type of TIC-80 scripting language and noted
+these before sorting them. I now know what ID to give R; this should be
+documented in the TIC-80 Wiki.
 
 - lua :: 10
 - ruby :: 11
 - js :: 12
-- moonscript :: 13, which is alike my R integration in that it uses ~moon~ for its name and then ~.moon~ for its extension; no problems for me here.
+- moonscript :: 13
 - fennel :: 14
 - squirrel :: 15
 - wren :: 16
@@ -1521,12 +1858,20 @@ Perhaps it is the arbitrary ~.id~ I chose. How are the other IDs determined?
 - python :: 20
 - r :: 21
 
-It looks like R is the eleventh language added to TIC-80. There are room for
-five more, given I saw a "maximum number of langauges" elsewhere in the codebase
-set to sixteen.
+I thought that my R integration might have an issue because of the name, but
+like Moonscript the name is prefixed with a period in the file extension, so
+that wasn't a problem. I don't know why I thought that might have been an issue,
+but I'm only noting my thinking process here.
 
-*** Third attempt
-This procedure is used at runtime to add scripts to the ~Scripts~ array.
+It looks like R is the eleventh language added to TIC-80. There is room for five
+more languages, given I saw a "maximum number of langauges" elsewhere in the
+codebase set to sixteen.
+
+*** DONE Is =tic_add_script= rejecting the script?
+CLOSED: [2024-10-17 Thu 19:16]
+This procedure is used at runtime to add scripts to the ~Scripts~ array. The
+macro is expanded to something much more complex, which serves to actually look
+at potential script shared objects.
 
 #+begin_src C
   void tic_add_script(const tic_script* script)
@@ -1569,14 +1914,8 @@ either an uninitialized =tic_script= called ~empty~ is returned or the address
 of the whole array is returned (effectively returning the first member of the
 array). ~tic_scripts~ returns the address of the whole array forthright.
 
-* TODO Debugging R programs in TIC-80
-Integrate the R debugger, browser, etc. into TIC-80.
-
-* TODO A final example
-Write a game on the TIC-80 virtual console using R!
-
-* DONE Compilation error
-CLOSED: [2024-10-12 Sat 12:54]
+** DONE Compilation error due to ambiguous type and storage class
+CLOSED: [2024-10-17 Thu 19:20]
 When compiling the API definitions in =r.c=, I experienced an issue with the
 type and storage class definition of the function ~Rf_mainloop~. The compiler
 doesn't know how what type or storage class to assign to the function because it
@@ -1600,7 +1939,6 @@ numbers and strings.
 
 This will produce, similarly, the errors observed in the following journal-like entry.
 
-** Journal-like entry; notes on compilation error topic "storage class"
 When a function call or any expression occurs /outside of a function definition
 called from a call chain beginning within main/, an error will occur due to
 conflicting types deriving from the compiler trying to resolve an expression of
@@ -1608,88 +1946,21 @@ some type as a declaration. That is, only delcarations of data types may occur
 outside of function bodies, and only the main function can begin a chain of
 function calls. A function call is illegal outside of these chains; expressions
 of any kind other than declarations are illegal outside of these chains.
-
-#+begin_quote
-[ 10%] Building C object CMakeFiles/r.dir/src/api/r.c.o
-/home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: warning: data definition has no type or storage class
-   42 | Rf_mainloop();
-      | ^~~~~~~~~~~
-/home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: warning: type defaults to ‘int’ in declaration of ‘Rf_mainloop’ [-Wimplicit-int]
-/home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: error: conflicting types for ‘Rf_mainloop’; have ‘int()’
-In file included from /home/bryce/Documents/src/c/TIC-80/src/api/r.c:33:
-/usr/include/R/Rinterface.h:85:6: note: previous declaration of ‘Rf_mainloop’ with type ‘void(void)’
-   85 | void mainloop(void);
-      |      ^~~~~~~~
-#+end_quote
-
-* TODO Debugging segfaults
-The following functions are the next four functions to look at, given a segfault
-occurs on line 952 of R/src/main/main.c when debugging R_setupmainloop (or
-whatever the proper spelling of the identifier is).
-
-#+name: a comment on the time when this section was written
-#+begin_comment
-I don't know if these are the next steps still.
-#+end_comment
-
-- =InitNames=
-- =InitParser=
-#+begin_comment
-Setting a breakpoint at the following point seems to have allowed the program to
-advance beyond InitNames and InitParser, but I'm unsure because I'm a noob.
-
-Thread 1 "tic80" hit Breakpoint 1, setup_Rmainloop ()
-    at /usr/src/debug/R-4.3.3-2.fc39.x86_64/src/main/main.c:954
-954	    InitGlobalEnv();
-#+end_comment
-- =InitGlobalEnv=
-- =InitDynload=
-
-The program seems to encounter the segfault when R_Suicide is called because fp == NULL? I think?
-
-#+begin_quote
-2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x14218e0
-(gdb) n
-1023	    FILE *fp = R_OpenLibraryFile("base");
-1: Rf_eval("3") = <error: Too few arguments in function call.>
-2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x1421900
-(gdb) n
-setup_Rmainloop () at /usr/src/debug/R-4.3.3-2.fc39.x86_64/src/main/main.c:1023
-1023	    FILE *fp = R_OpenLibraryFile("base");
-1: Rf_eval("3") = <error: Too few arguments in function call.>
-2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x13b81a0
-(gdb) n
-setup_Rmainloop () at /usr/src/debug/R-4.3.3-2.fc39.x86_64/src/main/main.c:1024
-1024	    if (fp == NULL)
-1: Rf_eval("3") = <error: Too few arguments in function call.>
-2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x13b81c0
-(gdb) n
-1025		R_Suicide(_("unable to open the base package\n"));
-1: Rf_eval("3") = <error: Too few arguments in function call.>
-2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x13b81e0
-(gdb) n
-
-Thread 1 "tic80" received signal SIGSEGV, Segmentation fault.
-0x0000000000000000 in ?? ()
-1: Rf_eval("3") = <error: Too few arguments in function call.>
-2: Rf_eval("3", R_GlobalEnv) = (struct SEXPREC *) 0x7e8830
-(gdb) n
-#+end_quote
-
-Why is the file pointer null? I don't think R_Suicide is being called correctly,
-or being called at all, because it is specifically designed to kill the R
-interpreter cleanly: more or less seppuku-style. Y'know, Kermit? R will kermit
-suicide.
-
-#+begin_src c
-  FILE *fp = R_OpenLibraryFile("base");
-  if (fp == NULL)
-  	R_Suicide(_("unable to open the base package\n"));
+#+begin_src text
+  [ 10%] Building C object CMakeFiles/r.dir/src/api/r.c.o
+  /home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: warning: data definition has no type or storage class
+     42 | Rf_mainloop();
+        | ^~~~~~~~~~~
+  /home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: warning: type defaults to ‘int’ in declaration of ‘Rf_mainloop’ [-Wimplicit-int]
+  /home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: error: conflicting types for ‘Rf_mainloop’; have ‘int()’
+  In file included from /home/bryce/Documents/src/c/TIC-80/src/api/r.c:33:
+  /usr/include/R/Rinterface.h:85:6: note: previous declaration of ‘Rf_mainloop’ with type ‘void(void)’
+     85 | void mainloop(void);
+        |      ^~~~~~~~
 #+end_src
 
-** Opening packages stored in any one of the libraries
-Libraries are full of packages!
-
+** DONE Opening packages stored in any one of the libraries
+CLOSED: [2024-10-17 Thu 19:23]
 The definition of =R_Home= is critical when =R_OpenLibraryFile= is called. If
 that identifier is not defined then there are big problems!
 
@@ -1697,223 +1968,39 @@ Indeed, after making a small change to =initR= to ensure that =Rf_initEmbeddedR=
 is called before =Rf_mainloop= and debugging =Rf_initEmbeddedR= I see the
 following error.
 
-#+begin_quote
-Thread 1 "tic80" hit Breakpoint 1, Rf_initEmbeddedR (argc=2, 
-    argv=0x7fffffffdca0) at ../unix/Rembedded.c:60
-60	{
-(gdb) list
-55	    char *argv[]= {"REmbeddedPostgres", "--gui=none", "--silent"};
-56	    Rf_initEmbeddedR(sizeof(argv)/sizeof(argv[0]), argv);
-57	*/
-58
-59	int Rf_initEmbeddedR(int argc, char **argv)
-60	{
-61	    Rf_initialize_R(argc, argv);
-62	    R_Interactive = TRUE;  /* Rf_initialize_R set this based on isatty */
-63	    setup_Rmainloop();
-64	    return(1);
-(gdb) n
-61	    Rf_initialize_R(argc, argv);
-(gdb) n
-Fatal error: R home directory is not defined
-[Thread 0x7fff73f8f6c0 (LWP 26036) exited]
-[Thread 0x7fff7cd8f6c0 (LWP 26035) exited]
-[Thread 0x7fff7d78f6c0 (LWP 26034) exited]
-[Thread 0x7fff7e18f6c0 (LWP 26030) exited]
-[Thread 0x7fff7eb8f6c0 (LWP 26029) exited]
-[Thread 0x7fff7f58f6c0 (LWP 26028) exited]
-[Thread 0x7fff7ff8f6c0 (LWP 26027) exited]
-[Thread 0x7fff90f8f6c0 (LWP 26026) exited]
-[Thread 0x7fff9198f6c0 (LWP 26025) exited]
-[Thread 0x7fff9498f6c0 (LWP 26020) exited]
-[Thread 0x7fffe4ef16c0 (LWP 26016) exited]
-[Thread 0x7ffff6d4a840 (LWP 26013) exited]
-[Thread 0x7fff9978f6c0 (LWP 26019) exited]
-[New process 26013]
-[Inferior 1 (process 26013) exited with code 02]
-(gdb)
-#+end_quote
-
-* Include directives
-There are a nubmer of headers that must be included to work with R.
-
-#+name: INCLUDE
-#+begin_src c
-  #include "core/core.h"
-
-  #define R_NO_REMAP
-  #include <R.h>
-
-  #if !defined R_INTERNALS_H_
-  #include <Rinternals.h> /* defines LibExtern SEXP R_GlobalEnv */
-  #endif
-
-  #include <Rembedded.h>
-  #include <Rinterface.h>
-  #include <Rconfig.h>
-  #include <Rdefines.h>
-
-  #include <stdio.h>
-  #include <stdlib.h>
-  #include <string.h>
-
-  #include "api/renv.h"
-#+end_src
-
-#+name: unnecessary, bullshit commentary on include directives and linking
-#+begin_comment
-The usual style when writing C, it seems, is to place predeclarations (which
-make the compiler happy) in header files. The actual function definitions (and
-further =#include= preprocessor directives including other header files or files
-with definitions) are present in another C file, but with the conventional =c=
-extension to indicate it contains definitions, not just predeclarations.
-
-Declarations are needed so that the compiler knows what types to expect and use,
-so that it will permit various function calls to be defined within a file. These
-are checked statically, at compile time, so they must be correct and thus
-predeclarations are required. Definitions are given in conventional C files and
-these actually prescribe the behaviour. Linking is the process of directing the
-function calls to the actual location of the definition within the compiled
-binary, and linking the definitions together into a series; the two-fold process
-of linking the binary object files together either statically or dynamically and
-providing the locations (offsets) of functions in the appropriate ELF object
-file.
-#+end_comment
-
-* TODO Questions and notes                                         :noexport:
-- Describe how the fantasy computer uses a =tic_script=, and perhaps
-  investigate why there is a special =TIC_EXPORT= macro; in what way was the
-  standard C ~export~ insufficient, and why?
-- What is the proper terminology for a named struct that isn't =typedef=ed? I
-  recall the word "struct tag".
-- What defines the ID number of a langauge (=tic_script=)? Counted, there are
-  twelve langauges so far in the ~tic_script *Scripts[]~ array, but the actual
-  members of the array are determined at compile time. Lua is the first member
-  in this list, and yet it has an ID of ten! I don't see the pattern in this;
-  I'd like R to be lucky number thirteen or to have an ID of 666.
-
-** Watch out for the FPU :NOTE:
-/Writing R Extensions/ warns that there are concerns with the function
-=Rf_endEmbeddedR= changing how the FPU operates. Might this affect other
-programs, or would it be reset when the process being executed changes?
-
-#+begin_quote
-One issue to watch is that on some platforms Rf_initEmbeddedR and
-Rf_endEmbeddedR change the settings of the FPU (e.g. to allow errors to be
-trapped and to make use of extended precision registers).
-#+end_quote
-
-** The "famous" TIC-80 memory struct =tic_mem=
-Pointers to structs of the =tic_mem= type are dereferenced throughout the
-sources of TIC-80, and it seems like a seriously considered design decision to
-have this be so. I don't know why, of course, and I don't see why either.
-There's some dirty business about converting a pointer to a struct of this type
-to a pointer to another type (=tic_core=) as well. It's not simple code (the
-whole application is an emulator for a computer that doesn't exist, after all!).
-
-#+begin_src C
-  struct tic_mem
-  {
-  	tic80           product;
-  	tic_ram*        ram;
-  	tic_cartridge   cart;
-
-  	tic_ram*        base_ram;
-
-  	char saveid[TIC_SAVEID_SIZE];
-
-  	union
-  	{
-  		struct
-  		{
-  #if RETRO_IS_BIG_ENDIAN
-  			u8 padded:5;
-  			u8 keyboard:1;
-  			u8 mouse:1;
-  			u8 gamepad:1;
-  #else
-  			u8 gamepad:1;
-  			u8 mouse:1;
-  			u8 keyboard:1;
-  			u8 padded:5;
-  #endif
-  		};
-
-  		u8 data;
-  	} input;
-  };
-#+end_src
-
-This is the fifth member of the struct =tic_script=, which is predictably offset
-by ~sizeof(u8) + 3 * sizeof(char *)~ (this C does not return what might be
-expected by a noob like me). This offset amount /may be critical/ to
-understanding the eventual type cast.
-
-*** Understanding
-The offset is not critical to understanding how a struct of type =tic_mem= is
-cast to a struct of type =tic_core=. The =tic_core= type has as its first member
-a struct of class =tic_mem=, so casting from a pointer to a =tic_mem= to a
-pointer to a =tic_core= simply returns the same address, but allows the data
-referred to at that address to be understood to locate the larger struct, not
-just the smaller struct.
-
-** Reading Hadley's notes on R internals
-Hadley Wickham recommends defining =R_NO_REMAP= to ensure that all R API
-functions have the prefixes =R_= or =Rf_=. Without defining this, presumably,
-there are other prefixes or none, and other functions or types may be shadowed.
-
-[[https://github.com/hadley/r-internals][Hadley Wickham's r-internals Git repository]] on GitHub has lots of little
-insights into embedding R in other applications and working with the public API
-for R from C.
-
-** Vector types
-As a note, the length of vector types in R's C API is \(2^{64} - 1\), and in
-base R there are macros implementing [[https://github.com/hadley/r-internals/blob/master/vectors.md#length][the extended length types Hadley Wickham
-wrote about]].
-
-** Examples in the =tests/embedding= source directory
-/R-exts.pdf/ refers to some examples of embedding R which are written as formal
-unit tests of the embedding functionality. The file =embeddedRCall.c= and
-=embeddedRCall.h= are reproduced herein for example and clarity in explanation,
-as I'm learning from these files and the /R-exts.pdf/ document how to embed R in
-TIC-80.
-
-** Registering symbols in R from C
-Symbols need to be registered with R from C to be used.
-
-The /Extending R/ document describes how to register native routines with the R
-interpreter for later use from within R code. A quotation from the document is
-provided here.
-
-#+name: example of registering native symbols
-#+begin_src c
-  DllInfo *info = R_getEmbeddingDllInfo();
-  R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
-#+end_src
-
-** How the trace API command is integrated with Lua
-
-#+begin_src C
-  static s32 lua_trace(lua_State *lua)
-  {
-  	s32 top = lua_gettop(lua);
-  	tic_core* core = getLuaCore(lua);
-  	tic_mem* tic = (tic_mem*)core;
-
-  	if(top >= 1)
-  	{
-  		const char* text = printString(lua, 1);
-  		u8 color = TIC_DEFAULT_COLOR;
-
-  		if(top >= 2)
-  		{
-  			color = getLuaNumber(lua, 2);
-  		}
-
-  		core->api.trace(tic, text, color);
-  	}
-  	else luaL_error(lua, "invalid params, trace(text,[color])\n");
-
-  	return 0;
-  }
-#+end_src
+#+begin_example text
+  Thread 1 "tic80" hit Breakpoint 1, Rf_initEmbeddedR (argc=2, 
+      argv=0x7fffffffdca0) at ../unix/Rembedded.c:60
+  60	{
+  (gdb) list
+  55	    char *argv[]= {"REmbeddedPostgres", "--gui=none", "--silent"};
+  56	    Rf_initEmbeddedR(sizeof(argv)/sizeof(argv[0]), argv);
+  57	*/
+  58
+  59	int Rf_initEmbeddedR(int argc, char **argv)
+  60	{
+  61	    Rf_initialize_R(argc, argv);
+  62	    R_Interactive = TRUE;  /* Rf_initialize_R set this based on isatty */
+  63	    setup_Rmainloop();
+  64	    return(1);
+  (gdb) n
+  61	    Rf_initialize_R(argc, argv);
+  (gdb) n
+  Fatal error: R home directory is not defined
+  [Thread 0x7fff73f8f6c0 (LWP 26036) exited]
+  [Thread 0x7fff7cd8f6c0 (LWP 26035) exited]
+  [Thread 0x7fff7d78f6c0 (LWP 26034) exited]
+  [Thread 0x7fff7e18f6c0 (LWP 26030) exited]
+  [Thread 0x7fff7eb8f6c0 (LWP 26029) exited]
+  [Thread 0x7fff7f58f6c0 (LWP 26028) exited]
+  [Thread 0x7fff7ff8f6c0 (LWP 26027) exited]
+  [Thread 0x7fff90f8f6c0 (LWP 26026) exited]
+  [Thread 0x7fff9198f6c0 (LWP 26025) exited]
+  [Thread 0x7fff9498f6c0 (LWP 26020) exited]
+  [Thread 0x7fffe4ef16c0 (LWP 26016) exited]
+  [Thread 0x7ffff6d4a840 (LWP 26013) exited]
+  [Thread 0x7fff9978f6c0 (LWP 26019) exited]
+  [New process 26013]
+  [Inferior 1 (process 26013) exited with code 02]
+  (gdb)
+#+end_example
