@@ -36,7 +36,9 @@ changed so that no references to "Scheme" occur in the code.
 
 #+name: PREDECLARATIONS
 #+begin_src C :noweb no-export
-  bool initR(tic_mem *tic, const char *code);
+  bool R_initialized_once = false;
+  extern int R_running_as_main_program;   /* location within The R sources: ../unix/system.c */
+  static bool initR(tic_mem *tic, const char *code);
 #+end_src
 
 #+name: DEFINITIONS
@@ -72,14 +74,15 @@ Every scripting langauge binding to the C API provides a method of writing
 programs in scripting languages which call the C functions which /really
 underly/ the game engine of the fantasy console.
 
-Eventually, every C function defining the langauge bindings to the C API of
-TIC-80---wrapping the underlying C functions of the game engine in interpreted
-(or WASM-compiled) scripting languages---will call a C function with predictable
-arguments to have TIC-80 finally act upon something. As an example, see the
-trace function in the R integration. The Scheme integration is just like it.
-Some data types of the scripting language's C API are created,
-and---potentially---something is evaluated, then the results are passed to the
-TIC-80 C API.
+Eventually, every C function defining the langauge bindings to the C
+API of TIC-80---wrapping the underlying C functions of the game engine
+in interpreted (or WASM-compiled) scripting languages---will call a C
+function with predictable arguments to have TIC-80 finally act upon
+something. As an example, see the trace function in the R
+integration. The Scheme integration is just like it.  Some data types
+of the scripting language's C API are created,
+and---potentially---something is evaluated, then the results are
+passed to the TIC-80 C API.
 
 #+begin_comment
 The following block has "yes" as the argument for noweb so that when exported
@@ -118,111 +121,37 @@ needing to copy it and update it when changes are made.
 #+end_src
 
 *** TODO Describe the =TIC_CORE= type; why is it used like an origin point?
-In the Python and Scheme langauge integrations, within the respective =eval*=
-function, a variable ~tic~ of type ~tic_mem *~ is cast to ~tic_core *~ and
-stored in a variable named ~core~. In each, this ~core~ struct is then accessed
-to obtain the ~currentVM~ object (~core->currentVM~). In the Scheme integration
-this value is called =sc=, like "Scheme core", and in the Python integration it
-is called =vm=, like "virtual machine".
+In the Python and Scheme langauge integrations, within the respective
+=eval*= function, a variable ~tic~ of type ~tic_mem *~ is cast to
+~tic_core *~ and stored in a variable named ~core~. Was that
+description difficult to follow? I think so. See the following example
+block.
 
-The Python integration uses a =pkpy_vm *= type, and the Scheme integration uses
-a =s7_scheme *= type. In s7 Scheme =s7_scheme= is a big struct /defining the
-Scheme virtual machine or interpreter/. See [[/home/bryce/Documents/src/c/TIC-80/vendor/s7/s7.c][the struct in the sources here]]. I
-could not find the equivalent in Pocketpy, but I noticed that the signature of
-=py_eval= in Pocketpy is different from =pkpy_eval=, and moreover I don't see a
-definition of the function in either soure tree.
+#+begin_example C
+  tic_core core = (tic_core *)tic;
+  s7_scheme *sc = core->currentVM;
+  pkpy_vm *vm = core->currentVM;
+#+end_example
+
+In each, this ~core~ struct is then accessed to obtain the ~currentVM~
+object (~core->currentVM~). In the Scheme integration this value is
+called =sc=, like "Scheme core", and in the Python integration it is
+called =vm=, like "virtual machine".
+
+The Python integration uses a =pkpy_vm *= type, and the Scheme
+integration uses a =s7_scheme *= type. In s7 Scheme =s7_scheme= is a
+big struct /defining the Scheme virtual machine or interpreter/. See
+[[/home/bryce/Documents/src/c/TIC-80/vendor/s7/s7.c][the struct in the sources here]]. I could not find the equivalent in
+Pocketpy, but I noticed that the signature of =py_eval= in Pocketpy is
+different from =pkpy_eval=, and moreover I don't see a definition of
+the function in either soure tree.
 
 The real function and nature of the =tic_core= type is not yet clear to me.
 
-*** TODO TIC-80 memory
-=tic_mem= is a struct defined in the TIC-80 API header, which is coercable to a
-pointer to a =tic_core= type. The differences in these types may or may not be
-important to examine and explain to myself (and the dear reader) at the moment.
-=tic_mem= is not defined as a type, only a named struct.
-
-Where my language is not accurate, as in the previous paragraph, I should
-review Narain Gehani's /Advanced Introduction to C/.
-
-#+name: a quotation from the *TIC-80* ~core.h~
-#+begin_src C
-  tic_mem memory; // it should be first
-  tic80_pixel_color_format screen_format;
-
-  void* currentVM;
-#+end_src
-
-Now quoted is the first four members of the =tic_mem= struct.
-
-#+name: a quotation from the *TIC-80* ~api.h~
-#+begin_src C
-  tic80           product;
-  tic_ram*        ram;
-  tic_cartridge   cart;
-
-  tic_ram*        base_ram;
-#+end_src
-
-The sizes of these types are definitely not equal, so there is no direct
-equivalence and some pointer arithmetic will need to be done to see what is
-what.
-
-At any rate of understanding, I know that =core->currentVM= is =s7_scheme=. It
-is the virtual machine, or interpreter, or whatever which "is Scheme". That
-understanding should be sufficient for now.
-
-**** The "famous" TIC-80 memory struct =tic_mem=
-Pointers to structs of the =tic_mem= type are dereferenced throughout the
-sources of TIC-80, and it seems like a seriously considered design decision to
-have this be so. I don't know why, of course, and I don't see why either.
-There's some dirty business about converting a pointer to a struct of this type
-to a pointer to another type (=tic_core=) as well. It's not simple code (the
-whole application is an emulator for a computer that doesn't exist, after all!).
-
-#+begin_src C
-  struct tic_mem
-  {
-  	tic80           product;
-  	tic_ram*        ram;
-  	tic_cartridge   cart;
-
-  	tic_ram*        base_ram;
-
-  	char saveid[TIC_SAVEID_SIZE];
-
-  	union
-  	{
-  		struct
-  		{
-  #if RETRO_IS_BIG_ENDIAN
-  			u8 padded:5;
-  			u8 keyboard:1;
-  			u8 mouse:1;
-  			u8 gamepad:1;
-  #else
-  			u8 gamepad:1;
-  			u8 mouse:1;
-  			u8 keyboard:1;
-  			u8 padded:5;
-  #endif
-  		};
-
-  		u8 data;
-  	} input;
-  };
-#+end_src
-
-This is the fifth member of the struct =tic_script=, which is predictably offset
-by ~sizeof(u8) + 3 * sizeof(char *)~ (this C does not return what might be
-expected by a noob like me). This offset amount /may be critical/ to
-understanding the eventual type cast.
-
-***** Understanding
-The offset is not critical to understanding how a struct of type =tic_mem= is
-cast to a struct of type =tic_core=. The =tic_core= type has as its first member
-a struct of class =tic_mem=, so casting from a pointer to a =tic_mem= to a
-pointer to a =tic_core= simply returns the same address, but allows the data
-referred to at that address to be understood to locate the larger struct, not
-just the smaller struct.
+- =currentVM= is a void pointer; it is simply a pointer without a
+  type, and it can point to anything useful!
+- =tic_mem= is the first field of the =tic_core= struct, so a pointer
+  to a =tic_mem= object also points to a =tic_core= object.
 
 ** TODO Introduction
 *** Initialization of the interpreter within an embedding application
@@ -240,9 +169,6 @@ except pass its argument to ~Rf_mkString~ before passing that to ~Rf_eval~. We
 can define it right now. For now the =memory= parameter can be ignored.
 
 #+begin_src C :noweb-ref cartridge commands
-  bool R_initialized_once = false;
-  static bool initR(tic_mem *tic, const char *code);
-
   void evalR(tic_mem *memory, const char *code) {
   	setEnvironmentVariablesIfUnset();
   	if (!R_initialized_once) {
@@ -250,7 +176,7 @@ can define it right now. For now the =memory= parameter can be ignored.
   		R_initialized_once = true;
   	}
   	SEXP RESULT;
-  	if (R_initialized_once) RESULT = Rf_eval(C2LANGSXP(code), R_GlobalEnv);
+  	if (R_initialized_once) RESULT = Rf_eval(CSTR2LANGSXP(code), R_GlobalEnv);
   	#if defined ebug /* -DEBUG=ON */
   	Rprintf("%s", RESULT);
   	#endif
@@ -328,106 +254,6 @@ make callbacks to the *TIC-80* fantasy computer through the API.
 Based on the requirements of *TIC-80* it seems clear that I need to define a
 wrapping function to initialize *R* and pass around some information
 appropriately.
-
-*** =R_HOME= directory and =LD_LIBRARY_PATH=
-These must be set appropriately on UNIX® for R to work correctly.
-
-#+name: set R_HOME and LD_LIBRARY_PATH
-#+begin_src C
-  #if !defined R_HOME
-  char *R_HOME = "/usr/lib64/R";
-  #endif
-
-  #if !defined LD_LIBRARY_PATH
-  #define PATH "/usr/lib64/R/lib:/usr/lib/jvm/jre/lib/server"
-  char *LD_LIBRARY_PATH = PATH;
-  char *R_LD_LIBRARY_PATH = PATH;
-  #undef PATH
-  #endif
-
-  #if !defined R_SHARE_DIR
-  char *R_SHARE_DIR = "/usr/share/R";
-  #endif
-
-  #if !defined R_DOC_DIR
-  char *R_DOC_DIR = "/usr/share/doc/R";
-  #endif
-#+end_src
-
-These are usually set by a shell script (=R_HOME/bin/R=) which wraps the
-execution of the binary =R_HOME/bin/exec/R=.
-
-**** Flags for compiling against R (shared or static)
-The following are useful flags and examples of how to call =gcc= to compile
-against R when building a front-end.
-
-#+name: R compilation flags
-#+begin_src bash
-  gcc -I/usr/include/R \
-  		-Wl,--export-dynamic \
-  		-fopenmp \
-  		-Wl,-z,relro \
-  		-Wl,--as-needed \
-  		-Wl,-z,now \
-  		-specs=/usr/lib/rpm/redhat/redhat-hardened-ld \
-  		-specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 \
-  		-Wl,--build-id=sha1 \
-  		-L/usr/lib64/R/lib \
-  		-lR \
-  		-ltre \
-  		-lpcre2-8 \
-  		-llzma \
-  		-lbz2 \
-  		-lz \
-  		-ltirpc \
-  		-lrt \
-  		-ldl \
-  		-lm \
-  		-licuuc \
-  		-licui18n \
-  		example_r_wrapper.c
-#+end_src
-
-The manual states that since R is already installed (and I have verified it was
-build with the configuration option =--enable-R-shlib=) I can use pkgconfig to
-acquire the options to use for static linking (which is ideal for embedding R
-into TIC-80).
-
-#+name: Acquiring compilation flags for static compilation from pkgconfig
-#+begin_src bash
-  # pkg-config --cflags libR; pkg-config --static --libs libR
-  gcc -I/usr/include/R \
-  		-Wl,--export-dynamic \
-  		-fopenmp \
-  		-Wl,-z,relro \
-  		-Wl,--as-needed \
-  		-Wl,-z,now \
-  		-specs=/usr/lib/rpm/redhat/redhat-hardened-ld \
-  		-specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 \
-  		-Wl,--build-id=sha1 \
-  		-L/usr/lib64/R/lib \
-  		-lR \
-  		example_r_wrapper.c
-#+end_src
-
-The above requires that R was /compiled as a static library/, however. If R was
-compiled with =--enable-R-shlib= this may or may not be the case and I should
-investigate this further.
-
-**** SUNDAY October 6 2024
-#+begin_src makefile :tangle r.makefile
-  ## WARNING: does not work when ${R_HOME} contains spaces
-  include ${R_HOME}/etc${R_ARCH}/Makeconf
-  all: r
-
-  ## The following is not needed, but avoids PIC flags.
-  r.o: r.c
-          $(CC) $(ALL_CPPFLAGS) $(CFLAGS) -c r.c -o $@
-
-  ## replace $(LIBR) $(LIBS) by $(STATIC_LIBR) if R was build with a static libR
-  r: r.o
-          $(MAIN_LINK) -o $@ r.o $(LIBR) $(LIBS)
-#+end_src
 
 *** Console evaluation
 The console of the main application, when running, has an =eval= command which
@@ -617,7 +443,7 @@ Write a game on the TIC-80 virtual console using R!
 * TODO Writing the R language integration for TIC-80
 ** temp
 #+begin_src C
-  #define C2LANGSXP(x) Rf_coerceVector(Rf_mkString(x), LANGSXP)
+  #define CSTR2LANGSXP(x) Rf_coerceVector(Rf_mkString(x), LANGSXP)
 #+end_src
 
 ** Defining R functions for the TIC-80 API
@@ -806,8 +632,6 @@ only one).
 That is defined separately, and not as a macro, so that the code can be re-used.
 
 #+begin_src C :noweb no-export :noweb-ref cartridge commands
-  extern int R_running_as_main_program;   /* location within The R sources: ../unix/system.c */
-
   void R_CleanUp(Rboolean saveact, int status, int RunLast) { ; }
 
   void R_Suicide(const char *message)
@@ -857,7 +681,7 @@ That is defined separately, and not as a macro, so that the code can be re-used.
 
   	<<register C symbols with R>>
 
-  	Rf_eval(C2LANGSXP("if (exists(\"BOOT\") && is.function(BOOT)) { BOOT() } " \
+  	Rf_eval(CSTR2LANGSXP("if (exists(\"BOOT\") && is.function(BOOT)) { BOOT() } " \
   											"else { BOOT <- function() `{`; ## Tricky NOP. }"),
   					R_GlobalEnv);
 
