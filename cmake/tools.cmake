@@ -1,7 +1,6 @@
-################################
-# bin2txt cart2prj prj2cart xplode wasmp2cart
-################################
-
+###############################################
+# bin2txt cart2prj prj2cart xplode wasmp2cart #
+###############################################
 if(BUILD_TOOLS)
 
     set(TOOLS_DIR ${CMAKE_SOURCE_DIR}/build/tools)
@@ -33,4 +32,5 @@ if(BUILD_TOOLS)
         target_link_libraries(xplode m)
     endif()
 
+    include(cmake/demos.cmake)
 endif()

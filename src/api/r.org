@@ -50,9 +50,6 @@ changed so that no references to "Scheme" occur in the code.
   <<cartridge commands>>
 #+end_src
 
-#+begin_src C :noweb-ref define C symbols to be callable from R
-#+end_src
-
 * TODO Prose
 ** Requirements
 The requirements of the integration of R in TIC-80 are briefly noted.
@@ -396,7 +393,7 @@ and not undefine it.
   }
 #+end_src
 
-* DONE License
+* DONE License                                                      :ARCHIVE:
 CLOSED: [2024-10-17 Thu 19:27]
 Copyright © 2024 Bryce Carson
 
@@ -434,7 +431,7 @@ version 1.3.
  */
 #+end_src
 
-* Planned work
+* Planned work                                                      :ARCHIVE:
 ** Debugging R programs in TIC-80
 Integrate the R debugger, browser, etc. into TIC-80.
 
@@ -451,68 +448,61 @@ The TIC-80 API functions need to be defined in the global environment after
 initializing R, and if they're writtin in C then they need to be registered with
 R, rather than R code evaluated by R.
 
-**** TODO The API functions, as listed within *TIC-80* with ~help api~
-For now these don't have any documentation because they're already documented on
-the API web-page on TIC-80's website, and within TIC-80 itself. Unless some
-difference between implementations arises which is due to my inexperience, then
-no definition for these list items fill follow the API function.
+#+name: define btn
+#+name: define btnp
+#+name: define circ
+#+name: define circb
+#+name: define clip
+#+name: define cls
+#+name: define elli
+#+name: define ellib
+#+name: define exit
+#+name: define fget
+#+name: define font
+#+name: define fset
+#+name: define key
+#+name: define keyp
+#+name: define line
+#+name: define map
+#+name: define memcpy
+#+name: define memset
+#+name: define mget
+#+name: define mouse
+#+name: define mset
+#+name: define music
+#+name: define peek
+#+name: define peek1
+#+name: define peek2
+#+name: define peek4
+#+name: define pix
+#+name: define pmem
+#+name: define poke
+#+name: define poke1
+#+name: define poke2
+#+name: define poke4
+#+name: define print
+#+name: define rect
+#+name: define rectb
+#+name: define reset
+#+name: define sfx
+#+name: define spr
+#+name: define sync
+#+name: define time
+#+name: define tri
+#+name: define trib
+#+name: define tstamp
+#+name: define ttri
+#+name: define vbank
 
-- btn ::
-- btnp ::
-- circ ::
-- circb ::
-- clip ::
-- cls ::
-- elli ::
-- ellib ::
-- exit ::
-- fget ::
-- font ::
-- fset ::
-- key ::
-- keyp ::
-- line ::
-- map ::
-- memcpy ::
-- memset ::
-- mget ::
-- mouse ::
-- mset ::
-- music ::
-- peek ::
-- peek1 ::
-- peek2 ::
-- peek4 ::
-- pix ::
-- pmem ::
-- poke ::
-- poke1 ::
-- poke2 ::
-- poke4 ::
-- print ::
-- rect ::
-- rectb ::
-- reset ::
-- sfx ::
-- spr ::
-- sync ::
-- time ::
-- trace :: print to the standard error stream (in a DEBUG build) in addition to the TIC-80 console
-- tri ::
-- trib ::
-- tstamp ::
-- ttri ::
-- vbank ::
-
-**** trace
+** TODO trace
 Print to the standard error stream (in a DEBUG build) in addition to the TIC-80 console.
 
-#+name: trace
+#+name: define trace
 #+begin_src C :noweb no-export
-  SEXP r_trace(tic_mem *memory, SEXP *args) {
+  SEXP r_trace(SEXP *args, tic_mem *rho) {
     const char *text = "Hello, woRld!";
   	u8 color;
-  	((tic_core *) memory)->api.trace(memory, text, color ? color : 15);
+  	((tic_core *) rho)->api.trace(memory, text, color ? color : 15);
   	return R_NilValue;
   }
 #+end_src
@@ -578,6 +568,65 @@ where everything is a symbolic expression.
 
       return s7_make_real(sc, core->api.fft(tic, start_freq, end_freq));
   }
+#+end_src
+
+** DONE The API functions, as listed within *TIC-80* with ~help api~
+CLOSED: [2024-10-19 Sat 22:11]
+#+begin_comment
+As more content is created the following block can and should be broken up, but
+it's not really necessary. Having a single point where all blocks is referenced
+is okay, or this block ("define C symbols to be callable from R") could be
+defined with multiple sub-blocks directly rather than referencing many other
+blocks.
+#+end_comment
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  <<define btn>>
+  <<define btnp>>
+  <<define circ>>
+  <<define circb>>
+  <<define clip>>
+  <<define cls>>
+  <<define elli>>
+  <<define ellib>>
+  <<define exit>>
+  <<define fget>>
+  <<define font>>
+  <<define fset>>
+  <<define key>>
+  <<define keyp>>
+  <<define line>>
+  <<define map>>
+  <<define memcpy>>
+  <<define memset>>
+  <<define mget>>
+  <<define mouse>>
+  <<define mset>>
+  <<define music>>
+  <<define peek>>
+  <<define peek1>>
+  <<define peek2>>
+  <<define peek4>>
+  <<define pix>>
+  <<define pmem>>
+  <<define poke>>
+  <<define poke1>>
+  <<define poke2>>
+  <<define poke4>>
+  <<define print>>
+  <<define rect>>
+  <<define rectb>>
+  <<define reset>>
+  <<define sfx>>
+  <<define spr>>
+  <<define sync>>
+  <<define time>>
+  <<define trace>>
+  <<define tri>>
+  <<define trib>>
+  <<define tstamp>>
+  <<define ttri>>
+  <<define vbank>>
 #+end_src
 
 ** Procedures to initialize, close, and re-initialize R
@@ -1436,7 +1485,7 @@ headers I include might be redundant, and I will try to clean these up later.
   #include "api/renv.h"
 #+end_src
 
-** TODO Symbol registration
+** Failed symbol registration                                       :ARCHIVE:
 This is not symbolic programming, but I wish it were! Oh, R, oh, LISP, how I
 miss both of these. I can't wait to finish learning enough of C to say I can
 manage my way through a complex project so that I can readily forget much of it
@@ -1486,7 +1535,8 @@ correct, but naive, approach. Use the functionality built-in to R's C API!
   }
 #+end_src
 
-**** Registering symbols in R from C
+** DONE Registering symbols in R from C
+CLOSED: [2024-10-19 Sat 22:01]
 "Symbols need to be registered with R from C to be used in R," is what I wrote
 to introduce this paragraph in its first draft; I'm not sure if registering
 symbols is actually required, or what the purpose is. It might not be fully
@@ -1494,9 +1544,11 @@ relevant to my use of R. My appreciation of this topic, at the moment, is that
 it is used to define new primites so that functions in R are automatically
 defined to call registered C functions.
 
-The /Extending R/ document describes how to register native routines with the R
-interpreter for later use from within R code. A quotation from the document is
-provided here.
+/Writing R Extensions/ documents how to register native routines with the
+embedded R interpreter for later use from within R code. The objects =info=,
+=cMethods=, and =callMethods= are desribed in turn in §8.1.3 of the documentation.
+Only =cMethods= needs to be defined for the purposes of using R as a scripting
+langauge for TIC-80 games.
 
 #+name: example of registering native symbols
 #+begin_src c
@@ -1504,8 +1556,18 @@ provided here.
   R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
 #+end_src
 
-These symbols are automatically made available in R when it is embedded in the
-application.
+Native routines (symbols) registered with R get called through "the =.C=
+interface," which is how R interacts with native routines when it is in control
+of the main event loop. When embedded, and especially when not in control of the
+main event loop, R needs to be told about native routines in a slightly
+different manner, because R is not in control of loading shared libraries, /it
+is the shared library/!
+
+The symbols are the functions which enable scripting and wrap underlying C
+routines that every scripting language API in TIC-80 hooks into. These symbols
+are automatically made available to R when it is embedded in the application.
+The function which performs the registration is built-in to R, and [[register symbols with R example][exampled in
+the following block]] (it is documented in §8.1.3 in /Writing R Extensions/).
 
 #+name: register C symbols with R
 #+begin_src C :noweb no-export
@@ -1563,8 +1625,9 @@ application.
   R_registerRoutines(R_getEmbeddingDllInfo(), cMethods, NULL, NULL, NULL);
 #+end_src
 
-Informed by the given example in section 5.4 (see next block).
+Following is the example the previous block is based on.
 
+#+name: register symbols with R example
 #+begin_example C
   static R_NativePrimitiveArgType myC_type[] = {
       REALSXP, INTSXP, STRSXP, LGLSXP
@@ -1577,8 +1640,8 @@ Informed by the given example in section 5.4 (see next block).
 #+end_example
 
 ** TODO Convert assets to DAT formats (on UNIX-likes)
-This script can be used to convert build assets (=rmark.r= and =rdemo.r=) to the
-DAT format used by TIC-80 at runtime.
+This script can be used to convert build assets (particularly =rmark.r= and
+=rdemo.r=) to the DAT format used by TIC-80 at runtime.
 
 #+name: convert the R demo and benchmark source files to .tic.dat format
 #+begin_src bash :tangle convertRDemoAssets.sh :shebang #!/bin/env bash
@@ -1614,10 +1677,333 @@ DAT format used by TIC-80 at runtime.
     done
   }
 
-  main
-
+  if [[ ! -v POSIXLY_CORRECT ]]; then {
+    main "$@"
+  }; fi
 #+end_src
-* BUGS
+
+#+begin_src cmake :tangle ../../cmake/demos.cmake
+  set(DEMODIR ${CMAKE_SOURCE_DIR}/demos)
+  set(DEMOS benchmark.lua bpp.lua car.lua fenneldemo.fnl fire.lua font.lua janetdemo.janet jsdemo.js luademo.lua moondemo.moon music.lua p3d.lua palette.lua pythondemo.py quest.lua rdemo.r rubydemo.rb schemedemo.scm sfx.lua squirreldemo.nut tetris.lua wrendemo.wren)
+
+  foreach(DEMO ${DEMOS})
+    file(REAL_PATH ${DEMO} DEMOABSPATH BASE_DIRECTORY ${DEMODIR})
+    LIST(APPEND DEMOABSPATHS ${DEMOABSPATH})
+  endforeach()
+
+  set(BUNNYDIR ${DEMODIR}/bunny)
+  set(BUNNYS janetmark.janet jsmark.js luamark.lua moonmark.moon pythonmark.py rubymark.rb schememark.scm squirrelmark.nut wasmmark wrenmark.wren)
+
+  foreach(BUNNY ${BUNNYS})
+    file(REAL_PATH ${BUNNY} BUNNYABSPATH BASE_DIRECTORY ${BUNNYDIR})
+    LIST(APPEND DEMOABSPATHS ${DEMOABSPATH})
+  endforeach()
+
+  add_custom_target(GenerateTicDatFiles
+    ALL
+    COMMAND prj2cart -i ${DEMOABSPATHS} ${BUNNYABSPATHS}
+    COMMAND bin2txt -zi "$<LIST:TRANSFORM,${DEMOABSPATHS},REPLACE,\"\..*$$\",\".tic\">" "$<LIST:TRANSFORM,${BUNNYABSPATHS},REPLACE,\"\..*$$\",\".tic\">"
+    COMMENT "[DEMOS_AND_BUNNYS] Generating .tic files, then .tic.dat files those, from source files in the demos and demos/bunny directories (WASM not included)."
+    COMMAND_EXPAND_LISTS)
+
+  target_sources(GenerateTicDatFiles PRIVATE ${DEMOABSPATHS} ${BUNNYABSPATHS})
+#+end_src
+
+To make the necessary modifications to prj2cart and bin2cart I will create some
+source blocks and rewrite the source files.
+
+#+begin_src C :tangle ../../build/tools/prj2cart.c :noweb no-export
+  <<prj2cart MIT license>>
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <sysexits.h>
+  #include <libgen.h>
+  #include <string.h>
+  #include "studio/project.h"
+
+  FILE *open_project(char *project_path);
+  void usage(void);
+  void convert_project_to_cartridge(char *project_path, char *output_cartridge_path);
+
+  int main(int argc, char **argv) {
+  	if (strcmp(argv[1], "-i") != 0 && argc != 3) {
+  		usage();
+  	} else {
+  		if (strcmp(argv[1], "-i") == 0) {
+  			for (int i = 2; i < argc; i++) {
+  				convert_project_to_cartridge(argv[i], NULL);
+  			}
+  		} else {
+  			/* For debugging only. */
+  			/* for(int ac = 0; ac < argc; ac++) fprintf(stderr, "%s ", argv[ac]); */
+  			/* printf("\n"); */
+  			convert_project_to_cartridge(argv[1], argv[2]);
+  		}
+  		exit(EX_OK);
+  	}
+  }
+
+  FILE *open_project(char *project_path) {
+  	FILE *project;
+  	if (!(project = fopen(project_path, "rb"))) {
+  		printf("Cannot open project file %s for reading\n\n", project_path);
+  		exit(EX_NOINPUT);
+  	} else {
+  		return project;
+  	}
+  }
+
+  void usage(void) {
+  	printf("usage: prj2cart <project> <cartridge>\n"
+  				 "       prj2cart -i <project>...\n"
+  				 "%80s\n",
+  				 "The second form will automatically strip a file extension and "
+  				 "replace it with \".tic\", and loop over project files, creating "
+  				 "multiple cartridges.");
+  	exit(EX_USAGE);
+  }
+
+  void convert_project_to_cartridge(char *project_path, char *output_cartridge_path) {
+  	if (output_cartridge_path != NULL
+  			&& strcmp(basename(project_path),
+  								basename(output_cartridge_path)) == 0) {
+  		fprintf(stderr, "PROJ:\t%s\nCART:\t%s\n",
+  						basename(project_path),
+  						basename(output_cartridge_path));
+  		exit(EXIT_FAILURE);
+  	}
+  	FILE *project = open_project(project_path);
+  	fseek(project, 0, SEEK_END);
+  	int size = ftell(project);
+  	fseek(project, 0, SEEK_SET);
+
+  	unsigned char *buffer = (unsigned char *) malloc(size);
+
+  	if (buffer) {
+  		fread(buffer, size, 1, project);
+  		fclose(project);
+  		tic_cartridge *cart = calloc(1, sizeof(tic_cartridge));
+  		tic_project_load(project_path, (char *) buffer, size, cart);
+
+  #define SIZE 5 + strlen(basename(project_path))
+  		char constructed_cartridge_path[SIZE];
+  		memset(constructed_cartridge_path, 0, SIZE);
+  #undef SIZE
+  		FILE *cartFile;
+
+  		/* FIXME: source files are being overwritten, and when the program reaches the end of the loop calling this function is makes wrendemo.wren larger, and larger, and larger, without end. */
+  		if (output_cartridge_path == NULL) {
+  			cartFile = fopen(strcat(strncpy(constructed_cartridge_path,
+  																			basename(project_path),
+  																			strcspn(basename(project_path), ".")),
+  															".tic"),
+  											 "wb");
+  		} else {
+  			if (strlen(output_cartridge_path) > strlen(constructed_cartridge_path))
+  				fprintf(stderr,
+  								"The input cartridge path is larger than the constructed path "
+  								"for input %s",
+  								project_path);
+  			cartFile = fopen(output_cartridge_path, "wb");
+  		}
+
+  		if (cartFile) {
+  			unsigned char *out;
+  			if ((out = (unsigned char *) malloc(sizeof(tic_cartridge)))) {
+  				int outSize = tic_cart_save(cart, out);
+  				fwrite(out, outSize, 1, cartFile);
+  				free(out);
+  			}
+  			fclose(cartFile);
+  		} else {
+  			printf("Cannot open cartridge file %s for writing.\n", cartFile);
+  			<<free buffers>>
+  					exit(EX_CANTCREAT);
+  		}
+
+  		<<free buffers>>
+  	}
+  }
+#+end_src
+
+To ensure I don't forget to close a buffer, I use the following block to free
+memory mapped by the opened buffers common to more than two branches of
+execution.
+
+#+name: free buffers
+#+begin_src C
+  free(buffer);
+  free(cart);
+#+end_src
+
+#+name: prj2cart MIT license
+#+begin_src C
+  // MIT License
+
+  // Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
+  // Copyright (c) 2020 Vadim Grigoruk @nesbox // grigoruk@gmail.com
+
+  // Permission is hereby granted, free of charge, to any person obtaining a copy
+  // of this software and associated documentation files (the "Software"), to deal
+  // in the Software without restriction, including without limitation the rights
+  // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  // copies of the Software, and to permit persons to whom the Software is
+  // furnished to do so, subject to the following conditions:
+
+  // The above copyright notice and this permission notice shall be included in all
+  // copies or substantial portions of the Software.
+
+  // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  // SOFTWARE.
+#+end_src
+
+** bin2txt
+This is a copy of the modified form of bin2txt, which I didn't write literately.
+
+#+name: bin2txt copyright notice
+#+begin_src C
+  // MIT License
+
+  // Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
+  // Copyright (c) 2020 Vadim Grigoruk @nesbox // grigoruk@gmail.com
+
+  // Permission is hereby granted, free of charge, to any person obtaining a copy
+  // of this software and associated documentation files (the "Software"), to deal
+  // in the Software without restriction, including without limitation the rights
+  // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  // copies of the Software, and to permit persons to whom the Software is
+  // furnished to do so, subject to the following conditions:
+
+  // The above copyright notice and this permission notice shall be included in all
+  // copies or substantial portions of the Software.
+
+  // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  // SOFTWARE.
+#+end_src
+
+#+begin_src C :tangle ../../bin2txt.c
+  <<bin2txt copyright notice>>
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <sysexits.h>
+  #include <stdbool.h>
+  #include <string.h>
+  #include <zlib.h>
+
+  void convert_cartridge_to_text(char *cartridge_path, char *text_path, bool useZip);
+  void usage(void);
+  void with_zip(int size, unsigned char *buffer);
+
+  int main(int argc, char** argv) {
+    if (argc >= 2 && (strcmp(argv[1], "-iz") == 0 || strcmp(argv[1], "-zi") == 0)) {
+      for (int i = 2; i < argc; i++) {
+        convert_cartridge_to_text(argv[i], NULL, true);
+      }
+    } else if (argc == 4 && strcmp(argv[3], "-z") == 0) {
+      convert_cartridge_to_text(argv[1], argv[2], true);
+    } else if (argc == 3) {
+      convert_cartridge_to_text(argv[1], argv[2], false);
+    } else {
+      usage();
+    }
+  }
+
+  void usage(void) {
+    printf("usage: bin2txt <cartridge> <text> [-z]\n"
+           "       bin2txt [-zi] <cartridge>...\n"
+           "%80s\n"
+           "The second form will use zlib compression and automatically generate "
+           "output filenames for multiple input cartridges.");
+    exit(EX_USAGE);
+  }
+
+  void convert_cartridge_to_text(char *cartridge_path, char *text_path, bool useZip) {
+    if (text_path != NULL
+        && strcmp(basename(cartridge_path), basename)(text_path) == 0) {
+      fprintf(stderr, "PROJ:\t%s\nCART:\t%s\n", cartridge_path, text_path);
+      exit(EXIT_FAILURE);
+    }
+
+    FILE *bin;
+    if (!(bin = fopen(cartridge_path, "rb"))) {
+      printf("cannot open bin file\n");
+      exit(EX_NOINPUT);
+    } else {
+      fseek(bin, 0, SEEK_END);
+      int size = ftell(bin);
+      fseek(bin, 0, SEEK_SET);
+
+      unsigned char *buffer;
+      if ((buffer = (unsigned char *) malloc(size))) {
+        fread(buffer, size, 1, bin);
+        fclose(bin); /* close cartridge_path */
+
+        if (useZip) with_zip(size, buffer);
+
+  			#define SIZE 1000
+        char txtpath[SIZE]; /* cartridge_path + .dat + \0 */
+  			memset(txtpath, 0, SIZE);
+  			#undef SIZE
+        if (text_path == NULL) {
+          strcpy(txtpath, cartridge_path);
+          strcat(txtpath, ".dat");
+        } else {
+          strcpy(txtpath, cartridge_path);
+        }
+
+        FILE *txt;
+        if ((txt = fopen(txtpath, "wb"))) {
+          for (int i = 0; i < size; i++)
+            fprintf(txt, "0x%02x, ", buffer[i]);
+
+          fclose(txt);
+
+        } else {
+          printf("cannot open text file\n");
+          exit(EX_CANTCREAT);
+        }
+
+        free(buffer);
+      } else {
+        exit(EX_IOERR);
+      }
+    }
+  }
+
+  void with_zip(int size, unsigned char *buffer) {
+    unsigned char *output = (unsigned char *) malloc(size);
+
+    if (output) {
+      unsigned long sizeComp = size;
+      if(compress2(output, &sizeComp, buffer, size, Z_BEST_COMPRESSION) != Z_OK) {
+        printf("compression error\n");
+      }
+      else {
+        size = sizeComp;
+        memcpy(buffer, output, size);
+      }
+
+      free(output);
+    } else {
+      printf("memory error :(\n");
+      exit(EX_CANTCREAT);
+    }
+  }
+#+end_src
+
+* BUGS                                                              :ARCHIVE:
 - The bunny benchmark for R does not appear in the directory listing of =bunny=.
 ** DONE Bug-fixing the creation of new R-based cartridges
 CLOSED: [2024-10-17 Thu 19:19]
@@ -1640,8 +2026,7 @@ Lua-based file. The =new= command is not creating an R cartridge---using the
 demo or default cartridge---correctly, so I need to work out why that is with a
 more involved search of the sources and then some debugging.
 
-*** DONE A new cart can be created with "new r", but when going to the editor the R demo cartridge is not used (the Lua cartridge is used).
-CLOSED: [2024-10-17 Thu 19:18]
+*** A new cart can be created with "new r", but when going to the editor the R demo cartridge is not used (the Lua cartridge is used).
 
 *** DONE Is the =.id=, =.name=, or =.fileExtension= field to blame?
 CLOSED: [2024-10-17 Thu 19:17]
@@ -1783,7 +2168,7 @@ of any kind other than declarations are illegal outside of these chains.
         |      ^~~~~~~~
 #+end_src
 
-** DONE Opening packages stored in any one of the libraries
+** DONE Opening packages stored in any one of the R package libraries fails
 CLOSED: [2024-10-17 Thu 19:23]
 The definition of =R_Home= is critical when =R_OpenLibraryFile= is called. If
 that identifier is not defined then there are big problems!
