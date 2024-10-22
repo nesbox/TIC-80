@@ -1808,6 +1808,7 @@ source blocks and rewrite the source files.
   			cartFile = fopen(output_cartridge_path, "wb");
   		}
 
+
   		if (cartFile) {
   			unsigned char *out;
   			if ((out = (unsigned char *) malloc(sizeof(tic_cartridge)))) {
@@ -1816,6 +1817,7 @@ source blocks and rewrite the source files.
   				free(out);
   			}
   			fclose(cartFile);
+  			sprintf("Wrote cartridge file %s.", out);
   		} else {
   			printf("Cannot open cartridge file %s for writing.\n", cartFile);
   			<<free buffers>>
@@ -1892,7 +1894,7 @@ This is a copy of the modified form of bin2txt, which I didn't write literately.
   // SOFTWARE.
 #+end_src
 
-#+begin_src C :tangle ../../bin2txt.c
+#+begin_src C :noweb no-export :tangle ../../build/tools/bin2txt.c
   <<bin2txt copyright notice>>
 
   #include <stdio.h>
@@ -1900,6 +1902,7 @@ This is a copy of the modified form of bin2txt, which I didn't write literately.
   #include <sysexits.h>
   #include <stdbool.h>
   #include <string.h>
+  #include <libgen.h>
   #include <zlib.h>
 
   void convert_cartridge_to_text(char *cartridge_path, char *text_path, bool useZip);
@@ -1907,14 +1910,14 @@ This is a copy of the modified form of bin2txt, which I didn't write literately.
   void with_zip(int size, unsigned char *buffer);
 
   int main(int argc, char** argv) {
-    if (argc >= 2 && (strcmp(argv[1], "-iz") == 0 || strcmp(argv[1], "-zi") == 0)) {
+    if (argc >= 3 && (strcmp(argv[1], "-iz") == 0 || strcmp(argv[1], "-zi") == 0)) {
       for (int i = 2; i < argc; i++) {
         convert_cartridge_to_text(argv[i], NULL, true);
       }
     } else if (argc == 4 && strcmp(argv[3], "-z") == 0) {
       convert_cartridge_to_text(argv[1], argv[2], true);
     } else if (argc == 3) {
-      convert_cartridge_to_text(argv[1], argv[2], false);
+      convert_cartridge_to_text(argv[1], argv[2], false); /* no zlib */
     } else {
       usage();
     }
@@ -1930,54 +1933,60 @@ This is a copy of the modified form of bin2txt, which I didn't write literately.
   }
 
   void convert_cartridge_to_text(char *cartridge_path, char *text_path, bool useZip) {
+  	/* If both paths are provided, but are equivalent exit early because the
+  	 ,* function was called incorrectly. */
     if (text_path != NULL
-        && strcmp(basename(cartridge_path), basename)(text_path) == 0) {
+        && strcmp((const char *) basename(cartridge_path),
+  								(const char *) basename(text_path)) == 0) {
       fprintf(stderr, "PROJ:\t%s\nCART:\t%s\n", cartridge_path, text_path);
       exit(EXIT_FAILURE);
     }
 
     FILE *bin;
     if (!(bin = fopen(cartridge_path, "rb"))) {
-      printf("cannot open bin file\n");
+      printf("Cannot open bin file %s for reading.\n", cartridge_path);
       exit(EX_NOINPUT);
     } else {
+  		/* Get the size of the file by seeking through it, rather than other means. */
       fseek(bin, 0, SEEK_END);
       int size = ftell(bin);
       fseek(bin, 0, SEEK_SET);
 
       unsigned char *buffer;
-      if ((buffer = (unsigned char *) malloc(size))) {
-        fread(buffer, size, 1, bin);
-        fclose(bin); /* close cartridge_path */
-
-        if (useZip) with_zip(size, buffer);
-
-  			#define SIZE 1000
-        char txtpath[SIZE]; /* cartridge_path + .dat + \0 */
-  			memset(txtpath, 0, SIZE);
-  			#undef SIZE
-        if (text_path == NULL) {
-          strcpy(txtpath, cartridge_path);
-          strcat(txtpath, ".dat");
-        } else {
-          strcpy(txtpath, cartridge_path);
-        }
-
-        FILE *txt;
-        if ((txt = fopen(txtpath, "wb"))) {
-          for (int i = 0; i < size; i++)
-            fprintf(txt, "0x%02x, ", buffer[i]);
-
-          fclose(txt);
-
-        } else {
-          printf("cannot open text file\n");
-          exit(EX_CANTCREAT);
-        }
-
-        free(buffer);
+      if (!(buffer = (unsigned char *) malloc(size))) {
+  			exit(EX_IOERR); /* if cannot create the buffer below. */
       } else {
-        exit(EX_IOERR);
+  			fread(buffer, size, 1, bin);
+  			fclose(bin); /* close cartridge_path */
+
+  			if (useZip) with_zip(size, buffer);
+
+  #define SIZE 1000
+  			char txtpath[SIZE]; /* txtpath[sum(cartridge_path, DAT, NULL)], then clear
+  													 ,* it. Fuck your understanding of indentation, I come
+  													 ,* from LISP. I was born in the muck. Raised by it. */ memset(txtpath, 0, SIZE);
+  #undef SIZE
+  			/* Construct a destination path if none was provided. */
+  			if (text_path == NULL) {
+  				strcpy(txtpath, cartridge_path);
+  				strcat(txtpath, ".dat");
+  			} else {
+  				/* A destination path was provided so it used as-is. */
+  				strcpy(txtpath, cartridge_path);
+  			}
+
+  			FILE *txt;
+  			if ((txt = fopen(txtpath, "wb"))) {
+  				for (int i = 0; i < size; i++) fprintf(txt, "0x%02x, ", buffer[i]);
+  				fclose(txt);
+  				printf("Wrote binary file %s---converted from cartridge---"
+  							 "successfully.", txtpath);
+  			} else {
+  				printf("Cannot open text file %s for writing.\n", txtpath);
+  				exit(EX_CANTCREAT);
+  			}
+
+  			free(buffer);
       }
     }
   }
@@ -1987,7 +1996,8 @@ This is a copy of the modified form of bin2txt, which I didn't write literately.
 
     if (output) {
       unsigned long sizeComp = size;
-      if(compress2(output, &sizeComp, buffer, size, Z_BEST_COMPRESSION) != Z_OK) {
+
+  		if(compress2(output, &sizeComp, buffer, size, Z_BEST_COMPRESSION) != Z_OK) {
         printf("compression error\n");
       }
       else {
