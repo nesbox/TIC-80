@@ -25,6 +25,7 @@
     - [Arch](#arch)
     - [Fedora 36](#fedora-36)
     - [Fedora 40](#fedora-40)
+    - [openSUSE Tumbleweed / Leap 16.0](#opensuse-tumbleweed--leap-160)
     - [Raspberry Pi OS (64-Bit) (Bookworm)](#raspberry-pi-os-64-bit-bookworm)
     - [Raspberry Pi (Retropie)](#raspberry-pi-retropie)
   - [Mac](#mac)
@@ -260,6 +261,19 @@ sudo dnf -y groupinstall "Development Tools" "Development Libraries"
 sudo dnf -y install ruby-devel rubygem-rake cmake clang pipewire-devel SDL2-devel SDL2_sound-devel SDL2_gfx-devel wayland-devel libXext-devel pipewire-jack-audio-connection-kit-devel pipewire-jack-audio-connection-kit-devel pulseaudio-libs-devel rubygems-devel libdecor-devel libdrm-devel mesa-libgbm-devel esound-devel freeglut-devel
 cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
 cmake --build . --parallel
+```
+
+Install with [Install instructions](#install-instructions)
+
+### openSUSE Tumbleweed / Leap 16.0
+
+Run the following commands from a terminal:
+```
+sudo zypper refresh
+sudo zypper install --no-confirm --type pattern devel_basis
+sudo zypper install --no-confirm cmake glu-devel libXext-devel pipewire-devel libcurl-devel
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On .. && cmake --build . --parallel
 ```
 
 Install with [Install instructions](#install-instructions)
