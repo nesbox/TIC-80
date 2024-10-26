@@ -2000,7 +2000,8 @@ CLOSED: [2024-10-25 Fri 19:10]
   }
 #+end_src
 
-** TODO bin2txt
+** DONE bin2txt
+CLOSED: [2024-10-25 Fri 19:31]
 #+begin_src C :noweb no-export :tangle ../../build/tools/bin2txt.c
   // MIT License
 
@@ -2106,8 +2107,6 @@ CLOSED: [2024-10-25 Fri 19:10]
   			if ((txt = fopen(text_path, "wb"))) {
   				for (int i = 0; i < size; i++) fprintf(txt, "0x%02x, ", buffer[i]);
   				fclose(txt);
-  				printf("Wrote binary file %s---converted from cartridge---"
-  							 "successfully.\n", text_path);
   			} else {
   				printf("Cannot open text file %s for writing.\n", text_path);
   				exit(EX_CANTCREAT);

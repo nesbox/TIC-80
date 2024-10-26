@@ -1,5 +1,6 @@
 // MIT License
 
+// Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
 // Copyright (c) 2020 Vadim Grigoruk @nesbox // grigoruk@gmail.com
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,62 +23,122 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sysexits.h>
+#include <libgen.h>
+#include <string.h>
+#include <errno.h>
+
 #include "studio/project.h"
 
-int main(int argc, char** argv)
-{
-	int res = -1;
+FILE *open_project(char *project_path);
+void usage(void);
+void convert_project_to_cartridge(char *project_path,
+																	char *output_cartridge_path);
 
-	if(argc == 3)
-	{
-		FILE* project = fopen(argv[1], "rb");
-
-		if(project)
-		{
-			fseek(project, 0, SEEK_END);
-			int size = ftell(project);
-			fseek(project, 0, SEEK_SET);
-
-			unsigned char* buffer = (unsigned char*)malloc(size);
-
-			if(buffer)
-			{
-				fread(buffer, size, 1, project);
-				fclose(project);
-
-				tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
-
-				tic_project_load(argv[1], (char*)buffer, size, cart);
-
-				FILE* cartFile = fopen(argv[2], "wb");
-
-				if(cartFile)
-				{
-					unsigned char* out = (unsigned char*)malloc(sizeof(tic_cartridge));
-
-					if(out)
-					{
-						int outSize = tic_cart_save(cart, out);
-
-						fwrite(out, outSize, 1, cartFile);
-
-						free(out);
-					}
-
-					fclose(cartFile);
-
-					res = 0;
+int main(int argc, char **argv) {
+  if (strcmp(argv[1], "-i") != 0 && argc != 4) {
+    usage();
+  } else {
+    if (strcmp(argv[1], "-i") == 0) {
+			int outputDirectory = 3;
+			while(strcmp(argv[outputDirectory++], "-o") != 0) {
+				if (outputDirectory <= argc - 2) {
+					continue;
+				} else {
+					printf("outputDirectory argument (-o exampleDirectory) not in command line or argument value missing.");
+					exit(EX_USAGE);
 				}
-				else printf("cannot open cartridge file\n");
-
-				free(buffer);
-				free(cart);
 			}
+			char *outputFilename;
+			/* NOTE: I do not fully understand why I needed to subtract one from outputDirectory. */
+			for (int inputFile = 2; inputFile < outputDirectory - 1; inputFile++) {
+				/* Construct the output filename using the basename of the inputFile and
+				 * the outputDirectory. */
+				size_t size = strlen((const char *) argv[outputDirectory])
+					+ strlen((const char *) basename(argv[inputFile]));
+				outputFilename = malloc(size);
+				sprintf(outputFilename, "%s/", (const char *) argv[outputDirectory]);
+				size_t acceptSize = strcspn((const char *) basename(argv[inputFile]), (const char *) ".");
+				strncpy(outputFilename + strlen(outputFilename),
+								(const char *) basename(argv[inputFile]),
+								acceptSize);
+				strcat(outputFilename, (const char *) ".tic");
+				/* prj2cart -i file1 file2 file3 -o outputDirectory */
+				convert_project_to_cartridge(argv[inputFile], outputFilename);
+				memset(outputFilename, 0, strlen(outputFilename));
+				free(outputFilename);
+			}
+    } else {
+			/* prj2cart inputFilename outputFilename */
+      convert_project_to_cartridge(argv[1], argv[2]);
+    }
+    exit(EX_OK);
+  }
+}
 
-		}
-		else printf("cannot open project file\n");
+FILE *open_project(char *project_path) {
+  FILE *project;
+  if (!(project = fopen(project_path, "rb"))) {
+    printf("Cannot open project file %s for reading\n\n", project_path);
+    exit(EX_NOINPUT);
+  } else {
+    return project;
+  }
+}
+
+void usage(void) {
+  printf("usage: prj2cart <project> <cartridge>\n"
+         "       prj2cart -i <project>...\n"
+         "%80s\n",
+         "The second form will automatically strip a file extension and "
+         "replace it with \".tic\", and loop over project files, creating "
+         "multiple cartridges.");
+  exit(EX_USAGE);
+}
+
+void convert_project_to_cartridge(char *project_path,
+																	char *output_cartridge_path) {
+  if (output_cartridge_path != NULL
+      && strcmp(basename(project_path),
+                basename(output_cartridge_path)) == 0
+			|| strcmp(basename(output_cartridge_path), "") == 0) {
+		printf("Project path or output cartridge path is bad.");
+    exit(EXIT_FAILURE);
+  }
+  FILE *project = open_project(project_path);
+  fseek(project, 0, SEEK_END);
+  int size = ftell(project);
+  fseek(project, 0, SEEK_SET);
+
+  unsigned char *buffer = (unsigned char *) malloc(size);
+
+  if (buffer) {
+    fread(buffer, size, 1, project);
+    fclose(project);
+    tic_cartridge *cart = calloc(1, sizeof(tic_cartridge));
+    tic_project_load(project_path, (char *) buffer, size, cart);
+
+    FILE *cartFile;
+
+    if (output_cartridge_path == NULL) exit(EX_USAGE);
+		else if ( (cartFile = fopen(output_cartridge_path, "wb")) ) {
+      unsigned char *out;
+      if ((out = (unsigned char *) malloc(sizeof(tic_cartridge)))) {
+        int outSize = tic_cart_save(cart, out);
+        fwrite(out, outSize, 1, cartFile);
+				printf("Wrote cartridge file %s\n", output_cartridge_path);
+        free(out);
+      }
+      fclose(cartFile);
+		} else {
+      printf("Cannot open cartridge file %s for writing. Reason: %s\n",
+						 output_cartridge_path, strerror(errno));
+			free(buffer);
+			free(cart);
+			exit(EX_CANTCREAT);
+    }
+
+		free(buffer);
+		free(cart);
 	}
-	else printf("usage: prj2cart <project> <cartridge>\n");
-
-	return res;
 }
