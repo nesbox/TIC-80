@@ -1982,7 +1982,6 @@ CLOSED: [2024-10-25 Fri 19:10]
         if ((out = (unsigned char *) malloc(sizeof(tic_cartridge)))) {
           int outSize = tic_cart_save(cart, out);
           fwrite(out, outSize, 1, cartFile);
-  				printf("Wrote cartridge file %s\n", output_cartridge_path);
           free(out);
         }
         fclose(cartFile);
