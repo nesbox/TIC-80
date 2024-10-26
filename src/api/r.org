@@ -57,9 +57,10 @@ The requirements of the integration of R in TIC-80 are briefly noted.
 - TIC-80 event loop respected and not interfered with (graphical application is
   performance-sensitive).
 - Initialize multiple R interpreters during the lifetime of the embedding
-  application, but not simultaneously.
+  application, but not simultaneously. One interpreter should be initialized
+  after closing another.
 - Statically built R library; no expectation of system libraries available, like
-  a Fortrain installation or various headers that would be installed with Rtools
+  a Fortran installation, or various headers that would be installed with Rtools
   or something on Windows.
 - Memory for storage of objects limited to 126 KB; I don't think the available
   memory is limited otherwise, but R will be limited to storing 128 KB of
@@ -448,6 +449,11 @@ The TIC-80 API functions need to be defined in the global environment after
 initializing R, and if they're writtin in C then they need to be registered with
 R, rather than R code evaluated by R.
 
+#+begin_comment
+Most of these functions can probably be translated from the Scheme language
+integration into R, given both use symbolic expressions and CAR and CDR.
+#+end_comment
+
 #+name: define btn
 #+name: define btnp
 #+name: define circ
@@ -512,6 +518,7 @@ that are required of the callback to the TIC-80 core (after work has been done
 in R). This function is called eventually by the trace function available in the
 ~tic_core->api~ struct.
 
+#+name: trace
 #+begin_src C
   void tic_api_trace(tic_mem* memory, const char* text, u8 color)
   {
@@ -568,6 +575,93 @@ where everything is a symbolic expression.
 
       return s7_make_real(sc, core->api.fft(tic, start_freq, end_freq));
   }
+#+end_src
+
+** The Scheme Core
+The function =getSchemeCore= returns a pointer to a =tic_core= object, using an
+s7 Scheme pointer to locate a value from a name ~_TIC80~ which the interpreter
+is managing. The function converts the name to a Scheme value and returns the
+pointer to that object, converted from a Scheme pointer to a void pointer
+(assumedly), and automatically type promoted to the return value of ~tic_core
+*~.
+
+#+begin_src C
+  static const char* TicCore = "_TIC80";
+
+  tic_core* getSchemeCore(s7_scheme* sc)
+  {
+      return s7_c_pointer(s7_name_to_value(sc, TicCore));
+  }
+#+end_src
+
+The address of the Scheme value with the name ~_TIC80~ is the address of the
+TIC-80 core. The memory of the fantasy computer is located at this address as
+well, and ~tic_core->currentVM~ points back to this start of memory as well (I
+think). This creates a sort of ring of memory.
+
+** The TIC Core and TIC memory
+#+begin_src C :noweb-ref struct tic_mem
+  struct tic_mem
+  {
+      tic80           product;
+      tic_ram*        ram;
+      tic_cartridge   cart;
+
+      tic_ram*        base_ram;
+
+      char saveid[TIC_SAVEID_SIZE];
+
+  	<<union struct tic_mem.input>>
+  };
+#+end_src
+
+The field ~product~ has type =tic80=, whose defintion is quoted here.
+
+#+begin_src C
+  typedef struct
+  {
+    struct
+    {
+      void (*trace)(const char* text, u8 color);
+      void (*error)(const char* info);
+      void (*exit)();
+    } callback;
+
+    struct
+    {
+      TIC80_SAMPLETYPE* buffer;
+      s32 count;
+    } samples;
+
+    u32 *screen;
+  } tic80;
+#+end_src
+
+The union struct called "input", which was unimportant to earlier discussion, is
+defined here so the quoted definition (though unused apart from as a quotation
+for discussion) is not incomplete.
+
+#+name: union struct tic_mem.input
+#+begin_src C
+  union
+  {
+    struct
+    {
+  #if RETRO_IS_BIG_ENDIAN
+      u8 padded:5;
+      u8 keyboard:1;
+      u8 mouse:1;
+      u8 gamepad:1;
+  #else
+      u8 gamepad:1;
+      u8 mouse:1;
+      u8 keyboard:1;
+      u8 padded:5;
+  #endif
+    };
+
+    u8 data;
+  } input;
 #+end_src
 
 ** DONE The API functions, as listed within *TIC-80* with ~help api~
@@ -671,11 +765,6 @@ only one).
 
 #+name: kill R
 #+begin_src C
-  tic_core *core;
-  if ((core = (((tic_core *) tic))->currentVM) != NULL) {
-  	Rf_endEmbeddedR(0);
-  	core->currentVM = NULL;
-  }
 #+end_src
 
 That is defined separately, and not as a macro, so that the code can be re-used.
@@ -685,60 +774,61 @@ That is defined separately, and not as a macro, so that the code can be re-used.
 
   void R_Suicide(const char *message)
   {
-  	char  pp[1024];
-  	snprintf(pp, 1024, "Fatal error, but can't kermit: %s\n"\
-  					 "Execute me, please.\n", message);
-  	R_ShowMessage(pp);
-  	exit(1);
+    char  pp[1024];
+    snprintf(pp, 1024, "Fatal error, but can't kermit: %s\n"\
+             "Execute me, please.\n", message);
+    R_ShowMessage(pp);
+    exit(1);
 
-  	while(1);
+    while(1);
   }
 
   static tic_mem *tic_memory_static;
 
   void R_ShowMessage(const char *s) {
   /* Always use the sixteenth color. */
-  	((tic_core *) tic_memory_static)->api.trace(tic_memory_static, s, 15);
+    ((tic_core *) tic_memory_static)->api.trace(tic_memory_static, s, 15);
   }
 
   /* This function is called with code, which is the entirety of the studio
-   ,* editor's code buffer (i.e. the entire game code as one string). */
+     ,,* editor's code buffer (i.e. the entire game code as one string). */
   static bool initR(tic_mem *tic, const char *code) {
-  	tic_memory_static = tic;
+    tic_memory_static = tic;
 
-    <<kill R>>
+    closeR(tic);
 
-  	/* TODO: it makes sense to write the code to a file and initialize R with its
-  	 ,* input taken from that file, I think. */
-
-  	/* embdRAV: embedded R argument vector. */
-  	static char *embdRAV[] = { "TIC-80", "--quiet", "--vanilla" };
+    /* embdRAV: embedded R argument vector. */
+    static char *embdRAV[] = { "TIC-80", "--quiet", "--vanilla" };
 
     /* Without this nothing in R will work. */
-  	setEnvironmentVariablesIfUnset();
+    setEnvironmentVariablesIfUnset();
     static bool R_Initialized = false;
 
-  	R_running_as_main_program = 0;
+    R_running_as_main_program = 0;
 
-  	if (!R_Initialized) {
-  		R_Initialized = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), \
-  																						embdRAV);
-  		R_running_as_main_program = 0;
-  		/* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
-  		R_Interactive = false;
-  	}
+    if (!R_Initialized) {
+      R_Initialized = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), \
+                                              embdRAV);
+      R_running_as_main_program = 0;
+      /* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
+      R_Interactive = false;
+    }
 
-  	<<register C symbols with R>>
+    <<register C symbols with R>>
 
-  	Rf_eval(CSTR2LANGSXP("if (exists(\"BOOT\") && is.function(BOOT)) { BOOT() } " \
-  											"else { BOOT <- function() `{`; ## Tricky NOP. }"),
-  					R_GlobalEnv);
+    Rf_eval(CSTR2LANGSXP("if (exists(\"BOOT\") && is.function(BOOT)) { BOOT() } " \
+                         "else { BOOT <- function() `{`; ## Tricky NOP. }"),
+            R_GlobalEnv);
 
-  	return R_Initialized;
+    return R_Initialized;
   }
 
   static void closeR(tic_mem *tic) {
-    <<kill R>>
+    tic_core *core;
+    if ((core = (((tic_core *) tic))->currentVM) != NULL) {
+      Rf_endEmbeddedR(0);
+      core->currentVM = NULL;
+    }
   }
 #+end_src
 
@@ -1639,20 +1729,44 @@ Following is the example the previous block is based on.
   };
 #+end_example
 
-** TODO Convert assets to DAT formats (on UNIX-likes)
+** Meshing the event loops of TIC-80 and R
+There is a section in the /R Extensions/ manual which focuses on meshing the
+event loops of R and the alternative front-end. There are two event loops in R
+which need special attention.
+
+*** make provision for other R events whilst waiting for input from the front-end
+*** ensure the front-end is not frozen out during the event loop waiting for responses from sockets
+
+
+* Creating build assets at build-time from source files
+The is a build/assets directory in the TIC-80 sources containing DAT formatted
+files which are needed to include benchmarks for various scripting language
+integrations and also the demo and default cartridges for these langauges. The
+Git repository for TIC-80 currently contains pre-built assets, and the upstream
+GitHub hosted interface to that repository has workflows which will build these
+assets at build time using a Windows BATCH script. That limited my ability to
+develop for TIC-80, so after successfully compiling the build tools (prj2cart
+and bin2txt) on Linux I wrote a BASH script to call these for all of the build
+asset source files.
+
+** DONE Convert assets to DAT formats (on UNIX-likes)
+CLOSED: [2024-10-25 Fri 16:11]
 This script can be used to convert build assets (particularly =rmark.r= and
-=rdemo.r=) to the DAT format used by TIC-80 at runtime.
+=rdemo.r=) to the DAT format used by TIC-80 at runtime. It requires using the
+the original, unedited versions of proj2cart and bin2txt. It will only work on
+UNIX-likes, so a portable interface that will work on any development machine
+motivated the edits in the next sextion.
 
 #+name: convert the R demo and benchmark source files to .tic.dat format
 #+begin_src bash :tangle convertRDemoAssets.sh :shebang #!/bin/env bash
   # FILE := $1
-  SRC2TIC() {
+  PRJ2CART() {
     local SRC2TIC="${HOME}/src/c/TIC-80/fakeroot/bin/prj2cart"
     command $SRC2TIC $1 ${BLDA_DIR}/$(basename -s .r $1).tic
   }
 
   # FILE := $1
-  TIC2DAT() {
+  BIN2TXT() {
     local TIC2DAT="${HOME}/src/c/TIC-80/fakeroot/bin/bin2txt"
     command $TIC2DAT ${1} ${BLDA_DIR}/$(basename $1).dat -z
     rm ${BLDA_DIR}/$(basename $1)
@@ -1666,236 +1780,250 @@ This script can be used to convert build assets (particularly =rmark.r= and
     # NOTE: this could be "improved" to take command-line arguments for the language
     # name (prefixing "demo" or "mark") and the file suffix (including the dot, so
     # ".r"). Relative paths only valid from where r.org defined (src/api/r.org)
-    local T80_DIR="${HOME}/src/c/TIC-80"
-    local R_DEMO="${T80_DIR}/demos/rdemo.r"
-    local R_MARK="${T80_DIR}/demos/bunny/rmark.r"
-    local BLDA_DIR="${T80_DIR}/build/assets"
+    local R_DEMO="${1}/demos/rdemo.r"
+    local R_MARK="${1}/demos/bunny/rmark.r"
+    local BLDA_DIR="${1}/build/assets"
 
-    for SRC in $R_DEMO $R_MARK; do
-      SRC2TIC $SRC
-      TIC2DAT ${BLDA_DIR}/$(basename -s .r $SRC).tic
+    for SRC in $(find $1/demos -maxdepth 1 -type f); do
+      PRJ2CART $SRC
+      BIN2TXT ${BLDA_DIR}/$(basename -s .r $SRC).tic
     done
   }
 
-  if [[ ! -v POSIXLY_CORRECT ]]; then {
-    main "$@"
-  }; fi
+  # convertDemosAndBenchmarks.sh TIC-80
+  main $1
 #+end_src
 
+** DONE Convert assets to DAT formats (cross-platform)
+CLOSED: [2024-10-25 Fri 19:10]
+A CMake file is used to construct the input arguments for the programs. These
+programs are only available when TIC-80 is built with the option
+~BUILD_TOOLS=ON~, in which case this target will be always be called when the
+sources are out of date, which is determined when the CMake file is called.
+
+Construct the list of demo and benchmark source files from a list of file type
+suffixes for each supported language.
+
 #+begin_src cmake :tangle ../../cmake/demos.cmake
-  set(DEMODIR ${CMAKE_SOURCE_DIR}/demos)
-  set(DEMOS benchmark.lua bpp.lua car.lua fenneldemo.fnl fire.lua font.lua janetdemo.janet jsdemo.js luademo.lua moondemo.moon music.lua p3d.lua palette.lua pythondemo.py quest.lua rdemo.r rubydemo.rb schemedemo.scm sfx.lua squirreldemo.nut tetris.lua wrendemo.wren)
+  file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/demos" demoDir)
+  file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/build/assets" buildAssetDir)
+  file(GLOB_RECURSE projects
+    "demos/*.lua"
+    "demos/*.fnl"
+    "demos/*.janet"
+    "demos/*.js"
+    "demos/*.moon"
+    "demos/*.py"
+    "demos/*.rb"
+    "demos/*.scm"
+    "demos/*.nut"
+    "demos/*.wren"
+    "demos/*.r")
 
-  foreach(DEMO ${DEMOS})
-    file(REAL_PATH ${DEMO} DEMOABSPATH BASE_DIRECTORY ${DEMODIR})
-    LIST(APPEND DEMOABSPATHS ${DEMOABSPATH})
-  endforeach()
-
-  set(BUNNYDIR ${DEMODIR}/bunny)
-  set(BUNNYS janetmark.janet jsmark.js luamark.lua moonmark.moon pythonmark.py rubymark.rb schememark.scm squirrelmark.nut wasmmark wrenmark.wren)
-
-  foreach(BUNNY ${BUNNYS})
-    file(REAL_PATH ${BUNNY} BUNNYABSPATH BASE_DIRECTORY ${BUNNYDIR})
-    LIST(APPEND DEMOABSPATHS ${DEMOABSPATH})
+  ## Create the list of project files with the tic extension rather than the
+  ## source project file extension.
+  foreach(project ${projects})
+    cmake_path(REPLACE_EXTENSION project LAST_ONLY "tic" OUTPUT_VARIABLE cartridge)
+    cmake_path(GET cartridge FILENAME cartridge)
+    cmake_path(APPEND CMAKE_BINARY_DIR ${cartridge} OUTPUT_VARIABLE cartridge)
+    LIST(APPEND cartridges ${cartridge})
+    message(DEBUG "${project}")
+    message(DEBUG "${cartridge}")
   endforeach()
 
   add_custom_target(GenerateTicDatFiles
     ALL
-    COMMAND prj2cart -i ${DEMOABSPATHS} ${BUNNYABSPATHS}
-    COMMAND bin2txt -zi "$<LIST:TRANSFORM,${DEMOABSPATHS},REPLACE,\"\..*$$\",\".tic\">" "$<LIST:TRANSFORM,${BUNNYABSPATHS},REPLACE,\"\..*$$\",\".tic\">"
-    COMMENT "[DEMOS_AND_BUNNYS] Generating .tic files, then .tic.dat files those, from source files in the demos and demos/bunny directories (WASM not included)."
+    ## Generate .tic files in the CMAKE_BINARY_DIR directory using source files
+    ## from the demos/ source directory.
+    COMMAND prj2cart -i ${projects} -o ${CMAKE_BINARY_DIR}
+    ## Convert the .tic files in the CMAKE_BINARY_DIR to .tic.dat and place the
+    ## resulting file in the build/assets source directory.
+    COMMAND bin2txt -zi ${cartridges} -o ${buildAssetDir}
+    COMMENT "[DEMOS_AND_BUNNYS] Generating build assets (.tic.dat files)"
     COMMAND_EXPAND_LISTS)
 
-  target_sources(GenerateTicDatFiles PRIVATE ${DEMOABSPATHS} ${BUNNYABSPATHS})
+  target_sources(GenerateTicDatFiles PRIVATE ${PROJECT_PATHS})
 #+end_src
 
-To make the necessary modifications to prj2cart and bin2cart I will create some
-source blocks and rewrite the source files.
+To make the necessary modifications to prj2cart and bin2txt I will create some
+source blocks and extend the programs to support multiple input files and
+specify an output directory rather than only support explicit input and output
+file paths.
+
+** DONE prj2cart
+CLOSED: [2024-10-25 Fri 19:10]
 
 #+begin_src C :tangle ../../build/tools/prj2cart.c :noweb no-export
-  <<prj2cart MIT license>>
+  // MIT License
+
+  // Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
+  // Copyright (c) 2020 Vadim Grigoruk @nesbox // grigoruk@gmail.com
+
+  // Permission is hereby granted, free of charge, to any person obtaining a copy
+  // of this software and associated documentation files (the "Software"), to deal
+  // in the Software without restriction, including without limitation the rights
+  // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  // copies of the Software, and to permit persons to whom the Software is
+  // furnished to do so, subject to the following conditions:
+
+  // The above copyright notice and this permission notice shall be included in all
+  // copies or substantial portions of the Software.
+
+  // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  // SOFTWARE.
 
   #include <stdio.h>
   #include <stdlib.h>
   #include <sysexits.h>
   #include <libgen.h>
   #include <string.h>
+  #include <errno.h>
+
   #include "studio/project.h"
 
   FILE *open_project(char *project_path);
   void usage(void);
-  void convert_project_to_cartridge(char *project_path, char *output_cartridge_path);
+  void convert_project_to_cartridge(char *project_path,
+  																	char *output_cartridge_path);
 
   int main(int argc, char **argv) {
-  	if (strcmp(argv[1], "-i") != 0 && argc != 3) {
-  		usage();
-  	} else {
-  		if (strcmp(argv[1], "-i") == 0) {
-  			for (int i = 2; i < argc; i++) {
-  				convert_project_to_cartridge(argv[i], NULL);
+    if (strcmp(argv[1], "-i") != 0 && argc != 4) {
+      usage();
+    } else {
+      if (strcmp(argv[1], "-i") == 0) {
+  			int outputDirectory = 3;
+  			while(strcmp(argv[outputDirectory++], "-o") != 0) {
+  				if (outputDirectory <= argc - 2) {
+  					continue;
+  				} else {
+  					printf("outputDirectory argument (-o exampleDirectory) not in command line or argument value missing.");
+  					exit(EX_USAGE);
+  				}
   			}
-  		} else {
-  			/* For debugging only. */
-  			/* for(int ac = 0; ac < argc; ac++) fprintf(stderr, "%s ", argv[ac]); */
-  			/* printf("\n"); */
-  			convert_project_to_cartridge(argv[1], argv[2]);
-  		}
-  		exit(EX_OK);
-  	}
+  			char *outputFilename;
+  			/* NOTE: I do not fully understand why I needed to subtract one from outputDirectory. */
+  			for (int inputFile = 2; inputFile < outputDirectory - 1; inputFile++) {
+  				/* Construct the output filename using the basename of the inputFile and
+  				 ,* the outputDirectory. */
+  				size_t size = strlen((const char *) argv[outputDirectory])
+  					+ strlen((const char *) basename(argv[inputFile]));
+  				outputFilename = malloc(size);
+  				sprintf(outputFilename, "%s/", (const char *) argv[outputDirectory]);
+  				size_t acceptSize = strcspn((const char *) basename(argv[inputFile]), (const char *) ".");
+  				strncpy(outputFilename + strlen(outputFilename),
+  								(const char *) basename(argv[inputFile]),
+  								acceptSize);
+  				strcat(outputFilename, (const char *) ".tic");
+  				/* prj2cart -i file1 file2 file3 -o outputDirectory */
+  				convert_project_to_cartridge(argv[inputFile], outputFilename);
+  				memset(outputFilename, 0, strlen(outputFilename));
+  				free(outputFilename);
+  			}
+      } else {
+  			/* prj2cart inputFilename outputFilename */
+        convert_project_to_cartridge(argv[1], argv[2]);
+      }
+      exit(EX_OK);
+    }
   }
 
   FILE *open_project(char *project_path) {
-  	FILE *project;
-  	if (!(project = fopen(project_path, "rb"))) {
-  		printf("Cannot open project file %s for reading\n\n", project_path);
-  		exit(EX_NOINPUT);
-  	} else {
-  		return project;
-  	}
+    FILE *project;
+    if (!(project = fopen(project_path, "rb"))) {
+      printf("Cannot open project file %s for reading\n\n", project_path);
+      exit(EX_NOINPUT);
+    } else {
+      return project;
+    }
   }
 
   void usage(void) {
-  	printf("usage: prj2cart <project> <cartridge>\n"
-  				 "       prj2cart -i <project>...\n"
-  				 "%80s\n",
-  				 "The second form will automatically strip a file extension and "
-  				 "replace it with \".tic\", and loop over project files, creating "
-  				 "multiple cartridges.");
-  	exit(EX_USAGE);
+    printf("usage: prj2cart <project> <cartridge>\n"
+           "       prj2cart -i <project>...\n"
+           "%80s\n",
+           "The second form will automatically strip a file extension and "
+           "replace it with \".tic\", and loop over project files, creating "
+           "multiple cartridges.");
+    exit(EX_USAGE);
   }
 
-  void convert_project_to_cartridge(char *project_path, char *output_cartridge_path) {
-  	if (output_cartridge_path != NULL
-  			&& strcmp(basename(project_path),
-  								basename(output_cartridge_path)) == 0) {
-  		fprintf(stderr, "PROJ:\t%s\nCART:\t%s\n",
-  						basename(project_path),
-  						basename(output_cartridge_path));
-  		exit(EXIT_FAILURE);
-  	}
-  	FILE *project = open_project(project_path);
-  	fseek(project, 0, SEEK_END);
-  	int size = ftell(project);
-  	fseek(project, 0, SEEK_SET);
+  void convert_project_to_cartridge(char *project_path,
+  																	char *output_cartridge_path) {
+    if (output_cartridge_path != NULL
+        && strcmp(basename(project_path),
+                  basename(output_cartridge_path)) == 0
+  			|| strcmp(basename(output_cartridge_path), "") == 0) {
+  		printf("Project path or output cartridge path is bad.");
+      exit(EXIT_FAILURE);
+    }
+    FILE *project = open_project(project_path);
+    fseek(project, 0, SEEK_END);
+    int size = ftell(project);
+    fseek(project, 0, SEEK_SET);
 
-  	unsigned char *buffer = (unsigned char *) malloc(size);
+    unsigned char *buffer = (unsigned char *) malloc(size);
 
-  	if (buffer) {
-  		fread(buffer, size, 1, project);
-  		fclose(project);
-  		tic_cartridge *cart = calloc(1, sizeof(tic_cartridge));
-  		tic_project_load(project_path, (char *) buffer, size, cart);
+    if (buffer) {
+      fread(buffer, size, 1, project);
+      fclose(project);
+      tic_cartridge *cart = calloc(1, sizeof(tic_cartridge));
+      tic_project_load(project_path, (char *) buffer, size, cart);
 
-  #define SIZE 5 + strlen(basename(project_path))
-  		char constructed_cartridge_path[SIZE];
-  		memset(constructed_cartridge_path, 0, SIZE);
-  #undef SIZE
-  		FILE *cartFile;
+      FILE *cartFile;
 
-  		/* FIXME: source files are being overwritten, and when the program reaches the end of the loop calling this function is makes wrendemo.wren larger, and larger, and larger, without end. */
-  		if (output_cartridge_path == NULL) {
-  			cartFile = fopen(strcat(strncpy(constructed_cartridge_path,
-  																			basename(project_path),
-  																			strcspn(basename(project_path), ".")),
-  															".tic"),
-  											 "wb");
+      if (output_cartridge_path == NULL) exit(EX_USAGE);
+  		else if ( (cartFile = fopen(output_cartridge_path, "wb")) ) {
+        unsigned char *out;
+        if ((out = (unsigned char *) malloc(sizeof(tic_cartridge)))) {
+          int outSize = tic_cart_save(cart, out);
+          fwrite(out, outSize, 1, cartFile);
+  				printf("Wrote cartridge file %s\n", output_cartridge_path);
+          free(out);
+        }
+        fclose(cartFile);
   		} else {
-  			if (strlen(output_cartridge_path) > strlen(constructed_cartridge_path))
-  				fprintf(stderr,
-  								"The input cartridge path is larger than the constructed path "
-  								"for input %s",
-  								project_path);
-  			cartFile = fopen(output_cartridge_path, "wb");
-  		}
+        printf("Cannot open cartridge file %s for writing. Reason: %s\n",
+  						 output_cartridge_path, strerror(errno));
+  			free(buffer);
+  			free(cart);
+  			exit(EX_CANTCREAT);
+      }
 
-
-  		if (cartFile) {
-  			unsigned char *out;
-  			if ((out = (unsigned char *) malloc(sizeof(tic_cartridge)))) {
-  				int outSize = tic_cart_save(cart, out);
-  				fwrite(out, outSize, 1, cartFile);
-  				free(out);
-  			}
-  			fclose(cartFile);
-  			sprintf("Wrote cartridge file %s.", out);
-  		} else {
-  			printf("Cannot open cartridge file %s for writing.\n", cartFile);
-  			<<free buffers>>
-  					exit(EX_CANTCREAT);
-  		}
-
-  		<<free buffers>>
+  		free(buffer);
+  		free(cart);
   	}
   }
 #+end_src
 
-To ensure I don't forget to close a buffer, I use the following block to free
-memory mapped by the opened buffers common to more than two branches of
-execution.
-
-#+name: free buffers
-#+begin_src C
-  free(buffer);
-  free(cart);
-#+end_src
-
-#+name: prj2cart MIT license
-#+begin_src C
-  // MIT License
-
-  // Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
-  // Copyright (c) 2020 Vadim Grigoruk @nesbox // grigoruk@gmail.com
-
-  // Permission is hereby granted, free of charge, to any person obtaining a copy
-  // of this software and associated documentation files (the "Software"), to deal
-  // in the Software without restriction, including without limitation the rights
-  // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  // copies of the Software, and to permit persons to whom the Software is
-  // furnished to do so, subject to the following conditions:
-
-  // The above copyright notice and this permission notice shall be included in all
-  // copies or substantial portions of the Software.
-
-  // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  // SOFTWARE.
-#+end_src
-
-** bin2txt
-This is a copy of the modified form of bin2txt, which I didn't write literately.
-
-#+name: bin2txt copyright notice
-#+begin_src C
-  // MIT License
-
-  // Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
-  // Copyright (c) 2020 Vadim Grigoruk @nesbox // grigoruk@gmail.com
-
-  // Permission is hereby granted, free of charge, to any person obtaining a copy
-  // of this software and associated documentation files (the "Software"), to deal
-  // in the Software without restriction, including without limitation the rights
-  // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  // copies of the Software, and to permit persons to whom the Software is
-  // furnished to do so, subject to the following conditions:
-
-  // The above copyright notice and this permission notice shall be included in all
-  // copies or substantial portions of the Software.
-
-  // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-  // SOFTWARE.
-#+end_src
-
+** TODO bin2txt
 #+begin_src C :noweb no-export :tangle ../../build/tools/bin2txt.c
-  <<bin2txt copyright notice>>
+  // MIT License
+
+  // Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
+  // Copyright (c) 2020 Vadim Grigoruk @nesbox // grigoruk@gmail.com
+
+  // Permission is hereby granted, free of charge, to any person obtaining a copy
+  // of this software and associated documentation files (the "Software"), to deal
+  // in the Software without restriction, including without limitation the rights
+  // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  // copies of the Software, and to permit persons to whom the Software is
+  // furnished to do so, subject to the following conditions:
+
+  // The above copyright notice and this permission notice shall be included in all
+  // copies or substantial portions of the Software.
+
+  // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  // SOFTWARE.
 
   #include <stdio.h>
   #include <stdlib.h>
@@ -1910,9 +2038,30 @@ This is a copy of the modified form of bin2txt, which I didn't write literately.
   void with_zip(int size, unsigned char *buffer);
 
   int main(int argc, char** argv) {
+  	/* bin2txt -zi inputFile... -o outputDirectory */
     if (argc >= 3 && (strcmp(argv[1], "-iz") == 0 || strcmp(argv[1], "-zi") == 0)) {
-      for (int i = 2; i < argc; i++) {
-        convert_cartridge_to_text(argv[i], NULL, true);
+  		int outputDirectory = 3;
+  		/* While the output option hasn't been located, check that we haven't
+  		 ,* overrun the bounds of the argument vector. */
+  		while(strcmp(argv[outputDirectory++], "-o") != 0) {
+  			/* Prevent an infinite loop; ensure the -o option is given
+  			 ,* eventually. */
+  			if (outputDirectory <= argc - 2) {
+  				continue;
+  			} else {
+  				printf("-o was not found in the command line or in the correct position (is the argument value missing?).");
+  				exit(EX_USAGE);
+  			}
+  		}
+  		/* bin2txt -zi inputFile... -o outputDirectory */
+      for (int inputFile = 2; inputFile < outputDirectory - 1; inputFile++) {
+  			char *outputFile = malloc(strlen(".dat") + strlen(argv[outputDirectory]) + strlen(basename(argv[inputFile])));
+  			sprintf(outputFile, "%s/", argv[outputDirectory]);
+  			strcat(outputFile, (const char *) basename(argv[inputFile]));
+  			strcat(outputFile, ".dat");
+        convert_cartridge_to_text(argv[inputFile], outputFile, true);
+  			memset(outputFile, 0, strlen(outputFile));
+  			free(outputFile);
       }
     } else if (argc == 4 && strcmp(argv[3], "-z") == 0) {
       convert_cartridge_to_text(argv[1], argv[2], true);
@@ -1924,8 +2073,8 @@ This is a copy of the modified form of bin2txt, which I didn't write literately.
   }
 
   void usage(void) {
-    printf("usage: bin2txt <cartridge> <text> [-z]\n"
-           "       bin2txt [-zi] <cartridge>...\n"
+    printf("usage: bin2txt <input cartridge file> <output text file> [-z]\n"
+           "       bin2txt [-zi] <cartridge file1>... -o <text file output directory>\n"
            "%80s\n"
            "The second form will use zlib compression and automatically generate "
            "output filenames for multiple input cartridges.");
@@ -1933,15 +2082,6 @@ This is a copy of the modified form of bin2txt, which I didn't write literately.
   }
 
   void convert_cartridge_to_text(char *cartridge_path, char *text_path, bool useZip) {
-  	/* If both paths are provided, but are equivalent exit early because the
-  	 ,* function was called incorrectly. */
-    if (text_path != NULL
-        && strcmp((const char *) basename(cartridge_path),
-  								(const char *) basename(text_path)) == 0) {
-      fprintf(stderr, "PROJ:\t%s\nCART:\t%s\n", cartridge_path, text_path);
-      exit(EXIT_FAILURE);
-    }
-
     FILE *bin;
     if (!(bin = fopen(cartridge_path, "rb"))) {
       printf("Cannot open bin file %s for reading.\n", cartridge_path);
@@ -1954,6 +2094,7 @@ This is a copy of the modified form of bin2txt, which I didn't write literately.
 
       unsigned char *buffer;
       if (!(buffer = (unsigned char *) malloc(size))) {
+  			printf("Could not successfully allocate memory to convert cartridge to text.");
   			exit(EX_IOERR); /* if cannot create the buffer below. */
       } else {
   			fread(buffer, size, 1, bin);
@@ -1961,28 +2102,14 @@ This is a copy of the modified form of bin2txt, which I didn't write literately.
 
   			if (useZip) with_zip(size, buffer);
 
-  #define SIZE 1000
-  			char txtpath[SIZE]; /* txtpath[sum(cartridge_path, DAT, NULL)], then clear
-  													 ,* it. Fuck your understanding of indentation, I come
-  													 ,* from LISP. I was born in the muck. Raised by it. */ memset(txtpath, 0, SIZE);
-  #undef SIZE
-  			/* Construct a destination path if none was provided. */
-  			if (text_path == NULL) {
-  				strcpy(txtpath, cartridge_path);
-  				strcat(txtpath, ".dat");
-  			} else {
-  				/* A destination path was provided so it used as-is. */
-  				strcpy(txtpath, cartridge_path);
-  			}
-
   			FILE *txt;
-  			if ((txt = fopen(txtpath, "wb"))) {
+  			if ((txt = fopen(text_path, "wb"))) {
   				for (int i = 0; i < size; i++) fprintf(txt, "0x%02x, ", buffer[i]);
   				fclose(txt);
   				printf("Wrote binary file %s---converted from cartridge---"
-  							 "successfully.", txtpath);
+  							 "successfully.\n", text_path);
   			} else {
-  				printf("Cannot open text file %s for writing.\n", txtpath);
+  				printf("Cannot open text file %s for writing.\n", text_path);
   				exit(EX_CANTCREAT);
   			}
 
