@@ -1,24 +1,38 @@
-set(DEMODIR ${CMAKE_SOURCE_DIR}/demos)
-set(DEMOS benchmark.lua bpp.lua car.lua fenneldemo.fnl fire.lua font.lua janetdemo.janet jsdemo.js luademo.lua moondemo.moon music.lua p3d.lua palette.lua pythondemo.py quest.lua rdemo.r rubydemo.rb schemedemo.scm sfx.lua squirreldemo.nut tetris.lua wrendemo.wren)
+file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/demos" demoDir)
+file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/build/assets" buildAssetDir)
+file(GLOB_RECURSE projects
+  "demos/*.lua"
+  "demos/*.fnl"
+  "demos/*.janet"
+  "demos/*.js"
+  "demos/*.moon"
+  "demos/*.py"
+  "demos/*.rb"
+  "demos/*.scm"
+  "demos/*.nut"
+  "demos/*.wren"
+  "demos/*.r")
 
-foreach(DEMO ${DEMOS})
-  file(REAL_PATH ${DEMO} DEMOABSPATH BASE_DIRECTORY ${DEMODIR})
-  LIST(APPEND DEMOABSPATHS ${DEMOABSPATH})
-endforeach()
-
-set(BUNNYDIR ${DEMODIR}/bunny)
-set(BUNNYS janetmark.janet jsmark.js luamark.lua moonmark.moon pythonmark.py rubymark.rb schememark.scm squirrelmark.nut wasmmark wrenmark.wren)
-
-foreach(BUNNY ${BUNNYS})
-  file(REAL_PATH ${BUNNY} BUNNYABSPATH BASE_DIRECTORY ${BUNNYDIR})
-  LIST(APPEND DEMOABSPATHS ${DEMOABSPATH})
+## Create the list of project files with the tic extension rather than the
+## source project file extension.
+foreach(project ${projects})
+  cmake_path(REPLACE_EXTENSION project LAST_ONLY "tic" OUTPUT_VARIABLE cartridge)
+  cmake_path(GET cartridge FILENAME cartridge)
+  cmake_path(APPEND CMAKE_BINARY_DIR ${cartridge} OUTPUT_VARIABLE cartridge)
+  LIST(APPEND cartridges ${cartridge})
+  message(DEBUG "${project}")
+  message(DEBUG "${cartridge}")
 endforeach()
 
 add_custom_target(GenerateTicDatFiles
   ALL
-  COMMAND prj2cart -i ${DEMOABSPATHS} ${BUNNYABSPATHS}
-  COMMAND bin2txt -zi "$<LIST:TRANSFORM,${DEMOABSPATHS},REPLACE,\"\..*$$\",\".tic\">" "$<LIST:TRANSFORM,${BUNNYABSPATHS},REPLACE,\"\..*$$\",\".tic\">"
-  COMMENT "[DEMOS_AND_BUNNYS] Generating .tic files, then .tic.dat files those, from source files in the demos and demos/bunny directories (WASM not included)."
+  ## Generate .tic files in the CMAKE_BINARY_DIR directory using source files
+  ## from the demos/ source directory.
+  COMMAND prj2cart -i ${projects} -o ${CMAKE_BINARY_DIR}
+  ## Convert the .tic files in the CMAKE_BINARY_DIR to .tic.dat and place the
+  ## resulting file in the build/assets source directory.
+  COMMAND bin2txt -zi ${cartridges} -o ${buildAssetDir}
+  COMMENT "[DEMOS_AND_BUNNYS] Generating build assets (.tic.dat files)"
   COMMAND_EXPAND_LISTS)
 
-target_sources(GenerateTicDatFiles PRIVATE ${DEMOABSPATHS} ${BUNNYABSPATHS})
+target_sources(GenerateTicDatFiles PRIVATE ${PROJECT_PATHS})
