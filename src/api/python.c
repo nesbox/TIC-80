@@ -1,6 +1,6 @@
 #include "core/core.h"
 
-#include "pocketpy_c.h"
+#include "pocketpy.h"
 #include <stdio.h>
 #include <string.h>
 
