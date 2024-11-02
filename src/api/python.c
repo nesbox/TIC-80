@@ -7,42 +7,42 @@
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 struct CachedNames{
-    pkpy_CName _tic_core;
-    pkpy_CName len;
-    pkpy_CName __getitem__;
-    pkpy_CName TIC;
-    pkpy_CName BOOT;
-    pkpy_CName SCN;
-    pkpy_CName BDR;
-    pkpy_CName MENU;
+    py_Name _tic_core;
+    py_Name len;
+    py_Name __getitem__;
+    py_Name TIC;
+    py_Name BOOT;
+    py_Name SCN;
+    py_Name BDR;
+    py_Name MENU;
 } N;
 
-static void pkpy_setglobal_2(pkpy_vm* vm, const char* name){
-    pkpy_setglobal(vm, pkpy_name(name));
+static void pkpy_setglobal_2(const char* name){
+    py_setglobal(py_name(name), py_peek(-1));
 }
 
-static bool get_core(pkpy_vm* vm, tic_core** core)
+static bool get_core(tic_core** core)
 {
-    bool ok = pkpy_getglobal(vm, N._tic_core);
-    if(!ok) return false;
-    ok = pkpy_to_voidp(vm, -1, (void**) core);
-    pkpy_pop_top(vm);
-    return ok;
+    py_ItemRef pycore = py_getglobal(N._tic_core);
+    if (!pycore) return false;
+    *core = (tic_core*)py_toint(pycore);
+    return true;
 }
 
-static bool setup_core(pkpy_vm* vm, tic_core* core)
+static bool setup_core(tic_core* core)
 {
-    if (!pkpy_push_voidp(vm, core)) return false;
-    return pkpy_setglobal(vm, N._tic_core);
+    py_newint(py_retval(), core);
+    py_setglobal(N._tic_core, py_retval());
+    return true;
 }
 
 //index should be a positive index
-static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
+static int prepare_colorindex(int index, u8 * buffer)
 {
-    if (pkpy_is_int(vm, index))
+    if (py_istype(py_peek(-index), tp_int))
     {
         int value;
-        pkpy_to_int(vm, index, &value);
+        value = (int)py_toint(py_peek(-index));
 
         if (value == -1)
             return 0;
@@ -54,30 +54,13 @@ static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
     }
     else
     { //should be a list then
-        pkpy_getglobal(vm, N.len);
-        pkpy_push_null(vm);
-        pkpy_dup(vm, index); //get the list
-        pkpy_vectorcall(vm, 1);
-
-        int list_len;
-        pkpy_to_int(vm, -1, &list_len);
-        pkpy_pop_top(vm);
-
-        list_len = (list_len < TIC_PALETTE_SIZE)?(list_len):(TIC_PALETTE_SIZE);
-
-        for(int i = 0; i < list_len; i++)
+        int list_len = py_list_len(py_peek(-index));
+        list_len = (list_len < TIC_PALETTE_SIZE) ? (list_len) : (TIC_PALETTE_SIZE);
+        for (int i = 0; i < list_len; i++)
         {
-            int list_val;
-            pkpy_dup(vm, index); //get the list
-            pkpy_get_unbound_method(vm, N.__getitem__);
-            pkpy_push_int(vm, i);
-            pkpy_vectorcall(vm, 1);
-            pkpy_to_int(vm, -1, &list_val);
-            buffer[i] = list_val;
-            pkpy_pop_top(vm);
+            py_ItemRef pylist_item = py_list_getitem(py_peek(-index), i);
+            buffer[i] = py_toint(pylist_item);
         }
-
-        return list_len;
     }
 }
 
@@ -1371,14 +1354,14 @@ static void report_error(tic_core* core, char* prefix) {
 
 static bool initPython(tic_mem* tic, const char* code)
 {
-    N._tic_core = pkpy_name("_tic_core");
-    N.len = pkpy_name("len");
-    N.__getitem__ = pkpy_name("__getitem__");
-    N.TIC = pkpy_name("TIC");
-    N.BOOT = pkpy_name("BOOT");
-    N.SCN = pkpy_name("SCN");
-    N.BDR = pkpy_name("BDR");
-    N.MENU = pkpy_name("MENU");
+    N._tic_core = py_name("_tic_core");
+    N.len = py_name("len");
+    N.__getitem__ = py_name("__getitem__");
+    N.TIC = py_name("TIC");
+    N.BOOT = py_name("BOOT");
+    N.SCN = py_name("SCN");
+    N.BDR = py_name("BDR");
+    N.MENU = py_name("MENU");
 
     closePython(tic);
     tic_core* core = (tic_core*)tic;
