@@ -118,8 +118,7 @@ static bool py_btnp(int argc, py_Ref argv)
 
 static void throw_error(tic_core* core, const char* msg)
 {
-    core->data->error(core->data->data, msg);
-    
+    core->data->error(core->data->data, py_formatexc());
 }
 
 static bool bind_pkpy_v2()
@@ -137,26 +136,26 @@ void close_pkpy_v2(tic_mem* tic)
     if (core->currentVM)
     {
         core->currentVM = NULL;
-        py_finalize();
+        py_resetvm();
+        //py_initialize();//reset
     }
 }
 
 static bool init_pkpy_v2(tic_mem* tic, const char *code)
 {
     //maybe some config here
-    //N._tic_core = py_name("_tic_core");
-    //N.len = py_name("len");
-    //N.__getitem__ = py_name("__getitem__");
-    //N.TIC = py_name("TIC");
-    //N.BOOT = py_name("BOOT");
-    //N.SCN = py_name("SCN");
-    //N.BDR = py_name("BDR");
-    //N.MENU = py_name("MENU");
-
-
+    py_initialize();
     tic_core* core = (tic_core*)tic;
     close_pkpy_v2(tic);
-    py_initialize();
+    N._tic_core = py_name("_tic_core");
+    N.len = py_name("len");
+    N.__getitem__ = py_name("__getitem__");
+    N.TIC = py_name("TIC");
+    N.BOOT = py_name("BOOT");
+    N.SCN = py_name("SCN");
+    N.BDR = py_name("BDR");
+    N.MENU = py_name("MENU");
+
     setup_core(core);
     core->currentVM = pk_current_vm;
     if (!bind_pkpy_v2())
@@ -180,6 +179,7 @@ void tick_pkpy_v2(tic_mem* tic)
     if (!core->currentVM) return;//no vm
 
     py_GlobalRef py_tick = py_getglobal(N.TIC);
+    if (!py_tick) return;
     py_push(py_tick);
     py_pushnil();
     if (!py_vectorcall(0, 0))
@@ -197,7 +197,8 @@ void boot_pkpy_v2(tic_mem* tic)
     tic_core* core = (tic_core*)tic;
     if (!core->currentVM) return; //no vm
 
-    py_GlobalRef py_boot = py_getglobal(py_name("BOOT"));
+    py_GlobalRef py_boot = py_getglobal(N.BOOT);
+    if (!py_boot) return;
     py_push(py_boot);
     py_pushnil();
     if (!py_vectorcall(0, 0))
@@ -215,7 +216,8 @@ void callback_scanline(tic_mem* tic, s32 row, void* data)
     tic_core* core = (tic_core*)tic;
     if (!core->currentVM) return; //no vm
 
-    py_GlobalRef py_scn = py_getglobal(py_name("SCN"));
+    py_GlobalRef py_scn = py_getglobal(N.SCN);
+    if (!py_scn) return;
     py_push(py_scn);
     py_pushnil();
     py_Ref py_row = (py_Ref)malloc(sizeof(py_Ref));
@@ -237,7 +239,8 @@ void callback_border(tic_mem* tic, s32 row, void* data)
     tic_core* core = (tic_core*)tic;
     if (!core->currentVM) return; //no vm
 
-    py_GlobalRef py_bdr = py_getglobal(py_name("BDR"));
+    py_GlobalRef py_bdr = py_getglobal(N.BDR);
+    if (!py_bdr) return;
     py_push(py_bdr);
     py_pushnil();
     py_Ref py_row = (py_Ref)malloc(sizeof(py_Ref));
@@ -258,7 +261,8 @@ void callback_menu(tic_mem* tic, s32 index, void* data)
     tic_core* core = (tic_core*)tic;
     if (!core->currentVM) return; //no vm
 
-    py_GlobalRef py_menu = py_getglobal(py_name("MENU"));
+    py_GlobalRef py_menu = py_getglobal(N.MENU);
+    if (!py_menu) return;
     py_push(py_menu);
     py_pushnil();
     py_Ref py_idx = (py_Ref)malloc(sizeof(py_Ref));
