@@ -208,6 +208,129 @@ static void py_print(int argc, py_Ref argv)
     py_newint(py_retval(), ps);
 }
 
+static void py_circ(int argc, py_Ref argv)
+{
+    int x, y, radius, color;
+    for (int i = 0; i < 4; i++)
+        PY_CHECK_ARG_TYPE(i, tp_int);
+    tic_core* core;
+    get_core(&core);
+    tic_mem* tic = (tic_mem*)core;
+    x = py_toint(py_arg(0));
+    y = py_toint(py_arg(1));
+    radius = py_toint(py_arg(2));
+    color = py_toint(py_arg(3));
+    if (py_checkexc(0)) return;
+
+    core->api.circ(tic, x, y, radius, color);
+}
+
+static void py_circb(int argc, py_Ref argv)
+{
+    int x, y, radius, color;
+    for (int i = 0; i < 4; i++)
+        PY_CHECK_ARG_TYPE(i, tp_int);
+    tic_core* core;
+    get_core(&core);
+    tic_mem* tic = (tic_mem*)core;
+    x = py_toint(py_arg(0));
+    y = py_toint(py_arg(1));
+    radius = py_toint(py_arg(2));
+    color = py_toint(py_arg(3));
+    if (py_checkexc(0)) return;
+
+    core->api.circb(tic, x, y, radius, color);
+}
+
+static void py_clip(int argc, py_Ref argv)
+{
+    int x, y, width, height;
+    for (int i = 0; i < 4; i++)
+        PY_CHECK_ARG_TYPE(i, tp_int);
+    tic_core* core;
+    get_core(&core);
+    tic_mem* tic = (tic_mem*)core;
+    x = py_toint(py_arg(0));
+    y = py_toint(py_arg(1));
+    width = py_toint(py_arg(2));
+    height = py_toint(py_arg(3));
+    if (py_checkexc(0)) return;
+
+    core->api.clip(tic, x, y, width, height);
+}
+
+static void py_elli(int argc, py_Ref argv)
+{
+    int x, y, a, b, color;
+    for (int i = 0; i < 5; i++)
+        PY_CHECK_ARG_TYPE(i, tp_int);
+    tic_core* core;
+    get_core(&core);
+    tic_mem* tic = (tic_mem*)core;
+    x = py_toint(py_arg(0));
+    y = py_toint(py_arg(1));
+    a = py_toint(py_arg(2));
+    b = py_toint(py_arg(3));
+    color = py_toint(py_arg(4));
+    if (py_checkexc(0)) return;
+
+    core->api.elli(tic, x, y, a, b, color);
+}
+
+static void py_ellib(int argc, py_Ref argv)
+{
+    int x, y, a, b, color;
+    for (int i = 0; i < 5; i++)
+        PY_CHECK_ARG_TYPE(i, tp_int);
+    tic_core* core;
+    get_core(&core);
+    tic_mem* tic = (tic_mem*)core;
+    x = py_toint(py_arg(0));
+    y = py_toint(py_arg(1));
+    a = py_toint(py_arg(2));
+    b = py_toint(py_arg(3));
+    color = py_toint(py_arg(4));
+    if (py_checkexc(0)) return;
+
+    core->api.ellib(tic, x, y, a, b, color);
+}
+
+static void py_exit(int argc, py_Ref argv)
+{
+    tic_core* core;
+    get_core(&core);
+    tic_mem* tic = (tic_mem*)core;
+    if (py_checkexc(0)) return;
+
+    core->api.exit(tic);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*************TIC-80 MISC BEGIN****************/
 
 static void throw_error(tic_core* core, const char* msg)
