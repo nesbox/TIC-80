@@ -994,18 +994,15 @@ like this.
     RTICAPI.circ(RTICRAM, x, y, radius, color);
     return R_NilValue;
   }
-#+end_src
 
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_circb(SEXP args)
-  {
+  SEXP r_circb(SEXP args) {
     // circb(x y radius color)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const s32 radius = ScalarInteger(CADDDR(args));
-    const s32 color = ScalarInteger(CADDDDR(args));
-    core->api.circb(tic, x, y, radius, color);
+    const s32 x      = drInt(ARGS(1));
+    const s32 y      = drInt(ARGS(2));
+    const s32 radius = drInt(ARGS(3));
+    const s32 color  = drInt(ARGS(4));
+
+    RTICAPI.circb(RTICRAM, x, y, radius, color);
     return R_NilValue;
   }
 #+end_src
@@ -1023,9 +1020,7 @@ like this.
     core->api.elli(tic, x, y, a, b, color);
     return R_NilValue;
   }
-#+end_src
 
-#+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_ellib(SEXP args)
   {
     // ellib(x y a b color)
@@ -1055,9 +1050,7 @@ like this.
     core->api.tri(tic, x1, y1, x2, y2, x3, y3, color);
     return R_NilValue;
   }
-#+end_src
 
-#+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_trib(SEXP args)
   {
     // trib(x1 y1 x2 y2 x3 y3 color)
@@ -1072,9 +1065,7 @@ like this.
     core->api.trib(tic, x1, y1, x2, y2, x3, y3, color);
     return R_NilValue;
   }
-#+end_src
 
-#+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_ttri(SEXP args)
   {
     // ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
@@ -1133,6 +1124,7 @@ like this.
     return R_NilValue;
   }
 #+end_src
+
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_font(SEXP args)
   {
@@ -1300,9 +1292,7 @@ it will return the color of the pixel at that position.
     RTICAPI.rect(RTICRAM, x, y, w, h, color);
     return R_NilValue;
   }
-#+end_src
 
-#+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_rectb(SEXP args)
   {
     // rectb(x y w h color)
