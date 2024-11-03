@@ -1,9 +1,9 @@
 #include "core/core.h"
 
-#include "pocketpy.h"
-#include "pocketpy/objects/base.h"
 #include <stdio.h>
 #include <string.h>
+#include "pocketpy.h"
+#include "pocketpy/objects/base.h"
 
 /***************DEBUG SESSION*************/
 //cmake -A x64 -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=On -DBUILD_WITH_ALL=Off -DBUILD_WITH_PYTHON=On ..
@@ -22,7 +22,7 @@ struct names
     py_Name SCN;
     py_Name BDR;
     py_Name MENU;
-}N;
+} N;
 
 //set value of "name" to stack.top
 static void pkpy_setglobal_2(const char* name)
@@ -50,6 +50,7 @@ static bool setup_core(tic_core* core)
 //_NOTICE: py_peek(-1) takes stack.top, but pkpy.v1 takes stack.top with index 0
 static int prepare_colorindex(int index, u8* buffer)
 {
+    ++index;
     if (py_istype(py_peek(-index), tp_int))
     {
         int value;
@@ -76,6 +77,18 @@ static int prepare_colorindex(int index, u8* buffer)
 }
 
 /*****************TIC-80 API BEGIN*****************/
+//API is what u bind to module "__main__" in pkpy
+//when python use func like btn(id: int)
+//it's equal to py_btn(1, [id]), which passes the arg id
+//That's an interpreter
+
+//Structure of APIs:
+//claim args
+//check arg type
+//claim tic_core + get arg
+//check vm exceptions
+//use api in C
+//if needed, write back result to python
 
 static bool py_btn(int argc, py_Ref argv)
 {
@@ -84,14 +97,16 @@ static bool py_btn(int argc, py_Ref argv)
     get_core(&core);
     tic_mem* tic = (tic_mem*)core;
 
-    PY_CHECK_ARG_TYPE(0, tp_int);
+    PY_CHECK_ARG_TYPE(0, tp_int); //check argv[0] type
+    button_id = py_toint(py_arg(0));
+
+    if (py_checkexc(0)) return false;
     //or get button_id from argv[0]?
-    button_id = (int)py_toint(py_peek(-1));
+    //button_id = (int)py_toint(py_peek(-1));
     bool pressed = core->api.btn(tic, button_id & 0x1f);
 
     py_newbool(py_retval(), pressed);
-    py_push(py_retval());
-    return 1;
+    return true;
 }
 
 static bool py_btnp(int argc, py_Ref argv)
@@ -101,17 +116,96 @@ static bool py_btnp(int argc, py_Ref argv)
     int hold;
     int period;
 
-    button_id = py_toint(py_peek(-1));
-    hold = py_toint(py_peek(-2));
-    period = py_toint(py_peek(-3));
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    //button_id = py_toint(py_peek(-1));
+    //hold = py_toint(py_peek(-2));
+    //period = py_toint(py_peek(-3));
+    button_id = py_toint(py_arg(0));
+    hold = py_toint(py_arg(1));
+    period = py_toint(py_arg(2));
     tic_core* core;
     get_core(&core);
     tic_mem* tic = (tic_mem*)core;
+    if (py_checkexc(0)) return false;
 
     bool pressed = core->api.btnp(tic, button_id, hold, period);
     py_newbool(py_retval(), pressed);
-    py_push(py_retval());
-    return 1;
+    return true;
+}
+
+static void py_cls(int argc, py_Ref argv)
+{
+    int color;
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    tic_core* core;
+    get_core(&core);
+    tic_mem* tic = (tic_mem*)core;
+    if (py_checkexc(0)) return;
+
+    color = py_toint(py_arg(0));
+    core->api.cls(tic, color);
+    return;
+}
+
+static void py_spr(int argc, py_Ref argv)
+{
+    int spr_id;
+    int x;
+    int y;
+    int color_count;
+    int scale;
+    int flip;
+    int rotate;
+    int w;
+    int h;
+    char colors[16];
+    for (int i = 0; i < 9; i++)
+        PY_CHECK_ARG_TYPE(i, tp_int);
+    tic_core* core;
+    get_core(&core);
+    tic_mem* tic = (tic_mem*)core;
+    spr_id = py_toint(py_arg(0));
+    x = py_toint(py_arg(1));
+    y = py_toint(py_arg(2));
+    scale = py_toint(py_arg(4));
+    flip = py_toint(py_arg(5));
+    rotate = py_toint(py_arg(6));
+    w = py_toint(py_arg(7));
+    h = py_toint(py_arg(8));
+    color_count = prepare_colorindex(3, colors);
+    if (py_checkexc(0)) return;
+
+    core->api.spr(tic, spr_id, x, y, w, h, colors, color_count, scale, flip, rotate);
+}
+
+static void py_print(int argc, py_Ref argv)
+{
+    const char* str;
+    int x, y, color, scale;
+    bool fixed, alt;
+
+    PY_CHECK_ARG_TYPE(0, tp_str);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    PY_CHECK_ARG_TYPE(3, tp_int);
+    PY_CHECK_ARG_TYPE(4, tp_bool);
+    PY_CHECK_ARG_TYPE(5, tp_int);
+    PY_CHECK_ARG_TYPE(6, tp_bool);
+
+    str = py_tostr(py_arg(0));
+    x = py_toint(py_arg(1));
+    y = py_toint(py_arg(2));
+    color = py_toint(py_arg(3));
+    fixed = py_tobool(py_arg(4));
+    scale = py_toint(py_arg(5));
+    alt = py_tobool(py_arg(6));
+    tic_core* core;
+    get_core(&core);
+    tic_mem* tic = (tic_mem*)core;
+    if (py_checkexc(0)) return;
+
+    s32 ps = core->api.print(tic, str, x, y, color, fixed, scale, alt);
+    py_newint(py_retval(), ps);
 }
 
 /*************TIC-80 MISC BEGIN****************/
@@ -126,7 +220,10 @@ static bool bind_pkpy_v2()
     py_GlobalRef mod = py_getmodule("__main__");
     py_bind(mod, "btn(id: int) -> bool", py_btn);
     py_bind(mod, "btnp(id: int, hold=-1, period=-1) -> bool", py_btnp);
-    
+    py_bind(mod, "cls(color=0)", py_cls);
+    py_bind(mod, "spr(id: int, x: int, y: int, colorkey=-1, scale=1, flip=0, rotate=0, w=1, h=1)",
+            py_spr);
+    py_bind(mod, "print(text, x=0, y=0, color=15, fixed=False, scale=1, alt=False)", py_print);
     return true;
 }
 
@@ -141,7 +238,7 @@ void close_pkpy_v2(tic_mem* tic)
     }
 }
 
-static bool init_pkpy_v2(tic_mem* tic, const char *code)
+static bool init_pkpy_v2(tic_mem* tic, const char* code)
 {
     //maybe some config here
     py_initialize();
@@ -176,7 +273,7 @@ static bool init_pkpy_v2(tic_mem* tic, const char *code)
 void tick_pkpy_v2(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
-    if (!core->currentVM) return;//no vm
+    if (!core->currentVM) return; //no vm
 
     py_GlobalRef py_tick = py_getglobal(N.TIC);
     if (!py_tick) return;
@@ -278,7 +375,6 @@ void callback_menu(tic_mem* tic, s32 index, void* data)
     }
     free(py_idx);
 }
-
 
 static const char* const PythonKeywords[] =
     {
