@@ -35,11 +35,6 @@ changed so that no references to "Scheme" occur in the code.
 #+end_src
 
 #+begin_src C :noweb no-export :noweb-ref PREDECLARATIONS
-  #define sixth CAR(nthcdr(6))
-  #define seventh CAR(nthcdr(7))
-  #define eighth CAR(nthcdr(8))
-  #define ninth CAR(nthcdr(9))
-
   bool R_initialized_once = false;
   extern int R_running_as_main_program;   /* location within The R sources: ../unix/system.c */
   static bool initR(tic_mem *tic, const char *code);
@@ -178,10 +173,13 @@ can define it right now. For now the =memory= parameter can be ignored.
   		R_initialized_once = true;
   	}
   	SEXP RESULT;
-  	if (R_initialized_once) RESULT = Rf_eval(CSTR2LANGSXP(code), R_GlobalEnv);
+    SEXP LANG = PROTECT(CSTR2LANGSXP(code))
+  	if (R_initialized_once) RESULT = PROTECT(Rf_eval(LANG, R_GlobalEnv));
   	#if defined ebug /* -DEBUG=ON */
   	Rprintf("%s", RESULT);
   	#endif
+    UNPROTECT(1);
+    if (R_initialized_once) UNPROTECT(1);
   }
 #+end_src
 
@@ -398,8 +396,7 @@ and not undefine it.
   }
 #+end_src
 
-* DONE License                                                      :ARCHIVE:
-CLOSED: [2024-10-17 Thu 19:27]
+* License
 Copyright © 2024 Bryce Carson
 
 Except where otherwise noted, the following license is applicable to all code
@@ -436,1173 +433,71 @@ version 1.3.
  */
 #+end_src
 
-* Planned work                                                      :ARCHIVE:
+* Planned work
 ** Debugging R programs in TIC-80
 Integrate the R debugger, browser, etc. into TIC-80.
 
 ** A final example
-Write a game on the TIC-80 virtual console using R!
-* TODO Writing the R language integration for TIC-80
-** temp
-#+begin_src C
-  #define CSTR2LANGSXP(x) Rf_coerceVector(Rf_mkString(x), LANGSXP)
-#+end_src
+Write a /largeR/ game on the TIC-80 virtual console using R!
 
-** Defining R functions for the TIC-80 API
+* TODO Writing the R API for TIC-80
 The TIC-80 API functions need to be defined in the global environment after
 initializing R, and if they're writtin in C then they need to be registered with
 R, rather than R code evaluated by R.
 
-#+begin_comment
-Most of these functions can probably be translated from the Scheme language
-integration into R, given both use symbolic expressions and CAR and CDR.
-#+end_comment
-
-** TODO trace
-Print to the standard error stream (in a DEBUG build) in addition to the TIC-80 console.
-
-#+name: define trace
-#+begin_src C :noweb no-export
-  SEXP r_trace(SEXP *args, tic_mem *rho) {
-    const char *text = "Hello, woRld!";
-  	u8 color;
-  	((tic_core *) rho)->api.trace(memory, text, color ? color : 15);
-  	return R_NilValue
-  }
-#+end_src
-
-The quoted definition of ~tic_api_trace~ in the next chunk gives the arguments
-that are required of the callback to the TIC-80 core (after work has been done
-in R). This function is called eventually by the trace function available in the
-~tic_core->api~ struct.
-
-#+name: trace
-#+begin_src C
-  void tic_api_trace(tic_mem* memory, const char* text, u8 color)
-  {
-      tic_core* core = (tic_core*)memory;
-      core->data->trace(core->data->data, text ? text : "nil", color);
-  }
-#+end_src
-
-#+begin_comment
-It would benefit *me* if I worked my way through André Müller's [[https://hackingcpp.com/cpp/lang/memory_basics.html][Hacking C++]].
-It's an amazing resource. I really like the memory diagrams.
-#+end_comment
-
-#+name: scheme_trace
-#+begin_src C
-s7_pointer scheme_trace(s7_scheme* sc, s7_pointer args)
-{
-    // trace(message color=15)
-    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const char* msg = s7_string(s7_car(args));
-    const int argn = s7_list_length(sc, args);
-    const s32 color = argn > 1 ? s7_integer(s7_cadr(args)) : 15;
-    core->api.trace(tic, msg, color);
-    return s7_nil(sc);
-}
-#+end_src
-
-Each API has its own argument types that are accepted by the API functions, with
-Python API functions only using ~pkpy_vm *vm~, the Scheme API using ~int32_t
-argc~ and ~Janet *argv~, and the Scheme API using ~s7_scheme *sc~ and
-~s7_pointer args~; in each case, however, one of these arguments points to a
-location in memory which contains a =tic_core= struct, and hence can be used to
-access the following ~core->api~, which is the API struct.
-
-What makes it especially confusing /and interesting/ is the following example
-from the =scheme.c= file providing the Scheme API integration. Every function
-returns an =s7_pointer= which can be used as the ~args~ argument to any other
-function. Always, the return value is either ~nil~ (in the LISP sense) or a
-pointer of various types (boolean, real, integer), but the function definition
-and declaration specify simply ~s7_pointer~. This is similar to ~SEXP~ in R,
-where everything is a symbolic expression.
-
-#+name: scheme_fft
-#+begin_src C
-  s7_pointer scheme_fft(s7_scheme* sc, s7_pointer args)
-  {
-      // fft(int start_freq, int end_freq=-1) -> float_value
-      tic_core* core = getSchemeCore(sc);
-      tic_mem* tic = (tic_mem*)core;
-
-      const int argn = s7_list_length(sc, args);
-      const s32 start_freq = argn > 0 ? s7_integer(s7_car(args)) : -1;
-      const s32 end_freq = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
-
-      return s7_make_real(sc, core->api.fft(tic, start_freq, end_freq));
-  }
-#+end_src
-
-** Defining BTN, a boolean TIC-80 API function
-I know that when TIC-80 calls my initialization code that the R interpreter will
-be initialized either by ~Rf_initEmbeddedR~ (if I don't implement a custom
-initialization routine), and once this is done registration of the TIC-80 API
-functions with the R interpreter takes place.
-
-These functions, when called by the R function ~.Primitive~, will receive a
-number of arguments. While R is running embedded it needs access to the TIC-80
-=tic_mem *= typed object so that it can call the internal C API of TIC-80. This
-is stored as a global variable in the scope that the primitive (implemented in
-C) R function ~`TIC-80`~ will have access to.
-
-#+name: define btn
-#+begin_src C
-  /* s7_pointer scheme_btn(s7_scheme* sc, s7_pointer args) */
-  /* { */
-  /*     // btn(id) -> pressed */
-  /*     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core; */
-  /*     const s32 id = s7_integer(s7_car(args)); */
-
-  /*     return s7_make_boolean(sc, core->api.btn(tic, id)); */
-  /* } */
-
-  /* (LISTSXP) args is done by functions and macros defined in Rinternals.h, I
-   ,* don't need to do it. SEXP is a variant-type, so treat it as such; "a SEXP is
-   ,* simply a pointer to a SEXPREC", the underlying variant type.*/
-  SEXP r_btn(SEXP args) {
-  	/* btn(id)
-  	 ,* ⮑ pressed */
-  	/* TODO: convert the ARGS into an integer, and provide it to
-  	 ,* core->api.btn(tic_mem *tic, s32 id), returning a boolean from this function
-  	 ,* (as SEXP automatically promoted). */
-  	SEXP id = PROTECT(allocVector(INTSXP, 1));
-  	INT(id)[0] = first;
-  	SEXP /*LGLSXP*/ btn = core->api.btn(tic_mem *tic, (s32) id);
-  	UNPROTECT(1);
-  	return btn;
-  }
-#+end_src
-
-I think that's sufficient?
-
-** Defining print... a complex function
-The TIC-80 print function has much more going on for it than btn or trace. It
-will operate with the graphical system of TIC-80 and cause something to appear
-on the screen.
-
-#+begin_comment
-This code cannot handle named arguments! I need to determine how to do that!
-#+end_comment
-
-#+begin_src C :noweb-ref PREDECLARATIONS
-  #define RSTRT(x) SEXP x(SEXP args) { int protected_count = 0; const int argn = length(args);
-  #define RUNP UNPROTECT(protected_count);
-  #define REND }
-
-  #define ProtectAndIncrement(x) (++protected_count, PROTECT(x))
-  #define psint(x) ProtectAndIncrement(ScalarInteger(x))
-  #define pslgl(x) ProtectAndIncrement(ScalarLogical(x))
-  #define psstr(x) ProtectAndIncrement(ScalarString(x))
-  #define CADNR(x) CAR(nthcdr(x))
-#+end_src
-
-While I thought that would've been much more complex I think I did it!
-
-** The Scheme Core
-The function =getSchemeCore= returns a pointer to a =tic_core= object, using an
-s7 Scheme pointer to locate a value from a name ~_TIC80~ which the interpreter
-is managing. The function converts the name to a Scheme value and returns the
-pointer to that object, converted from a Scheme pointer to a void pointer
-(assumedly), and automatically type promoted to the return value of ~tic_core
-*~.
-
-#+begin_src C
-  static const char* TicCore = "_TIC80";
-
-  tic_core* getSchemeCore(s7_scheme* sc)
-  {
-      return s7_c_pointer(s7_name_to_value(sc, TicCore));
-  }
-#+end_src
-
-The address of the Scheme value with the name ~_TIC80~ is the address of the
-TIC-80 core. The memory of the fantasy computer is located at this address as
-well, and ~tic_core->currentVM~ points back to this start of memory as well (I
-think). This creates a sort of ring of memory.
-
-** The TIC Core and TIC memory
-#+begin_src C :noweb-ref struct tic_mem
-  struct tic_mem
-  {
-      tic80           product;
-      tic_ram*        ram;
-      tic_cartridge   cart;
-
-      tic_ram*        base_ram;
-
-      char saveid[TIC_SAVEID_SIZE];
-
-  	<<union struct tic_mem.input>>
-  };
-#+end_src
-
-The field ~product~ has type =tic80=, whose defintion is quoted here.
-
-#+begin_src C
-  typedef struct
-  {
-    struct
-    {
-      void (*trace)(const char* text, u8 color);
-      void (*error)(const char* info);
-      void (*exit)();
-    } callback;
-
-    struct
-    {
-      TIC80_SAMPLETYPE* buffer;
-      s32 count;
-    } samples;
-
-    u32 *screen;
-  } tic80;
-#+end_src
-
-The union struct called "input", which was unimportant to earlier discussion, is
-defined here so the quoted definition (though unused apart from as a quotation
-for discussion) is not incomplete.
-
-#+name: union struct tic_mem.input
-#+begin_src C
-  union
-  {
-    struct
-    {
-  #if RETRO_IS_BIG_ENDIAN
-      u8 padded:5;
-      u8 keyboard:1;
-      u8 mouse:1;
-      u8 gamepad:1;
-  #else
-      u8 gamepad:1;
-      u8 mouse:1;
-      u8 keyboard:1;
-      u8 padded:5;
-  #endif
-    };
-
-    u8 data;
-  } input;
-#+end_src
-
-** TODO The TIC API functions
-Every function wrapping an internal TIC-80 C API must eventually call an api
-function, like so. These functions each require, as their first argument,
-~tic_mem *tic~.
+** Macros and PREDECLARATIONS
+Every function wrapping an internal TIC-80 C API must eventually call an
+internal API function, as in the following example. These functions each
+require, as their first argument, ~tic_mem *tic~.
 
 #+begin_example C
   core->api.print(tic, text, x, y, color, fixed, scale, alt)
 #+end_example
 
-#+begin_src C
+That is made easier by defining the following symbols and macros to reference
+them.
+
+#+begin_src C :noweb-ref PREDECLARATIONS
   tic_mem *mem;
-  static SEXP RTicRam = R_MakeExternalPtr((void *) tic);
+  static SEXP RTicRam;
+  #define RTICAPI ((tic_core *)RTicRam)->api
+  #define RTICRAM R_ExternalPtrAddr(RTicRam)
 #+end_src
 
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  RSTRT(r_print)
-    /* print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false)
-     ,* ⮑ width*/
-    const char* text = psstr(first);
-    const s32  x     = argn > 1 ? psint(second)         : 0;
-    const s32  y     = argn > 2 ? psint(third)          : 0;
-    const u8   color = argn > 3 ? psint(fourth)         : 15;
-    const bool fixed = argn > 4 ? pslgl(fifth)          : false;
-    const s32  scale = argn > 5 ? psint(sixth)          : 1;
-    const bool alt   = argn > 6 ? pslgl(seventh)        : false;
+The example then becomes as follows.
 
-    RUNP;
+#+begin_example C
+  RTICAPI.print(RTICRAM, text, x, y, color, fixed, scale, alt);
+#+end_example
 
-    return ScalarLogical(core->api.print(R_ExternalPtrAddr(RTicRam), text, x, y, color, fixed, scale, alt));
-  REND
+To handle conversion between R SEXPTYPEs and standard C types the following
+macros are declared.
+
+#+begin_src C :noweb-ref PREDECLARATIONS
+  #define drIntp(x)  *((int   *)x)
+  #define drDblp(x)  *((int   *)x)
+  #define drLglp(x)  *((int   *)x)
+  #define drChrpp(x) *((char **)x)
+  #define ARGS(x) Rf_elt(args, x)
 #+end_src
 
-With the preprocessor macros and the R API function ~R_ExternalPtrAddr~ I have
-sufficiently simplified the defintion of an =.External= R function to the point
-I'm happy to write these and edit the ones which I already have copied from
-the s7 Scheme API.
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  RSTRT(r_cls)
-    /* cls(color=0)
-     ,* ⮑ nil */
-
-    const u8 color = (argn > 0) ? psInt(first) : 0;
-
-    core->api.cls(R_ExternalPtrAddr(RTicMem), color);
-
-    RUNP;
-
-    return R_NilValue
-  REND
-#+end_src
-
-It isn't so bad to write these now. I can focus on /handling the arguments/,
-regardless of their number, rather than acquiring the number of arguments and
-protecting them.
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  RSTRT(r_pix)
-    /* pix(x y color = 0)
-  	 ,* ⮑ nil
-  	 ,* pix(x y)
-     ,* ⮑ color */
-    const s32 x = psint(first);
-    const s32 y = psint(second);
-
-    if (argn == 3) {
-      const u8 color = psint(third);
-      core->api.pix(tic, x, y, color, false);
-  		RUNP;
-      return R_NilValue;
-    } else {
-  		RUNP;
-      return ScalarInteger(core->api.pix(R_ExternalPtrAddr(RTicMem), x, y, 0, true));
-    }
-  REND
-#+end_src
-
-PIX is a setter and getter function; if provided with a color it will set the
-pixel at that position to that color (returning ~nil~, ~NULL~ in R), otherwise
-it will return the color of the pixel at that position.
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  RSTRT(r_line)
-    /* line(x0 y0 x1 y1 color)
-  	 ,* ⮑ nil */
-    const s32 x0    = psint(first);
-    const s32 y0    = psint(second);
-    const s32 x1    = psint(third);
-    const s32 y1    = psint(fourth);
-    const u8  color = psint(fifth);
-
-    core->api.line(R_ExternalPtrAddr(RTicMem), x0, y0, x1, y1, color);
-  	RUNP;
-    return R_NilValue;
-  REND
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_rect(SEXP args)
-  {
-    // rect(x y w h color)
-  	int protected_count = 0;
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ProtInc(ScalarInteger(CADR(args)));
-    const s32 y = ProtInc(ScalarInteger(CADDR(args)));
-    const s32 w = ProtInc(ScalarInteger(CADDDR(args)));
-    const s32 h = ProtInc(ScalarInteger(CADDDDR(args)));
-    const u8 color = ScalarInteger(s7_list_ref(sc, args, 4));
-    core->api.rect(tic, x, y, w, h, color);
-  	UNPROTECT(protected_count);
-    return R_NilValue;
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_rectb(SEXP args)
-  {
-    // rectb(x y w h color)
-  	int protected_count = 0;
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x    = ProtInc(ScalarInteger(first));
-    const s32 y    = ProtInc(ScalarInteger(second));
-    const s32 w    = ProtInc(ScalarInteger(third));
-    const s32 h    = ProtInc(ScalarInteger(fourth));
-    const u8 color = ProtInc(ScalarInteger(fifth));
-    core->api.rectb(tic, x, y, w, h, color);
-  	UNPROTECT(protected_count);
-    return R_NilValue;
-  }
-#+end_src
-
-=parseTransparentColorsArg= is a helper function which is used elsewhere in the API.
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  void parseTransparentColorsArg(SEXP colorkey, u8* out_transparent_colors, u8* out_count)
-  {
-    ,*out_count = 0;
-    if (s7_is_list(sc, colorkey))
-    {
-      const s32 arg_color_count = length(colorkey);
-      const u8 color_count = arg_color_count < TIC_PALETTE_SIZE ? (u8)arg_color_count : TIC_PALETTE_SIZE;
-      for (u8 i=0; i<color_count; ++i)
-      {
-        SEXP c = s7_list_ref(sc, colorkey, i);
-        out_transparent_colors[i] = s7_is_integer(c) ? ScalarInteger(c) : 0;
-        ++(*out_count);
-      }
-    }
-    else if (s7_is_integer(colorkey))
-    {
-      out_transparent_colors[0] = (u8)ScalarInteger(colorkey);
-      ,*out_count = 1;
-    }
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_spr(SEXP args)
-  {
-    // spr(id x y colorkey=-1 scale=1 flip=0 rotate=0 w=1 h=1)
-  	int protected_count = 0;
-    const int argn      = length(args);
-    tic_core* core      = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 id        = ProtInc(ScalarInteger(first));
-    const s32 x         = ProtInc(ScalarInteger(second));
-    const s32 y         = ProtInc(ScalarInteger(third));
-
-    static u8 trans_colors[TIC_PALETTE_SIZE];
-    u8 trans_count = 0;
-    if (argn > 3)
-    {
-      SEXP colorkey = ProtInc(fourth);
-      parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
-    }
-
-    const s32 scale     = argn > 4 ? ProtInc(ScalarInteger(fourth           ) ) : 1;
-    const s32 flip      = argn > 5 ? ProtInc(ScalarInteger(fifth            ) ) : 0;
-    const s32 rotate    = argn > 6 ? ProtInc(ScalarInteger(CAR(nthcdr(6 ) ) ) ) : 0;
-    const s32 w         = argn > 7 ? ProtInc(ScalarInteger(CAR(nthcdr(7 ) ) ) ) : 1;
-    const s32 h         = argn > 8 ? ProtInc(ScalarInteger(CAR(nthcdr(8 ) ) ) ) : 1;
-    core->api.spr(tic, id, x, y, w, h, trans_colors, trans_count, scale, (tic_flip)flip, (tic_rotate) rotate);
-  	UNPROTECT(protected_count);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_btn(SEXP args)
-  {
-    // btn(id) -> pressed
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 id = ScalarInteger(CADR(args));
-
-    return s7_make_boolean(sc, core->api.btn(tic, id));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_btnp(SEXP args)
-  {
-    // btnp(id hold=-1 period=-1) -> pressed
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 id = ScalarInteger(CADR(args));
-
-    const int argn = length(args);
-    const s32 hold = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-    const s32 period = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-
-    return s7_make_boolean(sc, core->api.btnp(tic, id, hold, period));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  u8 get_note_base(char c) {
-    switch (c) {
-    case 'C': return 0;
-    case 'D': return 2;
-    case 'E': return 4;
-    case 'F': return 5;
-    case 'G': return 7;
-    case 'A': return 9;
-    case 'B': return 11;
-    default:  return 255;
-    }
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  u8 get_note_modif(char c) {
-    switch (c) {
-    case '-': return 0;
-    case '#': return 1;
-    default:  return 255;
-    }
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  u8 get_note_octave(char c) {
-    if (c >= '0' && c <= '8')
-      return c - '0';
-    else
-      return 255;
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  typedef struct
-  {
-    s7_scheme* sc;
-    SEXP callback;
-  } RemapData;
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_sfx(SEXP a, SEXP args)
-  {
-    // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 id = ScalarInteger(CADR(args));
-
-    const int argn = length(args);
-    int note = -1;
-    int octave = -1;
-    if (argn > 1) {
-      SEXP note_ptr = CADDR(args);
-      if (s7_is_integer(note_ptr)) {
-        const s32 raw_note = ScalarInteger(note_ptr);
-        if (raw_note >= 0 || raw_note <= 95) {
-          note = raw_note % 12;
-          octave = raw_note / 12;
-        }
-        /* else { */
-        /*     char buffer[100]; */
-        /*     snprintf(buffer, 99, "Invalid sfx note given: %d\n", raw_note); */
-        /*     tic->data->error(tic->data->data, buffer); */
-        /* } */
-      } else if (s7_is_string(note_ptr)) {
-        const char* note_str = ScalarString(note_ptr);
-        const u8 len = ScalarString_length(note_ptr);
-        if (len == 3) {
-          const u8 modif = get_note_modif(note_str[1]);
-          note = get_note_base(note_str[0]);
-          octave = get_note_octave(note_str[2]);
-          if (note < 255 || modif < 255 || octave < 255) {
-            note = note + modif;
-          } else {
-            note = octave = 255;
-          }
-        }
-        /* if (note == 255 || octave == 255) { */
-        /*     char buffer[100]; */
-        /*     snprintf(buffer, 99, "Invalid sfx note given: %s\n", note_str); */
-        /*     tic->data->error(tic->data->data, buffer); */
-        /* } */
-      }
-    }
-
-    const s32 duration = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-    const s32 channel = argn > 3 ? ScalarInteger(CADDDDR(args)) : 0;
-
-    s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
-    if (argn > 4) {
-      SEXP volume_arg = s7_list_ref(sc, args, 4);
-      if (s7_is_integer(volume_arg)) {
-        volumes[0] = volumes[1] = ScalarInteger(volume_arg) & 0xF;
-      } else if (s7_is_list(sc, volume_arg) && length(volume_arg) == 2) {
-        volumes[0] = ScalarInteger(CADR(volume_arg)) & 0xF;
-        volumes[1] = ScalarInteger(CADDR(volume_arg)) & 0xF;
-      }
-    }
-    const s32 speed = argn > 5 ? ScalarInteger(s7_list_ref(sc, args, 5)) : 0;
-
-    core->api.sfx(tic, id, note, octave, duration, channel, volumes[0], volumes[1], speed);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
-  {
-    RemapData* remap = (RemapData*)data;
-    s7_scheme* sc = remap->sc;
-
-    // (callback index x y) -> (list index flip rotate)
-    SEXP callbackResult = s7_call(sc, remap->callback,
-                                  s7_cons(sc, s7_make_integer(sc, result->index),
-                                          s7_cons(sc, s7_make_integer(sc, x),
-                                                  s7_cons(sc, s7_make_integer(sc, y),
-                                                          R_NilValue))));
-
-    if (s7_is_list(sc, callbackResult) && length(callbackResult) == 3)
-    {
-      result->index = ScalarInteger(CADR(callbackResult));
-      result->flip = (tic_flip)ScalarInteger(CADDR(callbackResult));
-      result->rotate = (tic_rotate)ScalarInteger(CADDDR(callbackResult));
-    }
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_map(SEXP args)
-  {
-    // map(x=0 y=0 w=30 h=17 sx=0 sy=0 colorkey=-1 scale=1 remap=nil)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const s32 w = ScalarInteger(CADDDR(args));
-    const s32 h = ScalarInteger(CADDDDR(args));
-    const s32 sx = ScalarInteger(s7_list_ref(sc, args, 4));
-    const s32 sy = ScalarInteger(s7_list_ref(sc, args, 5));
-
-    const int argn = length(args);
-
-    static u8 trans_colors[TIC_PALETTE_SIZE];
-    u8 trans_count = 0;
-    if (argn > 6) {
-      SEXP colorkey = s7_list_ref(sc, args, 6);
-      parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
-    }
-
-    const s32 scale = argn > 7 ? ScalarInteger(s7_list_ref(sc, args, 7)) : 1;
-
-    RemapFunc remap = NULL;
-    RemapData data;
-    if (argn > 8)
-    {
-      remap = remapCallback;
-      data.sc = sc;
-      data.callback = s7_list_ref(sc, args, 8);
-    }
-    core->api.map(tic, x, y, w, h, sx, sy, trans_colors, trans_count, scale, remap, &data);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_mget(SEXP args)
-  {
-    // mget(x y) -> tile_id
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    return s7_make_integer(sc, core->api.mget(tic, x, y));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_mset(SEXP args)
-  {
-    // mset(x y tile_id)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const u8 tile_id = ScalarInteger(CADDDR(args));
-    core->api.mset(tic, x, y, tile_id);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_peek(SEXP args)
-  {
-    // peek(addr bits=8) -> value
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    const int argn = length(args);
-    const s32 bits = argn > 1 ? ScalarInteger(CADDR(args)) : 8;
-    return s7_make_integer(sc, core->api.peek(tic, addr, bits));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_poke(SEXP args)
-  {
-    // poke(addr value bits=8)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    const s32 value = ScalarInteger(CADDR(args));
-    const int argn = length(args);
-    const s32 bits = argn > 2 ? ScalarInteger(CADDDR(args)) : 8;
-    core->api.poke(tic, addr, value, bits);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_peek1(SEXP args)
-  {
-    // peek1(addr) -> value
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    return s7_make_integer(sc, core->api.peek1(tic, addr));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_poke1(SEXP args)
-  {
-    // poke1(addr value)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    const s32 value = ScalarInteger(CADDR(args));
-    core->api.poke1(tic, addr, value);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_peek2(SEXP args)
-  {
-    // peek2(addr) -> value
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    return s7_make_integer(sc, core->api.peek2(tic, addr));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_poke2(SEXP args)
-  {
-    // poke2(addr value)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    const s32 value = ScalarInteger(CADDR(args));
-    core->api.poke2(tic, addr, value);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_peek4(SEXP args)
-  {
-    // peek4(addr) -> value
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    return s7_make_integer(sc, core->api.peek4(tic, addr));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_poke4(SEXP args)
-  {
-    // poke4(addr value)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    const s32 value = ScalarInteger(CADDR(args));
-    core->api.poke4(tic, addr, value);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_memcpy(SEXP args)
-  {
-    // memcpy(dest source size)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 dest = ScalarInteger(CADR(args));
-    const s32 source = ScalarInteger(CADDR(args));
-    const s32 size = ScalarInteger(CADDDR(args));
-
-    core->api.memcpy(tic, dest, source, size);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_memset(SEXP args)
-  {
-    // memset(dest value size)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 dest = ScalarInteger(CADR(args));
-    const s32 value = ScalarInteger(CADDR(args));
-    const s32 size = ScalarInteger(CADDDR(args));
-
-    core->api.memset(tic, dest, value, size);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_trace(SEXP args)
-  {
-    // trace(message color=15)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const char* msg = ScalarString(CADR(args));
-    const int argn = length(args);
-    const s32 color = argn > 1 ? ScalarInteger(CADDR(args)) : 15;
-    core->api.trace(tic, msg, color);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_pmem(SEXP args)
-  {
-    // pmem(index value)
-    // pmem(index) -> value
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 index = ScalarInteger(CADR(args));
-    const int argn = length(args);
-    s32 value = 0;
-    bool shouldSet = false;
-    if (argn > 1)
-    {
-      value = ScalarInteger(CADDR(args));
-      shouldSet = true;
-    }
-    return s7_make_integer(sc, (s32)core->api.pmem(tic, index, value, shouldSet));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_time(SEXP args)
-  {
-    // time() -> ticks
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    return s7_make_real(sc, core->api.time(tic));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_tstamp(SEXP args)
-  {
-    // tstamp() -> timestamp
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    return s7_make_integer(sc, core->api.tstamp(tic));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_exit(SEXP args)
-  {
-    // exit()
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    core->api.exit(tic);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_font(SEXP args)
-  {
-    // font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const char* text = ScalarString(CADR(args));
-    const s32 x = ScalarInteger(CADDR(args));
-    const s32 y = ScalarInteger(CADDDR(args));
-
-    static u8 trans_colors[TIC_PALETTE_SIZE];
-    u8 trans_count = 0;
-    SEXP colorkey = CADDDDR(args);
-    parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
-
-    const s32 w = ScalarInteger(s7_list_ref(sc, args, 4));
-    const s32 h = ScalarInteger(s7_list_ref(sc, args, 5));
-    const int argn = length(args);
-    const s32 fixed = argn > 6 ? ScalarLogical(sc, s7_list_ref(sc, args, 6)) : false;
-    const s32 scale = argn > 7 ? ScalarInteger(s7_list_ref(sc, args, 7)) : 1;
-    const s32 alt = argn > 8 ? ScalarLogical(sc, s7_list_ref(sc, args, 8)) : false;
-
-    return s7_make_integer(sc, core->api.font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  /* This API function does not use the convenience macros because it doesn't need
-   ,* to protect any values from garbage collection, because every use of an R API
-   ,* call is to manipulate a C value which R does not control the memory of. */
-  SEXP r_mouse(SEXP args)
-  {
-    /* mouse()
-  	 ,* ⮑ x y left middle right scrollx scrolly */
-  	tic_mem *tic = (tic_mem *)R_ExternalPtrAddr(RTicMem);
-  	tic_core* core = (tic_core *)tic;
-
-    const tic_point point = core->api.mouse(tic);
-    const tic80_mouse* mouse = &((tic_core*)tic)->memory.ram->input.mouse;
-
-    return CONS(ScalarInteger(point.x),
-                list6(ScalarInteger(point.y),
-                      ScalarInteger(mouse->left),
-                      ScalarInteger(mouse->middle),
-                      ScalarInteger(mouse->right),
-                      ScalarInteger(mouse->scrollx),
-                      ScalarInteger(mouse->scrolly)));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  RSTRT(r_circ)
-    // circ(x y radius color)
-    const s32 x = psint(first);
-    const s32 y = psint(second);
-    const s32 radius = psint(third);
-    const s32 color = psint(fourth);
-
-    core->api.circ(tic, x, y, radius, color);
-
-    RUNP;
-    return R_NilValue;
-  REND
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_circb(SEXP args)
-  {
-    // circb(x y radius color)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const s32 radius = ScalarInteger(CADDDR(args));
-    const s32 color = ScalarInteger(CADDDDR(args));
-    core->api.circb(tic, x, y, radius, color);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_elli(SEXP args)
-  {
-    // elli(x y a b color)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const s32 a = ScalarInteger(CADDDR(args));
-    const s32 b = ScalarInteger(CADDDDR(args));
-    const s32 color = ScalarInteger(s7_list_ref(sc, args, 4));
-    core->api.elli(tic, x, y, a, b, color);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_ellib(SEXP args)
-  {
-    // ellib(x y a b color)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const s32 a = ScalarInteger(CADDDR(args));
-    const s32 b = ScalarInteger(CADDDDR(args));
-    const s32 color = ScalarInteger(s7_list_ref(sc, args, 4));
-    core->api.ellib(tic, x, y, a, b, color);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_tri(SEXP args)
-  {
-    // tri(x1 y1 x2 y2 x3 y3 color)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x1 = ScalarInteger(CADR(args));
-    const s32 y1 = ScalarInteger(CADDR(args));
-    const s32 x2 = ScalarInteger(CADDDR(args));
-    const s32 y2 = ScalarInteger(CADDDDR(args));
-    const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
-    const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
-    const s32 color = ScalarInteger(s7_list_ref(sc, args, 6));
-    core->api.tri(tic, x1, y1, x2, y2, x3, y3, color);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_trib(SEXP args)
-  {
-    // trib(x1 y1 x2 y2 x3 y3 color)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x1 = ScalarInteger(CADR(args));
-    const s32 y1 = ScalarInteger(CADDR(args));
-    const s32 x2 = ScalarInteger(CADDDR(args));
-    const s32 y2 = ScalarInteger(CADDDDR(args));
-    const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
-    const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
-    const s32 color = ScalarInteger(s7_list_ref(sc, args, 6));
-    core->api.trib(tic, x1, y1, x2, y2, x3, y3, color);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_ttri(SEXP args)
-  {
-    // ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x1 = ScalarInteger(CADR(args));
-    const s32 y1 = ScalarInteger(CADDR(args));
-    const s32 x2 = ScalarInteger(CADDDR(args));
-    const s32 y2 = ScalarInteger(CADDDDR(args));
-    const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
-    const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
-    const s32 u1 = ScalarInteger(s7_list_ref(sc, args, 6));
-    const s32 v1 = ScalarInteger(s7_list_ref(sc, args, 7));
-    const s32 u2 = ScalarInteger(s7_list_ref(sc, args, 8));
-    const s32 v2 = ScalarInteger(s7_list_ref(sc, args, 9));
-    const s32 u3 = ScalarInteger(s7_list_ref(sc, args, 10));
-    const s32 v3 = ScalarInteger(s7_list_ref(sc, args, 11));
-
-    const int argn = length(args);
-    const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? ScalarInteger(s7_list_ref(sc, args, 12)) : 0);
-
-    static u8 trans_colors[TIC_PALETTE_SIZE];
-    u8 trans_count = 0;
-
-    if (argn > 13)
-    {
-      SEXP colorkey = s7_list_ref(sc, args, 13);
-      parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
-    }
-
-    bool depth = argn > 14 ? true : false;
-    const s32 z1 = argn > 14 ? ScalarInteger(s7_list_ref(sc, args, 14)) : 0;
-    const s32 z2 = argn > 15 ? ScalarInteger(s7_list_ref(sc, args, 15)) : 0;
-    const s32 z3 = argn > 16 ? ScalarInteger(s7_list_ref(sc, args, 16)) : 0;
-
-    core->api.ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, trans_colors, trans_count, z1, z2, z3, depth);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_clip(SEXP args)
-  {
-    // clip(x y width height)
-    // clip()
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    if (argn != 4) {
-      core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
-    } else {
-      const s32 x = ScalarInteger(CADR(args));
-      const s32 y = ScalarInteger(CADDR(args));
-      const s32 w = ScalarInteger(CADDDR(args));
-      const s32 h = ScalarInteger(CADDDDR(args));
-      core->api.clip(tic, x, y, w, h);
-    }
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_music(SEXP args)
-  {
-    // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    const s32 track = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-    const s32 frame = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-    const s32 row = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-    const bool loop = argn > 3 ? ScalarLogical(sc, CADDDDR(args)) : true;
-    const bool sustain = argn > 4 ? ScalarLogical(sc, s7_list_ref(sc, args, 4)) : false;
-    const s32 tempo = argn > 5 ? ScalarInteger(s7_list_ref(sc, args, 5)) : -1;
-    const s32 speed = argn > 6 ? ScalarInteger(s7_list_ref(sc, args, 6)) : -1;
-    core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_sync(SEXP args)
-  {
-    // sync(mask=0 bank=0 tocart=false)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    const u32 mask = argn > 0 ? (u32)ScalarInteger(CADR(args)) : 0;
-    const s32 bank = argn > 1 ? ScalarInteger(CADDR(args)) : 0;
-    const bool tocart = argn > 2 ? ScalarLogical(sc, CADDDR(args)) : false;
-    core->api.sync(tic, mask, bank, tocart);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_vbank(SEXP args)
-  {
-    // vbank(bank) -> prev
-    // vbank() -> prev
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-
-    const s32 prev = ((tic_core*)tic)->state.vbank.id;
-    if (argn == 1) {
-      const s32 bank = ScalarInteger(CADR(args));
-      core->api.vbank(tic, bank);
-    }
-    return s7_make_integer(sc, prev);
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_reset(SEXP args)
-  {
-    // reset()
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    core->api.reset(tic);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_key(SEXP args)
-  {
-    //key(code=-1) -> pressed
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    const tic_key code = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-    return s7_make_boolean(sc, core->api.key(tic, code));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_keyp(SEXP args)
-  {
-    // keyp(code=-1 hold=-1 period=-1) -> pressed
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    const tic_key code = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-    const s32 hold = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-    const s32 period = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-    return s7_make_boolean(sc, core->api.keyp(tic, code, hold, period));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_fget(SEXP args)
-  {
-    // fget(sprite_id flag) -> bool
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 sprite_id = ScalarInteger(CADR(args));
-    const u8 flag = ScalarInteger(CADDR(args));
-    return s7_make_boolean(sc, core->api.fget(tic, sprite_id, flag));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_fset(SEXP args)
-  {
-    // fset(sprite_id flag bool)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 sprite_id = ScalarInteger(CADR(args));
-    const u8 flag = ScalarInteger(CADDR(args));
-    const bool val = ScalarLogical(sc, CADDDR(args));
-    core->api.fset(tic, sprite_id, flag, val);
-    return R_NilValue
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_fft(SEXP args)
-  {
-    // fft(int start_freq, int end_freq=-1) -> float_value
-    tic_core* core = R_GlobalEnv;
-    tic_mem* tic = (tic_mem*)core;
-
-    const int argn = length(args);
-    const s32 start_freq = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-    const s32 end_freq = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-
-    return s7_make_real(sc, core->api.fft(tic, start_freq, end_freq));
-  }
-#+end_src
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_ffts(SEXP args)
-  {
-    // ffts(int start_freq, int end_freq=-1) -> float_value
-    tic_core* core = R_GlobalEnv;
-    tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    const s32 start_freq = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-    const s32 end_freq = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-
-    return s7_make_real(sc, core->api.ffts(tic, start_freq, end_freq));
-  }
+Functions in the R TIC-80 API which require more attention in C programming may
+make use of the following macros. These macros are /only useful for C
+constants/, as everything within =args= is already protected from garbage
+collection because =...= is in use already in the =.External= interface.
+However, any /wholly new SEXPs/ created from values extracted from =args= will
+need to be protected. References to existing SEXPs will not require further
+protection.
+
+#+begin_src C :noweb-ref PREDECLARATIONS
+  #define CSTR2LANGSXP(x) Rf_coerceVector(Rf_mkString(x), LANGSXP)
+  #define RSTRT(x) SEXP x(SEXP args) { int protected_count = 0; const int argn = Rf_length(args);
+  #define RUNP UNPROTECT(protected_count);
+  #define REND }
+  #define ProtectAndIncrement(x) (++protected_count, PROTECT(x))
+  #define psint(x) ProtectAndIncrement(Rf_ScalarInteger(x))
+  #define pslgl(x) ProtectAndIncrement(Rf_ScalarLogical(x))
+  #define psstr(x) ProtectAndIncrement(Rf_ScalarString(x))
 #+end_src
 
 ** Procedures to initialize, close, and re-initialize R
@@ -1675,7 +570,7 @@ That is defined separately, and not as a macro, so that the code can be re-used.
   /* This function is called with code, which is the entirety of the studio
      ,,* editor's code buffer (i.e. the entire game code as one string). */
   static bool initR(tic_mem *tic, const char *code) {
-    tic_memory_static = tic;
+  	RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL)
 
     closeR(tic);
 
@@ -1714,7 +609,7 @@ That is defined separately, and not as a macro, so that the code can be re-used.
   }
 #+end_src
 
-** Cartidge callback commands
+** Callbacks
 It might not be advisable to define the ~TIC~ function in the R API as
 ~`TIC-80`~, but because R allows non-syntactic names I'll use it so that the
 actual name of the machine can be used. If the machine were called ~MANE~ we'd
@@ -2084,6 +979,882 @@ like this.
     /* Automatically built from ../../demos/bunny/rbenchmark.r */
   #include "../build/assets/rmark.tic.dat"
   };
+#+end_src
+
+** Functions
+*** Drawing
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_circ(SEXP args) {
+    // circ(x y radius color)
+    const s32 x      = drInt(ARGS(1));
+    const s32 y      = drInt(ARGS(2));
+    const s32 radius = drInt(ARGS(3));
+    const s32 color  = drInt(ARGS(4));
+
+    RTICAPI.circ(RTICRAM, x, y, radius, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_circb(SEXP args)
+  {
+    // circb(x y radius color)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 x = ScalarInteger(CADR(args));
+    const s32 y = ScalarInteger(CADDR(args));
+    const s32 radius = ScalarInteger(CADDDR(args));
+    const s32 color = ScalarInteger(CADDDDR(args));
+    core->api.circb(tic, x, y, radius, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_elli(SEXP args)
+  {
+    // elli(x y a b color)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 x = ScalarInteger(CADR(args));
+    const s32 y = ScalarInteger(CADDR(args));
+    const s32 a = ScalarInteger(CADDDR(args));
+    const s32 b = ScalarInteger(CADDDDR(args));
+    const s32 color = ScalarInteger(s7_list_ref(sc, args, 4));
+    core->api.elli(tic, x, y, a, b, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_ellib(SEXP args)
+  {
+    // ellib(x y a b color)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 x = ScalarInteger(CADR(args));
+    const s32 y = ScalarInteger(CADDR(args));
+    const s32 a = ScalarInteger(CADDDR(args));
+    const s32 b = ScalarInteger(CADDDDR(args));
+    const s32 color = ScalarInteger(s7_list_ref(sc, args, 4));
+    core->api.ellib(tic, x, y, a, b, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_tri(SEXP args)
+  {
+    // tri(x1 y1 x2 y2 x3 y3 color)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 x1 = ScalarInteger(CADR(args));
+    const s32 y1 = ScalarInteger(CADDR(args));
+    const s32 x2 = ScalarInteger(CADDDR(args));
+    const s32 y2 = ScalarInteger(CADDDDR(args));
+    const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
+    const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
+    const s32 color = ScalarInteger(s7_list_ref(sc, args, 6));
+    core->api.tri(tic, x1, y1, x2, y2, x3, y3, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_trib(SEXP args)
+  {
+    // trib(x1 y1 x2 y2 x3 y3 color)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 x1 = ScalarInteger(CADR(args));
+    const s32 y1 = ScalarInteger(CADDR(args));
+    const s32 x2 = ScalarInteger(CADDDR(args));
+    const s32 y2 = ScalarInteger(CADDDDR(args));
+    const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
+    const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
+    const s32 color = ScalarInteger(s7_list_ref(sc, args, 6));
+    core->api.trib(tic, x1, y1, x2, y2, x3, y3, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_ttri(SEXP args)
+  {
+    // ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 x1 = ScalarInteger(CADR(args));
+    const s32 y1 = ScalarInteger(CADDR(args));
+    const s32 x2 = ScalarInteger(CADDDR(args));
+    const s32 y2 = ScalarInteger(CADDDDR(args));
+    const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
+    const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
+    const s32 u1 = ScalarInteger(s7_list_ref(sc, args, 6));
+    const s32 v1 = ScalarInteger(s7_list_ref(sc, args, 7));
+    const s32 u2 = ScalarInteger(s7_list_ref(sc, args, 8));
+    const s32 v2 = ScalarInteger(s7_list_ref(sc, args, 9));
+    const s32 u3 = ScalarInteger(s7_list_ref(sc, args, 10));
+    const s32 v3 = ScalarInteger(s7_list_ref(sc, args, 11));
+
+    const int argn = length(args);
+    const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? ScalarInteger(s7_list_ref(sc, args, 12)) : 0);
+
+    static u8 trans_colors[TIC_PALETTE_SIZE];
+    u8 trans_count = 0;
+
+    if (argn > 13)
+    {
+      SEXP colorkey = s7_list_ref(sc, args, 13);
+      parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
+    }
+
+    bool depth = argn > 14 ? true : false;
+    const s32 z1 = argn > 14 ? ScalarInteger(s7_list_ref(sc, args, 14)) : 0;
+    const s32 z2 = argn > 15 ? ScalarInteger(s7_list_ref(sc, args, 15)) : 0;
+    const s32 z3 = argn > 16 ? ScalarInteger(s7_list_ref(sc, args, 16)) : 0;
+
+    core->api.ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, trans_colors, trans_count, z1, z2, z3, depth);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_clip(SEXP args)
+  {
+    // clip(x y width height)
+    // clip()
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const int argn = length(args);
+    if (argn != 4) {
+      core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+    } else {
+      const s32 x = ScalarInteger(CADR(args));
+      const s32 y = ScalarInteger(CADDR(args));
+      const s32 w = ScalarInteger(CADDDR(args));
+      const s32 h = ScalarInteger(CADDDDR(args));
+      core->api.clip(tic, x, y, w, h);
+    }
+    return R_NilValue;
+  }
+#+end_src
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_font(SEXP args)
+  {
+    // font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const char* text = ScalarString(CADR(args));
+    const s32 x = ScalarInteger(CADDR(args));
+    const s32 y = ScalarInteger(CADDDR(args));
+
+    static u8 trans_colors[TIC_PALETTE_SIZE];
+    u8 trans_count = 0;
+    SEXP colorkey = CADDDDR(args);
+    parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
+
+    const s32 w = ScalarInteger(s7_list_ref(sc, args, 4));
+    const s32 h = ScalarInteger(s7_list_ref(sc, args, 5));
+    const int argn = length(args);
+    const s32 fixed = argn > 6 ? ScalarLogical(sc, s7_list_ref(sc, args, 6)) : false;
+    const s32 scale = argn > 7 ? ScalarInteger(s7_list_ref(sc, args, 7)) : 1;
+    const s32 alt = argn > 8 ? ScalarLogical(sc, s7_list_ref(sc, args, 8)) : false;
+
+    return s7_make_integer(sc, core->api.font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt));
+  }
+#+end_src
+
+=parseTransparentColorsArg= is a helper function which is used elsewhere in the API.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  void parseTransparentColorsArg(/* LISTSXP */SEXP colorkey,
+  															 u8* out_transparent_colors, u8* out_count)
+  {
+    ,*out_count = 0;
+    if (s7_is_list(sc, colorkey))
+    {
+      const s32 arg_color_count = length(colorkey);
+      const u8 color_count = arg_color_count < TIC_PALETTE_SIZE ? (u8)arg_color_count : TIC_PALETTE_SIZE;
+      for (u8 i=0; i<color_count; ++i)
+      {
+        SEXP c = s7_list_ref(sc, colorkey, i);
+        out_transparent_colors[i] = s7_is_integer(c) ? ScalarInteger(c) : 0;
+        ++(*out_count);
+      }
+    }
+    else if (s7_is_integer(colorkey))
+    {
+      out_transparent_colors[0] = (u8)ScalarInteger(colorkey);
+      ,*out_count = 1;
+    }
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_spr(SEXP args) {
+    // spr(id x y colorkey=-1 scale=1 flip=0 rotate=0 w=1 h=1)
+    static u8 trans_colors[TIC_PALETTE_SIZE];
+    u8 trans_count = 0;
+    if (argn > 3)
+    {
+  	  /* DONE: DOES NOT NEED protection and unprotection becausse the LISTSXP is a
+  		 ,* part of the args. */
+  	  SEXP *colorkey = &ARGS(4);
+  	  parseTransparentColorsArg(sc,
+      /*Within the Scheme API*/ colorkey, /*is a LIST, so here it should be a LISTSXP.*/
+  															trans_colors, &trans_count);
+    }
+    const s32 scale     = argn > 4 ? drIntp(ARGS(5)) : 1;
+    const s32 flip      = argn > 5 ? drIntp(ARGS(6)) : 0;
+    const s32 rotate    = argn > 6 ? drIntp(ARGS(7)) : 0;
+    const s32 w         = argn > 7 ? drIntp(ARGS(8)) : 1;
+    const s32 h         = argn > 8 ? drIntp(ARGS(9)) : 1;
+    RTICAPI.spr(RTICRAM,
+  							(s32) drIntp(ARGS(1)),
+  							(s32) drIntp(ARGS(2)),
+  							(s32) drIntp(ARGS(3)),
+  							w, h, trans_colors, trans_count, scale,
+  							(tic_flip) flip,
+  							(tic_rotate) rotate);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_print(SEXP args) {
+    /* print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false)
+     ,* ⮑ width*/
+    const char *text  = (const char *) drChrpp(ARGS(1));
+    const s32   x     = argn > 1 ? drIntp(ARGS(2)): 0;
+    const s32   y     = argn > 2 ? drIntp(ARGS(3)): 0;
+    const u8    color = argn > 3 ? drIntp(ARGS(4)): 15;
+    const bool  fixed = argn > 4 ? drIntp(ARGS(5)): false;
+    const s32   scale = argn > 5 ? drIntp(ARGS(6)): 1;
+    const bool  alt   = argn > 6 ? drIntp(ARGS(7)): false;
+
+    return Rf_ScalarLogical(RTICAPI.print(RTICRAM, text, x, y, color, fixed, scale, alt));
+  }
+#+end_src
+
+With the preprocessor macros and the R API function ~R_ExternalPtrAddr~ I have
+sufficiently simplified the defintion of an =.External= R function to the point
+I'm happy to write these and edit the ones which I already have copied from
+the s7 Scheme API.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_cls(SEXP args) {
+    /* cls(color=0)
+     ,* ⮑ nil */
+    const u8 color = (argn > 0) ? drIntp(ARGS(1)) : 0;
+    RTICAPI.cls(RTICRAM, color);
+
+    return R_NilValue;
+  }
+#+end_src
+
+It isn't so bad to write these now. I can focus on /handling the arguments/,
+regardless of their number, rather than acquiring the number of arguments and
+protecting intermediate values.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_pix(SEXP args) {
+    /* pix(x y color = 0)
+  	 ,* ⮑ nil
+  	 ,* pix(x y)
+     ,* ⮑ color */
+    const s32 x = drIntp(ARGS(1));
+    const s32 y = drIntp(ARGS(2));
+
+    if (argn == 3) {
+      const u8 color = drIntp(ARGS(3));
+      RTICAPI.pix(RTICRAM, x, y, color, false);
+      return R_NilValue;
+    } else {
+      return Rf_ScalarInteger(RTICAPI.pix(RTICRAM, x, y, 0, true));
+    }
+  }
+#+end_src
+
+PIX is a setter and getter function; if provided with a color it will set the
+pixel at that position to that color (returning ~nil~, ~NULL~ in R), otherwise
+it will return the color of the pixel at that position.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_line(SEXP args) {
+    /* line(x0 y0 x1 y1 color)
+  	 ,* ⮑ nil */
+    const s32 x0    = drIntp(ARGS(1));
+    const s32 y0    = drIntp(ARGS(2));
+    const s32 x1    = drIntp(ARGS(3));
+    const s32 y1    = drIntp(ARGS(4));
+    const u8  color = drIntp(ARGS(5));
+
+    RTICAPI.line(RTICRAM, x0, y0, x1, y1, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_rect(SEXP args)
+  {
+    // rect(x y w h color)
+    const s32 x     = drIntp(ARGS(1));
+    const s32 y     = drIntp(ARGS(2));
+    const s32 w     = drIntp(ARGS(3));
+    const s32 h     = drIntp(ARGS(4));
+    const u8  color = drIntp(ARGS(5));
+    RTICAPI.rect(RTICRAM, x, y, w, h, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_rectb(SEXP args)
+  {
+    // rectb(x y w h color)
+    const s32 x     = drIntp(ARGS(1));
+    const s32 y     = drIntp(ARGS(2));
+    const s32 w     = drIntp(ARGS(3));
+    const s32 h     = drIntp(ARGS(4));
+    const u8  color = drIntp(ARGS(5));
+    RTICAPI.rectb(RTICRAM, x, y, w, h, color);
+    return R_NilValue;
+  }
+#+end_src
+
+**** TODO =map=, which optionally uses a callback function written in the chosen API language
+=remapCallback= uses a pointer to call a given Scheme function, stored in ~remap->callback~.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  typedef struct
+  {
+    s7_scheme* sc;
+    SEXP callback;
+  } RemapData;
+
+  static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
+  {
+    RemapData* remap = (RemapData*)data;
+    s7_scheme* sc = remap->sc;
+
+    /* NOTE: Call the callback function. */
+    // (callback index x y) -> (list index flip rotate)
+    SEXP callbackResult = s7_call(sc, remap->callback,
+                                  s7_cons(sc, s7_make_integer(sc, result->index),
+                                          s7_cons(sc, s7_make_integer(sc, x),
+                                                  s7_cons(sc, s7_make_integer(sc, y),
+                                                          R_NilValue))));
+
+    if (s7_is_list(sc, callbackResult) && length(callbackResult) == 3)
+    {
+      result->index = ScalarInteger(CADR(callbackResult));
+      result->flip = (tic_flip)ScalarInteger(CADDR(callbackResult));
+      result->rotate = (tic_rotate)ScalarInteger(CADDDR(callbackResult));
+    }
+  }
+
+  SEXP r_map(SEXP args)
+  {
+    // map(x=0 y=0 w=30 h=17 sx=0 sy=0 colorkey=-1 scale=1 remap=nil)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 x = ScalarInteger(CADR(args));
+    const s32 y = ScalarInteger(CADDR(args));
+    const s32 w = ScalarInteger(CADDDR(args));
+    const s32 h = ScalarInteger(CADDDDR(args));
+    const s32 sx = ScalarInteger(s7_list_ref(sc, args, 4));
+    const s32 sy = ScalarInteger(s7_list_ref(sc, args, 5));
+
+    const int argn = length(args);
+
+    static u8 trans_colors[TIC_PALETTE_SIZE];
+    u8 trans_count = 0;
+    if (argn > 6) {
+      SEXP colorkey = s7_list_ref(sc, args, 6);
+      parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
+    }
+
+    const s32 scale = argn > 7 ? ScalarInteger(s7_list_ref(sc, args, 7)) : 1;
+
+    RemapFunc remap = NULL;
+    RemapData data;
+    if (argn > 8)
+    {
+      remap = remapCallback;
+      data.sc = sc;
+      data.callback = s7_list_ref(sc, args, 8);
+    }
+    core->api.map(tic, x, y, w, h, sx, sy, trans_colors, trans_count, scale, remap, &data);
+    return R_NilValue;
+  }
+#+end_src
+
+*** Input
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_key(SEXP args)
+  {
+    //key(code=-1) -> pressed
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const int argn = length(args);
+    const tic_key code = argn > 0 ? ScalarInteger(CADR(args)) : -1;
+    return s7_make_boolean(sc, core->api.key(tic, code));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_keyp(SEXP args)
+  {
+    // keyp(code=-1 hold=-1 period=-1) -> pressed
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const int argn = length(args);
+    const tic_key code = argn > 0 ? ScalarInteger(CADR(args)) : -1;
+    const s32 hold = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
+    const s32 period = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
+    return s7_make_boolean(sc, core->api.keyp(tic, code, hold, period));
+  }
+#+end_src
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  /* This API function does not use the convenience macros because it doesn't need
+   ,* to protect any values from garbage collection, because every use of an R API
+   ,* call is to manipulate a C value which R does not control the memory of. */
+  SEXP r_mouse(SEXP args)
+  {
+    /* mouse()
+  	 ,* ⮑ x y left middle right scrollx scrolly */
+  	tic_mem *tic = (tic_mem *) RTICRAM;
+  	tic_core* core = (tic_core *)tic;
+
+    const tic_point point = core->api.mouse(tic);
+    const tic80_mouse* mouse = &((tic_core*)tic)->memory.ram->input.mouse;
+
+    return CONS(ScalarInteger(point.x),
+                list6(ScalarInteger(point.y),
+                      ScalarInteger(mouse->left),
+                      ScalarInteger(mouse->middle),
+                      ScalarInteger(mouse->right),
+                      ScalarInteger(mouse->scrollx),
+                      ScalarInteger(mouse->scrolly)));
+  }
+#+end_src
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_btn(SEXP args)
+  {
+    // btn(id) -> pressed
+    return Rf_ScalarLogical(RTICAPI.btn(RTICRAM, (s32) ARGS(1)));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_btnp(SEXP args)
+  {
+    // btnp(id hold=-1 period=-1) -> pressed
+    const s32 id = drIntp(ARGS(1));
+    const int argn = Rf_length(args);
+    const s32 hold = argn > 1 ? drIntp(ARGS(2)) : -1;
+    const s32 period = argn > 2 ? drIntp(ARGS(3)) : -1;
+
+    return Rf_ScalarLogical(RTICAPI.btnp(RTICRAM, id, hold, period));
+  }
+#+end_src
+*** Sound
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_music(SEXP args)
+  {
+    // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const int argn = length(args);
+    const s32 track = argn > 0 ? ScalarInteger(CADR(args)) : -1;
+    const s32 frame = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
+    const s32 row = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
+    const bool loop = argn > 3 ? ScalarLogical(sc, CADDDDR(args)) : true;
+    const bool sustain = argn > 4 ? ScalarLogical(sc, s7_list_ref(sc, args, 4)) : false;
+    const s32 tempo = argn > 5 ? ScalarInteger(s7_list_ref(sc, args, 5)) : -1;
+    const s32 speed = argn > 6 ? ScalarInteger(s7_list_ref(sc, args, 6)) : -1;
+    core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
+    return R_NilValue;
+  }
+#+end_src
+These API functions are related to sound processing.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  u8 get_note_base(char c) {
+    switch (c) {
+    case 'C': return 0;
+    case 'D': return 2;
+    case 'E': return 4;
+    case 'F': return 5;
+    case 'G': return 7;
+    case 'A': return 9;
+    case 'B': return 11;
+    default:  return 255;
+    }
+  }
+
+  u8 get_note_modif(char c) {
+    switch (c) {
+    case '-': return 0;
+    case '#': return 1;
+    default:  return 255;
+    }
+  }
+
+  u8 get_note_octave(char c) {
+    if (c >= '0' && c <= '8')
+      return c - '0';
+    else
+      return 255;
+  }
+
+  SEXP r_sfx(SEXP a, SEXP args)
+  {
+    // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 id = ScalarInteger(CADR(args));
+
+    const int argn = length(args);
+    int note = -1;
+    int octave = -1;
+    if (argn > 1) {
+      SEXP note_ptr = CADDR(args);
+      if (s7_is_integer(note_ptr)) {
+        const s32 raw_note = ScalarInteger(note_ptr);
+        if (raw_note >= 0 || raw_note <= 95) {
+          note = raw_note % 12;
+          octave = raw_note / 12;
+        }
+        /* else { */
+        /*     char buffer[100]; */
+        /*     snprintf(buffer, 99, "Invalid sfx note given: %d\n", raw_note); */
+        /*     tic->data->error(tic->data->data, buffer); */
+        /* } */
+      } else if (s7_is_string(note_ptr)) {
+        const char* note_str = ScalarString(note_ptr);
+        const u8 len = ScalarString_length(note_ptr);
+        if (len == 3) {
+          const u8 modif = get_note_modif(note_str[1]);
+          note = get_note_base(note_str[0]);
+          octave = get_note_octave(note_str[2]);
+          if (note < 255 || modif < 255 || octave < 255) {
+            note = note + modif;
+          } else {
+            note = octave = 255;
+          }
+        }
+        /* if (note == 255 || octave == 255) { */
+        /*     char buffer[100]; */
+        /*     snprintf(buffer, 99, "Invalid sfx note given: %s\n", note_str); */
+        /*     tic->data->error(tic->data->data, buffer); */
+        /* } */
+      }
+    }
+
+    const s32 duration = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
+    const s32 channel = argn > 3 ? ScalarInteger(CADDDDR(args)) : 0;
+
+    s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
+    if (argn > 4) {
+      SEXP volume_arg = s7_list_ref(sc, args, 4);
+      if (s7_is_integer(volume_arg)) {
+        volumes[0] = volumes[1] = ScalarInteger(volume_arg) & 0xF;
+      } else if (s7_is_list(sc, volume_arg) && length(volume_arg) == 2) {
+        volumes[0] = ScalarInteger(CADR(volume_arg)) & 0xF;
+        volumes[1] = ScalarInteger(CADDR(volume_arg)) & 0xF;
+      }
+    }
+    const s32 speed = argn > 5 ? ScalarInteger(s7_list_ref(sc, args, 5)) : 0;
+
+    core->api.sfx(tic, id, note, octave, duration, channel, volumes[0], volumes[1], speed);
+    return R_NilValue;
+  }
+#+end_src
+*** Memory
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_sync(SEXP args)
+  {
+    // sync(mask=0 bank=0 tocart=false)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const int argn = length(args);
+    const u32 mask = argn > 0 ? (u32)ScalarInteger(CADR(args)) : 0;
+    const s32 bank = argn > 1 ? ScalarInteger(CADDR(args)) : 0;
+    const bool tocart = argn > 2 ? ScalarLogical(sc, CADDDR(args)) : false;
+    core->api.sync(tic, mask, bank, tocart);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_vbank(SEXP args)
+  {
+    // vbank(bank) -> prev
+    // vbank() -> prev
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const int argn = length(args);
+
+    const s32 prev = ((tic_core*)tic)->state.vbank.id;
+    if (argn == 1) {
+      const s32 bank = ScalarInteger(CADR(args));
+      core->api.vbank(tic, bank);
+    }
+    return s7_make_integer(sc, prev);
+  }
+#+end_src
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_peek(SEXP args)
+  {
+    // peek(addr bits=8) -> value
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 addr = ScalarInteger(CADR(args));
+    const int argn = length(args);
+    const s32 bits = argn > 1 ? ScalarInteger(CADDR(args)) : 8;
+    return s7_make_integer(sc, core->api.peek(tic, addr, bits));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_poke(SEXP args)
+  {
+    // poke(addr value bits=8)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 addr = ScalarInteger(CADR(args));
+    const s32 value = ScalarInteger(CADDR(args));
+    const int argn = length(args);
+    const s32 bits = argn > 2 ? ScalarInteger(CADDDR(args)) : 8;
+    core->api.poke(tic, addr, value, bits);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_peek1(SEXP args)
+  {
+    // peek1(addr) -> value
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 addr = ScalarInteger(CADR(args));
+    return s7_make_integer(sc, core->api.peek1(tic, addr));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_poke1(SEXP args)
+  {
+    // poke1(addr value)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 addr = ScalarInteger(CADR(args));
+    const s32 value = ScalarInteger(CADDR(args));
+    core->api.poke1(tic, addr, value);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_peek2(SEXP args)
+  {
+    // peek2(addr) -> value
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 addr = ScalarInteger(CADR(args));
+    return s7_make_integer(sc, core->api.peek2(tic, addr));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_poke2(SEXP args)
+  {
+    // poke2(addr value)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 addr = ScalarInteger(CADR(args));
+    const s32 value = ScalarInteger(CADDR(args));
+    core->api.poke2(tic, addr, value);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_peek4(SEXP args)
+  {
+    // peek4(addr) -> value
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 addr = ScalarInteger(CADR(args));
+    return s7_make_integer(sc, core->api.peek4(tic, addr));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_poke4(SEXP args)
+  {
+    // poke4(addr value)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 addr = ScalarInteger(CADR(args));
+    const s32 value = ScalarInteger(CADDR(args));
+    core->api.poke4(tic, addr, value);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_memcpy(SEXP args)
+  {
+    // memcpy(dest source size)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 dest = ScalarInteger(CADR(args));
+    const s32 source = ScalarInteger(CADDR(args));
+    const s32 size = ScalarInteger(CADDDR(args));
+
+    core->api.memcpy(tic, dest, source, size);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_memset(SEXP args)
+  {
+    // memset(dest value size)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 dest = ScalarInteger(CADR(args));
+    const s32 value = ScalarInteger(CADDR(args));
+    const s32 size = ScalarInteger(CADDDR(args));
+
+    core->api.memset(tic, dest, value, size);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_pmem(SEXP args)
+  {
+    // pmem(index value)
+    // pmem(index) -> value
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 index = ScalarInteger(CADR(args));
+    const int argn = length(args);
+    s32 value = 0;
+    bool shouldSet = false;
+    if (argn > 1)
+    {
+      value = ScalarInteger(CADDR(args));
+      shouldSet = true;
+    }
+    return s7_make_integer(sc, (s32)core->api.pmem(tic, index, value, shouldSet));
+  }
+#+end_src
+
+*** Utilities
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_fget(SEXP args)
+  {
+    // fget(sprite_id flag) -> bool
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 sprite_id = ScalarInteger(CADR(args));
+    const u8 flag = ScalarInteger(CADDR(args));
+    return s7_make_boolean(sc, core->api.fget(tic, sprite_id, flag));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_fset(SEXP args)
+  {
+    // fset(sprite_id flag bool)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 sprite_id = ScalarInteger(CADR(args));
+    const u8 flag = ScalarInteger(CADDR(args));
+    const bool val = ScalarLogical(sc, CADDDR(args));
+    core->api.fset(tic, sprite_id, flag, val);
+    return R_NilValue;
+  }
+#+end_src
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_mget(SEXP args)
+  {
+    // mget(x y) -> tile_id
+    return Rf_ScalarInteger(RTICAPI.mget(RTICRAM, (s32) drIntp(ARGS(1)), (s32) drIntp(ARGS(2))));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_mset(SEXP args)
+  {
+    // mset(x y tile_id)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const s32 x = ScalarInteger(CADR(args));
+    const s32 y = ScalarInteger(CADDR(args));
+    const u8 tile_id = ScalarInteger(CADDDR(args));
+    core->api.mset(tic, x, y, tile_id);
+    return R_NilValue;
+  }
+#+end_src
+*** System
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_reset(SEXP args)
+  {
+    // reset()
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    core->api.reset(tic);
+    return R_NilValue;
+  }
+#+end_src
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_trace(SEXP args)
+  {
+    // trace(message color=15)
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    const char* msg = ScalarString(CADR(args));
+    const int argn = length(args);
+    const s32 color = argn > 1 ? ScalarInteger(CADDR(args)) : 15;
+    core->api.trace(tic, msg, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_time(SEXP args)
+  {
+    // time() -> ticks
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    return s7_make_real(sc, core->api.time(tic));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_tstamp(SEXP args)
+  {
+    // tstamp() -> timestamp
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    return s7_make_integer(sc, core->api.tstamp(tic));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_exit(SEXP args)
+  {
+    // exit()
+    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
+    core->api.exit(tic);
+    return R_NilValue;
+  }
+#+end_src
+
+*** TODO Special API functions
+These functions are used when live-coding music or demos at conventions.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_fft(SEXP args)
+  {
+    // fft(int start_freq, int end_freq=-1) -> float_value
+    tic_core* core = R_GlobalEnv;
+    tic_mem* tic = (tic_mem*)core;
+
+    const int argn = length(args);
+    const s32 start_freq = argn > 0 ? ScalarInteger(CADR(args)) : -1;
+    const s32 end_freq = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
+
+    return s7_make_real(sc, core->api.fft(tic, start_freq, end_freq));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_ffts(SEXP args)
+  {
+    // ffts(int start_freq, int end_freq=-1) -> float_value
+    tic_core* core = R_GlobalEnv;
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = length(args);
+    const s32 start_freq = argn > 0 ? ScalarInteger(CADR(args)) : -1;
+    const s32 end_freq = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
+
+    return s7_make_real(sc, core->api.ffts(tic, start_freq, end_freq));
+  }
 #+end_src
 
 ** TODO The default cartridge
@@ -2457,56 +2228,6 @@ headers I include might be redundant, and I will try to clean these up later.
   #include "api/renv.h"
 #+end_src
 
-** Failed symbol registration                                       :ARCHIVE:
-This is not symbolic programming, but I wish it were! Oh, R, oh, LISP, how I
-miss both of these. I can't wait to finish learning enough of C to say I can
-manage my way through a complex project so that I can readily forget much of it
-until I need it again. Woe unto future me, should I need it again!
-
-**** A failed approach to registering functions with R
-A naive approach, or a "clever" approach I tried to take, is to define all of
-the C functions that R can call using functions defined through a C macro and
-calling them using the ~.C~ interface, however there is a much better system
-built-in to R which I will use instead.
-
-The following use of preprocessor directives is inappropriate, as the literal
-macro argument will be substituted, not evaluated at run-time.
-
-#+name: iterate over the R API keywords, defining each R function (erroneous)
-#+begin_src C
-  #define defineRFn_(keyword) Rf_eval(Rf_mkString("t80."#keyword" <- function(...) .C(r_"#keyword", ...);"), R_GlobalEnv);
-  #define doDefineRFunction(keyword) defineRFn_(keyword)
-  	for (int kiwi = 0; kiwi <= config->api_keywordsCount; kiwi++) {
-  		doDefineRFunction(config->api_keywords[kiwi]);
-  	}
-  #undef doDefineRFunction
-  #undef defineRFn_
-#+end_src
-
-This won't work because neither parameterized macro will evaluate the given
-expressions. Using C string functions and a character buffer would allow me to
-construct the R expressions dynamically, but there's no need to take this
-correct, but naive, approach. Use the functionality built-in to R's C API!
-
-#+name: iterate over the R API keywords, defining each R function
-#+begin_src C
-  tic_script *config = (tic_get_script(tic));
-  char command_string[100];
-  for (int kw = 0; kw <= config->api_keywordsCount; kw++) {
-  	memset(command_string, '\0', sizeof('\0'));
-  	
-  #define cmdstr(f, ...) f(command_string, __VA_ARGS__)
-  	cmdstr(strcpy, "t80.");
-  	cmdstr(strcat, config->api_keywords[kw]);
-  	cmdstr(strcat, " <- \(...) .C(r_");
-  	cmdstr(strcat, config->api_keywords[kw]);
-  	cmdstr(strcat, ", ...);");
-  #undef cmdstr
-
-  	Rf_eval(Rf_mkString(command_string), R_GlobalEnv);
-  }
-#+end_src
-
 ** DONE Registering symbols in R from C
 CLOSED: [2024-10-19 Sat 22:01]
 "Symbols need to be registered with R from C to be used in R," is what I wrote
@@ -2600,14 +2321,13 @@ Presumably, all of these functions will then be available in R as functions
 which have the given name (e.g. "tri") and will call ~.External("tri")~ (keeping
 with the example).
 
-** Meshing the event loops of TIC-80 and R
+** TODO Meshing the event loops of TIC-80 and R
 There is a section in the /R Extensions/ manual which focuses on meshing the
 event loops of R and the alternative front-end. There are two event loops in R
 which need special attention.
 
 *** make provision for other R events whilst waiting for input from the front-end
 *** ensure the front-end is not frozen out during the event loop waiting for responses from sockets
-
 
 * Creating build assets at build-time from source files
 The is a build/assets directory in the TIC-80 sources containing DAT formatted
@@ -3008,214 +2728,3 @@ CLOSED: [2024-10-25 Fri 19:31]
     }
   }
 #+end_src
-
-* BUGS                                                              :ARCHIVE:
-- The bunny benchmark for R does not appear in the directory listing of =bunny=.
-** DONE Bug-fixing the creation of new R-based cartridges
-CLOSED: [2024-10-17 Thu 19:19]
-*** DONE Are the demo and benchmark cartridges created correctly?
-CLOSED: [2024-10-17 Thu 19:17]
-What I found was that with only building for R that I can't create a new Scheme
-cartridge, but with the same effect that a Lua cartridge is created. R has been
-included in the build, so because the cartridge is the same as the Lua cartridge
-I'm going to do a check and make sure that I haven't made a file copying error
-(blindly copying the Lua demo, which I know I did at one point before I
-successfully built the DAT files myself).
-
-I'm now confident that the DAT files are derived from my R-based source files,
-and not Lua-based source files. The next step is to test if that was a
-sufficient fix, indicating the problem was a file copying error (from a
-different test build), or another issue.
-
-After testing I am certain that it was not a user error caused by copying a
-Lua-based file. The =new= command is not creating an R cartridge---using the
-demo or default cartridge---correctly, so I need to work out why that is with a
-more involved search of the sources and then some debugging.
-
-*** A new cart can be created with "new r", but when going to the editor the R demo cartridge is not used (the Lua cartridge is used).
-
-*** DONE Is the =.id=, =.name=, or =.fileExtension= field to blame?
-CLOSED: [2024-10-17 Thu 19:17]
-Looking at the Scheme language integration it seems my mistake may be calling
-the command with a lower-case ~r~, when I should call it with an upper-case ~R~,
-if and only if the ~.name~ member of the ~const tic_script~ object in my
-language integration has that casing.
-
-#+begin_example C
-  TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
-  {
-  	/* The first five members of the struct have the sum total following
-  	 ,* size. */
-  	/* sizeof(u8) + 3 * sizeof(char *)  */
-  	.id                     = 42,
-  	.name                   = "r",
-  	.fileExtension          = ".r",
-  	.projectComment         = "##"
-#+end_example
-
-Unfortunatley, as shown by the quotation, that is not the case.
-
-Perhaps it is the arbitrary ~.id~ I chose. How are the other IDs determined? I
-looked at the IDs of every other type of TIC-80 scripting language and noted
-these before sorting them. I now know what ID to give R; this should be
-documented in the TIC-80 Wiki.
-
-- lua :: 10
-- ruby :: 11
-- js :: 12
-- moonscript :: 13
-- fennel :: 14
-- squirrel :: 15
-- wren :: 16
-- wasm :: 17
-- janet :: 18
-- scheme :: 19
-- python :: 20
-- r :: 21
-
-I thought that my R integration might have an issue because of the name, but
-like Moonscript the name is prefixed with a period in the file extension, so
-that wasn't a problem. I don't know why I thought that might have been an issue,
-but I'm only noting my thinking process here.
-
-It looks like R is the eleventh language added to TIC-80. There is room for five
-more languages, given I saw a "maximum number of langauges" elsewhere in the
-codebase set to sixteen.
-
-*** DONE Is =tic_add_script= rejecting the script?
-CLOSED: [2024-10-17 Thu 19:16]
-This procedure is used at runtime to add scripts to the ~Scripts~ array. The
-macro is expanded to something much more complex, which serves to actually look
-at potential script shared objects.
-
-#+begin_src C
-  void tic_add_script(const tic_script* script)
-  {
-      s32 index = 0;
-      FOREACH_LANG(it)
-      {
-          if(it->id == script->id || strcmp(it->name, script->name) == 0)
-          {
-              // script already exists
-              return;
-          }
-
-          index++;
-      }
-
-      if(index < MAX_SUPPORTED_LANGS)
-      {
-          Scripts[index] = script;
-          qsort(Scripts, index + 1, sizeof Scripts[0], compareScripts);
-      }
-  }
-#+end_src
-
-- How is the ~Scripts~ array used?
-- [X] How is ~it~ defined at runtime? ~it~ likely means "iterator", the current one.
-
-It doesn't appear that ~it~ is defined in /any way/. It is a literal macro
-argument used in concatenation of an identifier, and no more.
-
-~Scripts~ is only used within =script.c=; it is only used within the functions
-~tic_add_script~, ~tic_get_script~, and ~tic_scripts~. Collectively, =script.c=
-defines functionality for compile-time and run-time population of the =Scripts=
-array, which is used for autocompletion of certain command-line commands within
-the TIC-80 console (~new~ in particular).
-
-~tic_get_script~ checks if the argument ~memory~ (of type =tic_mem *=) has the
-same id as any of the =tic_scripts= in =Scripts=. If none of the scripts match,
-either an uninitialized =tic_script= called ~empty~ is returned or the address
-of the whole array is returned (effectively returning the first member of the
-array). ~tic_scripts~ returns the address of the whole array forthright.
-
-** DONE Compilation error due to ambiguous type and storage class
-CLOSED: [2024-10-17 Thu 19:20]
-When compiling the API definitions in =r.c=, I experienced an issue with the
-type and storage class definition of the function ~Rf_mainloop~. The compiler
-doesn't know how what type or storage class to assign to the function because it
-was meant as a function call outside of any other functions, which is illegal
-and illogical in C, so it was merely an identifier that the C compiler didn't
-know how to handle.
-
-A reproducible example would cover other types of constant objects as well, like
-numbers and strings.
-
-#+begin_src C
-  #include <stdio.h>
-
-  0;
-  'a';
-  "A";
-  printf();
-
-  int main(void) { return 0 };
-#+end_src
-
-This will produce, similarly, the errors observed in the following journal-like entry.
-
-When a function call or any expression occurs /outside of a function definition
-called from a call chain beginning within main/, an error will occur due to
-conflicting types deriving from the compiler trying to resolve an expression of
-some type as a declaration. That is, only delcarations of data types may occur
-outside of function bodies, and only the main function can begin a chain of
-function calls. A function call is illegal outside of these chains; expressions
-of any kind other than declarations are illegal outside of these chains.
-#+begin_src text
-  [ 10%] Building C object CMakeFiles/r.dir/src/api/r.c.o
-  /home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: warning: data definition has no type or storage class
-     42 | Rf_mainloop();
-        | ^~~~~~~~~~~
-  /home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: warning: type defaults to ‘int’ in declaration of ‘Rf_mainloop’ [-Wimplicit-int]
-  /home/bryce/Documents/src/c/TIC-80/src/api/r.c:42:1: error: conflicting types for ‘Rf_mainloop’; have ‘int()’
-  In file included from /home/bryce/Documents/src/c/TIC-80/src/api/r.c:33:
-  /usr/include/R/Rinterface.h:85:6: note: previous declaration of ‘Rf_mainloop’ with type ‘void(void)’
-     85 | void mainloop(void);
-        |      ^~~~~~~~
-#+end_src
-
-** DONE Opening packages stored in any one of the R package libraries fails
-CLOSED: [2024-10-17 Thu 19:23]
-The definition of =R_Home= is critical when =R_OpenLibraryFile= is called. If
-that identifier is not defined then there are big problems!
-
-Indeed, after making a small change to =initR= to ensure that =Rf_initEmbeddedR=
-is called before =Rf_mainloop= and debugging =Rf_initEmbeddedR= I see the
-following error.
-
-#+begin_example text
-  Thread 1 "tic80" hit Breakpoint 1, Rf_initEmbeddedR (argc=2, 
-      argv=0x7fffffffdca0) at ../unix/Rembedded.c:60
-  60	{
-  (gdb) list
-  55	    char *argv[]= {"REmbeddedPostgres", "--gui=none", "--silent"};
-  56	    Rf_initEmbeddedR(sizeof(argv)/sizeof(argv[0]), argv);
-  57	*/
-  58
-  59	int Rf_initEmbeddedR(int argc, char **argv)
-  60	{
-  61	    Rf_initialize_R(argc, argv);
-  62	    R_Interactive = TRUE;  /* Rf_initialize_R set this based on isatty */
-  63	    setup_Rmainloop();
-  64	    return(1);
-  (gdb) n
-  61	    Rf_initialize_R(argc, argv);
-  (gdb) n
-  Fatal error: R home directory is not defined
-  [Thread 0x7fff73f8f6c0 (LWP 26036) exited]
-  [Thread 0x7fff7cd8f6c0 (LWP 26035) exited]
-  [Thread 0x7fff7d78f6c0 (LWP 26034) exited]
-  [Thread 0x7fff7e18f6c0 (LWP 26030) exited]
-  [Thread 0x7fff7eb8f6c0 (LWP 26029) exited]
-  [Thread 0x7fff7f58f6c0 (LWP 26028) exited]
-  [Thread 0x7fff7ff8f6c0 (LWP 26027) exited]
-  [Thread 0x7fff90f8f6c0 (LWP 26026) exited]
-  [Thread 0x7fff9198f6c0 (LWP 26025) exited]
-  [Thread 0x7fff9498f6c0 (LWP 26020) exited]
-  [Thread 0x7fffe4ef16c0 (LWP 26016) exited]
-  [Thread 0x7ffff6d4a840 (LWP 26013) exited]
-  [Thread 0x7fff9978f6c0 (LWP 26019) exited]
-  [New process 26013]
-  [Inferior 1 (process 26013) exited with code 02]
-  (gdb)
-#+end_example
