@@ -44,7 +44,7 @@ changed so that no references to "Scheme" occur in the code.
 #+begin_src C :noweb no-export
   <<define C symbols to be callable from R>>
 
-  <<register C symbols with R>>
+  <<define a function to register C symbols with R>>
 
   <<cartridge commands>>
 #+end_src
@@ -172,14 +172,11 @@ can define it right now. For now the =memory= parameter can be ignored.
   		initR(memory, code);
   		R_initialized_once = true;
   	}
-  	SEXP RESULT;
-    SEXP LANG = PROTECT(CSTR2LANGSXP(code));
-  	if (R_initialized_once) RESULT = PROTECT(Rf_eval(LANG, R_GlobalEnv));
-  	#if defined ebug /* -DEBUG=ON */
-  	Rprintf("%s", RESULT);
-  	#endif
-    UNPROTECT(1);
-    if (R_initialized_once) UNPROTECT(1);
+
+  	if (R_initialized_once) {
+      SEXP RESULT = PROTECT(Rf_eval(PROTECT(Rf_mkString(code)), R_GlobalEnv));
+      UNPROTECT(2);
+    }
   }
 #+end_src
 
@@ -566,20 +563,21 @@ That is defined separately, and not as a macro, so that the code can be re-used.
     ((tic_core *) tic_memory_static)->api.trace(tic_memory_static, s, 15);
   }
 
+  static bool R_Initialized = false;
+
   static void closeR(tic_mem *tic) {
-    tic_core *core;
-    if ((core = (((tic_core *) tic))->currentVM) != NULL) {
-      Rf_endEmbeddedR(0);
-      core->currentVM = NULL;
+    if (R_Initialized) {
+      tic_core *core;
+      if ((core = (((tic_core *) tic))->currentVM) != NULL) {
+        Rf_endEmbeddedR(0);
+        core->currentVM = NULL;
+      }
     }
   }
 
   /* This function is called with code, which is the entirety of the studio
      ,,* editor's code buffer (i.e. the entire game code as one string). */
   static bool initR(tic_mem *tic, const char *code) {
-    initializeRExternalMethodsDefinedInC();
-  	RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
-
     closeR(tic);
 
     /* embdRAV: embedded R argument vector. */
@@ -587,7 +585,6 @@ That is defined separately, and not as a macro, so that the code can be re-used.
 
     /* Without this nothing in R will work. */
     setEnvironmentVariablesIfUnset();
-    static bool R_Initialized = false;
 
     R_running_as_main_program = 0;
 
@@ -597,13 +594,14 @@ That is defined separately, and not as a macro, so that the code can be re-used.
       R_running_as_main_program = 0;
       /* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
       R_Interactive = false;
+      RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
+      initializeRExternalMethodsDefinedInC();
+      Rf_eval(Rf_mkString(code), R_GlobalEnv); /* The Big Bannana */
+      /* callRFn_BOOT(); */
+      Rf_eval(Rf_mkString("if (exists(\"BOOT\") && is.function(BOOT)) { BOOT() } " \
+                           "else { BOOT <- function() `{`; ## Tricky NOP. }"),
+              R_GlobalEnv);
     }
-
-    <<register C symbols with R>>
-
-    Rf_eval(CSTR2LANGSXP("if (exists(\"BOOT\") && is.function(BOOT)) { BOOT() } " \
-                         "else { BOOT <- function() `{`; ## Tricky NOP. }"),
-            R_GlobalEnv);
 
     return R_Initialized;
   }
@@ -622,10 +620,7 @@ symbols so that is why that part differs in the chunk below.
   #if !defined R_INTERNALS_H_
   #error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
   #endif
-  	/* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
-  	Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
-  											"`TIC-80`()"),
-  					R_GlobalEnv);
+    Rf_eval(Rf_mkString("if (t80.trace(t80exists(\"TIC-80\")) && is.function(`TIC-80`)) `TIC-80`()"), R_GlobalEnv);
   }
 #+end_src
 
@@ -1862,7 +1857,8 @@ convention).
   x <- 96
   y <- 24
 
-  makeopfn <- \(f) \(x) f(x, 1)
+  ## FIXME: makeopfun doesn't contstruct a mutating function correctly.
+  makeopfn <- \(f) \(x) x <<- f(x, 1)
   inc <- makeopfn(`+`)
   dec <- makeopfn(`-`)
 
@@ -2242,56 +2238,56 @@ routines that every scripting language API in TIC-80 hooks into. These symbols
 are automatically made available to R when it is embedded in the application.
 The function which performs the registration is built-in to R.
 
-#+name: register C symbols with R
+#+name: define a function to register C symbols with R
 #+begin_src C :noweb no-export
   void initializeRExternalMethodsDefinedInC(void) {
     static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
-      { "btn",   (DL_FUNC) &r_btn,    -1 },
-      { "btnp",  (DL_FUNC) &r_btnp,   -1 },
-      { "circ",  (DL_FUNC) &r_circ,   -1 },
-      { "circb", (DL_FUNC) &r_circb,  -1 },
-      { "clip",  (DL_FUNC) &r_clip,   -1 },
-      { "cls",   (DL_FUNC) &r_cls,    -1 },
-      { "elli",  (DL_FUNC) &r_elli,   -1 },
-      { "ellib", (DL_FUNC) &r_ellib,  -1 },
-      { "exit",  (DL_FUNC) &r_exit,   -1 },
-      { "fget",  (DL_FUNC) &r_fget,   -1 },
-      { "font",  (DL_FUNC) &r_font,   -1 },
-      { "fset",  (DL_FUNC) &r_fset,   -1 },
-      { "key",   (DL_FUNC) &r_key,    -1 },
-      { "keyp",  (DL_FUNC) &r_keyp,   -1 },
-      { "line",  (DL_FUNC) &r_line,   -1 },
-      { "map",   (DL_FUNC) &r_map,    -1 },
-      { "memcpy",(DL_FUNC) &r_memcpy, -1 },
-      { "memset",(DL_FUNC) &r_memset, -1 },
-      { "mget",  (DL_FUNC) &r_mget,   -1 },
-      { "mouse", (DL_FUNC) &r_mouse,  -1 },
-      { "mset",  (DL_FUNC) &r_mset,   -1 },
-      { "music", (DL_FUNC) &r_music,  -1 },
-      { "peek",  (DL_FUNC) &r_peek,   -1 },
-      { "peek1", (DL_FUNC) &r_peek1,  -1 },
-      { "peek2", (DL_FUNC) &r_peek2,  -1 },
-      { "peek4", (DL_FUNC) &r_peek4,  -1 },
-      { "pix",   (DL_FUNC) &r_pix,    -1 },
-      { "pmem",  (DL_FUNC) &r_pmem,   -1 },
-      { "poke",  (DL_FUNC) &r_poke,   -1 },
-      { "poke1", (DL_FUNC) &r_poke1,  -1 },
-      { "poke2", (DL_FUNC) &r_poke2,  -1 },
-      { "poke4", (DL_FUNC) &r_poke4,  -1 },
-      { "print", (DL_FUNC) &r_print,  -1 },
-      { "rect",  (DL_FUNC) &r_rect,   -1 },
-      { "rectb", (DL_FUNC) &r_rectb,  -1 },
-      { "reset", (DL_FUNC) &r_reset,  -1 },
-      { "sfx",   (DL_FUNC) &r_sfx,    -1 },
-      { "spr",   (DL_FUNC) &r_spr,    -1 },
-      { "sync",  (DL_FUNC) &r_sync,   -1 },
-      { "time",  (DL_FUNC) &r_time,   -1 },
-      { "trace", (DL_FUNC) &r_trace,  -1 },
-      { "tri",   (DL_FUNC) &r_tri,    -1 },
-      { "trib",  (DL_FUNC) &r_trib,   -1 },
-      { "tstamp",(DL_FUNC) &r_tstamp, -1 },
-      { "ttri",  (DL_FUNC) &r_ttri,   -1 },
-      { "vbank", (DL_FUNC) &r_vbank,  -1 }
+      { "t80.btn",   (DL_FUNC) &r_btn,    -1 },
+      { "t80.btnp",  (DL_FUNC) &r_btnp,   -1 },
+      { "t80.circ",  (DL_FUNC) &r_circ,   -1 },
+      { "t80.circb", (DL_FUNC) &r_circb,  -1 },
+      { "t80.clip",  (DL_FUNC) &r_clip,   -1 },
+      { "t80.cls",   (DL_FUNC) &r_cls,    -1 },
+      { "t80.elli",  (DL_FUNC) &r_elli,   -1 },
+      { "t80.ellib", (DL_FUNC) &r_ellib,  -1 },
+      { "t80.exit",  (DL_FUNC) &r_exit,   -1 },
+      { "t80.fget",  (DL_FUNC) &r_fget,   -1 },
+      { "t80.font",  (DL_FUNC) &r_font,   -1 },
+      { "t80.fset",  (DL_FUNC) &r_fset,   -1 },
+      { "t80.key",   (DL_FUNC) &r_key,    -1 },
+      { "t80.keyp",  (DL_FUNC) &r_keyp,   -1 },
+      { "t80.line",  (DL_FUNC) &r_line,   -1 },
+      { "t80.map",   (DL_FUNC) &r_map,    -1 },
+      { "t80.memcpy",(DL_FUNC) &r_memcpy, -1 },
+      { "t80.memset",(DL_FUNC) &r_memset, -1 },
+      { "t80.mget",  (DL_FUNC) &r_mget,   -1 },
+      { "t80.mouse", (DL_FUNC) &r_mouse,  -1 },
+      { "t80.mset",  (DL_FUNC) &r_mset,   -1 },
+      { "t80.music", (DL_FUNC) &r_music,  -1 },
+      { "t80.peek",  (DL_FUNC) &r_peek,   -1 },
+      { "t80.peek1", (DL_FUNC) &r_peek1,  -1 },
+      { "t80.peek2", (DL_FUNC) &r_peek2,  -1 },
+      { "t80.peek4", (DL_FUNC) &r_peek4,  -1 },
+      { "t80.pix",   (DL_FUNC) &r_pix,    -1 },
+      { "t80.pmem",  (DL_FUNC) &r_pmem,   -1 },
+      { "t80.poke",  (DL_FUNC) &r_poke,   -1 },
+      { "t80.poke1", (DL_FUNC) &r_poke1,  -1 },
+      { "t80.poke2", (DL_FUNC) &r_poke2,  -1 },
+      { "t80.poke4", (DL_FUNC) &r_poke4,  -1 },
+      { "t80.print", (DL_FUNC) &r_print,  -1 },
+      { "t80.rect",  (DL_FUNC) &r_rect,   -1 },
+      { "t80.rectb", (DL_FUNC) &r_rectb,  -1 },
+      { "t80.reset", (DL_FUNC) &r_reset,  -1 },
+      { "t80.sfx",   (DL_FUNC) &r_sfx,    -1 },
+      { "t80.spr",   (DL_FUNC) &r_spr,    -1 },
+      { "t80.sync",  (DL_FUNC) &r_sync,   -1 },
+      { "t80.time",  (DL_FUNC) &r_time,   -1 },
+      { "t80.trace", (DL_FUNC) &r_trace,  -1 },
+      { "t80.tri",   (DL_FUNC) &r_tri,    -1 },
+      { "t80.trib",  (DL_FUNC) &r_trib,   -1 },
+      { "t80.tstamp",(DL_FUNC) &r_tstamp, -1 },
+      { "t80.ttri",  (DL_FUNC) &r_ttri,   -1 },
+      { "t80.vbank", (DL_FUNC) &r_vbank,  -1 }
     };
 
     DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
