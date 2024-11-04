@@ -1211,10 +1211,6 @@ void tick_pkpy_v2(tic_mem* tic)
     {
         py_throw_error(core, "TIC running error!");
     }
-    else
-    {
-        auto test = py_retval();
-    }
 }
 
 void boot_pkpy_v2(tic_mem* tic)
@@ -1229,10 +1225,6 @@ void boot_pkpy_v2(tic_mem* tic)
     if (!py_vectorcall(0, 0))
     {
         py_throw_error(core, "BOOT running error!");
-    }
-    else
-    {
-        auto test = py_retval();
     }
 }
 
@@ -1251,10 +1243,6 @@ void callback_scanline(tic_mem* tic, s32 row, void* data)
     if (!py_vectorcall(1, 0))
     {
         py_throw_error(core, "SCANLINE running error!");
-    }
-    else
-    {
-        auto test = py_retval();
     }
     free(py_row);
 }
@@ -1275,10 +1263,6 @@ void callback_border(tic_mem* tic, s32 row, void* data)
     {
         py_throw_error(core, "BORDER running error!");
     }
-    else
-    {
-        auto test = py_retval();
-    }
     free(py_row);
 }
 void callback_menu(tic_mem* tic, s32 index, void* data)
@@ -1296,10 +1280,6 @@ void callback_menu(tic_mem* tic, s32 index, void* data)
     if (!py_vectorcall(1, 0))
     {
         py_throw_error(core, "MENU running error!");
-    }
-    else
-    {
-        auto test = py_retval();
     }
     free(py_idx);
 }
