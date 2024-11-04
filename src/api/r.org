@@ -459,9 +459,8 @@ them.
 
 #+begin_src C :noweb-ref PREDECLARATIONS
   tic_mem *mem;
-  static SEXP RTicRam;
-  #define RTICAPI ((tic_core *)RTicRam)->api
-  #define RTICRAM R_ExternalPtrAddr(RTicRam)
+  static SEXP RTicRam; /* An external pointer (to an object of type tic_mem) to the object with the symbol "mem". */
+  #define TICAPI(CMD, ...) ((tic_core *)RTicRam)->api.CMD(R_ExternalPtrAddr(RTicRam) __VA_OPT__(,) __VA_ARGS__)
 #+end_src
 
 The example then becomes as follows.
@@ -477,7 +476,7 @@ macros are declared.
   #define drIntp(x)  *((int   *)x)
   #define drDblp(x)  *((int   *)x)
   #define drLglp(x)  *((int   *)x)
-  #define drChrpp(x) *((char **)x)
+  #define drCrap(x)  *((char **)x)
   #define ARGS(x) Rf_elt(args, x)
 #+end_src
 
@@ -982,27 +981,57 @@ like this.
 #+end_src
 
 ** Functions
-*** Drawing
+*** DONE Drawing
+CLOSED: [2024-11-04 Mon 00:14]
+=parseTransparentColorsArg= is a helper function which is used elsewhere in the
+drawing API.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  void parseTransparentColorsArg(/* LISTSXP */SEXP colorkey,
+                                 u8* out_transparent_colors,
+                                 u8* out_count)
+  {
+    ,*out_count = 0;
+    if ((bool) Rf_isList(colorkey))
+    {
+      const u8 arg_color_count = Rf_length(colorkey);
+      const u8 color_count = arg_color_count < TIC_PALETTE_SIZE ? (u8)arg_color_count : TIC_PALETTE_SIZE;
+      for (int i=0; i<color_count; ++i)
+      {
+        SEXP c = VECTOR_ELT(colorkey, i);
+        out_transparent_colors[i] = (bool) Rf_isInteger(c) ? drIntp(c) : 0;
+        ++(*out_count);
+      }
+    }
+    else if ((bool) Rf_isInteger(colorkey))
+    {
+      out_transparent_colors[0] = (u8) drIntp(colorkey);
+      ,*out_count = 1;
+    }
+  }
+#+end_src
+
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_circ(SEXP args) {
     // circ(x y radius color)
-    const s32 x      = drInt(ARGS(1));
-    const s32 y      = drInt(ARGS(2));
-    const s32 radius = drInt(ARGS(3));
-    const s32 color  = drInt(ARGS(4));
+    const s32 x      = drIntp(ARGS(1));
+    const s32 y      = drIntp(ARGS(2));
+    const s32 radius = drIntp(ARGS(3));
+    const s32 color  = drIntp(ARGS(4));
 
-    RTICAPI.circ(RTICRAM, x, y, radius, color);
+    /* RTICAPI.circ(RTICRAM, x, y, radius, color); */
+    TICAPI(circ, x, y, radius, color);
     return R_NilValue;
   }
 
   SEXP r_circb(SEXP args) {
     // circb(x y radius color)
-    const s32 x      = drInt(ARGS(1));
-    const s32 y      = drInt(ARGS(2));
-    const s32 radius = drInt(ARGS(3));
-    const s32 color  = drInt(ARGS(4));
+    const s32 x      = drIntp(ARGS(1));
+    const s32 y      = drIntp(ARGS(2));
+    const s32 radius = drIntp(ARGS(3));
+    const s32 color  = drIntp(ARGS(4));
 
-    RTICAPI.circb(RTICRAM, x, y, radius, color);
+    TICAPI(circb, x, y, radius, color);
     return R_NilValue;
   }
 #+end_src
@@ -1011,98 +1040,99 @@ like this.
   SEXP r_elli(SEXP args)
   {
     // elli(x y a b color)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const s32 a = ScalarInteger(CADDDR(args));
-    const s32 b = ScalarInteger(CADDDDR(args));
-    const s32 color = ScalarInteger(s7_list_ref(sc, args, 4));
-    core->api.elli(tic, x, y, a, b, color);
+    const s32 x     = drIntp(ARGS(1));
+    const s32 y     = drIntp(ARGS(2));
+    const s32 a     = drIntp(ARGS(3));
+    const s32 b     = drIntp(ARGS(4));
+    const s32 color = drIntp(ARGS(5));
+    TICAPI(elli, x, y, a, b, color);
     return R_NilValue;
   }
 
   SEXP r_ellib(SEXP args)
   {
     // ellib(x y a b color)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const s32 a = ScalarInteger(CADDDR(args));
-    const s32 b = ScalarInteger(CADDDDR(args));
-    const s32 color = ScalarInteger(s7_list_ref(sc, args, 4));
-    core->api.ellib(tic, x, y, a, b, color);
+    const s32 x     = drIntp(ARGS(1));
+    const s32 y     = drIntp(ARGS(2));
+    const s32 a     = drIntp(ARGS(3));
+    const s32 b     = drIntp(ARGS(4));
+    const s32 color = drIntp(ARGS(5));
+    TICAPI(ellib, x, y, a, b, color);
     return R_NilValue;
   }
 #+end_src
 
 #+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_tri(SEXP args)
-  {
-    // tri(x1 y1 x2 y2 x3 y3 color)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x1 = ScalarInteger(CADR(args));
-    const s32 y1 = ScalarInteger(CADDR(args));
-    const s32 x2 = ScalarInteger(CADDDR(args));
-    const s32 y2 = ScalarInteger(CADDDDR(args));
-    const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
-    const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
-    const s32 color = ScalarInteger(s7_list_ref(sc, args, 6));
-    core->api.tri(tic, x1, y1, x2, y2, x3, y3, color);
-    return R_NilValue;
-  }
-
-  SEXP r_trib(SEXP args)
-  {
-    // trib(x1 y1 x2 y2 x3 y3 color)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x1 = ScalarInteger(CADR(args));
-    const s32 y1 = ScalarInteger(CADDR(args));
-    const s32 x2 = ScalarInteger(CADDDR(args));
-    const s32 y2 = ScalarInteger(CADDDDR(args));
-    const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
-    const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
-    const s32 color = ScalarInteger(s7_list_ref(sc, args, 6));
-    core->api.trib(tic, x1, y1, x2, y2, x3, y3, color);
-    return R_NilValue;
-  }
-
-  SEXP r_ttri(SEXP args)
-  {
-    // ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x1 = ScalarInteger(CADR(args));
-    const s32 y1 = ScalarInteger(CADDR(args));
-    const s32 x2 = ScalarInteger(CADDDR(args));
-    const s32 y2 = ScalarInteger(CADDDDR(args));
-    const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
-    const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
-    const s32 u1 = ScalarInteger(s7_list_ref(sc, args, 6));
-    const s32 v1 = ScalarInteger(s7_list_ref(sc, args, 7));
-    const s32 u2 = ScalarInteger(s7_list_ref(sc, args, 8));
-    const s32 v2 = ScalarInteger(s7_list_ref(sc, args, 9));
-    const s32 u3 = ScalarInteger(s7_list_ref(sc, args, 10));
-    const s32 v3 = ScalarInteger(s7_list_ref(sc, args, 11));
-
-    const int argn = length(args);
-    const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? ScalarInteger(s7_list_ref(sc, args, 12)) : 0);
-
-    static u8 trans_colors[TIC_PALETTE_SIZE];
-    u8 trans_count = 0;
-
-    if (argn > 13)
+    SEXP r_tri(SEXP args)
     {
-      SEXP colorkey = s7_list_ref(sc, args, 13);
-      parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
+      // tri(x1 y1 x2 y2 x3 y3 color)
+      const s32 x1    = drIntp(ARGS(1));
+      const s32 y1    = drIntp(ARGS(2));
+      const s32 x2    = drIntp(ARGS(3));
+      const s32 y2    = drIntp(ARGS(4));
+      const s32 x3    = drIntp(ARGS(5));
+      const s32 y3    = drIntp(ARGS(6));
+      const s32 color = drIntp(ARGS(7));
+
+      TICAPI(tri, x1, y1, x2, y2, x3, y3, color);
+      return R_NilValue;
     }
 
-    bool depth = argn > 14 ? true : false;
-    const s32 z1 = argn > 14 ? ScalarInteger(s7_list_ref(sc, args, 14)) : 0;
-    const s32 z2 = argn > 15 ? ScalarInteger(s7_list_ref(sc, args, 15)) : 0;
-    const s32 z3 = argn > 16 ? ScalarInteger(s7_list_ref(sc, args, 16)) : 0;
+    SEXP r_trib(SEXP args)
+    {
+      // trib(x1 y1 x2 y2 x3 y3 color)
+      const s32 x1    = drIntp(ARGS(1));
+      const s32 y1    = drIntp(ARGS(2));
+      const s32 x2    = drIntp(ARGS(4));
+      const s32 y2    = drIntp(ARGS(5));
+      const s32 x3    = drIntp(ARGS(6));
+      const s32 y3    = drIntp(ARGS(7));
+      const s32 color = drIntp(ARGS(8));
+      TICAPI(tri, x1, y1, x2, y2, x3, y3, color);
+      return R_NilValue;
+    }
 
-    core->api.ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, trans_colors, trans_count, z1, z2, z3, depth);
-    return R_NilValue;
-  }
+    SEXP r_ttri(SEXP args)
+    {
+      /* ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3
+              texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
+         ⮑ nil */
+      const s32 x1 = drIntp(ARGS(1));
+      const s32 y1 = drIntp(ARGS(2));
+      const s32 x2 = drIntp(ARGS(3));
+      const s32 y2 = drIntp(ARGS(4));
+      const s32 x3 = drIntp(ARGS(5));
+      const s32 y3 = drIntp(ARGS(6));
+      const s32 u1 = drIntp(ARGS(7));
+      const s32 v1 = drIntp(ARGS(8));
+      const s32 u2 = drIntp(ARGS(9));
+      const s32 v2 = drIntp(ARGS(10));
+      const s32 u3 = drIntp(ARGS(11));
+      const s32 v3 = drIntp(ARGS(12));
+
+      const int argn = Rf_length(args);
+      const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? drIntp(ARGS(13)) : 0);
+
+      static u8 trans_colors[TIC_PALETTE_SIZE];
+      u8 trans_count = 0;
+
+      if (argn > 13)
+      {
+        /* Scheme uses expects this to be a list, so I will too? Properly, however,
+         ,* it should be an expression type... which would be `{`. */
+        SEXP colorkey = ARGS(14);
+        parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
+      }
+
+      bool depth = argn > 14 ? true : false;
+      const s32 z1 = argn > 14 ? drIntp(ARGS(15)) : 0;
+      const s32 z2 = argn > 15 ? drIntp(ARGS(16)) : 0;
+      const s32 z3 = argn > 16 ? drIntp(ARGS(17)) : 0;
+
+      TICAPI(ttri, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3,
+             texsrc, trans_colors, trans_count, z1, z2, z3, depth);
+      return R_NilValue;
+    }
 #+end_src
 
 #+begin_src C :noweb-ref define C symbols to be callable from R
@@ -1110,16 +1140,15 @@ like this.
   {
     // clip(x y width height)
     // clip()
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
+    const int argn = Rf_length(args);
     if (argn != 4) {
-      core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+      TICAPI(clip, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
     } else {
-      const s32 x = ScalarInteger(CADR(args));
-      const s32 y = ScalarInteger(CADDR(args));
-      const s32 w = ScalarInteger(CADDDR(args));
-      const s32 h = ScalarInteger(CADDDDR(args));
-      core->api.clip(tic, x, y, w, h);
+      const s32 x = drIntp(ARGS(1));
+      const s32 y = drIntp(ARGS(2));
+      const s32 w = drIntp(ARGS(3));
+      const s32 h = drIntp(ARGS(4));
+      TICAPI(clip, x, y, w, h);
     }
     return R_NilValue;
   }
@@ -1129,50 +1158,24 @@ like this.
   SEXP r_font(SEXP args)
   {
     // font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const char* text = ScalarString(CADR(args));
-    const s32 x = ScalarInteger(CADDR(args));
-    const s32 y = ScalarInteger(CADDDR(args));
+    const char* text = drCrap(ARGS(1));
+    const s32 x      = drIntp(ARGS(2));
+    const s32 y      = drIntp(ARGS(3));
 
     static u8 trans_colors[TIC_PALETTE_SIZE];
     u8 trans_count = 0;
-    SEXP colorkey = CADDDDR(args);
-    parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
+    SEXP colorkey = ARGS(4);
+    parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
 
-    const s32 w = ScalarInteger(s7_list_ref(sc, args, 4));
-    const s32 h = ScalarInteger(s7_list_ref(sc, args, 5));
-    const int argn = length(args);
-    const s32 fixed = argn > 6 ? ScalarLogical(sc, s7_list_ref(sc, args, 6)) : false;
-    const s32 scale = argn > 7 ? ScalarInteger(s7_list_ref(sc, args, 7)) : 1;
-    const s32 alt = argn > 8 ? ScalarLogical(sc, s7_list_ref(sc, args, 8)) : false;
+    const s32 w = drIntp(ARGS(5));
+    const s32 h = drIntp(ARGS(6));
 
-    return s7_make_integer(sc, core->api.font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt));
-  }
-#+end_src
+    const int argn = Rf_length(args);
+    const s32 fixed = argn > 6 ? drLglp(ARGS(7)) : false;
+    const s32 scale = argn > 7 ? drIntp(ARGS(8)) : 1;
+    const s32 alt   = argn > 6 ? drLglp(ARGS(9)) : false;
 
-=parseTransparentColorsArg= is a helper function which is used elsewhere in the API.
-
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  void parseTransparentColorsArg(/* LISTSXP */SEXP colorkey,
-  															 u8* out_transparent_colors, u8* out_count)
-  {
-    ,*out_count = 0;
-    if (s7_is_list(sc, colorkey))
-    {
-      const s32 arg_color_count = length(colorkey);
-      const u8 color_count = arg_color_count < TIC_PALETTE_SIZE ? (u8)arg_color_count : TIC_PALETTE_SIZE;
-      for (u8 i=0; i<color_count; ++i)
-      {
-        SEXP c = s7_list_ref(sc, colorkey, i);
-        out_transparent_colors[i] = s7_is_integer(c) ? ScalarInteger(c) : 0;
-        ++(*out_count);
-      }
-    }
-    else if (s7_is_integer(colorkey))
-    {
-      out_transparent_colors[0] = (u8)ScalarInteger(colorkey);
-      ,*out_count = 1;
-    }
+    return Rf_ScalarInteger(TICAPI(font, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt));
   }
 #+end_src
 
@@ -1181,27 +1184,33 @@ like this.
     // spr(id x y colorkey=-1 scale=1 flip=0 rotate=0 w=1 h=1)
     static u8 trans_colors[TIC_PALETTE_SIZE];
     u8 trans_count = 0;
+
+    const s32 id = drIntp(ARGS(1));
+    const s32 x  = drIntp(ARGS(2));
+    const s32 y  = drIntp(ARGS(3));
+
+    const int argn = Rf_length(args);
+
     if (argn > 3)
     {
-  	  /* DONE: DOES NOT NEED protection and unprotection becausse the LISTSXP is a
-  		 ,* part of the args. */
-  	  SEXP *colorkey = &ARGS(4);
-  	  parseTransparentColorsArg(sc,
-      /*Within the Scheme API*/ colorkey, /*is a LIST, so here it should be a LISTSXP.*/
-  															trans_colors, &trans_count);
+      /* DONE: DOES NOT NEED protection and unprotection becausse the LISTSXP is a
+       ,* part of the args. */
+      SEXP colorkey = ARGS(4);
+      parseTransparentColorsArg(
+        /*Within the Scheme API*/ colorkey, /*is a LIST, so here it should be a LISTSXP.*/
+        trans_colors,
+        &trans_count
+      );
     }
     const s32 scale     = argn > 4 ? drIntp(ARGS(5)) : 1;
     const s32 flip      = argn > 5 ? drIntp(ARGS(6)) : 0;
     const s32 rotate    = argn > 6 ? drIntp(ARGS(7)) : 0;
     const s32 w         = argn > 7 ? drIntp(ARGS(8)) : 1;
     const s32 h         = argn > 8 ? drIntp(ARGS(9)) : 1;
-    RTICAPI.spr(RTICRAM,
-  							(s32) drIntp(ARGS(1)),
-  							(s32) drIntp(ARGS(2)),
-  							(s32) drIntp(ARGS(3)),
-  							w, h, trans_colors, trans_count, scale,
-  							(tic_flip) flip,
-  							(tic_rotate) rotate);
+    TICAPI(spr, id, x, y,
+           w, h, trans_colors, trans_count, scale,
+           (tic_flip) flip,
+           (tic_rotate) rotate);
     return R_NilValue;
   }
 #+end_src
@@ -1210,7 +1219,8 @@ like this.
   SEXP r_print(SEXP args) {
     /* print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false)
      ,* ⮑ width*/
-    const char *text  = (const char *) drChrpp(ARGS(1));
+    const int argn = Rf_length(args);
+    const char *text  = (const char *) drCrap(ARGS(1));
     const s32   x     = argn > 1 ? drIntp(ARGS(2)): 0;
     const s32   y     = argn > 2 ? drIntp(ARGS(3)): 0;
     const u8    color = argn > 3 ? drIntp(ARGS(4)): 15;
@@ -1218,7 +1228,7 @@ like this.
     const s32   scale = argn > 5 ? drIntp(ARGS(6)): 1;
     const bool  alt   = argn > 6 ? drIntp(ARGS(7)): false;
 
-    return Rf_ScalarLogical(RTICAPI.print(RTICRAM, text, x, y, color, fixed, scale, alt));
+    return Rf_ScalarLogical(TICAPI(print, text, x, y, color, fixed, scale, alt));
   }
 #+end_src
 
@@ -1231,8 +1241,9 @@ the s7 Scheme API.
   SEXP r_cls(SEXP args) {
     /* cls(color=0)
      ,* ⮑ nil */
+    const int argn = Rf_length(args);
     const u8 color = (argn > 0) ? drIntp(ARGS(1)) : 0;
-    RTICAPI.cls(RTICRAM, color);
+    TICAPI(cls, color);
 
     return R_NilValue;
   }
@@ -1251,12 +1262,13 @@ protecting intermediate values.
     const s32 x = drIntp(ARGS(1));
     const s32 y = drIntp(ARGS(2));
 
+    const int argn = Rf_length(args);
     if (argn == 3) {
       const u8 color = drIntp(ARGS(3));
-      RTICAPI.pix(RTICRAM, x, y, color, false);
+      TICAPI(pix, x, y, color, false);
       return R_NilValue;
     } else {
-      return Rf_ScalarInteger(RTICAPI.pix(RTICRAM, x, y, 0, true));
+      return Rf_ScalarInteger(TICAPI(pix, x, y, 0, true));
     }
   }
 #+end_src
@@ -1275,7 +1287,7 @@ it will return the color of the pixel at that position.
     const s32 y1    = drIntp(ARGS(4));
     const u8  color = drIntp(ARGS(5));
 
-    RTICAPI.line(RTICRAM, x0, y0, x1, y1, color);
+    TICAPI(line, x0, y0, x1, y1, color);
     return R_NilValue;
   }
 #+end_src
@@ -1289,7 +1301,7 @@ it will return the color of the pixel at that position.
     const s32 w     = drIntp(ARGS(3));
     const s32 h     = drIntp(ARGS(4));
     const u8  color = drIntp(ARGS(5));
-    RTICAPI.rect(RTICRAM, x, y, w, h, color);
+    TICAPI(rect, x, y, w, h, color);
     return R_NilValue;
   }
 
@@ -1301,101 +1313,100 @@ it will return the color of the pixel at that position.
     const s32 w     = drIntp(ARGS(3));
     const s32 h     = drIntp(ARGS(4));
     const u8  color = drIntp(ARGS(5));
-    RTICAPI.rectb(RTICRAM, x, y, w, h, color);
+    TICAPI(rectb, x, y, w, h, color);
     return R_NilValue;
   }
 #+end_src
 
-**** TODO =map=, which optionally uses a callback function written in the chosen API language
+**** =map=, which optionally uses a callback function written in the chosen API language
 =remapCallback= uses a pointer to call a given Scheme function, stored in ~remap->callback~.
 
 #+begin_src C :noweb-ref define C symbols to be callable from R
   typedef struct
   {
-    s7_scheme* sc;
+    tic_core *core;
     SEXP callback;
   } RemapData;
 
   static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
   {
-    RemapData* remap = (RemapData*)data;
-    s7_scheme* sc = remap->sc;
+    RemapData* remap = (RemapData*) data;
+    tic_core* core = remap->core;
 
     /* NOTE: Call the callback function. */
-    // (callback index x y) -> (list index flip rotate)
-    SEXP callbackResult = s7_call(sc, remap->callback,
-                                  s7_cons(sc, s7_make_integer(sc, result->index),
-                                          s7_cons(sc, s7_make_integer(sc, x),
-                                                  s7_cons(sc, s7_make_integer(sc, y),
-                                                          R_NilValue))));
+    // callback(index x y) -> list(index flip rotate)
+    /* callback(index, x, y) */
+    if (Rf_isFunction(remap->callback)) {
+      SEXP callbackResult = Rf_lang4(remap->callback,
+                                     Rf_ScalarInteger(result->index),
+                                     Rf_ScalarInteger(x),
+                                     Rf_ScalarInteger(y));
 
-    if (s7_is_list(sc, callbackResult) && length(callbackResult) == 3)
-    {
-      result->index = ScalarInteger(CADR(callbackResult));
-      result->flip = (tic_flip)ScalarInteger(CADDR(callbackResult));
-      result->rotate = (tic_rotate)ScalarInteger(CADDDR(callbackResult));
+      if (Rf_isList(callbackResult) && Rf_length(callbackResult) == 3)
+      {
+        result->index  =              drIntp(Rf_elt(callbackResult, 1));
+        result->flip   = (tic_flip)   drIntp(Rf_elt(callbackResult, 2));
+        result->rotate = (tic_rotate) drIntp(Rf_elt(callbackResult, 3));
+      }
     }
   }
 
   SEXP r_map(SEXP args)
   {
     // map(x=0 y=0 w=30 h=17 sx=0 sy=0 colorkey=-1 scale=1 remap=nil)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const s32 w = ScalarInteger(CADDDR(args));
-    const s32 h = ScalarInteger(CADDDDR(args));
-    const s32 sx = ScalarInteger(s7_list_ref(sc, args, 4));
-    const s32 sy = ScalarInteger(s7_list_ref(sc, args, 5));
+    const s32 x  = drIntp(ARGS(1));
+    const s32 y  = drIntp(ARGS(2));
+    const s32 w  = drIntp(ARGS(3));
+    const s32 h  = drIntp(ARGS(4));
+    const s32 sx = drIntp(ARGS(5));
+    const s32 sy = drIntp(ARGS(6));
 
-    const int argn = length(args);
+    const int argn = Rf_length(args);
 
     static u8 trans_colors[TIC_PALETTE_SIZE];
     u8 trans_count = 0;
     if (argn > 6) {
-      SEXP colorkey = s7_list_ref(sc, args, 6);
-      parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
+      SEXP colorkey = ARGS(7);
+      parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
     }
 
-    const s32 scale = argn > 7 ? ScalarInteger(s7_list_ref(sc, args, 7)) : 1;
+    const s32 scale = argn > 7 ? drIntp(ARGS(8)) : 1;
 
     RemapFunc remap = NULL;
     RemapData data;
     if (argn > 8)
     {
       remap = remapCallback;
-      data.sc = sc;
-      data.callback = s7_list_ref(sc, args, 8);
+      data.core = ((tic_core *)RTicRam);
+      data.callback = ARGS(9);
     }
-    core->api.map(tic, x, y, w, h, sx, sy, trans_colors, trans_count, scale, remap, &data);
+    TICAPI(map, x, y, w, h, sx, sy, trans_colors, trans_count, scale, remap, &data);
     return R_NilValue;
   }
 #+end_src
 
-*** Input
+*** DONE Input
+CLOSED: [2024-11-04 Mon 00:21]
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_key(SEXP args)
   {
     //key(code=-1) -> pressed
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    const tic_key code = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-    return s7_make_boolean(sc, core->api.key(tic, code));
+    const int argn = Rf_length(args);
+    const tic_key code = argn > 0 ? drIntp(ARGS(1)) : -1;
+    return Rf_ScalarLogical(TICAPI(key, code));
   }
-#+end_src
 
-#+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_keyp(SEXP args)
   {
     // keyp(code=-1 hold=-1 period=-1) -> pressed
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    const tic_key code = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-    const s32 hold = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-    const s32 period = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-    return s7_make_boolean(sc, core->api.keyp(tic, code, hold, period));
+    const int argn = Rf_length(args);
+    const tic_key code = argn > 0 ? drIntp(ARGS(1)) : -1;
+    const s32 hold     = argn > 1 ? drIntp(ARGS(2)) : -1;
+    const s32 period   = argn > 2 ? drIntp(ARGS(3)) : -1;
+    return Rf_ScalarLogical(TICAPI(keyp, code, hold, period));
   }
 #+end_src
+
 #+begin_src C :noweb-ref define C symbols to be callable from R
   /* This API function does not use the convenience macros because it doesn't need
    ,* to protect any values from garbage collection, because every use of an R API
@@ -1404,30 +1415,29 @@ it will return the color of the pixel at that position.
   {
     /* mouse()
   	 ,* ⮑ x y left middle right scrollx scrolly */
-  	tic_mem *tic = (tic_mem *) RTICRAM;
+  	tic_mem *tic = (tic_mem *) RTicRam;
   	tic_core* core = (tic_core *)tic;
 
     const tic_point point = core->api.mouse(tic);
     const tic80_mouse* mouse = &((tic_core*)tic)->memory.ram->input.mouse;
 
-    return CONS(ScalarInteger(point.x),
-                list6(ScalarInteger(point.y),
-                      ScalarInteger(mouse->left),
-                      ScalarInteger(mouse->middle),
-                      ScalarInteger(mouse->right),
-                      ScalarInteger(mouse->scrollx),
-                      ScalarInteger(mouse->scrolly)));
-  }
-#+end_src
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_btn(SEXP args)
-  {
-    // btn(id) -> pressed
-    return Rf_ScalarLogical(RTICAPI.btn(RTICRAM, (s32) ARGS(1)));
+    return CONS(Rf_ScalarInteger(point.x),
+                Rf_list6(Rf_ScalarInteger(point.y),
+                      Rf_ScalarInteger(mouse->left),
+                      Rf_ScalarInteger(mouse->middle),
+                      Rf_ScalarInteger(mouse->right),
+                      Rf_ScalarInteger(mouse->scrollx),
+                      Rf_ScalarInteger(mouse->scrolly)));
   }
 #+end_src
 
 #+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_btn(SEXP args)
+  {
+    // btn(id) -> pressed
+    return Rf_ScalarLogical(TICAPI(btn, (s32) drIntp(ARGS(1))));
+  }
+
   SEXP r_btnp(SEXP args)
   {
     // btnp(id hold=-1 period=-1) -> pressed
@@ -1436,9 +1446,10 @@ it will return the color of the pixel at that position.
     const s32 hold = argn > 1 ? drIntp(ARGS(2)) : -1;
     const s32 period = argn > 2 ? drIntp(ARGS(3)) : -1;
 
-    return Rf_ScalarLogical(RTICAPI.btnp(RTICRAM, id, hold, period));
+    return Rf_ScalarLogical(TICAPI(btnp, id, hold, period));
   }
 #+end_src
+
 *** Sound
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_music(SEXP args)
