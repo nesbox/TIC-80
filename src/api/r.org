@@ -173,7 +173,7 @@ can define it right now. For now the =memory= parameter can be ignored.
   		R_initialized_once = true;
   	}
   	SEXP RESULT;
-    SEXP LANG = PROTECT(CSTR2LANGSXP(code))
+    SEXP LANG = PROTECT(CSTR2LANGSXP(code));
   	if (R_initialized_once) RESULT = PROTECT(Rf_eval(LANG, R_GlobalEnv));
   	#if defined ebug /* -DEBUG=ON */
   	Rprintf("%s", RESULT);
@@ -566,10 +566,19 @@ That is defined separately, and not as a macro, so that the code can be re-used.
     ((tic_core *) tic_memory_static)->api.trace(tic_memory_static, s, 15);
   }
 
+  static void closeR(tic_mem *tic) {
+    tic_core *core;
+    if ((core = (((tic_core *) tic))->currentVM) != NULL) {
+      Rf_endEmbeddedR(0);
+      core->currentVM = NULL;
+    }
+  }
+
   /* This function is called with code, which is the entirety of the studio
      ,,* editor's code buffer (i.e. the entire game code as one string). */
   static bool initR(tic_mem *tic, const char *code) {
-  	RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL)
+    initializeRExternalMethodsDefinedInC();
+  	RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
 
     closeR(tic);
 
@@ -597,14 +606,6 @@ That is defined separately, and not as a macro, so that the code can be re-used.
             R_GlobalEnv);
 
     return R_Initialized;
-  }
-
-  static void closeR(tic_mem *tic) {
-    tic_core *core;
-    if ((core = (((tic_core *) tic))->currentVM) != NULL) {
-      Rf_endEmbeddedR(0);
-      core->currentVM = NULL;
-    }
   }
 #+end_src
 
@@ -1585,7 +1586,7 @@ in TIC-80, so these functions are called frequently.
     const int argn = Rf_length(args);
     const s32 prev = ((tic_core *)RTicRam)->state.vbank.id;
     if (argn == 1) {
-      const s32 bank = ScalarInteger(ARGS(1));
+      const s32 bank = drIntp(ARGS(1));
       TICAPI(vbank, bank);
     }
     return Rf_ScalarInteger(prev);
@@ -1710,7 +1711,7 @@ in TIC-80, so these functions are called frequently.
     bool shouldSet = false;
     if (Rf_length(args) > 1)
     {
-      value = ScalarInteger(ARGS(2));
+      value = drIntp(ARGS(2));
       shouldSet = true;
     }
     return Rf_ScalarInteger(TICAPI(pmem, index, value, shouldSet));
@@ -1759,7 +1760,7 @@ changes are ephemeral. Permanent changes to the map are made with =sync=.
     const s32 x       = drIntp(ARGS(1));
     const s32 y       = drIntp(ARGS(2));
     const u8  tile_id = drIntp(ARGS(3));
-    TICAPI(mget, x, y, tile_id);
+    TICAPI(mset, x, y, tile_id);
     return R_NilValue;
   }
 #+end_src
@@ -1790,7 +1791,7 @@ CLOSED: [2024-11-04 Mon 14:29]
   SEXP r_time(SEXP args)
   {
     // time() -> ticks
-    return Rf_ScalarDouble(TICAPI(time));
+    return Rf_ScalarInteger(TICAPI(time));
   }
 #+end_src
 
@@ -1822,7 +1823,7 @@ These functions are used when live-coding music or demos at conventions.
     const int argn = Rf_length(args);
     const s32 start_freq = argn > 0 ? drIntp(ARGS(1)) : -1;
     const s32 end_freq   = argn > 1 ? drIntp(ARGS(2)) : -1;
-    return REAL(TICAPI(fft, start_freq, end_freq));
+    return Rf_ScalarReal(TICAPI(fft, start_freq, end_freq));
   }
 #+end_src
 
@@ -1833,7 +1834,7 @@ These functions are used when live-coding music or demos at conventions.
     const int argn = Rf_length(args);
     const s32 start_freq = argn > 0 ? drIntp(ARGS(1)) : -1;
     const s32 end_freq   = argn > 1 ? drIntp(ARGS(2)) : -1;
-    return REAL(TICAPI(ffts, start_freq, end_freq));
+    return Rf_ScalarReal(TICAPI(ffts, start_freq, end_freq));
   }
 #+end_src
 
@@ -2243,58 +2244,59 @@ The function which performs the registration is built-in to R.
 
 #+name: register C symbols with R
 #+begin_src C :noweb no-export
-  static const R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
-   { "btn",   (DL_FUNC) &r_btn,    -1 },
-   { "btnp",  (DL_FUNC) &r_btnp,   -1 },
-   { "circ",  (DL_FUNC) &r_circ,   -1 },
-   { "circb", (DL_FUNC) &r_circb,  -1 },
-   { "clip",  (DL_FUNC) &r_clip,   -1 },
-   { "cls",   (DL_FUNC) &r_cls,    -1 },
-   { "elli",  (DL_FUNC) &r_elli,   -1 },
-   { "ellib", (DL_FUNC) &r_ellib,  -1 },
-   { "exit",  (DL_FUNC) &r_exit,   -1 },
-   { "fget",  (DL_FUNC) &r_fget,   -1 },
-   { "font",  (DL_FUNC) &r_font,   -1 },
-   { "fset",  (DL_FUNC) &r_fset,   -1 },
-   { "key",   (DL_FUNC) &r_key,    -1 },
-   { "keyp",  (DL_FUNC) &r_keyp,   -1 },
-   { "line",  (DL_FUNC) &r_line,   -1 },
-   { "map",   (DL_FUNC) &r_map,    -1 },
-   { "memcpy",(DL_FUNC) &r_memcpy, -1 },
-   { "memset",(DL_FUNC) &r_memset, -1 },
-   { "mget",  (DL_FUNC) &r_mget,   -1 },
-   { "mouse", (DL_FUNC) &r_mouse,  -1 },
-   { "mset",  (DL_FUNC) &r_mset,   -1 },
-   { "music", (DL_FUNC) &r_music,  -1 },
-   { "peek",  (DL_FUNC) &r_peek,   -1 },
-   { "peek1", (DL_FUNC) &r_peek1,  -1 },
-   { "peek2", (DL_FUNC) &r_peek2,  -1 },
-   { "peek4", (DL_FUNC) &r_peek4,  -1 },
-   { "pix",   (DL_FUNC) &r_pix,    -1 },
-   { "pmem",  (DL_FUNC) &r_pmem,   -1 },
-   { "poke",  (DL_FUNC) &r_poke,   -1 },
-   { "poke1", (DL_FUNC) &r_poke1,  -1 },
-   { "poke2", (DL_FUNC) &r_poke2,  -1 },
-   { "poke4", (DL_FUNC) &r_poke4,  -1 },
-   { "print", (DL_FUNC) &r_print,  -1 },
-   { "rect",  (DL_FUNC) &r_rect,   -1 },
-   { "rectb", (DL_FUNC) &r_rectb,  -1 },
-   { "reset", (DL_FUNC) &r_reset,  -1 },
-   { "sfx",   (DL_FUNC) &r_sfx,    -1 },
-   { "spr",   (DL_FUNC) &r_spr,    -1 },
-   { "sync",  (DL_FUNC) &r_sync,   -1 },
-   { "time",  (DL_FUNC) &r_time,   -1 },
-   { "trace", (DL_FUNC) &r_trace,  -1 },
-   { "tri",   (DL_FUNC) &r_tri,    -1 },
-   { "trib",  (DL_FUNC) &r_trib,   -1 },
-   { "tstamp",(DL_FUNC) &r_tstamp, -1 },
-   { "ttri",  (DL_FUNC) &r_ttri,   -1 },
-   { "vbank", (DL_FUNC) &r_vbank,  -1 },
+  void initializeRExternalMethodsDefinedInC(void) {
+    static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
+      { "btn",   (DL_FUNC) &r_btn,    -1 },
+      { "btnp",  (DL_FUNC) &r_btnp,   -1 },
+      { "circ",  (DL_FUNC) &r_circ,   -1 },
+      { "circb", (DL_FUNC) &r_circb,  -1 },
+      { "clip",  (DL_FUNC) &r_clip,   -1 },
+      { "cls",   (DL_FUNC) &r_cls,    -1 },
+      { "elli",  (DL_FUNC) &r_elli,   -1 },
+      { "ellib", (DL_FUNC) &r_ellib,  -1 },
+      { "exit",  (DL_FUNC) &r_exit,   -1 },
+      { "fget",  (DL_FUNC) &r_fget,   -1 },
+      { "font",  (DL_FUNC) &r_font,   -1 },
+      { "fset",  (DL_FUNC) &r_fset,   -1 },
+      { "key",   (DL_FUNC) &r_key,    -1 },
+      { "keyp",  (DL_FUNC) &r_keyp,   -1 },
+      { "line",  (DL_FUNC) &r_line,   -1 },
+      { "map",   (DL_FUNC) &r_map,    -1 },
+      { "memcpy",(DL_FUNC) &r_memcpy, -1 },
+      { "memset",(DL_FUNC) &r_memset, -1 },
+      { "mget",  (DL_FUNC) &r_mget,   -1 },
+      { "mouse", (DL_FUNC) &r_mouse,  -1 },
+      { "mset",  (DL_FUNC) &r_mset,   -1 },
+      { "music", (DL_FUNC) &r_music,  -1 },
+      { "peek",  (DL_FUNC) &r_peek,   -1 },
+      { "peek1", (DL_FUNC) &r_peek1,  -1 },
+      { "peek2", (DL_FUNC) &r_peek2,  -1 },
+      { "peek4", (DL_FUNC) &r_peek4,  -1 },
+      { "pix",   (DL_FUNC) &r_pix,    -1 },
+      { "pmem",  (DL_FUNC) &r_pmem,   -1 },
+      { "poke",  (DL_FUNC) &r_poke,   -1 },
+      { "poke1", (DL_FUNC) &r_poke1,  -1 },
+      { "poke2", (DL_FUNC) &r_poke2,  -1 },
+      { "poke4", (DL_FUNC) &r_poke4,  -1 },
+      { "print", (DL_FUNC) &r_print,  -1 },
+      { "rect",  (DL_FUNC) &r_rect,   -1 },
+      { "rectb", (DL_FUNC) &r_rectb,  -1 },
+      { "reset", (DL_FUNC) &r_reset,  -1 },
+      { "sfx",   (DL_FUNC) &r_sfx,    -1 },
+      { "spr",   (DL_FUNC) &r_spr,    -1 },
+      { "sync",  (DL_FUNC) &r_sync,   -1 },
+      { "time",  (DL_FUNC) &r_time,   -1 },
+      { "trace", (DL_FUNC) &r_trace,  -1 },
+      { "tri",   (DL_FUNC) &r_tri,    -1 },
+      { "trib",  (DL_FUNC) &r_trib,   -1 },
+      { "tstamp",(DL_FUNC) &r_tstamp, -1 },
+      { "ttri",  (DL_FUNC) &r_ttri,   -1 },
+      { "vbank", (DL_FUNC) &r_vbank,  -1 }
+    };
 
-   { NULL, NULL, 0, NULL }
-  };
-
-  R_registerRoutines(R_getEmbeddingDllInfo(), NULL, NULL, NULL, RExternalMethodsDefinedInC);
+    DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
+    R_registerRoutines(embeddingProgramDllInfo, NULL, NULL, NULL, RExternalMethodsDefinedInC);
+  }
 #+end_src
 
 Presumably, all of these functions will then be available in R as functions
