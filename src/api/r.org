@@ -1811,21 +1811,18 @@ CLOSED: [2024-11-04 Mon 14:29]
   }
 #+end_src
 
-*** TODO Special API functions
+*** DONE Special API functions
+CLOSED: [2024-11-04 Mon 14:32]
 These functions are used when live-coding music or demos at conventions.
 
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_fft(SEXP args)
   {
     // fft(int start_freq, int end_freq=-1) -> float_value
-    tic_core* core = R_GlobalEnv;
-    tic_mem* tic = (tic_mem*)core;
-
-    const int argn = length(args);
-    const s32 start_freq = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-    const s32 end_freq = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-
-    return s7_make_real(sc, core->api.fft(tic, start_freq, end_freq));
+    const int argn = Rf_length(args);
+    const s32 start_freq = argn > 0 ? drIntp(ARGS(1)) : -1;
+    const s32 end_freq   = argn > 1 ? drIntp(ARGS(2)) : -1;
+    return REAL(TICAPI(fft, start_freq, end_freq));
   }
 #+end_src
 
@@ -1833,13 +1830,10 @@ These functions are used when live-coding music or demos at conventions.
   SEXP r_ffts(SEXP args)
   {
     // ffts(int start_freq, int end_freq=-1) -> float_value
-    tic_core* core = R_GlobalEnv;
-    tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    const s32 start_freq = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-    const s32 end_freq = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-
-    return s7_make_real(sc, core->api.ffts(tic, start_freq, end_freq));
+    const int argn = Rf_length(args);
+    const s32 start_freq = argn > 0 ? drIntp(ARGS(1)) : -1;
+    const s32 end_freq   = argn > 1 ? drIntp(ARGS(2)) : -1;
+    return REAL(TICAPI(ffts, start_freq, end_freq));
   }
 #+end_src
 
