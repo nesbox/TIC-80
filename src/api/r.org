@@ -1717,50 +1717,53 @@ in TIC-80, so these functions are called frequently.
   }
 #+end_src
 
-*** Utilities
+*** DONE Utilities
+CLOSED: [2024-11-04 Mon 14:26]
+These two utility functions get or set sprite flags.
+
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_fget(SEXP args)
   {
     // fget(sprite_id flag) -> bool
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 sprite_id = ScalarInteger(CADR(args));
-    const u8 flag = ScalarInteger(CADDR(args));
-    return s7_make_boolean(sc, core->api.fget(tic, sprite_id, flag));
+    const s32 sprite_id = drIntp(ARGS(1));
+    const u8 flag       = drIntp(ARGS(2));
+    return Rf_ScalarLogical(TICAPI(fget, sprite_id, flag));
   }
-#+end_src
 
-#+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_fset(SEXP args)
   {
     // fset(sprite_id flag bool)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 sprite_id = ScalarInteger(CADR(args));
-    const u8 flag = ScalarInteger(CADDR(args));
-    const bool val = ScalarLogical(sc, CADDDR(args));
-    core->api.fset(tic, sprite_id, flag, val);
+    const s32  sprite_id = drIntp(ARGS(1));
+    const u8   flag      = drIntp(ARGS(2));
+    const bool val       = drLglp(ARGS(3));
+    TICAPI(fset, sprite_id, flag, val);
     return R_NilValue;
   }
 #+end_src
+
+These two functions change or retrieve the map tile at given coordinates;
+changes are ephemeral. Permanent changes to the map are made with =sync=.
+
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_mget(SEXP args)
   {
     // mget(x y) -> tile_id
-    return Rf_ScalarInteger(RTICAPI.mget(RTICRAM, (s32) drIntp(ARGS(1)), (s32) drIntp(ARGS(2))));
+    const s32 x = drIntp(ARGS(1));
+    const s32 y = drIntp(ARGS(2));
+    return Rf_ScalarInteger(TICAPI(mget, x, y));
   }
-#+end_src
 
-#+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_mset(SEXP args)
   {
     // mset(x y tile_id)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const u8 tile_id = ScalarInteger(CADDDR(args));
-    core->api.mset(tic, x, y, tile_id);
+    const s32 x       = drIntp(ARGS(1));
+    const s32 y       = drIntp(ARGS(2));
+    const u8  tile_id = drIntp(ARGS(3));
+    TICAPI(mget, x, y, tile_id);
     return R_NilValue;
   }
 #+end_src
+
 *** System
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_reset(SEXP args)
