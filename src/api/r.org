@@ -1483,19 +1483,32 @@ These API functions are related to sound processing.
       return 255;
   }
 
+  SEXP r_music(SEXP args)
+  {
+    // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
+    const int argn     = Rf_length(args);
+    const s32  track   = argn > 0 ? drIntp(ARGS(1)) : -1;
+    const s32  frame   = argn > 1 ? drIntp(ARGS(2)) : -1;
+    const s32  row     = argn > 2 ? drIntp(ARGS(3)) : -1;
+    const bool loop    = argn > 3 ? drLglp(ARGS(4)) : true;
+    const bool sustain = argn > 4 ? drLglp(ARGS(5)) : false;
+    const s32  tempo   = argn > 5 ? drIntp(ARGS(6)) : -1;
+    const s32  speed   = argn > 6 ? drIntp(ARGS(7)) : -1;
+    TICAPI(music, track, frame, row, loop, sustain, tempo, speed);
+    return R_NilValue;
+  }
+
   SEXP r_sfx(SEXP a, SEXP args)
   {
     // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 id = ScalarInteger(CADR(args));
-
-    const int argn = length(args);
+    const s32 id = drIntp(ARGS(1));
+    const int argn = Rf_length(args);
     int note = -1;
     int octave = -1;
     if (argn > 1) {
-      SEXP note_ptr = CADDR(args);
-      if (s7_is_integer(note_ptr)) {
-        const s32 raw_note = ScalarInteger(note_ptr);
+      SEXP note_ptr = ARGS(2);
+      if (Rf_isInteger(note_ptr)) {
+        const s32 raw_note = drIntp(note_ptr);
         if (raw_note >= 0 || raw_note <= 95) {
           note = raw_note % 12;
           octave = raw_note / 12;
@@ -1505,9 +1518,9 @@ These API functions are related to sound processing.
         /*     snprintf(buffer, 99, "Invalid sfx note given: %d\n", raw_note); */
         /*     tic->data->error(tic->data->data, buffer); */
         /* } */
-      } else if (s7_is_string(note_ptr)) {
-        const char* note_str = ScalarString(note_ptr);
-        const u8 len = ScalarString_length(note_ptr);
+      } else if (/*I don't see the function*/ Rf_isString(note_ptr) /*documented in the info manual, but apparently it exists!*/) {
+        const char* note_str = drCrap(note_ptr);
+        const u8 len = Rf_length(note_ptr);
         if (len == 3) {
           const u8 modif = get_note_modif(note_str[1]);
           note = get_note_base(note_str[0]);
@@ -1526,36 +1539,40 @@ These API functions are related to sound processing.
       }
     }
 
-    const s32 duration = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-    const s32 channel = argn > 3 ? ScalarInteger(CADDDDR(args)) : 0;
+    const s32 duration = argn > 2 ? drIntp(ARGS(3)) : -1;
+    const s32 channel  = argn > 3 ? drIntp(ARGS(4)) : 0;
 
-    s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
+    s32 volumes[TIC80_SAMPLE_CHANNELS] = { MAX_VOLUME, MAX_VOLUME };
     if (argn > 4) {
-      SEXP volume_arg = s7_list_ref(sc, args, 4);
-      if (s7_is_integer(volume_arg)) {
-        volumes[0] = volumes[1] = ScalarInteger(volume_arg) & 0xF;
-      } else if (s7_is_list(sc, volume_arg) && length(volume_arg) == 2) {
-        volumes[0] = ScalarInteger(CADR(volume_arg)) & 0xF;
-        volumes[1] = ScalarInteger(CADDR(volume_arg)) & 0xF;
+      SEXP volume_arg = ARGS(5);
+      if (Rf_isInteger(volume_arg)) {
+        volumes[0] = volumes[1] = drIntp(volume_arg) & 0xF;
+      } else if (Rf_isList(volume_arg) && Rf_length(volume_arg) == 2) {
+        volumes[0] = drIntp(CADR(volume_arg)) & 0xF;
+        volumes[1] = drIntp(CADDR(volume_arg)) & 0xF;
       }
     }
-    const s32 speed = argn > 5 ? ScalarInteger(s7_list_ref(sc, args, 5)) : 0;
+    const s32 speed = argn > 5 ? drIntp(ARGS(6)) : 0;
 
-    core->api.sfx(tic, id, note, octave, duration, channel, volumes[0], volumes[1], speed);
+    TICAPI(sfx, id, note, octave, duration, channel, volumes[0], volumes[1], speed);
     return R_NilValue;
   }
 #+end_src
-*** Memory
+
+*** DONE Memory
+CLOSED: [2024-11-04 Mon 14:20]
+These functions hack on the memory of the fantasy console. IO is memory-mapped
+in TIC-80, so these functions are called frequently.
+
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_sync(SEXP args)
   {
     // sync(mask=0 bank=0 tocart=false)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    const u32 mask = argn > 0 ? (u32)ScalarInteger(CADR(args)) : 0;
-    const s32 bank = argn > 1 ? ScalarInteger(CADDR(args)) : 0;
-    const bool tocart = argn > 2 ? ScalarLogical(sc, CADDDR(args)) : false;
-    core->api.sync(tic, mask, bank, tocart);
+    const int argn = Rf_length(args);
+    const u32 mask    = argn > 0 ? (u32) drIntp(ARGS(1)) : 0;
+    const s32 bank    = argn > 1 ? drIntp(ARGS(2)) :       0;
+    const bool tocart = argn > 2 ? drIntp(ARGS(3)) :       false;
+    TICAPI(sync, mask, bank, tocart);
     return R_NilValue;
   }
 #+end_src
@@ -1565,26 +1582,24 @@ These API functions are related to sound processing.
   {
     // vbank(bank) -> prev
     // vbank() -> prev
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-
-    const s32 prev = ((tic_core*)tic)->state.vbank.id;
+    const int argn = Rf_length(args);
+    const s32 prev = ((tic_core *)RTicRam)->state.vbank.id;
     if (argn == 1) {
-      const s32 bank = ScalarInteger(CADR(args));
-      core->api.vbank(tic, bank);
+      const s32 bank = ScalarInteger(ARGS(1));
+      TICAPI(vbank, bank);
     }
-    return s7_make_integer(sc, prev);
+    return Rf_ScalarInteger(prev);
   }
 #+end_src
+
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_peek(SEXP args)
   {
     // peek(addr bits=8) -> value
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    const int argn = length(args);
-    const s32 bits = argn > 1 ? ScalarInteger(CADDR(args)) : 8;
-    return s7_make_integer(sc, core->api.peek(tic, addr, bits));
+    const s32 addr = drIntp(ARGS(1));
+    const int argn = Rf_length(args);
+    const s32 bits = argn > 1 ? drIntp(ARGS(2)) : 8;
+    return Rf_ScalarInteger(TICAPI(peek, addr, bits));
   }
 #+end_src
 
@@ -1592,12 +1607,11 @@ These API functions are related to sound processing.
   SEXP r_poke(SEXP args)
   {
     // poke(addr value bits=8)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    const s32 value = ScalarInteger(CADDR(args));
-    const int argn = length(args);
-    const s32 bits = argn > 2 ? ScalarInteger(CADDDR(args)) : 8;
-    core->api.poke(tic, addr, value, bits);
+    const s32 addr = drIntp(ARGS(1));
+    const s32 value = drIntp(ARGS(2));
+    const int argn = Rf_length(args);
+    const s32 bits = argn > 2 ? drIntp(ARGS(3)) : 8;
+    TICAPI(poke, addr, value, bits);
     return R_NilValue;
   }
 #+end_src
@@ -1606,9 +1620,8 @@ These API functions are related to sound processing.
   SEXP r_peek1(SEXP args)
   {
     // peek1(addr) -> value
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    return s7_make_integer(sc, core->api.peek1(tic, addr));
+    const s32 addr = drIntp(ARGS(1));
+    return Rf_ScalarInteger(TICAPI(peek1, addr));
   }
 #+end_src
 
@@ -1616,10 +1629,9 @@ These API functions are related to sound processing.
   SEXP r_poke1(SEXP args)
   {
     // poke1(addr value)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    const s32 value = ScalarInteger(CADDR(args));
-    core->api.poke1(tic, addr, value);
+    const s32 addr  = drIntp(ARGS(1));
+    const s32 value = drIntp(ARGS(2));
+    TICAPI(poke1, addr, value);
     return R_NilValue;
   }
 #+end_src
@@ -1628,9 +1640,8 @@ These API functions are related to sound processing.
   SEXP r_peek2(SEXP args)
   {
     // peek2(addr) -> value
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    return s7_make_integer(sc, core->api.peek2(tic, addr));
+    const s32 addr = drIntp(ARGS(1));
+    return Rf_ScalarInteger(TICAPI(peek2, addr));
   }
 #+end_src
 
@@ -1638,10 +1649,9 @@ These API functions are related to sound processing.
   SEXP r_poke2(SEXP args)
   {
     // poke2(addr value)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    const s32 value = ScalarInteger(CADDR(args));
-    core->api.poke2(tic, addr, value);
+    const s32 addr  = drIntp(ARGS(1));
+    const s32 value = drIntp(ARGS(2));
+    TICAPI(poke2, addr, value);
     return R_NilValue;
   }
 #+end_src
@@ -1650,20 +1660,18 @@ These API functions are related to sound processing.
   SEXP r_peek4(SEXP args)
   {
     // peek4(addr) -> value
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    return s7_make_integer(sc, core->api.peek4(tic, addr));
+    const s32 addr = drIntp(ARGS(1));
+    return Rf_ScalarInteger(TICAPI(peek4, addr));
   }
 #+end_src
 
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_poke4(SEXP args)
   {
-    // poke4(addr value)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 addr = ScalarInteger(CADR(args));
-    const s32 value = ScalarInteger(CADDR(args));
-    core->api.poke4(tic, addr, value);
+    // poke(addr value)
+    const s32 addr  = drIntp(ARGS(1));
+    const s32 value = drIntp(ARGS(2));
+    TICAPI(poke4, addr, value);
     return R_NilValue;
   }
 #+end_src
@@ -1672,12 +1680,10 @@ These API functions are related to sound processing.
   SEXP r_memcpy(SEXP args)
   {
     // memcpy(dest source size)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 dest = ScalarInteger(CADR(args));
-    const s32 source = ScalarInteger(CADDR(args));
-    const s32 size = ScalarInteger(CADDDR(args));
-
-    core->api.memcpy(tic, dest, source, size);
+    const s32 dest   = drIntp(ARGS(1));
+    const s32 source = drIntp(ARGS(2));
+    const s32 size   = drIntp(ARGS(3));
+    TICAPI(memcpy, dest, source, size);
     return R_NilValue;
   }
 #+end_src
@@ -1686,12 +1692,10 @@ These API functions are related to sound processing.
   SEXP r_memset(SEXP args)
   {
     // memset(dest value size)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 dest = ScalarInteger(CADR(args));
-    const s32 value = ScalarInteger(CADDR(args));
-    const s32 size = ScalarInteger(CADDDR(args));
-
-    core->api.memset(tic, dest, value, size);
+    const s32 dest   = drIntp(ARGS(1));
+    const s32 value = drIntp(ARGS(2));
+    const s32 size   = drIntp(ARGS(3));
+    TICAPI(memset, dest, value, size);
     return R_NilValue;
   }
 #+end_src
@@ -1701,17 +1705,15 @@ These API functions are related to sound processing.
   {
     // pmem(index value)
     // pmem(index) -> value
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const s32 index = ScalarInteger(CADR(args));
-    const int argn = length(args);
+    const s32 index = drIntp(ARGS(1));
     s32 value = 0;
     bool shouldSet = false;
-    if (argn > 1)
+    if (Rf_length(args) > 1)
     {
-      value = ScalarInteger(CADDR(args));
+      value = ScalarInteger(ARGS(2));
       shouldSet = true;
     }
-    return s7_make_integer(sc, (s32)core->api.pmem(tic, index, value, shouldSet));
+    return Rf_ScalarInteger(TICAPI(pmem, index, value, shouldSet));
   }
 #+end_src
 
