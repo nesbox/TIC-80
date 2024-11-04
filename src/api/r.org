@@ -1450,24 +1450,8 @@ CLOSED: [2024-11-04 Mon 00:21]
   }
 #+end_src
 
-*** Sound
-#+begin_src C :noweb-ref define C symbols to be callable from R
-  SEXP r_music(SEXP args)
-  {
-    // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const int argn = length(args);
-    const s32 track = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-    const s32 frame = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-    const s32 row = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-    const bool loop = argn > 3 ? ScalarLogical(sc, CADDDDR(args)) : true;
-    const bool sustain = argn > 4 ? ScalarLogical(sc, s7_list_ref(sc, args, 4)) : false;
-    const s32 tempo = argn > 5 ? ScalarInteger(s7_list_ref(sc, args, 5)) : -1;
-    const s32 speed = argn > 6 ? ScalarInteger(s7_list_ref(sc, args, 6)) : -1;
-    core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
-    return R_NilValue;
-  }
-#+end_src
+*** DONE Sound
+CLOSED: [2024-11-04 Mon 00:39]
 These API functions are related to sound processing.
 
 #+begin_src C :noweb-ref define C symbols to be callable from R
