@@ -1764,25 +1764,24 @@ changes are ephemeral. Permanent changes to the map are made with =sync=.
   }
 #+end_src
 
-*** System
+*** DONE System
+CLOSED: [2024-11-04 Mon 14:29]
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_reset(SEXP args)
   {
     // reset()
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    core->api.reset(tic);
+    TICAPI(reset);
     return R_NilValue;
   }
 #+end_src
+
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_trace(SEXP args)
   {
     // trace(message color=15)
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    const char* msg = ScalarString(CADR(args));
-    const int argn = length(args);
-    const s32 color = argn > 1 ? ScalarInteger(CADDR(args)) : 15;
-    core->api.trace(tic, msg, color);
+    const char* msg   = drCrap(ARGS(1));
+    const s32   color = Rf_length(args) > 1 ? drIntp(ARGS(2)) : 15;
+    TICAPI(trace, msg, color);
     return R_NilValue;
   }
 #+end_src
@@ -1791,8 +1790,7 @@ changes are ephemeral. Permanent changes to the map are made with =sync=.
   SEXP r_time(SEXP args)
   {
     // time() -> ticks
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    return s7_make_real(sc, core->api.time(tic));
+    return Rf_ScalarDouble(TICAPI(time));
   }
 #+end_src
 
@@ -1800,8 +1798,7 @@ changes are ephemeral. Permanent changes to the map are made with =sync=.
   SEXP r_tstamp(SEXP args)
   {
     // tstamp() -> timestamp
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    return s7_make_integer(sc, core->api.tstamp(tic));
+    return Rf_ScalarInteger(TICAPI(tstamp));
   }
 #+end_src
 
@@ -1809,8 +1806,7 @@ changes are ephemeral. Permanent changes to the map are made with =sync=.
   SEXP r_exit(SEXP args)
   {
     // exit()
-    tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-    core->api.exit(tic);
+    TICAPI(exit);
     return R_NilValue;
   }
 #+end_src
