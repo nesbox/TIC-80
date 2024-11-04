@@ -13,8 +13,7 @@
 //cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
 //for release
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
-static void py_throw_error(tic_core* core, const char* msg);
-
+static bool py_throw_error(tic_core* core, const char* msg);
 
 struct names
 {
@@ -29,7 +28,7 @@ struct names
 } N;
 
 //set value of "name" to stack.top
-static void pkpy_setglobal_2(const char* name)
+static bool pkpy_setglobal_2(const char* name)
 {
     py_setglobal(py_name(name), py_peek(-1));
 }
@@ -52,7 +51,7 @@ static bool setup_core(tic_core* core)
 
 //index should be a positive index
 //_NOTICE: py_peek(-1) takes stack.top, but pkpy.v1 takes stack.top with index 0
-static int prepare_colorindex(py_Ref index, u8* buffer)
+static bool prepare_colorindex(py_Ref index, u8* buffer)
 {
     //++index;
     if (py_istype(index, tp_int))
@@ -98,13 +97,12 @@ static bool py_btn(int argc, py_Ref argv)
 {
     int button_id;
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
 
     PY_CHECK_ARG_TYPE(0, tp_int); //check argv[0] type
     button_id = py_toint(py_arg(0));
 
-    if (py_checkexc(0)) return false;
     //or get button_id from argv[0]?
     //button_id = (int)py_toint(py_peek(-1));
     bool pressed = core->api.btn(tic, button_id & 0x1f);
@@ -128,30 +126,28 @@ static bool py_btnp(int argc, py_Ref argv)
     hold = py_toint(py_arg(1));
     period = py_toint(py_arg(2));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return false;
 
     bool pressed = core->api.btnp(tic, button_id, hold, period);
     py_newbool(py_retval(), pressed);
     return true;
 }
 
-static void py_cls(int argc, py_Ref argv)
+static bool py_cls(int argc, py_Ref argv)
 {
     int color;
     PY_CHECK_ARG_TYPE(0, tp_int);
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     color = py_toint(py_arg(0));
     core->api.cls(tic, color);
-    return;
+    return true;
 }
 
-static void py_spr(int argc, py_Ref argv)
+static bool py_spr(int argc, py_Ref argv)
 {
     int spr_id;
     int x;
@@ -166,7 +162,7 @@ static void py_spr(int argc, py_Ref argv)
     for (int i = 0; i < 9; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
     spr_id = py_toint(py_arg(0));
     x = py_toint(py_arg(1));
@@ -177,12 +173,12 @@ static void py_spr(int argc, py_Ref argv)
     w = py_toint(py_arg(7));
     h = py_toint(py_arg(8));
     color_count = prepare_colorindex(py_arg(3), colors);
-    if (py_checkexc(0)) return;
 
     core->api.spr(tic, spr_id, x, y, w, h, colors, color_count, scale, flip, rotate);
+    return true;
 }
 
-static void py_print(int argc, py_Ref argv)
+static bool py_print(int argc, py_Ref argv)
 {
     const char* str;
     int x, y, color, scale;
@@ -204,109 +200,109 @@ static void py_print(int argc, py_Ref argv)
     scale = py_toint(py_arg(5));
     alt = py_tobool(py_arg(6));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     s32 ps = core->api.print(tic, str, x, y, color, fixed, scale, alt);
     py_newint(py_retval(), ps);
+    return true;
 }
 
-static void py_circ(int argc, py_Ref argv)
+static bool py_circ(int argc, py_Ref argv)
 {
     int x, y, radius, color;
     for (int i = 0; i < 4; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
     radius = py_toint(py_arg(2));
     color = py_toint(py_arg(3));
-    if (py_checkexc(0)) return;
 
     core->api.circ(tic, x, y, radius, color);
+    return true;
 }
 
-static void py_circb(int argc, py_Ref argv)
+static bool py_circb(int argc, py_Ref argv)
 {
     int x, y, radius, color;
     for (int i = 0; i < 4; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
     radius = py_toint(py_arg(2));
     color = py_toint(py_arg(3));
-    if (py_checkexc(0)) return;
 
     core->api.circb(tic, x, y, radius, color);
+    return true;
 }
 
-static void py_clip(int argc, py_Ref argv)
+static bool py_clip(int argc, py_Ref argv)
 {
     int x, y, width, height;
     for (int i = 0; i < 4; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
     width = py_toint(py_arg(2));
     height = py_toint(py_arg(3));
-    if (py_checkexc(0)) return;
 
     core->api.clip(tic, x, y, width, height);
+    return true;
 }
 
-static void py_elli(int argc, py_Ref argv)
+static bool py_elli(int argc, py_Ref argv)
 {
     int x, y, a, b, color;
     for (int i = 0; i < 5; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
     a = py_toint(py_arg(2));
     b = py_toint(py_arg(3));
     color = py_toint(py_arg(4));
-    if (py_checkexc(0)) return;
 
     core->api.elli(tic, x, y, a, b, color);
+    return true;
 }
 
-static void py_ellib(int argc, py_Ref argv)
+static bool py_ellib(int argc, py_Ref argv)
 {
     int x, y, a, b, color;
     for (int i = 0; i < 5; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
     a = py_toint(py_arg(2));
     b = py_toint(py_arg(3));
     color = py_toint(py_arg(4));
-    if (py_checkexc(0)) return;
 
     core->api.ellib(tic, x, y, a, b, color);
+    return true;
 }
 
-static void py_exit(int argc, py_Ref argv)
+static bool py_exit(int argc, py_Ref argv)
 {
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.exit(tic);
+    return true;
 }
 
 static bool py_fget(int argc, py_Ref argv)
@@ -315,11 +311,10 @@ static bool py_fget(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(0, tp_int);
     PY_CHECK_ARG_TYPE(1, tp_int);
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
     spid = py_toint(py_arg(0));
     flag = py_toint(py_arg(1));
-    if (py_checkexc(0)) return false;
 
     bool res = core->api.fget(tic, spid, flag);
     py_newbool(py_retval(), res);
@@ -335,17 +330,17 @@ static bool py_fset(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_bool);
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
     spid = py_toint(py_arg(0));
     flag = py_toint(py_arg(1));
     b = py_tobool(py_arg(2));
-    if (py_checkexc(0)) return;
 
     core->api.fset(tic, spid, flag, b);
+    return true;
 }
 
-static int py_font(int argc, py_Ref argv)
+static bool py_font(int argc, py_Ref argv)
 {
     const char* str;
     int x, y, chromakey, width, height, scale;
@@ -361,7 +356,7 @@ static int py_font(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(8, tp_bool);
 
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
     str = py_tostr(py_arg(0));
     x = py_toint(py_arg(1));
@@ -372,18 +367,18 @@ static int py_font(int argc, py_Ref argv)
     fixed = py_tobool(py_arg(6));
     scale = py_toint(py_arg(7));
     alt = py_tobool(py_arg(8));
-    if (py_checkexc(0)) return 0;
+
     if (scale == 0)
     {
         py_newint(py_retval(), 0);
-        return 1;
+        return true;
     }
 
     s32 res = core->api.font(tic, str, x, y, &((u8)chromakey),
                              1, width, height, fixed, scale, alt);
     py_newint(py_retval(), res);
 
-    return 1;
+    return true;
 }
 
 static bool py_key(int argc, py_Ref argv)
@@ -392,15 +387,12 @@ static bool py_key(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(0, tp_int);
     code = py_toint(py_arg(0));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return false;
 
     if (code >= tic_keys_count)
     {
-        py_exception(1, "unknown keyboard input");
-        py_throw_error(core, NULL);
-        return false;
+        return ValueError("unknown keyboard input");
     }
 
     bool pressed = core->api.key(tic, code);
@@ -409,7 +401,7 @@ static bool py_key(int argc, py_Ref argv)
     return true;
 }
 
-static int py_keyp(int argc, py_Ref argv)
+static bool py_keyp(int argc, py_Ref argv)
 {
     int code, hold, period;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -419,24 +411,21 @@ static int py_keyp(int argc, py_Ref argv)
     hold = py_toint(py_arg(1));
     period = py_toint(py_arg(2));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     if (code >= tic_keys_count)
     {
-        py_exception(1, "unknown keyboard input");
-        py_throw_error(core, NULL);
-        return 0;
+        return ValueError("unknown keyboard input");
     }
 
     bool pressed = core->api.keyp(tic, code, hold, period);
     py_newbool(py_retval(), pressed);
 
-    return 1;
+    return true;
 }
 
-static void py_line(int argc, py_Ref argv)
+static bool py_line(int argc, py_Ref argv)
 {
     int x0, y0, x1, y1, color;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -450,11 +439,11 @@ static void py_line(int argc, py_Ref argv)
     y1 = py_toint(py_arg(3));
     color = py_toint(py_arg(4));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.line(tic, x0, y0, x1, y1, color);
+    return true;
 }
 
 //NOTICE: untested
@@ -462,7 +451,8 @@ static void remap_callback(void* data, s32 x, s32 y, RemapResult* res)
 {
     py_push(py_peek(-1));
     py_pushnil();
-    py_Ref x0, y0;
+    py_Ref x0 = (py_Ref)malloc(sizeof(py_TValue));
+    py_Ref y0 = (py_Ref)malloc(sizeof(py_TValue));
     py_newint(x0, x);
     py_newint(y0, y);
     py_push(x0);
@@ -482,9 +472,12 @@ static void remap_callback(void* data, s32 x, s32 y, RemapResult* res)
     res->index = (u8)index;
     res->flip = flip;
     res->rotate = rotate;
+
+    free(x0);
+    free(y0);
 }
 
-static void py_map(int argc, py_Ref argv)
+static bool py_map(int argc, py_Ref argv)
 {
     int x, y, w, h, sx, sy, colorkey, scale;
     bool use_remap;
@@ -507,17 +500,18 @@ static void py_map(int argc, py_Ref argv)
     scale = py_toint(py_arg(7));
     use_remap = !py_isnone(py_arg(8));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     if (use_remap)
         core->api.map(tic, x, y, w, h, sx, sy, colors, colorkey, scale, remap_callback, pk_current_vm);
     else
         core->api.map(tic, x, y, w, h, sx, sy, colors, colorkey, scale, NULL, NULL);
+
+    return true;
 }
 
-static void py_memcpy(int argc, py_Ref argv)
+static bool py_memcpy(int argc, py_Ref argv)
 {
     int dest, src, size;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -527,13 +521,14 @@ static void py_memcpy(int argc, py_Ref argv)
     src = py_toint(py_arg(1));
     size = py_toint(py_arg(2));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
+
     core->api.memcpy(tic, dest, src, size);
+    return true;
 }
 
-static void py_memset(int argc, py_Ref argv)
+static bool py_memset(int argc, py_Ref argv)
 {
     int dest, val, size;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -543,13 +538,14 @@ static void py_memset(int argc, py_Ref argv)
     val = py_toint(py_arg(1));
     size = py_toint(py_arg(2));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
+
     core->api.memset(tic, dest, val, size);
+    return true;
 }
 
-static int py_mget(int argc, py_Ref argv)
+static bool py_mget(int argc, py_Ref argv)
 {
     int x, y;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -557,16 +553,15 @@ static int py_mget(int argc, py_Ref argv)
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     int res = core->api.mget(tic, x, y);
     py_newint(py_retval(), res);
-    return res;
+    return true;
 }
 
-static void py_mset(int argc, py_Ref argv)
+static bool py_mset(int argc, py_Ref argv)
 {
     int x, y, title_id;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -576,37 +571,46 @@ static void py_mset(int argc, py_Ref argv)
     y = py_toint(py_arg(1));
     title_id = py_toint(py_arg(2));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.mset(tic, x, y, title_id);
+    return true;
 }
 
-static tic80_mouse py_mouse(int argc, py_Ref argv)
+static bool py_mouse(int argc, py_Ref argv)
 {
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     tic_point pos = core->api.mouse(tic);
     const tic80_mouse* mouse = &core->memory.ram->input.mouse;
 
-    py_Ref res;
+    py_Ref res = (py_Ref)malloc(sizeof(py_TValue));
     py_newtuple(res, 7);
-    py_tuple_setitem(res, 0, pos.x);
-    py_tuple_setitem(res, 1, pos.y);
-    py_tuple_setitem(res, 2, mouse->left);
-    py_tuple_setitem(res, 3, mouse->middle);
-    py_tuple_setitem(res, 4, mouse->right);
-    py_tuple_setitem(res, 5, mouse->scrollx);
-    py_tuple_setitem(res, 6, mouse->scrolly);
+    py_Ref tmp = (py_Ref)malloc(sizeof(py_TValue));
+    py_newint(tmp, pos.x);
+    py_tuple_setitem(res, 0, tmp);
+    py_newint(tmp, pos.y);
+    py_tuple_setitem(res, 1, tmp);
+    py_newint(tmp, mouse->left);
+    py_tuple_setitem(res, 2, tmp);
+    py_newint(tmp, mouse->middle);
+    py_tuple_setitem(res, 3, tmp);
+    py_newint(tmp, mouse->right);
+    py_tuple_setitem(res, 4, tmp);
+    py_newint(tmp, mouse->scrollx);
+    py_tuple_setitem(res, 5, tmp);
+    py_newint(tmp, mouse->scrolly);
+    py_tuple_setitem(res, 6, tmp);
     py_assign(py_retval(), res);
-    return *mouse;
+    free(res);
+    free(tmp);
+    return true;
 }
 
-static void py_music(int argc, py_Ref argv)
+static bool py_music(int argc, py_Ref argv)
 {
     int track, frame, row, tempo, speed;
     bool loop, sustain;
@@ -625,20 +629,19 @@ static void py_music(int argc, py_Ref argv)
     tempo = py_toint(py_arg(5));
     speed = py_toint(py_arg(6));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     if (track > MUSIC_TRACKS - 1)
     {
-        py_exception(1, "invalid music track number");
-        py_throw_error(core, NULL);
+        return ValueError("invalid music track number");
     }
     core->api.music(tic, -1, 0, 0, false, false, -1, -1);
     core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
+    return true;
 }
 
-static int pyy_peek(int argc, py_Ref argv)
+static bool pyy_peek(int argc, py_Ref argv)
 {
     int addr, bits;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -646,61 +649,57 @@ static int pyy_peek(int argc, py_Ref argv)
     addr = py_toint(py_arg(0));
     bits = py_toint(py_arg(1));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     int res = core->api.peek(tic, addr, bits);
     py_newint(py_retval(), res);
-    return res;
+    return true;
 }
 
-static int py_peek1(int argc, py_Ref argv)
+static bool py_peek1(int argc, py_Ref argv)
 {
     int addr;
     PY_CHECK_ARG_TYPE(0, tp_int);
     addr = py_toint(py_arg(0));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     int res = core->api.peek1(tic, addr);
     py_newint(py_retval(), res);
-    return res;
+    return true;
 }
 
-static int py_peek2(int argc, py_Ref argv)
+static bool py_peek2(int argc, py_Ref argv)
 {
     int addr;
     PY_CHECK_ARG_TYPE(0, tp_int);
     addr = py_toint(py_arg(0));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     int res = core->api.peek2(tic, addr);
     py_newint(py_retval(), res);
-    return res;
+    return true;
 }
 
-static int py_peek4(int argc, py_Ref argv)
+static bool py_peek4(int argc, py_Ref argv)
 {
     int addr;
     PY_CHECK_ARG_TYPE(0, tp_int);
     addr = py_toint(py_arg(0));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     int res = core->api.peek4(tic, addr);
     py_newint(py_retval(), res);
-    return res;
+    return true;
 }
 
-static int py_pix(int argc, py_Ref argv)
+static bool py_pix(int argc, py_Ref argv)
 {
     int x, y, color;
     color = -1;
@@ -710,24 +709,23 @@ static int py_pix(int argc, py_Ref argv)
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     if (color >= 0) //set pixel
     {
         core->api.pix(tic, x, y, color, false);
-        return 0;
+        return false;
     }
     else //get pixel to retval
     {
         int res = core->api.pix(tic, x, y, 0, true);
         py_newint(py_retval(), res);
-        return 1;
+        return true;
     }
 }
 
-static int py_pmem(int argc, py_Ref argv)
+static bool py_pmem(int argc, py_Ref argv)
 {
     int index, val;
     bool has_val = false;
@@ -740,15 +738,12 @@ static int py_pmem(int argc, py_Ref argv)
     }
     index = py_toint(py_arg(0));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     if (index >= TIC_PERSISTENT_SIZE)
     {
-        py_exception(1, "invalid persistent tic index");
-        py_throw_error(core, NULL);
-        return 0;
+        return ValueError("invalid tic persistent index");
     }
 
     int res = core->api.pmem(tic, index, 0, false);
@@ -758,10 +753,10 @@ static int py_pmem(int argc, py_Ref argv)
     {
         core->api.pmem(tic, index, val, true);
     }
-    return 1;
+    return true;
 }
 
-static void py_poke(int argc, py_Ref argv)
+static bool py_poke(int argc, py_Ref argv)
 {
     int addr, val, bits;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -771,14 +766,14 @@ static void py_poke(int argc, py_Ref argv)
     val = py_toint(py_arg(1));
     bits = py_toint(py_arg(2));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.poke(tic, addr, val, bits);
+    return true;
 }
 
-static void py_poke1(int argc, py_Ref argv)
+static bool py_poke1(int argc, py_Ref argv)
 {
     int addr, val;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -786,14 +781,14 @@ static void py_poke1(int argc, py_Ref argv)
     addr = py_toint(py_arg(0));
     val = py_toint(py_arg(1));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.poke1(tic, addr, val);
+    return true;
 }
 
-static void py_poke2(int argc, py_Ref argv)
+static bool py_poke2(int argc, py_Ref argv)
 {
     int addr, val;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -801,14 +796,14 @@ static void py_poke2(int argc, py_Ref argv)
     addr = py_toint(py_arg(0));
     val = py_toint(py_arg(1));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.poke2(tic, addr, val);
+    return true;
 }
 
-static void py_poke4(int argc, py_Ref argv)
+static bool py_poke4(int argc, py_Ref argv)
 {
     int addr, val;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -816,14 +811,14 @@ static void py_poke4(int argc, py_Ref argv)
     addr = py_toint(py_arg(0));
     val = py_toint(py_arg(1));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.poke4(tic, addr, val);
+    return true;
 }
 
-static void py_rect(int argc, py_Ref argv)
+static bool py_rect(int argc, py_Ref argv)
 {
     int x, y, w, h, color;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -837,14 +832,14 @@ static void py_rect(int argc, py_Ref argv)
     h = py_toint(py_arg(3));
     color = py_toint(py_arg(4));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.rect(tic, x, y, w, h, color);
+    return true;
 }
 
-static void py_rectb(int argc, py_Ref argv)
+static bool py_rectb(int argc, py_Ref argv)
 {
     int x, y, w, h, color;
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -858,29 +853,30 @@ static void py_rectb(int argc, py_Ref argv)
     h = py_toint(py_arg(3));
     color = py_toint(py_arg(4));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.rectb(tic, x, y, w, h, color);
+    return true;
 }
 
-static void py_reset(int argc, py_Ref argv)
+static bool py_reset(int argc, py_Ref argv)
 {
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.reset(tic);
+    return true;
 }
 
-static void py_sfx(int argc, py_Ref argv)
+static bool py_sfx(int argc, py_Ref argv)
 {
     int id, _note, duration, channel, volume, speed;
     bool _parse_note = false;
     const char* str_note;
     PY_CHECK_ARG_TYPE(0, tp_int);
+    id = py_toint(py_arg(0));
     if (py_isstr(py_arg(1)))
     {
         _parse_note = true;
@@ -900,18 +896,15 @@ static void py_sfx(int argc, py_Ref argv)
     volume = py_toint(py_arg(4));
     speed = py_toint(py_arg(5));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     s32 note, octave;
     if (_parse_note)
     {
         if (!parse_note(str_note, &note, &octave))
         {
-            py_exception(1, "invalid note, should be like C#4");
-            py_throw_error(core, NULL);
-            return;
+            return ValueError("invalid note, should be like C#4");
         }
     }
     else
@@ -922,22 +915,19 @@ static void py_sfx(int argc, py_Ref argv)
 
     if (channel < 0 || channel >= TIC_SOUND_CHANNELS)
     {
-        py_exception(1, "unknown channel");
-        py_throw_error(core, NULL);
-        return;
+        return ValueError("invalid channel");
     }
 
     if (id >= SFX_COUNT)
     {
-        py_exception(1, "unknown sfx index");
-        py_throw_error(core, NULL);
-        return;
+        return ValueError("invalid sfx index");
     }
 
     core->api.sfx(tic, id, note, octave, duration, channel, volume & 0xf, volume & 0xf, speed);
+    return true;
 }
 
-static void py_sync(int argc, py_Ref argv)
+static bool py_sync(int argc, py_Ref argv)
 {
     int mask, bank;
     bool tocart;
@@ -948,21 +938,19 @@ static void py_sync(int argc, py_Ref argv)
     bank = py_toint(py_arg(1));
     tocart = py_tobool(py_arg(2));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     if (bank < 0 || bank >= TIC_BANKS)
     {
-        py_exception(1, "invalid bank while sync");
-        py_throw_error(core, NULL);
-        return;
+        return ValueError("invalid sync bank");
     }
 
     core->api.sync(tic, mask, bank, tocart);
+    return true;
 }
 
-static void py_ttri(int argc, py_Ref argv)
+static bool py_ttri(int argc, py_Ref argv)
 {
     double x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3;
     int texsrc, chromakey;
@@ -992,9 +980,8 @@ static void py_ttri(int argc, py_Ref argv)
     z2 = py_tofloat(py_arg(15));
     z3 = py_tofloat(py_arg(16));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.ttri(tic,
                    x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3,
@@ -1002,21 +989,21 @@ static void py_ttri(int argc, py_Ref argv)
                    colors, chromakey,
                    z1, z2, z3,
                    z1 != 0 || z2 != 0 || z3 != 0);
+    return true;
 }
 
-static int py_time(int argc, py_Ref argv)
+static bool py_time(int argc, py_Ref argv)
 {
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     double time = core->api.time(tic);
     py_newfloat(py_retval(), time);
-    return 1;
+    return true;
 }
 
-static void py_trace(int argc, py_Ref argv)
+static bool py_trace(int argc, py_Ref argv)
 {
     int color;
     const char* msg;
@@ -1025,14 +1012,14 @@ static void py_trace(int argc, py_Ref argv)
     msg = py_tostr(py_arg(0));
     color = py_toint(py_arg(1));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.trace(tic, msg, (u8)color);
+    return true;
 }
 
-static void py_tri(int argc, py_Ref argv)
+static bool py_tri(int argc, py_Ref argv)
 {
     int color;
     double x1, y1, x2, y2, x3, y3;
@@ -1047,14 +1034,14 @@ static void py_tri(int argc, py_Ref argv)
     y3 = py_tofloat(py_arg(5));
     color = py_toint(py_arg(6));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.tri(tic, x1, y1, x2, y3, x3, y3, (u8)color);
+    return true;
 }
 
-static void py_trib(int argc, py_Ref argv)
+static bool py_trib(int argc, py_Ref argv)
 {
     int color;
     double x1, y1, x2, y2, x3, y3;
@@ -1069,26 +1056,25 @@ static void py_trib(int argc, py_Ref argv)
     y3 = py_tofloat(py_arg(5));
     color = py_toint(py_arg(6));
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return;
 
     core->api.trib(tic, x1, y1, x2, y3, x3, y3, (u8)color);
+    return true;
 }
 
-static int py_tstamp(int argc, py_Ref argv)
+static bool py_tstamp(int argc, py_Ref argv)
 {
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     int res = core->api.tstamp(tic);
     py_newint(py_retval(), res);
-    return 1;
+    return true;
 }
 
-static int py_vbank(int argc, py_Ref argv)
+static bool py_vbank(int argc, py_Ref argv)
 {
     int bank = -1;
     if (!py_isnone(py_arg(0)))
@@ -1096,9 +1082,8 @@ static int py_vbank(int argc, py_Ref argv)
         bank = py_toint(py_arg(0));
     }
     tic_core* core;
-    get_core(&core);
+    if (!get_core(&core)) return false;
     tic_mem* tic = (tic_mem*)core;
-    if (py_checkexc(0)) return 0;
 
     s32 prev = core->state.vbank.id;
     if (bank >= 0)
@@ -1106,14 +1091,15 @@ static int py_vbank(int argc, py_Ref argv)
         core->api.vbank(tic, bank);
     }
     py_newint(py_retval(), prev);
-    return 1;
+    return true;
 }
 
 /*************TIC-80 MISC BEGIN****************/
 
-static void py_throw_error(tic_core* core, const char* msg)
+static bool py_throw_error(tic_core* core, const char* msg)
 {
     core->data->error(core->data->data, py_formatexc());
+    return true;
 }
 
 static bool bind_pkpy_v2()
@@ -1259,7 +1245,7 @@ void callback_scanline(tic_mem* tic, s32 row, void* data)
     if (!py_scn) return;
     py_push(py_scn);
     py_pushnil();
-    py_Ref py_row = (py_Ref)malloc(sizeof(py_Ref));
+    py_Ref py_row = (py_Ref)malloc(sizeof(py_TValue));
     py_newint(py_row, row);
     py_push(py_row);
     if (!py_vectorcall(1, 0))
@@ -1282,7 +1268,7 @@ void callback_border(tic_mem* tic, s32 row, void* data)
     if (!py_bdr) return;
     py_push(py_bdr);
     py_pushnil();
-    py_Ref py_row = (py_Ref)malloc(sizeof(py_Ref));
+    py_Ref py_row = (py_Ref)malloc(sizeof(py_TValue));
     py_newint(py_row, row);
     py_push(py_row);
     if (!py_vectorcall(1, 0))
@@ -1304,7 +1290,7 @@ void callback_menu(tic_mem* tic, s32 index, void* data)
     if (!py_menu) return;
     py_push(py_menu);
     py_pushnil();
-    py_Ref py_idx = (py_Ref)malloc(sizeof(py_Ref));
+    py_Ref py_idx = (py_Ref)malloc(sizeof(py_TValue));
     py_newint(py_idx, index);
     py_push(py_idx);
     if (!py_vectorcall(1, 0))
