@@ -51,7 +51,7 @@ static bool setup_core(tic_core* core)
 
 //index should be a positive index
 //_NOTICE: py_peek(-1) takes stack.top, but pkpy.v1 takes stack.top with index 0
-static bool prepare_colorindex(py_Ref index, u8* buffer)
+static int prepare_colorindex(py_Ref index, u8* buffer)
 {
     //++index;
     if (py_istype(index, tp_int))
@@ -76,6 +76,7 @@ static bool prepare_colorindex(py_Ref index, u8* buffer)
             py_ItemRef pylist_item = py_list_getitem(index, i);
             buffer[i] = py_toint(pylist_item);
         }
+        return list_len;
     }
 }
 
