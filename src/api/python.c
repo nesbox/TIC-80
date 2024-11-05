@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 #include "pocketpy.h"
-#include "pocketpy/objects/base.h"
 
 //!!! search NOTICE for v1 remains !!!
 
@@ -15,7 +14,7 @@
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 static bool py_throw_error(tic_core* core, const char* msg);
 
-struct names
+struct CachedNames
 {
     py_Name _tic_core;
     py_Name len;
@@ -26,12 +25,6 @@ struct names
     py_Name BDR;
     py_Name MENU;
 } N;
-
-//set value of "name" to stack.top
-static bool pkpy_setglobal_2(const char* name)
-{
-    py_setglobal(py_name(name), py_peek(-1));
-}
 
 static bool get_core(tic_core** core)
 {
@@ -51,6 +44,7 @@ static bool setup_core(tic_core* core)
 
 //index should be a positive index
 //_NOTICE: py_peek(-1) takes stack.top, but pkpy.v1 takes stack.top with index 0
+//CHECKED
 static int prepare_colorindex(py_Ref index, u8* buffer)
 {
     //++index;
@@ -90,7 +84,6 @@ static int prepare_colorindex(py_Ref index, u8* buffer)
 //claim args
 //check arg type
 //claim tic_core + get arg
-//check vm exceptions
 //use api in C
 //if needed, write back result to python
 
@@ -452,8 +445,8 @@ static void remap_callback(void* data, s32 x, s32 y, RemapResult* res)
 {
     py_push(py_peek(-1));
     py_pushnil();
-    py_Ref x0 = (py_Ref)malloc(sizeof(py_TValue));
-    py_Ref y0 = (py_Ref)malloc(sizeof(py_TValue));
+    py_Ref x0 = py_retval();
+    py_Ref y0 = py_retval();
     py_newint(x0, x);
     py_newint(y0, y);
     py_push(x0);
@@ -473,9 +466,6 @@ static void remap_callback(void* data, s32 x, s32 y, RemapResult* res)
     res->index = (u8)index;
     res->flip = flip;
     res->rotate = rotate;
-
-    free(x0);
-    free(y0);
 }
 
 static bool py_map(int argc, py_Ref argv)
@@ -505,7 +495,7 @@ static bool py_map(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     if (use_remap)
-        core->api.map(tic, x, y, w, h, sx, sy, colors, colorkey, scale, remap_callback, pk_current_vm);
+        core->api.map(tic, x, y, w, h, sx, sy, colors, colorkey, scale, remap_callback, core->currentVM);
     else
         core->api.map(tic, x, y, w, h, sx, sy, colors, colorkey, scale, NULL, NULL);
 
@@ -588,9 +578,9 @@ static bool py_mouse(int argc, py_Ref argv)
     tic_point pos = core->api.mouse(tic);
     const tic80_mouse* mouse = &core->memory.ram->input.mouse;
 
-    py_Ref res = (py_Ref)malloc(sizeof(py_TValue));
+    py_Ref res = py_retval();
     py_newtuple(res, 7);
-    py_Ref tmp = (py_Ref)malloc(sizeof(py_TValue));
+    py_Ref tmp = py_retval();
     py_newint(tmp, pos.x);
     py_tuple_setitem(res, 0, tmp);
     py_newint(tmp, pos.y);
@@ -606,8 +596,6 @@ static bool py_mouse(int argc, py_Ref argv)
     py_newint(tmp, mouse->scrolly);
     py_tuple_setitem(res, 6, tmp);
     py_assign(py_retval(), res);
-    free(res);
-    free(tmp);
     return true;
 }
 
@@ -1183,7 +1171,7 @@ static bool init_pkpy_v2(tic_mem* tic, const char* code)
     N.MENU = py_name("MENU");
 
     setup_core(core);
-    core->currentVM = pk_current_vm;
+    core->currentVM = (void*)py_retval();
     if (!bind_pkpy_v2())
     {
         //throw error
@@ -1238,14 +1226,13 @@ void callback_scanline(tic_mem* tic, s32 row, void* data)
     if (!py_scn) return;
     py_push(py_scn);
     py_pushnil();
-    py_Ref py_row = (py_Ref)malloc(sizeof(py_TValue));
+    py_Ref py_row = py_retval();
     py_newint(py_row, row);
     py_push(py_row);
     if (!py_vectorcall(1, 0))
     {
         py_throw_error(core, "SCANLINE running error!");
     }
-    free(py_row);
 }
 
 void callback_border(tic_mem* tic, s32 row, void* data)
@@ -1257,14 +1244,13 @@ void callback_border(tic_mem* tic, s32 row, void* data)
     if (!py_bdr) return;
     py_push(py_bdr);
     py_pushnil();
-    py_Ref py_row = (py_Ref)malloc(sizeof(py_TValue));
+    py_Ref py_row = py_retval();
     py_newint(py_row, row);
     py_push(py_row);
     if (!py_vectorcall(1, 0))
     {
         py_throw_error(core, "BORDER running error!");
     }
-    free(py_row);
 }
 void callback_menu(tic_mem* tic, s32 index, void* data)
 {
@@ -1275,14 +1261,13 @@ void callback_menu(tic_mem* tic, s32 index, void* data)
     if (!py_menu) return;
     py_push(py_menu);
     py_pushnil();
-    py_Ref py_idx = (py_Ref)malloc(sizeof(py_TValue));
+    py_Ref py_idx = py_retval();
     py_newint(py_idx, index);
     py_push(py_idx);
     if (!py_vectorcall(1, 0))
     {
         py_throw_error(core, "MENU running error!");
     }
-    free(py_idx);
 }
 
 static const char* const PythonKeywords[] =
