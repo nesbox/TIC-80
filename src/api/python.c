@@ -716,7 +716,7 @@ static bool py_pix(int argc, py_Ref argv)
     if (color >= 0) //set pixel
     {
         core->api.pix(tic, x, y, color, false);
-        return false;
+        return true;
     }
     else //get pixel to retval
     {
