@@ -599,8 +599,15 @@ That is defined separately, and not as a macro, so that the code can be re-used.
       Rf_eval(Rf_mkString(code), R_GlobalEnv); /* The Big Bannana */
       /* callRFn_BOOT(); */
       Rf_eval(Rf_mkString("if (exists(\"BOOT\") && is.function(BOOT)) { BOOT() } " \
-                           "else { BOOT <- function() `{`; ## Tricky NOP. }"),
+                          "else { BOOT <- function() `{`; ## Tricky NOP. }"),
               R_GlobalEnv);
+      /* Print all symbols in the global environment. */
+      SEXP symbols = Rf_eval(Rf_mkString("ls()"), R_GlobalEnv);
+      for (int i = 1; i <= Rf_length(symbols); i++) {
+        /* FIXME: a segmentation fault occurs in this loop because I'm trying to
+         ,* access a SEXP as a list which is not a list, I'm guessing. */
+        if (Rf_isString(symbols)) fprintf(stderr, "%s", drCrap(symbols));
+      }
     }
 
     return R_Initialized;
@@ -617,10 +624,8 @@ symbols so that is why that part differs in the chunk below.
 
 #+begin_src C :noweb-ref cartridge commands
   static void callRFn_TIC80(tic_mem* tic) {
-  #if !defined R_INTERNALS_H_
-  #error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
-  #endif
-    Rf_eval(Rf_mkString("if (t80.trace(t80exists(\"TIC-80\")) && is.function(`TIC-80`)) `TIC-80`()"), R_GlobalEnv);
+    SEXP exists = Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "
+                                      "`TIC-80`()"), R_GlobalEnv);
   }
 #+end_src
 
