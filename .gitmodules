@@ -62,10 +62,6 @@
 	path = vendor/janet
 	url = https://github.com/janet-lang/janet.git
 	shallow = true
-[submodule "vendor/pocketpy"]
-	path = vendor/pocketpy
-	url = https://github.com/nesbox/pocketpy.git
-	shallow = true
 [submodule "vendor/quickjs"]
 	path = vendor/quickjs
 	url = https://github.com/nesbox/quickjs.git
@@ -90,3 +86,6 @@
 	path = vendor/sdl-gpu
 	url = https://github.com/aliceisjustplaying/sdl-gpu.git
 	branch = master
+[submodule "vendor/pocketpy"]
+	path = vendor/pocketpy
+	url = https://github.com/PrimedErwin/pocketpy.git
