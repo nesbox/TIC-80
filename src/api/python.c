@@ -576,7 +576,7 @@ static bool py_mouse(int argc, py_Ref argv)
     tic_point pos = core->api.mouse(tic);
     const tic80_mouse* mouse = &core->memory.ram->input.mouse;
 
-    py_Ref res = py_retval();
+    py_Ref res = (py_Ref)malloc(sizeof(py_Ref)*7);
     py_newtuple(res, 7);
     py_Ref tmp = py_retval();
     py_newint(tmp, pos.x);
