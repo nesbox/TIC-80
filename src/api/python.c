@@ -17,8 +17,6 @@ static bool py_throw_error(tic_core* core, const char* msg);
 struct CachedNames
 {
     py_Name _tic_core;
-    py_Name len;
-    py_Name __getitem__;
     py_Name TIC;
     py_Name BOOT;
     py_Name SCN;
@@ -28,9 +26,13 @@ struct CachedNames
 
 static bool get_core(tic_core** core)
 {
-    py_ItemRef pycore = py_getglobal(N._tic_core);
-    if (!pycore) return false;
-    *core = (tic_core*)py_toint(pycore);
+    //py_ItemRef pycore = py_getglobal(N._tic_core);
+    //if (!pycore) return false;
+    //tic_core* core2 = (tic_core*)py_toint(pycore);
+    //return true;
+    void* core_pointer = py_getvmctx();
+    if (!core_pointer) return false;
+    *core = (tic_core*)core_pointer;
     return true;
 }
 
@@ -39,6 +41,7 @@ static bool setup_core(tic_core* core)
 {
     py_newint(py_retval(), (py_i64)core);
     py_setglobal(N._tic_core, py_retval());
+    py_setvmctx((void*)core);
     return true;
 }
 
@@ -61,7 +64,7 @@ static int prepare_colorindex(py_Ref index, u8* buffer)
             return 1;
         }
     }
-    else
+    else if (!py_checktype(index, tp_list))
     { //should be a list then
         int list_len = py_list_len(index);
         list_len = (list_len < TIC_PALETTE_SIZE) ? (list_len) : (TIC_PALETTE_SIZE);
@@ -72,6 +75,8 @@ static int prepare_colorindex(py_Ref index, u8* buffer)
         }
         return list_len;
     }
+    //not int nor list, py_checktype raised exception
+    return false;
 }
 
 /*****************TIC-80 API BEGIN*****************/
@@ -1162,8 +1167,6 @@ static bool init_pkpy_v2(tic_mem* tic, const char* code)
     tic_core* core = (tic_core*)tic;
     close_pkpy_v2(tic);
     N._tic_core = py_name("_tic_core");
-    N.len = py_name("len");
-    N.__getitem__ = py_name("__getitem__");
     N.TIC = py_name("TIC");
     N.BOOT = py_name("BOOT");
     N.SCN = py_name("SCN");
