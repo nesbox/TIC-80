@@ -655,14 +655,14 @@ backtrace quoted in the mentioned section.
 #+name: proprocessor definitions to define cartridge callback functions
 #+begin_src C :noweb-ref cartridge commands
   #define defineCallRFnInEnvironment_(f, e, ...)                          \
-    static void callRFn_##f(tic_mem *tic, ##__VA_ARGS__) {                \
-      R_ParseEvalString("if (exists(\""#f"\") && is.function(`"#f"`)) " \
+    static void callRFn_##f(tic_mem *tic __VA_OPT__(,) __VA_ARGS__) {     \
+      R_ParseEvalString("if (exists(\""#f"\") && is.function(`"#f"`)) "   \
                         "`"#f"`() else stop(\""#f" is not a defined function!\")", \
-        e); \
+                        e);                                               \
     }
   /* i.e., if (exists("f") && is.function(`f`)) `f`(), allowing call of syntactic
    ,* and non-syntactic names. */
-  #define defineCallRFn_(f, ...) defineCallRFnInEnvironment_(f, R_GlobalEnv, ...)
+  #define defineCallRFn_(f, ...) defineCallRFnInEnvironment_(f, R_GlobalEnv __VA_OPT__(,) __VA_ARGS__)
   defineCallRFn_(BOOT)
   /* s32 row/index, void *data as well as the tic_mem *tic parameters. */
   defineCallRFn_(MENU, s32 index, void *data)
