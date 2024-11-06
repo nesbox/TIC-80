@@ -1,7 +1,13 @@
 #+SETUPFILE: https://fniessen.github.io/org-html-themes/org/theme-bigblow.setup
 #+TITLE: Embedding R in TIC-80
 #+AUTHOR: Bryce Carson
-# Copyright © 2024 Bryce Carson
+#+begin_comment
+Copyright © 2024 Bryce Carson
+
+The code in this Org file is licensed under the terms of the GNU General Public
+License, verison three or later. The prose within the file is released under the
+terms of the GNU Free Documentation License (the most recent version).
+#+end_comment
 
 The homepage of the R langauge is https://www.r-project.org/.
 
@@ -9,7 +15,8 @@ Any section marked TODO indicates that the section must be edited for clarity,
 or is a draft which must be completed, before publishing this literate program
 to share it.
 
-* Sectioning of the =r.c= source file
+* DONE Sectioning of the =r.c= source file
+CLOSED: [2024-11-06 Wed 00:33]
 This section of the literate program tangles together all the source blocks
 composing the actual C source file defining the *TIC-80* fantasy computer *R*
 langauge support for writing demos, programs, and games.
@@ -158,12 +165,8 @@ game source code, or a debugger entry point or a callback or something else) be
 evaluated, so the program either "initialize[s] R, returning if that fails"
 or reinitializes R in that subroutine.
 
-~evalR~ is the doorway through which TIC-80 C routines and functions enter into
-communion with R /as an embedded script interpreter/ within TIC-80.
-Understanding how the other languages are integrated will help me integrate this
-language. This is a very simple C function because nothing needs to be done
-except pass its argument to ~Rf_mkString~ before passing that to ~Rf_eval~. We
-can define it right now. For now the =memory= parameter can be ignored.
+~evalR~ is one of the doorways through which TIC-80 C routines and functions
+enter into communion with R /as an embedded script interpreter/ within TIC-80.
 
 #+begin_src C :noweb-ref cartridge commands
   void evalR(tic_mem *memory, const char *code) {
@@ -174,8 +177,7 @@ can define it right now. For now the =memory= parameter can be ignored.
   	}
 
   	if (R_initialized_once) {
-      SEXP RESULT = PROTECT(Rf_eval(PROTECT(Rf_mkString(code)), R_GlobalEnv));
-      UNPROTECT(2);
+      SEXP RESULT = R_ParseEvalString(code, R_GlobalEnv);
     }
   }
 #+end_src
@@ -393,7 +395,8 @@ and not undefine it.
   }
 #+end_src
 
-* License
+* DONE License
+CLOSED: [2024-11-06 Wed 00:33]
 Copyright © 2024 Bryce Carson
 
 Except where otherwise noted, the following license is applicable to all code
@@ -477,16 +480,15 @@ macros are declared.
   #define ARGS(x) Rf_elt(args, x)
 #+end_src
 
-Functions in the R TIC-80 API which require more attention in C programming may
-make use of the following macros. These macros are /only useful for C
-constants/, as everything within =args= is already protected from garbage
-collection because =...= is in use already in the =.External= interface.
-However, any /wholly new SEXPs/ created from values extracted from =args= will
-need to be protected. References to existing SEXPs will not require further
-protection.
+Functions in the R TIC-80 API subject to manual reference counting require more
+attention in C programming may make use of the following macros. These macros
+are /only useful for C constants/, as everything within =args= is already
+protected from garbage collection because =...= is in use already in the
+=.External= interface. However, any /wholly new SEXPs/ created from values
+extracted from =args= will need to be protected. References to existing SEXPs
+will not require further protection.
 
 #+begin_src C :noweb-ref PREDECLARATIONS
-  #define CSTR2LANGSXP(x) Rf_coerceVector(Rf_mkString(x), LANGSXP)
   #define RSTRT(x) SEXP x(SEXP args) { int protected_count = 0; const int argn = Rf_length(args);
   #define RUNP UNPROTECT(protected_count);
   #define REND }
@@ -496,24 +498,27 @@ protection.
   #define psstr(x) ProtectAndIncrement(Rf_ScalarString(x))
 #+end_src
 
-** Procedures to initialize, close, and re-initialize R
-Both =initScheme= and =closeScheme= begin with casting ~tic_mem *tic~ to a
-~tic_core *~, effectively mapping from one area of memory to another (like a
-hashmap or simply shifting the memory until the child struct is aligned with the
-parent struct).
-# Adjust the prior sentence because it's inaccurate.
-This map permits access within =closeScheme= to the =currentVM= member of the
-TIC-80 core memory. This is only my basic understanding, and some of it is
-adventurous bullshitting; I really don't know if that was true, what I said, and
-I don't much care if it wasn't because I'm writing this as I still work to
-understand what I'm reading, so this is only a draft paragraph.
+This macro makes it easier to evaluate R code in the global environment.
 
+#+begin_src C :noweb-ref PREDECLARATIONS
+  #define EVALG(x) R_ParseEvalString(x, R_GlobalEnv)
+#+end_src
+
+** Procedures to initialize, close, and re-initialize R
 In the Lua integration the manner to initialize Lua is the use of a pointer to a
 =lua_State= type (which is actually a thread, but indirectly refers to the state
 associated with the thread). Every Lua C API function requires a pointer of this
 type as its first argument, so calling the procedure ~lua_newstate~ creates a
 fresh, independent thread of execution. That's all that is required to embed and
 then instantiate a Lua 5.4 interpreter within a larger application.
+
+R does not require passing a pointer to a virtual machine to use it. If the
+interpreter is embedded within an application all of the functionality of the R
+interpreter is made readily available without reference to some virtual machine.
+~Rf_initEmbeddedR~ pairs with ~Rf_endEmbeddedR(0);~. R is not designed to have
+multiple virtual machines running in parallel within the same embedding context,
+likely, so that is why it protects itself from being initialized more than once.
+R does its own virtual machine management.
 
 The general design of TIC-80 relies on an embedded language API using pointers
 to the interpreter as the first argument of many of its functions. This is an
@@ -536,19 +541,13 @@ we'll borrow the code from the /Writing R Extensions/ manual to pass
 restarting R as necessary and tracking the current interpreter (there can be
 only one).
 
-#+name: kill R
-#+begin_src C
-#+end_src
-
-That is defined separately, and not as a macro, so that the code can be re-used.
-
 #+begin_src C :noweb no-export :noweb-ref cartridge commands
   void R_CleanUp(Rboolean saveact, int status, int RunLast) { ; }
 
   void R_Suicide(const char *message)
   {
     char  pp[1024];
-    snprintf(pp, 1024, "Fatal error, but can't kermit: %s\n"\
+    snprintf(pp, 1024, "Fatal error, but can't kermit: %s\n"
              "Execute me, please.\n", message);
     R_ShowMessage(pp);
     exit(1);
@@ -567,9 +566,11 @@ That is defined separately, and not as a macro, so that the code can be re-used.
 
   static void closeR(tic_mem *tic) {
     if (R_Initialized) {
+      Rf_endEmbeddedR(0);
+
+      /* Set the currentVM to NULL if it is not already null. */
       tic_core *core;
       if ((core = (((tic_core *) tic))->currentVM) != NULL) {
-        Rf_endEmbeddedR(0);
         core->currentVM = NULL;
       }
     }
@@ -589,25 +590,21 @@ That is defined separately, and not as a macro, so that the code can be re-used.
     R_running_as_main_program = 0;
 
     if (!R_Initialized) {
-      R_Initialized = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), \
+      R_Initialized = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]),
                                               embdRAV);
       R_running_as_main_program = 0;
       /* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
       R_Interactive = false;
       RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
       initializeRExternalMethodsDefinedInC();
-      Rf_eval(Rf_mkString(code), R_GlobalEnv); /* The Big Bannana */
-      /* callRFn_BOOT(); */
-      Rf_eval(Rf_mkString("if (exists(\"BOOT\") && is.function(BOOT)) { BOOT() } " \
-                          "else { BOOT <- function() `{`; ## Tricky NOP. }"),
-              R_GlobalEnv);
       /* Print all symbols in the global environment. */
-      SEXP symbols = Rf_eval(Rf_mkString("ls()"), R_GlobalEnv);
-      for (int i = 1; i <= Rf_length(symbols); i++) {
-        /* FIXME: a segmentation fault occurs in this loop because I'm trying to
-         ,* access a SEXP as a list which is not a list, I'm guessing. */
-        if (Rf_isString(symbols)) fprintf(stderr, "%s", drCrap(symbols));
-      }
+      SEXP symbols = PROTECT(EVALG("print(ls())"));
+      UNPROTECT(1);
+      /* FIXME: evaluating code with line comments in it makes the function crash
+       ,* the program. */
+      EVALG(code);
+      EVALG("if (print(exists(\"BOOT\")) && is.function(BOOT)) { BOOT() } "
+            "else { BOOT <- function() `{` }");
     }
 
     return R_Initialized;
@@ -620,12 +617,13 @@ It might not be advisable to define the ~TIC~ function in the R API as
 actual name of the machine can be used. If the machine were called ~MANE~ we'd
 want to use that, but if we were forced to use ~main~ that'd be a nice homophone
 at least. The =exists= function doesn't use symbols, it uses strings to lookup
-symbols so that is why that part differs in the chunk below.
+symbols so that is why that part differs in the chunk below and the
+~defineCallRFn~ macro defined else isn't used.
 
 #+begin_src C :noweb-ref cartridge commands
   static void callRFn_TIC80(tic_mem* tic) {
-    SEXP exists = Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "
-                                      "`TIC-80`()"), R_GlobalEnv);
+    SEXP exists = EVALG("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "
+                                      "`TIC-80`()");
   }
 #+end_src
 
@@ -658,9 +656,9 @@ backtrace quoted in the mentioned section.
 #+begin_src C :noweb-ref cartridge commands
   #define defineCallRFnInEnvironment_(f, e, ...)                          \
     static void callRFn_##f(tic_mem *tic, ##__VA_ARGS__) {                \
-      Rf_eval(Rf_mkString("if (exists(\""#f"\") && is.function(`"#f"`)) " \
-                          "`"#f"`() else stop(\""#f" is not a defined function!\")"),\
-              e);                                                         \
+      R_ParseEvalString("if (exists(\""#f"\") && is.function(`"#f"`)) " \
+                        "`"#f"`() else stop(\""#f" is not a defined function!\")", \
+        e); \
     }
   /* i.e., if (exists("f") && is.function(`f`)) `f`(), allowing call of syntactic
    ,* and non-syntactic names. */
@@ -845,14 +843,14 @@ used otherwise, as with ~`function`~.
 
 #+name: Specify the reserved words for automatic syntax
 #+begin_src c
-	static const char* const RKeywords [] =
-	{
-		"if", "else", "repeat", "while", "function", "for", "in", "next", "break",
-		"TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_",
-		"NA_complex_", "NA_character_",
-		/* et cetera, see ?dots */
-		"...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9",
-	};
+  static const char* const RKeywords [] =
+  {
+  	"if", "else", "repeat", "while", "function", "for", "in", "next", "break",
+  	"TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_",
+  	"NA_complex_", "NA_character_",
+  	/* et cetera, see ?dots */
+  	"...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9",
+  };
 #+end_src
 
 ****** =..n=: variadic argument access across the natural numbers
@@ -1847,7 +1845,8 @@ function style in R, and the contents of the metadata are identical to the Ruby
 or Scheme demos (as every demo cartridge uses the same demo content by
 convention).
 
-- [ ] Translate all cartridge assets during build
+- [X] Translate all cartridge assets during build
+- [ ] Ensure translation produces assets identical to what is already checked-in
 
 #+begin_src R :noweb no-export :tangle ../../demos/rdemo.r
   ## title:   game title
@@ -1868,18 +1867,18 @@ convention).
   dec <- makeopfn(`-`)
 
   `TIC-80` <- function() {
-    mapply(.f = \(b, o) if (btn(b)) o,
+    mapply(.f = \(b, o) if (t80.btn(b)) o,
            .x = 0:3,
            .y = list(dec(y), inc(y),
-                     dec(x), inc(x)))
-    t80.cls(13)
+                     dec(x), inc(x)));
+    t80.cls(13);
     t80.spr(id = 1 + (t %% 60) / 30 * 2,
             scale = 3,
             x, y,
             colorkey = 14,
-            w = 2, h = 2)
-    t80.print("HELLO WORLD!", 84, 84)
-    inc(t)
+            w = 2, h = 2);
+    t80.print("HELLO WORLD!", 84, 84);
+    inc(t);
   }
 
   <<stripped cartridge metadata>>
@@ -1933,7 +1932,6 @@ sounds into the cartridge.
   ## version: 0.0.1
 #+end_src
 
-#+name: R S3-based bunnmark
 #+begin_src R :noweb no-export :tangle ../../demos/bunny/rbenchmark.r
   <<R bunnymark header>>
 
@@ -2312,7 +2310,8 @@ which need special attention.
 *** make provision for other R events whilst waiting for input from the front-end
 *** ensure the front-end is not frozen out during the event loop waiting for responses from sockets
 
-* Creating build assets at build-time from source files
+* DONE Creating build assets at build-time from source files
+CLOSED: [2024-11-06 Wed 00:32]
 The is a build/assets directory in the TIC-80 sources containing DAT formatted
 files which are needed to include benchmarks for various scripting language
 integrations and also the demo and default cartridges for these langauges. The
