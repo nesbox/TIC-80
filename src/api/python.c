@@ -579,21 +579,13 @@ static bool py_mouse(int argc, py_Ref argv)
     //py_Ref res = (py_Ref)malloc(sizeof(py_Ref));
     py_Ref res = py_r7();
     py_newtuple(res, 7);
-    py_Ref tmp = py_retval();
-    py_newint(tmp, pos.x);
-    py_tuple_setitem(res, 0, tmp);
-    py_newint(tmp, pos.y);
-    py_tuple_setitem(res, 1, tmp);
-    py_newint(tmp, mouse->left);
-    py_tuple_setitem(res, 2, tmp);
-    py_newint(tmp, mouse->middle);
-    py_tuple_setitem(res, 3, tmp);
-    py_newint(tmp, mouse->right);
-    py_tuple_setitem(res, 4, tmp);
-    py_newint(tmp, mouse->scrollx);
-    py_tuple_setitem(res, 5, tmp);
-    py_newint(tmp, mouse->scrolly);
-    py_tuple_setitem(res, 6, tmp);
+    py_newint(py_tuple_getitem(res, 0), pos.x);
+    py_newint(py_tuple_getitem(res, 1), pos.y);
+    py_newint(py_tuple_getitem(res, 2), mouse->left);
+    py_newint(py_tuple_getitem(res, 3), mouse->middle);
+    py_newint(py_tuple_getitem(res, 4), mouse->right);
+    py_newint(py_tuple_getitem(res, 5), mouse->scrollx);
+    py_newint(py_tuple_getitem(res, 6), mouse->scrolly);
     py_assign(py_retval(), res);
     return true;
 }
