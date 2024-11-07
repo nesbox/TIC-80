@@ -34,6 +34,7 @@
 
 #include <Rembedded.h>
 #include <Rinterface.h>
+#include <R_ext/Parse.h>
 #include <Rconfig.h>
 #include <Rdefines.h>
 
@@ -44,175 +45,422 @@
 #include "api/renv.h"
 
 /* API */
-#define sixth CAR(nthcdr(6))
-#define seventh CAR(nthcdr(7))
-#define eighth CAR(nthcdr(8))
-#define ninth CAR(nthcdr(9))
-
 bool R_initialized_once = false;
 extern int R_running_as_main_program;   /* location within The R sources: ../unix/system.c */
 static bool initR(tic_mem *tic, const char *code);
-#define RSTRT(x) SEXP x(SEXP args) { int protected_count = 0; const int argn = length(args);
+tic_mem *mem;
+static SEXP RTicRam; /* An external pointer (to an object of type tic_mem) to the object with the symbol "mem". */
+#define TICAPI(CMD, ...) ((tic_core *)RTicRam)->api.CMD(R_ExternalPtrAddr(RTicRam) __VA_OPT__(,) __VA_ARGS__)
+#define drIntp(x)  *((int   *)x)
+#define drDblp(x)  *((int   *)x)
+#define drLglp(x)  *((int   *)x)
+#define drCrap(x)  *((char **)x)
+#define ARGS(x) Rf_elt(args, x)
+#define RSTRT(x) SEXP x(SEXP args) { int protected_count = 0; const int argn = Rf_length(args);
 #define RUNP UNPROTECT(protected_count);
 #define REND }
-
 #define ProtectAndIncrement(x) (++protected_count, PROTECT(x))
-#define psint(x) ProtectAndIncrement(ScalarInteger(x))
-#define pslgl(x) ProtectAndIncrement(ScalarLogical(x))
-#define psstr(x) ProtectAndIncrement(ScalarString(x))
-#define CADNR(x) CAR(nthcdr(x))
-RSTRT(r_print)
+#define psint(x) ProtectAndIncrement(Rf_ScalarInteger(x))
+#define pslgl(x) ProtectAndIncrement(Rf_ScalarLogical(x))
+#define psstr(x) ProtectAndIncrement(Rf_ScalarString(x))
+#define EVALG(x) R_ParseEvalString(x, R_GlobalEnv)
+void parseTransparentColorsArg(/* LISTSXP */SEXP colorkey,
+                               u8* out_transparent_colors,
+                               u8* out_count)
+{
+  *out_count = 0;
+  if ((bool) Rf_isList(colorkey))
+  {
+    const u8 arg_color_count = Rf_length(colorkey);
+    const u8 color_count = arg_color_count < TIC_PALETTE_SIZE ? (u8)arg_color_count : TIC_PALETTE_SIZE;
+    for (int i=0; i<color_count; ++i)
+    {
+      SEXP c = VECTOR_ELT(colorkey, i);
+      out_transparent_colors[i] = (bool) Rf_isInteger(c) ? drIntp(c) : 0;
+      ++(*out_count);
+    }
+  }
+  else if ((bool) Rf_isInteger(colorkey))
+  {
+    out_transparent_colors[0] = (u8) drIntp(colorkey);
+    *out_count = 1;
+  }
+}
+SEXP r_circ(SEXP args) {
+  // circ(x y radius color)
+  const s32 x      = drIntp(ARGS(1));
+  const s32 y      = drIntp(ARGS(2));
+  const s32 radius = drIntp(ARGS(3));
+  const s32 color  = drIntp(ARGS(4));
+
+  /* RTICAPI.circ(RTICRAM, x, y, radius, color); */
+  TICAPI(circ, x, y, radius, color);
+  return R_NilValue;
+}
+
+SEXP r_circb(SEXP args) {
+  // circb(x y radius color)
+  const s32 x      = drIntp(ARGS(1));
+  const s32 y      = drIntp(ARGS(2));
+  const s32 radius = drIntp(ARGS(3));
+  const s32 color  = drIntp(ARGS(4));
+
+  TICAPI(circb, x, y, radius, color);
+  return R_NilValue;
+}
+SEXP r_elli(SEXP args)
+{
+  // elli(x y a b color)
+  const s32 x     = drIntp(ARGS(1));
+  const s32 y     = drIntp(ARGS(2));
+  const s32 a     = drIntp(ARGS(3));
+  const s32 b     = drIntp(ARGS(4));
+  const s32 color = drIntp(ARGS(5));
+  TICAPI(elli, x, y, a, b, color);
+  return R_NilValue;
+}
+
+SEXP r_ellib(SEXP args)
+{
+  // ellib(x y a b color)
+  const s32 x     = drIntp(ARGS(1));
+  const s32 y     = drIntp(ARGS(2));
+  const s32 a     = drIntp(ARGS(3));
+  const s32 b     = drIntp(ARGS(4));
+  const s32 color = drIntp(ARGS(5));
+  TICAPI(ellib, x, y, a, b, color);
+  return R_NilValue;
+}
+SEXP r_tri(SEXP args)
+{
+  // tri(x1 y1 x2 y2 x3 y3 color)
+  const s32 x1    = drIntp(ARGS(1));
+  const s32 y1    = drIntp(ARGS(2));
+  const s32 x2    = drIntp(ARGS(3));
+  const s32 y2    = drIntp(ARGS(4));
+  const s32 x3    = drIntp(ARGS(5));
+  const s32 y3    = drIntp(ARGS(6));
+  const s32 color = drIntp(ARGS(7));
+
+  TICAPI(tri, x1, y1, x2, y2, x3, y3, color);
+  return R_NilValue;
+}
+
+SEXP r_trib(SEXP args)
+{
+  // trib(x1 y1 x2 y2 x3 y3 color)
+  const s32 x1    = drIntp(ARGS(1));
+  const s32 y1    = drIntp(ARGS(2));
+  const s32 x2    = drIntp(ARGS(4));
+  const s32 y2    = drIntp(ARGS(5));
+  const s32 x3    = drIntp(ARGS(6));
+  const s32 y3    = drIntp(ARGS(7));
+  const s32 color = drIntp(ARGS(8));
+  TICAPI(tri, x1, y1, x2, y2, x3, y3, color);
+  return R_NilValue;
+}
+
+SEXP r_ttri(SEXP args)
+{
+  /* ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3
+          texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
+     ⮑ nil */
+  const s32 x1 = drIntp(ARGS(1));
+  const s32 y1 = drIntp(ARGS(2));
+  const s32 x2 = drIntp(ARGS(3));
+  const s32 y2 = drIntp(ARGS(4));
+  const s32 x3 = drIntp(ARGS(5));
+  const s32 y3 = drIntp(ARGS(6));
+  const s32 u1 = drIntp(ARGS(7));
+  const s32 v1 = drIntp(ARGS(8));
+  const s32 u2 = drIntp(ARGS(9));
+  const s32 v2 = drIntp(ARGS(10));
+  const s32 u3 = drIntp(ARGS(11));
+  const s32 v3 = drIntp(ARGS(12));
+
+  const int argn = Rf_length(args);
+  const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? drIntp(ARGS(13)) : 0);
+
+  static u8 trans_colors[TIC_PALETTE_SIZE];
+  u8 trans_count = 0;
+
+  if (argn > 13)
+  {
+    /* Scheme uses expects this to be a list, so I will too? Properly, however,
+     * it should be an expression type... which would be `{`. */
+    SEXP colorkey = ARGS(14);
+    parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
+  }
+
+  bool depth = argn > 14 ? true : false;
+  const s32 z1 = argn > 14 ? drIntp(ARGS(15)) : 0;
+  const s32 z2 = argn > 15 ? drIntp(ARGS(16)) : 0;
+  const s32 z3 = argn > 16 ? drIntp(ARGS(17)) : 0;
+
+  TICAPI(ttri, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3,
+         texsrc, trans_colors, trans_count, z1, z2, z3, depth);
+  return R_NilValue;
+}
+SEXP r_clip(SEXP args)
+{
+  // clip(x y width height)
+  // clip()
+  const int argn = Rf_length(args);
+  if (argn != 4) {
+    TICAPI(clip, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+  } else {
+    const s32 x = drIntp(ARGS(1));
+    const s32 y = drIntp(ARGS(2));
+    const s32 w = drIntp(ARGS(3));
+    const s32 h = drIntp(ARGS(4));
+    TICAPI(clip, x, y, w, h);
+  }
+  return R_NilValue;
+}
+SEXP r_font(SEXP args)
+{
+  // font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width
+  const char* text = drCrap(ARGS(1));
+  const s32 x      = drIntp(ARGS(2));
+  const s32 y      = drIntp(ARGS(3));
+
+  static u8 trans_colors[TIC_PALETTE_SIZE];
+  u8 trans_count = 0;
+  SEXP colorkey = ARGS(4);
+  parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
+
+  const s32 w = drIntp(ARGS(5));
+  const s32 h = drIntp(ARGS(6));
+
+  const int argn = Rf_length(args);
+  const s32 fixed = argn > 6 ? drLglp(ARGS(7)) : false;
+  const s32 scale = argn > 7 ? drIntp(ARGS(8)) : 1;
+  const s32 alt   = argn > 6 ? drLglp(ARGS(9)) : false;
+
+  return Rf_ScalarInteger(TICAPI(font, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt));
+}
+SEXP r_spr(SEXP args) {
+  // spr(id x y colorkey=-1 scale=1 flip=0 rotate=0 w=1 h=1)
+  static u8 trans_colors[TIC_PALETTE_SIZE];
+  u8 trans_count = 0;
+
+  const s32 id = drIntp(ARGS(1));
+  const s32 x  = drIntp(ARGS(2));
+  const s32 y  = drIntp(ARGS(3));
+
+  const int argn = Rf_length(args);
+
+  if (argn > 3)
+  {
+    /* DONE: DOES NOT NEED protection and unprotection becausse the LISTSXP is a
+     * part of the args. */
+    SEXP colorkey = ARGS(4);
+    parseTransparentColorsArg(
+      /*Within the Scheme API*/ colorkey, /*is a LIST, so here it should be a LISTSXP.*/
+      trans_colors,
+      &trans_count
+    );
+  }
+  const s32 scale     = argn > 4 ? drIntp(ARGS(5)) : 1;
+  const s32 flip      = argn > 5 ? drIntp(ARGS(6)) : 0;
+  const s32 rotate    = argn > 6 ? drIntp(ARGS(7)) : 0;
+  const s32 w         = argn > 7 ? drIntp(ARGS(8)) : 1;
+  const s32 h         = argn > 8 ? drIntp(ARGS(9)) : 1;
+  TICAPI(spr, id, x, y,
+         w, h, trans_colors, trans_count, scale,
+         (tic_flip) flip,
+         (tic_rotate) rotate);
+  return R_NilValue;
+}
+SEXP r_print(SEXP args) {
   /* print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false)
    * ⮑ width*/
-  const char* text = psstr(first);
-  const s32  x     = argn > 1 ? psint(second)         : 0;
-  const s32  y     = argn > 2 ? psint(third)          : 0;
-  const u8   color = argn > 3 ? psint(fourth)         : 15;
-  const bool fixed = argn > 4 ? pslgl(fifth)          : false;
-  const s32  scale = argn > 5 ? psint(sixth)          : 1;
-  const bool alt   = argn > 6 ? pslgl(seventh)        : false;
+  const int argn = Rf_length(args);
+  const char *text  = (const char *) drCrap(ARGS(1));
+  const s32   x     = argn > 1 ? drIntp(ARGS(2)): 0;
+  const s32   y     = argn > 2 ? drIntp(ARGS(3)): 0;
+  const u8    color = argn > 3 ? drIntp(ARGS(4)): 15;
+  const bool  fixed = argn > 4 ? drIntp(ARGS(5)): false;
+  const s32   scale = argn > 5 ? drIntp(ARGS(6)): 1;
+  const bool  alt   = argn > 6 ? drIntp(ARGS(7)): false;
 
-  RUNP;
-
-  return ScalarLogical(core->api.print(R_ExternalPtrAddr(RTicRam), text, x, y, color, fixed, scale, alt));
-REND
-RSTRT(r_cls)
+  return Rf_ScalarLogical(TICAPI(print, text, x, y, color, fixed, scale, alt));
+}
+SEXP r_cls(SEXP args) {
   /* cls(color=0)
    * ⮑ nil */
+  const int argn = Rf_length(args);
+  const u8 color = (argn > 0) ? drIntp(ARGS(1)) : 0;
+  TICAPI(cls, color);
 
-  const u8 color = (argn > 0) ? psInt(first) : 0;
-
-  core->api.cls(R_ExternalPtrAddr(RTicMem), color);
-
-  RUNP;
-
-  return R_NilValue
-REND
-RSTRT(r_pix)
+  return R_NilValue;
+}
+SEXP r_pix(SEXP args) {
   /* pix(x y color = 0)
 	 * ⮑ nil
 	 * pix(x y)
    * ⮑ color */
-  const s32 x = psint(first);
-  const s32 y = psint(second);
+  const s32 x = drIntp(ARGS(1));
+  const s32 y = drIntp(ARGS(2));
 
+  const int argn = Rf_length(args);
   if (argn == 3) {
-    const u8 color = psint(third);
-    core->api.pix(tic, x, y, color, false);
-		RUNP;
+    const u8 color = drIntp(ARGS(3));
+    TICAPI(pix, x, y, color, false);
     return R_NilValue;
   } else {
-		RUNP;
-    return ScalarInteger(core->api.pix(R_ExternalPtrAddr(RTicMem), x, y, 0, true));
+    return Rf_ScalarInteger(TICAPI(pix, x, y, 0, true));
   }
-REND
-RSTRT(r_line)
+}
+SEXP r_line(SEXP args) {
   /* line(x0 y0 x1 y1 color)
 	 * ⮑ nil */
-  const s32 x0    = psint(first);
-  const s32 y0    = psint(second);
-  const s32 x1    = psint(third);
-  const s32 y1    = psint(fourth);
-  const u8  color = psint(fifth);
+  const s32 x0    = drIntp(ARGS(1));
+  const s32 y0    = drIntp(ARGS(2));
+  const s32 x1    = drIntp(ARGS(3));
+  const s32 y1    = drIntp(ARGS(4));
+  const u8  color = drIntp(ARGS(5));
 
-  core->api.line(R_ExternalPtrAddr(RTicMem), x0, y0, x1, y1, color);
-	RUNP;
+  TICAPI(line, x0, y0, x1, y1, color);
   return R_NilValue;
-REND
+}
 SEXP r_rect(SEXP args)
 {
   // rect(x y w h color)
-	int protected_count = 0;
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x = ProtInc(ScalarInteger(CADR(args)));
-  const s32 y = ProtInc(ScalarInteger(CADDR(args)));
-  const s32 w = ProtInc(ScalarInteger(CADDDR(args)));
-  const s32 h = ProtInc(ScalarInteger(CADDDDR(args)));
-  const u8 color = ScalarInteger(s7_list_ref(sc, args, 4));
-  core->api.rect(tic, x, y, w, h, color);
-	UNPROTECT(protected_count);
+  const s32 x     = drIntp(ARGS(1));
+  const s32 y     = drIntp(ARGS(2));
+  const s32 w     = drIntp(ARGS(3));
+  const s32 h     = drIntp(ARGS(4));
+  const u8  color = drIntp(ARGS(5));
+  TICAPI(rect, x, y, w, h, color);
   return R_NilValue;
 }
+
 SEXP r_rectb(SEXP args)
 {
   // rectb(x y w h color)
-	int protected_count = 0;
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x    = ProtInc(ScalarInteger(first));
-  const s32 y    = ProtInc(ScalarInteger(second));
-  const s32 w    = ProtInc(ScalarInteger(third));
-  const s32 h    = ProtInc(ScalarInteger(fourth));
-  const u8 color = ProtInc(ScalarInteger(fifth));
-  core->api.rectb(tic, x, y, w, h, color);
-	UNPROTECT(protected_count);
+  const s32 x     = drIntp(ARGS(1));
+  const s32 y     = drIntp(ARGS(2));
+  const s32 w     = drIntp(ARGS(3));
+  const s32 h     = drIntp(ARGS(4));
+  const u8  color = drIntp(ARGS(5));
+  TICAPI(rectb, x, y, w, h, color);
   return R_NilValue;
 }
-void parseTransparentColorsArg(SEXP colorkey, u8* out_transparent_colors, u8* out_count)
+typedef struct
 {
-  *out_count = 0;
-  if (s7_is_list(sc, colorkey))
-  {
-    const s32 arg_color_count = length(colorkey);
-    const u8 color_count = arg_color_count < TIC_PALETTE_SIZE ? (u8)arg_color_count : TIC_PALETTE_SIZE;
-    for (u8 i=0; i<color_count; ++i)
+  tic_core *core;
+  SEXP callback;
+} RemapData;
+
+static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
+{
+  RemapData* remap = (RemapData*) data;
+  tic_core* core = remap->core;
+
+  /* NOTE: Call the callback function. */
+  // callback(index x y) -> list(index flip rotate)
+  /* callback(index, x, y) */
+  if (Rf_isFunction(remap->callback)) {
+    SEXP callbackResult = Rf_lang4(remap->callback,
+                                   Rf_ScalarInteger(result->index),
+                                   Rf_ScalarInteger(x),
+                                   Rf_ScalarInteger(y));
+
+    if (Rf_isList(callbackResult) && Rf_length(callbackResult) == 3)
     {
-      SEXP c = s7_list_ref(sc, colorkey, i);
-      out_transparent_colors[i] = s7_is_integer(c) ? ScalarInteger(c) : 0;
-      ++(*out_count);
+      result->index  =              drIntp(Rf_elt(callbackResult, 1));
+      result->flip   = (tic_flip)   drIntp(Rf_elt(callbackResult, 2));
+      result->rotate = (tic_rotate) drIntp(Rf_elt(callbackResult, 3));
     }
   }
-  else if (s7_is_integer(colorkey))
-  {
-    out_transparent_colors[0] = (u8)ScalarInteger(colorkey);
-    *out_count = 1;
-  }
 }
-SEXP r_spr(SEXP args)
+
+SEXP r_map(SEXP args)
 {
-  // spr(id x y colorkey=-1 scale=1 flip=0 rotate=0 w=1 h=1)
-	int protected_count = 0;
-  const int argn      = length(args);
-  tic_core* core      = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 id        = ProtInc(ScalarInteger(first));
-  const s32 x         = ProtInc(ScalarInteger(second));
-  const s32 y         = ProtInc(ScalarInteger(third));
+  // map(x=0 y=0 w=30 h=17 sx=0 sy=0 colorkey=-1 scale=1 remap=nil)
+  const s32 x  = drIntp(ARGS(1));
+  const s32 y  = drIntp(ARGS(2));
+  const s32 w  = drIntp(ARGS(3));
+  const s32 h  = drIntp(ARGS(4));
+  const s32 sx = drIntp(ARGS(5));
+  const s32 sy = drIntp(ARGS(6));
+
+  const int argn = Rf_length(args);
 
   static u8 trans_colors[TIC_PALETTE_SIZE];
   u8 trans_count = 0;
-  if (argn > 3)
-  {
-    SEXP colorkey = ProtInc(fourth);
-    parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
+  if (argn > 6) {
+    SEXP colorkey = ARGS(7);
+    parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
   }
 
-  const s32 scale     = argn > 4 ? ProtInc(ScalarInteger(fourth           ) ) : 1;
-  const s32 flip      = argn > 5 ? ProtInc(ScalarInteger(fifth            ) ) : 0;
-  const s32 rotate    = argn > 6 ? ProtInc(ScalarInteger(CAR(nthcdr(6 ) ) ) ) : 0;
-  const s32 w         = argn > 7 ? ProtInc(ScalarInteger(CAR(nthcdr(7 ) ) ) ) : 1;
-  const s32 h         = argn > 8 ? ProtInc(ScalarInteger(CAR(nthcdr(8 ) ) ) ) : 1;
-  core->api.spr(tic, id, x, y, w, h, trans_colors, trans_count, scale, (tic_flip)flip, (tic_rotate) rotate);
-	UNPROTECT(protected_count);
-  return R_NilValue
+  const s32 scale = argn > 7 ? drIntp(ARGS(8)) : 1;
+
+  RemapFunc remap = NULL;
+  RemapData data;
+  if (argn > 8)
+  {
+    remap = remapCallback;
+    data.core = ((tic_core *)RTicRam);
+    data.callback = ARGS(9);
+  }
+  TICAPI(map, x, y, w, h, sx, sy, trans_colors, trans_count, scale, remap, &data);
+  return R_NilValue;
+}
+SEXP r_key(SEXP args)
+{
+  //key(code=-1) -> pressed
+  const int argn = Rf_length(args);
+  const tic_key code = argn > 0 ? drIntp(ARGS(1)) : -1;
+  return Rf_ScalarLogical(TICAPI(key, code));
+}
+
+SEXP r_keyp(SEXP args)
+{
+  // keyp(code=-1 hold=-1 period=-1) -> pressed
+  const int argn = Rf_length(args);
+  const tic_key code = argn > 0 ? drIntp(ARGS(1)) : -1;
+  const s32 hold     = argn > 1 ? drIntp(ARGS(2)) : -1;
+  const s32 period   = argn > 2 ? drIntp(ARGS(3)) : -1;
+  return Rf_ScalarLogical(TICAPI(keyp, code, hold, period));
+}
+/* This API function does not use the convenience macros because it doesn't need
+ * to protect any values from garbage collection, because every use of an R API
+ * call is to manipulate a C value which R does not control the memory of. */
+SEXP r_mouse(SEXP args)
+{
+  /* mouse()
+	 * ⮑ x y left middle right scrollx scrolly */
+	tic_mem *tic = (tic_mem *) RTicRam;
+	tic_core* core = (tic_core *)tic;
+
+  const tic_point point = core->api.mouse(tic);
+  const tic80_mouse* mouse = &((tic_core*)tic)->memory.ram->input.mouse;
+
+  return CONS(Rf_ScalarInteger(point.x),
+              Rf_list6(Rf_ScalarInteger(point.y),
+                    Rf_ScalarInteger(mouse->left),
+                    Rf_ScalarInteger(mouse->middle),
+                    Rf_ScalarInteger(mouse->right),
+                    Rf_ScalarInteger(mouse->scrollx),
+                    Rf_ScalarInteger(mouse->scrolly)));
 }
 SEXP r_btn(SEXP args)
 {
   // btn(id) -> pressed
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 id = ScalarInteger(CADR(args));
-
-  return s7_make_boolean(sc, core->api.btn(tic, id));
+  return Rf_ScalarLogical(TICAPI(btn, (s32) drIntp(ARGS(1))));
 }
+
 SEXP r_btnp(SEXP args)
 {
   // btnp(id hold=-1 period=-1) -> pressed
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 id = ScalarInteger(CADR(args));
+  const s32 id = drIntp(ARGS(1));
+  const int argn = Rf_length(args);
+  const s32 hold = argn > 1 ? drIntp(ARGS(2)) : -1;
+  const s32 period = argn > 2 ? drIntp(ARGS(3)) : -1;
 
-  const int argn = length(args);
-  const s32 hold = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-  const s32 period = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-
-  return s7_make_boolean(sc, core->api.btnp(tic, id, hold, period));
+  return Rf_ScalarLogical(TICAPI(btnp, id, hold, period));
 }
 u8 get_note_base(char c) {
   switch (c) {
@@ -226,6 +474,7 @@ u8 get_note_base(char c) {
   default:  return 255;
   }
 }
+
 u8 get_note_modif(char c) {
   switch (c) {
   case '-': return 0;
@@ -233,30 +482,40 @@ u8 get_note_modif(char c) {
   default:  return 255;
   }
 }
+
 u8 get_note_octave(char c) {
   if (c >= '0' && c <= '8')
     return c - '0';
   else
     return 255;
 }
-typedef struct
+
+SEXP r_music(SEXP args)
 {
-  s7_scheme* sc;
-  SEXP callback;
-} RemapData;
+  // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
+  const int argn     = Rf_length(args);
+  const s32  track   = argn > 0 ? drIntp(ARGS(1)) : -1;
+  const s32  frame   = argn > 1 ? drIntp(ARGS(2)) : -1;
+  const s32  row     = argn > 2 ? drIntp(ARGS(3)) : -1;
+  const bool loop    = argn > 3 ? drLglp(ARGS(4)) : true;
+  const bool sustain = argn > 4 ? drLglp(ARGS(5)) : false;
+  const s32  tempo   = argn > 5 ? drIntp(ARGS(6)) : -1;
+  const s32  speed   = argn > 6 ? drIntp(ARGS(7)) : -1;
+  TICAPI(music, track, frame, row, loop, sustain, tempo, speed);
+  return R_NilValue;
+}
+
 SEXP r_sfx(SEXP a, SEXP args)
 {
   // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 id = ScalarInteger(CADR(args));
-
-  const int argn = length(args);
+  const s32 id = drIntp(ARGS(1));
+  const int argn = Rf_length(args);
   int note = -1;
   int octave = -1;
   if (argn > 1) {
-    SEXP note_ptr = CADDR(args);
-    if (s7_is_integer(note_ptr)) {
-      const s32 raw_note = ScalarInteger(note_ptr);
+    SEXP note_ptr = ARGS(2);
+    if (Rf_isInteger(note_ptr)) {
+      const s32 raw_note = drIntp(note_ptr);
       if (raw_note >= 0 || raw_note <= 95) {
         note = raw_note % 12;
         octave = raw_note / 12;
@@ -266,9 +525,9 @@ SEXP r_sfx(SEXP a, SEXP args)
       /*     snprintf(buffer, 99, "Invalid sfx note given: %d\n", raw_note); */
       /*     tic->data->error(tic->data->data, buffer); */
       /* } */
-    } else if (s7_is_string(note_ptr)) {
-      const char* note_str = ScalarString(note_ptr);
-      const u8 len = ScalarString_length(note_ptr);
+    } else if (/*I don't see the function*/ Rf_isString(note_ptr) /*documented in the info manual, but apparently it exists!*/) {
+      const char* note_str = drCrap(note_ptr);
+      const u8 len = Rf_length(note_ptr);
       if (len == 3) {
         const u8 modif = get_note_modif(note_str[1]);
         note = get_note_base(note_str[0]);
@@ -287,560 +546,272 @@ SEXP r_sfx(SEXP a, SEXP args)
     }
   }
 
-  const s32 duration = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-  const s32 channel = argn > 3 ? ScalarInteger(CADDDDR(args)) : 0;
+  const s32 duration = argn > 2 ? drIntp(ARGS(3)) : -1;
+  const s32 channel  = argn > 3 ? drIntp(ARGS(4)) : 0;
 
-  s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
+  s32 volumes[TIC80_SAMPLE_CHANNELS] = { MAX_VOLUME, MAX_VOLUME };
   if (argn > 4) {
-    SEXP volume_arg = s7_list_ref(sc, args, 4);
-    if (s7_is_integer(volume_arg)) {
-      volumes[0] = volumes[1] = ScalarInteger(volume_arg) & 0xF;
-    } else if (s7_is_list(sc, volume_arg) && length(volume_arg) == 2) {
-      volumes[0] = ScalarInteger(CADR(volume_arg)) & 0xF;
-      volumes[1] = ScalarInteger(CADDR(volume_arg)) & 0xF;
+    SEXP volume_arg = ARGS(5);
+    if (Rf_isInteger(volume_arg)) {
+      volumes[0] = volumes[1] = drIntp(volume_arg) & 0xF;
+    } else if (Rf_isList(volume_arg) && Rf_length(volume_arg) == 2) {
+      volumes[0] = drIntp(CADR(volume_arg)) & 0xF;
+      volumes[1] = drIntp(CADDR(volume_arg)) & 0xF;
     }
   }
-  const s32 speed = argn > 5 ? ScalarInteger(s7_list_ref(sc, args, 5)) : 0;
+  const s32 speed = argn > 5 ? drIntp(ARGS(6)) : 0;
 
-  core->api.sfx(tic, id, note, octave, duration, channel, volumes[0], volumes[1], speed);
-  return R_NilValue
-}
-static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
-{
-  RemapData* remap = (RemapData*)data;
-  s7_scheme* sc = remap->sc;
-
-  // (callback index x y) -> (list index flip rotate)
-  SEXP callbackResult = s7_call(sc, remap->callback,
-                                s7_cons(sc, s7_make_integer(sc, result->index),
-                                        s7_cons(sc, s7_make_integer(sc, x),
-                                                s7_cons(sc, s7_make_integer(sc, y),
-                                                        R_NilValue))));
-
-  if (s7_is_list(sc, callbackResult) && length(callbackResult) == 3)
-  {
-    result->index = ScalarInteger(CADR(callbackResult));
-    result->flip = (tic_flip)ScalarInteger(CADDR(callbackResult));
-    result->rotate = (tic_rotate)ScalarInteger(CADDDR(callbackResult));
-  }
-}
-SEXP r_map(SEXP args)
-{
-  // map(x=0 y=0 w=30 h=17 sx=0 sy=0 colorkey=-1 scale=1 remap=nil)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x = ScalarInteger(CADR(args));
-  const s32 y = ScalarInteger(CADDR(args));
-  const s32 w = ScalarInteger(CADDDR(args));
-  const s32 h = ScalarInteger(CADDDDR(args));
-  const s32 sx = ScalarInteger(s7_list_ref(sc, args, 4));
-  const s32 sy = ScalarInteger(s7_list_ref(sc, args, 5));
-
-  const int argn = length(args);
-
-  static u8 trans_colors[TIC_PALETTE_SIZE];
-  u8 trans_count = 0;
-  if (argn > 6) {
-    SEXP colorkey = s7_list_ref(sc, args, 6);
-    parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
-  }
-
-  const s32 scale = argn > 7 ? ScalarInteger(s7_list_ref(sc, args, 7)) : 1;
-
-  RemapFunc remap = NULL;
-  RemapData data;
-  if (argn > 8)
-  {
-    remap = remapCallback;
-    data.sc = sc;
-    data.callback = s7_list_ref(sc, args, 8);
-  }
-  core->api.map(tic, x, y, w, h, sx, sy, trans_colors, trans_count, scale, remap, &data);
-  return R_NilValue
-}
-SEXP r_mget(SEXP args)
-{
-  // mget(x y) -> tile_id
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x = ScalarInteger(CADR(args));
-  const s32 y = ScalarInteger(CADDR(args));
-  return s7_make_integer(sc, core->api.mget(tic, x, y));
-}
-SEXP r_mset(SEXP args)
-{
-  // mset(x y tile_id)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x = ScalarInteger(CADR(args));
-  const s32 y = ScalarInteger(CADDR(args));
-  const u8 tile_id = ScalarInteger(CADDDR(args));
-  core->api.mset(tic, x, y, tile_id);
-  return R_NilValue
-}
-SEXP r_peek(SEXP args)
-{
-  // peek(addr bits=8) -> value
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 addr = ScalarInteger(CADR(args));
-  const int argn = length(args);
-  const s32 bits = argn > 1 ? ScalarInteger(CADDR(args)) : 8;
-  return s7_make_integer(sc, core->api.peek(tic, addr, bits));
-}
-SEXP r_poke(SEXP args)
-{
-  // poke(addr value bits=8)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 addr = ScalarInteger(CADR(args));
-  const s32 value = ScalarInteger(CADDR(args));
-  const int argn = length(args);
-  const s32 bits = argn > 2 ? ScalarInteger(CADDDR(args)) : 8;
-  core->api.poke(tic, addr, value, bits);
-  return R_NilValue
-}
-SEXP r_peek1(SEXP args)
-{
-  // peek1(addr) -> value
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 addr = ScalarInteger(CADR(args));
-  return s7_make_integer(sc, core->api.peek1(tic, addr));
-}
-SEXP r_poke1(SEXP args)
-{
-  // poke1(addr value)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 addr = ScalarInteger(CADR(args));
-  const s32 value = ScalarInteger(CADDR(args));
-  core->api.poke1(tic, addr, value);
-  return R_NilValue
-}
-SEXP r_peek2(SEXP args)
-{
-  // peek2(addr) -> value
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 addr = ScalarInteger(CADR(args));
-  return s7_make_integer(sc, core->api.peek2(tic, addr));
-}
-SEXP r_poke2(SEXP args)
-{
-  // poke2(addr value)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 addr = ScalarInteger(CADR(args));
-  const s32 value = ScalarInteger(CADDR(args));
-  core->api.poke2(tic, addr, value);
-  return R_NilValue
-}
-SEXP r_peek4(SEXP args)
-{
-  // peek4(addr) -> value
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 addr = ScalarInteger(CADR(args));
-  return s7_make_integer(sc, core->api.peek4(tic, addr));
-}
-SEXP r_poke4(SEXP args)
-{
-  // poke4(addr value)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 addr = ScalarInteger(CADR(args));
-  const s32 value = ScalarInteger(CADDR(args));
-  core->api.poke4(tic, addr, value);
-  return R_NilValue
-}
-SEXP r_memcpy(SEXP args)
-{
-  // memcpy(dest source size)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 dest = ScalarInteger(CADR(args));
-  const s32 source = ScalarInteger(CADDR(args));
-  const s32 size = ScalarInteger(CADDDR(args));
-
-  core->api.memcpy(tic, dest, source, size);
-  return R_NilValue
-}
-SEXP r_memset(SEXP args)
-{
-  // memset(dest value size)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 dest = ScalarInteger(CADR(args));
-  const s32 value = ScalarInteger(CADDR(args));
-  const s32 size = ScalarInteger(CADDDR(args));
-
-  core->api.memset(tic, dest, value, size);
-  return R_NilValue
-}
-SEXP r_trace(SEXP args)
-{
-  // trace(message color=15)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const char* msg = ScalarString(CADR(args));
-  const int argn = length(args);
-  const s32 color = argn > 1 ? ScalarInteger(CADDR(args)) : 15;
-  core->api.trace(tic, msg, color);
-  return R_NilValue
-}
-SEXP r_pmem(SEXP args)
-{
-  // pmem(index value)
-  // pmem(index) -> value
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 index = ScalarInteger(CADR(args));
-  const int argn = length(args);
-  s32 value = 0;
-  bool shouldSet = false;
-  if (argn > 1)
-  {
-    value = ScalarInteger(CADDR(args));
-    shouldSet = true;
-  }
-  return s7_make_integer(sc, (s32)core->api.pmem(tic, index, value, shouldSet));
-}
-SEXP r_time(SEXP args)
-{
-  // time() -> ticks
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  return s7_make_real(sc, core->api.time(tic));
-}
-SEXP r_tstamp(SEXP args)
-{
-  // tstamp() -> timestamp
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  return s7_make_integer(sc, core->api.tstamp(tic));
-}
-SEXP r_exit(SEXP args)
-{
-  // exit()
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  core->api.exit(tic);
-  return R_NilValue
-}
-SEXP r_font(SEXP args)
-{
-  // font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const char* text = ScalarString(CADR(args));
-  const s32 x = ScalarInteger(CADDR(args));
-  const s32 y = ScalarInteger(CADDDR(args));
-
-  static u8 trans_colors[TIC_PALETTE_SIZE];
-  u8 trans_count = 0;
-  SEXP colorkey = CADDDDR(args);
-  parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
-
-  const s32 w = ScalarInteger(s7_list_ref(sc, args, 4));
-  const s32 h = ScalarInteger(s7_list_ref(sc, args, 5));
-  const int argn = length(args);
-  const s32 fixed = argn > 6 ? ScalarLogical(sc, s7_list_ref(sc, args, 6)) : false;
-  const s32 scale = argn > 7 ? ScalarInteger(s7_list_ref(sc, args, 7)) : 1;
-  const s32 alt = argn > 8 ? ScalarLogical(sc, s7_list_ref(sc, args, 8)) : false;
-
-  return s7_make_integer(sc, core->api.font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt));
-}
-/* This API function does not use the convenience macros because it doesn't need
- * to protect any values from garbage collection, because every use of an R API
- * call is to manipulate a C value which R does not control the memory of. */
-SEXP r_mouse(SEXP args)
-{
-  /* mouse()
-	 * ⮑ x y left middle right scrollx scrolly */
-	tic_mem *tic = (tic_mem *)R_ExternalPtrAddr(RTicMem);
-	tic_core* core = (tic_core *)tic;
-
-  const tic_point point = core->api.mouse(tic);
-  const tic80_mouse* mouse = &((tic_core*)tic)->memory.ram->input.mouse;
-
-  return CONS(ScalarInteger(point.x),
-              list6(ScalarInteger(point.y),
-                    ScalarInteger(mouse->left),
-                    ScalarInteger(mouse->middle),
-                    ScalarInteger(mouse->right),
-                    ScalarInteger(mouse->scrollx),
-                    ScalarInteger(mouse->scrolly)));
-}
-RSTRT(r_circ)
-  // circ(x y radius color)
-  const s32 x = psint(first);
-  const s32 y = psint(second);
-  const s32 radius = psint(third);
-  const s32 color = psint(fourth);
-
-  core->api.circ(tic, x, y, radius, color);
-
-  RUNP;
+  TICAPI(sfx, id, note, octave, duration, channel, volumes[0], volumes[1], speed);
   return R_NilValue;
-REND
-SEXP r_circb(SEXP args)
-{
-  // circb(x y radius color)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x = ScalarInteger(CADR(args));
-  const s32 y = ScalarInteger(CADDR(args));
-  const s32 radius = ScalarInteger(CADDDR(args));
-  const s32 color = ScalarInteger(CADDDDR(args));
-  core->api.circb(tic, x, y, radius, color);
-  return R_NilValue
-}
-SEXP r_elli(SEXP args)
-{
-  // elli(x y a b color)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x = ScalarInteger(CADR(args));
-  const s32 y = ScalarInteger(CADDR(args));
-  const s32 a = ScalarInteger(CADDDR(args));
-  const s32 b = ScalarInteger(CADDDDR(args));
-  const s32 color = ScalarInteger(s7_list_ref(sc, args, 4));
-  core->api.elli(tic, x, y, a, b, color);
-  return R_NilValue
-}
-SEXP r_ellib(SEXP args)
-{
-  // ellib(x y a b color)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x = ScalarInteger(CADR(args));
-  const s32 y = ScalarInteger(CADDR(args));
-  const s32 a = ScalarInteger(CADDDR(args));
-  const s32 b = ScalarInteger(CADDDDR(args));
-  const s32 color = ScalarInteger(s7_list_ref(sc, args, 4));
-  core->api.ellib(tic, x, y, a, b, color);
-  return R_NilValue
-}
-SEXP r_tri(SEXP args)
-{
-  // tri(x1 y1 x2 y2 x3 y3 color)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x1 = ScalarInteger(CADR(args));
-  const s32 y1 = ScalarInteger(CADDR(args));
-  const s32 x2 = ScalarInteger(CADDDR(args));
-  const s32 y2 = ScalarInteger(CADDDDR(args));
-  const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
-  const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
-  const s32 color = ScalarInteger(s7_list_ref(sc, args, 6));
-  core->api.tri(tic, x1, y1, x2, y2, x3, y3, color);
-  return R_NilValue
-}
-SEXP r_trib(SEXP args)
-{
-  // trib(x1 y1 x2 y2 x3 y3 color)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x1 = ScalarInteger(CADR(args));
-  const s32 y1 = ScalarInteger(CADDR(args));
-  const s32 x2 = ScalarInteger(CADDDR(args));
-  const s32 y2 = ScalarInteger(CADDDDR(args));
-  const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
-  const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
-  const s32 color = ScalarInteger(s7_list_ref(sc, args, 6));
-  core->api.trib(tic, x1, y1, x2, y2, x3, y3, color);
-  return R_NilValue
-}
-SEXP r_ttri(SEXP args)
-{
-  // ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 x1 = ScalarInteger(CADR(args));
-  const s32 y1 = ScalarInteger(CADDR(args));
-  const s32 x2 = ScalarInteger(CADDDR(args));
-  const s32 y2 = ScalarInteger(CADDDDR(args));
-  const s32 x3 = ScalarInteger(s7_list_ref(sc, args, 4));
-  const s32 y3 = ScalarInteger(s7_list_ref(sc, args, 5));
-  const s32 u1 = ScalarInteger(s7_list_ref(sc, args, 6));
-  const s32 v1 = ScalarInteger(s7_list_ref(sc, args, 7));
-  const s32 u2 = ScalarInteger(s7_list_ref(sc, args, 8));
-  const s32 v2 = ScalarInteger(s7_list_ref(sc, args, 9));
-  const s32 u3 = ScalarInteger(s7_list_ref(sc, args, 10));
-  const s32 v3 = ScalarInteger(s7_list_ref(sc, args, 11));
-
-  const int argn = length(args);
-  const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? ScalarInteger(s7_list_ref(sc, args, 12)) : 0);
-
-  static u8 trans_colors[TIC_PALETTE_SIZE];
-  u8 trans_count = 0;
-
-  if (argn > 13)
-  {
-    SEXP colorkey = s7_list_ref(sc, args, 13);
-    parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
-  }
-
-  bool depth = argn > 14 ? true : false;
-  const s32 z1 = argn > 14 ? ScalarInteger(s7_list_ref(sc, args, 14)) : 0;
-  const s32 z2 = argn > 15 ? ScalarInteger(s7_list_ref(sc, args, 15)) : 0;
-  const s32 z3 = argn > 16 ? ScalarInteger(s7_list_ref(sc, args, 16)) : 0;
-
-  core->api.ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, trans_colors, trans_count, z1, z2, z3, depth);
-  return R_NilValue
-}
-SEXP r_clip(SEXP args)
-{
-  // clip(x y width height)
-  // clip()
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const int argn = length(args);
-  if (argn != 4) {
-    core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
-  } else {
-    const s32 x = ScalarInteger(CADR(args));
-    const s32 y = ScalarInteger(CADDR(args));
-    const s32 w = ScalarInteger(CADDDR(args));
-    const s32 h = ScalarInteger(CADDDDR(args));
-    core->api.clip(tic, x, y, w, h);
-  }
-  return R_NilValue
-}
-SEXP r_music(SEXP args)
-{
-  // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const int argn = length(args);
-  const s32 track = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-  const s32 frame = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-  const s32 row = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-  const bool loop = argn > 3 ? ScalarLogical(sc, CADDDDR(args)) : true;
-  const bool sustain = argn > 4 ? ScalarLogical(sc, s7_list_ref(sc, args, 4)) : false;
-  const s32 tempo = argn > 5 ? ScalarInteger(s7_list_ref(sc, args, 5)) : -1;
-  const s32 speed = argn > 6 ? ScalarInteger(s7_list_ref(sc, args, 6)) : -1;
-  core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
-  return R_NilValue
 }
 SEXP r_sync(SEXP args)
 {
   // sync(mask=0 bank=0 tocart=false)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const int argn = length(args);
-  const u32 mask = argn > 0 ? (u32)ScalarInteger(CADR(args)) : 0;
-  const s32 bank = argn > 1 ? ScalarInteger(CADDR(args)) : 0;
-  const bool tocart = argn > 2 ? ScalarLogical(sc, CADDDR(args)) : false;
-  core->api.sync(tic, mask, bank, tocart);
-  return R_NilValue
+  const int argn = Rf_length(args);
+  const u32 mask    = argn > 0 ? (u32) drIntp(ARGS(1)) : 0;
+  const s32 bank    = argn > 1 ? drIntp(ARGS(2)) :       0;
+  const bool tocart = argn > 2 ? drIntp(ARGS(3)) :       false;
+  TICAPI(sync, mask, bank, tocart);
+  return R_NilValue;
 }
 SEXP r_vbank(SEXP args)
 {
   // vbank(bank) -> prev
   // vbank() -> prev
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const int argn = length(args);
-
-  const s32 prev = ((tic_core*)tic)->state.vbank.id;
+  const int argn = Rf_length(args);
+  const s32 prev = ((tic_core *)RTicRam)->state.vbank.id;
   if (argn == 1) {
-    const s32 bank = ScalarInteger(CADR(args));
-    core->api.vbank(tic, bank);
+    const s32 bank = drIntp(ARGS(1));
+    TICAPI(vbank, bank);
   }
-  return s7_make_integer(sc, prev);
+  return Rf_ScalarInteger(prev);
 }
-SEXP r_reset(SEXP args)
+SEXP r_peek(SEXP args)
 {
-  // reset()
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  core->api.reset(tic);
-  return R_NilValue
+  // peek(addr bits=8) -> value
+  const s32 addr = drIntp(ARGS(1));
+  const int argn = Rf_length(args);
+  const s32 bits = argn > 1 ? drIntp(ARGS(2)) : 8;
+  return Rf_ScalarInteger(TICAPI(peek, addr, bits));
 }
-SEXP r_key(SEXP args)
+SEXP r_poke(SEXP args)
 {
-  //key(code=-1) -> pressed
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const int argn = length(args);
-  const tic_key code = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-  return s7_make_boolean(sc, core->api.key(tic, code));
+  // poke(addr value bits=8)
+  const s32 addr = drIntp(ARGS(1));
+  const s32 value = drIntp(ARGS(2));
+  const int argn = Rf_length(args);
+  const s32 bits = argn > 2 ? drIntp(ARGS(3)) : 8;
+  TICAPI(poke, addr, value, bits);
+  return R_NilValue;
 }
-SEXP r_keyp(SEXP args)
+SEXP r_peek1(SEXP args)
 {
-  // keyp(code=-1 hold=-1 period=-1) -> pressed
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const int argn = length(args);
-  const tic_key code = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-  const s32 hold = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-  const s32 period = argn > 2 ? ScalarInteger(CADDDR(args)) : -1;
-  return s7_make_boolean(sc, core->api.keyp(tic, code, hold, period));
+  // peek1(addr) -> value
+  const s32 addr = drIntp(ARGS(1));
+  return Rf_ScalarInteger(TICAPI(peek1, addr));
+}
+SEXP r_poke1(SEXP args)
+{
+  // poke1(addr value)
+  const s32 addr  = drIntp(ARGS(1));
+  const s32 value = drIntp(ARGS(2));
+  TICAPI(poke1, addr, value);
+  return R_NilValue;
+}
+SEXP r_peek2(SEXP args)
+{
+  // peek2(addr) -> value
+  const s32 addr = drIntp(ARGS(1));
+  return Rf_ScalarInteger(TICAPI(peek2, addr));
+}
+SEXP r_poke2(SEXP args)
+{
+  // poke2(addr value)
+  const s32 addr  = drIntp(ARGS(1));
+  const s32 value = drIntp(ARGS(2));
+  TICAPI(poke2, addr, value);
+  return R_NilValue;
+}
+SEXP r_peek4(SEXP args)
+{
+  // peek4(addr) -> value
+  const s32 addr = drIntp(ARGS(1));
+  return Rf_ScalarInteger(TICAPI(peek4, addr));
+}
+SEXP r_poke4(SEXP args)
+{
+  // poke(addr value)
+  const s32 addr  = drIntp(ARGS(1));
+  const s32 value = drIntp(ARGS(2));
+  TICAPI(poke4, addr, value);
+  return R_NilValue;
+}
+SEXP r_memcpy(SEXP args)
+{
+  // memcpy(dest source size)
+  const s32 dest   = drIntp(ARGS(1));
+  const s32 source = drIntp(ARGS(2));
+  const s32 size   = drIntp(ARGS(3));
+  TICAPI(memcpy, dest, source, size);
+  return R_NilValue;
+}
+SEXP r_memset(SEXP args)
+{
+  // memset(dest value size)
+  const s32 dest   = drIntp(ARGS(1));
+  const s32 value = drIntp(ARGS(2));
+  const s32 size   = drIntp(ARGS(3));
+  TICAPI(memset, dest, value, size);
+  return R_NilValue;
+}
+SEXP r_pmem(SEXP args)
+{
+  // pmem(index value)
+  // pmem(index) -> value
+  const s32 index = drIntp(ARGS(1));
+  s32 value = 0;
+  bool shouldSet = false;
+  if (Rf_length(args) > 1)
+  {
+    value = drIntp(ARGS(2));
+    shouldSet = true;
+  }
+  return Rf_ScalarInteger(TICAPI(pmem, index, value, shouldSet));
 }
 SEXP r_fget(SEXP args)
 {
   // fget(sprite_id flag) -> bool
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 sprite_id = ScalarInteger(CADR(args));
-  const u8 flag = ScalarInteger(CADDR(args));
-  return s7_make_boolean(sc, core->api.fget(tic, sprite_id, flag));
+  const s32 sprite_id = drIntp(ARGS(1));
+  const u8 flag       = drIntp(ARGS(2));
+  return Rf_ScalarLogical(TICAPI(fget, sprite_id, flag));
 }
+
 SEXP r_fset(SEXP args)
 {
   // fset(sprite_id flag bool)
-  tic_core* core = R_GlobalEnv; tic_mem* tic = (tic_mem*)core;
-  const s32 sprite_id = ScalarInteger(CADR(args));
-  const u8 flag = ScalarInteger(CADDR(args));
-  const bool val = ScalarLogical(sc, CADDDR(args));
-  core->api.fset(tic, sprite_id, flag, val);
-  return R_NilValue
+  const s32  sprite_id = drIntp(ARGS(1));
+  const u8   flag      = drIntp(ARGS(2));
+  const bool val       = drLglp(ARGS(3));
+  TICAPI(fset, sprite_id, flag, val);
+  return R_NilValue;
+}
+SEXP r_mget(SEXP args)
+{
+  // mget(x y) -> tile_id
+  const s32 x = drIntp(ARGS(1));
+  const s32 y = drIntp(ARGS(2));
+  return Rf_ScalarInteger(TICAPI(mget, x, y));
+}
+
+SEXP r_mset(SEXP args)
+{
+  // mset(x y tile_id)
+  const s32 x       = drIntp(ARGS(1));
+  const s32 y       = drIntp(ARGS(2));
+  const u8  tile_id = drIntp(ARGS(3));
+  TICAPI(mset, x, y, tile_id);
+  return R_NilValue;
+}
+SEXP r_reset(SEXP args)
+{
+  // reset()
+  TICAPI(reset);
+  return R_NilValue;
+}
+SEXP r_trace(SEXP args)
+{
+  // trace(message color=15)
+  const char* msg   = drCrap(ARGS(1));
+  const s32   color = Rf_length(args) > 1 ? drIntp(ARGS(2)) : 15;
+  TICAPI(trace, msg, color);
+  return R_NilValue;
+}
+SEXP r_time(SEXP args)
+{
+  // time() -> ticks
+  return Rf_ScalarInteger(TICAPI(time));
+}
+SEXP r_tstamp(SEXP args)
+{
+  // tstamp() -> timestamp
+  return Rf_ScalarInteger(TICAPI(tstamp));
+}
+SEXP r_exit(SEXP args)
+{
+  // exit()
+  TICAPI(exit);
+  return R_NilValue;
 }
 SEXP r_fft(SEXP args)
 {
   // fft(int start_freq, int end_freq=-1) -> float_value
-  tic_core* core = R_GlobalEnv;
-  tic_mem* tic = (tic_mem*)core;
-
-  const int argn = length(args);
-  const s32 start_freq = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-  const s32 end_freq = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-
-  return s7_make_real(sc, core->api.fft(tic, start_freq, end_freq));
+  const int argn = Rf_length(args);
+  const s32 start_freq = argn > 0 ? drIntp(ARGS(1)) : -1;
+  const s32 end_freq   = argn > 1 ? drIntp(ARGS(2)) : -1;
+  return Rf_ScalarReal(TICAPI(fft, start_freq, end_freq));
 }
 SEXP r_ffts(SEXP args)
 {
   // ffts(int start_freq, int end_freq=-1) -> float_value
-  tic_core* core = R_GlobalEnv;
-  tic_mem* tic = (tic_mem*)core;
-  const int argn = length(args);
-  const s32 start_freq = argn > 0 ? ScalarInteger(CADR(args)) : -1;
-  const s32 end_freq = argn > 1 ? ScalarInteger(CADDR(args)) : -1;
-
-  return s7_make_real(sc, core->api.ffts(tic, start_freq, end_freq));
+  const int argn = Rf_length(args);
+  const s32 start_freq = argn > 0 ? drIntp(ARGS(1)) : -1;
+  const s32 end_freq   = argn > 1 ? drIntp(ARGS(2)) : -1;
+  return Rf_ScalarReal(TICAPI(ffts, start_freq, end_freq));
 }
 
-static const R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
- { "btn",   (DL_FUNC) &r_btn,    -1 },
- { "btnp",  (DL_FUNC) &r_btnp,   -1 },
- { "circ",  (DL_FUNC) &r_circ,   -1 },
- { "circb", (DL_FUNC) &r_circb,  -1 },
- { "clip",  (DL_FUNC) &r_clip,   -1 },
- { "cls",   (DL_FUNC) &r_cls,    -1 },
- { "elli",  (DL_FUNC) &r_elli,   -1 },
- { "ellib", (DL_FUNC) &r_ellib,  -1 },
- { "exit",  (DL_FUNC) &r_exit,   -1 },
- { "fget",  (DL_FUNC) &r_fget,   -1 },
- { "font",  (DL_FUNC) &r_font,   -1 },
- { "fset",  (DL_FUNC) &r_fset,   -1 },
- { "key",   (DL_FUNC) &r_key,    -1 },
- { "keyp",  (DL_FUNC) &r_keyp,   -1 },
- { "line",  (DL_FUNC) &r_line,   -1 },
- { "map",   (DL_FUNC) &r_map,    -1 },
- { "memcpy",(DL_FUNC) &r_memcpy, -1 },
- { "memset",(DL_FUNC) &r_memset, -1 },
- { "mget",  (DL_FUNC) &r_mget,   -1 },
- { "mouse", (DL_FUNC) &r_mouse,  -1 },
- { "mset",  (DL_FUNC) &r_mset,   -1 },
- { "music", (DL_FUNC) &r_music,  -1 },
- { "peek",  (DL_FUNC) &r_peek,   -1 },
- { "peek1", (DL_FUNC) &r_peek1,  -1 },
- { "peek2", (DL_FUNC) &r_peek2,  -1 },
- { "peek4", (DL_FUNC) &r_peek4,  -1 },
- { "pix",   (DL_FUNC) &r_pix,    -1 },
- { "pmem",  (DL_FUNC) &r_pmem,   -1 },
- { "poke",  (DL_FUNC) &r_poke,   -1 },
- { "poke1", (DL_FUNC) &r_poke1,  -1 },
- { "poke2", (DL_FUNC) &r_poke2,  -1 },
- { "poke4", (DL_FUNC) &r_poke4,  -1 },
- { "print", (DL_FUNC) &r_print,  -1 },
- { "rect",  (DL_FUNC) &r_rect,   -1 },
- { "rectb", (DL_FUNC) &r_rectb,  -1 },
- { "reset", (DL_FUNC) &r_reset,  -1 },
- { "sfx",   (DL_FUNC) &r_sfx,    -1 },
- { "spr",   (DL_FUNC) &r_spr,    -1 },
- { "sync",  (DL_FUNC) &r_sync,   -1 },
- { "time",  (DL_FUNC) &r_time,   -1 },
- { "trace", (DL_FUNC) &r_trace,  -1 },
- { "tri",   (DL_FUNC) &r_tri,    -1 },
- { "trib",  (DL_FUNC) &r_trib,   -1 },
- { "tstamp",(DL_FUNC) &r_tstamp, -1 },
- { "ttri",  (DL_FUNC) &r_ttri,   -1 },
- { "vbank", (DL_FUNC) &r_vbank,  -1 },
+void initializeRExternalMethodsDefinedInC(void) {
+  static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
+    { "t80.btn",   (DL_FUNC) &r_btn,    -1 },
+    { "t80.btnp",  (DL_FUNC) &r_btnp,   -1 },
+    { "t80.circ",  (DL_FUNC) &r_circ,   -1 },
+    { "t80.circb", (DL_FUNC) &r_circb,  -1 },
+    { "t80.clip",  (DL_FUNC) &r_clip,   -1 },
+    { "t80.cls",   (DL_FUNC) &r_cls,    -1 },
+    { "t80.elli",  (DL_FUNC) &r_elli,   -1 },
+    { "t80.ellib", (DL_FUNC) &r_ellib,  -1 },
+    { "t80.exit",  (DL_FUNC) &r_exit,   -1 },
+    { "t80.fget",  (DL_FUNC) &r_fget,   -1 },
+    { "t80.font",  (DL_FUNC) &r_font,   -1 },
+    { "t80.fset",  (DL_FUNC) &r_fset,   -1 },
+    { "t80.key",   (DL_FUNC) &r_key,    -1 },
+    { "t80.keyp",  (DL_FUNC) &r_keyp,   -1 },
+    { "t80.line",  (DL_FUNC) &r_line,   -1 },
+    { "t80.map",   (DL_FUNC) &r_map,    -1 },
+    { "t80.memcpy",(DL_FUNC) &r_memcpy, -1 },
+    { "t80.memset",(DL_FUNC) &r_memset, -1 },
+    { "t80.mget",  (DL_FUNC) &r_mget,   -1 },
+    { "t80.mouse", (DL_FUNC) &r_mouse,  -1 },
+    { "t80.mset",  (DL_FUNC) &r_mset,   -1 },
+    { "t80.music", (DL_FUNC) &r_music,  -1 },
+    { "t80.peek",  (DL_FUNC) &r_peek,   -1 },
+    { "t80.peek1", (DL_FUNC) &r_peek1,  -1 },
+    { "t80.peek2", (DL_FUNC) &r_peek2,  -1 },
+    { "t80.peek4", (DL_FUNC) &r_peek4,  -1 },
+    { "t80.pix",   (DL_FUNC) &r_pix,    -1 },
+    { "t80.pmem",  (DL_FUNC) &r_pmem,   -1 },
+    { "t80.poke",  (DL_FUNC) &r_poke,   -1 },
+    { "t80.poke1", (DL_FUNC) &r_poke1,  -1 },
+    { "t80.poke2", (DL_FUNC) &r_poke2,  -1 },
+    { "t80.poke4", (DL_FUNC) &r_poke4,  -1 },
+    { "t80.print", (DL_FUNC) &r_print,  -1 },
+    { "t80.rect",  (DL_FUNC) &r_rect,   -1 },
+    { "t80.rectb", (DL_FUNC) &r_rectb,  -1 },
+    { "t80.reset", (DL_FUNC) &r_reset,  -1 },
+    { "t80.sfx",   (DL_FUNC) &r_sfx,    -1 },
+    { "t80.spr",   (DL_FUNC) &r_spr,    -1 },
+    { "t80.sync",  (DL_FUNC) &r_sync,   -1 },
+    { "t80.time",  (DL_FUNC) &r_time,   -1 },
+    { "t80.trace", (DL_FUNC) &r_trace,  -1 },
+    { "t80.tri",   (DL_FUNC) &r_tri,    -1 },
+    { "t80.trib",  (DL_FUNC) &r_trib,   -1 },
+    { "t80.tstamp",(DL_FUNC) &r_tstamp, -1 },
+    { "t80.ttri",  (DL_FUNC) &r_ttri,   -1 },
+    { "t80.vbank", (DL_FUNC) &r_vbank,  -1 }
+  };
 
- { NULL, NULL, 0, NULL }
-};
-
-R_registerRoutines(R_getEmbeddingDllInfo(), cMethods, NULL, NULL, NULL);
+  DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
+  R_registerRoutines(embeddingProgramDllInfo, NULL, NULL, NULL, RExternalMethodsDefinedInC);
+}
 
 void evalR(tic_mem *memory, const char *code) {
 	setEnvironmentVariablesIfUnset();
@@ -848,18 +819,17 @@ void evalR(tic_mem *memory, const char *code) {
 		initR(memory, code);
 		R_initialized_once = true;
 	}
-	SEXP RESULT;
-	if (R_initialized_once) RESULT = Rf_eval(CSTR2LANGSXP(code), R_GlobalEnv);
-	#if defined ebug /* -DEBUG=ON */
-	Rprintf("%s", RESULT);
-	#endif
+
+	if (R_initialized_once) {
+    SEXP RESULT = R_ParseEvalString(code, R_GlobalEnv);
+  }
 }
 void R_CleanUp(Rboolean saveact, int status, int RunLast) { ; }
 
 void R_Suicide(const char *message)
 {
   char  pp[1024];
-  snprintf(pp, 1024, "Fatal error, but can't kermit: %s\n"\
+  snprintf(pp, 1024, "Fatal error, but can't kermit: %s\n"
            "Execute me, please.\n", message);
   R_ShowMessage(pp);
   exit(1);
@@ -874,11 +844,23 @@ void R_ShowMessage(const char *s) {
   ((tic_core *) tic_memory_static)->api.trace(tic_memory_static, s, 15);
 }
 
+static bool R_Initialized = false;
+
+static void closeR(tic_mem *tic) {
+  if (R_Initialized) {
+    Rf_endEmbeddedR(0);
+
+    /* Set the currentVM to NULL if it is not already null. */
+    tic_core *core;
+    if ((core = (((tic_core *) tic))->currentVM) != NULL) {
+      core->currentVM = NULL;
+    }
+  }
+}
+
 /* This function is called with code, which is the entirety of the studio
    ,* editor's code buffer (i.e. the entire game code as one string). */
 static bool initR(tic_mem *tic, const char *code) {
-  tic_memory_static = tic;
-
   closeR(tic);
 
   /* embdRAV: embedded R argument vector. */
@@ -886,103 +868,61 @@ static bool initR(tic_mem *tic, const char *code) {
 
   /* Without this nothing in R will work. */
   setEnvironmentVariablesIfUnset();
-  static bool R_Initialized = false;
 
   R_running_as_main_program = 0;
 
   if (!R_Initialized) {
-    R_Initialized = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), \
+    R_Initialized = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]),
                                             embdRAV);
     R_running_as_main_program = 0;
     /* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
     R_Interactive = false;
+    RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
+    initializeRExternalMethodsDefinedInC();
+
+    /* Ensure BOOT is defined. If the user has defined it this no-op version
+     * will be overwritten (as intended). */
+    EVALG("BOOT <- function() `{`");
+
+    /* Manually create a vector of type string, parse it, then evaluate it
+     * expression by expression. */
+    SEXP code_sexp, code_expr, code_result = R_NilValue;
+    ParseStatus code_parse_status;
+    code_sexp = PROTECT(Rf_allocVector(STRSXP, 1));
+    SET_STRING_ELT(code_sexp, 0, Rf_mkChar(code));
+    code_expr = PROTECT(R_ParseVector(code_sexp, -1, &code_parse_status, R_NilValue));
+    if (code_parse_status != PARSE_OK) {
+      UNPROTECT(2);
+      Rf_error("Invalid call %s", code);
+    }
+    for (int i = 0; i < Rf_length(code_expr); i++) {
+      Rf_eval(VECTOR_ELT(code_expr, i), R_GlobalEnv);
+    }
+    UNPROTECT(2);
+
+    /* MAYBE: this might not be appropriate; do other APIs call BOOT? I should
+     * also use the function defined through macro expansion to call the BOOT
+     * function if that is appropriate. */
+    EVALG("if (print(exists(\"BOOT\")) && is.function(BOOT)) { BOOT() } "
+          "else { BOOT <- function() `{` }");
   }
-
-  static const R_CMethodDef cMethods[] = {
-   { "btn",   (DL_FUNC) &r_btn,    -1 },
-   { "btnp",  (DL_FUNC) &r_btnp,   -1 },
-   { "circ",  (DL_FUNC) &r_circ,   -1 },
-   { "circb", (DL_FUNC) &r_circb,  -1 },
-   { "clip",  (DL_FUNC) &r_clip,   -1 },
-   { "cls",   (DL_FUNC) &r_cls,    -1 },
-   { "elli",  (DL_FUNC) &r_elli,   -1 },
-   { "ellib", (DL_FUNC) &r_ellib,  -1 },
-   { "exit",  (DL_FUNC) &r_exit,   -1 },
-   { "fget",  (DL_FUNC) &r_fget,   -1 },
-   { "font",  (DL_FUNC) &r_font,   -1 },
-   { "fset",  (DL_FUNC) &r_fset,   -1 },
-   { "key",   (DL_FUNC) &r_key,    -1 },
-   { "keyp",  (DL_FUNC) &r_keyp,   -1 },
-   { "line",  (DL_FUNC) &r_line,   -1 },
-   { "map",   (DL_FUNC) &r_map,    -1 },
-   { "memcpy",(DL_FUNC) &r_memcpy, -1 },
-   { "memset",(DL_FUNC) &r_memset, -1 },
-   { "mget",  (DL_FUNC) &r_mget,   -1 },
-   { "mouse", (DL_FUNC) &r_mouse,  -1 },
-   { "mset",  (DL_FUNC) &r_mset,   -1 },
-   { "music", (DL_FUNC) &r_music,  -1 },
-   { "peek",  (DL_FUNC) &r_peek,   -1 },
-   { "peek1", (DL_FUNC) &r_peek1,  -1 },
-   { "peek2", (DL_FUNC) &r_peek2,  -1 },
-   { "peek4", (DL_FUNC) &r_peek4,  -1 },
-   { "pix",   (DL_FUNC) &r_pix,    -1 },
-   { "pmem",  (DL_FUNC) &r_pmem,   -1 },
-   { "poke",  (DL_FUNC) &r_poke,   -1 },
-   { "poke1", (DL_FUNC) &r_poke1,  -1 },
-   { "poke2", (DL_FUNC) &r_poke2,  -1 },
-   { "poke4", (DL_FUNC) &r_poke4,  -1 },
-   { "print", (DL_FUNC) &r_print,  -1 },
-   { "rect",  (DL_FUNC) &r_rect,   -1 },
-   { "rectb", (DL_FUNC) &r_rectb,  -1 },
-   { "reset", (DL_FUNC) &r_reset,  -1 },
-   { "sfx",   (DL_FUNC) &r_sfx,    -1 },
-   { "spr",   (DL_FUNC) &r_spr,    -1 },
-   { "sync",  (DL_FUNC) &r_sync,   -1 },
-   { "time",  (DL_FUNC) &r_time,   -1 },
-   { "trace", (DL_FUNC) &r_trace,  -1 },
-   { "tri",   (DL_FUNC) &r_tri,    -1 },
-   { "trib",  (DL_FUNC) &r_trib,   -1 },
-   { "tstamp",(DL_FUNC) &r_tstamp, -1 },
-   { "ttri",  (DL_FUNC) &r_ttri,   -1 },
-   { "vbank", (DL_FUNC) &r_vbank,  -1 },
-  
-   { NULL, NULL, 0, NULL }
-  };
-  
-  R_registerRoutines(R_getEmbeddingDllInfo(), cMethods, NULL, NULL, NULL);
-
-  Rf_eval(CSTR2LANGSXP("if (exists(\"BOOT\") && is.function(BOOT)) { BOOT() } " \
-                       "else { BOOT <- function() `{`; ## Tricky NOP. }"),
-          R_GlobalEnv);
 
   return R_Initialized;
 }
 
-static void closeR(tic_mem *tic) {
-  tic_core *core;
-  if ((core = (((tic_core *) tic))->currentVM) != NULL) {
-    Rf_endEmbeddedR(0);
-    core->currentVM = NULL;
-  }
-}
 static void callRFn_TIC80(tic_mem* tic) {
-#if !defined R_INTERNALS_H_
-#error "R_GlobalEnv not defined because Rinternals.h not properly included... somehow."
-#endif
-	/* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
-	Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
-											"`TIC-80`()"),
-					R_GlobalEnv);
+  SEXP exists = EVALG("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "
+                                    "`TIC-80`()");
 }
 #define defineCallRFnInEnvironment_(f, e, ...)                          \
-  static void callRFn_##f(tic_mem *tic, ##__VA_ARGS__) {                \
-    Rf_eval(Rf_mkString("if (exists(\""#f"\") && is.function(`"#f"`)) " \
-                        "`"#f"`() else stop(\""#f" is not a defined function!\")"),\
-            e);                                                         \
+  static void callRFn_##f(tic_mem *tic __VA_OPT__(,) __VA_ARGS__) {     \
+    R_ParseEvalString("if (exists(\""#f"\") && is.function(`"#f"`)) "   \
+                      "`"#f"`() else stop(\""#f" is not a defined function!\")", \
+                      e);                                               \
   }
 /* i.e., if (exists("f") && is.function(`f`)) `f`(), allowing call of syntactic
  * and non-syntactic names. */
-#define defineCallRFn_(f, ...) defineCallRFnInEnvironment_(f, R_GlobalEnv, ...)
+#define defineCallRFn_(f, ...) defineCallRFnInEnvironment_(f, R_GlobalEnv __VA_OPT__(,) __VA_ARGS__)
 defineCallRFn_(BOOT)
 /* s32 row/index, void *data as well as the tic_mem *tic parameters. */
 defineCallRFn_(MENU, s32 index, void *data)
