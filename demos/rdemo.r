@@ -10,23 +10,22 @@ t <- 0
 x <- 96
 y <- 24
 
-makeopfn <- \(f) \(x) eval.parent(substitute(x <- f(x, 1)))
-inc <- makeopfn(`+`)
-dec <- makeopfn(`-`)
+inc <- \(x) eval.parent(substitute(x <- x + 1))
+dec <- \(x) eval.parent(substitute(x <- x - 1))
 
 `TIC-80` <- function() {
-  mapply(FUN = \(b, o) if (.External("t80.btn", b)) o,
+  mapply(\(b, o) if (.External("btn", b)) eval(o, .GlobalEnv),
          0:3,
-         list(dec(y), inc(y),
-              dec(x), inc(x)));
-  .External("t80.cls", 13);
-  .External("t80.spr",
+         list(quote(dec(y)), quote(inc(y)),
+              quote(dec(x)), quote(inc(x))));
+  .External("cls", 13);
+  .External("spr",
             id = 1 + (t %% 60) / 30 * 2,
             scale = 3,
             x, y,
             colorkey = 14,
             w = 2, h = 2);
-  .External("t80.print", "HELLO WORLD!", 84, 84);
+  .External("print", "HELLO WORLD!", 84, 84);
   inc(t);
 }
 
