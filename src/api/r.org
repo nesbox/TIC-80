@@ -597,18 +597,37 @@ only one).
       R_Interactive = false;
       RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
       initializeRExternalMethodsDefinedInC();
-      /* Print all symbols in the global environment. */
-      SEXP symbols = PROTECT(EVALG("print(ls())"));
-      UNPROTECT(1);
-      /* FIXME: evaluating code with line comments in it makes the function crash
-       ,* the program. */
-      EVALG(code);
+
+      /* Ensure BOOT is defined. If the user has defined it this no-op version
+       ,* will be overwritten (as intended). */
+      EVALG("BOOT <- function() `{`");
+
+      /* Manually create a vector of type string, parse it, then evaluate it
+       ,* expression by expression. */
+      SEXP code_sexp, code_expr, code_result = R_NilValue;
+      ParseStatus code_parse_status;
+      code_sexp = PROTECT(Rf_allocVector(STRSXP, 1));
+      SET_STRING_ELT(code_sexp, 0, Rf_mkChar(code));
+      code_expr = PROTECT(R_ParseVector(code_sexp, -1, &code_parse_status, R_NilValue));
+      if (code_parse_status != PARSE_OK) {
+        UNPROTECT(2);
+        Rf_error("Invalid call %s", code);
+      }
+      for (int i = 0; i < Rf_length(code_expr); i++) {
+        Rf_eval(VECTOR_ELT(code_expr, i), R_GlobalEnv);
+      }
+      UNPROTECT(2);
+
+      /* MAYBE: this might not be appropriate; do other APIs call BOOT? I should
+       ,* also use the function defined through macro expansion to call the BOOT
+       ,* function if that is appropriate. */
       EVALG("if (print(exists(\"BOOT\")) && is.function(BOOT)) { BOOT() } "
             "else { BOOT <- function() `{` }");
     }
 
     return R_Initialized;
   }
+
 #+end_src
 
 ** Callbacks
@@ -1845,8 +1864,9 @@ function style in R, and the contents of the metadata are identical to the Ruby
 or Scheme demos (as every demo cartridge uses the same demo content by
 convention).
 
-- [X] Translate all cartridge assets during build
-- [ ] Ensure translation produces assets identical to what is already checked-in
+- [X] Translate all cartridge assets during build.
+- [ ] Ensure translation produces assets identical to what is already checked-in.
+- [ ] Ensure parsing works when comments exist in the code.
 
 #+begin_src R :noweb no-export :tangle ../../demos/rdemo.r
   ## title:   game title
@@ -1867,10 +1887,10 @@ convention).
   dec <- makeopfn(`-`)
 
   `TIC-80` <- function() {
-    mapply(.f = \(b, o) if (t80.btn(b)) o,
-           .x = 0:3,
-           .y = list(dec(y), inc(y),
-                     dec(x), inc(x)));
+    mapply(FUN = \(b, o) if (t80.btn(b)) o,
+           0:3,
+           list(dec(y), inc(y),
+                dec(x), inc(x)));
     t80.cls(13);
     t80.spr(id = 1 + (t %% 60) / 30 * 2,
             scale = 3,
@@ -1881,13 +1901,13 @@ convention).
     inc(t);
   }
 
-  <<stripped cartridge metadata>>
+  <<cartridge metadata stripped during cartridge loading>>
 #+end_src
 
 The rest of the cartridge definition is metadata which embeds the graphics and
 sounds into the cartridge.
 
-#+begin_src R :noweb-ref stripped cartridge metadata
+#+begin_src R :noweb-ref cartridge metadata stripped during cartridge loading
   ## <TILES>
   ## 001:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc
   ## 002:ccccceee8888cceeaaaa0cee888a0ceeccca0ccc0cca0c0c0cca0c0c0cca0c0c
@@ -2198,6 +2218,7 @@ headers I include might be redundant, and I will try to clean these up later.
 
   #include <Rembedded.h>
   #include <Rinterface.h>
+  #include <R_ext/Parse.h>
   #include <Rconfig.h>
   #include <Rdefines.h>
 
@@ -2331,7 +2352,7 @@ UNIX-likes, so a portable interface that will work on any development machine
 motivated the edits in the next sextion.
 
 #+name: convert the R demo and benchmark source files to .tic.dat format
-#+begin_src bash :tangle convertRDemoAssets.sh :shebang #!/bin/env bash
+#+begin_src bash :tangle ../../tools/convertRDemoAssets.sh :shebang #!/bin/env bash
   # FILE := $1
   PRJ2CART() {
     local SRC2TIC="${HOME}/src/c/TIC-80/fakeroot/bin/prj2cart"
