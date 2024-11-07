@@ -1815,6 +1815,100 @@ These functions are used when live-coding music or demos at conventions.
   }
 #+end_src
 
+** DONE Registering symbols in R from C
+CLOSED: [2024-10-19 Sat 22:01]
+"Symbols need to be registered with R from C to be used in R," is what I wrote
+to introduce this paragraph in its first draft; I'm not sure if registering
+symbols is actually required, or what the purpose is. It might not be fully
+relevant to my use of R. My appreciation of this topic, at the moment, is that
+it is used to define new primites so that functions in R are automatically
+defined to call registered C functions.
+
+/Writing R Extensions/ documents how to register native routines with the
+embedded R interpreter for later use from within R code. The objects =info=,
+=cMethods=, and =callMethods= are desribed in turn in §8.1.3 of the documentation.
+Only =cMethods= needs to be defined for the purposes of using R as a scripting
+langauge for TIC-80 games.
+
+#+name: example of registering native symbols
+#+begin_src c
+  DllInfo *info = R_getEmbeddingDllInfo();
+  R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
+#+end_src
+
+Native routines (symbols) registered with R get called through "the =.C=
+interface," which is how R interacts with native routines when it is in control
+of the main event loop. When embedded, and especially when not in control of the
+main event loop, R needs to be told about native routines in a slightly
+different manner, because R is not in control of loading shared libraries, /it
+is the shared library/!
+
+The symbols are the functions which enable scripting and wrap underlying C
+routines that every scripting language API in TIC-80 hooks into. These symbols
+are automatically made available to R when it is embedded in the application.
+The function which performs the registration is built-in to R.
+
+#+name: define a function to register C symbols with R
+#+begin_src C :noweb no-export
+  void initializeRExternalMethodsDefinedInC(void) {
+    static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
+      { "btn",   (DL_FUNC) &r_btn,    -1 },
+      { "btnp",  (DL_FUNC) &r_btnp,   -1 },
+      { "circ",  (DL_FUNC) &r_circ,   -1 },
+      { "circb", (DL_FUNC) &r_circb,  -1 },
+      { "clip",  (DL_FUNC) &r_clip,   -1 },
+      { "cls",   (DL_FUNC) &r_cls,    -1 },
+      { "elli",  (DL_FUNC) &r_elli,   -1 },
+      { "ellib", (DL_FUNC) &r_ellib,  -1 },
+      { "exit",  (DL_FUNC) &r_exit,   -1 },
+      { "fget",  (DL_FUNC) &r_fget,   -1 },
+      { "font",  (DL_FUNC) &r_font,   -1 },
+      { "fset",  (DL_FUNC) &r_fset,   -1 },
+      { "key",   (DL_FUNC) &r_key,    -1 },
+      { "keyp",  (DL_FUNC) &r_keyp,   -1 },
+      { "line",  (DL_FUNC) &r_line,   -1 },
+      { "map",   (DL_FUNC) &r_map,    -1 },
+      { "memcpy",(DL_FUNC) &r_memcpy, -1 },
+      { "memset",(DL_FUNC) &r_memset, -1 },
+      { "mget",  (DL_FUNC) &r_mget,   -1 },
+      { "mouse", (DL_FUNC) &r_mouse,  -1 },
+      { "mset",  (DL_FUNC) &r_mset,   -1 },
+      { "music", (DL_FUNC) &r_music,  -1 },
+      { "peek",  (DL_FUNC) &r_peek,   -1 },
+      { "peek1", (DL_FUNC) &r_peek1,  -1 },
+      { "peek2", (DL_FUNC) &r_peek2,  -1 },
+      { "peek4", (DL_FUNC) &r_peek4,  -1 },
+      { "pix",   (DL_FUNC) &r_pix,    -1 },
+      { "pmem",  (DL_FUNC) &r_pmem,   -1 },
+      { "poke",  (DL_FUNC) &r_poke,   -1 },
+      { "poke1", (DL_FUNC) &r_poke1,  -1 },
+      { "poke2", (DL_FUNC) &r_poke2,  -1 },
+      { "poke4", (DL_FUNC) &r_poke4,  -1 },
+      { "print", (DL_FUNC) &r_print,  -1 },
+      { "rect",  (DL_FUNC) &r_rect,   -1 },
+      { "rectb", (DL_FUNC) &r_rectb,  -1 },
+      { "reset", (DL_FUNC) &r_reset,  -1 },
+      { "sfx",   (DL_FUNC) &r_sfx,    -1 },
+      { "spr",   (DL_FUNC) &r_spr,    -1 },
+      { "sync",  (DL_FUNC) &r_sync,   -1 },
+      { "time",  (DL_FUNC) &r_time,   -1 },
+      { "trace", (DL_FUNC) &r_trace,  -1 },
+      { "tri",   (DL_FUNC) &r_tri,    -1 },
+      { "trib",  (DL_FUNC) &r_trib,   -1 },
+      { "tstamp",(DL_FUNC) &r_tstamp, -1 },
+      { "ttri",  (DL_FUNC) &r_ttri,   -1 },
+      { "vbank", (DL_FUNC) &r_vbank,  -1 }
+    };
+
+    DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
+    R_registerRoutines(embeddingProgramDllInfo, NULL, NULL, NULL, RExternalMethodsDefinedInC);
+  }
+#+end_src
+
+Presumably, all of these functions will then be available in R as functions
+which have the given name (e.g. "tri") and would be callable with
+~.External("tri")~.
+
 ** TODO The default cartridge
 The demonstration (default) cartridge or ROM is a bunch of byte code included
 from a =dat= file. The bytes are read directly into a =u8= array ~DemoRom[]~.
@@ -1967,7 +2061,7 @@ This ensures that =R_HOME= and other environment variables are correctly set.
 
 ** DONE Modifying =CMakeLists.txt= and writing CMake build generation files
 CLOSED: [2024-10-12 Sat 01:50]
-CMake is used as the Make build file generator for TIC-80. I need to integrate
+CMake is used as the GNU Make build-file generator for TIC-80. I need to integrate
 the R langauge embedding into TIC-80's build process using CMake now.
 
 **** Tasks to complete related to this heading:
@@ -2129,100 +2223,6 @@ headers I include might be redundant, and I will try to clean these up later.
 
   #include "api/renv.h"
 #+end_src
-
-** DONE Registering symbols in R from C
-CLOSED: [2024-10-19 Sat 22:01]
-"Symbols need to be registered with R from C to be used in R," is what I wrote
-to introduce this paragraph in its first draft; I'm not sure if registering
-symbols is actually required, or what the purpose is. It might not be fully
-relevant to my use of R. My appreciation of this topic, at the moment, is that
-it is used to define new primites so that functions in R are automatically
-defined to call registered C functions.
-
-/Writing R Extensions/ documents how to register native routines with the
-embedded R interpreter for later use from within R code. The objects =info=,
-=cMethods=, and =callMethods= are desribed in turn in §8.1.3 of the documentation.
-Only =cMethods= needs to be defined for the purposes of using R as a scripting
-langauge for TIC-80 games.
-
-#+name: example of registering native symbols
-#+begin_src c
-  DllInfo *info = R_getEmbeddingDllInfo();
-  R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
-#+end_src
-
-Native routines (symbols) registered with R get called through "the =.C=
-interface," which is how R interacts with native routines when it is in control
-of the main event loop. When embedded, and especially when not in control of the
-main event loop, R needs to be told about native routines in a slightly
-different manner, because R is not in control of loading shared libraries, /it
-is the shared library/!
-
-The symbols are the functions which enable scripting and wrap underlying C
-routines that every scripting language API in TIC-80 hooks into. These symbols
-are automatically made available to R when it is embedded in the application.
-The function which performs the registration is built-in to R.
-
-#+name: define a function to register C symbols with R
-#+begin_src C :noweb no-export
-  void initializeRExternalMethodsDefinedInC(void) {
-    static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
-      { "t80.btn",   (DL_FUNC) &r_btn,    -1 },
-      { "t80.btnp",  (DL_FUNC) &r_btnp,   -1 },
-      { "t80.circ",  (DL_FUNC) &r_circ,   -1 },
-      { "t80.circb", (DL_FUNC) &r_circb,  -1 },
-      { "t80.clip",  (DL_FUNC) &r_clip,   -1 },
-      { "t80.cls",   (DL_FUNC) &r_cls,    -1 },
-      { "t80.elli",  (DL_FUNC) &r_elli,   -1 },
-      { "t80.ellib", (DL_FUNC) &r_ellib,  -1 },
-      { "t80.exit",  (DL_FUNC) &r_exit,   -1 },
-      { "t80.fget",  (DL_FUNC) &r_fget,   -1 },
-      { "t80.font",  (DL_FUNC) &r_font,   -1 },
-      { "t80.fset",  (DL_FUNC) &r_fset,   -1 },
-      { "t80.key",   (DL_FUNC) &r_key,    -1 },
-      { "t80.keyp",  (DL_FUNC) &r_keyp,   -1 },
-      { "t80.line",  (DL_FUNC) &r_line,   -1 },
-      { "t80.map",   (DL_FUNC) &r_map,    -1 },
-      { "t80.memcpy",(DL_FUNC) &r_memcpy, -1 },
-      { "t80.memset",(DL_FUNC) &r_memset, -1 },
-      { "t80.mget",  (DL_FUNC) &r_mget,   -1 },
-      { "t80.mouse", (DL_FUNC) &r_mouse,  -1 },
-      { "t80.mset",  (DL_FUNC) &r_mset,   -1 },
-      { "t80.music", (DL_FUNC) &r_music,  -1 },
-      { "t80.peek",  (DL_FUNC) &r_peek,   -1 },
-      { "t80.peek1", (DL_FUNC) &r_peek1,  -1 },
-      { "t80.peek2", (DL_FUNC) &r_peek2,  -1 },
-      { "t80.peek4", (DL_FUNC) &r_peek4,  -1 },
-      { "t80.pix",   (DL_FUNC) &r_pix,    -1 },
-      { "t80.pmem",  (DL_FUNC) &r_pmem,   -1 },
-      { "t80.poke",  (DL_FUNC) &r_poke,   -1 },
-      { "t80.poke1", (DL_FUNC) &r_poke1,  -1 },
-      { "t80.poke2", (DL_FUNC) &r_poke2,  -1 },
-      { "t80.poke4", (DL_FUNC) &r_poke4,  -1 },
-      { "t80.print", (DL_FUNC) &r_print,  -1 },
-      { "t80.rect",  (DL_FUNC) &r_rect,   -1 },
-      { "t80.rectb", (DL_FUNC) &r_rectb,  -1 },
-      { "t80.reset", (DL_FUNC) &r_reset,  -1 },
-      { "t80.sfx",   (DL_FUNC) &r_sfx,    -1 },
-      { "t80.spr",   (DL_FUNC) &r_spr,    -1 },
-      { "t80.sync",  (DL_FUNC) &r_sync,   -1 },
-      { "t80.time",  (DL_FUNC) &r_time,   -1 },
-      { "t80.trace", (DL_FUNC) &r_trace,  -1 },
-      { "t80.tri",   (DL_FUNC) &r_tri,    -1 },
-      { "t80.trib",  (DL_FUNC) &r_trib,   -1 },
-      { "t80.tstamp",(DL_FUNC) &r_tstamp, -1 },
-      { "t80.ttri",  (DL_FUNC) &r_ttri,   -1 },
-      { "t80.vbank", (DL_FUNC) &r_vbank,  -1 }
-    };
-
-    DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
-    R_registerRoutines(embeddingProgramDllInfo, NULL, NULL, NULL, RExternalMethodsDefinedInC);
-  }
-#+end_src
-
-Presumably, all of these functions will then be available in R as functions
-which have the given name (e.g. "tri") and will call ~.External("tri")~ (keeping
-with the example).
 
 ** TODO Meshing the event loops of TIC-80 and R
 There is a section in the /R Extensions/ manual which focuses on meshing the
