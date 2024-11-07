@@ -124,39 +124,6 @@ needing to copy it and update it when changes are made.
   }
 #+end_src
 
-*** TODO Describe the =TIC_CORE= type; why is it used like an origin point?
-In the Python and Scheme langauge integrations, within the respective
-=eval*= function, a variable ~tic~ of type ~tic_mem *~ is cast to
-~tic_core *~ and stored in a variable named ~core~. Was that
-description difficult to follow? I think so. See the following example
-block.
-
-#+begin_example C
-  tic_core core = (tic_core *)tic;
-  s7_scheme *sc = core->currentVM;
-  pkpy_vm *vm = core->currentVM;
-#+end_example
-
-In each, this ~core~ struct is then accessed to obtain the ~currentVM~
-object (~core->currentVM~). In the Scheme integration this value is
-called =sc=, like "Scheme core", and in the Python integration it is
-called =vm=, like "virtual machine".
-
-The Python integration uses a =pkpy_vm *= type, and the Scheme
-integration uses a =s7_scheme *= type. In s7 Scheme =s7_scheme= is a
-big struct /defining the Scheme virtual machine or interpreter/. See
-[[/home/bryce/Documents/src/c/TIC-80/vendor/s7/s7.c][the struct in the sources here]]. I could not find the equivalent in
-Pocketpy, but I noticed that the signature of =py_eval= in Pocketpy is
-different from =pkpy_eval=, and moreover I don't see a definition of
-the function in either soure tree.
-
-The real function and nature of the =tic_core= type is not yet clear to me.
-
-- =currentVM= is a void pointer; it is simply a pointer without a
-  type, and it can point to anything useful!
-- =tic_mem= is the first field of the =tic_core= struct, so a pointer
-  to a =tic_mem= object also points to a =tic_core= object.
-
 ** TODO Introduction
 *** Initialization of the interpreter within an embedding application
 The R interpreter, like the [[https://ccrma.stanford.edu/software/snd/snd/s7.html][s7 Scheme interpreter]], needs to be initialized or
@@ -432,13 +399,6 @@ version 1.3.
  * SOFTWARE.
  */
 #+end_src
-
-* Planned work
-** Debugging R programs in TIC-80
-Integrate the R debugger, browser, etc. into TIC-80.
-
-** A final example
-Write a /largeR/ game on the TIC-80 virtual console using R!
 
 * TODO Writing the R API for TIC-80
 The TIC-80 API functions need to be defined in the global environment after
@@ -1881,23 +1841,23 @@ convention).
   x <- 96
   y <- 24
 
-  ## FIXME: makeopfun doesn't contstruct a mutating function correctly.
-  makeopfn <- \(f) \(x) x <<- f(x, 1)
+  makeopfn <- \(f) \(x) eval.parent(substitute(x <- f(x, 1)))
   inc <- makeopfn(`+`)
   dec <- makeopfn(`-`)
 
   `TIC-80` <- function() {
-    mapply(FUN = \(b, o) if (t80.btn(b)) o,
+    mapply(FUN = \(b, o) if (.External("t80.btn", b)) o,
            0:3,
            list(dec(y), inc(y),
                 dec(x), inc(x)));
-    t80.cls(13);
-    t80.spr(id = 1 + (t %% 60) / 30 * 2,
-            scale = 3,
-            x, y,
-            colorkey = 14,
-            w = 2, h = 2);
-    t80.print("HELLO WORLD!", 84, 84);
+    .External("t80.cls", 13);
+    .External("t80.spr",
+              id = 1 + (t %% 60) / 30 * 2,
+              scale = 3,
+              x, y,
+              colorkey = 14,
+              w = 2, h = 2);
+    .External("t80.print", "HELLO WORLD!", 84, 84);
     inc(t);
   }
 
@@ -1906,6 +1866,14 @@ convention).
 
 The rest of the cartridge definition is metadata which embeds the graphics and
 sounds into the cartridge.
+
+*** TODO Cartridge metadata
+- [ ] The metadata is not stripped from the source code when loaded into the studio editor.
+- [ ] The studio editors do not have any data available, ie no sprites, map, etc.
+
+The metadata defined in paragraphs of source code comments provides the
+cartridge loading mechanism the ability to retrieve the data component of the
+"executable cartridge ROM".
 
 #+begin_src R :noweb-ref cartridge metadata stripped during cartridge loading
   ## <TILES>
@@ -1938,131 +1906,64 @@ sounds into the cartridge.
   ## </TRACKS>
 #+end_src
 
-** TODO The Bunny benchmark
-**** Template
-- Is the template correctly translated using the asset building tools?
+*** Native symbol registration and lookup in tester.c
+- [ ] The native routines, while registered successfully, are not automatically
+  defined as functions in the global environment. Is that a problem for me?
+  Maybe...
 
-#+name: R bunnymark header
-#+begin_src R
-  ## title: Bunnymark with R as the cartidge language
-  ## author: Bryce Carson
-  ## desc: Benchmarking tool to see how many bunnies can bounce around the screen, using R
-  ## input: gamepad
-  ## script: r
-  ## version: 0.0.1
-#+end_src
+The following file is compiled with ~R CMD make~, and run with ~R CMD ./tester~.
+This ensures that =R_HOME= and other environment variables are correctly set.
 
-#+begin_src R :noweb no-export :tangle ../../demos/bunny/rbenchmark.r
-  <<R bunnymark header>>
+#+begin_src C :noweb-ref tester.c
+  /* tester.c --- tester-embedded-r-parsing */
 
-  <<Bunny benchmark R source>>
+  #define RNOREMAP true
+  #include <R.h>
+  #include <Rinternals.h>
+  #include <R_ext/Parse.h>
+  #include <Rembedded.h>
+  #include <Rinterface.h>
 
-  <<R bunnymark footer>>
-#+end_src
+  /* Perfection. */
+  SEXP tester(SEXP args) { return R_NilValue; }
 
-#+name: R bunnymark footer
-#+begin_src R
-  ## <TILES>
-  ## 001:11111100111110dd111110dc111110dc111110dc111110dc111110dd111110dd
-  ## 002:00011110ddd0110dccd0110dccd0110dccd0110dccd0110dcddd00dddddddddd
-  ## 003:00001111dddd0111cccd0111cccd0111cccd0111cccd0111dcdd0111dddd0111
-  ## 004:1111111111111111111111111111111111111111111111111111111111111111
-  ## 017:111110dd111110dd111110dd111110dd10000ddd1eeeeddd1eeeeedd10000eed
-  ## 018:d0ddddddd0ddddddddddddddddd0000dddddccddddddccdddddddddddddddddd
-  ## 019:0ddd01110ddd0111dddd0111dddd0111ddddd000ddddddddddddddddddddd000
-  ## 020:1111111111111111111111111111111101111111d0111111d011111101111111
-  ## 033:111110ee111110ee111110ee111110ee111110ee111110ee111110ee111110ee
-  ## 034:dddcccccddccccccddccccccddccccccddccccccdddcccccdddddddddddddddd
-  ## 035:dddd0111cddd0111cddd0111cddd0111cddd0111dddd0111dddd0111dddd0111
-  ## 036:1111111111111111111111111111111111111111111111111111111111111111
-  ## 049:111110ee111110ee111110ee111110ee111110ee111110ee111110ee11111100
-  ## 050:dddeeeeeddeeeeeed00000000111111101111111011111110111111111111111
-  ## 051:eddd0111eedd01110eed011110ee011110ee011110ee011110ee011111001111
-  ## 052:1111111111111111111111111111111111111111111111111111111111111111
-  ## </TILES>
+  int
+  main(int ac, char **av)
+  {
+    char *argv[]= {"tester-embedded-r-parsing", "--vanilla", "--silent"};
+    Rf_initEmbeddedR(sizeof(argv)/sizeof(argv[0]), argv);
+    R_Interactive = 0;
 
-  ## <PALETTE>
-  ## 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
-  ## </PALETTE>
-#+end_src
 
-**** TODO An S3-based R Bunny benchmark
-This version of the benchmark uses the informal S3 OOP system.
+  	char cmd[] = "# DONT quit();\nprint(ls())";
+  	SEXP cmd_sexp, cmd_expr;
+  	ParseStatus status;
 
-#+name: Bunny benchmark R source
-#+begin_src R
-  screenWidth <- 240
-  screenHeight <- 136
-  toolbarHeight <- 6
-  t <- 0
+  	cmd_sexp = PROTECT(allocVector(STRSXP, 1));
+  	SET_STRING_ELT(cmd_sexp, 0, mkChar(cmd));
+  	cmd_expr = PROTECT(R_ParseVector(cmd_sexp, -1, &status, R_NilValue));
+  	if (status != PARSE_OK) {
+  		UNPROTECT(2);
+  		error("Invalid call %s", cmd);
+  	}
+  	for (int i = 0; i < length(cmd_expr); i++) {
+  		eval(VECTOR_ELT(cmd_expr, i), R_GlobalEnv);
+  	}
+  	UNPROTECT(2);
 
-  new_bunny <- function() {
-    velocityRUnif <- \() runif(1, -100.0, 100.0) / 60.0
-    xV <- velocityRUnif()
-    yV <- velocityRUnif()
+  	static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
+  		{ "tester", (DL_FUNC) &tester, -1 }
+  	};
 
-    newBunny <-
-      structure(sqrt(xV^2 + yV^2),
-                width   = 26,
-                height  = 32,
-                x       = sample(0:(screenWidth - width), 1),
-                y       = sample(0:(screenHeight - height), 1),
-                speed_x = xV,
-                speed_y = yV,
-                sprite  = 1,
-                class = "Bunny"
-                )
-    newBunny
+  	DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
+  	R_registerRoutines(embeddingProgramDllInfo, NULL, NULL, NULL, RExternalMethodsDefinedInC);
+  	R_ParseEvalString("print(getDLLRegisteredRoutines(getLoadedDLLs()[[\"(embedding)\"]], addNames = TRUE));", R_GlobalEnv);
+
+  	R_ParseEvalString("quit();", R_GlobalEnv);
+    Rf_endEmbeddedR(0);
+    return 0;
   }
-
-  draw_bunny <- function(bunny) {
-    ## stopifnot(is(bunny, "Bunny"))
-    with(attributes(bunny),
-         t80.spr(sprite, x, y, 1, 1, 0, 0, 4, 4))
-  }
-
-  update_bunny <- function(bunny) {
-    ## stopifnot(is(bunny, "Bunny"))
-    attr(bunny, "x") <- attr(bunny, "x") + attr(bunny, "speed_x")
-    attr(bunny, "y") <- attr(bunny, "y") + attr(bunny, "speed_y")
-
-    if (attr(bunny, "x") + attr(bunny, "width") > screenWidth) {
-      attr(bunny, "x") <- screenWidth - attr(bunny, "width")
-      attr(bunny, "speed_x") <- attr(bunny, "speed_x") * -1
-    }
-
-    if (attr(bunny, "y") + attr(bunny, "height") > screenHeight) {
-      attr(bunny, "y") <- screenHeight - attr(bunny, "height")
-      attr(bunny, "speed_y") <- attr(bunny, "speed_y") * -1
-    }
-
-    if (attr(bunny, "x") < 0) {
-      attr(bunny, "x") <- 0
-      attr(bunny, "speed_x") <- attr(bunny, "speed_x") * -1.0
-    }
-
-    if (attr(bunny, "y") < toolbarHeight) {
-      attr(bunny, "y") <- toolbarHeight
-      attr(bunny, "speed_y") <- attr(bunny, "speed_y") * -1.0
-    }
-  }
-
-  ## FIXME: this removes the attributes. S3 classes need to define special
-  ## methods and generics to work with various primitive classes and generics
-  ## like list. Consider data.frame, which is a list, but which does not lose
-  ## its attributes when you make a list of data.frames.
-  bunnies <- list(new_bunny())
 #+end_src
-
-**** TODO Planned work
-- S7 :: the new R OOP package
-- S6 :: the old new R OOP package
-- S4 :: formal OOP package for R
-- S3 :: ye olde informal OOP package: what I'm already using in the bunny benchmark
-
-The next steps in completing the Bunny benchmark are to decide on a functional
-approach or an object-oriented approach. Integrating the new S7 package would be
-interesting.
 
 ** DONE Modifying =CMakeLists.txt= and writing CMake build generation files
 CLOSED: [2024-10-12 Sat 01:50]
@@ -2331,8 +2232,9 @@ which need special attention.
 *** make provision for other R events whilst waiting for input from the front-end
 *** ensure the front-end is not frozen out during the event loop waiting for responses from sockets
 
-* DONE Creating build assets at build-time from source files
-CLOSED: [2024-11-06 Wed 00:32]
+* TODO Creating build assets at build-time from source files
+- [ ] FIXME: the assets are not converted properly.
+
 The is a build/assets directory in the TIC-80 sources containing DAT formatted
 files which are needed to include benchmarks for various scripting language
 integrations and also the demo and default cartridges for these langauges. The
