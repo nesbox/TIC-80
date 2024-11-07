@@ -24,7 +24,32 @@ foreach(project ${projects})
   message(DEBUG "${cartridge}")
 endforeach()
 
-# <<generate the tic.dat files>>
-<<generate the tic.dat files using the original tools>>
+# add_custom_target(GenerateTicDatFiles
+#     ALL
+#     ## Generate .tic files in the CMAKE_BINARY_DIR directory using source files
+#     ## from the demos/ source directory.
+#     COMMAND prj2cart -i ${projects} -o ${CMAKE_BINARY_DIR}
+#     ## Convert the .tic files in the CMAKE_BINARY_DIR to .tic.dat and place the
+#     ## resulting file in the build/assets source directory.
+#     COMMAND bin2txt -zi ${cartridges} -o ${buildAssetDir}
+#     COMMENT "[DEMOS_AND_BUNNYS] Generating build assets (.tic.dat files)"
+#     COMMAND_EXPAND_LISTS)
+add_custom_target(GenerateTicDatFiles
+  ALL
+  ## Generate .tic files in the CMAKE_BINARY_DIR directory using source files
+  ## from the demos/ source directory.
+  ## COMMAND prj2cart -i ${projects} -o ${CMAKE_BINARY_DIR}
+  ## foreach project in projects do
+  ## prj2cart input-file output-file
+  ## done
+  foreach(currentProject IN LISTS projects)
+    foreach(currentCartridge IN LISTS CARTRIDGES)
+      COMMAND prj2cart ${currentProject} ${currentCartridge}
+    endforeach()
+    COMMAND bin2txt ${currentCartridge} $<PATH:REPLACE_EXTENSION,$<PATH:APPEND,${buildAssetDir},$<PATH:FILENAME,${currentCartridge}>>,".tic.dat"> -z
+  endforeach()
+  COMMENT "[DEMOS_AND_BUNNYS] Generating build assets (.tic.dat files)"
+  COMMAND_EXPAND_LISTS
+)
 
 target_sources(GenerateTicDatFiles PRIVATE ${PROJECT_PATHS})
