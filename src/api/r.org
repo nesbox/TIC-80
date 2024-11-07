@@ -2321,22 +2321,14 @@ suffixes for each supported language.
   foreach(project ${projects})
     cmake_path(REPLACE_EXTENSION project LAST_ONLY "tic" OUTPUT_VARIABLE cartridge)
     cmake_path(GET cartridge FILENAME cartridge)
-    cmake_path(APPEND CMAKE_BINARY_DIR ${cartridge} OUTPUT_VARIABLE cartridge)
+    cmake_path(APPEND ${CMAKE_BINARY_DIR} ${cartridge} OUTPUT_VARIABLE cartridge)
     LIST(APPEND cartridges ${cartridge})
     message(DEBUG "${project}")
     message(DEBUG "${cartridge}")
   endforeach()
 
-  add_custom_target(GenerateTicDatFiles
-    ALL
-    ## Generate .tic files in the CMAKE_BINARY_DIR directory using source files
-    ## from the demos/ source directory.
-    COMMAND prj2cart -i ${projects} -o ${CMAKE_BINARY_DIR}
-    ## Convert the .tic files in the CMAKE_BINARY_DIR to .tic.dat and place the
-    ## resulting file in the build/assets source directory.
-    COMMAND bin2txt -zi ${cartridges} -o ${buildAssetDir}
-    COMMENT "[DEMOS_AND_BUNNYS] Generating build assets (.tic.dat files)"
-    COMMAND_EXPAND_LISTS)
+  # <<generate the tic.dat files>>
+  <<generate the tic.dat files using the original tools>>
 
   target_sources(GenerateTicDatFiles PRIVATE ${PROJECT_PATHS})
 #+end_src
@@ -2346,10 +2338,50 @@ source blocks and extend the programs to support multiple input files and
 specify an output directory rather than only support explicit input and output
 file paths.
 
+#+begin_src cmake :noweb-ref generate the tic.dat files
+  add_custom_target(GenerateTicDatFiles
+      ALL
+      ## Generate .tic files in the CMAKE_BINARY_DIR directory using source files
+      ## from the demos/ source directory.
+      COMMAND prj2cart -i ${projects} -o ${CMAKE_BINARY_DIR}
+      ## Convert the .tic files in the CMAKE_BINARY_DIR to .tic.dat and place the
+      ## resulting file in the build/assets source directory.
+      COMMAND bin2txt -zi ${cartridges} -o ${buildAssetDir}
+      COMMENT "[DEMOS_AND_BUNNYS] Generating build assets (.tic.dat files)"
+      COMMAND_EXPAND_LISTS)
+#+end_src
+
+This is great---and works!---but I need to loop over all of the project files
+using the original tools because my tool edits are bugged in some small way that
+I do not want to invest time into right now.
+
+#+begin_src cmake :noweb-ref generate the tic.dat files using the original tools
+  add_custom_target(GenerateTicDatFiles
+    ALL
+    ## Generate .tic files in the CMAKE_BINARY_DIR directory using source files
+    ## from the demos/ source directory.
+    ## COMMAND prj2cart -i ${projects} -o ${CMAKE_BINARY_DIR}
+    ## foreach project in projects do
+    ## prj2cart input-file output-file
+    ## done
+    foreach(currentProject IN LISTS projects)
+      foreach(currentCartridge IN LISTS CARTRIDGES)
+        COMMAND prj2cart ${currentProject} ${currentCartridge}
+      endforeach()
+      COMMAND bin2txt ${currentCartridge} $<PATH:REPLACE_EXTENSION,$<PATH:APPEND,${buildAssetDir},$<PATH:FILENAME,${currentCartridge}>>,".tic.dat"> -z
+    endforeach()
+    COMMENT "[DEMOS_AND_BUNNYS] Generating build assets (.tic.dat files)"
+    COMMAND_EXPAND_LISTS
+  )
+#+end_src
+
 ** DONE prj2cart
 CLOSED: [2024-10-25 Fri 19:10]
+#+begin_comment
+At the moment I do not want to overwrite. :tangle ../../build/tools/prj2cart.c
+#+end_comment
 
-#+begin_src C :tangle ../../build/tools/prj2cart.c :noweb no-export
+#+begin_src C :noweb no-export
   // MIT License
 
   // Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
@@ -2497,7 +2529,11 @@ CLOSED: [2024-10-25 Fri 19:10]
 
 ** DONE bin2txt
 CLOSED: [2024-10-25 Fri 19:31]
-#+begin_src C :noweb no-export :tangle ../../build/tools/bin2txt.c
+#+begin_comment
+At the moment I do not want to overwrite. :tangle ../../build/tools/bin2txt.c
+#+end_comment
+
+#+begin_src C :noweb no-export
   // MIT License
 
   // Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
