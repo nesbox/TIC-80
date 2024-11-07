@@ -2300,7 +2300,7 @@ sources are out of date, which is determined when the CMake file is called.
 Construct the list of demo and benchmark source files from a list of file type
 suffixes for each supported language.
 
-#+begin_src cmake :tangle ../../cmake/demos.cmake
+#+begin_src cmake :noweb no-export :tangle ../../cmake/demos.cmake
   file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/demos" demoDir)
   file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/build/assets" buildAssetDir)
   file(GLOB_RECURSE projects
