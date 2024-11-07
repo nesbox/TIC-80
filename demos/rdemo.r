@@ -10,23 +10,23 @@ t <- 0
 x <- 96
 y <- 24
 
-## FIXME: makeopfun doesn't contstruct a mutating function correctly.
-makeopfn <- \(f) \(x) x <<- f(x, 1)
+makeopfn <- \(f) \(x) eval.parent(substitute(x <- f(x, 1)))
 inc <- makeopfn(`+`)
 dec <- makeopfn(`-`)
 
 `TIC-80` <- function() {
-  mapply(.f = \(b, o) if (t80.btn(b)) o,
-         .x = 0:3,
-         .y = list(dec(y), inc(y),
-                   dec(x), inc(x)));
-  t80.cls(13);
-  t80.spr(id = 1 + (t %% 60) / 30 * 2,
-          scale = 3,
-          x, y,
-          colorkey = 14,
-          w = 2, h = 2);
-  t80.print("HELLO WORLD!", 84, 84);
+  mapply(FUN = \(b, o) if (.External("t80.btn", b)) o,
+         0:3,
+         list(dec(y), inc(y),
+              dec(x), inc(x)));
+  .External("t80.cls", 13);
+  .External("t80.spr",
+            id = 1 + (t %% 60) / 30 * 2,
+            scale = 3,
+            x, y,
+            colorkey = 14,
+            w = 2, h = 2);
+  .External("t80.print", "HELLO WORLD!", 84, 84);
   inc(t);
 }
 
