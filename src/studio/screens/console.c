@@ -1853,8 +1853,9 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                         case 2:
                             color1 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + j * img.width), 4);
                             color2 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 1 + j * img.width), 4);
-                            // unsure if it's better to do add or or it together.
-                            color = (color2 << 2) + color1;
+                            // adding them together caused issues with squashing??? no idea why this isn't the case
+                            // for bpp 1
+                            color = (color2 << 2) | color1;
                             setSpritePixel(base, x, y, color);
                             break;
                         case 1:
@@ -1862,7 +1863,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                             color2 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 1 + j * img.width), 2);
                             color3 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 2 + j * img.width), 2);
                             color4 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 3 + j * img.width), 2);
-                            color = (color4 << 3) + (color3 << 2) + (color2 << 1) + color1;
+                            color = (color4 << 3) | (color3 << 2) | (color2 << 1) | color1;
                             setSpritePixel(base, x, y, color);
                             break;
                     }
