@@ -4,6 +4,10 @@
 
 option(BUILD_WITH_PYTHON "Python Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_PYTHON: ${BUILD_WITH_PYTHON}")
+option(PK_ENABLE_OS "" OFF)
+if(PK_ENABLE_OS)
+    add_definitions(-DPK_ENABLE_OS=1)
+endif()
 
 if(BUILD_WITH_PYTHON)
 

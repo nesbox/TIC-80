@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include "pocketpy.h"
 
 //!!! search NOTICE for v1 remains !!!
@@ -28,6 +29,7 @@ static tic_core* get_core()
     void* core_pointer = py_getvmctx();
     if (!core_pointer) return NULL;
     tic_core* core = (tic_core*)core_pointer;
+    assert(core_pointer!=NULL);
     return core;
 }
 
@@ -57,7 +59,7 @@ static int prepare_colorindex(py_Ref index, u8* buffer)
             return 1;
         }
     }
-    else if (!py_checktype(index, tp_list))
+    else
     { //should be a list then
         int list_len = py_list_len(index);
         list_len = (list_len < TIC_PALETTE_SIZE) ? (list_len) : (TIC_PALETTE_SIZE);
@@ -68,8 +70,6 @@ static int prepare_colorindex(py_Ref index, u8* buffer)
         }
         return list_len;
     }
-    //not int nor list, py_checktype raised exception
-    return 0;
 }
 
 /*****************TIC-80 API BEGIN*****************/
@@ -89,7 +89,7 @@ static bool py_btn(int argc, py_Ref argv)
 {
     int button_id;
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     PY_CHECK_ARG_TYPE(0, tp_int); //check argv[0] type
@@ -118,7 +118,7 @@ static bool py_btnp(int argc, py_Ref argv)
     hold = py_toint(py_arg(1));
     period = py_toint(py_arg(2));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     bool pressed = core->api.btnp(tic, button_id, hold, period);
@@ -131,7 +131,7 @@ static bool py_cls(int argc, py_Ref argv)
     int color;
     PY_CHECK_ARG_TYPE(0, tp_int);
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     color = py_toint(py_arg(0));
@@ -154,7 +154,7 @@ static bool py_spr(int argc, py_Ref argv)
     for (int i = 0; i < 9; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
     spr_id = py_toint(py_arg(0));
     x = py_toint(py_arg(1));
@@ -164,7 +164,12 @@ static bool py_spr(int argc, py_Ref argv)
     rotate = py_toint(py_arg(6));
     w = py_toint(py_arg(7));
     h = py_toint(py_arg(8));
-    color_count = prepare_colorindex(py_arg(3), colors);
+    if (py_istype(py_arg(3), tp_int) || py_istype(py_arg(3), tp_list))
+    { //it's one of the types
+        color_count = prepare_colorindex(py_arg(3), colors);
+    }
+    else
+        return TypeError("The given argument is not int or list");
 
     core->api.spr(tic, spr_id, x, y, w, h, colors, color_count, scale, flip, rotate);
     return true;
@@ -192,7 +197,7 @@ static bool py_print(int argc, py_Ref argv)
     scale = py_toint(py_arg(5));
     alt = py_tobool(py_arg(6));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     s32 ps = core->api.print(tic, str, x, y, color, fixed, scale, alt);
@@ -206,7 +211,7 @@ static bool py_circ(int argc, py_Ref argv)
     for (int i = 0; i < 4; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
@@ -223,7 +228,7 @@ static bool py_circb(int argc, py_Ref argv)
     for (int i = 0; i < 4; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
@@ -240,7 +245,7 @@ static bool py_clip(int argc, py_Ref argv)
     for (int i = 0; i < 4; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
@@ -257,7 +262,7 @@ static bool py_elli(int argc, py_Ref argv)
     for (int i = 0; i < 5; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
@@ -275,7 +280,7 @@ static bool py_ellib(int argc, py_Ref argv)
     for (int i = 0; i < 5; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
@@ -290,7 +295,7 @@ static bool py_ellib(int argc, py_Ref argv)
 static bool py_exit(int argc, py_Ref argv)
 {
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.exit(tic);
@@ -303,7 +308,7 @@ static bool py_fget(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(0, tp_int);
     PY_CHECK_ARG_TYPE(1, tp_int);
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
     spid = py_toint(py_arg(0));
     flag = py_toint(py_arg(1));
@@ -322,7 +327,7 @@ static bool py_fset(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_bool);
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
     spid = py_toint(py_arg(0));
     flag = py_toint(py_arg(1));
@@ -348,7 +353,7 @@ static bool py_font(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(8, tp_bool);
 
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
     str = py_tostr(py_arg(0));
     x = py_toint(py_arg(1));
@@ -379,7 +384,7 @@ static bool py_key(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(0, tp_int);
     code = py_toint(py_arg(0));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     if (code >= tic_keys_count)
@@ -403,7 +408,7 @@ static bool py_keyp(int argc, py_Ref argv)
     hold = py_toint(py_arg(1));
     period = py_toint(py_arg(2));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     if (code >= tic_keys_count)
@@ -431,7 +436,7 @@ static bool py_line(int argc, py_Ref argv)
     y1 = py_toint(py_arg(3));
     color = py_toint(py_arg(4));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.line(tic, x0, y0, x1, y1, color);
@@ -485,11 +490,16 @@ static bool py_map(int argc, py_Ref argv)
     h = py_toint(py_arg(3));
     sx = py_toint(py_arg(4));
     sy = py_toint(py_arg(5));
-    colorkey = prepare_colorindex(py_arg(6), colors);
+    if (py_istype(py_arg(6), tp_int) || py_istype(py_arg(6), tp_list))
+    { //it's one of the types
+        colorkey = prepare_colorindex(py_arg(6), colors);
+    }
+    else
+        return TypeError("The given argument is not int or list");
     scale = py_toint(py_arg(7));
     use_remap = !py_isnone(py_arg(8));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     if (use_remap)
@@ -510,7 +520,7 @@ static bool py_memcpy(int argc, py_Ref argv)
     src = py_toint(py_arg(1));
     size = py_toint(py_arg(2));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.memcpy(tic, dest, src, size);
@@ -527,7 +537,7 @@ static bool py_memset(int argc, py_Ref argv)
     val = py_toint(py_arg(1));
     size = py_toint(py_arg(2));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.memset(tic, dest, val, size);
@@ -542,7 +552,7 @@ static bool py_mget(int argc, py_Ref argv)
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     int res = core->api.mget(tic, x, y);
@@ -560,7 +570,7 @@ static bool py_mset(int argc, py_Ref argv)
     y = py_toint(py_arg(1));
     title_id = py_toint(py_arg(2));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.mset(tic, x, y, title_id);
@@ -570,7 +580,7 @@ static bool py_mset(int argc, py_Ref argv)
 static bool py_mouse(int argc, py_Ref argv)
 {
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     tic_point pos = core->api.mouse(tic);
@@ -609,7 +619,7 @@ static bool py_music(int argc, py_Ref argv)
     tempo = py_toint(py_arg(5));
     speed = py_toint(py_arg(6));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     if (track > MUSIC_TRACKS - 1)
@@ -629,7 +639,7 @@ static bool pyy_peek(int argc, py_Ref argv)
     addr = py_toint(py_arg(0));
     bits = py_toint(py_arg(1));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     int res = core->api.peek(tic, addr, bits);
@@ -643,7 +653,7 @@ static bool py_peek1(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(0, tp_int);
     addr = py_toint(py_arg(0));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     int res = core->api.peek1(tic, addr);
@@ -657,7 +667,7 @@ static bool py_peek2(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(0, tp_int);
     addr = py_toint(py_arg(0));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     int res = core->api.peek2(tic, addr);
@@ -671,7 +681,7 @@ static bool py_peek4(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(0, tp_int);
     addr = py_toint(py_arg(0));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     int res = core->api.peek4(tic, addr);
@@ -689,7 +699,7 @@ static bool py_pix(int argc, py_Ref argv)
     x = py_toint(py_arg(0));
     y = py_toint(py_arg(1));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     if (color >= 0) //set pixel
@@ -718,7 +728,7 @@ static bool py_pmem(int argc, py_Ref argv)
     }
     index = py_toint(py_arg(0));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     if (index >= TIC_PERSISTENT_SIZE)
@@ -746,7 +756,7 @@ static bool py_poke(int argc, py_Ref argv)
     val = py_toint(py_arg(1));
     bits = py_toint(py_arg(2));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.poke(tic, addr, val, bits);
@@ -761,7 +771,7 @@ static bool py_poke1(int argc, py_Ref argv)
     addr = py_toint(py_arg(0));
     val = py_toint(py_arg(1));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.poke1(tic, addr, val);
@@ -776,7 +786,7 @@ static bool py_poke2(int argc, py_Ref argv)
     addr = py_toint(py_arg(0));
     val = py_toint(py_arg(1));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.poke2(tic, addr, val);
@@ -791,7 +801,7 @@ static bool py_poke4(int argc, py_Ref argv)
     addr = py_toint(py_arg(0));
     val = py_toint(py_arg(1));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.poke4(tic, addr, val);
@@ -812,7 +822,7 @@ static bool py_rect(int argc, py_Ref argv)
     h = py_toint(py_arg(3));
     color = py_toint(py_arg(4));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.rect(tic, x, y, w, h, color);
@@ -833,7 +843,7 @@ static bool py_rectb(int argc, py_Ref argv)
     h = py_toint(py_arg(3));
     color = py_toint(py_arg(4));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.rectb(tic, x, y, w, h, color);
@@ -843,7 +853,7 @@ static bool py_rectb(int argc, py_Ref argv)
 static bool py_reset(int argc, py_Ref argv)
 {
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.reset(tic);
@@ -876,7 +886,7 @@ static bool py_sfx(int argc, py_Ref argv)
     volume = py_toint(py_arg(4));
     speed = py_toint(py_arg(5));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     s32 note, octave;
@@ -918,7 +928,7 @@ static bool py_sync(int argc, py_Ref argv)
     bank = py_toint(py_arg(1));
     tocart = py_tobool(py_arg(2));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     if (bank < 0 || bank >= TIC_BANKS)
@@ -937,7 +947,13 @@ static bool py_ttri(int argc, py_Ref argv)
     double z1, z2, z3;
     char colors[16];
     PY_CHECK_ARG_TYPE(12, tp_int);
-    chromakey = prepare_colorindex(py_arg(13), colors);
+    if (py_istype(py_arg(13), tp_int) || py_istype(py_arg(13), tp_list))
+    { //it's one of the types
+        chromakey = prepare_colorindex(py_arg(13), colors);
+    }
+    else
+        return TypeError("The given argument is not int or list");
+
     texsrc = py_toint(py_arg(12));
     if (!py_castfloat(py_arg(0), &x1)) return false;
     if (!py_castfloat(py_arg(1), &y1)) return false;
@@ -955,7 +971,7 @@ static bool py_ttri(int argc, py_Ref argv)
     if (!py_castfloat(py_arg(15), &z2)) return false;
     if (!py_castfloat(py_arg(16), &z3)) return false;
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.ttri(tic,
@@ -970,7 +986,7 @@ static bool py_ttri(int argc, py_Ref argv)
 static bool py_time(int argc, py_Ref argv)
 {
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     double time = core->api.time(tic);
@@ -987,7 +1003,7 @@ static bool py_trace(int argc, py_Ref argv)
     msg = py_tostr(py_arg(0));
     color = py_toint(py_arg(1));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.trace(tic, msg, (u8)color);
@@ -1007,7 +1023,7 @@ static bool py_tri(int argc, py_Ref argv)
     if (!py_castfloat(py_arg(5), &y3)) return false;
     color = py_toint(py_arg(6));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.tri(tic, x1, y1, x2, y3, x3, y3, (u8)color);
@@ -1027,7 +1043,7 @@ static bool py_trib(int argc, py_Ref argv)
     if (!py_castfloat(py_arg(5), &y3)) return false;
     color = py_toint(py_arg(6));
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     core->api.trib(tic, x1, y1, x2, y3, x3, y3, (u8)color);
@@ -1037,7 +1053,7 @@ static bool py_trib(int argc, py_Ref argv)
 static bool py_tstamp(int argc, py_Ref argv)
 {
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     int res = core->api.tstamp(tic);
@@ -1053,7 +1069,7 @@ static bool py_vbank(int argc, py_Ref argv)
         bank = py_toint(py_arg(0));
     }
     tic_core* core = get_core();
-    if (!core) return RuntimeError("Runtime error: tic core missing");
+    
     tic_mem* tic = (tic_mem*)core;
 
     s32 prev = core->state.vbank.id;
@@ -1069,7 +1085,14 @@ static bool py_vbank(int argc, py_Ref argv)
 
 static bool py_throw_error(tic_core* core, const char* msg)
 {
-    core->data->error(core->data->data, py_formatexc());
+    if (msg != NULL)//reserved for TIC, BOOT et cetra
+    {
+        core->data->error(core->data->data, msg);
+    }
+    else
+    {
+        core->data->error(core->data->data, py_formatexc());
+    }
     return false;
 }
 
