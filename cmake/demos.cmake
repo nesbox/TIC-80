@@ -43,10 +43,10 @@ add_custom_target(GenerateTicDatFiles
   ## prj2cart input-file output-file
   ## done
   foreach(currentProject IN LISTS projects)
-    foreach(currentCartridge IN LISTS CARTRIDGES)
+    foreach(currentCartridge IN LISTS cartridges)
       COMMAND prj2cart ${currentProject} ${currentCartridge}
     endforeach()
-    COMMAND bin2txt ${currentCartridge} $<PATH:REPLACE_EXTENSION,$<PATH:APPEND,${buildAssetDir},$<PATH:FILENAME,${currentCartridge}>>,".tic.dat"> -z
+    COMMAND bin2txt ${currentCartridge} $<PATH:REPLACE_EXTENSION,$<PATH:APPEND,${buildAssetDir},$<PATH:GET_FILENAME,${currentCartridge}>>,".tic.dat"> -z
   endforeach()
   COMMENT "[DEMOS_AND_BUNNYS] Generating build assets (.tic.dat files)"
   COMMAND_EXPAND_LISTS

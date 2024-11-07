@@ -32,5 +32,5 @@ if(BUILD_TOOLS)
         target_link_libraries(xplode m)
     endif()
 
-    include(cmake/demos.cmake)
+    # include(cmake/demos.cmake)
 endif()
