@@ -6,6 +6,11 @@ option(BUILD_WITH_PYTHON "Python Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_PYTHON: ${BUILD_WITH_PYTHON}")
 if(BUILD_WITH_PYTHON)
     option(PK_ENABLE_OS "" OFF)
+
+    if(NOT WIN32)
+        option(PK_BUILD_WITH_IPO "" OFF)
+    endif()
+
     add_subdirectory(${THIRDPARTY_DIR}/pocketpy)
 
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
