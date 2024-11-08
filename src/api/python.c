@@ -340,7 +340,8 @@ static bool py_fset(int argc, py_Ref argv)
 static bool py_font(int argc, py_Ref argv)
 {
     const char* str;
-    int x, y, chromakey, width, height, scale;
+    int x, y, width, height, scale;
+    u8 chromakey;
     bool fixed, alt;
     PY_CHECK_ARG_TYPE(0, tp_str);
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -358,7 +359,7 @@ static bool py_font(int argc, py_Ref argv)
     str = py_tostr(py_arg(0));
     x = py_toint(py_arg(1));
     y = py_toint(py_arg(2));
-    chromakey = py_toint(py_arg(3));
+    chromakey = (u8)py_toint(py_arg(3));
     width = py_toint(py_arg(4));
     height = py_toint(py_arg(5));
     fixed = py_tobool(py_arg(6));
@@ -371,8 +372,7 @@ static bool py_font(int argc, py_Ref argv)
         return true;
     }
 
-    u8 chromakey_u8 = (u8)chromakey;
-    s32 res = core->api.font(tic, str, x, y, &chromakey_u8,
+    s32 res = core->api.font(tic, str, x, y, &chromakey,
                              1, width, height, fixed, scale, alt);
     py_newint(py_retval(), res);
 
