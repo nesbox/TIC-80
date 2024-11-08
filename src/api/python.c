@@ -219,6 +219,7 @@ static bool py_circ(int argc, py_Ref argv)
     color = py_toint(py_arg(3));
 
     core->api.circ(tic, x, y, radius, color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -236,6 +237,7 @@ static bool py_circb(int argc, py_Ref argv)
     color = py_toint(py_arg(3));
 
     core->api.circb(tic, x, y, radius, color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -253,6 +255,7 @@ static bool py_clip(int argc, py_Ref argv)
     height = py_toint(py_arg(3));
 
     core->api.clip(tic, x, y, width, height);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -271,6 +274,7 @@ static bool py_elli(int argc, py_Ref argv)
     color = py_toint(py_arg(4));
 
     core->api.elli(tic, x, y, a, b, color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -289,6 +293,7 @@ static bool py_ellib(int argc, py_Ref argv)
     color = py_toint(py_arg(4));
 
     core->api.ellib(tic, x, y, a, b, color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -299,6 +304,7 @@ static bool py_exit(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.exit(tic);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -334,6 +340,7 @@ static bool py_fset(int argc, py_Ref argv)
     b = py_tobool(py_arg(2));
 
     core->api.fset(tic, spid, flag, b);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -441,6 +448,7 @@ static bool py_line(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.line(tic, x0, y0, x1, y1, color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -508,6 +516,7 @@ static bool py_map(int argc, py_Ref argv)
     else
         core->api.map(tic, x, y, w, h, sx, sy, colors, colorkey, scale, NULL, NULL);
 
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -525,6 +534,7 @@ static bool py_memcpy(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.memcpy(tic, dest, src, size);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -542,6 +552,7 @@ static bool py_memset(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.memset(tic, dest, val, size);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -575,6 +586,7 @@ static bool py_mset(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.mset(tic, x, y, title_id);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -629,6 +641,7 @@ static bool py_music(int argc, py_Ref argv)
     }
     core->api.music(tic, -1, 0, 0, false, false, -1, -1);
     core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -706,6 +719,7 @@ static bool py_pix(int argc, py_Ref argv)
     if (color >= 0) //set pixel
     {
         core->api.pix(tic, x, y, color, false);
+        py_assign(py_retval(), py_None());
         return true;
     }
     else //get pixel to retval
@@ -743,6 +757,7 @@ static bool py_pmem(int argc, py_Ref argv)
     if (has_val)
     {
         core->api.pmem(tic, index, val, true);
+        py_assign(py_retval(), py_None());
     }
     return true;
 }
@@ -761,6 +776,7 @@ static bool py_poke(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.poke(tic, addr, val, bits);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -776,6 +792,7 @@ static bool py_poke1(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.poke1(tic, addr, val);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -791,6 +808,7 @@ static bool py_poke2(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.poke2(tic, addr, val);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -806,6 +824,7 @@ static bool py_poke4(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.poke4(tic, addr, val);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -827,6 +846,7 @@ static bool py_rect(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.rect(tic, x, y, w, h, color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -848,6 +868,7 @@ static bool py_rectb(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.rectb(tic, x, y, w, h, color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -858,6 +879,7 @@ static bool py_reset(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.reset(tic);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -915,6 +937,7 @@ static bool py_sfx(int argc, py_Ref argv)
     }
 
     core->api.sfx(tic, id, note, octave, duration, channel, volume & 0xf, volume & 0xf, speed);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -938,6 +961,7 @@ static bool py_sync(int argc, py_Ref argv)
     }
 
     core->api.sync(tic, mask, bank, tocart);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -981,6 +1005,7 @@ static bool py_ttri(int argc, py_Ref argv)
                    colors, chromakey,
                    z1, z2, z3,
                    z1 != 0 || z2 != 0 || z3 != 0);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -1008,6 +1033,7 @@ static bool py_trace(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.trace(tic, msg, (u8)color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -1028,6 +1054,7 @@ static bool py_tri(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.tri(tic, x1, y1, x2, y3, x3, y3, (u8)color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -1048,6 +1075,7 @@ static bool py_trib(int argc, py_Ref argv)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.trib(tic, x1, y1, x2, y3, x3, y3, (u8)color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
