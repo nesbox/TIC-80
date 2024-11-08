@@ -371,7 +371,8 @@ static bool py_font(int argc, py_Ref argv)
         return true;
     }
 
-    s32 res = core->api.font(tic, str, x, y, &((u8)chromakey),
+    u8 chromakey_u8 = (u8)chromakey;
+    s32 res = core->api.font(tic, str, x, y, &chromakey_u8,
                              1, width, height, fixed, scale, alt);
     py_newint(py_retval(), res);
 
