@@ -1,0 +1,2701 @@
+#+SETUPFILE: https://fniessen.github.io/org-html-themes/org/theme-bigblow.setup
+#+TITLE: Embedding R in TIC-80
+#+AUTHOR: Bryce Carson
+#+begin_comment
+Copyright © 2024 Bryce Carson
+
+The code in this Org file is licensed under the terms of the GNU General Public
+License, verison three or later. The prose within the file is released under the
+terms of the GNU Free Documentation License (the most recent version).
+#+end_comment
+
+The homepage of the R langauge is https://www.r-project.org/.
+
+Any section marked TODO indicates that the section must be edited for clarity,
+or is a draft which must be completed, before publishing this literate program
+to share it.
+
+* DONE Sectioning of the =r.c= source file
+CLOSED: [2024-11-06 Wed 00:33]
+This section of the literate program tangles together all the source blocks
+composing the actual C source file defining the *TIC-80* fantasy computer *R*
+langauge support for writing demos, programs, and games.
+
+Much of the *R* langauge and its implementation was inspired by a C++
+implementation of Scheme (if I recall things I've read, so it's hearsay but go
+ahead and research it yourself), so aspects of the Scheme *TIC-80* langauge
+integration will be honoured and "Scheme" will appear in several places, though
+none of it is Scheme any more.  Before a final public release this will be
+changed so that no references to "Scheme" occur in the code.
+
+#+begin_src C :noweb no-export :tangle r.c
+  <<LICENSE>>
+  <<INCLUDE>>
+
+  /* API */
+  <<PREDECLARATIONS>>
+  <<DEFINITIONS>>
+
+  /* Syntax highlighting and what-not */
+  <<SYNTAX HIGHLIGHTING AND OUTLINE GENERATION>>
+  <<TIC EXPORT>>
+#+end_src
+
+#+begin_src C :noweb no-export :noweb-ref PREDECLARATIONS
+  bool R_initialized_once = false;
+  extern int R_running_as_main_program;   /* location within The R sources: ../unix/system.c */
+  static bool initR(tic_mem *tic, const char *code);
+#+end_src
+
+#+name: DEFINITIONS
+#+begin_src C :noweb no-export
+  <<define C symbols to be callable from R>>
+
+  <<define a function to register C symbols with R>>
+
+  <<cartridge commands>>
+#+end_src
+
+* TODO Prose
+** Requirements
+The requirements of the integration of R in TIC-80 are briefly noted.
+
+- TIC-80 event loop respected and not interfered with (graphical application is
+  performance-sensitive).
+- Initialize multiple R interpreters during the lifetime of the embedding
+  application, but not simultaneously. One interpreter should be initialized
+  after closing another.
+- Statically built R library; no expectation of system libraries available, like
+  a Fortran installation, or various headers that would be installed with Rtools
+  or something on Windows.
+- Memory for storage of objects limited to 126 KB; I don't think the available
+  memory is limited otherwise, but R will be limited to storing 128 KB of
+  objects in memory. No real expectation of disk storage or filesystem.
+
+** The TIC-80 System
+*** The C API
+Every scripting langauge binding to the C API provides a method of writing
+programs in scripting languages which call the C functions which /really
+underly/ the game engine of the fantasy console.
+
+Eventually, every C function defining the langauge bindings to the C
+API of TIC-80---wrapping the underlying C functions of the game engine
+in interpreted (or WASM-compiled) scripting languages---will call a C
+function with predictable arguments to have TIC-80 finally act upon
+something. As an example, see the trace function in the R
+integration. The Scheme integration is just like it.  Some data types
+of the scripting language's C API are created,
+and---potentially---something is evaluated, then the results are
+passed to the TIC-80 C API.
+
+#+begin_comment
+The following block has "yes" as the argument for noweb so that when exported
+the following will quote the C source for the trace function wrapper without me
+needing to copy it and update it when changes are made.
+#+end_comment
+
+#+begin_src C :noweb yes
+  <<trace>>
+#+end_src
+
+**** How the trace API command is integrated with Lua
+#+begin_src C
+  static s32 lua_trace(lua_State *lua)
+  {
+  	s32 top = lua_gettop(lua);
+  	tic_core* core = getLuaCore(lua);
+  	tic_mem* tic = (tic_mem*)core;
+
+  	if(top >= 1)
+  	{
+  		const char* text = printString(lua, 1);
+  		u8 color = TIC_DEFAULT_COLOR;
+
+  		if(top >= 2)
+  		{
+  			color = getLuaNumber(lua, 2);
+  		}
+
+  		core->api.trace(tic, text, color);
+  	}
+  	else luaL_error(lua, "invalid params, trace(text,[color])\n");
+
+  	return 0;
+  }
+#+end_src
+
+** TODO Introduction
+*** Initialization of the interpreter within an embedding application
+The R interpreter, like the [[https://ccrma.stanford.edu/software/snd/snd/s7.html][s7 Scheme interpreter]], needs to be initialized or
+re-initialized if it isn't running when TIC-80 wants to request something (the
+game source code, or a debugger entry point or a callback or something else) be
+evaluated, so the program either "initialize[s] R, returning if that fails"
+or reinitializes R in that subroutine.
+
+~evalR~ is one of the doorways through which TIC-80 C routines and functions
+enter into communion with R /as an embedded script interpreter/ within TIC-80.
+
+#+begin_src C :noweb-ref cartridge commands
+  void evalR(tic_mem *memory, const char *code) {
+  	setEnvironmentVariablesIfUnset();
+  	if (!R_initialized_once) {
+  		initR(memory, code);
+  		R_initialized_once = true;
+  	}
+
+  	if (R_initialized_once) {
+      SEXP RESULT = R_ParseEvalString(code, R_GlobalEnv);
+    }
+  }
+#+end_src
+
+Before ~R_GlobalEnv~ is available, the C symbol must be initialized by calling
+~InitBaseEnv()~ and then calling ~InitGlobalEnv~, both of which are defined in
+=main/envir.c= in the R sources. The declaration of ~R_GlobalEnv~ is in
+=include/Rinternals.h=; ~R_GlobalEnv~ is defined as a ~SEXP~ with the modifier
+~LibExtern~ (~LibExtern SEXP R_GlobalEnv;~). These functions are called in
+~setup_Rmainloop~, and are called in a specific order along with many other
+functions which initialize R and its behaviours and capabilities (including
+arithmetic); it is very important that ~setup_Rmainloop~ is called. This
+function is called automatically by calling ~Rf_mainloop~.
+
+*** Initializing Scheme
+The initScheme function takes a pointer to the *TIC-80* memory and a character
+pointer to the code that Scheme should evaluate (when it's initialized). To
+promote a clean room, Scheme is terminated before it is initialized through
+calling the =s7_init= function coming directly from the *s7* library
+and before the API is initialized; this should remove a host of errors related
+to the lifetime of objects, data, and values in the object table that is managed
+by the interpreter, and every time the user of *TIC-80* runs their game a fresh
+interpreter is spawned to avoid the garbage that could otherwise pollute their
+shiny new bug-fixes (which would introduce new bugs!). An error handling
+function is defined and then a special bit of Scheme code is evaluated before
+another bit is evaluated, a variable defined, and then finally the game code
+loaded. A final task is to check if the function =TIC= is defined in the
+Scheme LISP image by that time, and if it is then that is the "entry point"
+where the interpreter is given freedom to evaluate to its hearts content and
+make callbacks to the *TIC-80* fantasy computer through the API.
+
+#+name: quotation
+#+begin_src C
+  static bool initScheme(tic_mem* tic, const char* code)
+  {
+  	tic_core* core = (tic_core*)tic;
+  	closeScheme(tic);
+
+  	s7_scheme* sc = core->currentVM = s7_init();
+  	initAPI(core);
+
+  	s7_define_function(sc, "__TIC_ErrorHandler", scheme_error_handler, 1, 0, 0, NULL);
+  	/* See "set the error-hook function.scm" and pretend its a properly escaped C string. */
+  	s7_eval_c_string(sc, <<set the error-hook function.scm>>);
+  	s7_eval_c_string(sc, defstructStr);
+
+  	s7_define_variable(sc, TicCore, s7_make_c_pointer(sc, core));
+  	s7_load_c_string(sc, code, strlen(code));
+
+  	const bool isTicDefined = s7_is_defined(sc, ticFnName);
+  	if (!isTicDefined) {
+  		if (core->data) {
+  			core->data->error(core->data->data, "TIC function is not defined");
+  		}
+  	}
+
+  	return true;
+  }
+#+end_src
+
+#+name: set the error-hook function
+#+begin_src scheme
+  (set! (hook-functions *error-hook*)
+  			(list (lambda (hook)
+  							(__TIC_ErrorHandler
+  							 (format #f "~s: ~a\n--STACKTRACE--\n~a"
+  											 ((owlet) 'error-type)
+  											 (apply format #f (hook 'data))
+  											 (stacktrace)))
+  							(set! (hook 'result) #f))))
+#+end_src
+
+Based on the requirements of *TIC-80* it seems clear that I need to define a
+wrapping function to initialize *R* and pass around some information
+appropriately.
+
+*** Console evaluation
+The console of the main application, when running, has an =eval= command which
+can be used to evaluate source code in the scripting language of the currently
+loaded cartridge. This is a good target for integrating R into TIC-80. I need to
+be able to evaluate R in any context, so to be able to evaluate R in the context
+of a CLI is natural to both R and TIC-80; this is where I'll start.
+
+#+begin_comment
+What is a context?
+#+end_comment
+
+The ~onEvalCommand~ function in the TIC-80 C API takes a =Console *= which is
+used to retrieve access to the console. This console object is used by functions
+for making the VTTY carriage return (begin a new line), retrieving the
+=tic_script= object which contains pointers to the evaluation function, etc.
+
+As a test of R working, I will print the values of ~R.version.string~ and
+~R.version~ on the console, first by simply retrieving these values from R and
+printing them using the C API, and then eventually printing them using the
+TIC-80 API function ~trace~.
+
+~script_config->eval~ here is the same ~void (*eval)(tic_mem* tic, const char*
+code)~ defined later in [[*Exporting a =tic_script= for *TIC-80* to use at
+compile-time]]. If there is an eval function then the /count of the description/
+is checked for non-zero length, and then the eval function is called with the
+~tic_mem *memory = (console)->tic~ parameter and a reference to the code
+beginning at some offset determined by
+~console->desc->src+strlen(console->desc->command)~. This offset calculation is
+essentially the command name =eval= length and one for the necessary whitespace
+following =eval= and one more to get the actual beginning of the source string
+to evaluate.
+
+#+begin_src C
+  static void onEvalCommand(Console* console)
+  {
+    printLine(console);
+
+    const tic_script* script_config = tic_get_script(console->tic);
+
+    if (script_config->eval)
+    {
+      if(console->desc->count)
+        script_config->eval(console->tic,
+                            console->desc->src+strlen(console->desc->command));
+      else printError(console, "nothing to eval");
+    }
+    else
+    {
+      printError(console, "'eval' not implemented for the script");
+    }
+
+    commandDone(console);
+  }
+#+end_src
+
+My evaluation function is entirely free to ignore the TIC-80 memory and simply
+evaluate the code provided. ~eval~ is a void function, so I won't know this
+succeeded without doing some more work within my own ~eval~ function definition
+to print the results of evaluation by R onto the standard error stream (which
+I'll do during debugging).
+
+*** Initializing the API
+When initializing R as an embedded interpreter, the TIC-80 API also needs to be
+initialized. In the Scheme langauge integration for the API, this occurs using a
+preprocessor macro which scrubs through the sources and uses a C function to
+define multiple Scheme functions within the bounds of the Scheme interpeter.
+
+#+name: a quotation from the *TIC-80* =scheme.c=
+#+begin_src c
+  static void initAPI(tic_core* core)
+  {
+  	s7_scheme* sc = core->currentVM;
+
+  #define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...)					\
+  	{scheme_ ## name, desc  "\n" helpstr, count, reqcount, "t80::" #name},
+
+  	static const struct{s7_function func; const char* helpstr; int count; int reqcount; const char* name;} ApiItems[] =
+  		{TIC_API_LIST(API_FUNC_DEF)};
+
+  #undef API_FUNC_DEF
+
+  	for (s32 i = 0; i < COUNT_OF(ApiItems); i++) {
+  		s7_define_function(sc,
+  											 ApiItems[i].name,
+  											 ApiItems[i].func,
+  											 ApiItems[i].reqcount,
+  											 ApiItems[i].count - ApiItems[i].reqcount, // opt count
+  											 false, // rest_arg
+  											 ApiItems[i].helpstr);
+  	}
+  }
+#+end_src
+
+
+To aid my own understanding, I'm reorganizing the quoted code in this modified
+form. Before doing that I'll read out what I understand. =initAPI= is a void
+function which defines a static struct which is identical across calls to this
+function (the struct is not recreated each invocation, it would always point to
+the same object [a contiguous region of storage]). This static struct is used
+with the "scheme core" discussed earlier to define an array of functions
+inside the Scheme interpreter.
+
+While it is acceptable to place preprocessor tokens anywhere, and it is
+admirable to place the definition immediately prior to its invocation and then
+undefine it, it makes more sense to me to define this outside the function body
+and not undefine it.
+
+#+name: a modified quotation from the *TIC-80* =scheme.c=
+#+begin_src c
+  #define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...) { \
+      scheme_##name,                                                \
+      desc "\n" helpstr,                                            \
+      count,                                                        \
+      reqcount,                                                     \
+      "t80::"##name                                                 \
+    }, /* DONT delete this trailing comma! It's intentional! */
+
+  static void initAPI(tic_core* core)
+  {
+    s7_scheme* sc = core->currentVM;
+
+    static const struct {
+      s7_function func;
+      const char* helpstr;
+      int count;
+      int reqcount;
+      const char* name;
+    } ApiItems[] = { TIC_API_LIST(API_FUNC_DEF); };
+
+    for (s32 i = 0; i < COUNT_OF(ApiItems); i++) {
+      s7_define_function(sc,
+                         ApiItems[i].name,
+                         ApiItems[i].func,
+                         ApiItems[i].reqcount,
+                         ApiItems[i].count - ApiItems[i].reqcount, // opt count
+                         false, // rest_arg
+                         ApiItems[i].helpstr);
+    }
+  }
+#+end_src
+
+* DONE License
+CLOSED: [2024-11-06 Wed 00:33]
+Copyright © 2024 Bryce Carson
+
+Except where otherwise noted, the following license is applicable to all code
+across this document. The prose in the WWW, PDF, or other rendering of this
+document is licensed under the terms of the GNU Free Documentation License,
+version 1.3.
+
+#+name: LICENSE
+#+begin_src c
+/* MIT License
+ *
+ * Copyright © 2024 Bryce Carson
+ *
+ * GitHub: bryce-carson
+ * Email: bryce.a.carson@gmail.com
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+#+end_src
+
+* TODO Writing the R API for TIC-80
+The TIC-80 API functions need to be defined in the global environment after
+initializing R, and if they're writtin in C then they need to be registered with
+R, rather than R code evaluated by R.
+
+** Macros and PREDECLARATIONS
+Every function wrapping an internal TIC-80 C API must eventually call an
+internal API function, as in the following example. These functions each
+require, as their first argument, ~tic_mem *tic~.
+
+#+begin_example C
+  core->api.print(tic, text, x, y, color, fixed, scale, alt)
+#+end_example
+
+That is made easier by defining the following symbols and macros to reference
+them.
+
+#+begin_src C :noweb-ref PREDECLARATIONS
+  static SEXP RTicRam; /* An external pointer (to an object of type tic_mem) to the object with the symbol "mem". */
+  #define TICAPI(CMD, ...) ((tic_core *)R_ExternalPtrAddr(RTicRam))->api.CMD(R_ExternalPtrAddr(RTicRam) __VA_OPT__(,) __VA_ARGS__)
+#+end_src
+
+The example then becomes as follows.
+
+#+begin_example C
+  RTICAPI.print(RTICRAM, text, x, y, color, fixed, scale, alt);
+#+end_example
+
+To handle conversion between R SEXPTYPEs and standard C types the following
+macros are declared.
+
+#+begin_src C :noweb-ref PREDECLARATIONS
+  #define drIntp(x)  *((int   *)x)
+  #define drDblp(x)  *((int   *)x)
+  #define drLglp(x)  *((int   *)x)
+  #define drCrap(x)  *((char **)x)
+  #define ARGS(x) Rf_elt(args, x)
+#+end_src
+
+Functions in the R TIC-80 API subject to manual reference counting require more
+attention in C programming may make use of the following macros. These macros
+are /only useful for C constants/, as everything within =args= is already
+protected from garbage collection because =...= is in use already in the
+=.External= interface. However, any /wholly new SEXPs/ created from values
+extracted from =args= will need to be protected. References to existing SEXPs
+will not require further protection.
+
+#+begin_src C :noweb-ref PREDECLARATIONS
+  #define RSTRT(x) SEXP x(SEXP args) { int protected_count = 0; const int argn = Rf_length(args);
+  #define RUNP UNPROTECT(protected_count);
+  #define REND }
+  #define ProtectAndIncrement(x) (++protected_count, PROTECT(x))
+  #define psint(x) ProtectAndIncrement(Rf_ScalarInteger(x))
+  #define pslgl(x) ProtectAndIncrement(Rf_ScalarLogical(x))
+  #define psstr(x) ProtectAndIncrement(Rf_ScalarString(x))
+#+end_src
+
+This macro makes it easier to evaluate R code in the global environment.
+
+#+begin_src C :noweb-ref PREDECLARATIONS
+  #define EVALG(x) R_ParseEvalString(x, R_GlobalEnv)
+#+end_src
+
+** Procedures to initialize, close, and re-initialize R
+In the Lua integration the manner to initialize Lua is the use of a pointer to a
+=lua_State= type (which is actually a thread, but indirectly refers to the state
+associated with the thread). Every Lua C API function requires a pointer of this
+type as its first argument, so calling the procedure ~lua_newstate~ creates a
+fresh, independent thread of execution. That's all that is required to embed and
+then instantiate a Lua 5.4 interpreter within a larger application.
+
+R does not require passing a pointer to a virtual machine to use it. If the
+interpreter is embedded within an application all of the functionality of the R
+interpreter is made readily available without reference to some virtual machine.
+~Rf_initEmbeddedR~ pairs with ~Rf_endEmbeddedR(0);~. R is not designed to have
+multiple virtual machines running in parallel within the same embedding context,
+likely, so that is why it protects itself from being initialized more than once.
+R does its own virtual machine management.
+
+The general design of TIC-80 relies on an embedded language API using pointers
+to the interpreter as the first argument of many of its functions. This is an
+active design choice and is likely related to memory management in TIC-80, which
+is necessarily complicated by the fact that langauge interpreters are of
+different sizes, as are their language codes which say ~Hello, world!~. It's a
+complicated topic. I won't think on it.
+
+R is not designed to be embedded in the same sense as other languages, it is not
+an extension language for other programs, it is /the main program/ and even has
+built-in variables implying it is assumed to be true that
+=R_running_as_main_program=, even when embedded, and a potential ~longjmp~
+complicates matters more. Still, we will push on towards our goal despite my
+ignorance and inexperience.
+
+R expects the arguments from the operating system shell to be passed along to
+it---"Yes, even when embedded."---and thus we need fake arguments. For now,
+we'll borrow the code from the /Writing R Extensions/ manual to pass
+~Rf_initEmbeddedR~ some fake arguments, and we'll write a procedure to handle
+restarting R as necessary and tracking the current interpreter (there can be
+only one).
+
+#+begin_src C :noweb no-export :noweb-ref cartridge commands
+  void R_CleanUp(Rboolean saveact, int status, int RunLast) { ; }
+
+  void R_Suicide(const char *message)
+  {
+    char  pp[1024];
+    snprintf(pp, 1024, "Fatal error, but can't kermit: %s\n"
+             "Execute me, please.\n", message);
+    R_ShowMessage(pp);
+    exit(1);
+
+    while(1);
+  }
+
+  void R_ShowMessage(const char *s) {
+  /* Always use the sixteenth color. */
+    TICAPI(trace, s, 15);
+  }
+
+  static bool R_Initialized = false;
+
+  static void closeR(tic_mem *tic) {
+    if (R_Initialized) {
+      Rf_endEmbeddedR(0);
+
+      /* Set the currentVM to NULL if it is not already null. */
+      tic_core *core;
+      if ((core = (((tic_core *) tic))->currentVM) != NULL) {
+        core->currentVM = NULL;
+      }
+    }
+  }
+
+  /* This function is called with code, which is the entirety of the studio
+     ,,* editor's code buffer (i.e. the entire game code as one string). */
+  static bool initR(tic_mem *tic, const char *code) {
+    closeR(tic);
+
+    /* embdRAV: embedded R argument vector. */
+    static char *embdRAV[] = { "TIC-80", "--quiet", "--vanilla" };
+
+    /* Without this nothing in R will work. */
+    setEnvironmentVariablesIfUnset();
+
+    R_running_as_main_program = 0;
+
+    if (!R_Initialized) {
+      R_Initialized = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]),
+                                              embdRAV);
+      R_running_as_main_program = 0;
+      /* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
+      R_Interactive = false;
+      RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
+      initializeRExternalMethodsDefinedInC();
+
+      /* Ensure a dummy function is defined for all of the important functions
+       ,* that will be called. */
+      /* TODO: test that TIC-80, minimally, has been redefined. If the others are
+       ,* not redefined from `{` print a single warning on the standard error (AND
+       ,* ABSOLUTLY NOWHERE ELSE). */
+      EVALG("`TIC-80` <- BDR <- BOOT <- MENU <- SCN <- `{`");
+
+      /* Manually create a vector of type string, parse it, then evaluate it
+       ,* expression by expression. */
+      SEXP code_sexp, code_expr, code_result = R_NilValue;
+      ParseStatus code_parse_status;
+      code_sexp = PROTECT(Rf_allocVector(STRSXP, 1));
+      SET_STRING_ELT(code_sexp, 0, Rf_mkChar(code));
+      code_expr = PROTECT(R_ParseVector(code_sexp, -1, &code_parse_status, R_NilValue));
+      if (code_parse_status != PARSE_OK) {
+        UNPROTECT(2);
+        Rf_error("Invalid call %s", code);
+      }
+      for (int i = 0; i < Rf_length(code_expr); i++) {
+        Rf_eval(VECTOR_ELT(code_expr, i), R_GlobalEnv);
+      }
+      UNPROTECT(2);
+
+      /* MAYBE: this might not be appropriate; do other APIs call BOOT? I should
+       ,* also use the function defined through macro expansion to call the BOOT
+       ,* function if that is appropriate. */
+      EVALG("BOOT();");
+    }
+
+    return R_Initialized;
+  }
+
+#+end_src
+
+** TODO Callbacks
+It might not be advisable to define the ~TIC~ function in the R API as
+~`TIC-80`~, but because R allows non-syntactic names I'll use it so that the
+actual name of the fantasy machine can be used.
+
+The =exists= function doesn't use symbols: it uses strings to lookup symbols.
+That is why this definition of a ~callRFn_~ C function differs between this
+chunk (below) and the ~defineCallRFn~ macro defined elsewhere: stringizing the
+macro parameter is a little awkward, and calling the function using the
+non-syntactic identifier quotes isn't necessary for the other functions.
+
+#+begin_src C :noweb-ref cartridge commands
+  static void callRFn_TIC80(tic_mem* tic) {
+    SEXP exists = EVALG("`TIC-80`();");
+  }
+#+end_src
+
+#+DESCRIPTION: RESOLVED: SEGFAULT; invlaid permissions; calling .External("btn", b).
+#+begin_comment
+When this function is called the program performs a jump (using SETJMP) to a
+handler which exits the program due to a fatal error in R. Likely there is just
+an issue with the R code and I need to register handlers which will safely exit
+R and return to the TIC-80 console with the error. Returned to the console, the
+user can then run their (assumedly) fixed code with R.
+
+I'm guessing, from this traceback, that when I try to use "btn" with .External
+that is when shit fails.
+
+ *** caught segfault ***
+address 0x1f99f490, cause 'invalid permissions'
+
+Traceback:
+ 1: (function (b, o) if (.External("btn", b)) eval(o, .GlobalEnv))(dots[[1L]][[1L]],     dots[[2L]][[1L]])
+ 2: mapply(function(b, o) if (.External("btn", b)) eval(o, .GlobalEnv),     0:3, list(quote(dec(y)), quote(inc(y)), quote(dec(x)), quote(inc(x))))
+ 3: `TIC-80`()
+An irrecoverable exception occurred. R is aborting now ...
+Segmentation fault (core dumped)
+#+end_comment
+
+** Callbacks for BOOT, MENU, BDR, and SCN
+Previously, the following macro only generated R code defining syntactic
+identifiers; after reviewing the help page for quoting in R, it makes more sense
+for it to always quote the name to be called as a function if that name exists
+and is a function (the latter test also using back-quoting, but no matter). This
+allows the calling of both syntactic and non-syntactic names in R, allowing the
+macro to generate the C code which will call any defined R function in the
+global environment. An obvious extension would be the definition of another
+macro expanding to a call of this one with supplied, alternative environment. An
+inobvious (to me, at first) issue is that anything which is a non-syntactic name
+in R is absolutely a non-syntactic name in C and cannot be used! The ability to
+define a C function to call an R function with any name does not help me in the
+way I originally intended, unless I rewrite the macro to use another argument
+(if supplied) as the R function name that will be called in R, while the
+argument =f= is the C function identifier. That's too much work for now and zero
+benefit, so I continue using the previous code block to define the C function to
+call a non-syntactic name in R as a function.
+
+#+name: comment on the following block of preprocessor definitions
+#+begin_comment
+The callback functions below are okay. If you're reading this, coming from the
+current mess in the [[Debugging segfaults]] section then references to R_GlobalEnv
+in this code block aren't related to the references to that environment in the
+backtrace quoted in the mentioned section.
+#+end_comment
+
+#+name: proprocessor definitions to define cartridge callback functions
+#+begin_src C :noweb-ref cartridge commands
+  #define defineCallRFnInEnvironment_(f, e, ...)                          \
+    static void callRFn_##f(tic_mem *tic __VA_OPT__(,) __VA_ARGS__) {     \
+      R_ParseEvalString("if (exists(\""#f"\") && is.function(`"#f"`)) "   \
+                        "`"#f"`() else stop(\""#f" is not a defined function!\")", \
+                        e);                                               \
+    }
+  /* i.e., if (exists("f") && is.function(`f`)) `f`(), allowing call of syntactic
+   ,* and non-syntactic names. */
+  #define defineCallRFn_(f, ...) defineCallRFnInEnvironment_(f, R_GlobalEnv __VA_OPT__(,) __VA_ARGS__)
+  defineCallRFn_(BOOT)
+  /* s32 row/index, void *data as well as the tic_mem *tic parameters. */
+  defineCallRFn_(MENU, s32 index, void *data)
+  defineCallRFn_(BDR, s32 row, void *data)
+  defineCallRFn_(SCN, s32 row, void *data)
+  #undef defineCallRFn_
+  #undef defineCallRFnInEnvironment_
+#+end_src
+
+** Exporting a =tic_script= for *TIC-80* to use at compile-time
+This constant is used by TIC-80 to setup the cartridge, both for editing in the
+"studio" and the runtime evaluat  (use-package emacsql-sqlite :after 'emacsql)
+ion of the script.
+
+#+name: TIC EXPORT
+#+begin_src c
+  /* DEFAULT visibility*/
+  /* EXPORT_SCRIPT -> RScriptConfig if static, else ScriptConfig */
+  TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
+  {
+  	/* The first five members of the struct have the sum total following
+  	 ,* size. */
+  	/* sizeof(u8) + 3 * sizeof(char *)  */
+  	/* R's id is determined by counting up from 10, beginning with Lua, all of
+  		 the other languages TIC-80 supports. Python was the 10th langauge supported,
+  		 with .id 20. */
+  	.id                     = 21,
+  	.name                   = "r",
+  	.fileExtension          = ".r",
+  	.projectComment         = "##",
+  	{
+  		.init                 = initR,
+
+  		.close                = closeR,
+  		.tick                 = callRFn_TIC80,
+  		.boot                 = callRFn_BOOT,
+
+  		.callback             =
+  		{
+  			.scanline           = callRFn_SCN,
+  			.border             = callRFn_BDR,
+  			.menu               = callRFn_MENU,
+  		},
+  	},
+
+  	.getOutline             = getROutline,
+  	.eval                   = evalR,
+
+  	.blockCommentStart      = NULL,
+  	.blockCommentEnd        = NULL,
+  	.blockCommentStart2     = NULL,
+  	.blockCommentEnd2       = NULL,
+  	.singleComment          = "##",
+  	.blockStringStart       = "\"",
+  	.blockStringEnd         = "\"",
+  	.stdStringStartEnd      = "\"",
+  	.blockEnd               = NULL,
+  	.lang_isalnum           = r_isalnum,
+  	.api_keywords           = RAPIKeywords,
+  	.api_keywordsCount      = COUNT_OF(RAPIKeywords),
+  	.useStructuredEdition   = false,
+
+  	.keywords               = RKeywords,
+  	.keywordsCount          = COUNT_OF(RKeywords),
+
+  	.demo = {DemoRom, sizeof DemoRom},
+  	.mark = {MarkRom, sizeof MarkRom, "rmark.tic"},
+  };
+#+end_src
+
+On line three of the current source file---/exempli gratia/---if =MACROVAR(it)=
+was invoked its argument would expand to =it3=. When used in the first define
+below, =it3= will be a pointer to an array of tic_scripts, which is iterated
+over (explaning the =it= argument). ~*script~ is modified, but the type
+specifier is ~const~, so what's going on with the syntax that I don't remember?
+Does it only apply to the first declared variable in the identifier list?
+
+~Scripts~ is an array of =tic_script *=-typed objects, that is it is an array of
+pointers to =tic_script= objects.
+
+#+name: FOREACH_LANG
+#+begin_src C
+  #define FOREACH_LANG(script)																						\
+  	for(const tic_script **MACROVAR(it) = tic_scripts(), *script = *MACROVAR(it); \
+  			,*MACROVAR(it);																										\
+  			script = *++MACROVAR(it))
+
+  #define CONCAT2(a, b)       a ## b
+  #define CONCAT(a, b)        CONCAT2(a, b)
+  #define MACROVAR(name)      CONCAT(name, __LINE__)
+
+
+  const tic_script** tic_scripts()
+  {
+  	return Scripts;
+  }
+
+  static const tic_script *Scripts[MAX_SUPPORTED_LANGS + 1] =
+  {
+  #if defined(TIC_RUNTIME_STATIC)
+  #if defined (TIC_BUILD_WITH_LUA)
+  	&EXPORT_SCRIPT(Lua),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_RUBY)
+  	&EXPORT_SCRIPT(Ruby),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_JS)
+  	&EXPORT_SCRIPT(Js),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_MOON)
+  	&EXPORT_SCRIPT(Moon),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_FENNEL)
+  	&EXPORT_SCRIPT(Fennel),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_SCHEME)
+  	&EXPORT_SCRIPT(Scheme),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_SQUIRREL)
+  	&EXPORT_SCRIPT(Squirrel),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_WREN)
+  	&EXPORT_SCRIPT(Wren),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_WASM)
+  	&EXPORT_SCRIPT(Wasm),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_JANET)
+  	&EXPORT_SCRIPT(Janet),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_PYTHON)
+  	&EXPORT_SCRIPT(Python),
+  #endif
+
+  #endif
+
+  	NULL,
+  };
+#+end_src
+
+*** Providing lists of syntax elements for highlighting and outline generation
+#+name: SYNTAX HIGHLIGHTING AND OUTLINE GENERATION
+#+begin_src C :noweb no-export
+	<<Specify the reserved words for automatic syntax>>
+
+	<<OUTLINE GENERATION>>
+
+	<<R API implementation keywords>>
+#+end_src
+
+**** Syntax highlighting the reserved words in R
+Syntax highlighting is not always easy, especially when regular expressions are
+involved. What we are using in TIC-80 is a more naive approach, but one which is
+easier to maintain because it is less powerful and less flexible. It is at the
+opposite side of the spectrum from a full parser or a language server.
+
+The simple system in TIC-80 merely highlights all keywords of a language in one
+colour, and all other syntax elements in another colour (presumably, the default
+foreground colour).
+
+R has only a few reserved words, and very little of it is "critical syntax"
+characters. The seemingly fundamental syntax characters ~{~ and ~(~ are actually
+function calls, which could be shadowed if desired.
+
+Reserved words cannot be used as syntactic names, but as non-syntactic names
+they can be used, so ~`if`~ is a different symbol or name than ~if~ and may be
+used otherwise, as with ~`function`~.
+
+#+name: Specify the reserved words for automatic syntax
+#+begin_src c
+  static const char* const RKeywords [] =
+  {
+  	"if", "else", "repeat", "while", "function", "for", "in", "next", "break",
+  	"TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_",
+  	"NA_complex_", "NA_character_",
+  	/* et cetera, see ?dots */
+  	"...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9",
+  };
+#+end_src
+
+***** =..n=: variadic argument access across the natural numbers
+The entirety of the natural numbers are reserved words when the occur after the
+characters ~..~, becuase any ordinal number is usable to access a member of the
+dotted argument (how R cleverly deals with variadic arguments). The functions
+which otherwise handle these variadic argument list members are not reserved
+words, for example ~..length()~ or even ~..n()~ are not reserved.
+
+**** Outline generation
+Generating and outline will provide the editor with the ability to jump to
+different areas of the script being written.
+
+#+name: OUTLINE GENERATION
+#+begin_src C
+  /* A naive edit of the Python function to check if a character is a valid
+   ,* character within an identifier. */
+  static bool r_isalnum(char c) {
+    return (
+      (c >= 'a' && c <= 'z')
+      || (c >= 'A' && c <= 'Z')
+      || (c >= '0' && c <= '9')
+      || (c == '_') || (c == '.')
+      );
+  }
+
+  static const tic_outline_item* getROutline(const char* code, s32* size)
+  {
+    enum{Size = sizeof(tic_outline_item)};
+    ,*size = 0;
+
+    static tic_outline_item* items = NULL;
+
+    if(items)
+    {
+      free(items);
+      items = NULL;
+    }
+
+    const char* ptr = code;
+
+    while(true)
+    {
+      static const char FuncString[] = "<- function(";
+
+      ptr = strstr(ptr, FuncString);
+
+      if(ptr)
+      {
+        ptr += sizeof FuncString - 1;
+
+        const char* start = ptr;
+        const char* end = start;
+
+        while(*ptr)
+        {
+          char c = *ptr;
+
+          if(r_isalnum(c));
+          else
+          {
+            end = ptr;
+            break;
+          }
+          ptr++;
+        }
+
+        if(end > start)
+        {
+          items = realloc(items, (*size + 1) * Size);
+
+          items[*size].pos = start;
+          items[*size].size = (s32)(end - start);
+
+          (*size)++;
+        }
+      }
+      else break;
+    }
+
+    return items;
+  }
+#+end_src
+
+**** R API implementation keywords
+The API keywords are either callbacks to the TIC-80 virtual machine---which can
+be thought of as an operating system interface---or the user-facing API
+functions. The following definitions are simply taken from the file =scheme.c=,
+which implements the s7 Scheme integration, and the obvious changes made (Scheme
+changed to R).
+
+While [[https://github.com/nesbox/TIC-80/discussions/2100][in this GitHub discussion]] nesbox claims that one can simply place your
+source files, with their respective langauge file suffixes, in "demos/" and the
+build process will take care of generating a .tic.dat file, that doesn't appear
+to be true [[https://github.com/nesbox/TIC-80/commit/87e91e7dd903dac7a9c232d1127a32b0d4a8dc54][given this commit]] and the inability for me to build solely due to
+these files not being created automatically by a CMake build target. That's an
+issue that will need to be opened.
+
+After taking the time to understand the macros used in the definition of
+RAPIKeywords, borrowed from SchemeAPIKeywords, I would /not/ bother to do it any
+other way, as in the way Python or Janet did it. It is really, really neat. I
+like this.
+
+#+name: R API implementation keywords
+#+begin_src C
+  static const char* RAPIKeywords[] = {
+  #define TIC_CALLBACK_DEF(name, ...) #name,
+    TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
+  #undef  TIC_CALLBACK_DEF
+
+  #define API_KEYWORD_DEF(name, ...) #name,
+    TIC_API_LIST(API_KEYWORD_DEF)
+  #undef  API_KEYWORD_DEF
+  };
+
+  static const u8 DemoRom[] =
+  {
+    /* Automatically built from ../../demos/rdemo.r */
+  #include "../build/assets/rdemo.tic.dat"
+  };
+
+  static const u8 MarkRom[] =
+  {
+    /* Automatically built from ../../demos/bunny/rbenchmark.r */
+  #include "../build/assets/rmark.tic.dat"
+  };
+#+end_src
+
+** Functions
+*** DONE Drawing
+CLOSED: [2024-11-04 Mon 00:14]
+=parseTransparentColorsArg= is a helper function which is used elsewhere in the
+drawing API.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  void parseTransparentColorsArg(/* LISTSXP */SEXP colorkey,
+                                 u8* out_transparent_colors,
+                                 u8* out_count)
+  {
+    ,*out_count = 0;
+    if ((bool) Rf_isList(colorkey))
+    {
+      const u8 arg_color_count = Rf_length(colorkey);
+      const u8 color_count = arg_color_count < TIC_PALETTE_SIZE ? (u8)arg_color_count : TIC_PALETTE_SIZE;
+      for (int i=0; i<color_count; ++i)
+      {
+        SEXP c = VECTOR_ELT(colorkey, i);
+        out_transparent_colors[i] = (bool) Rf_isInteger(c) ? drIntp(c) : 0;
+        ++(*out_count);
+      }
+    }
+    else if ((bool) Rf_isInteger(colorkey))
+    {
+      out_transparent_colors[0] = (u8) drIntp(colorkey);
+      ,*out_count = 1;
+    }
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_circ(SEXP args) {
+    // circ(x y radius color)
+    const s32 x      = drIntp(ARGS(1));
+    const s32 y      = drIntp(ARGS(2));
+    const s32 radius = drIntp(ARGS(3));
+    const s32 color  = drIntp(ARGS(4));
+
+    /* RTICAPI.circ(RTICRAM, x, y, radius, color); */
+    TICAPI(circ, x, y, radius, color);
+    return R_NilValue;
+  }
+
+  SEXP r_circb(SEXP args) {
+    // circb(x y radius color)
+    const s32 x      = drIntp(ARGS(1));
+    const s32 y      = drIntp(ARGS(2));
+    const s32 radius = drIntp(ARGS(3));
+    const s32 color  = drIntp(ARGS(4));
+
+    TICAPI(circb, x, y, radius, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_elli(SEXP args)
+  {
+    // elli(x y a b color)
+    const s32 x     = drIntp(ARGS(1));
+    const s32 y     = drIntp(ARGS(2));
+    const s32 a     = drIntp(ARGS(3));
+    const s32 b     = drIntp(ARGS(4));
+    const s32 color = drIntp(ARGS(5));
+    TICAPI(elli, x, y, a, b, color);
+    return R_NilValue;
+  }
+
+  SEXP r_ellib(SEXP args)
+  {
+    // ellib(x y a b color)
+    const s32 x     = drIntp(ARGS(1));
+    const s32 y     = drIntp(ARGS(2));
+    const s32 a     = drIntp(ARGS(3));
+    const s32 b     = drIntp(ARGS(4));
+    const s32 color = drIntp(ARGS(5));
+    TICAPI(ellib, x, y, a, b, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+    SEXP r_tri(SEXP args)
+    {
+      // tri(x1 y1 x2 y2 x3 y3 color)
+      const s32 x1    = drIntp(ARGS(1));
+      const s32 y1    = drIntp(ARGS(2));
+      const s32 x2    = drIntp(ARGS(3));
+      const s32 y2    = drIntp(ARGS(4));
+      const s32 x3    = drIntp(ARGS(5));
+      const s32 y3    = drIntp(ARGS(6));
+      const s32 color = drIntp(ARGS(7));
+
+      TICAPI(tri, x1, y1, x2, y2, x3, y3, color);
+      return R_NilValue;
+    }
+
+    SEXP r_trib(SEXP args)
+    {
+      // trib(x1 y1 x2 y2 x3 y3 color)
+      const s32 x1    = drIntp(ARGS(1));
+      const s32 y1    = drIntp(ARGS(2));
+      const s32 x2    = drIntp(ARGS(4));
+      const s32 y2    = drIntp(ARGS(5));
+      const s32 x3    = drIntp(ARGS(6));
+      const s32 y3    = drIntp(ARGS(7));
+      const s32 color = drIntp(ARGS(8));
+      TICAPI(tri, x1, y1, x2, y2, x3, y3, color);
+      return R_NilValue;
+    }
+
+    SEXP r_ttri(SEXP args)
+    {
+      /* ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3
+              texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
+         ⮑ nil */
+      const s32 x1 = drIntp(ARGS(1));
+      const s32 y1 = drIntp(ARGS(2));
+      const s32 x2 = drIntp(ARGS(3));
+      const s32 y2 = drIntp(ARGS(4));
+      const s32 x3 = drIntp(ARGS(5));
+      const s32 y3 = drIntp(ARGS(6));
+      const s32 u1 = drIntp(ARGS(7));
+      const s32 v1 = drIntp(ARGS(8));
+      const s32 u2 = drIntp(ARGS(9));
+      const s32 v2 = drIntp(ARGS(10));
+      const s32 u3 = drIntp(ARGS(11));
+      const s32 v3 = drIntp(ARGS(12));
+
+      const int argn = Rf_length(args);
+      const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? drIntp(ARGS(13)) : 0);
+
+      static u8 trans_colors[TIC_PALETTE_SIZE];
+      u8 trans_count = 0;
+
+      if (argn > 13)
+      {
+        /* Scheme uses expects this to be a list, so I will too? Properly, however,
+         ,* it should be an expression type... which would be `{`. */
+        SEXP colorkey = ARGS(14);
+        parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
+      }
+
+      bool depth = argn > 14 ? true : false;
+      const s32 z1 = argn > 14 ? drIntp(ARGS(15)) : 0;
+      const s32 z2 = argn > 15 ? drIntp(ARGS(16)) : 0;
+      const s32 z3 = argn > 16 ? drIntp(ARGS(17)) : 0;
+
+      TICAPI(ttri, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3,
+             texsrc, trans_colors, trans_count, z1, z2, z3, depth);
+      return R_NilValue;
+    }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_clip(SEXP args)
+  {
+    // clip(x y width height)
+    // clip()
+    const int argn = Rf_length(args);
+    if (argn != 4) {
+      TICAPI(clip, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+    } else {
+      const s32 x = drIntp(ARGS(1));
+      const s32 y = drIntp(ARGS(2));
+      const s32 w = drIntp(ARGS(3));
+      const s32 h = drIntp(ARGS(4));
+      TICAPI(clip, x, y, w, h);
+    }
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_font(SEXP args)
+  {
+    // font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width
+    const char* text = drCrap(ARGS(1));
+    const s32 x      = drIntp(ARGS(2));
+    const s32 y      = drIntp(ARGS(3));
+
+    static u8 trans_colors[TIC_PALETTE_SIZE];
+    u8 trans_count = 0;
+    SEXP colorkey = ARGS(4);
+    parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
+
+    const s32 w = drIntp(ARGS(5));
+    const s32 h = drIntp(ARGS(6));
+
+    const int argn = Rf_length(args);
+    const s32 fixed = argn > 6 ? drLglp(ARGS(7)) : false;
+    const s32 scale = argn > 7 ? drIntp(ARGS(8)) : 1;
+    const s32 alt   = argn > 6 ? drLglp(ARGS(9)) : false;
+
+    return Rf_ScalarInteger(TICAPI(font, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_spr(SEXP args) {
+    // spr(id x y colorkey=-1 scale=1 flip=0 rotate=0 w=1 h=1)
+    static u8 trans_colors[TIC_PALETTE_SIZE];
+    u8 trans_count = 0;
+
+    const s32 id = drIntp(ARGS(1));
+    const s32 x  = drIntp(ARGS(2));
+    const s32 y  = drIntp(ARGS(3));
+
+    const int argn = Rf_length(args);
+
+    if (argn > 3)
+    {
+      /* DONE: DOES NOT NEED protection and unprotection becausse the LISTSXP is a
+       ,* part of the args. */
+      SEXP colorkey = ARGS(4);
+      parseTransparentColorsArg(
+        /*Within the Scheme API*/ colorkey, /*is a LIST, so here it should be a LISTSXP.*/
+        trans_colors,
+        &trans_count
+      );
+    }
+    const s32 scale     = argn > 4 ? drIntp(ARGS(5)) : 1;
+    const s32 flip      = argn > 5 ? drIntp(ARGS(6)) : 0;
+    const s32 rotate    = argn > 6 ? drIntp(ARGS(7)) : 0;
+    const s32 w         = argn > 7 ? drIntp(ARGS(8)) : 1;
+    const s32 h         = argn > 8 ? drIntp(ARGS(9)) : 1;
+    TICAPI(spr, id, x, y,
+           w, h, trans_colors, trans_count, scale,
+           (tic_flip) flip,
+           (tic_rotate) rotate);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_print(SEXP args) {
+    /* print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false)
+     ,* ⮑ width*/
+    const int argn = Rf_length(args);
+    const char *text  = CHAR(STRING_ELT(ARGS(1), 0));
+    const s32   x     = argn > 1 ? drIntp(ARGS(2)): 0;
+    const s32   y     = argn > 2 ? drIntp(ARGS(3)): 0;
+    const u8    color = argn > 3 ? drIntp(ARGS(4)): 15;
+    const bool  fixed = argn > 4 ? drIntp(ARGS(5)): false;
+    const s32   scale = argn > 5 ? drIntp(ARGS(6)): 1;
+    const bool  alt   = argn > 6 ? drIntp(ARGS(7)): false;
+
+    return Rf_ScalarLogical(TICAPI(print, text, x, y, color, fixed, scale, alt));
+  }
+#+end_src
+
+With the preprocessor macros and the R API function ~R_ExternalPtrAddr~ I have
+sufficiently simplified the defintion of an =.External= R function to the point
+I'm happy to write these and edit the ones which I already have copied from
+the s7 Scheme API.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_cls(SEXP args) {
+    /* cls(color=0)
+     ,* ⮑ nil */
+    const int argn = Rf_length(args);
+    const u8 color = (argn > 0) ? *REAL(ARGS(1)) : 0;
+    TICAPI(cls, color);
+
+    return R_NilValue;
+  }
+#+end_src
+
+It isn't so bad to write these now. I can focus on /handling the arguments/,
+regardless of their number, rather than acquiring the number of arguments and
+protecting intermediate values.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_pix(SEXP args) {
+    /* pix(x y color = 0)
+  	 ,* ⮑ nil
+  	 ,* pix(x y)
+     ,* ⮑ color */
+    const s32 x = drIntp(ARGS(1));
+    const s32 y = drIntp(ARGS(2));
+
+    const int argn = Rf_length(args);
+    if (argn == 3) {
+      const u8 color = drIntp(ARGS(3));
+      TICAPI(pix, x, y, color, false);
+      return R_NilValue;
+    } else {
+      return Rf_ScalarInteger(TICAPI(pix, x, y, 0, true));
+    }
+  }
+#+end_src
+
+PIX is a setter and getter function; if provided with a color it will set the
+pixel at that position to that color (returning ~nil~, ~NULL~ in R), otherwise
+it will return the color of the pixel at that position.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_line(SEXP args) {
+    /* line(x0 y0 x1 y1 color)
+  	 ,* ⮑ nil */
+    const s32 x0    = drIntp(ARGS(1));
+    const s32 y0    = drIntp(ARGS(2));
+    const s32 x1    = drIntp(ARGS(3));
+    const s32 y1    = drIntp(ARGS(4));
+    const u8  color = drIntp(ARGS(5));
+
+    TICAPI(line, x0, y0, x1, y1, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_rect(SEXP args)
+  {
+    // rect(x y w h color)
+    const s32 x     = drIntp(ARGS(1));
+    const s32 y     = drIntp(ARGS(2));
+    const s32 w     = drIntp(ARGS(3));
+    const s32 h     = drIntp(ARGS(4));
+    const u8  color = drIntp(ARGS(5));
+    TICAPI(rect, x, y, w, h, color);
+    return R_NilValue;
+  }
+
+  SEXP r_rectb(SEXP args)
+  {
+    // rectb(x y w h color)
+    const s32 x     = drIntp(ARGS(1));
+    const s32 y     = drIntp(ARGS(2));
+    const s32 w     = drIntp(ARGS(3));
+    const s32 h     = drIntp(ARGS(4));
+    const u8  color = drIntp(ARGS(5));
+    TICAPI(rectb, x, y, w, h, color);
+    return R_NilValue;
+  }
+#+end_src
+
+**** =map=, which optionally uses a callback function written in the chosen API language
+=remapCallback= uses a pointer to call a given Scheme function, stored in ~remap->callback~.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  typedef struct
+  {
+    tic_core *core;
+    SEXP callback;
+  } RemapData;
+
+  static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
+  {
+    RemapData* remap = (RemapData*) data;
+    tic_core* core = remap->core;
+
+    /* NOTE: Call the callback function. */
+    // callback(index x y) -> list(index flip rotate)
+    /* callback(index, x, y) */
+    if (Rf_isFunction(remap->callback)) {
+      SEXP callbackResult = Rf_lang4(remap->callback,
+                                     Rf_ScalarInteger(result->index),
+                                     Rf_ScalarInteger(x),
+                                     Rf_ScalarInteger(y));
+
+      if (Rf_isList(callbackResult) && Rf_length(callbackResult) == 3)
+      {
+        result->index  =              drIntp(Rf_elt(callbackResult, 1));
+        result->flip   = (tic_flip)   drIntp(Rf_elt(callbackResult, 2));
+        result->rotate = (tic_rotate) drIntp(Rf_elt(callbackResult, 3));
+      }
+    }
+  }
+
+  SEXP r_map(SEXP args)
+  {
+    // map(x=0 y=0 w=30 h=17 sx=0 sy=0 colorkey=-1 scale=1 remap=nil)
+    const s32 x  = drIntp(ARGS(1));
+    const s32 y  = drIntp(ARGS(2));
+    const s32 w  = drIntp(ARGS(3));
+    const s32 h  = drIntp(ARGS(4));
+    const s32 sx = drIntp(ARGS(5));
+    const s32 sy = drIntp(ARGS(6));
+
+    const int argn = Rf_length(args);
+
+    static u8 trans_colors[TIC_PALETTE_SIZE];
+    u8 trans_count = 0;
+    if (argn > 6) {
+      SEXP colorkey = ARGS(7);
+      parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
+    }
+
+    const s32 scale = argn > 7 ? drIntp(ARGS(8)) : 1;
+
+    RemapFunc remap = NULL;
+    RemapData data;
+    if (argn > 8)
+    {
+      remap = remapCallback;
+      data.core = ((tic_core *)RTicRam);
+      data.callback = ARGS(9);
+    }
+    TICAPI(map, x, y, w, h, sx, sy, trans_colors, trans_count, scale, remap, &data);
+    return R_NilValue;
+  }
+#+end_src
+
+*** DONE Input
+CLOSED: [2024-11-04 Mon 00:21]
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_key(SEXP args)
+  {
+    //key(code=-1) -> pressed
+    const int argn = Rf_length(args);
+    const tic_key code = argn > 0 ? drIntp(ARGS(1)) : -1;
+    return Rf_ScalarLogical(TICAPI(key, code));
+  }
+
+  SEXP r_keyp(SEXP args)
+  {
+    // keyp(code=-1 hold=-1 period=-1) -> pressed
+    const int argn = Rf_length(args);
+    const tic_key code = argn > 0 ? drIntp(ARGS(1)) : -1;
+    const s32 hold     = argn > 1 ? drIntp(ARGS(2)) : -1;
+    const s32 period   = argn > 2 ? drIntp(ARGS(3)) : -1;
+    return Rf_ScalarLogical(TICAPI(keyp, code, hold, period));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  /* This API function does not use the convenience macros because it doesn't need
+   ,* to protect any values from garbage collection, because every use of an R API
+   ,* call is to manipulate a C value which R does not control the memory of. */
+  SEXP r_mouse(SEXP args)
+  {
+    /* mouse()
+  	 ,* ⮑ x y left middle right scrollx scrolly */
+  	tic_mem *tic = (tic_mem *) RTicRam;
+  	tic_core* core = (tic_core *)tic;
+
+    const tic_point point = core->api.mouse(tic);
+    const tic80_mouse* mouse = &((tic_core*)tic)->memory.ram->input.mouse;
+
+    return CONS(Rf_ScalarInteger(point.x),
+                Rf_list6(Rf_ScalarInteger(point.y),
+                      Rf_ScalarInteger(mouse->left),
+                      Rf_ScalarInteger(mouse->middle),
+                      Rf_ScalarInteger(mouse->right),
+                      Rf_ScalarInteger(mouse->scrollx),
+                      Rf_ScalarInteger(mouse->scrolly)));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_btn(SEXP args)
+  {
+    // btn(id) -> pressed
+    /* return Rf_ScalarLogical(TICAPI(btn, (s32) drIntp(ARGS(1)))); */
+    return Rf_ScalarLogical(TICAPI(btn, (s32) Rf_asInteger(ARGS(1))));
+  }
+
+  SEXP r_btnp(SEXP args)
+  {
+    // btnp(id hold=-1 period=-1) -> pressed
+    const s32 id = drIntp(ARGS(1));
+    const int argn = Rf_length(args);
+    const s32 hold = argn > 1 ? drIntp(ARGS(2)) : -1;
+    const s32 period = argn > 2 ? drIntp(ARGS(3)) : -1;
+
+    return Rf_ScalarLogical(TICAPI(btnp, id, hold, period));
+  }
+#+end_src
+
+*** DONE Sound
+CLOSED: [2024-11-04 Mon 00:39]
+These API functions are related to sound processing.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  u8 get_note_base(char c) {
+    switch (c) {
+    case 'C': return 0;
+    case 'D': return 2;
+    case 'E': return 4;
+    case 'F': return 5;
+    case 'G': return 7;
+    case 'A': return 9;
+    case 'B': return 11;
+    default:  return 255;
+    }
+  }
+
+  u8 get_note_modif(char c) {
+    switch (c) {
+    case '-': return 0;
+    case '#': return 1;
+    default:  return 255;
+    }
+  }
+
+  u8 get_note_octave(char c) {
+    if (c >= '0' && c <= '8')
+      return c - '0';
+    else
+      return 255;
+  }
+
+  SEXP r_music(SEXP args)
+  {
+    // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
+    const int argn     = Rf_length(args);
+    const s32  track   = argn > 0 ? drIntp(ARGS(1)) : -1;
+    const s32  frame   = argn > 1 ? drIntp(ARGS(2)) : -1;
+    const s32  row     = argn > 2 ? drIntp(ARGS(3)) : -1;
+    const bool loop    = argn > 3 ? drLglp(ARGS(4)) : true;
+    const bool sustain = argn > 4 ? drLglp(ARGS(5)) : false;
+    const s32  tempo   = argn > 5 ? drIntp(ARGS(6)) : -1;
+    const s32  speed   = argn > 6 ? drIntp(ARGS(7)) : -1;
+    TICAPI(music, track, frame, row, loop, sustain, tempo, speed);
+    return R_NilValue;
+  }
+
+  SEXP r_sfx(SEXP a, SEXP args)
+  {
+    // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)
+    const s32 id = drIntp(ARGS(1));
+    const int argn = Rf_length(args);
+    int note = -1;
+    int octave = -1;
+    if (argn > 1) {
+      SEXP note_ptr = ARGS(2);
+      if (Rf_isInteger(note_ptr)) {
+        const s32 raw_note = drIntp(note_ptr);
+        if (raw_note >= 0 || raw_note <= 95) {
+          note = raw_note % 12;
+          octave = raw_note / 12;
+        }
+        /* else { */
+        /*     char buffer[100]; */
+        /*     snprintf(buffer, 99, "Invalid sfx note given: %d\n", raw_note); */
+        /*     tic->data->error(tic->data->data, buffer); */
+        /* } */
+      } else if (/*I don't see the function*/ Rf_isString(note_ptr) /*documented in the info manual, but apparently it exists!*/) {
+        const char* note_str = drCrap(note_ptr);
+        const u8 len = Rf_length(note_ptr);
+        if (len == 3) {
+          const u8 modif = get_note_modif(note_str[1]);
+          note = get_note_base(note_str[0]);
+          octave = get_note_octave(note_str[2]);
+          if (note < 255 || modif < 255 || octave < 255) {
+            note = note + modif;
+          } else {
+            note = octave = 255;
+          }
+        }
+        /* if (note == 255 || octave == 255) { */
+        /*     char buffer[100]; */
+        /*     snprintf(buffer, 99, "Invalid sfx note given: %s\n", note_str); */
+        /*     tic->data->error(tic->data->data, buffer); */
+        /* } */
+      }
+    }
+
+    const s32 duration = argn > 2 ? drIntp(ARGS(3)) : -1;
+    const s32 channel  = argn > 3 ? drIntp(ARGS(4)) : 0;
+
+    s32 volumes[TIC80_SAMPLE_CHANNELS] = { MAX_VOLUME, MAX_VOLUME };
+    if (argn > 4) {
+      SEXP volume_arg = ARGS(5);
+      if (Rf_isInteger(volume_arg)) {
+        volumes[0] = volumes[1] = drIntp(volume_arg) & 0xF;
+      } else if (Rf_isList(volume_arg) && Rf_length(volume_arg) == 2) {
+        volumes[0] = drIntp(CADR(volume_arg)) & 0xF;
+        volumes[1] = drIntp(CADDR(volume_arg)) & 0xF;
+      }
+    }
+    const s32 speed = argn > 5 ? drIntp(ARGS(6)) : 0;
+
+    TICAPI(sfx, id, note, octave, duration, channel, volumes[0], volumes[1], speed);
+    return R_NilValue;
+  }
+#+end_src
+
+*** DONE Memory
+CLOSED: [2024-11-04 Mon 14:20]
+These functions hack on the memory of the fantasy console. IO is memory-mapped
+in TIC-80, so these functions are called frequently.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_sync(SEXP args)
+  {
+    // sync(mask=0 bank=0 tocart=false)
+    const int argn = Rf_length(args);
+    const u32 mask    = argn > 0 ? (u32) drIntp(ARGS(1)) : 0;
+    const s32 bank    = argn > 1 ? drIntp(ARGS(2)) :       0;
+    const bool tocart = argn > 2 ? drIntp(ARGS(3)) :       false;
+    TICAPI(sync, mask, bank, tocart);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_vbank(SEXP args)
+  {
+    // vbank(bank) -> prev
+    // vbank() -> prev
+    const int argn = Rf_length(args);
+    const s32 prev = ((tic_core *)RTicRam)->state.vbank.id;
+    if (argn == 1) {
+      const s32 bank = drIntp(ARGS(1));
+      TICAPI(vbank, bank);
+    }
+    return Rf_ScalarInteger(prev);
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_peek(SEXP args)
+  {
+    // peek(addr bits=8) -> value
+    const s32 addr = drIntp(ARGS(1));
+    const int argn = Rf_length(args);
+    const s32 bits = argn > 1 ? drIntp(ARGS(2)) : 8;
+    return Rf_ScalarInteger(TICAPI(peek, addr, bits));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_poke(SEXP args)
+  {
+    // poke(addr value bits=8)
+    const s32 addr = drIntp(ARGS(1));
+    const s32 value = drIntp(ARGS(2));
+    const int argn = Rf_length(args);
+    const s32 bits = argn > 2 ? drIntp(ARGS(3)) : 8;
+    TICAPI(poke, addr, value, bits);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_peek1(SEXP args)
+  {
+    // peek1(addr) -> value
+    const s32 addr = drIntp(ARGS(1));
+    return Rf_ScalarInteger(TICAPI(peek1, addr));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_poke1(SEXP args)
+  {
+    // poke1(addr value)
+    const s32 addr  = drIntp(ARGS(1));
+    const s32 value = drIntp(ARGS(2));
+    TICAPI(poke1, addr, value);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_peek2(SEXP args)
+  {
+    // peek2(addr) -> value
+    const s32 addr = drIntp(ARGS(1));
+    return Rf_ScalarInteger(TICAPI(peek2, addr));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_poke2(SEXP args)
+  {
+    // poke2(addr value)
+    const s32 addr  = drIntp(ARGS(1));
+    const s32 value = drIntp(ARGS(2));
+    TICAPI(poke2, addr, value);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_peek4(SEXP args)
+  {
+    // peek4(addr) -> value
+    const s32 addr = drIntp(ARGS(1));
+    return Rf_ScalarInteger(TICAPI(peek4, addr));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_poke4(SEXP args)
+  {
+    // poke(addr value)
+    const s32 addr  = drIntp(ARGS(1));
+    const s32 value = drIntp(ARGS(2));
+    TICAPI(poke4, addr, value);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_memcpy(SEXP args)
+  {
+    // memcpy(dest source size)
+    const s32 dest   = drIntp(ARGS(1));
+    const s32 source = drIntp(ARGS(2));
+    const s32 size   = drIntp(ARGS(3));
+    TICAPI(memcpy, dest, source, size);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_memset(SEXP args)
+  {
+    // memset(dest value size)
+    const s32 dest   = drIntp(ARGS(1));
+    const s32 value = drIntp(ARGS(2));
+    const s32 size   = drIntp(ARGS(3));
+    TICAPI(memset, dest, value, size);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_pmem(SEXP args)
+  {
+    // pmem(index value)
+    // pmem(index) -> value
+    const s32 index = drIntp(ARGS(1));
+    s32 value = 0;
+    bool shouldSet = false;
+    if (Rf_length(args) > 1)
+    {
+      value = drIntp(ARGS(2));
+      shouldSet = true;
+    }
+    return Rf_ScalarInteger(TICAPI(pmem, index, value, shouldSet));
+  }
+#+end_src
+
+*** DONE Utilities
+CLOSED: [2024-11-04 Mon 14:26]
+These two utility functions get or set sprite flags.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_fget(SEXP args)
+  {
+    // fget(sprite_id flag) -> bool
+    const s32 sprite_id = drIntp(ARGS(1));
+    const u8 flag       = drIntp(ARGS(2));
+    return Rf_ScalarLogical(TICAPI(fget, sprite_id, flag));
+  }
+
+  SEXP r_fset(SEXP args)
+  {
+    // fset(sprite_id flag bool)
+    const s32  sprite_id = drIntp(ARGS(1));
+    const u8   flag      = drIntp(ARGS(2));
+    const bool val       = drLglp(ARGS(3));
+    TICAPI(fset, sprite_id, flag, val);
+    return R_NilValue;
+  }
+#+end_src
+
+These two functions change or retrieve the map tile at given coordinates;
+changes are ephemeral. Permanent changes to the map are made with =sync=.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_mget(SEXP args)
+  {
+    // mget(x y) -> tile_id
+    const s32 x = drIntp(ARGS(1));
+    const s32 y = drIntp(ARGS(2));
+    return Rf_ScalarInteger(TICAPI(mget, x, y));
+  }
+
+  SEXP r_mset(SEXP args)
+  {
+    // mset(x y tile_id)
+    const s32 x       = drIntp(ARGS(1));
+    const s32 y       = drIntp(ARGS(2));
+    const u8  tile_id = drIntp(ARGS(3));
+    TICAPI(mset, x, y, tile_id);
+    return R_NilValue;
+  }
+#+end_src
+
+*** DONE System
+CLOSED: [2024-11-04 Mon 14:29]
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_reset(SEXP args)
+  {
+    // reset()
+    TICAPI(reset);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_trace(SEXP args)
+  {
+    // trace(message color=15)
+    const char* msg   = drCrap(ARGS(1));
+    const s32   color = Rf_length(args) > 1 ? drIntp(ARGS(2)) : 15;
+    TICAPI(trace, msg, color);
+    return R_NilValue;
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_time(SEXP args)
+  {
+    // time() -> ticks
+    return Rf_ScalarInteger(TICAPI(time));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_tstamp(SEXP args)
+  {
+    // tstamp() -> timestamp
+    return Rf_ScalarInteger(TICAPI(tstamp));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_exit(SEXP args)
+  {
+    // exit()
+    TICAPI(exit);
+    return R_NilValue;
+  }
+#+end_src
+
+*** DONE Special API functions
+CLOSED: [2024-11-04 Mon 14:32]
+These functions are used when live-coding music or demos at conventions.
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_fft(SEXP args)
+  {
+    // fft(int start_freq, int end_freq=-1) -> float_value
+    const int argn = Rf_length(args);
+    const s32 start_freq = argn > 0 ? drIntp(ARGS(1)) : -1;
+    const s32 end_freq   = argn > 1 ? drIntp(ARGS(2)) : -1;
+    return Rf_ScalarReal(TICAPI(fft, start_freq, end_freq));
+  }
+#+end_src
+
+#+begin_src C :noweb-ref define C symbols to be callable from R
+  SEXP r_ffts(SEXP args)
+  {
+    // ffts(int start_freq, int end_freq=-1) -> float_value
+    const int argn = Rf_length(args);
+    const s32 start_freq = argn > 0 ? drIntp(ARGS(1)) : -1;
+    const s32 end_freq   = argn > 1 ? drIntp(ARGS(2)) : -1;
+    return Rf_ScalarReal(TICAPI(ffts, start_freq, end_freq));
+  }
+#+end_src
+
+** DONE Registering symbols in R from C
+CLOSED: [2024-10-19 Sat 22:01]
+"Symbols need to be registered with R from C to be used in R," is what I wrote
+to introduce this paragraph in its first draft; I'm not sure if registering
+symbols is actually required, or what the purpose is. It might not be fully
+relevant to my use of R. My appreciation of this topic, at the moment, is that
+it is used to define new primites so that functions in R are automatically
+defined to call registered C functions.
+
+/Writing R Extensions/ documents how to register native routines with the
+embedded R interpreter for later use from within R code. The objects =info=,
+=cMethods=, and =callMethods= are desribed in turn in §8.1.3 of the documentation.
+Only =cMethods= needs to be defined for the purposes of using R as a scripting
+langauge for TIC-80 games.
+
+#+name: example of registering native symbols
+#+begin_src c
+  DllInfo *info = R_getEmbeddingDllInfo();
+  R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
+#+end_src
+
+Native routines (symbols) registered with R get called through "the =.C=
+interface," which is how R interacts with native routines when it is in control
+of the main event loop. When embedded, and especially when not in control of the
+main event loop, R needs to be told about native routines in a slightly
+different manner, because R is not in control of loading shared libraries, /it
+is the shared library/!
+
+The symbols are the functions which enable scripting and wrap underlying C
+routines that every scripting language API in TIC-80 hooks into. These symbols
+are automatically made available to R when it is embedded in the application.
+The function which performs the registration is built-in to R.
+
+#+name: define a function to register C symbols with R
+#+begin_src C :noweb no-export
+  void initializeRExternalMethodsDefinedInC(void) {
+    static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
+      { "t80.btn",   (DL_FUNC) &r_btn,    -1 },
+      { "t80.btnp",  (DL_FUNC) &r_btnp,   -1 },
+      { "t80.circ",  (DL_FUNC) &r_circ,   -1 },
+      { "t80.circb", (DL_FUNC) &r_circb,  -1 },
+      { "t80.clip",  (DL_FUNC) &r_clip,   -1 },
+      { "t80.cls",   (DL_FUNC) &r_cls,    -1 },
+      { "t80.elli",  (DL_FUNC) &r_elli,   -1 },
+      { "t80.ellib", (DL_FUNC) &r_ellib,  -1 },
+      { "t80.exit",  (DL_FUNC) &r_exit,   -1 },
+      { "t80.fget",  (DL_FUNC) &r_fget,   -1 },
+      { "t80.font",  (DL_FUNC) &r_font,   -1 },
+      { "t80.fset",  (DL_FUNC) &r_fset,   -1 },
+      { "t80.key",   (DL_FUNC) &r_key,    -1 },
+      { "t80.keyp",  (DL_FUNC) &r_keyp,   -1 },
+      { "t80.line",  (DL_FUNC) &r_line,   -1 },
+      { "t80.map",   (DL_FUNC) &r_map,    -1 },
+      { "t80.memcpy",(DL_FUNC) &r_memcpy, -1 },
+      { "t80.memset",(DL_FUNC) &r_memset, -1 },
+      { "t80.mget",  (DL_FUNC) &r_mget,   -1 },
+      { "t80.mouse", (DL_FUNC) &r_mouse,  -1 },
+      { "t80.mset",  (DL_FUNC) &r_mset,   -1 },
+      { "t80.music", (DL_FUNC) &r_music,  -1 },
+      { "t80.peek",  (DL_FUNC) &r_peek,   -1 },
+      { "t80.peek1", (DL_FUNC) &r_peek1,  -1 },
+      { "t80.peek2", (DL_FUNC) &r_peek2,  -1 },
+      { "t80.peek4", (DL_FUNC) &r_peek4,  -1 },
+      { "t80.pix",   (DL_FUNC) &r_pix,    -1 },
+      { "t80.pmem",  (DL_FUNC) &r_pmem,   -1 },
+      { "t80.poke",  (DL_FUNC) &r_poke,   -1 },
+      { "t80.poke1", (DL_FUNC) &r_poke1,  -1 },
+      { "t80.poke2", (DL_FUNC) &r_poke2,  -1 },
+      { "t80.poke4", (DL_FUNC) &r_poke4,  -1 },
+      { "t80.print", (DL_FUNC) &r_print,  -1 },
+      { "t80.rect",  (DL_FUNC) &r_rect,   -1 },
+      { "t80.rectb", (DL_FUNC) &r_rectb,  -1 },
+      { "t80.reset", (DL_FUNC) &r_reset,  -1 },
+      { "t80.sfx",   (DL_FUNC) &r_sfx,    -1 },
+      { "t80.spr",   (DL_FUNC) &r_spr,    -1 },
+      { "t80.sync",  (DL_FUNC) &r_sync,   -1 },
+      { "t80.time",  (DL_FUNC) &r_time,   -1 },
+      { "t80.trace", (DL_FUNC) &r_trace,  -1 },
+      { "t80.tri",   (DL_FUNC) &r_tri,    -1 },
+      { "t80.trib",  (DL_FUNC) &r_trib,   -1 },
+      { "t80.tstamp",(DL_FUNC) &r_tstamp, -1 },
+      { "t80.ttri",  (DL_FUNC) &r_ttri,   -1 },
+      { "t80.vbank", (DL_FUNC) &r_vbank,  -1 }
+    };
+
+    DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
+    R_registerRoutines(embeddingProgramDllInfo, NULL, NULL, NULL, RExternalMethodsDefinedInC);
+  }
+#+end_src
+
+Presumably, all of these functions will then be available in R as functions
+which have the given name (e.g. "tri") and would be callable with
+~.External("tri")~.
+
+** TODO The default cartridge
+The demonstration (default) cartridge or ROM is a bunch of byte code included
+from a =dat= file. The bytes are read directly into a =u8= array ~DemoRom[]~.
+The =dat= file is created during build from =demos/rdemo.r=. Basing the file off
+of the other demo files, I have written the usual TIC-80 "Hello, world!" in a
+function style in R, and the contents of the metadata are identical to the Ruby
+or Scheme demos (as every demo cartridge uses the same demo content by
+convention).
+
+- [X] Translate all cartridge assets during build.
+- [ ] Ensure translation produces assets identical to what is already checked-in.
+- [ ] Ensure parsing works when comments exist in the code.
+
+#+begin_src R :noweb no-export :tangle ../../demos/rdemo.r
+  ## title:   game title
+  ## author:  game developer, email, etc.
+  ## desc:    short description
+  ## site:    website link
+  ## license: MIT License (change this to your license of choice)
+  ## version: 0.1
+  ## script:  r
+
+  t <- 0
+  x <- 96
+  y <- 24
+
+  inc <- \(x) eval.parent(substitute(x <- x + 1))
+  dec <- \(x) eval.parent(substitute(x <- x - 1))
+
+  ## The program eventually SEGFAULTs with the following message.
+  ##  *** caught segfault ***
+  ## address (nil), cause 'memory not mapped'
+  `TIC-80` <- function() {
+    mapply(function(b, o) {
+      if (.External("t80.btn", b)) {
+        eval(as.expression(o), .GlobalEnv)
+      }
+    },
+    0:3,
+    list(quote(dec(y)), quote(inc(y)),
+         quote(dec(x)), quote(inc(x))));
+    .External("t80.cls", 13);
+    .External("t80.spr",
+              id = 1 + (t %% 60) / 30 * 2,
+              scale = 3,
+              x, y,
+              colorkey = 14,
+              w = 2, h = 2);
+    .External("t80.print", "HELLO WORLD!", 84, 84);
+    inc(t);
+  }
+
+  <<cartridge metadata stripped during cartridge loading>>
+#+end_src
+
+The rest of the cartridge definition is metadata which embeds the graphics and
+sounds into the cartridge.
+
+*** TODO Cartridge metadata
+- [ ] The metadata is not stripped from the source code when loaded into the
+  studio editor; this is a ~cart2prj~ issue, I think, which causes the studio
+  editors to not have any data available (i.e. no sprites, map, etc.).
+
+The metadata defined in paragraphs of source code comments provides the
+cartridge loading mechanism the ability to retrieve the data component of the
+"executable cartridge ROM".
+
+#+begin_src R :noweb-ref cartridge metadata stripped during cartridge loading
+  ## <TILES>
+  ## 001:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc
+  ## 002:ccccceee8888cceeaaaa0cee888a0ceeccca0ccc0cca0c0c0cca0c0c0cca0c0c
+  ## 003:eccccccccc888888caaaaaaaca888888cacccccccacccccccacc0ccccacc0ccc
+  ## 004:ccccceee8888cceeaaaa0cee888a0ceeccca0cccccca0c0c0cca0c0c0cca0c0c
+  ## 017:cacccccccaaaaaaacaaacaaacaaaaccccaaaaaaac8888888cc000cccecccccec
+  ## 018:ccca00ccaaaa0ccecaaa0ceeaaaa0ceeaaaa0cee8888ccee000cceeecccceeee
+  ## 019:cacccccccaaaaaaacaaacaaacaaaaccccaaaaaaac8888888cc000cccecccccec
+  ## 020:ccca00ccaaaa0ccecaaa0ceeaaaa0ceeaaaa0cee8888ccee000cceeecccceeee
+  ## </TILES>
+
+  ## <WAVES>
+  ## 000:00000000ffffffff00000000ffffffff
+  ## 001:0123456789abcdeffedcba9876543210
+  ## 002:0123456789abcdef0123456789abcdef
+  ## </WAVES>
+
+  ## <SFX>
+  ## 000:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000304000000000
+  ## </SFX>
+
+  ## <PALETTE>
+  ## 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
+  ## </PALETTE>
+
+  ## <TRACKS>
+  ## 000:100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  ## </TRACKS>
+#+end_src
+
+*** Native symbol registration and lookup in tester.c
+- [ ] The native routines, while registered successfully, are not automatically
+  defined as functions in the global environment. Is that a problem for me?
+  Maybe...
+
+The following file is compiled with ~R CMD make~, and run with ~R CMD ./tester~.
+This ensures that =R_HOME= and other environment variables are correctly set.
+
+#+begin_src C :noweb-ref tester.c
+  /* tester.c --- tester-embedded-r-parsing */
+
+  #define RNOREMAP true
+  #include <R.h>
+  #include <Rinternals.h>
+  #include <R_ext/Parse.h>
+  #include <Rembedded.h>
+  #include <Rinterface.h>
+
+  /* Perfection. */
+  SEXP tester(SEXP args) { return R_NilValue; }
+
+  int
+  main(int ac, char **av)
+  {
+    char *argv[]= {"tester-embedded-r-parsing", "--vanilla", "--silent"};
+    Rf_initEmbeddedR(sizeof(argv)/sizeof(argv[0]), argv);
+    R_Interactive = 0;
+
+
+    char cmd[] = "# DONT quit();\nprint(ls())";
+    SEXP cmd_sexp, cmd_expr;
+    ParseStatus status;
+
+    cmd_sexp = PROTECT(allocVector(STRSXP, 1));
+    SET_STRING_ELT(cmd_sexp, 0, mkChar(cmd));
+    cmd_expr = PROTECT(R_ParseVector(cmd_sexp, -1, &status, R_NilValue));
+    if (status != PARSE_OK) {
+      UNPROTECT(2);
+      error("Invalid call %s", cmd);
+    }
+    for (int i = 0; i < length(cmd_expr); i++) {
+      eval(VECTOR_ELT(cmd_expr, i), R_GlobalEnv);
+    }
+    UNPROTECT(2);
+
+    static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
+      { "tester", (DL_FUNC) &tester, -1 }
+    };
+
+    DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
+    R_registerRoutines(embeddingProgramDllInfo, NULL, NULL, NULL, RExternalMethodsDefinedInC);
+    R_ParseEvalString("print(getDLLRegisteredRoutines(getLoadedDLLs()[[\"(embedding)\"]], addNames = TRUE));", R_GlobalEnv);
+    R_ParseEvalString(".External(\"tester\")");
+
+    R_ParseEvalString("quit();", R_GlobalEnv);
+    Rf_endEmbeddedR(0);
+    return 0;
+  }
+#+end_src
+
+** DONE Modifying =CMakeLists.txt= and writing CMake build generation files
+CLOSED: [2024-10-12 Sat 01:50]
+CMake is used as the GNU Make build-file generator for TIC-80. I need to integrate
+the R langauge embedding into TIC-80's build process using CMake now.
+
+**** Tasks to complete related to this heading:
+- [X] Patch =CMakeLists.txt=, if necessary.
+- [X] Write a CMake file for R, specifically.
+- [X] Test the build succeeds: build fails with the message "R.h not found."
+- [X] Test ~eval~ on the TIC-80 command-line.
+
+**** Patching =CMakeLists.txt=
+Is it necessary to patch =CMakeLists.txt=? Yes, but only to include the line
+~include(cmake/r.cmake)~.
+
+**** Writing =cmake/r.cmake=
+Based off of the Scheme and Python CMake files, I wrote the following. I doubt R
+will ever run on N3DS, regardless of whatever hacky homebrew environment is
+available. R is simply too complex of an interpreter with too complex of a build
+chain (is there Fortran?) to ever work there. Baremetal? I won't bother.
+
+#+name: r.cmake
+#+begin_src cmake :tangle ../../cmake/r.cmake :noweb no-export
+  #################################################
+  # (R) R.h Rinternals.h Rembedded.h Rexts.h etc. #
+  #################################################
+  option(BUILD_WITH_R "R Enabled" ${BUILD_WITH_ALL})
+  message("BUILD_WITH_R: ${BUILD_WITH_R}")
+
+  if(BUILD_WITH_R AND NOT N3DS AND NOT BAREMETALAPI)
+    set(TIC_BUILD_WITH_R TRUE)
+
+    if(NOT BUILD_STATIC)
+      include("cmake/renv.cmake")
+
+      set(R_LIB_DIR "/usr/include/R")
+      include_directories(SYSTEM "/usr/include/R")
+      list(
+        APPEND R_SRC
+        ${CMAKE_SOURCE_DIR}/src/api/r.c
+        ${R_LIB_DIR}/R.h
+        ${R_LIB_DIR}/Rembedded.h
+        ${R_LIB_DIR}/Rinterface.h
+        ${R_LIB_DIR}/Rinternals.h
+        ${R_LIB_DIR}/Rconfig.h
+        ${R_LIB_DIR}/Rdefines.h
+      )
+
+      add_library(r ${TIC_RUNTIME} ${R_SRC})
+      set_target_properties(r PROPERTIES PREFIX "")
+    endif()
+
+    target_link_libraries(
+      r
+      PRIVATE runtime
+      PUBLIC /usr/lib64/R/lib/libR.so
+    )
+
+    set_target_properties(r PROPERTIES LINKER_LANGUAGE CXX)
+    target_include_directories(r
+      PUBLIC ${R_DIR}
+      PRIVATE
+      ${CMAKE_SOURCE_DIR}/include
+      ${CMAKE_SOURCE_DIR}/src
+    )
+
+  endif()
+#+end_src
+
+=renv.cmake= is used at build time to set the environment variables R requires
+at run time. These variables are set by the builder so that there is "a single
+source of truth", and to populate the values in a header file created at build
+time (following the instructions in [[https://cmake.org/cmake/help/latest/guide/tutorial/A%20Basic%20Starting%20Point.html#exercise-3-adding-a-version-number-and-configured-header-file][/Adding a Version Number and Configured
+Header File/]]).
+
+#+begin_src cmake :tangle ../../cmake/renv.cmake :noweb no-export :noweb-ref renv.cmake
+  if(NOT DEFINED ENV{R_HOME} AND DEFINED PREFIX)
+    set(R_HOME "${PREFIX}/lib64/R")
+  endif()
+
+  if(NOT DEFINED ENV{LD_LIBRARY_PATH} AND NOT LD_LIBRARY_PATH)
+    set(LD_LIBRARY_PATH "/usr/include/R:${R_HOME}/lib:${PREFIX}/lib/jvm/jre/lib/server")
+  # else()
+  #   # Add these entries to the this *PATH variable
+  #   set(LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${PREFIX}/lib64/R/lib:${PREFIX}/lib/jvm/jre/lib/server")
+  endif()
+
+  if(NOT DEFINED ENV{R_SHARE_DIR} AND DEFINED ENV{PREFIX})
+    set(R_SHARE_DIR "${PREFIX}/share/R")
+  endif()
+
+  if(NOT DEFINED ENV{R_DOC_DIR} AND DEFINED ENV{PREFIX})
+    set(R_DOC_DIR "${PREFIX}/share/doc/R")
+  endif()
+
+  if(DEFINED ENV{PREFIX} OR DEFINED PREFIX)
+    set(R_SRC "${R_HOME}/lib")
+    list(APPEND R_SRC "${PREFIX}/lib/jvm/jre/lib/server" R_SHARE_DIR R_DOC_DIR)
+  endif()
+#+end_src
+
+With the environment variables that R requires set (LD_LIBRARY_PATH, R_HOME,
+R_SHARE_DIR, and R_DOC_DIR), the header file included at build-time can be
+configured so that the values are always available at run time.
+
+#+begin_src cmake :tangle ../../cmake/renv.cmake :noweb no-export :noweb-ref renv.cmake
+  configure_file(cmake/renv.h.in ../src/api/renv.h)
+#+end_src
+
+The in file is somewhat simple, I think?
+
+#+begin_src C :tangle ../../cmake/renv.h.in
+  #include <stdlib.h>
+
+  /* FIXME: does not seem to work! */
+  void setEnvironmentVariablesIfUnset(void) {
+  	#define OVERWRITE 1
+  	if (getenv("R_HOME") == NULL) {
+  		setenv("R_HOME", "@R_HOME@", OVERWRITE);
+  	}
+
+  	if (getenv("LD_LIBRARY_PATH") == NULL) {
+  		setenv("LD_LIBRARY_PATH", "@LD_LIBRARY_PATH@", OVERWRITE);
+  	}
+
+  	if (getenv("R_SHARE_DIR") == NULL) {
+  		setenv("R_SHARE_DIR", "@R_SHARE_DIR@", OVERWRITE);
+  	}
+
+  	if (getenv("R_SHARE_DIR") == NULL) {
+  		setenv("R_DOC_DIR", "@R_DOC_DIR@", OVERWRITE);
+  	}
+  	#undef OVERWRITE
+  }
+#+end_src
+
+** DONE Include directives
+CLOSED: [2024-10-17 Thu 19:43]
+There are a nubmer of headers that must be included to work with R. Some of the
+headers I include might be redundant, and I will try to clean these up later.
+
+#+name: INCLUDE
+#+begin_src c
+  #include "core/core.h"
+
+  #define R_NO_REMAP
+  #include <R.h>
+
+  #if !defined R_INTERNALS_H_
+  #include <Rinternals.h> /* defines LibExtern SEXP R_GlobalEnv */
+  #endif
+
+  #include <Rembedded.h>
+  #include <Rinterface.h>
+  #include <R_ext/Parse.h>
+  #include <Rconfig.h>
+  #include <Rdefines.h>
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <string.h>
+
+  #include "api/renv.h"
+#+end_src
+
+** TODO Meshing the event loops of TIC-80 and R
+There is a section in the /R Extensions/ manual which focuses on meshing the
+event loops of R and the alternative front-end. There are two event loops in R
+which need special attention.
+
+*** make provision for other R events whilst waiting for input from the front-end
+*** ensure the front-end is not frozen out during the event loop waiting for responses from sockets
+
+* TODO Creating build assets at build-time from source files
+- [ ] FIXME: the assets are not converted properly.
+
+The is a build/assets directory in the TIC-80 sources containing DAT formatted
+files which are needed to include benchmarks for various scripting language
+integrations and also the demo and default cartridges for these langauges. The
+Git repository for TIC-80 currently contains pre-built assets, and the upstream
+GitHub hosted interface to that repository has workflows which will build these
+assets at build time using a Windows BATCH script. That limited my ability to
+develop for TIC-80, so after successfully compiling the build tools (prj2cart
+and bin2txt) on Linux I wrote a BASH script to call these for all of the build
+asset source files.
+
+** DONE Convert assets to DAT formats (on UNIX-likes)
+CLOSED: [2024-10-25 Fri 16:11]
+This script can be used to convert build assets (particularly =rmark.r= and
+=rdemo.r=) to the DAT format used by TIC-80 at runtime. It requires using the
+the original, unedited versions of proj2cart and bin2txt. It will only work on
+UNIX-likes, so a portable interface that will work on any development machine
+motivated the edits in the next sextion.
+
+#+name: convert the R demo and benchmark source files to .tic.dat format
+#+begin_src bash :tangle ../../tools/convertRDemoAssets.sh :shebang #!/bin/env bash
+  # FILE := $1
+  PRJ2CART() {
+    local SRC2TIC="${HOME}/src/c/build/bin/prj2cart"
+    command $SRC2TIC $1 ${BLDA_DIR}/$(basename -s .r $1).tic
+  }
+
+  # FILE := $1
+  BIN2TXT() {
+    local TIC2DAT="${HOME}/src/c/build/bin/bin2txt"
+    command $TIC2DAT ${1} ${BLDA_DIR}/$(basename $1).dat -z
+    rm ${BLDA_DIR}/$(basename $1)
+    # mv ${BLDA_DIR}/$(basename $1) -t ~/src/c/build/
+  }
+
+  main() {
+    # NOTE: this could be "improved" to take command-line arguments for the language
+    # name (prefixing "demo" or "mark") and the file suffix (including the dot, so
+    # ".r"). Relative paths only valid from where r.org defined (src/api/r.org)
+    local R_DEMO="${1}/demos/rdemo.r"
+    local R_MARK="${1}/demos/bunny/rmark.r"
+    local BLDA_DIR="${1}/build/assets"
+    local FIND_PATH="${1}/demos"
+
+    for SRC in $(find ${FIND_PATH} -maxdepth 1 -type f); do
+      PRJ2CART $SRC
+      BIN2TXT ${BLDA_DIR}/$(basename -s .r $SRC).tic
+    done
+  }
+
+  # convertDemosAndBenchmarks.sh TIC-80
+  main $1
+#+end_src
+
+** DONE Convert assets to DAT formats (cross-platform)
+CLOSED: [2024-10-25 Fri 19:10]
+A CMake file is used to construct the input arguments for the programs. These
+programs are only available when TIC-80 is built with the option
+~BUILD_TOOLS=ON~, in which case this target will be always be called when the
+sources are out of date, which is determined when the CMake file is called.
+
+Construct the list of demo and benchmark source files from a list of file type
+suffixes for each supported language.
+
+#+begin_src cmake :noweb no-export :tangle ../../cmake/demos.cmake
+  file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/demos" demoDir)
+  file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/build/assets" buildAssetDir)
+  file(GLOB_RECURSE projects
+    "demos/*.lua"
+    "demos/*.fnl"
+    "demos/*.janet"
+    "demos/*.js"
+    "demos/*.moon"
+    "demos/*.py"
+    "demos/*.rb"
+    "demos/*.scm"
+    "demos/*.nut"
+    "demos/*.wren"
+    "demos/*.r")
+
+  ## Create the list of project files with the tic extension rather than the
+  ## source project file extension.
+  foreach(project ${projects})
+    cmake_path(REPLACE_EXTENSION project LAST_ONLY "tic" OUTPUT_VARIABLE cartridge)
+    cmake_path(GET cartridge FILENAME cartridge)
+    cmake_path(APPEND ${CMAKE_BINARY_DIR} ${cartridge} OUTPUT_VARIABLE cartridge)
+    LIST(APPEND cartridges ${cartridge})
+    message(DEBUG "${project}")
+    message(DEBUG "${cartridge}")
+  endforeach()
+
+  # <<generate the tic.dat files>>
+  <<generate the tic.dat files using the original tools>>
+
+  target_sources(GenerateTicDatFiles PRIVATE ${PROJECT_PATHS})
+#+end_src
+
+To make the necessary modifications to prj2cart and bin2txt I will create some
+source blocks and extend the programs to support multiple input files and
+specify an output directory rather than only support explicit input and output
+file paths.
+
+#+begin_src cmake :noweb-ref generate the tic.dat files
+  add_custom_target(GenerateTicDatFiles
+      ALL
+      ## Generate .tic files in the CMAKE_BINARY_DIR directory using source files
+      ## from the demos/ source directory.
+      COMMAND prj2cart -i ${projects} -o ${CMAKE_BINARY_DIR}
+      ## Convert the .tic files in the CMAKE_BINARY_DIR to .tic.dat and place the
+      ## resulting file in the build/assets source directory.
+      COMMAND bin2txt -zi ${cartridges} -o ${buildAssetDir}
+      COMMENT "[DEMOS_AND_BUNNYS] Generating build assets (.tic.dat files)"
+      COMMAND_EXPAND_LISTS)
+#+end_src
+
+This is great---and works!---but I need to loop over all of the project files
+using the original tools because my tool edits are bugged in some small way that
+I do not want to invest time into right now.
+
+#+begin_src cmake :noweb-ref generate the tic.dat files using the original tools
+  add_custom_target(GenerateTicDatFiles
+    ALL
+    ## Generate .tic files in the CMAKE_BINARY_DIR directory using source files
+    ## from the demos/ source directory.
+    ## COMMAND prj2cart -i ${projects} -o ${CMAKE_BINARY_DIR}
+    ## foreach project in projects do
+    ## prj2cart input-file output-file
+    ## done
+    foreach(currentProject IN LISTS projects)
+      foreach(currentCartridge IN LISTS cartridges)
+        COMMAND prj2cart ${currentProject} ${currentCartridge}
+      endforeach()
+      COMMAND bin2txt ${currentCartridge} $<PATH:REPLACE_EXTENSION,$<PATH:APPEND,${buildAssetDir},$<PATH:GET_FILENAME,${currentCartridge}>>,".tic.dat"> -z
+    endforeach()
+    COMMENT "[DEMOS_AND_BUNNYS] Generating build assets (.tic.dat files)"
+    COMMAND_EXPAND_LISTS
+  )
+#+end_src
+
+** DONE prj2cart
+CLOSED: [2024-10-25 Fri 19:10]
+#+begin_comment
+At the moment I do not want to overwrite. :tangle ../../build/tools/prj2cart.c
+#+end_comment
+
+#+begin_src C :noweb no-export
+  // MIT License
+
+  // Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
+  // Copyright (c) 2020 Vadim Grigoruk @nesbox // grigoruk@gmail.com
+
+  // Permission is hereby granted, free of charge, to any person obtaining a copy
+  // of this software and associated documentation files (the "Software"), to deal
+  // in the Software without restriction, including without limitation the rights
+  // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  // copies of the Software, and to permit persons to whom the Software is
+  // furnished to do so, subject to the following conditions:
+
+  // The above copyright notice and this permission notice shall be included in all
+  // copies or substantial portions of the Software.
+
+  // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  // SOFTWARE.
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <sysexits.h>
+  #include <libgen.h>
+  #include <string.h>
+  #include <errno.h>
+
+  #include "studio/project.h"
+
+  FILE *open_project(char *project_path);
+  void usage(void);
+  void convert_project_to_cartridge(char *project_path,
+  																	char *output_cartridge_path);
+
+  int main(int argc, char **argv) {
+    if (strcmp(argv[1], "-i") != 0 && argc != 4) {
+      usage();
+    } else {
+      if (strcmp(argv[1], "-i") == 0) {
+  			int outputDirectory = 3;
+  			while(strcmp(argv[outputDirectory++], "-o") != 0) {
+  				if (outputDirectory <= argc - 2) {
+  					continue;
+  				} else {
+  					printf("outputDirectory argument (-o exampleDirectory) not in command line or argument value missing.");
+  					exit(EX_USAGE);
+  				}
+  			}
+  			char *outputFilename;
+  			/* NOTE: I do not fully understand why I needed to subtract one from outputDirectory. */
+  			for (int inputFile = 2; inputFile < outputDirectory - 1; inputFile++) {
+  				/* Construct the output filename using the basename of the inputFile and
+  				 ,* the outputDirectory. */
+  				size_t size = strlen((const char *) argv[outputDirectory])
+  					+ strlen((const char *) basename(argv[inputFile]));
+  				outputFilename = malloc(size);
+  				sprintf(outputFilename, "%s/", (const char *) argv[outputDirectory]);
+  				size_t acceptSize = strcspn((const char *) basename(argv[inputFile]), (const char *) ".");
+  				strncpy(outputFilename + strlen(outputFilename),
+  								(const char *) basename(argv[inputFile]),
+  								acceptSize);
+  				strcat(outputFilename, (const char *) ".tic");
+  				/* prj2cart -i file1 file2 file3 -o outputDirectory */
+  				convert_project_to_cartridge(argv[inputFile], outputFilename);
+  				memset(outputFilename, 0, strlen(outputFilename));
+  				free(outputFilename);
+  			}
+      } else {
+  			/* prj2cart inputFilename outputFilename */
+        convert_project_to_cartridge(argv[1], argv[2]);
+      }
+      exit(EX_OK);
+    }
+  }
+
+  FILE *open_project(char *project_path) {
+    FILE *project;
+    if (!(project = fopen(project_path, "rb"))) {
+      printf("Cannot open project file %s for reading\n\n", project_path);
+      exit(EX_NOINPUT);
+    } else {
+      return project;
+    }
+  }
+
+  void usage(void) {
+    printf("usage: prj2cart <project> <cartridge>\n"
+           "       prj2cart -i <project>...\n"
+           "%80s\n",
+           "The second form will automatically strip a file extension and "
+           "replace it with \".tic\", and loop over project files, creating "
+           "multiple cartridges.");
+    exit(EX_USAGE);
+  }
+
+  void convert_project_to_cartridge(char *project_path,
+  																	char *output_cartridge_path) {
+    if (output_cartridge_path != NULL
+        && strcmp(basename(project_path),
+                  basename(output_cartridge_path)) == 0
+  			|| strcmp(basename(output_cartridge_path), "") == 0) {
+  		printf("Project path or output cartridge path is bad.");
+      exit(EXIT_FAILURE);
+    }
+    FILE *project = open_project(project_path);
+    fseek(project, 0, SEEK_END);
+    int size = ftell(project);
+    fseek(project, 0, SEEK_SET);
+
+    unsigned char *buffer = (unsigned char *) malloc(size);
+
+    if (buffer) {
+      fread(buffer, size, 1, project);
+      fclose(project);
+      tic_cartridge *cart = calloc(1, sizeof(tic_cartridge));
+      tic_project_load(project_path, (char *) buffer, size, cart);
+
+      FILE *cartFile;
+
+      if (output_cartridge_path == NULL) exit(EX_USAGE);
+  		else if ( (cartFile = fopen(output_cartridge_path, "wb")) ) {
+        unsigned char *out;
+        if ((out = (unsigned char *) malloc(sizeof(tic_cartridge)))) {
+          int outSize = tic_cart_save(cart, out);
+          fwrite(out, outSize, 1, cartFile);
+          free(out);
+        }
+        fclose(cartFile);
+  		} else {
+        printf("Cannot open cartridge file %s for writing. Reason: %s\n",
+  						 output_cartridge_path, strerror(errno));
+  			free(buffer);
+  			free(cart);
+  			exit(EX_CANTCREAT);
+      }
+
+  		free(buffer);
+  		free(cart);
+  	}
+  }
+#+end_src
+
+** DONE bin2txt
+CLOSED: [2024-10-25 Fri 19:31]
+#+begin_comment
+At the moment I do not want to overwrite. :tangle ../../build/tools/bin2txt.c
+#+end_comment
+
+#+begin_src C :noweb no-export
+  // MIT License
+
+  // Copyright (c) 2024 Bryce Carson @bryce-carson // bryce.a.carson@gmail.com
+  // Copyright (c) 2020 Vadim Grigoruk @nesbox // grigoruk@gmail.com
+
+  // Permission is hereby granted, free of charge, to any person obtaining a copy
+  // of this software and associated documentation files (the "Software"), to deal
+  // in the Software without restriction, including without limitation the rights
+  // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  // copies of the Software, and to permit persons to whom the Software is
+  // furnished to do so, subject to the following conditions:
+
+  // The above copyright notice and this permission notice shall be included in all
+  // copies or substantial portions of the Software.
+
+  // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  // SOFTWARE.
+
+  #include <stdio.h>
+  #include <stdlib.h>
+  #include <sysexits.h>
+  #include <stdbool.h>
+  #include <string.h>
+  #include <libgen.h>
+  #include <zlib.h>
+
+  void convert_cartridge_to_text(char *cartridge_path, char *text_path, bool useZip);
+  void usage(void);
+  void with_zip(int size, unsigned char *buffer);
+
+  int main(int argc, char** argv) {
+  	/* bin2txt -zi inputFile... -o outputDirectory */
+    if (argc >= 3 && (strcmp(argv[1], "-iz") == 0 || strcmp(argv[1], "-zi") == 0)) {
+  		int outputDirectory = 3;
+  		/* While the output option hasn't been located, check that we haven't
+  		 ,* overrun the bounds of the argument vector. */
+  		while(strcmp(argv[outputDirectory++], "-o") != 0) {
+  			/* Prevent an infinite loop; ensure the -o option is given
+  			 ,* eventually. */
+  			if (outputDirectory <= argc - 2) {
+  				continue;
+  			} else {
+  				printf("-o was not found in the command line or in the correct position (is the argument value missing?).");
+  				exit(EX_USAGE);
+  			}
+  		}
+  		/* bin2txt -zi inputFile... -o outputDirectory */
+      for (int inputFile = 2; inputFile < outputDirectory - 1; inputFile++) {
+  			char *outputFile = malloc(strlen(".dat") + strlen(argv[outputDirectory]) + strlen(basename(argv[inputFile])));
+  			sprintf(outputFile, "%s/", argv[outputDirectory]);
+  			strcat(outputFile, (const char *) basename(argv[inputFile]));
+  			strcat(outputFile, ".dat");
+        convert_cartridge_to_text(argv[inputFile], outputFile, true);
+  			memset(outputFile, 0, strlen(outputFile));
+  			free(outputFile);
+      }
+    } else if (argc == 4 && strcmp(argv[3], "-z") == 0) {
+      convert_cartridge_to_text(argv[1], argv[2], true);
+    } else if (argc == 3) {
+      convert_cartridge_to_text(argv[1], argv[2], false); /* no zlib */
+    } else {
+      usage();
+    }
+  }
+
+  void usage(void) {
+    printf("usage: bin2txt <input cartridge file> <output text file> [-z]\n"
+           "       bin2txt [-zi] <cartridge file1>... -o <text file output directory>\n"
+           "%80s\n"
+           "The second form will use zlib compression and automatically generate "
+           "output filenames for multiple input cartridges.");
+    exit(EX_USAGE);
+  }
+
+  void convert_cartridge_to_text(char *cartridge_path, char *text_path, bool useZip) {
+    FILE *bin;
+    if (!(bin = fopen(cartridge_path, "rb"))) {
+      printf("Cannot open bin file %s for reading.\n", cartridge_path);
+      exit(EX_NOINPUT);
+    } else {
+  		/* Get the size of the file by seeking through it, rather than other means. */
+      fseek(bin, 0, SEEK_END);
+      int size = ftell(bin);
+      fseek(bin, 0, SEEK_SET);
+
+      unsigned char *buffer;
+      if (!(buffer = (unsigned char *) malloc(size))) {
+  			printf("Could not successfully allocate memory to convert cartridge to text.");
+  			exit(EX_IOERR); /* if cannot create the buffer below. */
+      } else {
+  			fread(buffer, size, 1, bin);
+  			fclose(bin); /* close cartridge_path */
+
+  			if (useZip) with_zip(size, buffer);
+
+  			FILE *txt;
+  			if ((txt = fopen(text_path, "wb"))) {
+  				for (int i = 0; i < size; i++) fprintf(txt, "0x%02x, ", buffer[i]);
+  				fclose(txt);
+  			} else {
+  				printf("Cannot open text file %s for writing.\n", text_path);
+  				exit(EX_CANTCREAT);
+  			}
+
+  			free(buffer);
+      }
+    }
+  }
+
+  void with_zip(int size, unsigned char *buffer) {
+    unsigned char *output = (unsigned char *) malloc(size);
+
+    if (output) {
+      unsigned long sizeComp = size;
+
+  		if(compress2(output, &sizeComp, buffer, size, Z_BEST_COMPRESSION) != Z_OK) {
+        printf("compression error\n");
+      }
+      else {
+        size = sizeComp;
+        memcpy(buffer, output, size);
+      }
+
+      free(output);
+    } else {
+      printf("memory error :(\n");
+      exit(EX_CANTCREAT);
+    }
+  }
+#+end_src
