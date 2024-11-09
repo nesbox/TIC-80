@@ -6,8 +6,6 @@
 ## version: 0.1
 ## script:  r
 
-## pee pee poo poo
-
 t <- 0
 x <- 96
 y <- 24
@@ -15,19 +13,26 @@ y <- 24
 inc <- \(x) eval.parent(substitute(x <- x + 1))
 dec <- \(x) eval.parent(substitute(x <- x - 1))
 
+## The program eventually SEGFAULTs with the following message.
+##  *** caught segfault ***
+## address (nil), cause 'memory not mapped'
 `TIC-80` <- function() {
-  mapply(\(b, o) if (.External("btn", b)) eval(o, .GlobalEnv),
-         0:3,
-         list(quote(dec(y)), quote(inc(y)),
-              quote(dec(x)), quote(inc(x))));
-  .External("cls", 13);
-  .External("spr",
+  mapply(function(b, o) {
+    if (.External("t80.btn", b)) {
+      eval(as.expression(o), .GlobalEnv)
+    }
+  },
+  0:3,
+  list(quote(dec(y)), quote(inc(y)),
+       quote(dec(x)), quote(inc(x))));
+  .External("t80.cls", 13);
+  .External("t80.spr",
             id = 1 + (t %% 60) / 30 * 2,
             scale = 3,
             x, y,
             colorkey = 14,
             w = 2, h = 2);
-  .External("print", "HELLO WORLD!", 84, 84);
+  .External("t80.print", "HELLO WORLD!", 84, 84);
   inc(t);
 }
 

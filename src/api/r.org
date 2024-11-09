@@ -418,9 +418,8 @@ That is made easier by defining the following symbols and macros to reference
 them.
 
 #+begin_src C :noweb-ref PREDECLARATIONS
-  tic_mem *mem;
   static SEXP RTicRam; /* An external pointer (to an object of type tic_mem) to the object with the symbol "mem". */
-  #define TICAPI(CMD, ...) ((tic_core *)RTicRam)->api.CMD(R_ExternalPtrAddr(RTicRam) __VA_OPT__(,) __VA_ARGS__)
+  #define TICAPI(CMD, ...) ((tic_core *)R_ExternalPtrAddr(RTicRam))->api.CMD(R_ExternalPtrAddr(RTicRam) __VA_OPT__(,) __VA_ARGS__)
 #+end_src
 
 The example then becomes as follows.
@@ -515,11 +514,9 @@ only one).
     while(1);
   }
 
-  static tic_mem *tic_memory_static;
-
   void R_ShowMessage(const char *s) {
   /* Always use the sixteenth color. */
-    ((tic_core *) tic_memory_static)->api.trace(tic_memory_static, s, 15);
+    TICAPI(trace, s, 15);
   }
 
   static bool R_Initialized = false;
@@ -558,9 +555,12 @@ only one).
       RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
       initializeRExternalMethodsDefinedInC();
 
-      /* Ensure BOOT is defined. If the user has defined it this no-op version
-       ,* will be overwritten (as intended). */
-      EVALG("BOOT <- function() `{`");
+      /* Ensure a dummy function is defined for all of the important functions
+       ,* that will be called. */
+      /* TODO: test that TIC-80, minimally, has been redefined. If the others are
+       ,* not redefined from `{` print a single warning on the standard error (AND
+       ,* ABSOLUTLY NOWHERE ELSE). */
+      EVALG("`TIC-80` <- BDR <- BOOT <- MENU <- SCN <- `{`");
 
       /* Manually create a vector of type string, parse it, then evaluate it
        ,* expression by expression. */
@@ -581,8 +581,7 @@ only one).
       /* MAYBE: this might not be appropriate; do other APIs call BOOT? I should
        ,* also use the function defined through macro expansion to call the BOOT
        ,* function if that is appropriate. */
-      EVALG("if (print(exists(\"BOOT\")) && is.function(BOOT)) { BOOT() } "
-            "else { BOOT <- function() `{` }");
+      EVALG("BOOT();");
     }
 
     return R_Initialized;
@@ -590,22 +589,46 @@ only one).
 
 #+end_src
 
-** Callbacks
+** TODO Callbacks
 It might not be advisable to define the ~TIC~ function in the R API as
 ~`TIC-80`~, but because R allows non-syntactic names I'll use it so that the
-actual name of the machine can be used. If the machine were called ~MANE~ we'd
-want to use that, but if we were forced to use ~main~ that'd be a nice homophone
-at least. The =exists= function doesn't use symbols, it uses strings to lookup
-symbols so that is why that part differs in the chunk below and the
-~defineCallRFn~ macro defined else isn't used.
+actual name of the fantasy machine can be used.
+
+The =exists= function doesn't use symbols: it uses strings to lookup symbols.
+That is why this definition of a ~callRFn_~ C function differs between this
+chunk (below) and the ~defineCallRFn~ macro defined elsewhere: stringizing the
+macro parameter is a little awkward, and calling the function using the
+non-syntactic identifier quotes isn't necessary for the other functions.
 
 #+begin_src C :noweb-ref cartridge commands
   static void callRFn_TIC80(tic_mem* tic) {
-    SEXP exists = EVALG("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "
-                                      "`TIC-80`()");
+    SEXP exists = EVALG("`TIC-80`();");
   }
 #+end_src
 
+#+DESCRIPTION: RESOLVED: SEGFAULT; invlaid permissions; calling .External("btn", b).
+#+begin_comment
+When this function is called the program performs a jump (using SETJMP) to a
+handler which exits the program due to a fatal error in R. Likely there is just
+an issue with the R code and I need to register handlers which will safely exit
+R and return to the TIC-80 console with the error. Returned to the console, the
+user can then run their (assumedly) fixed code with R.
+
+I'm guessing, from this traceback, that when I try to use "btn" with .External
+that is when shit fails.
+
+ *** caught segfault ***
+address 0x1f99f490, cause 'invalid permissions'
+
+Traceback:
+ 1: (function (b, o) if (.External("btn", b)) eval(o, .GlobalEnv))(dots[[1L]][[1L]],     dots[[2L]][[1L]])
+ 2: mapply(function(b, o) if (.External("btn", b)) eval(o, .GlobalEnv),     0:3, list(quote(dec(y)), quote(inc(y)), quote(dec(x)), quote(inc(x))))
+ 3: `TIC-80`()
+An irrecoverable exception occurred. R is aborting now ...
+Segmentation fault (core dumped)
+#+end_comment
+
+** Callbacks for BOOT, MENU, BDR, and SCN
 Previously, the following macro only generated R code defining syntactic
 identifiers; after reviewing the help page for quoting in R, it makes more sense
 for it to always quote the name to be called as a function if that name exists
@@ -651,7 +674,7 @@ backtrace quoted in the mentioned section.
   #undef defineCallRFnInEnvironment_
 #+end_src
 
-**** Exporting a =tic_script= for *TIC-80* to use at compile-time
+** Exporting a =tic_script= for *TIC-80* to use at compile-time
 This constant is used by TIC-80 to setup the cartridge, both for editing in the
 "studio" and the runtime evaluat  (use-package emacsql-sqlite :after 'emacsql)
 ion of the script.
@@ -792,7 +815,7 @@ pointers to =tic_script= objects.
   };
 #+end_src
 
-**** Providing lists of syntax elements for highlighting and outline generation
+*** Providing lists of syntax elements for highlighting and outline generation
 #+name: SYNTAX HIGHLIGHTING AND OUTLINE GENERATION
 #+begin_src C :noweb no-export
 	<<Specify the reserved words for automatic syntax>>
@@ -802,7 +825,7 @@ pointers to =tic_script= objects.
 	<<R API implementation keywords>>
 #+end_src
 
-***** Syntax highlighting the reserved words in R
+**** Syntax highlighting the reserved words in R
 Syntax highlighting is not always easy, especially when regular expressions are
 involved. What we are using in TIC-80 is a more naive approach, but one which is
 easier to maintain because it is less powerful and less flexible. It is at the
@@ -832,14 +855,14 @@ used otherwise, as with ~`function`~.
   };
 #+end_src
 
-****** =..n=: variadic argument access across the natural numbers
+***** =..n=: variadic argument access across the natural numbers
 The entirety of the natural numbers are reserved words when the occur after the
 characters ~..~, becuase any ordinal number is usable to access a member of the
 dotted argument (how R cleverly deals with variadic arguments). The functions
 which otherwise handle these variadic argument list members are not reserved
 words, for example ~..length()~ or even ~..n()~ are not reserved.
 
-***** Outline generation
+**** Outline generation
 Generating and outline will provide the editor with the ability to jump to
 different areas of the script being written.
 
@@ -914,7 +937,7 @@ different areas of the script being written.
   }
 #+end_src
 
-***** R API implementation keywords
+**** R API implementation keywords
 The API keywords are either callbacks to the TIC-80 virtual machine---which can
 be thought of as an operating system interface---or the user-facing API
 functions. The following definitions are simply taken from the file =scheme.c=,
@@ -1198,7 +1221,7 @@ drawing API.
     /* print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false)
      ,* ⮑ width*/
     const int argn = Rf_length(args);
-    const char *text  = (const char *) drCrap(ARGS(1));
+    const char *text  = CHAR(STRING_ELT(ARGS(1), 0));
     const s32   x     = argn > 1 ? drIntp(ARGS(2)): 0;
     const s32   y     = argn > 2 ? drIntp(ARGS(3)): 0;
     const u8    color = argn > 3 ? drIntp(ARGS(4)): 15;
@@ -1220,7 +1243,7 @@ the s7 Scheme API.
     /* cls(color=0)
      ,* ⮑ nil */
     const int argn = Rf_length(args);
-    const u8 color = (argn > 0) ? drIntp(ARGS(1)) : 0;
+    const u8 color = (argn > 0) ? *REAL(ARGS(1)) : 0;
     TICAPI(cls, color);
 
     return R_NilValue;
@@ -1413,7 +1436,8 @@ CLOSED: [2024-11-04 Mon 00:21]
   SEXP r_btn(SEXP args)
   {
     // btn(id) -> pressed
-    return Rf_ScalarLogical(TICAPI(btn, (s32) drIntp(ARGS(1))));
+    /* return Rf_ScalarLogical(TICAPI(btn, (s32) drIntp(ARGS(1)))); */
+    return Rf_ScalarLogical(TICAPI(btn, (s32) Rf_asInteger(ARGS(1))));
   }
 
   SEXP r_btnp(SEXP args)
@@ -1852,52 +1876,52 @@ The function which performs the registration is built-in to R.
 #+begin_src C :noweb no-export
   void initializeRExternalMethodsDefinedInC(void) {
     static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
-      { "btn",   (DL_FUNC) &r_btn,    -1 },
-      { "btnp",  (DL_FUNC) &r_btnp,   -1 },
-      { "circ",  (DL_FUNC) &r_circ,   -1 },
-      { "circb", (DL_FUNC) &r_circb,  -1 },
-      { "clip",  (DL_FUNC) &r_clip,   -1 },
-      { "cls",   (DL_FUNC) &r_cls,    -1 },
-      { "elli",  (DL_FUNC) &r_elli,   -1 },
-      { "ellib", (DL_FUNC) &r_ellib,  -1 },
-      { "exit",  (DL_FUNC) &r_exit,   -1 },
-      { "fget",  (DL_FUNC) &r_fget,   -1 },
-      { "font",  (DL_FUNC) &r_font,   -1 },
-      { "fset",  (DL_FUNC) &r_fset,   -1 },
-      { "key",   (DL_FUNC) &r_key,    -1 },
-      { "keyp",  (DL_FUNC) &r_keyp,   -1 },
-      { "line",  (DL_FUNC) &r_line,   -1 },
-      { "map",   (DL_FUNC) &r_map,    -1 },
-      { "memcpy",(DL_FUNC) &r_memcpy, -1 },
-      { "memset",(DL_FUNC) &r_memset, -1 },
-      { "mget",  (DL_FUNC) &r_mget,   -1 },
-      { "mouse", (DL_FUNC) &r_mouse,  -1 },
-      { "mset",  (DL_FUNC) &r_mset,   -1 },
-      { "music", (DL_FUNC) &r_music,  -1 },
-      { "peek",  (DL_FUNC) &r_peek,   -1 },
-      { "peek1", (DL_FUNC) &r_peek1,  -1 },
-      { "peek2", (DL_FUNC) &r_peek2,  -1 },
-      { "peek4", (DL_FUNC) &r_peek4,  -1 },
-      { "pix",   (DL_FUNC) &r_pix,    -1 },
-      { "pmem",  (DL_FUNC) &r_pmem,   -1 },
-      { "poke",  (DL_FUNC) &r_poke,   -1 },
-      { "poke1", (DL_FUNC) &r_poke1,  -1 },
-      { "poke2", (DL_FUNC) &r_poke2,  -1 },
-      { "poke4", (DL_FUNC) &r_poke4,  -1 },
-      { "print", (DL_FUNC) &r_print,  -1 },
-      { "rect",  (DL_FUNC) &r_rect,   -1 },
-      { "rectb", (DL_FUNC) &r_rectb,  -1 },
-      { "reset", (DL_FUNC) &r_reset,  -1 },
-      { "sfx",   (DL_FUNC) &r_sfx,    -1 },
-      { "spr",   (DL_FUNC) &r_spr,    -1 },
-      { "sync",  (DL_FUNC) &r_sync,   -1 },
-      { "time",  (DL_FUNC) &r_time,   -1 },
-      { "trace", (DL_FUNC) &r_trace,  -1 },
-      { "tri",   (DL_FUNC) &r_tri,    -1 },
-      { "trib",  (DL_FUNC) &r_trib,   -1 },
-      { "tstamp",(DL_FUNC) &r_tstamp, -1 },
-      { "ttri",  (DL_FUNC) &r_ttri,   -1 },
-      { "vbank", (DL_FUNC) &r_vbank,  -1 }
+      { "t80.btn",   (DL_FUNC) &r_btn,    -1 },
+      { "t80.btnp",  (DL_FUNC) &r_btnp,   -1 },
+      { "t80.circ",  (DL_FUNC) &r_circ,   -1 },
+      { "t80.circb", (DL_FUNC) &r_circb,  -1 },
+      { "t80.clip",  (DL_FUNC) &r_clip,   -1 },
+      { "t80.cls",   (DL_FUNC) &r_cls,    -1 },
+      { "t80.elli",  (DL_FUNC) &r_elli,   -1 },
+      { "t80.ellib", (DL_FUNC) &r_ellib,  -1 },
+      { "t80.exit",  (DL_FUNC) &r_exit,   -1 },
+      { "t80.fget",  (DL_FUNC) &r_fget,   -1 },
+      { "t80.font",  (DL_FUNC) &r_font,   -1 },
+      { "t80.fset",  (DL_FUNC) &r_fset,   -1 },
+      { "t80.key",   (DL_FUNC) &r_key,    -1 },
+      { "t80.keyp",  (DL_FUNC) &r_keyp,   -1 },
+      { "t80.line",  (DL_FUNC) &r_line,   -1 },
+      { "t80.map",   (DL_FUNC) &r_map,    -1 },
+      { "t80.memcpy",(DL_FUNC) &r_memcpy, -1 },
+      { "t80.memset",(DL_FUNC) &r_memset, -1 },
+      { "t80.mget",  (DL_FUNC) &r_mget,   -1 },
+      { "t80.mouse", (DL_FUNC) &r_mouse,  -1 },
+      { "t80.mset",  (DL_FUNC) &r_mset,   -1 },
+      { "t80.music", (DL_FUNC) &r_music,  -1 },
+      { "t80.peek",  (DL_FUNC) &r_peek,   -1 },
+      { "t80.peek1", (DL_FUNC) &r_peek1,  -1 },
+      { "t80.peek2", (DL_FUNC) &r_peek2,  -1 },
+      { "t80.peek4", (DL_FUNC) &r_peek4,  -1 },
+      { "t80.pix",   (DL_FUNC) &r_pix,    -1 },
+      { "t80.pmem",  (DL_FUNC) &r_pmem,   -1 },
+      { "t80.poke",  (DL_FUNC) &r_poke,   -1 },
+      { "t80.poke1", (DL_FUNC) &r_poke1,  -1 },
+      { "t80.poke2", (DL_FUNC) &r_poke2,  -1 },
+      { "t80.poke4", (DL_FUNC) &r_poke4,  -1 },
+      { "t80.print", (DL_FUNC) &r_print,  -1 },
+      { "t80.rect",  (DL_FUNC) &r_rect,   -1 },
+      { "t80.rectb", (DL_FUNC) &r_rectb,  -1 },
+      { "t80.reset", (DL_FUNC) &r_reset,  -1 },
+      { "t80.sfx",   (DL_FUNC) &r_sfx,    -1 },
+      { "t80.spr",   (DL_FUNC) &r_spr,    -1 },
+      { "t80.sync",  (DL_FUNC) &r_sync,   -1 },
+      { "t80.time",  (DL_FUNC) &r_time,   -1 },
+      { "t80.trace", (DL_FUNC) &r_trace,  -1 },
+      { "t80.tri",   (DL_FUNC) &r_tri,    -1 },
+      { "t80.trib",  (DL_FUNC) &r_trib,   -1 },
+      { "t80.tstamp",(DL_FUNC) &r_tstamp, -1 },
+      { "t80.ttri",  (DL_FUNC) &r_ttri,   -1 },
+      { "t80.vbank", (DL_FUNC) &r_vbank,  -1 }
     };
 
     DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
@@ -1931,8 +1955,6 @@ convention).
   ## version: 0.1
   ## script:  r
 
-  ## pee pee poo poo
-
   t <- 0
   x <- 96
   y <- 24
@@ -1940,19 +1962,26 @@ convention).
   inc <- \(x) eval.parent(substitute(x <- x + 1))
   dec <- \(x) eval.parent(substitute(x <- x - 1))
 
+  ## The program eventually SEGFAULTs with the following message.
+  ##  *** caught segfault ***
+  ## address (nil), cause 'memory not mapped'
   `TIC-80` <- function() {
-    mapply(\(b, o) if (.External("btn", b)) eval(o, .GlobalEnv),
-           0:3,
-           list(quote(dec(y)), quote(inc(y)),
-                quote(dec(x)), quote(inc(x))));
-    .External("cls", 13);
-    .External("spr",
+    mapply(function(b, o) {
+      if (.External("t80.btn", b)) {
+        eval(as.expression(o), .GlobalEnv)
+      }
+    },
+    0:3,
+    list(quote(dec(y)), quote(inc(y)),
+         quote(dec(x)), quote(inc(x))));
+    .External("t80.cls", 13);
+    .External("t80.spr",
               id = 1 + (t %% 60) / 30 * 2,
               scale = 3,
               x, y,
               colorkey = 14,
               w = 2, h = 2);
-    .External("print", "HELLO WORLD!", 84, 84);
+    .External("t80.print", "HELLO WORLD!", 84, 84);
     inc(t);
   }
 
@@ -1963,8 +1992,9 @@ The rest of the cartridge definition is metadata which embeds the graphics and
 sounds into the cartridge.
 
 *** TODO Cartridge metadata
-- [ ] The metadata is not stripped from the source code when loaded into the studio editor.
-- [ ] The studio editors do not have any data available, ie no sprites, map, etc.
+- [ ] The metadata is not stripped from the source code when loaded into the
+  studio editor; this is a ~cart2prj~ issue, I think, which causes the studio
+  editors to not have any data available (i.e. no sprites, map, etc.).
 
 The metadata defined in paragraphs of source code comments provides the
 cartridge loading mechanism the ability to retrieve the data component of the
@@ -2030,31 +2060,32 @@ This ensures that =R_HOME= and other environment variables are correctly set.
     R_Interactive = 0;
 
 
-  	char cmd[] = "# DONT quit();\nprint(ls())";
-  	SEXP cmd_sexp, cmd_expr;
-  	ParseStatus status;
+    char cmd[] = "# DONT quit();\nprint(ls())";
+    SEXP cmd_sexp, cmd_expr;
+    ParseStatus status;
 
-  	cmd_sexp = PROTECT(allocVector(STRSXP, 1));
-  	SET_STRING_ELT(cmd_sexp, 0, mkChar(cmd));
-  	cmd_expr = PROTECT(R_ParseVector(cmd_sexp, -1, &status, R_NilValue));
-  	if (status != PARSE_OK) {
-  		UNPROTECT(2);
-  		error("Invalid call %s", cmd);
-  	}
-  	for (int i = 0; i < length(cmd_expr); i++) {
-  		eval(VECTOR_ELT(cmd_expr, i), R_GlobalEnv);
-  	}
-  	UNPROTECT(2);
+    cmd_sexp = PROTECT(allocVector(STRSXP, 1));
+    SET_STRING_ELT(cmd_sexp, 0, mkChar(cmd));
+    cmd_expr = PROTECT(R_ParseVector(cmd_sexp, -1, &status, R_NilValue));
+    if (status != PARSE_OK) {
+      UNPROTECT(2);
+      error("Invalid call %s", cmd);
+    }
+    for (int i = 0; i < length(cmd_expr); i++) {
+      eval(VECTOR_ELT(cmd_expr, i), R_GlobalEnv);
+    }
+    UNPROTECT(2);
 
-  	static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
-  		{ "tester", (DL_FUNC) &tester, -1 }
-  	};
+    static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
+      { "tester", (DL_FUNC) &tester, -1 }
+    };
 
-  	DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
-  	R_registerRoutines(embeddingProgramDllInfo, NULL, NULL, NULL, RExternalMethodsDefinedInC);
-  	R_ParseEvalString("print(getDLLRegisteredRoutines(getLoadedDLLs()[[\"(embedding)\"]], addNames = TRUE));", R_GlobalEnv);
+    DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
+    R_registerRoutines(embeddingProgramDllInfo, NULL, NULL, NULL, RExternalMethodsDefinedInC);
+    R_ParseEvalString("print(getDLLRegisteredRoutines(getLoadedDLLs()[[\"(embedding)\"]], addNames = TRUE));", R_GlobalEnv);
+    R_ParseEvalString(".External(\"tester\")");
 
-  	R_ParseEvalString("quit();", R_GlobalEnv);
+    R_ParseEvalString("quit();", R_GlobalEnv);
     Rf_endEmbeddedR(0);
     return 0;
   }
