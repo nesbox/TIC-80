@@ -48,9 +48,8 @@
 bool R_initialized_once = false;
 extern int R_running_as_main_program;   /* location within The R sources: ../unix/system.c */
 static bool initR(tic_mem *tic, const char *code);
-tic_mem *mem;
 static SEXP RTicRam; /* An external pointer (to an object of type tic_mem) to the object with the symbol "mem". */
-#define TICAPI(CMD, ...) ((tic_core *)RTicRam)->api.CMD(R_ExternalPtrAddr(RTicRam) __VA_OPT__(,) __VA_ARGS__)
+#define TICAPI(CMD, ...) ((tic_core *)R_ExternalPtrAddr(RTicRam))->api.CMD(R_ExternalPtrAddr(RTicRam) __VA_OPT__(,) __VA_ARGS__)
 #define drIntp(x)  *((int   *)x)
 #define drDblp(x)  *((int   *)x)
 #define drLglp(x)  *((int   *)x)
@@ -276,7 +275,7 @@ SEXP r_print(SEXP args) {
   /* print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false)
    * ⮑ width*/
   const int argn = Rf_length(args);
-  const char *text  = (const char *) drCrap(ARGS(1));
+  const char *text  = CHAR(STRING_ELT(ARGS(1), 0));
   const s32   x     = argn > 1 ? drIntp(ARGS(2)): 0;
   const s32   y     = argn > 2 ? drIntp(ARGS(3)): 0;
   const u8    color = argn > 3 ? drIntp(ARGS(4)): 15;
@@ -290,15 +289,15 @@ SEXP r_cls(SEXP args) {
   /* cls(color=0)
    * ⮑ nil */
   const int argn = Rf_length(args);
-  const u8 color = (argn > 0) ? drIntp(ARGS(1)) : 0;
+  const u8 color = (argn > 0) ? *REAL(ARGS(1)) : 0;
   TICAPI(cls, color);
 
   return R_NilValue;
 }
 SEXP r_pix(SEXP args) {
   /* pix(x y color = 0)
-	 * ⮑ nil
-	 * pix(x y)
+   * ⮑ nil
+   * pix(x y)
    * ⮑ color */
   const s32 x = drIntp(ARGS(1));
   const s32 y = drIntp(ARGS(2));
@@ -314,7 +313,7 @@ SEXP r_pix(SEXP args) {
 }
 SEXP r_line(SEXP args) {
   /* line(x0 y0 x1 y1 color)
-	 * ⮑ nil */
+   * ⮑ nil */
   const s32 x0    = drIntp(ARGS(1));
   const s32 y0    = drIntp(ARGS(2));
   const s32 x1    = drIntp(ARGS(3));
@@ -431,9 +430,9 @@ SEXP r_keyp(SEXP args)
 SEXP r_mouse(SEXP args)
 {
   /* mouse()
-	 * ⮑ x y left middle right scrollx scrolly */
-	tic_mem *tic = (tic_mem *) RTicRam;
-	tic_core* core = (tic_core *)tic;
+   * ⮑ x y left middle right scrollx scrolly */
+  tic_mem *tic = (tic_mem *) RTicRam;
+  tic_core* core = (tic_core *)tic;
 
   const tic_point point = core->api.mouse(tic);
   const tic80_mouse* mouse = &((tic_core*)tic)->memory.ram->input.mouse;
@@ -449,7 +448,8 @@ SEXP r_mouse(SEXP args)
 SEXP r_btn(SEXP args)
 {
   // btn(id) -> pressed
-  return Rf_ScalarLogical(TICAPI(btn, (s32) drIntp(ARGS(1))));
+  /* return Rf_ScalarLogical(TICAPI(btn, (s32) drIntp(ARGS(1)))); */
+  return Rf_ScalarLogical(TICAPI(btn, (s32) Rf_asInteger(ARGS(1))));
 }
 
 SEXP r_btnp(SEXP args)
@@ -761,52 +761,52 @@ SEXP r_ffts(SEXP args)
 
 void initializeRExternalMethodsDefinedInC(void) {
   static R_ExternalMethodDef RExternalMethodsDefinedInC[] = {
-    { "btn",   (DL_FUNC) &r_btn,    -1 },
-    { "btnp",  (DL_FUNC) &r_btnp,   -1 },
-    { "circ",  (DL_FUNC) &r_circ,   -1 },
-    { "circb", (DL_FUNC) &r_circb,  -1 },
-    { "clip",  (DL_FUNC) &r_clip,   -1 },
-    { "cls",   (DL_FUNC) &r_cls,    -1 },
-    { "elli",  (DL_FUNC) &r_elli,   -1 },
-    { "ellib", (DL_FUNC) &r_ellib,  -1 },
-    { "exit",  (DL_FUNC) &r_exit,   -1 },
-    { "fget",  (DL_FUNC) &r_fget,   -1 },
-    { "font",  (DL_FUNC) &r_font,   -1 },
-    { "fset",  (DL_FUNC) &r_fset,   -1 },
-    { "key",   (DL_FUNC) &r_key,    -1 },
-    { "keyp",  (DL_FUNC) &r_keyp,   -1 },
-    { "line",  (DL_FUNC) &r_line,   -1 },
-    { "map",   (DL_FUNC) &r_map,    -1 },
-    { "memcpy",(DL_FUNC) &r_memcpy, -1 },
-    { "memset",(DL_FUNC) &r_memset, -1 },
-    { "mget",  (DL_FUNC) &r_mget,   -1 },
-    { "mouse", (DL_FUNC) &r_mouse,  -1 },
-    { "mset",  (DL_FUNC) &r_mset,   -1 },
-    { "music", (DL_FUNC) &r_music,  -1 },
-    { "peek",  (DL_FUNC) &r_peek,   -1 },
-    { "peek1", (DL_FUNC) &r_peek1,  -1 },
-    { "peek2", (DL_FUNC) &r_peek2,  -1 },
-    { "peek4", (DL_FUNC) &r_peek4,  -1 },
-    { "pix",   (DL_FUNC) &r_pix,    -1 },
-    { "pmem",  (DL_FUNC) &r_pmem,   -1 },
-    { "poke",  (DL_FUNC) &r_poke,   -1 },
-    { "poke1", (DL_FUNC) &r_poke1,  -1 },
-    { "poke2", (DL_FUNC) &r_poke2,  -1 },
-    { "poke4", (DL_FUNC) &r_poke4,  -1 },
-    { "print", (DL_FUNC) &r_print,  -1 },
-    { "rect",  (DL_FUNC) &r_rect,   -1 },
-    { "rectb", (DL_FUNC) &r_rectb,  -1 },
-    { "reset", (DL_FUNC) &r_reset,  -1 },
-    { "sfx",   (DL_FUNC) &r_sfx,    -1 },
-    { "spr",   (DL_FUNC) &r_spr,    -1 },
-    { "sync",  (DL_FUNC) &r_sync,   -1 },
-    { "time",  (DL_FUNC) &r_time,   -1 },
-    { "trace", (DL_FUNC) &r_trace,  -1 },
-    { "tri",   (DL_FUNC) &r_tri,    -1 },
-    { "trib",  (DL_FUNC) &r_trib,   -1 },
-    { "tstamp",(DL_FUNC) &r_tstamp, -1 },
-    { "ttri",  (DL_FUNC) &r_ttri,   -1 },
-    { "vbank", (DL_FUNC) &r_vbank,  -1 }
+    { "t80.btn",   (DL_FUNC) &r_btn,    -1 },
+    { "t80.btnp",  (DL_FUNC) &r_btnp,   -1 },
+    { "t80.circ",  (DL_FUNC) &r_circ,   -1 },
+    { "t80.circb", (DL_FUNC) &r_circb,  -1 },
+    { "t80.clip",  (DL_FUNC) &r_clip,   -1 },
+    { "t80.cls",   (DL_FUNC) &r_cls,    -1 },
+    { "t80.elli",  (DL_FUNC) &r_elli,   -1 },
+    { "t80.ellib", (DL_FUNC) &r_ellib,  -1 },
+    { "t80.exit",  (DL_FUNC) &r_exit,   -1 },
+    { "t80.fget",  (DL_FUNC) &r_fget,   -1 },
+    { "t80.font",  (DL_FUNC) &r_font,   -1 },
+    { "t80.fset",  (DL_FUNC) &r_fset,   -1 },
+    { "t80.key",   (DL_FUNC) &r_key,    -1 },
+    { "t80.keyp",  (DL_FUNC) &r_keyp,   -1 },
+    { "t80.line",  (DL_FUNC) &r_line,   -1 },
+    { "t80.map",   (DL_FUNC) &r_map,    -1 },
+    { "t80.memcpy",(DL_FUNC) &r_memcpy, -1 },
+    { "t80.memset",(DL_FUNC) &r_memset, -1 },
+    { "t80.mget",  (DL_FUNC) &r_mget,   -1 },
+    { "t80.mouse", (DL_FUNC) &r_mouse,  -1 },
+    { "t80.mset",  (DL_FUNC) &r_mset,   -1 },
+    { "t80.music", (DL_FUNC) &r_music,  -1 },
+    { "t80.peek",  (DL_FUNC) &r_peek,   -1 },
+    { "t80.peek1", (DL_FUNC) &r_peek1,  -1 },
+    { "t80.peek2", (DL_FUNC) &r_peek2,  -1 },
+    { "t80.peek4", (DL_FUNC) &r_peek4,  -1 },
+    { "t80.pix",   (DL_FUNC) &r_pix,    -1 },
+    { "t80.pmem",  (DL_FUNC) &r_pmem,   -1 },
+    { "t80.poke",  (DL_FUNC) &r_poke,   -1 },
+    { "t80.poke1", (DL_FUNC) &r_poke1,  -1 },
+    { "t80.poke2", (DL_FUNC) &r_poke2,  -1 },
+    { "t80.poke4", (DL_FUNC) &r_poke4,  -1 },
+    { "t80.print", (DL_FUNC) &r_print,  -1 },
+    { "t80.rect",  (DL_FUNC) &r_rect,   -1 },
+    { "t80.rectb", (DL_FUNC) &r_rectb,  -1 },
+    { "t80.reset", (DL_FUNC) &r_reset,  -1 },
+    { "t80.sfx",   (DL_FUNC) &r_sfx,    -1 },
+    { "t80.spr",   (DL_FUNC) &r_spr,    -1 },
+    { "t80.sync",  (DL_FUNC) &r_sync,   -1 },
+    { "t80.time",  (DL_FUNC) &r_time,   -1 },
+    { "t80.trace", (DL_FUNC) &r_trace,  -1 },
+    { "t80.tri",   (DL_FUNC) &r_tri,    -1 },
+    { "t80.trib",  (DL_FUNC) &r_trib,   -1 },
+    { "t80.tstamp",(DL_FUNC) &r_tstamp, -1 },
+    { "t80.ttri",  (DL_FUNC) &r_ttri,   -1 },
+    { "t80.vbank", (DL_FUNC) &r_vbank,  -1 }
   };
 
   DllInfo *embeddingProgramDllInfo = R_getEmbeddingDllInfo();
@@ -814,13 +814,13 @@ void initializeRExternalMethodsDefinedInC(void) {
 }
 
 void evalR(tic_mem *memory, const char *code) {
-	setEnvironmentVariablesIfUnset();
-	if (!R_initialized_once) {
-		initR(memory, code);
-		R_initialized_once = true;
-	}
+  setEnvironmentVariablesIfUnset();
+  if (!R_initialized_once) {
+  	initR(memory, code);
+  	R_initialized_once = true;
+  }
 
-	if (R_initialized_once) {
+  if (R_initialized_once) {
     SEXP RESULT = R_ParseEvalString(code, R_GlobalEnv);
   }
 }
@@ -837,11 +837,9 @@ void R_Suicide(const char *message)
   while(1);
 }
 
-static tic_mem *tic_memory_static;
-
 void R_ShowMessage(const char *s) {
 /* Always use the sixteenth color. */
-  ((tic_core *) tic_memory_static)->api.trace(tic_memory_static, s, 15);
+  TICAPI(trace, s, 15);
 }
 
 static bool R_Initialized = false;
@@ -880,9 +878,12 @@ static bool initR(tic_mem *tic, const char *code) {
     RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
     initializeRExternalMethodsDefinedInC();
 
-    /* Ensure BOOT is defined. If the user has defined it this no-op version
-     * will be overwritten (as intended). */
-    EVALG("BOOT <- function() `{`");
+    /* Ensure a dummy function is defined for all of the important functions
+     * that will be called. */
+    /* TODO: test that TIC-80, minimally, has been redefined. If the others are
+     * not redefined from `{` print a single warning on the standard error (AND
+     * ABSOLUTLY NOWHERE ELSE). */
+    EVALG("`TIC-80` <- BDR <- BOOT <- MENU <- SCN <- `{`");
 
     /* Manually create a vector of type string, parse it, then evaluate it
      * expression by expression. */
@@ -903,16 +904,14 @@ static bool initR(tic_mem *tic, const char *code) {
     /* MAYBE: this might not be appropriate; do other APIs call BOOT? I should
      * also use the function defined through macro expansion to call the BOOT
      * function if that is appropriate. */
-    EVALG("if (print(exists(\"BOOT\")) && is.function(BOOT)) { BOOT() } "
-          "else { BOOT <- function() `{` }");
+    EVALG("BOOT();");
   }
 
   return R_Initialized;
 }
 
 static void callRFn_TIC80(tic_mem* tic) {
-  SEXP exists = EVALG("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "
-                                    "`TIC-80`()");
+  SEXP exists = EVALG("`TIC-80`();");
 }
 #define defineCallRFnInEnvironment_(f, e, ...)                          \
   static void callRFn_##f(tic_mem *tic __VA_OPT__(,) __VA_ARGS__) {     \
@@ -934,11 +933,11 @@ defineCallRFn_(SCN, s32 row, void *data)
 /* Syntax highlighting and what-not */
 static const char* const RKeywords [] =
 {
-	"if", "else", "repeat", "while", "function", "for", "in", "next", "break",
-	"TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_",
-	"NA_complex_", "NA_character_",
-	/* et cetera, see ?dots */
-	"...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9",
+  "if", "else", "repeat", "while", "function", "for", "in", "next", "break",
+  "TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_",
+  "NA_complex_", "NA_character_",
+  /* et cetera, see ?dots */
+  "...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9",
 };
 
 /* A naive edit of the Python function to check if a character is a valid
@@ -1034,51 +1033,51 @@ static const u8 MarkRom[] =
 /* EXPORT_SCRIPT -> RScriptConfig if static, else ScriptConfig */
 TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 {
-	/* The first five members of the struct have the sum total following
-	 * size. */
-	/* sizeof(u8) + 3 * sizeof(char *)  */
-	/* R's id is determined by counting up from 10, beginning with Lua, all of
-		 the other languages TIC-80 supports. Python was the 10th langauge supported,
-		 with .id 20. */
-	.id                     = 21,
-	.name                   = "r",
-	.fileExtension          = ".r",
-	.projectComment         = "##",
-	{
-		.init                 = initR,
+  /* The first five members of the struct have the sum total following
+   * size. */
+  /* sizeof(u8) + 3 * sizeof(char *)  */
+  /* R's id is determined by counting up from 10, beginning with Lua, all of
+  	 the other languages TIC-80 supports. Python was the 10th langauge supported,
+  	 with .id 20. */
+  .id                     = 21,
+  .name                   = "r",
+  .fileExtension          = ".r",
+  .projectComment         = "##",
+  {
+  	.init                 = initR,
 
-		.close                = closeR,
-		.tick                 = callRFn_TIC80,
-		.boot                 = callRFn_BOOT,
+  	.close                = closeR,
+  	.tick                 = callRFn_TIC80,
+  	.boot                 = callRFn_BOOT,
 
-		.callback             =
-		{
-			.scanline           = callRFn_SCN,
-			.border             = callRFn_BDR,
-			.menu               = callRFn_MENU,
-		},
-	},
+  	.callback             =
+  	{
+  		.scanline           = callRFn_SCN,
+  		.border             = callRFn_BDR,
+  		.menu               = callRFn_MENU,
+  	},
+  },
 
-	.getOutline             = getROutline,
-	.eval                   = evalR,
+  .getOutline             = getROutline,
+  .eval                   = evalR,
 
-	.blockCommentStart      = NULL,
-	.blockCommentEnd        = NULL,
-	.blockCommentStart2     = NULL,
-	.blockCommentEnd2       = NULL,
-	.singleComment          = "##",
-	.blockStringStart       = "\"",
-	.blockStringEnd         = "\"",
-	.stdStringStartEnd      = "\"",
-	.blockEnd               = NULL,
-	.lang_isalnum           = r_isalnum,
-	.api_keywords           = RAPIKeywords,
-	.api_keywordsCount      = COUNT_OF(RAPIKeywords),
-	.useStructuredEdition   = false,
+  .blockCommentStart      = NULL,
+  .blockCommentEnd        = NULL,
+  .blockCommentStart2     = NULL,
+  .blockCommentEnd2       = NULL,
+  .singleComment          = "##",
+  .blockStringStart       = "\"",
+  .blockStringEnd         = "\"",
+  .stdStringStartEnd      = "\"",
+  .blockEnd               = NULL,
+  .lang_isalnum           = r_isalnum,
+  .api_keywords           = RAPIKeywords,
+  .api_keywordsCount      = COUNT_OF(RAPIKeywords),
+  .useStructuredEdition   = false,
 
-	.keywords               = RKeywords,
-	.keywordsCount          = COUNT_OF(RKeywords),
+  .keywords               = RKeywords,
+  .keywordsCount          = COUNT_OF(RKeywords),
 
-	.demo = {DemoRom, sizeof DemoRom},
-	.mark = {MarkRom, sizeof MarkRom, "rmark.tic"},
+  .demo = {DemoRom, sizeof DemoRom},
+  .mark = {MarkRom, sizeof MarkRom, "rmark.tic"},
 };
