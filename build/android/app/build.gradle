@@ -25,7 +25,7 @@ android {
                 arguments "APP_PLATFORM=android-31"
             }
             cmake {
-                arguments "-DBUILD_WITH_RUBY=OFF", "-DBUILD_PRO=Off", "-DCMAKE_BUILD_TYPE=MinSizeRel", "-DBUILD_WITH_ALL=ON"
+                arguments "-DBUILD_WITH_RUBY=OFF", "-DBUILD_PRO=Off", "-DCMAKE_BUILD_TYPE=Release", "-DBUILD_WITH_ALL=ON"
             }
         }
     }
