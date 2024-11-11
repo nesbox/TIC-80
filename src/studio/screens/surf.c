@@ -229,7 +229,7 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
     return true;
 }
 
-static s32 itemcmp(const void* a, const void* b)
+static int itemcmp(const void* a, const void* b)
 {
     const SurfItem* item1 = a;
     const SurfItem* item2 = b;

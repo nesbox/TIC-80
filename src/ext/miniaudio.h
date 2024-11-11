@@ -16137,7 +16137,7 @@ static ma_result ma_thread_create__posix(ma_thread* pThread, ma_thread_priority 
     int result;
     pthread_attr_t* pAttr = NULL;
 
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && !defined(__3DS__)
     /* Try setting the thread priority. It's not critical if anything fails here. */
     pthread_attr_t attr;
     if (pthread_attr_init(&attr) == 0) {
@@ -17864,7 +17864,7 @@ Dynamic Linking
 #ifdef MA_POSIX
     /* No need for dlfcn.h if we're not using runtime linking. */
     #ifndef MA_NO_RUNTIME_LINKING
-        #include <dlfcn.h>
+        #include "../../vendor/dlfcn/src/dlfcn.h"
     #endif
 #endif
 
@@ -17995,7 +17995,7 @@ DEVICE I/O
 
     /* No need for dlfcn.h if we're not using runtime linking. */
     #ifndef MA_NO_RUNTIME_LINKING
-        #include <dlfcn.h>
+        #include "../../vendor/dlfcn/src/dlfcn.h"
     #endif
 #endif
 
