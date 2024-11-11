@@ -154,7 +154,7 @@ void tic_add_script(const tic_script* script)
     if(index < MAX_SUPPORTED_LANGS)
     {
         Scripts[index] = script;
-        qsort(Scripts, index + 1, sizeof Scripts[0], compareScripts);
+        qsort(Scripts, index + 1, sizeof Scripts[0], (int (*)(const void *, const void *))compareScripts);
     }
 }
 
