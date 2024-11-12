@@ -2,21 +2,21 @@
 
 /* FIXME: does not seem to work! */
 void setEnvironmentVariablesIfUnset(void) {
-  #define OVERWRITE 1
-  if (getenv("R_HOME") == NULL) {
-  	setenv("R_HOME", "@R_HOME@", OVERWRITE);
-  }
+	#define OVERWRITE 1
+	if (getenv("R_HOME") == NULL) {
+		setenv("R_HOME", "@R_HOME@", OVERWRITE);
+	}
 
-  if (getenv("LD_LIBRARY_PATH") == NULL) {
-  	setenv("LD_LIBRARY_PATH", "@LD_LIBRARY_PATH@", OVERWRITE);
-  }
+	if (getenv("LD_LIBRARY_PATH") == NULL) {
+		setenv("LD_LIBRARY_PATH", "@LD_LIBRARY_PATH@", OVERWRITE);
+	}
 
-  if (getenv("R_SHARE_DIR") == NULL) {
-  	setenv("R_SHARE_DIR", "@R_SHARE_DIR@", OVERWRITE);
-  }
+	if (getenv("R_SHARE_DIR") == NULL) {
+		setenv("R_SHARE_DIR", "@R_SHARE_DIR@", OVERWRITE);
+	}
 
-  if (getenv("R_SHARE_DIR") == NULL) {
-  	setenv("R_DOC_DIR", "@R_DOC_DIR@", OVERWRITE);
-  }
-  #undef OVERWRITE
+	if (getenv("R_SHARE_DIR") == NULL) {
+		setenv("R_DOC_DIR", "@R_DOC_DIR@", OVERWRITE);
+	}
+	#undef OVERWRITE
 }

@@ -48,8 +48,8 @@
 bool R_initialized_once = false;
 extern int R_running_as_main_program;   /* location within The R sources: ../unix/system.c */
 static bool initR(tic_mem *tic, const char *code);
-static SEXP RTicRam; /* An external pointer (to an object of type tic_mem) to the object with the symbol "mem". */
-#define TICAPI(CMD, ...) ((tic_core *)R_ExternalPtrAddr(RTicRam))->api.CMD(R_ExternalPtrAddr(RTicRam) __VA_OPT__(,) __VA_ARGS__)
+static tic_mem *RTicRam;
+#define TICAPI(CMD, ...) ((tic_core *)RTicRam)->api.CMD(RTicRam __VA_OPT__(,) __VA_ARGS__)
 #define drIntp(x)  *((int   *)x)
 #define drDblp(x)  *((int   *)x)
 #define drLglp(x)  *((int   *)x)
@@ -296,8 +296,8 @@ SEXP r_cls(SEXP args) {
 }
 SEXP r_pix(SEXP args) {
   /* pix(x y color = 0)
-   * ⮑ nil
-   * pix(x y)
+	 * ⮑ nil
+	 * pix(x y)
    * ⮑ color */
   const s32 x = drIntp(ARGS(1));
   const s32 y = drIntp(ARGS(2));
@@ -313,7 +313,7 @@ SEXP r_pix(SEXP args) {
 }
 SEXP r_line(SEXP args) {
   /* line(x0 y0 x1 y1 color)
-   * ⮑ nil */
+	 * ⮑ nil */
   const s32 x0    = drIntp(ARGS(1));
   const s32 y0    = drIntp(ARGS(2));
   const s32 x1    = drIntp(ARGS(3));
@@ -430,9 +430,9 @@ SEXP r_keyp(SEXP args)
 SEXP r_mouse(SEXP args)
 {
   /* mouse()
-   * ⮑ x y left middle right scrollx scrolly */
-  tic_mem *tic = (tic_mem *) RTicRam;
-  tic_core* core = (tic_core *)tic;
+	 * ⮑ x y left middle right scrollx scrolly */
+	tic_mem *tic = (tic_mem *) RTicRam;
+	tic_core* core = (tic_core *)tic;
 
   const tic_point point = core->api.mouse(tic);
   const tic80_mouse* mouse = &((tic_core*)tic)->memory.ram->input.mouse;
@@ -814,13 +814,13 @@ void initializeRExternalMethodsDefinedInC(void) {
 }
 
 void evalR(tic_mem *memory, const char *code) {
-  setEnvironmentVariablesIfUnset();
-  if (!R_initialized_once) {
-  	initR(memory, code);
-  	R_initialized_once = true;
-  }
+	setEnvironmentVariablesIfUnset();
+	if (!R_initialized_once) {
+		initR(memory, code);
+		R_initialized_once = true;
+	}
 
-  if (R_initialized_once) {
+	if (R_initialized_once) {
     SEXP RESULT = R_ParseEvalString(code, R_GlobalEnv);
   }
 }
@@ -863,6 +863,7 @@ static bool initR(tic_mem *tic, const char *code) {
 
   /* embdRAV: embedded R argument vector. */
   static char *embdRAV[] = { "TIC-80", "--quiet", "--vanilla" };
+  RTicRam = tic;
 
   /* Without this nothing in R will work. */
   setEnvironmentVariablesIfUnset();
@@ -875,7 +876,6 @@ static bool initR(tic_mem *tic, const char *code) {
     R_running_as_main_program = 0;
     /* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
     R_Interactive = false;
-    RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
     initializeRExternalMethodsDefinedInC();
 
     /* Ensure a dummy function is defined for all of the important functions
@@ -933,11 +933,11 @@ defineCallRFn_(SCN, s32 row, void *data)
 /* Syntax highlighting and what-not */
 static const char* const RKeywords [] =
 {
-  "if", "else", "repeat", "while", "function", "for", "in", "next", "break",
-  "TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_",
-  "NA_complex_", "NA_character_",
-  /* et cetera, see ?dots */
-  "...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9",
+	"if", "else", "repeat", "while", "function", "for", "in", "next", "break",
+	"TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_",
+	"NA_complex_", "NA_character_",
+	/* et cetera, see ?dots */
+	"...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9",
 };
 
 /* A naive edit of the Python function to check if a character is a valid
@@ -1033,51 +1033,51 @@ static const u8 MarkRom[] =
 /* EXPORT_SCRIPT -> RScriptConfig if static, else ScriptConfig */
 TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 {
-  /* The first five members of the struct have the sum total following
-   * size. */
-  /* sizeof(u8) + 3 * sizeof(char *)  */
-  /* R's id is determined by counting up from 10, beginning with Lua, all of
-  	 the other languages TIC-80 supports. Python was the 10th langauge supported,
-  	 with .id 20. */
-  .id                     = 21,
-  .name                   = "r",
-  .fileExtension          = ".r",
-  .projectComment         = "##",
-  {
-  	.init                 = initR,
+	/* The first five members of the struct have the sum total following
+	 * size. */
+	/* sizeof(u8) + 3 * sizeof(char *)  */
+	/* R's id is determined by counting up from 10, beginning with Lua, all of
+		 the other languages TIC-80 supports. Python was the 10th langauge supported,
+		 with .id 20. */
+	.id                     = 21,
+	.name                   = "r",
+	.fileExtension          = ".r",
+	.projectComment         = "##",
+	{
+		.init                 = initR,
 
-  	.close                = closeR,
-  	.tick                 = callRFn_TIC80,
-  	.boot                 = callRFn_BOOT,
+		.close                = closeR,
+		.tick                 = callRFn_TIC80,
+		.boot                 = callRFn_BOOT,
 
-  	.callback             =
-  	{
-  		.scanline           = callRFn_SCN,
-  		.border             = callRFn_BDR,
-  		.menu               = callRFn_MENU,
-  	},
-  },
+		.callback             =
+		{
+			.scanline           = callRFn_SCN,
+			.border             = callRFn_BDR,
+			.menu               = callRFn_MENU,
+		},
+	},
 
-  .getOutline             = getROutline,
-  .eval                   = evalR,
+	.getOutline             = getROutline,
+	.eval                   = evalR,
 
-  .blockCommentStart      = NULL,
-  .blockCommentEnd        = NULL,
-  .blockCommentStart2     = NULL,
-  .blockCommentEnd2       = NULL,
-  .singleComment          = "##",
-  .blockStringStart       = "\"",
-  .blockStringEnd         = "\"",
-  .stdStringStartEnd      = "\"",
-  .blockEnd               = NULL,
-  .lang_isalnum           = r_isalnum,
-  .api_keywords           = RAPIKeywords,
-  .api_keywordsCount      = COUNT_OF(RAPIKeywords),
-  .useStructuredEdition   = false,
+	.blockCommentStart      = NULL,
+	.blockCommentEnd        = NULL,
+	.blockCommentStart2     = NULL,
+	.blockCommentEnd2       = NULL,
+	.singleComment          = "##",
+	.blockStringStart       = "\"",
+	.blockStringEnd         = "\"",
+	.stdStringStartEnd      = "\"",
+	.blockEnd               = NULL,
+	.lang_isalnum           = r_isalnum,
+	.api_keywords           = RAPIKeywords,
+	.api_keywordsCount      = COUNT_OF(RAPIKeywords),
+	.useStructuredEdition   = false,
 
-  .keywords               = RKeywords,
-  .keywordsCount          = COUNT_OF(RKeywords),
+	.keywords               = RKeywords,
+	.keywordsCount          = COUNT_OF(RKeywords),
 
-  .demo = {DemoRom, sizeof DemoRom},
-  .mark = {MarkRom, sizeof MarkRom, "rmark.tic"},
+	.demo = {DemoRom, sizeof DemoRom},
+	.mark = {MarkRom, sizeof MarkRom, "rmark.tic"},
 };

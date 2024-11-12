@@ -418,8 +418,8 @@ That is made easier by defining the following symbols and macros to reference
 them.
 
 #+begin_src C :noweb-ref PREDECLARATIONS
-  static SEXP RTicRam; /* An external pointer (to an object of type tic_mem) to the object with the symbol "mem". */
-  #define TICAPI(CMD, ...) ((tic_core *)R_ExternalPtrAddr(RTicRam))->api.CMD(R_ExternalPtrAddr(RTicRam) __VA_OPT__(,) __VA_ARGS__)
+  static tic_mem *RTicRam;
+  #define TICAPI(CMD, ...) ((tic_core *)RTicRam)->api.CMD(RTicRam __VA_OPT__(,) __VA_ARGS__)
 #+end_src
 
 The example then becomes as follows.
@@ -540,6 +540,7 @@ only one).
 
     /* embdRAV: embedded R argument vector. */
     static char *embdRAV[] = { "TIC-80", "--quiet", "--vanilla" };
+    RTicRam = tic;
 
     /* Without this nothing in R will work. */
     setEnvironmentVariablesIfUnset();
@@ -552,7 +553,6 @@ only one).
       R_running_as_main_program = 0;
       /* Declared in Rinterface.h, defined in Rf_initEmbeddedR. */
       R_Interactive = false;
-      RTicRam = R_MakeExternalPtr((void *) tic, NULL, NULL);
       initializeRExternalMethodsDefinedInC();
 
       /* Ensure a dummy function is defined for all of the important functions
@@ -2265,7 +2265,10 @@ which need special attention.
 *** ensure the front-end is not frozen out during the event loop waiting for responses from sockets
 
 * TODO Creating build assets at build-time from source files
-- [ ] FIXME: the assets are not converted properly.
+- [ ] FIXME: the assets are not converted properly. MAYBE: the assets may be
+  converted correctly, but the cloned build assets may be out of date compared
+  to the demo file sources (which is why my .tic.dat files differ from existing
+  ones when created from the assumedly same soures).
 
 The is a build/assets directory in the TIC-80 sources containing DAT formatted
 files which are needed to include benchmarks for various scripting language
