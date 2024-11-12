@@ -1233,11 +1233,6 @@ drawing API.
   }
 #+end_src
 
-With the preprocessor macros and the R API function ~R_ExternalPtrAddr~ I have
-sufficiently simplified the defintion of an =.External= R function to the point
-I'm happy to write these and edit the ones which I already have copied from
-the s7 Scheme API.
-
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_cls(SEXP args) {
     /* cls(color=0)
@@ -1249,10 +1244,6 @@ the s7 Scheme API.
     return R_NilValue;
   }
 #+end_src
-
-It isn't so bad to write these now. I can focus on /handling the arguments/,
-regardless of their number, rather than acquiring the number of arguments and
-protecting intermediate values.
 
 #+begin_src C :noweb-ref define C symbols to be callable from R
   SEXP r_pix(SEXP args) {
@@ -1959,37 +1950,34 @@ convention).
   x <- 96
   y <- 24
 
-  inc <- \(x) eval.parent(substitute(x <- x + 1))
-  dec <- \(x) eval.parent(substitute(x <- x - 1))
+  .X <- .External
 
-  ## The program eventually SEGFAULTs with the following message.
-  ##  *** caught segfault ***
-  ## address (nil), cause 'memory not mapped'
   `TIC-80` <- function() {
-    mapply(function(b, o) {
-      if (.External("t80.btn", b)) {
-        eval(as.expression(o), .GlobalEnv)
-      }
-    },
-    0:3,
-    list(quote(dec(y)), quote(inc(y)),
-         quote(dec(x)), quote(inc(x))));
-    .External("t80.cls", 13);
-    .External("t80.spr",
-              id = 1 + (t %% 60) / 30 * 2,
-              scale = 3,
-              x, y,
-              colorkey = 14,
-              w = 2, h = 2);
-    .External("t80.print", "HELLO WORLD!", 84, 84);
+    if (.X("t80.btn", 0)) y <- y - 1
+    if (.X("t80.btn", 1)) y <- y + 1
+    if (.X("t80.btn", 2)) x <- x - 1
+    if (.X("t80.btn", 3)) x <- x + 1
+    .X("t80.cls", 13);
+    .X("t80.spr",
+       id = 1+(t%%60)/30*2,
+       scale = 3,
+       x, y,
+       colorkey = 14,
+       w = 2, h = 2);
+    .X("t80.print", "HELLO WORLD!", 84, 84);
     inc(t);
   }
-
-  <<cartridge metadata stripped during cartridge loading>>
 #+end_src
 
 The rest of the cartridge definition is metadata which embeds the graphics and
-sounds into the cartridge.
+sounds into the cartridge. For now this is excluded because it isn't being
+integrated correctly during build.
+
+#+begin_comment
+,#+begin_src R :noweb no-export :tangle ../../demos/rdemo.r
+<<cartridge metadata stripped during cartridge loading>>
+,#+end_src
+#+end_comment
 
 *** TODO Cartridge metadata
 - [ ] The metadata is not stripped from the source code when loaded into the
