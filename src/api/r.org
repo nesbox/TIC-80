@@ -577,11 +577,6 @@ only one).
         Rf_eval(VECTOR_ELT(code_expr, i), R_GlobalEnv);
       }
       UNPROTECT(2);
-
-      /* MAYBE: this might not be appropriate; do other APIs call BOOT? I should
-       ,* also use the function defined through macro expansion to call the BOOT
-       ,* function if that is appropriate. */
-      EVALG("BOOT();");
     }
 
     return R_Initialized;
