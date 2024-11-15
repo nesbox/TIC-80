@@ -602,7 +602,7 @@ non-syntactic identifier quotes isn't necessary for the other functions.
 
 #+begin_src C :noweb-ref cartridge commands
   static void callRFn_TIC80(tic_mem* tic) {
-    SEXP exists = EVALG("`TIC-80`();");
+    EVALG("`TIC-80`();");
   }
 #+end_src
 
