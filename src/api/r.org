@@ -437,6 +437,7 @@ macros are declared.
   #define drLglp(x)  *((int   *)x)
   #define drCrap(x)  *((char **)x)
   #define ARGS(x) Rf_elt(args, x)
+  #define ARGN(n) (argn >= n && Rf_isNull(ARGS(n)) == false)
 #+end_src
 
 Functions in the R TIC-80 API subject to manual reference counting require more
@@ -1221,12 +1222,13 @@ drawing API.
      ,* ⮑ width*/
     const int argn = Rf_length(args);
     const char *text  = CHAR(STRING_ELT(ARGS(1), 0));
-    const s32   x     = argn > 1 ? drIntp(ARGS(2)): 0;
-    const s32   y     = argn > 2 ? drIntp(ARGS(3)): 0;
-    const u8    color = argn > 3 ? drIntp(ARGS(4)): 15;
-    const bool  fixed = argn > 4 ? drIntp(ARGS(5)): false;
-    const s32   scale = argn > 5 ? drIntp(ARGS(6)): 1;
-    const bool  alt   = argn > 6 ? drIntp(ARGS(7)): false;
+    /* Why the fuck is argn 2 when r_print _should_ be called with just one argument, TEXT? */
+    const s32   x     = ARGN(2) ? *INTEGER(ARGS(2)): 0;
+    const s32   y     = ARGN(3) ? *INTEGER(ARGS(3)): 0;
+    const u8    color = ARGN(4) ? *INTEGER(ARGS(4)): 15;
+    const bool  fixed = ARGN(5) ? drLglp(ARGS(5)): false;
+    const s32   scale = ARGN(6) ? *INTEGER(ARGS(6)): 1;
+    const bool  alt   = ARGN(7) ? drLglp(ARGS(7)): false;
 
     return Rf_ScalarLogical(TICAPI(print, text, x, y, color, fixed, scale, alt));
   }

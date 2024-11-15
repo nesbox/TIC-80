@@ -55,6 +55,7 @@ static tic_mem *RTicRam;
 #define drLglp(x)  *((int   *)x)
 #define drCrap(x)  *((char **)x)
 #define ARGS(x) Rf_elt(args, x)
+#define ARGN(n) (argn >= n && Rf_isNull(ARGS(n)) == false)
 #define RSTRT(x) SEXP x(SEXP args) { int protected_count = 0; const int argn = Rf_length(args);
 #define RUNP UNPROTECT(protected_count);
 #define REND }
@@ -276,12 +277,13 @@ SEXP r_print(SEXP args) {
    * ⮑ width*/
   const int argn = Rf_length(args);
   const char *text  = CHAR(STRING_ELT(ARGS(1), 0));
-  const s32   x     = argn > 1 ? drIntp(ARGS(2)): 0;
-  const s32   y     = argn > 2 ? drIntp(ARGS(3)): 0;
-  const u8    color = argn > 3 ? drIntp(ARGS(4)): 15;
-  const bool  fixed = argn > 4 ? drIntp(ARGS(5)): false;
-  const s32   scale = argn > 5 ? drIntp(ARGS(6)): 1;
-  const bool  alt   = argn > 6 ? drIntp(ARGS(7)): false;
+  /* Why the fuck is argn 2 when r_print _should_ be called with just one argument, TEXT? */
+  const s32   x     = ARGN(2) ? *INTEGER(ARGS(2)): 0;
+  const s32   y     = ARGN(3) ? *INTEGER(ARGS(3)): 0;
+  const u8    color = ARGN(4) ? *INTEGER(ARGS(4)): 15;
+  const bool  fixed = ARGN(5) ? drLglp(ARGS(5)): false;
+  const s32   scale = ARGN(6) ? *INTEGER(ARGS(6)): 1;
+  const bool  alt   = ARGN(7) ? drLglp(ARGS(7)): false;
 
   return Rf_ScalarLogical(TICAPI(print, text, x, y, color, fixed, scale, alt));
 }
@@ -894,24 +896,23 @@ static bool initR(tic_mem *tic, const char *code) {
     code_expr = PROTECT(R_ParseVector(code_sexp, -1, &code_parse_status, R_NilValue));
     if (code_parse_status != PARSE_OK) {
       UNPROTECT(2);
+      tic_core *core = (tic_core *)tic;
+      if (core->data) {
+          core->data->error(core->data->data, "Function `TIC-80` was not called because parsing code in editor failed.");
+      }
       Rf_error("Invalid call %s", code);
     }
     for (int i = 0; i < Rf_length(code_expr); i++) {
       Rf_eval(VECTOR_ELT(code_expr, i), R_GlobalEnv);
     }
     UNPROTECT(2);
-
-    /* MAYBE: this might not be appropriate; do other APIs call BOOT? I should
-     * also use the function defined through macro expansion to call the BOOT
-     * function if that is appropriate. */
-    EVALG("BOOT();");
   }
 
   return R_Initialized;
 }
 
 static void callRFn_TIC80(tic_mem* tic) {
-  SEXP exists = EVALG("`TIC-80`();");
+  EVALG("`TIC-80`();");
 }
 #define defineCallRFnInEnvironment_(f, e, ...)                          \
   static void callRFn_##f(tic_mem *tic __VA_OPT__(,) __VA_ARGS__) {     \
