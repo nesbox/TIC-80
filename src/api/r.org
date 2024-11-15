@@ -571,6 +571,10 @@ only one).
       code_expr = PROTECT(R_ParseVector(code_sexp, -1, &code_parse_status, R_NilValue));
       if (code_parse_status != PARSE_OK) {
         UNPROTECT(2);
+        tic_core *core = (tic_core *)tic;
+        if (core->data) {
+            core->data->error(core->data->data, "Function `TIC-80` was not called because parsing code in editor failed.");
+        }
         Rf_error("Invalid call %s", code);
       }
       for (int i = 0; i < Rf_length(code_expr); i++) {
