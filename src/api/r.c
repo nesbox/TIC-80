@@ -50,12 +50,8 @@ extern int R_running_as_main_program;   /* location within The R sources: ../uni
 static bool initR(tic_mem *tic, const char *code);
 static tic_mem *RTicRam;
 #define TICAPI(CMD, ...) ((tic_core *)RTicRam)->api.CMD(RTicRam __VA_OPT__(,) __VA_ARGS__)
-#define drIntp(x)  *((int   *)x)
-#define drDblp(x)  *((int   *)x)
-#define drLglp(x)  *((int   *)x)
-#define drCrap(x)  *((char **)x)
 #define ARGS(x) Rf_elt(args, x)
-#define ARGN(n) (argn >= n && Rf_isNull(ARGS(n)) == false)
+#define ARGN(n) (Rf_length(args) >= n && Rf_isNull(ARGS(n)) == false)
 #define RSTRT(x) SEXP x(SEXP args) { int protected_count = 0; const int argn = Rf_length(args);
 #define RUNP UNPROTECT(protected_count);
 #define REND }
@@ -76,22 +72,22 @@ void parseTransparentColorsArg(/* LISTSXP */SEXP colorkey,
     for (int i=0; i<color_count; ++i)
     {
       SEXP c = VECTOR_ELT(colorkey, i);
-      out_transparent_colors[i] = (bool) Rf_isInteger(c) ? drIntp(c) : 0;
+      out_transparent_colors[i] = (bool) Rf_isInteger(c) ? *INTEGER(c) : 0;
       ++(*out_count);
     }
   }
   else if ((bool) Rf_isInteger(colorkey))
   {
-    out_transparent_colors[0] = (u8) drIntp(colorkey);
+    out_transparent_colors[0] = (u8) *INTEGER(colorkey);
     *out_count = 1;
   }
 }
 SEXP r_circ(SEXP args) {
   // circ(x y radius color)
-  const s32 x      = drIntp(ARGS(1));
-  const s32 y      = drIntp(ARGS(2));
-  const s32 radius = drIntp(ARGS(3));
-  const s32 color  = drIntp(ARGS(4));
+  const s32 x      = *INTEGER(ARGS(1));
+  const s32 y      = *INTEGER(ARGS(2));
+  const s32 radius = *INTEGER(ARGS(3));
+  const s32 color  = *INTEGER(ARGS(4));
 
   /* RTICAPI.circ(RTICRAM, x, y, radius, color); */
   TICAPI(circ, x, y, radius, color);
@@ -100,10 +96,10 @@ SEXP r_circ(SEXP args) {
 
 SEXP r_circb(SEXP args) {
   // circb(x y radius color)
-  const s32 x      = drIntp(ARGS(1));
-  const s32 y      = drIntp(ARGS(2));
-  const s32 radius = drIntp(ARGS(3));
-  const s32 color  = drIntp(ARGS(4));
+  const s32 x      = *INTEGER(ARGS(1));
+  const s32 y      = *INTEGER(ARGS(2));
+  const s32 radius = *INTEGER(ARGS(3));
+  const s32 color  = *INTEGER(ARGS(4));
 
   TICAPI(circb, x, y, radius, color);
   return R_NilValue;
@@ -111,11 +107,11 @@ SEXP r_circb(SEXP args) {
 SEXP r_elli(SEXP args)
 {
   // elli(x y a b color)
-  const s32 x     = drIntp(ARGS(1));
-  const s32 y     = drIntp(ARGS(2));
-  const s32 a     = drIntp(ARGS(3));
-  const s32 b     = drIntp(ARGS(4));
-  const s32 color = drIntp(ARGS(5));
+  const s32 x     = *INTEGER(ARGS(1));
+  const s32 y     = *INTEGER(ARGS(2));
+  const s32 a     = *INTEGER(ARGS(3));
+  const s32 b     = *INTEGER(ARGS(4));
+  const s32 color = *INTEGER(ARGS(5));
   TICAPI(elli, x, y, a, b, color);
   return R_NilValue;
 }
@@ -123,24 +119,24 @@ SEXP r_elli(SEXP args)
 SEXP r_ellib(SEXP args)
 {
   // ellib(x y a b color)
-  const s32 x     = drIntp(ARGS(1));
-  const s32 y     = drIntp(ARGS(2));
-  const s32 a     = drIntp(ARGS(3));
-  const s32 b     = drIntp(ARGS(4));
-  const s32 color = drIntp(ARGS(5));
+  const s32 x     = *INTEGER(ARGS(1));
+  const s32 y     = *INTEGER(ARGS(2));
+  const s32 a     = *INTEGER(ARGS(3));
+  const s32 b     = *INTEGER(ARGS(4));
+  const s32 color = *INTEGER(ARGS(5));
   TICAPI(ellib, x, y, a, b, color);
   return R_NilValue;
 }
 SEXP r_tri(SEXP args)
 {
   // tri(x1 y1 x2 y2 x3 y3 color)
-  const s32 x1    = drIntp(ARGS(1));
-  const s32 y1    = drIntp(ARGS(2));
-  const s32 x2    = drIntp(ARGS(3));
-  const s32 y2    = drIntp(ARGS(4));
-  const s32 x3    = drIntp(ARGS(5));
-  const s32 y3    = drIntp(ARGS(6));
-  const s32 color = drIntp(ARGS(7));
+  const s32 x1    = *INTEGER(ARGS(1));
+  const s32 y1    = *INTEGER(ARGS(2));
+  const s32 x2    = *INTEGER(ARGS(3));
+  const s32 y2    = *INTEGER(ARGS(4));
+  const s32 x3    = *INTEGER(ARGS(5));
+  const s32 y3    = *INTEGER(ARGS(6));
+  const s32 color = *INTEGER(ARGS(7));
 
   TICAPI(tri, x1, y1, x2, y2, x3, y3, color);
   return R_NilValue;
@@ -149,13 +145,13 @@ SEXP r_tri(SEXP args)
 SEXP r_trib(SEXP args)
 {
   // trib(x1 y1 x2 y2 x3 y3 color)
-  const s32 x1    = drIntp(ARGS(1));
-  const s32 y1    = drIntp(ARGS(2));
-  const s32 x2    = drIntp(ARGS(4));
-  const s32 y2    = drIntp(ARGS(5));
-  const s32 x3    = drIntp(ARGS(6));
-  const s32 y3    = drIntp(ARGS(7));
-  const s32 color = drIntp(ARGS(8));
+  const s32 x1    = *INTEGER(ARGS(1));
+  const s32 y1    = *INTEGER(ARGS(2));
+  const s32 x2    = *INTEGER(ARGS(4));
+  const s32 y2    = *INTEGER(ARGS(5));
+  const s32 x3    = *INTEGER(ARGS(6));
+  const s32 y3    = *INTEGER(ARGS(7));
+  const s32 color = *INTEGER(ARGS(8));
   TICAPI(tri, x1, y1, x2, y2, x3, y3, color);
   return R_NilValue;
 }
@@ -165,21 +161,21 @@ SEXP r_ttri(SEXP args)
   /* ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3
           texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
      ⮑ nil */
-  const s32 x1 = drIntp(ARGS(1));
-  const s32 y1 = drIntp(ARGS(2));
-  const s32 x2 = drIntp(ARGS(3));
-  const s32 y2 = drIntp(ARGS(4));
-  const s32 x3 = drIntp(ARGS(5));
-  const s32 y3 = drIntp(ARGS(6));
-  const s32 u1 = drIntp(ARGS(7));
-  const s32 v1 = drIntp(ARGS(8));
-  const s32 u2 = drIntp(ARGS(9));
-  const s32 v2 = drIntp(ARGS(10));
-  const s32 u3 = drIntp(ARGS(11));
-  const s32 v3 = drIntp(ARGS(12));
+  const s32 x1 = *INTEGER(ARGS(1));
+  const s32 y1 = *INTEGER(ARGS(2));
+  const s32 x2 = *INTEGER(ARGS(3));
+  const s32 y2 = *INTEGER(ARGS(4));
+  const s32 x3 = *INTEGER(ARGS(5));
+  const s32 y3 = *INTEGER(ARGS(6));
+  const s32 u1 = *INTEGER(ARGS(7));
+  const s32 v1 = *INTEGER(ARGS(8));
+  const s32 u2 = *INTEGER(ARGS(9));
+  const s32 v2 = *INTEGER(ARGS(10));
+  const s32 u3 = *INTEGER(ARGS(11));
+  const s32 v3 = *INTEGER(ARGS(12));
 
   const int argn = Rf_length(args);
-  const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? drIntp(ARGS(13)) : 0);
+  const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? *INTEGER(ARGS(13)) : 0);
 
   static u8 trans_colors[TIC_PALETTE_SIZE];
   u8 trans_count = 0;
@@ -193,9 +189,9 @@ SEXP r_ttri(SEXP args)
   }
 
   bool depth = argn > 14 ? true : false;
-  const s32 z1 = argn > 14 ? drIntp(ARGS(15)) : 0;
-  const s32 z2 = argn > 15 ? drIntp(ARGS(16)) : 0;
-  const s32 z3 = argn > 16 ? drIntp(ARGS(17)) : 0;
+  const s32 z1 = argn > 14 ? *INTEGER(ARGS(15)) : 0;
+  const s32 z2 = argn > 15 ? *INTEGER(ARGS(16)) : 0;
+  const s32 z3 = argn > 16 ? *INTEGER(ARGS(17)) : 0;
 
   TICAPI(ttri, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3,
          texsrc, trans_colors, trans_count, z1, z2, z3, depth);
@@ -209,10 +205,10 @@ SEXP r_clip(SEXP args)
   if (argn != 4) {
     TICAPI(clip, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
   } else {
-    const s32 x = drIntp(ARGS(1));
-    const s32 y = drIntp(ARGS(2));
-    const s32 w = drIntp(ARGS(3));
-    const s32 h = drIntp(ARGS(4));
+    const s32 x = *INTEGER(ARGS(1));
+    const s32 y = *INTEGER(ARGS(2));
+    const s32 w = *INTEGER(ARGS(3));
+    const s32 h = *INTEGER(ARGS(4));
     TICAPI(clip, x, y, w, h);
   }
   return R_NilValue;
@@ -220,22 +216,22 @@ SEXP r_clip(SEXP args)
 SEXP r_font(SEXP args)
 {
   // font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width
-  const char* text = drCrap(ARGS(1));
-  const s32 x      = drIntp(ARGS(2));
-  const s32 y      = drIntp(ARGS(3));
+  const char *text  = CHAR(STRING_ELT(ARGS(1), 0));
+  const s32 x      = *INTEGER(ARGS(2));
+  const s32 y      = *INTEGER(ARGS(3));
 
   static u8 trans_colors[TIC_PALETTE_SIZE];
   u8 trans_count = 0;
   SEXP colorkey = ARGS(4);
   parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
 
-  const s32 w = drIntp(ARGS(5));
-  const s32 h = drIntp(ARGS(6));
+  const s32 w = *INTEGER(ARGS(5));
+  const s32 h = *INTEGER(ARGS(6));
 
   const int argn = Rf_length(args);
-  const s32 fixed = argn > 6 ? drLglp(ARGS(7)) : false;
-  const s32 scale = argn > 7 ? drIntp(ARGS(8)) : 1;
-  const s32 alt   = argn > 6 ? drLglp(ARGS(9)) : false;
+  const s32 fixed = argn > 6 ? *LOGICAL(ARGS(7)) : false;
+  const s32 scale = argn > 7 ? *INTEGER(ARGS(8)) : 1;
+  const s32 alt   = argn > 6 ? *LOGICAL(ARGS(9)) : false;
 
   return Rf_ScalarInteger(TICAPI(font, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt));
 }
@@ -244,12 +240,14 @@ SEXP r_spr(SEXP args) {
   static u8 trans_colors[TIC_PALETTE_SIZE];
   u8 trans_count = 0;
 
-  const s32 id = drIntp(ARGS(1));
-  const s32 x  = drIntp(ARGS(2));
-  const s32 y  = drIntp(ARGS(3));
+  const s32 id = *REAL(ARGS(1));
+  const s32 x  = *INTEGER(ARGS(2));
+  const s32 y  = *INTEGER(ARGS(3));
 
   const int argn = Rf_length(args);
 
+  /* TODO: hack on these arguments and the referenced function until cool things
+   * happen. */
   if (argn > 3)
   {
     /* DONE: DOES NOT NEED protection and unprotection becausse the LISTSXP is a
@@ -261,11 +259,11 @@ SEXP r_spr(SEXP args) {
       &trans_count
     );
   }
-  const s32 scale     = argn > 4 ? drIntp(ARGS(5)) : 1;
-  const s32 flip      = argn > 5 ? drIntp(ARGS(6)) : 0;
-  const s32 rotate    = argn > 6 ? drIntp(ARGS(7)) : 0;
-  const s32 w         = argn > 7 ? drIntp(ARGS(8)) : 1;
-  const s32 h         = argn > 8 ? drIntp(ARGS(9)) : 1;
+  const s32 scale     = argn > 4 ? *REAL(ARGS(5)) : 1;
+  const s32 flip      = argn > 5 ? *REAL(ARGS(6)) : 0;
+  const s32 rotate    = argn > 6 ? *REAL(ARGS(7)) : 0;
+  const s32 w         = argn > 7 ? *REAL(ARGS(8)) : 1;
+  const s32 h         = argn > 8 ? *REAL(ARGS(9)) : 1;
   TICAPI(spr, id, x, y,
          w, h, trans_colors, trans_count, scale,
          (tic_flip) flip,
@@ -281,9 +279,9 @@ SEXP r_print(SEXP args) {
   const s32   x     = ARGN(2) ? *INTEGER(ARGS(2)): 0;
   const s32   y     = ARGN(3) ? *INTEGER(ARGS(3)): 0;
   const u8    color = ARGN(4) ? *INTEGER(ARGS(4)): 15;
-  const bool  fixed = ARGN(5) ? drLglp(ARGS(5)): false;
+  const bool  fixed = ARGN(5) ? *LOGICAL(ARGS(5)): false;
   const s32   scale = ARGN(6) ? *INTEGER(ARGS(6)): 1;
-  const bool  alt   = ARGN(7) ? drLglp(ARGS(7)): false;
+  const bool  alt   = ARGN(7) ? *LOGICAL(ARGS(7)): false;
 
   return Rf_ScalarLogical(TICAPI(print, text, x, y, color, fixed, scale, alt));
 }
@@ -301,12 +299,12 @@ SEXP r_pix(SEXP args) {
 	 * ⮑ nil
 	 * pix(x y)
    * ⮑ color */
-  const s32 x = drIntp(ARGS(1));
-  const s32 y = drIntp(ARGS(2));
+  const s32 x = *INTEGER(ARGS(1));
+  const s32 y = *INTEGER(ARGS(2));
 
   const int argn = Rf_length(args);
   if (argn == 3) {
-    const u8 color = drIntp(ARGS(3));
+    const u8 color = *INTEGER(ARGS(3));
     TICAPI(pix, x, y, color, false);
     return R_NilValue;
   } else {
@@ -316,11 +314,11 @@ SEXP r_pix(SEXP args) {
 SEXP r_line(SEXP args) {
   /* line(x0 y0 x1 y1 color)
 	 * ⮑ nil */
-  const s32 x0    = drIntp(ARGS(1));
-  const s32 y0    = drIntp(ARGS(2));
-  const s32 x1    = drIntp(ARGS(3));
-  const s32 y1    = drIntp(ARGS(4));
-  const u8  color = drIntp(ARGS(5));
+  const s32 x0    = *INTEGER(ARGS(1));
+  const s32 y0    = *INTEGER(ARGS(2));
+  const s32 x1    = *INTEGER(ARGS(3));
+  const s32 y1    = *INTEGER(ARGS(4));
+  const u8  color = *INTEGER(ARGS(5));
 
   TICAPI(line, x0, y0, x1, y1, color);
   return R_NilValue;
@@ -328,11 +326,11 @@ SEXP r_line(SEXP args) {
 SEXP r_rect(SEXP args)
 {
   // rect(x y w h color)
-  const s32 x     = drIntp(ARGS(1));
-  const s32 y     = drIntp(ARGS(2));
-  const s32 w     = drIntp(ARGS(3));
-  const s32 h     = drIntp(ARGS(4));
-  const u8  color = drIntp(ARGS(5));
+  const s32 x     = *INTEGER(ARGS(1));
+  const s32 y     = *INTEGER(ARGS(2));
+  const s32 w     = *INTEGER(ARGS(3));
+  const s32 h     = *INTEGER(ARGS(4));
+  const u8  color = *INTEGER(ARGS(5));
   TICAPI(rect, x, y, w, h, color);
   return R_NilValue;
 }
@@ -340,11 +338,11 @@ SEXP r_rect(SEXP args)
 SEXP r_rectb(SEXP args)
 {
   // rectb(x y w h color)
-  const s32 x     = drIntp(ARGS(1));
-  const s32 y     = drIntp(ARGS(2));
-  const s32 w     = drIntp(ARGS(3));
-  const s32 h     = drIntp(ARGS(4));
-  const u8  color = drIntp(ARGS(5));
+  const s32 x     = *INTEGER(ARGS(1));
+  const s32 y     = *INTEGER(ARGS(2));
+  const s32 w     = *INTEGER(ARGS(3));
+  const s32 h     = *INTEGER(ARGS(4));
+  const u8  color = *INTEGER(ARGS(5));
   TICAPI(rectb, x, y, w, h, color);
   return R_NilValue;
 }
@@ -370,9 +368,9 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 
     if (Rf_isList(callbackResult) && Rf_length(callbackResult) == 3)
     {
-      result->index  =              drIntp(Rf_elt(callbackResult, 1));
-      result->flip   = (tic_flip)   drIntp(Rf_elt(callbackResult, 2));
-      result->rotate = (tic_rotate) drIntp(Rf_elt(callbackResult, 3));
+      result->index  =              *INTEGER(Rf_elt(callbackResult, 1));
+      result->flip   = (tic_flip)   *INTEGER(Rf_elt(callbackResult, 2));
+      result->rotate = (tic_rotate) *INTEGER(Rf_elt(callbackResult, 3));
     }
   }
 }
@@ -380,12 +378,12 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 SEXP r_map(SEXP args)
 {
   // map(x=0 y=0 w=30 h=17 sx=0 sy=0 colorkey=-1 scale=1 remap=nil)
-  const s32 x  = drIntp(ARGS(1));
-  const s32 y  = drIntp(ARGS(2));
-  const s32 w  = drIntp(ARGS(3));
-  const s32 h  = drIntp(ARGS(4));
-  const s32 sx = drIntp(ARGS(5));
-  const s32 sy = drIntp(ARGS(6));
+  const s32 x  = *INTEGER(ARGS(1));
+  const s32 y  = *INTEGER(ARGS(2));
+  const s32 w  = *INTEGER(ARGS(3));
+  const s32 h  = *INTEGER(ARGS(4));
+  const s32 sx = *INTEGER(ARGS(5));
+  const s32 sy = *INTEGER(ARGS(6));
 
   const int argn = Rf_length(args);
 
@@ -396,7 +394,7 @@ SEXP r_map(SEXP args)
     parseTransparentColorsArg(colorkey, trans_colors, &trans_count);
   }
 
-  const s32 scale = argn > 7 ? drIntp(ARGS(8)) : 1;
+  const s32 scale = argn > 7 ? *INTEGER(ARGS(8)) : 1;
 
   RemapFunc remap = NULL;
   RemapData data;
@@ -413,7 +411,7 @@ SEXP r_key(SEXP args)
 {
   //key(code=-1) -> pressed
   const int argn = Rf_length(args);
-  const tic_key code = argn > 0 ? drIntp(ARGS(1)) : -1;
+  const tic_key code = argn > 0 ? *INTEGER(ARGS(1)) : -1;
   return Rf_ScalarLogical(TICAPI(key, code));
 }
 
@@ -421,9 +419,9 @@ SEXP r_keyp(SEXP args)
 {
   // keyp(code=-1 hold=-1 period=-1) -> pressed
   const int argn = Rf_length(args);
-  const tic_key code = argn > 0 ? drIntp(ARGS(1)) : -1;
-  const s32 hold     = argn > 1 ? drIntp(ARGS(2)) : -1;
-  const s32 period   = argn > 2 ? drIntp(ARGS(3)) : -1;
+  const tic_key code = argn > 0 ? *INTEGER(ARGS(1)) : -1;
+  const s32 hold     = argn > 1 ? *INTEGER(ARGS(2)) : -1;
+  const s32 period   = argn > 2 ? *INTEGER(ARGS(3)) : -1;
   return Rf_ScalarLogical(TICAPI(keyp, code, hold, period));
 }
 /* This API function does not use the convenience macros because it doesn't need
@@ -450,17 +448,17 @@ SEXP r_mouse(SEXP args)
 SEXP r_btn(SEXP args)
 {
   // btn(id) -> pressed
-  /* return Rf_ScalarLogical(TICAPI(btn, (s32) drIntp(ARGS(1)))); */
+  /* return Rf_ScalarLogical(TICAPI(btn, (s32) *INTEGER(ARGS(1)))); */
   return Rf_ScalarLogical(TICAPI(btn, (s32) Rf_asInteger(ARGS(1))));
 }
 
 SEXP r_btnp(SEXP args)
 {
   // btnp(id hold=-1 period=-1) -> pressed
-  const s32 id = drIntp(ARGS(1));
+  const s32 id = *INTEGER(ARGS(1));
   const int argn = Rf_length(args);
-  const s32 hold = argn > 1 ? drIntp(ARGS(2)) : -1;
-  const s32 period = argn > 2 ? drIntp(ARGS(3)) : -1;
+  const s32 hold = argn > 1 ? *INTEGER(ARGS(2)) : -1;
+  const s32 period = argn > 2 ? *INTEGER(ARGS(3)) : -1;
 
   return Rf_ScalarLogical(TICAPI(btnp, id, hold, period));
 }
@@ -496,13 +494,13 @@ SEXP r_music(SEXP args)
 {
   // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
   const int argn     = Rf_length(args);
-  const s32  track   = argn > 0 ? drIntp(ARGS(1)) : -1;
-  const s32  frame   = argn > 1 ? drIntp(ARGS(2)) : -1;
-  const s32  row     = argn > 2 ? drIntp(ARGS(3)) : -1;
-  const bool loop    = argn > 3 ? drLglp(ARGS(4)) : true;
-  const bool sustain = argn > 4 ? drLglp(ARGS(5)) : false;
-  const s32  tempo   = argn > 5 ? drIntp(ARGS(6)) : -1;
-  const s32  speed   = argn > 6 ? drIntp(ARGS(7)) : -1;
+  const s32  track   = argn > 0 ? *INTEGER(ARGS(1)) : -1;
+  const s32  frame   = argn > 1 ? *INTEGER(ARGS(2)) : -1;
+  const s32  row     = argn > 2 ? *INTEGER(ARGS(3)) : -1;
+  const bool loop    = argn > 3 ? *LOGICAL(ARGS(4)) : true;
+  const bool sustain = argn > 4 ? *LOGICAL(ARGS(5)) : false;
+  const s32  tempo   = argn > 5 ? *INTEGER(ARGS(6)) : -1;
+  const s32  speed   = argn > 6 ? *INTEGER(ARGS(7)) : -1;
   TICAPI(music, track, frame, row, loop, sustain, tempo, speed);
   return R_NilValue;
 }
@@ -510,14 +508,14 @@ SEXP r_music(SEXP args)
 SEXP r_sfx(SEXP a, SEXP args)
 {
   // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)
-  const s32 id = drIntp(ARGS(1));
+  const s32 id = *INTEGER(ARGS(1));
   const int argn = Rf_length(args);
   int note = -1;
   int octave = -1;
   if (argn > 1) {
     SEXP note_ptr = ARGS(2);
     if (Rf_isInteger(note_ptr)) {
-      const s32 raw_note = drIntp(note_ptr);
+      const s32 raw_note = *INTEGER(note_ptr);
       if (raw_note >= 0 || raw_note <= 95) {
         note = raw_note % 12;
         octave = raw_note / 12;
@@ -528,7 +526,7 @@ SEXP r_sfx(SEXP a, SEXP args)
       /*     tic->data->error(tic->data->data, buffer); */
       /* } */
     } else if (/*I don't see the function*/ Rf_isString(note_ptr) /*documented in the info manual, but apparently it exists!*/) {
-      const char* note_str = drCrap(note_ptr);
+      const char *note_str  = CHAR(STRING_ELT(ARGS(1), 0));
       const u8 len = Rf_length(note_ptr);
       if (len == 3) {
         const u8 modif = get_note_modif(note_str[1]);
@@ -548,20 +546,20 @@ SEXP r_sfx(SEXP a, SEXP args)
     }
   }
 
-  const s32 duration = argn > 2 ? drIntp(ARGS(3)) : -1;
-  const s32 channel  = argn > 3 ? drIntp(ARGS(4)) : 0;
+  const s32 duration = argn > 2 ? *INTEGER(ARGS(3)) : -1;
+  const s32 channel  = argn > 3 ? *INTEGER(ARGS(4)) : 0;
 
   s32 volumes[TIC80_SAMPLE_CHANNELS] = { MAX_VOLUME, MAX_VOLUME };
   if (argn > 4) {
     SEXP volume_arg = ARGS(5);
     if (Rf_isInteger(volume_arg)) {
-      volumes[0] = volumes[1] = drIntp(volume_arg) & 0xF;
+      volumes[0] = volumes[1] = *INTEGER(volume_arg) & 0xF;
     } else if (Rf_isList(volume_arg) && Rf_length(volume_arg) == 2) {
-      volumes[0] = drIntp(CADR(volume_arg)) & 0xF;
-      volumes[1] = drIntp(CADDR(volume_arg)) & 0xF;
+      volumes[0] = *INTEGER(CADR(volume_arg)) & 0xF;
+      volumes[1] = *INTEGER(CADDR(volume_arg)) & 0xF;
     }
   }
-  const s32 speed = argn > 5 ? drIntp(ARGS(6)) : 0;
+  const s32 speed = argn > 5 ? *INTEGER(ARGS(6)) : 0;
 
   TICAPI(sfx, id, note, octave, duration, channel, volumes[0], volumes[1], speed);
   return R_NilValue;
@@ -570,9 +568,9 @@ SEXP r_sync(SEXP args)
 {
   // sync(mask=0 bank=0 tocart=false)
   const int argn = Rf_length(args);
-  const u32 mask    = argn > 0 ? (u32) drIntp(ARGS(1)) : 0;
-  const s32 bank    = argn > 1 ? drIntp(ARGS(2)) :       0;
-  const bool tocart = argn > 2 ? drIntp(ARGS(3)) :       false;
+  const u32 mask    = argn > 0 ? (u32) *INTEGER(ARGS(1)) : 0;
+  const s32 bank    = argn > 1 ? *INTEGER(ARGS(2)) :       0;
+  const bool tocart = argn > 2 ? *INTEGER(ARGS(3)) :       false;
   TICAPI(sync, mask, bank, tocart);
   return R_NilValue;
 }
@@ -583,7 +581,7 @@ SEXP r_vbank(SEXP args)
   const int argn = Rf_length(args);
   const s32 prev = ((tic_core *)RTicRam)->state.vbank.id;
   if (argn == 1) {
-    const s32 bank = drIntp(ARGS(1));
+    const s32 bank = *INTEGER(ARGS(1));
     TICAPI(vbank, bank);
   }
   return Rf_ScalarInteger(prev);
@@ -591,78 +589,78 @@ SEXP r_vbank(SEXP args)
 SEXP r_peek(SEXP args)
 {
   // peek(addr bits=8) -> value
-  const s32 addr = drIntp(ARGS(1));
+  const s32 addr = *INTEGER(ARGS(1));
   const int argn = Rf_length(args);
-  const s32 bits = argn > 1 ? drIntp(ARGS(2)) : 8;
+  const s32 bits = argn > 1 ? *INTEGER(ARGS(2)) : 8;
   return Rf_ScalarInteger(TICAPI(peek, addr, bits));
 }
 SEXP r_poke(SEXP args)
 {
   // poke(addr value bits=8)
-  const s32 addr = drIntp(ARGS(1));
-  const s32 value = drIntp(ARGS(2));
+  const s32 addr = *INTEGER(ARGS(1));
+  const s32 value = *INTEGER(ARGS(2));
   const int argn = Rf_length(args);
-  const s32 bits = argn > 2 ? drIntp(ARGS(3)) : 8;
+  const s32 bits = argn > 2 ? *INTEGER(ARGS(3)) : 8;
   TICAPI(poke, addr, value, bits);
   return R_NilValue;
 }
 SEXP r_peek1(SEXP args)
 {
   // peek1(addr) -> value
-  const s32 addr = drIntp(ARGS(1));
+  const s32 addr = *INTEGER(ARGS(1));
   return Rf_ScalarInteger(TICAPI(peek1, addr));
 }
 SEXP r_poke1(SEXP args)
 {
   // poke1(addr value)
-  const s32 addr  = drIntp(ARGS(1));
-  const s32 value = drIntp(ARGS(2));
+  const s32 addr  = *INTEGER(ARGS(1));
+  const s32 value = *INTEGER(ARGS(2));
   TICAPI(poke1, addr, value);
   return R_NilValue;
 }
 SEXP r_peek2(SEXP args)
 {
   // peek2(addr) -> value
-  const s32 addr = drIntp(ARGS(1));
+  const s32 addr = *INTEGER(ARGS(1));
   return Rf_ScalarInteger(TICAPI(peek2, addr));
 }
 SEXP r_poke2(SEXP args)
 {
   // poke2(addr value)
-  const s32 addr  = drIntp(ARGS(1));
-  const s32 value = drIntp(ARGS(2));
+  const s32 addr  = *INTEGER(ARGS(1));
+  const s32 value = *INTEGER(ARGS(2));
   TICAPI(poke2, addr, value);
   return R_NilValue;
 }
 SEXP r_peek4(SEXP args)
 {
   // peek4(addr) -> value
-  const s32 addr = drIntp(ARGS(1));
+  const s32 addr = *INTEGER(ARGS(1));
   return Rf_ScalarInteger(TICAPI(peek4, addr));
 }
 SEXP r_poke4(SEXP args)
 {
   // poke(addr value)
-  const s32 addr  = drIntp(ARGS(1));
-  const s32 value = drIntp(ARGS(2));
+  const s32 addr  = *INTEGER(ARGS(1));
+  const s32 value = *INTEGER(ARGS(2));
   TICAPI(poke4, addr, value);
   return R_NilValue;
 }
 SEXP r_memcpy(SEXP args)
 {
   // memcpy(dest source size)
-  const s32 dest   = drIntp(ARGS(1));
-  const s32 source = drIntp(ARGS(2));
-  const s32 size   = drIntp(ARGS(3));
+  const s32 dest   = *INTEGER(ARGS(1));
+  const s32 source = *INTEGER(ARGS(2));
+  const s32 size   = *INTEGER(ARGS(3));
   TICAPI(memcpy, dest, source, size);
   return R_NilValue;
 }
 SEXP r_memset(SEXP args)
 {
   // memset(dest value size)
-  const s32 dest   = drIntp(ARGS(1));
-  const s32 value = drIntp(ARGS(2));
-  const s32 size   = drIntp(ARGS(3));
+  const s32 dest   = *INTEGER(ARGS(1));
+  const s32 value = *INTEGER(ARGS(2));
+  const s32 size   = *INTEGER(ARGS(3));
   TICAPI(memset, dest, value, size);
   return R_NilValue;
 }
@@ -670,12 +668,12 @@ SEXP r_pmem(SEXP args)
 {
   // pmem(index value)
   // pmem(index) -> value
-  const s32 index = drIntp(ARGS(1));
+  const s32 index = *INTEGER(ARGS(1));
   s32 value = 0;
   bool shouldSet = false;
   if (Rf_length(args) > 1)
   {
-    value = drIntp(ARGS(2));
+    value = *INTEGER(ARGS(2));
     shouldSet = true;
   }
   return Rf_ScalarInteger(TICAPI(pmem, index, value, shouldSet));
@@ -683,34 +681,34 @@ SEXP r_pmem(SEXP args)
 SEXP r_fget(SEXP args)
 {
   // fget(sprite_id flag) -> bool
-  const s32 sprite_id = drIntp(ARGS(1));
-  const u8 flag       = drIntp(ARGS(2));
+  const s32 sprite_id = *INTEGER(ARGS(1));
+  const u8 flag       = *INTEGER(ARGS(2));
   return Rf_ScalarLogical(TICAPI(fget, sprite_id, flag));
 }
 
 SEXP r_fset(SEXP args)
 {
   // fset(sprite_id flag bool)
-  const s32  sprite_id = drIntp(ARGS(1));
-  const u8   flag      = drIntp(ARGS(2));
-  const bool val       = drLglp(ARGS(3));
+  const s32  sprite_id = *INTEGER(ARGS(1));
+  const u8   flag      = *INTEGER(ARGS(2));
+  const bool val       = *LOGICAL(ARGS(3));
   TICAPI(fset, sprite_id, flag, val);
   return R_NilValue;
 }
 SEXP r_mget(SEXP args)
 {
   // mget(x y) -> tile_id
-  const s32 x = drIntp(ARGS(1));
-  const s32 y = drIntp(ARGS(2));
+  const s32 x = *INTEGER(ARGS(1));
+  const s32 y = *INTEGER(ARGS(2));
   return Rf_ScalarInteger(TICAPI(mget, x, y));
 }
 
 SEXP r_mset(SEXP args)
 {
   // mset(x y tile_id)
-  const s32 x       = drIntp(ARGS(1));
-  const s32 y       = drIntp(ARGS(2));
-  const u8  tile_id = drIntp(ARGS(3));
+  const s32 x       = *INTEGER(ARGS(1));
+  const s32 y       = *INTEGER(ARGS(2));
+  const u8  tile_id = *INTEGER(ARGS(3));
   TICAPI(mset, x, y, tile_id);
   return R_NilValue;
 }
@@ -723,8 +721,8 @@ SEXP r_reset(SEXP args)
 SEXP r_trace(SEXP args)
 {
   // trace(message color=15)
-  const char* msg   = drCrap(ARGS(1));
-  const s32   color = Rf_length(args) > 1 ? drIntp(ARGS(2)) : 15;
+  const char *msg  = CHAR(STRING_ELT(ARGS(1), 0));
+  const s32   color = ARGN(2) ? *INTEGER(ARGS(2)) : 15;
   TICAPI(trace, msg, color);
   return R_NilValue;
 }
@@ -748,16 +746,16 @@ SEXP r_fft(SEXP args)
 {
   // fft(int start_freq, int end_freq=-1) -> float_value
   const int argn = Rf_length(args);
-  const s32 start_freq = argn > 0 ? drIntp(ARGS(1)) : -1;
-  const s32 end_freq   = argn > 1 ? drIntp(ARGS(2)) : -1;
+  const s32 start_freq = argn > 0 ? *INTEGER(ARGS(1)) : -1;
+  const s32 end_freq   = argn > 1 ? *INTEGER(ARGS(2)) : -1;
   return Rf_ScalarReal(TICAPI(fft, start_freq, end_freq));
 }
 SEXP r_ffts(SEXP args)
 {
   // ffts(int start_freq, int end_freq=-1) -> float_value
   const int argn = Rf_length(args);
-  const s32 start_freq = argn > 0 ? drIntp(ARGS(1)) : -1;
-  const s32 end_freq   = argn > 1 ? drIntp(ARGS(2)) : -1;
+  const s32 start_freq = argn > 0 ? *INTEGER(ARGS(1)) : -1;
+  const s32 end_freq   = argn > 1 ? *INTEGER(ARGS(2)) : -1;
   return Rf_ScalarReal(TICAPI(ffts, start_freq, end_freq));
 }
 
