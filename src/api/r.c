@@ -51,7 +51,7 @@ static bool initR(tic_mem *tic, const char *code);
 static tic_mem *RTicRam;
 #define TICAPI(CMD, ...) ((tic_core *)RTicRam)->api.CMD(RTicRam __VA_OPT__(,) __VA_ARGS__)
 #define ARGS(x) Rf_elt(args, x)
-#define ARGN(n) (Rf_length(args) >= n && Rf_isNull(ARGS(n)) == false)
+#define ARGN(n) (Rf_length(args) >= n && !Rf_isNull(ARGS(n)))
 #define RSTRT(x) SEXP x(SEXP args) { int protected_count = 0; const int argn = Rf_length(args);
 #define RUNP UNPROTECT(protected_count);
 #define REND }
@@ -216,7 +216,7 @@ SEXP r_clip(SEXP args)
 SEXP r_font(SEXP args)
 {
   // font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width
-  const char *text  = CHAR(STRING_ELT(ARGS(1), 0));
+  const char *text  = (ARGN(1) && Rf_isString(ARGS(1))) ? CHAR(STRING_ELT(ARGS(1), 0)) : "";
   const s32 x      = *INTEGER(ARGS(2));
   const s32 y      = *INTEGER(ARGS(3));
 
@@ -274,8 +274,7 @@ SEXP r_print(SEXP args) {
   /* print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false)
    * ⮑ width*/
   const int argn = Rf_length(args);
-  const char *text  = CHAR(STRING_ELT(ARGS(1), 0));
-  /* Why the fuck is argn 2 when r_print _should_ be called with just one argument, TEXT? */
+  const char *text  = (ARGN(1) && Rf_isString(ARGS(1))) ? CHAR(STRING_ELT(ARGS(1), 0)) : "";
   const s32   x     = ARGN(2) ? *INTEGER(ARGS(2)): 0;
   const s32   y     = ARGN(3) ? *INTEGER(ARGS(3)): 0;
   const u8    color = ARGN(4) ? *INTEGER(ARGS(4)): 15;
@@ -289,7 +288,7 @@ SEXP r_cls(SEXP args) {
   /* cls(color=0)
    * ⮑ nil */
   const int argn = Rf_length(args);
-  const u8 color = (argn > 0) ? *REAL(ARGS(1)) : 0;
+  const u8 color = ARGN(1) ? *REAL(ARGS(1)) : 0;
   TICAPI(cls, color);
 
   return R_NilValue;
@@ -299,12 +298,11 @@ SEXP r_pix(SEXP args) {
 	 * ⮑ nil
 	 * pix(x y)
    * ⮑ color */
-  const s32 x = *INTEGER(ARGS(1));
-  const s32 y = *INTEGER(ARGS(2));
+  const s32 x = *REAL(ARGS(1));
+  const s32 y = *REAL(ARGS(2));
 
-  const int argn = Rf_length(args);
-  if (argn == 3) {
-    const u8 color = *INTEGER(ARGS(3));
+  if ARGN(3) {
+    const u8 color = *REAL(ARGS(3));
     TICAPI(pix, x, y, color, false);
     return R_NilValue;
   } else {
@@ -326,10 +324,10 @@ SEXP r_line(SEXP args) {
 SEXP r_rect(SEXP args)
 {
   // rect(x y w h color)
-  const s32 x     = *INTEGER(ARGS(1));
-  const s32 y     = *INTEGER(ARGS(2));
-  const s32 w     = *INTEGER(ARGS(3));
-  const s32 h     = *INTEGER(ARGS(4));
+  const s32 x     = *REAL(ARGS(1));
+  const s32 y     = *REAL(ARGS(2));
+  const s32 w     = *REAL(ARGS(3));
+  const s32 h     = *REAL(ARGS(4));
   const u8  color = *INTEGER(ARGS(5));
   TICAPI(rect, x, y, w, h, color);
   return R_NilValue;
@@ -338,10 +336,10 @@ SEXP r_rect(SEXP args)
 SEXP r_rectb(SEXP args)
 {
   // rectb(x y w h color)
-  const s32 x     = *INTEGER(ARGS(1));
-  const s32 y     = *INTEGER(ARGS(2));
-  const s32 w     = *INTEGER(ARGS(3));
-  const s32 h     = *INTEGER(ARGS(4));
+  const s32 x     = *REAL(ARGS(1));
+  const s32 y     = *REAL(ARGS(2));
+  const s32 w     = *REAL(ARGS(3));
+  const s32 h     = *REAL(ARGS(4));
   const u8  color = *INTEGER(ARGS(5));
   TICAPI(rectb, x, y, w, h, color);
   return R_NilValue;
@@ -494,13 +492,13 @@ SEXP r_music(SEXP args)
 {
   // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
   const int argn     = Rf_length(args);
-  const s32  track   = argn > 0 ? *INTEGER(ARGS(1)) : -1;
-  const s32  frame   = argn > 1 ? *INTEGER(ARGS(2)) : -1;
-  const s32  row     = argn > 2 ? *INTEGER(ARGS(3)) : -1;
-  const bool loop    = argn > 3 ? *LOGICAL(ARGS(4)) : true;
-  const bool sustain = argn > 4 ? *LOGICAL(ARGS(5)) : false;
-  const s32  tempo   = argn > 5 ? *INTEGER(ARGS(6)) : -1;
-  const s32  speed   = argn > 6 ? *INTEGER(ARGS(7)) : -1;
+  const s32  track   = ARGN(1) ? *REAL(ARGS(1)) : -1;
+  const s32  frame   = ARGN(2) ? *REAL(ARGS(2)) : -1;
+  const s32  row     = ARGN(3) ? *REAL(ARGS(3)) : -1;
+  const bool loop    = ARGN(4) ? *LOGICAL(ARGS(4)) : true;
+  const bool sustain = ARGN(5) ? *LOGICAL(ARGS(5)) : false;
+  const s32  tempo   = ARGN(6) ? *REAL(ARGS(6)) : -1;
+  const s32  speed   = ARGN(7) ? *REAL(ARGS(7)) : -1;
   TICAPI(music, track, frame, row, loop, sustain, tempo, speed);
   return R_NilValue;
 }
@@ -526,7 +524,7 @@ SEXP r_sfx(SEXP a, SEXP args)
       /*     tic->data->error(tic->data->data, buffer); */
       /* } */
     } else if (/*I don't see the function*/ Rf_isString(note_ptr) /*documented in the info manual, but apparently it exists!*/) {
-      const char *note_str  = CHAR(STRING_ELT(ARGS(1), 0));
+      const char *note_str  = (ARGN(1) && Rf_isString(ARGS(1))) ? CHAR(STRING_ELT(ARGS(1), 0)) : "";
       const u8 len = Rf_length(note_ptr);
       if (len == 3) {
         const u8 modif = get_note_modif(note_str[1]);
@@ -597,10 +595,10 @@ SEXP r_peek(SEXP args)
 SEXP r_poke(SEXP args)
 {
   // poke(addr value bits=8)
-  const s32 addr = *INTEGER(ARGS(1));
-  const s32 value = *INTEGER(ARGS(2));
+  const s32 addr = *REAL(ARGS(1));
+  const s32 value = *REAL(ARGS(2));
   const int argn = Rf_length(args);
-  const s32 bits = argn > 2 ? *INTEGER(ARGS(3)) : 8;
+  const s32 bits = ARGN(3) ? *REAL(ARGS(3)) : 8;
   TICAPI(poke, addr, value, bits);
   return R_NilValue;
 }
@@ -721,7 +719,7 @@ SEXP r_reset(SEXP args)
 SEXP r_trace(SEXP args)
 {
   // trace(message color=15)
-  const char *msg  = CHAR(STRING_ELT(ARGS(1), 0));
+  const char *msg  = (ARGN(1) && Rf_isString(ARGS(1))) ? CHAR(STRING_ELT(ARGS(1), 0)) : "";
   const s32   color = ARGN(2) ? *INTEGER(ARGS(2)) : 15;
   TICAPI(trace, msg, color);
   return R_NilValue;
@@ -856,6 +854,11 @@ static void closeR(tic_mem *tic) {
   }
 }
 
+static SEXP RFn_TIC80; /* LANGSXP */
+static void callRFn_TIC80(tic_mem* tic) {
+  Rf_eval(RFn_TIC80, R_GlobalEnv);
+}
+
 /* This function is called with code, which is the entirety of the studio
    ,* editor's code buffer (i.e. the entire game code as one string). */
 static bool initR(tic_mem *tic, const char *code) {
@@ -880,9 +883,9 @@ static bool initR(tic_mem *tic, const char *code) {
 
     /* Ensure a dummy function is defined for all of the important functions
      * that will be called. */
-    /* TODO: test that TIC-80, minimally, has been redefined. If the others are
-     * not redefined from `{` print a single warning on the standard error (AND
-     * ABSOLUTLY NOWHERE ELSE). */
+    /* MAYBE TODO: test that TIC-80, minimally, has been redefined. If the
+     * others are not redefined from `{` print a single warning on the standard
+     * error (AND ABSOLUTLY NOWHERE ELSE). */
     EVALG("`TIC-80` <- BDR <- BOOT <- MENU <- SCN <- `{`");
 
     /* Manually create a vector of type string, parse it, then evaluate it
@@ -893,6 +896,8 @@ static bool initR(tic_mem *tic, const char *code) {
     SET_STRING_ELT(code_sexp, 0, Rf_mkChar(code));
     code_expr = PROTECT(R_ParseVector(code_sexp, -1, &code_parse_status, R_NilValue));
     if (code_parse_status != PARSE_OK) {
+      /* Unprotect before leaving this function through Rf_error; noreturn to
+       * this scope. */
       UNPROTECT(2);
       tic_core *core = (tic_core *)tic;
       if (core->data) {
@@ -900,17 +905,24 @@ static bool initR(tic_mem *tic, const char *code) {
       }
       Rf_error("Invalid call %s", code);
     }
+
     for (int i = 0; i < Rf_length(code_expr); i++) {
       Rf_eval(VECTOR_ELT(code_expr, i), R_GlobalEnv);
     }
     UNPROTECT(2);
+
+    /* TODO: find the function corresponding to the non-syntactic symbol
+     * "TIC-80", normally represented in R as "`TIC-80`". With this symbol
+     * construct an executable pairlist which will be stored statically. The C
+     * function callRFn_TIC80 then uses this LANGSXP to make the call, saving as
+     * much time as possible in the call to Rf_eval. */
+    /* SEXP sym  = Rf_install("TIC-80"); */
+    /* RFn_TIC80 = PROTECT(Rf_allocList(1)); SET_TYPEOF(RFn_TIC80, LANGSXP); */
+    /* RFn_TIC80 = Rf_lang1(Rf_findFun(sym, R_GlobalEnv)); */
+    /* UNPROTECT(1); */
   }
 
   return R_Initialized;
-}
-
-static void callRFn_TIC80(tic_mem* tic) {
-  EVALG("`TIC-80`();");
 }
 #define defineCallRFnInEnvironment_(f, e, ...)                          \
   static void callRFn_##f(tic_mem *tic __VA_OPT__(,) __VA_ARGS__) {     \
