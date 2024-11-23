@@ -822,7 +822,17 @@ void evalR(tic_mem *memory, const char *code) {
     SEXP RESULT = R_ParseEvalString(code, R_GlobalEnv);
   }
 }
-void R_CleanUp(Rboolean saveact, int status, int RunLast) { ; }
+void R_CleanUp(Rboolean saveact, int status, int RunLast) {
+  char  pp[1024];
+  snprintf(pp, 1024,
+           "Rboolean: saveact=%d\n"
+           "int: status=%d\n"
+           "int: RunLast=%d\n",
+           saveact,
+           status,
+           RunLast);
+  R_ShowMessage(pp);
+}
 
 void R_Suicide(const char *message)
 {
@@ -836,7 +846,7 @@ void R_Suicide(const char *message)
 }
 
 void R_ShowMessage(const char *s) {
-/* Always use the sixteenth color. */
+  /* Always use the sixteenth color. */
   TICAPI(trace, s, 15);
 }
 
@@ -916,10 +926,10 @@ static bool initR(tic_mem *tic, const char *code) {
      * construct an executable pairlist which will be stored statically. The C
      * function callRFn_TIC80 then uses this LANGSXP to make the call, saving as
      * much time as possible in the call to Rf_eval. */
-    /* SEXP sym  = Rf_install("TIC-80"); */
-    /* RFn_TIC80 = PROTECT(Rf_allocList(1)); SET_TYPEOF(RFn_TIC80, LANGSXP); */
-    /* RFn_TIC80 = Rf_lang1(Rf_findFun(sym, R_GlobalEnv)); */
-    /* UNPROTECT(1); */
+    SEXP sym  = Rf_install("TIC-80");
+    RFn_TIC80 = PROTECT(Rf_allocList(1)); SET_TYPEOF(RFn_TIC80, LANGSXP);
+    RFn_TIC80 = Rf_lang1(Rf_findFun(sym, R_GlobalEnv));
+    UNPROTECT(1);
   }
 
   return R_Initialized;
