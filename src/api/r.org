@@ -602,7 +602,7 @@ only one).
       }
       UNPROTECT(2);
 
-      /* TODO: find the function corresponding to the non-syntactic symbol
+      /* DONE: find the function corresponding to the non-syntactic symbol
        ,* "TIC-80", normally represented in R as "`TIC-80`". With this symbol
        ,* construct an executable pairlist which will be stored statically. The C
        ,* function callRFn_TIC80 then uses this LANGSXP to make the call, saving as
