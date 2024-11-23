@@ -870,7 +870,7 @@ static void callRFn_TIC80(tic_mem* tic) {
 }
 
 /* This function is called with code, which is the entirety of the studio
-   ,* editor's code buffer (i.e. the entire game code as one string). */
+ * editor's code buffer (i.e. the entire game code as one string). */
 static bool initR(tic_mem *tic, const char *code) {
   closeR(tic);
 
@@ -921,7 +921,7 @@ static bool initR(tic_mem *tic, const char *code) {
     }
     UNPROTECT(2);
 
-    /* TODO: find the function corresponding to the non-syntactic symbol
+    /* DONE: find the function corresponding to the non-syntactic symbol
      * "TIC-80", normally represented in R as "`TIC-80`". With this symbol
      * construct an executable pairlist which will be stored statically. The C
      * function callRFn_TIC80 then uses this LANGSXP to make the call, saving as
