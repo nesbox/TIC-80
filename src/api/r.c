@@ -896,7 +896,13 @@ static bool initR(tic_mem *tic, const char *code) {
     /* MAYBE TODO: test that TIC-80, minimally, has been redefined. If the
      * others are not redefined from `{` print a single warning on the standard
      * error (AND ABSOLUTLY NOWHERE ELSE). */
-    EVALG("`TIC-80` <- BDR <- BOOT <- MENU <- SCN <- `{`");
+#define def(i) EVALG(#i" <- `{`;");
+    def(`TIC-80`);
+    def(BDR);
+    def(BOOT);
+    def(MENU);
+    def(SCN);
+#undef def
 
     /* Manually create a vector of type string, parse it, then evaluate it
      * expression by expression. */
