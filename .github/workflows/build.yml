@@ -492,6 +492,11 @@ jobs:
         with:
           name: "tic80-android"
           path: build/android/tic80.apk
+      - name: Build Pro
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Pro -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
 
   # === HTML ===
   html:
