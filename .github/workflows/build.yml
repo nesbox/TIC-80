@@ -378,7 +378,7 @@ jobs:
 
       - name: Build
         run: |
-          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF ..
+          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_Pro=On -DBUILD_WITH_ALL=ON -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF ..
           cmake --build build --parallel
 
       - name: Deploy
@@ -492,6 +492,11 @@ jobs:
         with:
           name: "tic80-android"
           path: build/android/tic80.apk
+      - name: Build Pro
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Pro -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
 
   # === HTML ===
   html:
