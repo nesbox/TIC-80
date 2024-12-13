@@ -48,7 +48,7 @@ if(BUILD_WITH_LUA OR BUILD_WITH_MOON OR BUILD_WITH_FENNEL)
         ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
     )
 
-    target_compile_definitions(luaapi PRIVATE LUA_COMPAT_5_2)
+    target_compile_definitions(luaapi PRIVATE LUA_COMPAT_5_3)
 
     target_include_directories(luaapi
         PUBLIC ${THIRDPARTY_DIR}/lua
