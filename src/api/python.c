@@ -136,6 +136,7 @@ static bool py_cls(int argc, py_Ref argv)
 
     color = py_toint(py_arg(0));
     core->api.cls(tic, color);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
@@ -172,6 +173,7 @@ static bool py_spr(int argc, py_Ref argv)
         return TypeError("The given argument is not int or list");
 
     core->api.spr(tic, spr_id, x, y, w, h, colors, color_count, scale, flip, rotate);
+    py_assign(py_retval(), py_None());
     return true;
 }
 
