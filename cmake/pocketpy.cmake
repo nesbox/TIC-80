@@ -9,6 +9,7 @@ if(BUILD_WITH_PYTHON)
 
     if(NOT WIN32)
         option(PK_BUILD_WITH_IPO "" OFF)
+        option(PK_BUILD_MODULE_LZ4 "" OFF)
     endif()
 
     add_subdirectory(${THIRDPARTY_DIR}/pocketpy)
