@@ -6,6 +6,7 @@ option(BUILD_WITH_PYTHON "Python Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_PYTHON: ${BUILD_WITH_PYTHON}")
 if(BUILD_WITH_PYTHON)
     option(PK_ENABLE_OS "" OFF)
+    option(PK_BUILD_MODULE_LZ4 "" OFF)
 
     if(NOT WIN32)
         option(PK_BUILD_WITH_IPO "" OFF)
