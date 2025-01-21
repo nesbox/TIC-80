@@ -1,4 +1,3 @@
-#define YUE_WRAPPER_EXPORTS
 #include "yue_wrapper.h"
 #include "yuescript/yue_compiler.h"
 #include <cstring>

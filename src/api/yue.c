@@ -74,10 +74,12 @@ static bool initYuescript(tic_mem* tic, const char* code)
 
     core->currentVM = luaL_newstate();
     lua_State* lua = (lua_State*)core->currentVM;
-    luaapi_open(lua);
 
-    // Create compiler with the Lua state and luaapi_open
-    YueCompiler_t* compiler = yue_compiler_create(lua, luaapi_open, false);
+    void (*open_func)(void*) = (void (*)(void*))luaapi_open;
+    open_func(lua);
+
+    // Create compiler with the Lua state and open_func
+    YueCompiler_t* compiler = yue_compiler_create(lua, open_func, false);
     YueConfig_t* config = yue_config_create();
     CompileInfo_t* result = yue_compile(compiler, code, config);
 
