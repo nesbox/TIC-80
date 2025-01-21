@@ -43,6 +43,8 @@ if(BUILD_WITH_YUE)
             ${CMAKE_SOURCE_DIR}/src
     )
 
+    target_compile_definitions(yuescript PRIVATE YUE_NO_MACRO)
+
     if(MSVC)
         target_compile_definitions(yuescript PRIVATE _SCL_SECURE_NO_WARNINGS)
     else()
@@ -50,7 +52,7 @@ if(BUILD_WITH_YUE)
     endif()
 
     if(APPLE)
-        target_compile_definitions(yuescript PRIVATE -Wno-deprecated-declarations)
+        target_compile_options(yuescript PRIVATE -Wno-deprecated-declarations)
     endif()
 
 endif()

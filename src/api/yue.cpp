@@ -1,5 +1,8 @@
+extern "C" {
 #include "core/core.h"
 #include "luaapi.h"
+}
+
 #include "yuescript/yue_compiler.h"
 
 static inline bool isalnum_(char c)
@@ -159,7 +162,7 @@ static const u8 MarkRom[] =
 #include "../build/assets/yuemark.tic.dat"
 };
 
-TIC_EXPORT const tic_script EXPORT_SCRIPT(Yue) = {
+extern "C" TIC_EXPORT const tic_script EXPORT_SCRIPT(Yue) = {
     21,                          // id
     "yue",                       // name
     ".yue",                      // fileExtension
