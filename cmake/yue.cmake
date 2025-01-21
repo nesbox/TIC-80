@@ -50,7 +50,7 @@ if(BUILD_WITH_YUE)
     endif()
 
     if(APPLE)
-        target_compile_definitions(yuescript PRIVATE -Wno-deprecated-declarations)
+        target_compile_options(yuescript PRIVATE -Wno-deprecated-declarations)
     endif()
 
 endif()
