@@ -116,7 +116,7 @@ static const tic_outline_item* getYueOutline(const char* code, s32* size)
 
     while (true)
     {
-        static const char FuncString[] = "->";
+        static const char FuncString[] = "=->";
 
         ptr = strstr(ptr, FuncString);
 
@@ -180,10 +180,10 @@ extern "C" TIC_EXPORT const tic_script EXPORT_SCRIPT(Yue) = {
     },
     getYueOutline,               // getOutline
     evalYuescript,               // eval
-    nullptr,                     // blockCommentStart
-    nullptr,                     // blockCommentEnd
-    "--[[",                      // blockCommentStart2
-    "]]",                        // blockCommentEnd2
+    "--[[",                      // blockCommentStart
+    "]]",                        // blockCommentEnd
+    nullptr,                     // blockCommentStart2
+    nullptr,                     // blockCommentEnd2
     nullptr,                     // blockStringStart
     nullptr,                     // blockStringEnd
     nullptr,                     // stdStringStartEnd
