@@ -1,4 +1,5 @@
-extern "C" {
+extern "C"
+{
 #include "core/core.h"
 #include "luaapi.h"
 }
@@ -137,7 +138,8 @@ static const tic_outline_item* getYueOutline(const char* code, s32* size)
             if (end > start)
             {
                 tic_outline_item* new_items = (tic_outline_item*)realloc(items, (*size + 1) * Size);
-                if (new_items) {
+                if (new_items)
+                {
                     items = new_items;
                     items[*size].pos = start;
                     items[*size].size = (s32)(end - start + 1);
@@ -163,48 +165,46 @@ static const u8 MarkRom[] =
 };
 
 extern "C" TIC_EXPORT const tic_script EXPORT_SCRIPT(Yue) = {
-    21,                          // id
-    "yue",                       // name
-    ".yue",                      // fileExtension
-    "--",                        // projectComment
+    21,     // id
+    "yue",  // name
+    ".yue", // fileExtension
+    "--",   // projectComment
     {
-        initYuescript,           // init
-        luaapi_close,            // close
-        luaapi_tick,             // tick
-        luaapi_boot,             // boot
-        {                        // callback
-            luaapi_scn,          // scanline
-            luaapi_bdr,          // border
-            luaapi_menu          // menu
-        }
-    },
-    getYueOutline,               // getOutline
-    evalYuescript,               // eval
-    "--[[",                      // blockCommentStart
-    "]]",                        // blockCommentEnd
-    nullptr,                     // blockCommentStart2
-    nullptr,                     // blockCommentEnd2
-    nullptr,                     // blockStringStart
-    nullptr,                     // blockStringEnd
-    nullptr,                     // stdStringStartEnd
-    "--",                        // singleComment
-    nullptr,                     // blockEnd
-    YueKeywords,                 // keywords
-    COUNT_OF(YueKeywords),       // keywordsCount
-    nullptr,                     // lang_isalnum
-    false,                       // useStructuredEdition
-    false,                       // useBinarySection
-    0,                           // api_keywordsCount
-    nullptr,                     // api_keywords
-    {                            // demo
-        DemoRom,
-        sizeof DemoRom,
-        nullptr
-    },
-    {                            // mark
-        MarkRom,
-        sizeof MarkRom,
-        "yuemark.tic"
-    },
-    nullptr                      // demos
+        initYuescript, // init
+        luaapi_close,  // close
+        luaapi_tick,   // tick
+        luaapi_boot,   // boot
+        {
+            // callback
+            luaapi_scn, // scanline
+            luaapi_bdr, // border
+            luaapi_menu // menu
+        }},
+    getYueOutline,         // getOutline
+    evalYuescript,         // eval
+    "--[[",                // blockCommentStart
+    "]]",                  // blockCommentEnd
+    nullptr,               // blockCommentStart2
+    nullptr,               // blockCommentEnd2
+    nullptr,               // blockStringStart
+    nullptr,               // blockStringEnd
+    nullptr,               // stdStringStartEnd
+    "--",                  // singleComment
+    nullptr,               // blockEnd
+    YueKeywords,           // keywords
+    COUNT_OF(YueKeywords), // keywordsCount
+    nullptr,               // lang_isalnum
+    false,                 // useStructuredEdition
+    false,                 // useBinarySection
+    0,                     // api_keywordsCount
+    nullptr,               // api_keywords
+    {                      // demo
+     DemoRom,
+     sizeof DemoRom,
+     nullptr},
+    {// mark
+     MarkRom,
+     sizeof MarkRom,
+     "yuemark.tic"},
+    nullptr // demos
 };
