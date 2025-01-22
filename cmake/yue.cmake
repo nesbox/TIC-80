@@ -48,8 +48,16 @@ if(BUILD_WITH_YUE)
         ${CMAKE_SOURCE_DIR}/src/api
     )
 
-    target_compile_definitions(yuescript PRIVATE YUE_NO_MACRO YUE_WRAPPER_EXPORTS
-        $<$<BOOL:${MSVC}>:_SCL_SECURE_NO_WARNINGS>)
+    target_compile_definitions(yuescript PRIVATE 
+        YUE_NO_MACRO 
+        YUE_WRAPPER_EXPORTS
+        $<$<BOOL:${MSVC}>:_SCL_SECURE_NO_WARNINGS>
+    )
+
+    # Disable thread-safe statics on embedded platforms
+    if(BAREMETALPI OR NINTENDO_3DS)
+        target_compile_options(yuescript PRIVATE -fno-threadsafe-statics)
+    endif()
 
     target_sources(yuescript PRIVATE
         ${CMAKE_SOURCE_DIR}/src/api/yue_wrapper/yue_wrapper.cpp

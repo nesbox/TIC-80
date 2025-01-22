@@ -36,6 +36,8 @@ static void evalYuescript(tic_mem* tic, const char* code)
     tic_core* core = (tic_core*)tic;
     lua_State* lua = (lua_State*)core->currentVM;
 
+    yue_get_parser_instance();
+
     YueCompiler_t* compiler = yue_compiler_create(NULL, NULL, false);
     YueConfig_t* config = yue_config_create();
     CompileInfo_t* result = yue_compile(compiler, code, config);
@@ -71,6 +73,8 @@ static bool initYuescript(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
     luaapi_close(tic);
+
+    yue_get_parser_instance();
 
     core->currentVM = luaL_newstate();
     lua_State* lua = (lua_State*)core->currentVM;
@@ -108,6 +112,13 @@ static bool initYuescript(tic_mem* tic, const char* code)
     yue_compiler_destroy(compiler);
     return success;
 }
+
+static void closeYuescript(tic_mem* tic)
+{
+    luaapi_close(tic);
+    yue_cleanup();
+}
+
 static const char* const YueKeywords[] = {
     "false",
     "true",
@@ -220,7 +231,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Yue) =
     .projectComment = "--",
     {
         .init = initYuescript,
-        .close = luaapi_close,
+        .close = closeYuescript,
         .tick = luaapi_tick,
         .boot = luaapi_boot,
 

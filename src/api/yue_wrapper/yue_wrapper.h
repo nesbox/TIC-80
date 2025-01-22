@@ -91,6 +91,10 @@ YUE_WRAPPER_API void yue_compiler_clear(void* lua_state);
 YUE_WRAPPER_API const char* yue_get_version(void);
 YUE_WRAPPER_API const char* yue_get_extension(void);
 
+// Add before other declarations:
+YUE_WRAPPER_API void* yue_get_parser_instance(void);
+YUE_WRAPPER_API void yue_cleanup(void);
+
 #ifdef __cplusplus
 }
 #endif

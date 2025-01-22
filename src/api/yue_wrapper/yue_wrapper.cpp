@@ -1,13 +1,28 @@
 #include "yue_wrapper.h"
 #include "yuescript/yue_compiler.h"
+#include "yuescript/yue_parser.h"
 #include <cstring>
 #include <new>
 
+// Wrapper class to expose YueParser functionality
+class YueParserWrapper : public yue::YueParser {
+public:
+    YueParserWrapper() : YueParser() {}
+    static YueParserWrapper* create() { return new YueParserWrapper(); }
+};
+
+namespace {
+    // Global parser instance for reuse
+    YueParserWrapper* g_parser_instance = nullptr;
+}
+
 extern "C" {
 
+// Creates and initializes a new YueConfig with default values
 YueConfig_t* yue_config_create(void) {
     YueConfig_t* config = new (std::nothrow) YueConfig_t();
     if (config) {
+        // Set default configuration values
         config->lint_global_variable = false;
         config->implicit_return_root = true;
         config->reserve_line_number = true;
@@ -21,11 +36,14 @@ YueConfig_t* yue_config_create(void) {
     return config;
 }
 
+// Frees memory allocated for YueConfig
 void yue_config_free(YueConfig_t* config) {
     delete config;
 }
 
+// Creates a new YueCompiler instance with optional Lua state and callbacks
 YueCompiler_t* yue_compiler_create(void* lua_state, void (*lua_open)(void*), bool same_module) {
+    // Convert C callback to C++ std::function
     auto cpp_lua_open = lua_open ? 
         std::function<void(void*)>([lua_open](void* l) { lua_open(l); }) :
         std::function<void(void*)>();
@@ -34,11 +52,17 @@ YueCompiler_t* yue_compiler_create(void* lua_state, void (*lua_open)(void*), boo
     return reinterpret_cast<YueCompiler_t*>(compiler);
 }
 
+// Destroys a YueCompiler instance
 void yue_compiler_destroy(YueCompiler_t* compiler) {
     delete reinterpret_cast<yue::YueCompiler*>(compiler);
 }
 
+// Compiles Yuescript code using provided compiler and configuration
 CompileInfo_t* yue_compile(YueCompiler_t* compiler, const char* codes, const YueConfig_t* config) {
+    // Get parser instance for compilation
+    auto parser = static_cast<yue::YueParser*>(yue_get_parser_instance());
+
+    // Convert C config to C++ config
     yue::YueConfig cpp_config;
     if (config) {
         cpp_config.lintGlobalVariable = config->lint_global_variable;
@@ -54,14 +78,18 @@ CompileInfo_t* yue_compile(YueCompiler_t* compiler, const char* codes, const Yue
         }
     }
 
+    // Perform compilation
     auto cpp_compiler = reinterpret_cast<yue::YueCompiler*>(compiler);
     auto result = cpp_compiler->compile(codes, cpp_config);
 
+    // Create and populate compilation info
     auto* info = new (std::nothrow) CompileInfo_t();
     if (!info) return nullptr;
 
-    // Copy the data
+    // Copy compiled code
     info->codes = strdup(result.codes.c_str());
+    
+    // Handle compilation errors if any
     if (result.error) {
         info->error_msg = strdup(result.error->msg.c_str());
         info->error_line = result.error->line;
@@ -74,10 +102,12 @@ CompileInfo_t* yue_compile(YueCompiler_t* compiler, const char* codes, const Yue
         info->error_display_message = nullptr;
     }
 
+    // Copy timing information
     info->parse_time = result.parseTime;
     info->compile_time = result.compileTime;
     info->used_var = result.usedVar;
 
+    // Copy global variables information
     if (result.globals) {
         info->globals_count = result.globals->size();
         info->globals = new GlobalVar_t[info->globals_count];
@@ -96,13 +126,16 @@ CompileInfo_t* yue_compile(YueCompiler_t* compiler, const char* codes, const Yue
     return info;
 }
 
+// Frees all memory associated with compilation info
 void yue_compile_info_free(CompileInfo_t* info) {
     if (!info) return;
     
+    // Free all dynamically allocated strings
     free((void*)info->codes);
     free((void*)info->error_msg);
     free((void*)info->error_display_message);
     
+    // Free global variables information
     if (info->globals) {
         for (int i = 0; i < info->globals_count; ++i) {
             free((void*)info->globals[i].name);
@@ -113,18 +146,35 @@ void yue_compile_info_free(CompileInfo_t* info) {
     delete info;
 }
 
+// Clears compiler state for given Lua state
 void yue_compiler_clear(void* lua_state) {
     yue::YueCompiler::clear(lua_state);
 }
 
+// Returns Yuescript version string
 const char* yue_get_version(void) {
     static std::string version_str(yue::version);
     return version_str.c_str();
 }
 
+// Returns Yuescript file extension
 const char* yue_get_extension(void) {
     static std::string extension_str(yue::extension);
     return extension_str.c_str();
+}
+
+// Returns (creating if necessary) the global parser instance
+void* yue_get_parser_instance() {
+    if (!g_parser_instance) {
+        g_parser_instance = YueParserWrapper::create();
+    }
+    return g_parser_instance;
+}
+
+// Cleanup global parser instance
+void yue_cleanup() {
+    delete g_parser_instance;
+    g_parser_instance = nullptr;
 }
 
 }
