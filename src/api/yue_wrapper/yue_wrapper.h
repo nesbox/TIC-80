@@ -8,9 +8,6 @@
 extern "C" {
 #endif
 
-#ifdef YUE_STATIC_CONFIG
-#define YUE_WRAPPER_API
-#else
 #ifdef _WIN32
     #ifdef YUE_WRAPPER_EXPORTS
         #define YUE_WRAPPER_API __declspec(dllexport)
@@ -19,7 +16,6 @@ extern "C" {
     #endif
 #else
     #define YUE_WRAPPER_API
-#endif
 #endif
 
 typedef struct YueCompiler_t YueCompiler_t;
