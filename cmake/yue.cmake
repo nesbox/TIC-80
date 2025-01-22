@@ -72,7 +72,6 @@ if(BUILD_WITH_YUE)
         
         # Add baremetal specific compile flags
         target_compile_options(yuescript PRIVATE 
-            -fno-exceptions 
             -fno-rtti
         )
     endif()
