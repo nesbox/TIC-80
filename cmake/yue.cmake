@@ -51,12 +51,30 @@ if(BUILD_WITH_YUE)
     target_compile_definitions(yuescript PRIVATE 
         YUE_NO_MACRO 
         YUE_WRAPPER_EXPORTS
+        YUE_STATIC_CONFIG
         $<$<BOOL:${MSVC}>:_SCL_SECURE_NO_WARNINGS>
     )
 
-    # Disable thread-safe statics on embedded platforms
+    # Platform specific configurations
     if(BAREMETALPI OR NINTENDO_3DS)
-        target_compile_options(yuescript PRIVATE -fno-threadsafe-statics)
+        # Disable thread-safe statics for C++ files
+        set_source_files_properties(
+            ${YUESCRIPT_SRC}
+            ${CMAKE_SOURCE_DIR}/src/api/yue_wrapper/yue_wrapper.cpp
+            PROPERTIES COMPILE_FLAGS "-fno-threadsafe-statics"
+        )
+        
+        # Force static linking for baremetal
+        set_target_properties(yuescript PROPERTIES 
+            STATIC_LIBRARY TRUE
+            POSITION_INDEPENDENT_CODE FALSE
+        )
+        
+        # Add baremetal specific compile flags
+        target_compile_options(yuescript PRIVATE 
+            -fno-exceptions 
+            -fno-rtti
+        )
     endif()
 
     target_sources(yuescript PRIVATE
