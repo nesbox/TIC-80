@@ -69,6 +69,8 @@ if(BUILD_WITH_YUE)
             POSITION_INDEPENDENT_CODE FALSE
         )
 
+        target_compile_features(yuescript PRIVATE cxx_std_20)
+
         target_sources(yuescript PRIVATE
             ${CMAKE_SOURCE_DIR}/src/api/yue_wrapper/yue_wrapper.cpp
             ${CMAKE_SOURCE_DIR}/src/api/yue_wrapper/yue_wrapper.h
