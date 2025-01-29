@@ -523,7 +523,8 @@ only one).
     R_ShowMessage(pp);
     exit(1);
 
-    while(1);
+    /* MAYBE FIXME: why was this here? This is odd... */
+    /* while(1); */
   }
 
   void R_ShowMessage(const char *s) {
@@ -574,16 +575,11 @@ only one).
 
       /* Ensure a dummy function is defined for all of the important functions
        ,* that will be called. */
-      /* MAYBE TODO: test that TIC-80, minimally, has been redefined. If the
-       ,* others are not redefined from `{` print a single warning on the standard
-       ,* error (AND ABSOLUTLY NOWHERE ELSE). */
-  #define def(i) EVALG(#i" <- `{`;");
-      def(`TIC-80`);
-      def(BDR);
-      def(BOOT);
-      def(MENU);
-      def(SCN);
-  #undef def
+      EVALG("`TIC-80` <- function() return();");
+      EVALG("BDR      <- function() return();");
+      EVALG("BOOT     <- function() return();");
+      EVALG("MENU     <- function() return();");
+      EVALG("SCN      <- function() return();");
 
       /* Manually create a vector of type string, parse it, then evaluate it
        ,* expression by expression. */
@@ -653,18 +649,18 @@ backtrace quoted in the mentioned section.
 #+begin_src C :noweb-ref cartridge commands
   #define defineCallRFnInEnvironment_(f, e, ...)                          \
     static void callRFn_##f(tic_mem *tic __VA_OPT__(,) __VA_ARGS__) {     \
-      R_ParseEvalString("if (exists(\""#f"\") && is.function(`"#f"`)) "   \
-                        "`"#f"`() else stop(\""#f" is not a defined function!\")", \
+      R_ParseEvalString("if (exists(\""#f"\") && is.function("#f")) "     \
+                        #f"() else stop(\""#f" is not a defined function!\")", \
                         e);                                               \
     }
   /* i.e., if (exists("f") && is.function(`f`)) `f`(), allowing call of syntactic
    ,* and non-syntactic names. */
   #define defineCallRFn_(f, ...) defineCallRFnInEnvironment_(f, R_GlobalEnv __VA_OPT__(,) __VA_ARGS__)
-  defineCallRFn_(BOOT)
+  defineCallRFn_(BOOT);
   /* s32 row/index, void *data as well as the tic_mem *tic parameters. */
-  defineCallRFn_(MENU, s32 index, void *data)
-  defineCallRFn_(BDR, s32 row, void *data)
-  defineCallRFn_(SCN, s32 row, void *data)
+  defineCallRFn_(MENU, s32 index, void *data);
+  defineCallRFn_(BDR, s32 row, void *data);
+  defineCallRFn_(SCN, s32 row, void *data);
   #undef defineCallRFn_
   #undef defineCallRFnInEnvironment_
 #+end_src
