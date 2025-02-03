@@ -2622,8 +2622,8 @@ static StartArgs parseArgs(s32 argc, char **argv)
         OPT_BOOLEAN('\0', "fftlist", &args.fftlist, "list FFT devices"),
         OPT_BOOLEAN('\0', "fftcaptureplaybackdevices", &args.fftcaptureplaybackdevices, "Capture playback devices for loopback (Windows only)"),
         OPT_STRING('\0', "fftdevice", &args.fftdevice, "name of the device to use with FFT"),
-        OPT_END(),
 #endif
+        OPT_END(),
     };
 
     struct argparse argparse;
