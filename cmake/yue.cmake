@@ -16,7 +16,7 @@ if(BUILD_WITH_YUE)
         ${YUESCRIPT_DIR}/src/yuescript/yuescript.cpp
     )
 
-    list(APPEND YUESCRIPT_SRC ${CMAKE_SOURCE_DIR}/src/api/yue.c)
+    list(APPEND YUESCRIPT_SRC ${CMAKE_SOURCE_DIR}/src/api/yue.cpp)
     list(APPEND YUESCRIPT_SRC ${CMAKE_SOURCE_DIR}/src/api/parse_note.c)
 
     add_library(yuescript ${TIC_RUNTIME} ${YUESCRIPT_SRC})
