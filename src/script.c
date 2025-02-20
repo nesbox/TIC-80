@@ -45,6 +45,10 @@ extern tic_script EXPORT_SCRIPT(Js);
 extern tic_script EXPORT_SCRIPT(Moon);
 #endif
 
+#if defined(TIC_BUILD_WITH_YUE)
+extern tic_script EXPORT_SCRIPT(Yue);
+#endif
+
 #if defined(TIC_BUILD_WITH_FENNEL)
 extern tic_script EXPORT_SCRIPT(Fennel);
 #endif
@@ -92,6 +96,10 @@ static const tic_script *Scripts[MAX_SUPPORTED_LANGS + 1] =
 
     #if defined(TIC_BUILD_WITH_MOON)
     &EXPORT_SCRIPT(Moon),
+    #endif
+
+    #if defined(TIC_BUILD_WITH_YUE)
+    &EXPORT_SCRIPT(Yue),
     #endif
 
     #if defined(TIC_BUILD_WITH_FENNEL)
