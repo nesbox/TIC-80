@@ -5,6 +5,29 @@
 option(BUILD_WITH_RUBY "Ruby Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_RUBY: ${BUILD_WITH_RUBY}")
 
+if(BUILD_WITH_RUBY AND PREFER_SYSTEM_LIBRARIES)
+    find_path(mruby_INCLUDE_DIR NAMES mruby.h)
+    find_library(mruby_LIBRARY NAMES mruby)
+    if(mruby_INCLUDE_DIR AND mruby_LIBRARY)
+        add_library(ruby STATIC
+            ${CMAKE_SOURCE_DIR}/src/api/mruby.c
+            ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
+        )
+        target_compile_definitions(ruby INTERFACE TIC_BUILD_WITH_RUBY)
+        target_link_libraries(ruby PRIVATE runtime ${mruby_LIBRARY})
+        target_include_directories(ruby
+            PUBLIC ${mruby_INCLUDE_DIR}
+            PRIVATE
+                ${CMAKE_SOURCE_DIR}/include
+                ${CMAKE_SOURCE_DIR}/src
+        )
+        message(STATUS "Use sytem library: mruby")
+        return()
+    else()
+        message(WARNING "System library mruby not found")
+    endif()
+endif()
+
 if(BUILD_WITH_RUBY)
 
     find_program(RUBY ruby)

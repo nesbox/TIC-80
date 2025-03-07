@@ -5,6 +5,29 @@
 option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_JANET: ${BUILD_WITH_JANET}")
 
+if(BUILD_WITH_JANET AND PREFER_SYSTEM_LIBRARIES)
+    find_path(janet_INCLUDE_DIR NAMES janet.h)
+    find_library(janet_LIBRARY NAMES janet)
+    if(janet_INCLUDE_DIR AND janet_LIBRARY)
+        add_library(janet STATIC
+            ${CMAKE_SOURCE_DIR}/src/api/janet.c
+            ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
+        )
+        target_compile_definitions(janet INTERFACE TIC_BUILD_WITH_JANET)
+        target_link_libraries(janet PRIVATE runtime ${janet_LIBRARY})
+        target_include_directories(janet
+            PUBLIC ${janet_INCLUDE_DIR}
+            PRIVATE
+                ${CMAKE_SOURCE_DIR}/include
+                ${CMAKE_SOURCE_DIR}/src
+        )
+        message(STATUS "Use sytem library: janet")
+        return()
+    else()
+        message(WARNING "System library janet not found")
+    endif()
+endif()
+
 if(BUILD_WITH_JANET)
 
     if(MINGW)

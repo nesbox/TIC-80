@@ -2,6 +2,18 @@
 # ZLIB
 ################################
 
+if(PREFER_SYSTEM_LIBRARIES)
+    find_package(PkgConfig)
+    pkg_check_modules(zlib IMPORTED_TARGET GLOBAL zlib)
+    if (zlib_FOUND)
+        add_library(zlib ALIAS PkgConfig::zlib)
+        message(STATUS "Use system library: zlib")
+        return()
+    else()
+        message(WARNING "System library zlib not found")
+    endif()
+endif()
+
 if (NOT NINTENDO_3DS)
 
 set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib)
