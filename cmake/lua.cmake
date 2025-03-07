@@ -5,6 +5,30 @@
 option(BUILD_WITH_LUA "Lua Enabled" ON)
 message("BUILD_WITH_LUA: ${BUILD_WITH_LUA}")
 
+if(BUILD_WITH_LUA AND PREFER_SYSTEM_LIBRARIES)
+    find_path(lua_INCLUDE_DIR NAMES lua.h)
+    find_library(lua_LIBRARY NAMES lua)
+    if(lua_INCLUDE_DIR AND lua_LIBRARY)
+        add_library(luaapi STATIC
+            ${CMAKE_SOURCE_DIR}/src/api/luaapi.c
+            ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
+        )
+        target_link_libraries(luaapi PRIVATE ${lua_LIBRARY})
+        target_include_directories(luaapi PUBLIC
+            ${lua_INCLUDE_DIR}
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/src
+        )
+        add_library(lua STATIC ${CMAKE_SOURCE_DIR}/src/api/lua.c)
+        target_compile_definitions(lua INTERFACE TIC_BUILD_WITH_LUA)
+        target_link_libraries(lua PRIVATE runtime luaapi)
+        message(STATUS "Use system library: lua")
+        return()
+    else()
+        message(WARNING "System library lua not found")
+    endif()
+endif()
+
 if(BUILD_WITH_LUA OR BUILD_WITH_MOON OR BUILD_WITH_FENNEL)
     set(LUA_DIR ${THIRDPARTY_DIR}/lua)
     set(LUA_SRC

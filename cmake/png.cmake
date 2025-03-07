@@ -2,6 +2,19 @@
 # PNG
 ################################
 
+if(PREFER_SYSTEM_LIBRARIES)
+    find_package(PkgConfig)
+    pkg_check_modules(libpng IMPORTED_TARGET GLOBAL libpng)
+    if (libpng_FOUND)
+        add_library(png ALIAS PkgConfig::libpng)
+        message(STATUS "Use system library: libpng")
+        return()
+    else()
+        message(WARNING "System library libpng not found")
+    endif()
+endif()
+
+
 set(LIBPNG_DIR ${THIRDPARTY_DIR}/libpng)
 set(LIBPNG_SRC
     ${LIBPNG_DIR}/png.c

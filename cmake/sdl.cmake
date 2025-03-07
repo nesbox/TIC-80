@@ -1,7 +1,19 @@
 ################################
 # SDL2
 ################################
-if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI)
+if(PREFER_SYSTEM_LIBRARIES)
+    find_package(SDL2)
+    if(SDL2_FOUND)
+        add_library(SDL2 ALIAS SDL2::SDL2)
+        add_library(SDL2-static ALIAS SDL2::SDL2)
+        message(STATUS "Use system library: SDL2")
+    else()
+        message(WARNING "System library SDL2 not found")
+    endif()
+endif()
+
+
+if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_LIBRARIES)
 
     if(WIN32)
         set(HAVE_LIBC TRUE)
