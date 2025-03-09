@@ -26,17 +26,7 @@
 #include <time.h>
 #include <limits.h>
 
-#include <sokol_app.h>
-#include <sokol_gfx.h>
-#include <sokol_time.h>
-#include <sokol_audio.h>
-#include <sokol_glue.h>
-#include <util/sokol_color.h>
-#include <util/sokol_gl.h>
-
-#if !defined(NDEBUG)
-#include <sokol_log.h>
-#endif
+#include "sokol.h"
 
 #include "studio/system.h"
 #include "crt.h"
@@ -338,6 +328,22 @@ static void drawImage(Rect r,sg_image image, sg_sampler sampler)
     sgl_disable_texture();
 }
 
+static void handleGamepad(App *app)
+{    
+    sgamepad_record_state();
+
+    for(s32 i = 0; i < MIN(sizeof(tic80_gamepads), sgamepad_get_max_supported_gamepads()); i++)
+    {
+        sgamepad_gamepad_state state;
+        sgamepad_get_gamepad_state(i, &state);
+
+        if(state.left_stick.direction_x)
+        {
+            // !TODO: smth pressed
+        }
+    }
+}
+
 static void frame(void *userdata)
 {
     App *app = userdata;
@@ -351,6 +357,7 @@ static void frame(void *userdata)
 
     handleMouse(app);
     handleKeyboard(app);
+    handleGamepad(app);
     studio_tick(app->studio, app->input);
 
     app->input.mouse.relative = studio_mem(app->studio)->ram->input.mouse.relative;
@@ -682,6 +689,7 @@ sapp_desc sokol_main(s32 argc, char* argv[])
 
     app->audio.desc.num_channels = TIC80_SAMPLE_CHANNELS;
     saudio_setup(&app->audio.desc);
+    sgamepad_init();
 
     app->studio = studio_create(argc, argv, saudio_sample_rate(), TIC80_PIXEL_COLOR_RGBA8888, "./", INT32_MAX, tic_layout_qwerty, app);
 

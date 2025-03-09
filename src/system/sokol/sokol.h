@@ -20,7 +20,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#define SOKOL_IMPL
+#pragma once
 
-#include "sokol.h"
+#include <sokol_app.h>
+#include <sokol_gfx.h>
+#include <sokol_time.h>
+#include <sokol_audio.h>
+#include <sokol_glue.h>
+#include <util/sokol_color.h>
+#include <util/sokol_gl.h>
 
+#if !defined(NDEBUG)
+#include <sokol_log.h>
+#endif
+
+#include "sokol_gamepad.h"

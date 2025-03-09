@@ -27,6 +27,7 @@ if(APPLE)
         "-framework Metal"
         "-framework MetalKit"
         "-framework AudioToolbox"
+        "-framework GameController"
     )
 
 elseif(LINUX)
