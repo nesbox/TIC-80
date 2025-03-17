@@ -224,7 +224,7 @@ Run the following commands from a terminal:
 ```
 sudo apt update && sudo apt -y install build-essential cmake git libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On .. && cmake --build . --parallel
+cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On -DBUILD_STATIC=On .. && cmake --build . --parallel
 ```
 
 Install with [Install Instructions](#install-instructions)
