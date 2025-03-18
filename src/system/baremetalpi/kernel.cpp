@@ -48,7 +48,6 @@ static unsigned mousexOld;
 static unsigned mouseyOld;
 static unsigned mousebuttons;
 static unsigned mousebuttonsOld;
-static unsigned mouseTime = 600; // starts not visible
 
 // gamepad status
 static struct TGamePadState gamepad;
@@ -180,17 +179,7 @@ void screenCopy(CScreenDevice* screen, const u32* ts)
         const u32 *line = ts + ((y+TIC80_OFFSET_TOP)*(TIC80_FULLWIDTH) + TIC80_OFFSET_LEFT);
         memcpy(buf + (pitch * y), line, TIC80_WIDTH * 4);
     }
-
-    // single pixel mouse pointer, disappear after 10 seconds unmoved
-    if (mouseTime<600)
-    {
-        u32 midx =  pitch*(mousey)+mousex;
-        buf[midx]= 0xffffff;
-    }
-
-    // memcpy(screen->GetBuffer(), tic->screen, TIC80_WIDTH*TIC80_HEIGHT*4); would have been too good
 }
-
 
 
 } //extern C
@@ -229,15 +218,6 @@ void inputToTic()
     if (mousebuttons & 0x04) tic_input->mouse.middle = true; else tic_input->mouse.middle = false;
     tic_input->mouse.x = mousex + TIC80_OFFSET_LEFT;
     tic_input->mouse.y = mousey + TIC80_OFFSET_TOP;
-
-    if( (mousex == mousexOld) && (mousey == mouseyOld) && (mousebuttons == mousebuttonsOld))
-    {
-        mouseTime++;
-    }
-    else
-    {
-        mouseTime = 0;
-    }
 
     mousexOld = mousex;
     mouseyOld = mousey;
