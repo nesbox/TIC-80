@@ -255,11 +255,11 @@ void inputToTic()
                 case 0x4F: tic_input->gamepads.first.right = true; break;
             }
             //dbg(" %02x ", keyboardRawKeys[i]);
-
         }
     }
     //dbg("\n");
 
+    if(keynum >= TIC80_KEY_BUFFER) return;
 
     // gamepads
 
