@@ -319,62 +319,22 @@ void KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys
     keyspinlock.Release();
 }
 
-void testmkdir(const char* name)
-{
-    dbg("creating %s : ", name);
-    FRESULT res = f_mkdir(name);
-    if(res == FR_OK)
-    {
-        dbg("ok\n");
-    }
-    else
-    {
-        dbg("KO %d\n", res);
-    }
-}
-
-void teststat(const char* name)
-{
-    dbg("K:%s", name);
-    FILINFO filinfo;
-    FRESULT res = f_stat (name, &filinfo);
-    dbg("stat: %d ", res);
-    dbg("size: %ld ", filinfo.fsize);
-    dbg("attr: %02x\n", filinfo.fattrib);
-}
-
 TShutdownMode Run(void)
 {
     initializeCore();
     mLogger.Write (KN, LogNotice, "TIC80 Port");
 
-    //teststat("circle.txt");
-    //teststat("no.txt");
-    //teststat("carts");
-
-    testmkdir("tic80");
-    //CTimer::SimpleMsDelay(5000);
-
-    // ok testmkdir("primo");
-    // ko testmkdir("secondo/bis");
-    // ok testmkdir(".terzo");
-    // ko testmkdir(".quarto/");
-    // ko testmkdir("quinto/");
-    // ok testmkdir("sesto bis");
+    f_mkdir("tic80");
 
     dbg("Calling studio init instance..\n");
 
     if (pKeyboard)
     {
         dbg("With keyboard\n");
-        malloc(77);
         char  arg0[] = "xxkernel";
         char* argv[] = { &arg0[0], NULL };
         int argc = 1;
-        malloc(88);
         platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty);
-        malloc(99);
-
     }
     else
     {
