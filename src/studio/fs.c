@@ -398,6 +398,7 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
 
 void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data)
 {
+#ifndef BAREMETALPI
     if (isRoot(fs) && !onItem(PublicDir, NULL, NULL, 0, data, true))
     {
         onDone(data);
@@ -415,6 +416,8 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
 
         return;
     }
+#endif
+
 #endif
 
     const char* path = tic_fs_path(fs, "");
