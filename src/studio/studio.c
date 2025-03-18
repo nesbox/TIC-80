@@ -2250,6 +2250,7 @@ static void processMouseStates(Studio* studio)
 #if defined(BUILD_EDITORS)
 static void doCodeExport(Studio* studio)
 {
+#ifndef BAREMETALPI
     char pos[sizeof studio->bytebattle.last.postag];
     {
         s32 x = 0, y = 0;
@@ -2277,10 +2278,12 @@ static void doCodeExport(Studio* studio)
             fclose(file);
         }
     }
+#endif
 }
 
 static void doCodeImport(Studio* studio)
 {
+#ifndef BAREMETALPI
     FILE* file = fopen(studio->bytebattle.imp, "rb");
 
     if(file)
@@ -2326,6 +2329,7 @@ static void doCodeImport(Studio* studio)
 
         fclose(file);
     }
+#endif
 }
 #endif
 
