@@ -427,9 +427,12 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
 bool tic_fs_deldir(tic_fs* fs, const char* name)
 {
 #if defined(BAREMETALPI)
-    // TODO BAREMETALPI
-    dbg("tic_fs_deldir %s", name);
-    return 0;
+    const char* path = tic_fs_path(fs, name);
+    const FsString* pathString = utf8ToString(path);
+    bool result = (f_unlink(pathString) != FR_OK);
+    freeString(pathString);
+
+    return result;
 #else
 #if defined(__TIC_WINDOWS__)
     const char* path = tic_fs_path(fs, name);
@@ -452,15 +455,14 @@ bool tic_fs_deldir(tic_fs* fs, const char* name)
 
 bool tic_fs_delfile(tic_fs* fs, const char* name)
 {
-#if defined(BAREMETALPI)
-    dbg("tic_fs_delfile %s", name);
-    // TODO BAREMETALPI
-    return false;
-#else
     const char* path = tic_fs_path(fs, name);
 
     const FsString* pathString = utf8ToString(path);
+#if defined(BAREMETALPI)
+    bool result = (f_unlink(pathString) != FR_OK);
+#else
     bool result = tic_remove(pathString);
+#endif
     freeString(pathString);
 
 #if defined(__EMSCRIPTEN__)
@@ -468,7 +470,6 @@ bool tic_fs_delfile(tic_fs* fs, const char* name)
 #endif
 
     return result;
-#endif
 }
 
 void tic_fs_homedir(tic_fs* fs)
@@ -548,8 +549,10 @@ static void onEnumPublicDirsDone(void* data)
 bool fs_isdir(const char* path)
 {
 #if defined(BAREMETALPI)
-    // This function isn't applicable to baremetal.
-    return false;
+    FILINFO s;
+    FRESULT res = f_stat(path, &s);
+    if (res != FR_OK) return false;
+    return s.fattrib & AM_DIR;
 #else
     struct tic_stat_struct s;
     const FsString* pathString = utf8ToString(path);
