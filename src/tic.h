@@ -707,6 +707,7 @@ typedef enum
     tic_key_comma,
     tic_key_period,
     tic_key_slash,
+    tic_key_iso_extra,
 
     tic_key_space,
     tic_key_tab,
