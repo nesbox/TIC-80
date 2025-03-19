@@ -42,12 +42,9 @@ static unsigned char keyboardRawKeys[6];
 static char keyboardModifiers;
 
 // mouse status
-static unsigned mousex;
-static unsigned mousey;
-static unsigned mousexOld;
-static unsigned mouseyOld;
+static int mousex;
+static int mousey;
 static unsigned mousebuttons;
-static unsigned mousebuttonsOld;
 
 // gamepad status
 static struct TGamePadState gamepad;
@@ -184,11 +181,18 @@ void screenCopy(CScreenDevice* screen, const u32* ts)
 
 } //extern C
 
-void mouseEventHandler (TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY, int nWheelMove)
+void mouseStatusHandler (unsigned nButtons, int nDisplacementX, int nDisplacementY, int nWheelMove)
 {
     keyspinlock.Acquire();
-    mousex = nPosX/MOUSE_SENS;
-    mousey = nPosY/MOUSE_SENS;
+
+    mousex += nDisplacementX;
+    mousey += nDisplacementY;
+
+    if (mousex < 0) mousex = 0;
+    if (mousex > TIC80_WIDTH*MOUSE_SENS) mousex = TIC80_WIDTH*MOUSE_SENS;
+    if (mousey < 0) mousey = 0;
+    if (mousey > TIC80_HEIGHT*MOUSE_SENS) mousey = TIC80_HEIGHT*MOUSE_SENS;
+
     mousebuttons = nButtons;
     keyspinlock.Release();
 }
@@ -216,12 +220,8 @@ void inputToTic()
     if (mousebuttons & 0x01) tic_input->mouse.left = true; else tic_input->mouse.left = false;
     if (mousebuttons & 0x02) tic_input->mouse.right = true; else tic_input->mouse.right = false;
     if (mousebuttons & 0x04) tic_input->mouse.middle = true; else tic_input->mouse.middle = false;
-    tic_input->mouse.x = mousex + TIC80_OFFSET_LEFT;
-    tic_input->mouse.y = mousey + TIC80_OFFSET_TOP;
-
-    mousexOld = mousex;
-    mouseyOld = mousey;
-    mousebuttonsOld = mousebuttons;
+    tic_input->mouse.x = mousex/MOUSE_SENS + TIC80_OFFSET_LEFT;
+    tic_input->mouse.y = mousey/MOUSE_SENS + TIC80_OFFSET_TOP;
 
     // keyboard
     tic_input->gamepads.first.data = 0;
@@ -362,7 +362,7 @@ TShutdownMode Run(void)
     initGamepads(mDeviceNameService, gamePadStatusHandler);
 
     if (pMouse) {
-        pMouse->RegisterEventHandler (mouseEventHandler);
+        pMouse->RegisterStatusHandler (mouseStatusHandler);
     }
 
     const tic80* product = &studio_mem(platform.studio)->product;

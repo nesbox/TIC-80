@@ -184,14 +184,6 @@ boolean initializeCore()
 	{
 		dbg("Mouse not found");
 	}
-	else
-	{
-		if (!pMouse->Setup (TIC80_WIDTH*MOUSE_SENS, TIC80_HEIGHT*MOUSE_SENS))
-		{
-			Die("Cannot setup mouse");
-		}
-
-	}
 
 
 	CScreenDevice* screen = &mScreen;
