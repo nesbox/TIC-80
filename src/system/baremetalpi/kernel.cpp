@@ -42,13 +42,9 @@ static unsigned char keyboardRawKeys[6];
 static char keyboardModifiers;
 
 // mouse status
-static unsigned mousex;
-static unsigned mousey;
-static unsigned mousexOld;
-static unsigned mouseyOld;
+static int mousex;
+static int mousey;
 static unsigned mousebuttons;
-static unsigned mousebuttonsOld;
-static unsigned mouseTime = 600; // starts not visible
 
 // gamepad status
 static struct TGamePadState gamepad;
@@ -180,26 +176,23 @@ void screenCopy(CScreenDevice* screen, const u32* ts)
         const u32 *line = ts + ((y+TIC80_OFFSET_TOP)*(TIC80_FULLWIDTH) + TIC80_OFFSET_LEFT);
         memcpy(buf + (pitch * y), line, TIC80_WIDTH * 4);
     }
-
-    // single pixel mouse pointer, disappear after 10 seconds unmoved
-    if (mouseTime<600)
-    {
-        u32 midx =  pitch*(mousey)+mousex;
-        buf[midx]= 0xffffff;
-    }
-
-    // memcpy(screen->GetBuffer(), tic->screen, TIC80_WIDTH*TIC80_HEIGHT*4); would have been too good
 }
-
 
 
 } //extern C
 
-void mouseEventHandler (TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY, int nWheelMove)
+void mouseStatusHandler (unsigned nButtons, int nDisplacementX, int nDisplacementY, int nWheelMove)
 {
     keyspinlock.Acquire();
-    mousex = nPosX/MOUSE_SENS;
-    mousey = nPosY/MOUSE_SENS;
+
+    mousex += nDisplacementX;
+    mousey += nDisplacementY;
+
+    if (mousex < 0) mousex = 0;
+    if (mousex > TIC80_WIDTH*MOUSE_SENS) mousex = TIC80_WIDTH*MOUSE_SENS;
+    if (mousey < 0) mousey = 0;
+    if (mousey > TIC80_HEIGHT*MOUSE_SENS) mousey = TIC80_HEIGHT*MOUSE_SENS;
+
     mousebuttons = nButtons;
     keyspinlock.Release();
 }
@@ -227,21 +220,8 @@ void inputToTic()
     if (mousebuttons & 0x01) tic_input->mouse.left = true; else tic_input->mouse.left = false;
     if (mousebuttons & 0x02) tic_input->mouse.right = true; else tic_input->mouse.right = false;
     if (mousebuttons & 0x04) tic_input->mouse.middle = true; else tic_input->mouse.middle = false;
-    tic_input->mouse.x = mousex + TIC80_OFFSET_LEFT;
-    tic_input->mouse.y = mousey + TIC80_OFFSET_TOP;
-
-    if( (mousex == mousexOld) && (mousey == mouseyOld) && (mousebuttons == mousebuttonsOld))
-    {
-        mouseTime++;
-    }
-    else
-    {
-        mouseTime = 0;
-    }
-
-    mousexOld = mousex;
-    mouseyOld = mousey;
-    mousebuttonsOld = mousebuttons;
+    tic_input->mouse.x = mousex/MOUSE_SENS + TIC80_OFFSET_LEFT;
+    tic_input->mouse.y = mousey/MOUSE_SENS + TIC80_OFFSET_TOP;
 
     // keyboard
     tic_input->gamepads.first.data = 0;
@@ -275,11 +255,11 @@ void inputToTic()
                 case 0x4F: tic_input->gamepads.first.right = true; break;
             }
             //dbg(" %02x ", keyboardRawKeys[i]);
-
         }
     }
     //dbg("\n");
 
+    if(keynum >= TIC80_KEY_BUFFER) return;
 
     // gamepads
 
@@ -339,62 +319,22 @@ void KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys
     keyspinlock.Release();
 }
 
-void testmkdir(const char* name)
-{
-    dbg("creating %s : ", name);
-    FRESULT res = f_mkdir(name);
-    if(res == FR_OK)
-    {
-        dbg("ok\n");
-    }
-    else
-    {
-        dbg("KO %d\n", res);
-    }
-}
-
-void teststat(const char* name)
-{
-    dbg("K:%s", name);
-    FILINFO filinfo;
-    FRESULT res = f_stat (name, &filinfo);
-    dbg("stat: %d ", res);
-    dbg("size: %ld ", filinfo.fsize);
-    dbg("attr: %02x\n", filinfo.fattrib);
-}
-
 TShutdownMode Run(void)
 {
     initializeCore();
     mLogger.Write (KN, LogNotice, "TIC80 Port");
 
-    //teststat("circle.txt");
-    //teststat("no.txt");
-    //teststat("carts");
-
-    testmkdir("tic80");
-    //CTimer::SimpleMsDelay(5000);
-
-    // ok testmkdir("primo");
-    // ko testmkdir("secondo/bis");
-    // ok testmkdir(".terzo");
-    // ko testmkdir(".quarto/");
-    // ko testmkdir("quinto/");
-    // ok testmkdir("sesto bis");
+    f_mkdir("tic80");
 
     dbg("Calling studio init instance..\n");
 
     if (pKeyboard)
     {
         dbg("With keyboard\n");
-        malloc(77);
         char  arg0[] = "xxkernel";
         char* argv[] = { &arg0[0], NULL };
         int argc = 1;
-        malloc(88);
         platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty);
-        malloc(99);
-
     }
     else
     {
@@ -422,7 +362,7 @@ TShutdownMode Run(void)
     initGamepads(mDeviceNameService, gamePadStatusHandler);
 
     if (pMouse) {
-        pMouse->RegisterEventHandler (mouseEventHandler);
+        pMouse->RegisterStatusHandler (mouseStatusHandler);
     }
 
     const tic80* product = &studio_mem(platform.studio)->product;

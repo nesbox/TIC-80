@@ -413,8 +413,16 @@ char getKeyboardText(Studio* studio)
         tic_mem* tic = studio->tic;
         tic80_input* input = &tic->ram->input;
 
+#ifdef KEYBOARD_LAYOUT_ES
+        // US KEYS:                     " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./< ";
+        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789'!`+cn'o,.-< ";
+        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ=!\" $%&/()??^*CN\"a;:_> ";
+        static const char Alt[] =       "                            |@#        []} {\\     ";
+#else
         static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
         static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+        static const char Alt[] =       "                                                  ";
+#endif
 
         enum{Count = sizeof Symbols};
 
@@ -426,12 +434,13 @@ char getKeyboardText(Studio* studio)
             {
                 bool caps = tic_api_key(tic, tic_key_capslock);
                 bool shift = tic_api_key(tic, tic_key_shift);
+                bool alt = tic_api_key(tic, tic_key_alt);
 
-                return caps
-                    ? key >= tic_key_a && key <= tic_key_z
-                        ? shift ? Symbols[key] : Shift[key]
-                        : shift ? Shift[key] : Symbols[key]
-                    : shift ? Shift[key] : Symbols[key];
+                if (caps && key >= tic_key_a && key <= tic_key_z) shift = !shift;
+
+                return shift ? Shift[key]
+                    : alt ? Alt[key]
+                    : Symbols[key];
             }
         }
 
@@ -1827,6 +1836,7 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
         else if(studio->mode != TIC_RUN_MODE && studio->config->data.keyboardLayout != tic_layout_azerty)
         {
+#ifndef KEYBOARD_LAYOUT_ES
             if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_1))
             {
@@ -1840,6 +1850,7 @@ static void processShortcuts(Studio* studio)
             else if(keyWasPressedOnce(studio, tic_key_3)) setStudioMode(studio, TIC_MAP_MODE);
             else if(keyWasPressedOnce(studio, tic_key_4)) setStudioMode(studio, TIC_SFX_MODE);
             else if(keyWasPressedOnce(studio, tic_key_5)) setStudioMode(studio, TIC_MUSIC_MODE);
+#endif
         }
 #endif
     }
@@ -2250,6 +2261,7 @@ static void processMouseStates(Studio* studio)
 #if defined(BUILD_EDITORS)
 static void doCodeExport(Studio* studio)
 {
+#ifndef BAREMETALPI
     char pos[sizeof studio->bytebattle.last.postag];
     {
         s32 x = 0, y = 0;
@@ -2277,10 +2289,12 @@ static void doCodeExport(Studio* studio)
             fclose(file);
         }
     }
+#endif
 }
 
 static void doCodeImport(Studio* studio)
 {
+#ifndef BAREMETALPI
     FILE* file = fopen(studio->bytebattle.imp, "rb");
 
     if(file)
@@ -2326,6 +2340,7 @@ static void doCodeImport(Studio* studio)
 
         fclose(file);
     }
+#endif
 }
 #endif
 

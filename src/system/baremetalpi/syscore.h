@@ -161,9 +161,14 @@ boolean initializeCore()
         // Initialize newlib stdio with a reference to Circle's file system and console
 	CGlueStdioInit (mConsole);
 
-	if (f_mount (&mFileSystem, "SD:", 1) != FR_OK)
-	{
+	if (f_mount (&mFileSystem, "SD:", 1) != FR_OK) {
 		Die("Cannot mount drive");
+	}
+
+	if (f_mount (&mFileSystem, "USB:", 1) != FR_OK) {
+		if (f_mount (&mFileSystem, "SD:", 1) != FR_OK) {
+			Die("Cannot mount drive");
+		}
 	}
 
 	pKeyboard = (CUSBKeyboardDevice *) mDeviceNameService.GetDevice ("ukbd1", FALSE);
@@ -178,14 +183,6 @@ boolean initializeCore()
 	if (pMouse == 0)
 	{
 		dbg("Mouse not found");
-	}
-	else
-	{
-		if (!pMouse->Setup (TIC80_WIDTH*MOUSE_SENS, TIC80_HEIGHT*MOUSE_SENS))
-		{
-			Die("Cannot setup mouse");
-		}
-
 	}
 
 
