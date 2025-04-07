@@ -1,0 +1,13 @@
+#include <appinfo.rh>
+#include <tic80.rsg>
+
+UID2 KUidAppRegistrationResourceFile
+UID3 0xE1C57D10
+
+RESOURCE APP_REGISTRATION_INFO
+  {
+  app_file="tic80";
+
+  localisable_resource_file = "\\resource\\apps\\tic80";
+  localisable_resource_id   = R_TIC80_LOCALISABLE_APP_INFO; 
+  }

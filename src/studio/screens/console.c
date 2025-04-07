@@ -40,7 +40,7 @@
 #include <ctype.h>
 #include <string.h>
 
-#if !defined(__TIC_MACOSX__)
+#if !defined(__TIC_MACOSX__) && !defined(__SYMBIAN32__)
 #include <malloc.h>
 #endif
 

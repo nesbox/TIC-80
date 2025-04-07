@@ -1,0 +1,5 @@
+rls_string STRING_r_appl_option_item "<App specific menu item>"
+
+rls_string STRING_r_app_caption_string "TIC-80"
+
+rls_string STRING_r_app_short_caption_string "TIC-80"
