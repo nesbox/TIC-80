@@ -54,6 +54,7 @@
 #include <mmf/common/mmfutilities.h>
 #include <unistd.h>
 
+extern "C" int isblank(int ch) { return ch == '\t' || ch == ' '; }
 namespace {
 
 const TUid KClipboardUidTypePlainText = { 268450333 };
