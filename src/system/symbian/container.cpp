@@ -720,11 +720,12 @@ bool CTicContainer::HandleWsEvent(TWsEvent &aEvent) {
   case EEventKeyDown:
     scanCode = aEvent.Key()->iScanCode;
     switch (aEvent.Key()->iCode) {
-    case EKeyIncVolume:
+    case EStdKeyIncVolume:
+      // TODO: Volume control broken?
       iVolume += iVolumeStep;
       iOutputStatus = ESetVolume;
       return true;
-    case EKeyDecVolume:
+    case EStdKeyDecVolume:
       iVolume -= iVolumeStep;
       iOutputStatus = ESetVolume;
       return true;
