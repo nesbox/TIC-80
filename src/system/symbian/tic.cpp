@@ -24,7 +24,6 @@
 #include "tic.h"
 #include "tic80.h"
 #include <coedef.h>
-#include <cstdint>
 #include <ctype.h>
 #include <escapeutils.h>
 #include <txtetext.h>

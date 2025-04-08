@@ -61,7 +61,7 @@ set(CMAKE_FIND_ROOT_PATH ${SYMBIAN_EPOCROOT}/lib/gcc/arm-none-symbianelf/${ARM_C
 set(BASE_INC "")
 list(APPEND BASE_INC
   ${SYMBIAN_EPOCROOT}/include
-  ${SYMBIAN_EPOCROOT}/include/stdapis/stlport
+  ${SYMBIAN_EPOCROOT}/include/stdapis/stlportv5
   ${SYMBIAN_EPOCROOT}/include/stdapis
   ${SYMBIAN_EPOCROOT}/include/mw
   ${SYMBIAN_EPOCROOT}/include/platform
@@ -79,15 +79,14 @@ include_directories(BEFORE SYSTEM
 link_directories(BEFORE
   ${SYMBIAN_USER_LIB_DIR}
   ${SYMBIAN_LIB_DIR}
-  ${SYMBIAN_EPOCROOT}/release/armv5/lib
 )
 
 link_libraries(
   :eexe.lib
-  -Wl,--start-group
   :usrt2_2.lib
   :libcrt0.lib
-  -Wl,--end-group
+  :stdnew.dso
+  :libstdcppv5.dso
   :libc.dso
   :libm.dso
   :libpthread.dso
@@ -97,6 +96,7 @@ link_libraries(
   :drtaeabi.dso
   :scppnwdl.dso
   :drtrvct2_2.dso
+  :librt.dso
   :libdl.dso
   :bafl.dso
   :estor.dso
@@ -106,6 +106,8 @@ link_libraries(
   :cone.dso
   :hal.dso
   :libGLES_CM.dso
+  :libGLESv2.dso
+  :libegl.dso
   :ws32.dso
   :gdi.dso
   :mediaclientaudiostream.dso
@@ -131,7 +133,6 @@ list(APPEND SYMBIAN_DEFINITIONS_LIST
   -D__MARM_ARMV5__
   -D__EXE__
   -D__SUPPORT_CPP_EXCEPTIONS__
-  -D__MARM_ARMV5__
 )
 set(SYMBIAN_PRODUCT	"symbian_os" CACHE STRING "Symbian Product Name")
 set(SYMBIAN_PRODUCT_INCLUDE ${SYMBIAN_EPOCROOT}/include/variant/${SYMBIAN_PRODUCT}.hrh)
@@ -143,9 +144,9 @@ add_definitions(
 )
 
 set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -Wno-error=narrowing -msoft-float -mapcs -mthumb-interwork -march=armv5t -fno-unit-at-a-time -fno-common -include ${SYMBIAN_GCCE_SUPPORT_HEADER}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive -Wno-error=narrowing -msoft-float -mapcs -mthumb-interwork -march=armv5t -fno-unit-at-a-time -fno-threadsafe-statics -include ${SYMBIAN_GCCE_SUPPORT_HEADER}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14 -fpermissive -Wno-error=narrowing -msoft-float -mapcs -mthumb-interwork -march=armv5t -fno-unit-at-a-time -fno-threadsafe-statics -include ${SYMBIAN_GCCE_SUPPORT_HEADER}")
 set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_CXX_COMPILER> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> -Wl,-Map <TARGET>.exe.map <LINK_LIBRARIES>")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--default-symver -Wl,--fatal-warnings -Wl,--no-relax -Wl,--no-undefined -shared -Ttext 0x8000 -Tdata 0x400000 --entry _E32Startup -u _E32Startup -nostdlib -shared")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--default-symver -Wl,--fatal-warnings -Wl,--no-relax -Wl,--no-undefined -shared -Ttext 0x8000 -Tdata 0x400000 --entry _E32Startup -u _E32Startup -nostdlib")
 
 function(elf2e32 ONAME INAME UID3)
   add_custom_target(${ONAME}-e32
