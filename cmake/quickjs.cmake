@@ -39,6 +39,7 @@ if(BUILD_WITH_JS)
         ${QUICKJS_DIR}/libregexp.c
         ${QUICKJS_DIR}/libunicode.c
         ${QUICKJS_DIR}/cutils.c
+        ${QUICKJS_DIR}/dtoa.c
     )
 
     add_library(quickjs STATIC ${QUICKJS_SRC})
