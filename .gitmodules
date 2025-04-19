@@ -62,10 +62,6 @@
 	path = vendor/janet
 	url = https://github.com/janet-lang/janet.git
 	shallow = true
-[submodule "vendor/quickjs"]
-	path = vendor/quickjs
-	url = https://github.com/nesbox/quickjs.git
-	shallow = true
 [submodule "vendor/naett"]
 	path = vendor/naett
 	url = https://github.com/erkkah/naett.git
@@ -89,4 +85,8 @@
 [submodule "vendor/pocketpy"]
 	path = vendor/pocketpy
 	url = https://github.com/PrimedErwin/pocketpy.git
+	shallow = true
+[submodule "vendor/quickjs"]
+	path = vendor/quickjs
+	url = https://github.com/bellard/quickjs.git
 	shallow = true
