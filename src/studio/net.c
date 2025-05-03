@@ -29,7 +29,7 @@
 
 #define URL_SIZE 2048
 
-#if defined(__EMSCRIPTEN__)
+#if defined(__TIC_EMSCRIPTEN__)
 
 #include <emscripten/fetch.h>
 
@@ -397,22 +397,23 @@ struct tic_net
     s32 count;
 };
 
-#if defined(__ANDROID__)
-#include <jni.h>
-JNIEnv *Android_JNI_GetEnv();
-#endif
+// !TODO: fix it for Android
+// #if defined(__ANDROID__)
+// #include <jni.h>
+// JNIEnv *Android_JNI_GetEnv();
+// #endif
 
 tic_net* tic_net_create(const char* host)
 {
-#if defined(__ANDROID__)
-    JNIEnv *env = Android_JNI_GetEnv();
-    JavaVM *vm = NULL;
-    (*env)->GetJavaVM(env, &vm);
+// #if defined(__ANDROID__)
+//     JNIEnv *env = Android_JNI_GetEnv();
+//     JavaVM *vm = NULL;
+//     (*env)->GetJavaVM(env, &vm);
 
-    naettInit(vm);
-#else
+//     naettInit(vm);
+// #else
     naettInit(NULL);
-#endif
+// #endif
 
     tic_net* net = NEW(tic_net);
     memset(net, 0, sizeof(tic_net));

@@ -53,6 +53,11 @@
 #   endif
 #endif
 
+#if defined(__EMSCRIPTEN__)
+# 	undef __TIC_EMSCRIPTEN__
+#   define __TIC_EMSCRIPTEN__ 1
+#endif
+
 #if defined(TIC_RUNTIME_STATIC)
 #   define TIC_EXPORT
 #else

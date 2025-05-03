@@ -82,6 +82,8 @@ if(BUILD_WITH_LUA OR BUILD_WITH_MOON OR BUILD_WITH_FENNEL)
             ${CMAKE_SOURCE_DIR}/src
         )
 
+    target_link_libraries(luaapi PUBLIC runtime)
+
 endif()
 
 if(BUILD_WITH_LUA)
@@ -94,7 +96,7 @@ if(BUILD_WITH_LUA)
         target_compile_definitions(lua INTERFACE TIC_BUILD_WITH_LUA)
     endif()
 
-    target_link_libraries(lua PRIVATE runtime luaapi)
+    target_link_libraries(lua PRIVATE luaapi)
 
     target_include_directories(lua
         PUBLIC ${THIRDPARTY_DIR}/lua

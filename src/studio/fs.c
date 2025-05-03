@@ -34,7 +34,7 @@
 #endif
 
 #if defined(BAREMETALPI)
-#include "../../circle-stdlib/libs/circle/addon/fatfs/ff.h"
+#include "addon/fatfs/ff.h"
 #else
 #include <dirent.h>
 #include <sys/stat.h>
@@ -48,7 +48,7 @@
 #include <unistd.h>
 #endif
 
-#if defined(__EMSCRIPTEN__)
+#if defined(__TIC_EMSCRIPTEN__)
 #include <emscripten.h>
 #endif
 
@@ -71,12 +71,12 @@ struct tic_fs
     tic_net* net;
 };
 
-#if defined(__EMSCRIPTEN__)
 void syncfs()
 {
+#if defined(__TIC_EMSCRIPTEN__)
     EM_ASM({Module.syncFSRequests++;});
-}
 #endif
+}
 
 const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 {
@@ -293,11 +293,13 @@ static void onDirResponse(const net_get_data* netData)
             for(s32 i = 0, size = json_array_size(files); i < size; i++)
             {
                 s32 item = json_array_item(files, i);
+                s32 id;
 
                 if(json_string("name", item, name, sizeof name)
                     && json_string("hash", item, hash, sizeof hash)
-                    && json_string("filename", item, filename, sizeof filename))
-                    netDirData->item(filename, name, hash, json_int("id", item), netDirData->data, false);
+                    && json_string("filename", item, filename, sizeof filename)
+                    && json_s32("id", item, &id))
+                    netDirData->item(filename, name, hash, id, netDirData->data, false);
             }
         }
     }
@@ -448,9 +450,7 @@ bool tic_fs_deldir(tic_fs* fs, const char* name)
     bool result = rmdir(tic_fs_path(fs, name));
 #endif
 
-#if defined(__EMSCRIPTEN__)
     syncfs();
-#endif
 
     return result;
 #endif
@@ -468,9 +468,7 @@ bool tic_fs_delfile(tic_fs* fs, const char* name)
 #endif
     freeString(pathString);
 
-#if defined(__EMSCRIPTEN__)
     syncfs();
-#endif
 
     return result;
 }
@@ -631,9 +629,7 @@ bool fs_write(const char* name, const void* buffer, s32 size)
         fwrite(buffer, 1, size, file);
         fclose(file);
 
-#if defined(__EMSCRIPTEN__)
         syncfs();
-#endif
 
         return true;
     }
@@ -930,9 +926,8 @@ bool tic_fs_makedir(tic_fs* fs, const char* name)
     int result = tic_mkdir(pathString);
     freeString(pathString);
 
-#if defined(__EMSCRIPTEN__)
     syncfs();
-#endif
+
     return result;
 #endif
 }

@@ -546,8 +546,8 @@ static void initTouchGamepad()
 
 static void initGPU()
 {
-    bool vsync = studio_config(platform.studio)->options.vsync;
-    bool soft = studio_config(platform.studio)->soft;
+    bool vsync = true;
+    bool soft = false;
 
 #if defined(CRT_SHADER_SUPPORT)
     if(!soft)
@@ -1248,7 +1248,7 @@ static void pollEvents()
     processGamepad();
 }
 
-bool tic_sys_keyboard_text(char* text)
+bool tic_sys_keyboard_text(char* text, void* userdata)
 {
 #if defined(TOUCH_INPUT_SUPPORT)
     if(platform.keyboard.touch.useText)
@@ -1400,7 +1400,7 @@ char* tic_sys_clipboard_get()
     return SDL_GetClipboardText();
 }
 
-void tic_sys_clipboard_free(const char* text)
+void tic_sys_clipboard_free(char* text)
 {
     SDL_free((void*)text);
 }
@@ -1415,7 +1415,7 @@ u64 tic_sys_freq_get()
     return SDL_GetPerformanceFrequency();
 }
 
-bool tic_sys_fullscreen_get()
+bool tic_sys_fullscreen_get(void* userdata)
 {
 #if defined(CRT_SHADER_SUPPORT)
     if(!studio_config(platform.studio)->soft)
@@ -1430,7 +1430,7 @@ bool tic_sys_fullscreen_get()
     }
 }
 
-void tic_sys_fullscreen_set(bool value)
+void tic_sys_fullscreen_set(bool value, void *userdata)
 {
 #if defined(CRT_SHADER_SUPPORT)
     if(!studio_config(platform.studio)->soft)
@@ -1443,11 +1443,6 @@ void tic_sys_fullscreen_set(bool value)
         SDL_SetWindowFullscreen(platform.window,
             value ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     }
-}
-
-void tic_sys_message(const char* title, const char* message)
-{
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, title, message, NULL);
 }
 
 void tic_sys_title(const char* title)
@@ -1502,6 +1497,52 @@ void tic_sys_preseed()
 #else
     srand((u32)time(NULL));
     rand();
+#endif
+}
+
+void tic_sys_addfile(void(*callback)(void* userdata, const char* name, const u8* buffer, s32 size), void* userdata)
+{
+#if defined(__TIC_EMSCRIPTEN__)
+
+    EM_ASM_
+    ({
+        Module.showAddPopup(function(filename, rom)
+        {
+            if(filename == null || rom == null)
+            {
+                dynCall('viiii', $0, [$1, 0, 0, 0]);
+            }
+            else
+            {
+                var filePtr = _malloc(filename.length + 1);
+                stringToUTF8(filename, filePtr, filename.length + 1);
+
+                var dataPtr = _malloc(rom.length);
+                writeArrayToMemory(rom, dataPtr);
+
+                dynCall('viiii', $0, [$1, filePtr, dataPtr, rom.length]);
+
+                _free(filePtr);
+                _free(dataPtr);
+            }
+        });
+    }, callback, platform.studio);
+
+#else
+    callback(platform.studio, NULL, 0, 0);
+#endif
+}
+
+void tic_sys_getfile(const char* name, const void* buffer, s32 size)
+{
+#if defined(__TIC_EMSCRIPTEN__)
+    EM_ASM_
+    ({
+        var name = UTF8ToString($0);
+        var blob = new Blob([HEAPU8.subarray($1, $1 + $2)], {type: "application/octet-stream"});
+
+        Module.saveAs(blob, name);
+    }, name, buffer, size);
 #endif
 }
 
@@ -1917,7 +1958,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
         SDL_Log("Unable to initialize SDL Game Controller: %i, %s\n", result, SDL_GetError());
     }
 
-    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale(), detect_keyboard_layout());
+    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale(), detect_keyboard_layout(), NULL);
 
     SCOPE(studio_delete(platform.studio))
     {
@@ -1952,7 +1993,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
                 initGPU();
 
                 if(studio_config(platform.studio)->options.fullscreen)
-                    tic_sys_fullscreen_set(true);
+                    tic_sys_fullscreen_set(true, platform.studio);
             }
 
             SDL_PauseAudioDevice(platform.audio.device, 0);

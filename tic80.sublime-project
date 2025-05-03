@@ -3,42 +3,38 @@
     [
         {
             "name": "build",
-            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel .. && ninja",
+            "shell_cmd": "cmake -DCMAKE_BUILD_TYPE=MinSizeRel .. && ninja",
+            "working_dir": "${project_path}/build",
             "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
-            "working_dir": "${file_path}",
             "variants":
             [
                 {
-                    "name": "fresh",
-                    "shell_cmd": "cd ${project_path}/build && cmake -G Ninja .. --fresh"
+                    "name": "fresh desktop",
+                    "shell_cmd": "cmake -G Ninja .. --fresh"
                 },
                 {
-                    "name": "BUILD_STATIC=ON",
-                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_STATIC=ON .."
+                    "name": "fresh webapp",
+                    "shell_cmd": "emcmake cmake -G Ninja .. --fresh"
                 },
                 {
-                    "name": "BUILD_STATIC=OFF",
-                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_STATIC=OFF .."
+                    "name": "fresh pro",
+                    "shell_cmd": "cmake cmake -G Ninja -DBUILD_PRO=ON .. --fresh"
                 },
                 {
-                    "name": "BUILD_PRO=ON",
-                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_PRO=ON .."
-                },
-                {
-                    "name": "BUILD_PRO=OFF",
-                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_PRO=OFF .."
+                    "name" : "fresh android",
+                    "shell_cmd": "cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=ndk-bundle/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 .. --fresh",
                 },
                 {
                     "name": "make",
-                    "shell_cmd": "cd ${project_path}/build && ninja"
+                    "shell_cmd": "ninja"
                 },
                 {
                     "name": "run",
-                    "shell_cmd": "cd ${project_path}/build && ninja tic80 && ${project_path}/build/bin/tic80 --skip"
+                    "shell_cmd": "ninja tic80 && ${project_path}/build/bin/tic80 --skip"
                 },
                 {
                     "name": "clean",
-                    "shell_cmd": "cd ${project_path}/build && ninja -t clean"
+                    "shell_cmd": "ninja -t clean"
                 },
             ]
         }

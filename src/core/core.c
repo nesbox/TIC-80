@@ -357,7 +357,9 @@ void tic_api_reset(tic_mem* memory)
     {
         resetVbank(memory);
     }
-
+    
+    memory->ram->vram.vars.cursor.sprite = tic_cursor_arrow;
+    memory->ram->vram.vars.cursor.system = true;
     memory->ram->input.mouse.relative = 0;
 
     soundClear(memory);

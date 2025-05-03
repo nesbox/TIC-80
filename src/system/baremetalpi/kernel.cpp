@@ -96,9 +96,9 @@ char* tic_sys_clipboard_get()
     return platform.clipboard ? strdup(platform.clipboard) : NULL;
 }
 
-void tic_sys_clipboard_free(const char* text)
+void tic_sys_clipboard_free(char* text)
 {
-    free((void*)text);
+    free(text);
 }
 
 u64 tic_sys_counter_get()
@@ -111,21 +111,21 @@ u64 tic_sys_freq_get()
     return HZ;
 }
 
-void tic_sys_fullscreen_set(bool value)
+void tic_sys_fullscreen_set(bool value, void *userdata)
 {
 }
 
-bool tic_sys_fullscreen_get()
+bool tic_sys_fullscreen_get(void *userdata)
 {
-}
-
-void tic_sys_message(const char* title, const char* message)
-{
+    return false;
 }
 
 void tic_sys_title(const char* title)
 {
 }
+
+void tic_sys_addfile(void(*callback)(void* userdata, const char* name, const u8* buffer, s32 size), void* userdata) {}
+void tic_sys_getfile(const char* name, const void* buffer, s32 size) {}
 
 void tic_sys_open_path(const char* path) {}
 void tic_sys_open_url(const char* url) {}
@@ -162,7 +162,7 @@ void tic_sys_default_mapping(tic_mapping* mapping)
     };
 }
 
-bool tic_sys_keyboard_text(char* text)
+bool tic_sys_keyboard_text(char* text, void *userdata)
 {
     return false;
 }
@@ -334,7 +334,7 @@ TShutdownMode Run(void)
         char  arg0[] = "xxkernel";
         char* argv[] = { &arg0[0], NULL };
         int argc = 1;
-        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty);
+        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty, NULL);
     }
     else
     {
@@ -344,7 +344,7 @@ TShutdownMode Run(void)
         char* argv[] = { &arg0[0], &arg1[0], NULL };
         int argc = 2;
         dbg("Without keyboard\n");
-        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty);
+        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty, NULL);
     }
     dbg("studio_create OK\n");
 

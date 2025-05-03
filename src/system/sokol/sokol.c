@@ -20,34 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#define SOKOL_IMPL
 
-#include "studio/studio.h"
-
-typedef struct Start Start;
-
-typedef struct stage {
-    void(*fn)(Start*);
-    u8 ticks;
-} Stage;
-
-struct Start
-{
-    Studio* studio;
-    tic_mem* tic;
-
-    bool initialized;
-    Stage stages[5];
-
-    u32 stage;
-    s32 ticks;
-    bool play;
-
-    char text[STUDIO_TEXT_BUFFER_SIZE];
-    u8 color[STUDIO_TEXT_BUFFER_SIZE];
-
-    void (*tick)(Start*);
-};
-
-void initStart(Start* start, Studio* studio);
-void freeStart(Start* start);
+#include "sokol.h"

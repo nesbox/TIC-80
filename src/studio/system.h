@@ -54,17 +54,18 @@ extern "C" {
 void    tic_sys_clipboard_set(const char* text);
 bool    tic_sys_clipboard_has();
 char*   tic_sys_clipboard_get();
-void    tic_sys_clipboard_free(const char* text);
+void    tic_sys_clipboard_free(char* text);
 u64     tic_sys_counter_get();
 u64     tic_sys_freq_get();
-bool    tic_sys_fullscreen_get();
-void    tic_sys_fullscreen_set(bool value);
-void    tic_sys_message(const char* title, const char* message);
+bool    tic_sys_fullscreen_get(void *userdata);
+void    tic_sys_fullscreen_set(bool value, void *userdata);
 void    tic_sys_title(const char* title);
+void    tic_sys_addfile(void(*callback)(void* userdata, const char* name, const u8* buffer, s32 size), void* userdata);
+void    tic_sys_getfile(const char* name, const void* buffer, s32 size);
 void    tic_sys_open_path(const char* path);
 void    tic_sys_open_url(const char* path);
 void    tic_sys_preseed();
-bool    tic_sys_keyboard_text(char* text);
+bool    tic_sys_keyboard_text(char* text, void* userdata);
 void    tic_sys_update_config();
 void    tic_sys_default_mapping(tic_mapping* mapping);
 
@@ -123,17 +124,12 @@ typedef struct
 
     bool checkNewVersion;
     bool cli;
-    bool soft;
     bool trim;
 
     struct StudioOptions
     {
-#if defined(CRT_SHADER_SUPPORT)
         bool crt;
-#endif
-
         bool fullscreen;
-        bool vsync;
         bool integerScale;
         s32 volume;
         bool autosave;
@@ -158,8 +154,10 @@ typedef struct
 
 typedef struct Studio Studio;
 
+// !TODO: check these functions
 void setJustSwitchedToCodeMode(Studio* studio, bool value);
 bool hasJustSwitchedToCodeMode(Studio* studio);
+
 const tic_mem* studio_mem(Studio* studio);
 void studio_tick(Studio* studio, tic80_input input);
 void studio_sound(Studio* studio);
@@ -170,7 +168,7 @@ void studio_exit(Studio* studio);
 void studio_delete(Studio* studio);
 const StudioConfig* studio_config(Studio* studio);
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, tic_layout keyboardLayout);
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, tic_layout keyboardLayout, void *userdata);
 
 #ifdef __cplusplus
 }

@@ -90,13 +90,14 @@ bool studio_mainmenu_keyboard(StudioMainMenu* main)
 
 static s32 optionFullscreenGet(void* data)
 {
-    return tic_sys_fullscreen_get() ? 1 : 0;
+    StudioMainMenu* main = data;
+    return tic_sys_fullscreen_get(studioUserdata(main->studio)) ? 1 : 0;
 }
 
 static void optionFullscreenSet(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
-    tic_sys_fullscreen_set(main->options->fullscreen = (pos == 1));
+    tic_sys_fullscreen_set(main->options->fullscreen = (pos == 1), studioUserdata(main->studio));
 }
 
 static const char OffValue[] =  "OFF";
@@ -128,7 +129,6 @@ static MenuOption IntegerScaleOption =
     optionIntegerScaleSet,
 };
 
-#if defined(CRT_SHADER_SUPPORT)
 static s32 optionCrtMonitorGet(void* data)
 {
     StudioMainMenu* main = data;
@@ -146,27 +146,6 @@ static MenuOption CrtMonitorOption =
     OPTION_VALUES({OffValue, OnValue}),
     optionCrtMonitorGet,
     optionCrtMonitorSet,
-};
-
-#endif
-
-static s32 optionVSyncGet(void* data)
-{
-    StudioMainMenu* main = data;
-    return main->options->vsync ? 1 : 0;
-}
-
-static void optionVSyncSet(void* data, s32 pos)
-{
-    StudioMainMenu* main = data;
-    main->options->vsync = pos == 1;
-}
-
-static MenuOption VSyncOption =
-{
-    OPTION_VALUES({OffValue, OnValue}),
-    optionVSyncGet,
-    optionVSyncSet,
 };
 
 static s32 optionVolumeGet(void* data)
@@ -300,10 +279,7 @@ static void showGamepadMenu(void* data, s32 pos)
 
 enum
 {
-#if defined(CRT_SHADER_SUPPORT)
     OptionsMenu_CrtMonitorOption,
-#endif
-    OptionsMenu_VSyncOption,
     OptionsMenu_FullscreenOption,
     OptionsMenu_IntegerScaleOption,
     OptionsMenu_VolumeOption,
@@ -317,10 +293,7 @@ enum
 
 static const MenuItem OptionMenu[] =
 {
-#if defined(CRT_SHADER_SUPPORT)
     {"CRT MONITOR",     NULL,   &CrtMonitorOption},
-#endif
-    {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN",      NULL,   &FullscreenOption},
     {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
     {"VOLUME",          NULL,   &VolumeOption},

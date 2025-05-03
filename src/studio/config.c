@@ -25,18 +25,6 @@
 #include "cart.h"
 #include "ext/json.h"
 
-#if defined(__EMSCRIPTEN__)
-#define DEFAULT_VSYNC 0
-#else
-#define DEFAULT_VSYNC 1
-#endif
-
-#if defined(__TIC_ANDROID__)
-#define INTEGER_SCALE_DEFAULT false
-#else
-#define INTEGER_SCALE_DEFAULT true
-#endif
-
 #define JSON(...) #__VA_ARGS__
 
 static void readConfig(Config* config)
@@ -45,30 +33,28 @@ static void readConfig(Config* config)
 
     if(json_parse(json, strlen(json)))
     {
-        config->data.checkNewVersion = json_bool("CHECK_NEW_VERSION", 0);
-        config->data.uiScale = json_int("UI_SCALE", 0);
-        config->data.soft = json_bool("SOFTWARE_RENDERING", 0);
-        config->data.trim = json_bool("TRIM_ON_SAVE", 0);
+        json_bool("CHECK_NEW_VERSION", 0, &config->data.checkNewVersion);
+        json_s32("UI_SCALE", 0, &config->data.uiScale);
+        json_bool("TRIM_ON_SAVE", 0, &config->data.trim);
 
         if(config->data.uiScale <= 0)
             config->data.uiScale = 1;
 
-        config->data.theme.gamepad.touch.alpha = json_int("GAMEPAD_TOUCH_ALPHA", 0);
+        json_u8("GAMEPAD_TOUCH_ALPHA", 0, &config->data.theme.gamepad.touch.alpha);
 
         s32 theme = json_object("CODE_THEME", 0);
 
-#define CODE_COLOR_DEF(VAR) config->data.theme.code.VAR = json_int(#VAR, theme);
+#define CODE_COLOR_DEF(VAR) json_u8(#VAR, theme, &config->data.theme.code.VAR);
         CODE_COLORS_LIST(CODE_COLOR_DEF)
 #undef  CODE_COLOR_DEF
 
-        config->data.theme.code.select = json_int("SELECT", theme);
-        config->data.theme.code.cursor = json_int("CURSOR", theme);
-
-        config->data.theme.code.shadow = json_bool("SHADOW", theme);
-        config->data.theme.code.altFont = json_bool("ALT_FONT", theme);
-        config->data.theme.code.altCaret = json_bool("ALT_CARET", theme);
-        config->data.theme.code.matchDelimiters = json_bool("MATCH_DELIMITERS", theme);
-        config->data.theme.code.autoDelimiters = json_bool("AUTO_DELIMITERS", theme);
+        json_u8("SELECT", theme, &config->data.theme.code.select);
+        json_u8("CURSOR", theme, &config->data.theme.code.cursor);
+        json_bool("SHADOW", theme, &config->data.theme.code.shadow);
+        json_bool("ALT_FONT", theme, &config->data.theme.code.altFont);
+        json_bool("ALT_CARET", theme, &config->data.theme.code.altCaret);
+        json_bool("MATCH_DELIMITERS", theme, &config->data.theme.code.matchDelimiters);
+        json_bool("AUTO_DELIMITERS", theme, &config->data.theme.code.autoDelimiters);
 
     }
 }
@@ -89,13 +75,10 @@ static void setDefault(Config* config)
         .uiScale = 4,
         .options =
         {
-#if defined(CRT_SHADER_SUPPORT)
-            .crt            = false,
-#endif
+            .crt            = true,
             .volume         = MAX_VOLUME,
-            .vsync          = DEFAULT_VSYNC,
             .fullscreen     = false,
-            .integerScale   = INTEGER_SCALE_DEFAULT,
+            .integerScale   = false,
             .autosave       = false,
 #if defined(BUILD_EDITORS)
             .keybindMode    = KEYBIND_STANDARD,
@@ -151,7 +134,7 @@ static void save(Config* config)
     studioConfigChanged(config->studio);
 }
 
-static const char OptionsJsonPath[] = TIC_LOCAL "options.json";
+static const char OptionsJsonPath[] = TIC_LOCAL_VERSION "options.json";
 
 typedef struct
 {
@@ -172,23 +155,20 @@ static void loadOptions(Config* config)
         {
             struct StudioOptions* options = &config->data.options;
 
-#if defined(CRT_SHADER_SUPPORT)
-            options->crt = json_bool("crt", 0);
-#endif
-            options->fullscreen = json_bool("fullscreen", 0);
-            options->vsync = json_bool("vsync", 0);
-            options->integerScale = json_bool("integerScale", 0);
-            options->volume = json_int("volume", 0);
-            options->autosave = json_bool("autosave", 0);
+            json_bool("crt", 0, &options->crt);
+            json_bool("fullscreen", 0, &options->fullscreen);
+            json_bool("integerScale", 0, &options->integerScale);
+            json_s32("volume", 0, &options->volume);
+            json_bool("autosave", 0, &options->autosave);
 
             string mapping;
             json_string("mapping", 0, mapping.data, sizeof mapping);
             tic_tool_str2buf(mapping.data, strlen(mapping.data), &options->mapping, false);
 
 #if defined(BUILD_EDITORS)
-            options->keybindMode = json_int("keybindMode", 0);
-            options->tabMode = json_int("tabMode", 0);
-            options->tabSize = json_int("tabSize", 0);
+            json_s32("keybindMode", 0, (s32*)&options->keybindMode);
+            json_s32("tabMode", 0, (s32*)&options->tabMode);
+            json_s32("tabSize", 0, &options->tabSize);
 #endif
         }
     }
@@ -251,11 +231,8 @@ static void saveOptions(Config* config)
     string buf;
     sprintf(buf.data, JSON(
         {
-#if defined(CRT_SHADER_SUPPORT)
             "crt":%s,
-#endif
             "fullscreen":%s,
-            "vsync":%s,
             "integerScale":%s,
             "volume":%i,
             "autosave":%s,
@@ -268,11 +245,8 @@ static void saveOptions(Config* config)
 #endif
         })
         ,
-#if defined(CRT_SHADER_SUPPORT)
         bool2str(options->crt),
-#endif
         bool2str(options->fullscreen),
-        bool2str(options->vsync),
         bool2str(options->integerScale),
         options->volume,
         bool2str(options->autosave),

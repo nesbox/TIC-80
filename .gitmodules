@@ -18,6 +18,10 @@
 	path = vendor/lua
 	url = https://github.com/lua/lua.git
 	shallow = true
+[submodule "vendor/sokol"]
+	path = vendor/sokol
+	url = https://github.com/floooh/sokol.git
+	shallow = true
 [submodule "vendor/squirrel"]
 	path = vendor/squirrel
 	url = https://github.com/albertodemichelis/squirrel.git
@@ -29,10 +33,6 @@
 [submodule "vendor/zlib"]
 	path = vendor/zlib
 	url = https://github.com/madler/zlib.git
-	shallow = true
-[submodule "vendor/zip"]
-	path = vendor/zip
-	url = https://github.com/kuba--/zip.git
 	shallow = true
 [submodule "vendor/moonscript"]
 	path = vendor/moonscript
@@ -82,10 +82,6 @@
 	path = vendor/jsmn
 	url = https://github.com/zserge/jsmn.git
 	shallow = true
-[submodule "vendor/sdl-gpu"]
-	path = vendor/sdl-gpu
-	url = https://github.com/aliceisjustplaying/sdl-gpu.git
-	branch = master
 [submodule "vendor/pocketpy"]
 	path = vendor/pocketpy
 	url = https://github.com/PrimedErwin/pocketpy.git

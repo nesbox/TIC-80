@@ -46,6 +46,15 @@ build/windows/zlib/x64/
 build/windows/lua/Release/
 build/windows/lua/Debug/
 build/windows/lua/x64/
+build/openlogic-openjdk-8u382-b05-windows-64/
+build/build-tools/
+build/platform-tools/
+build/platforms/
+build/tools/
+build/*.zip
+build/ndk-bundle/
+build/licenses/
+build/.knownPackages
 lib/windows/res.aps
 lib/windows/tic.aps
 .DS_Store
@@ -149,7 +158,9 @@ build/vendor/sdl2/sdl2-config
 build/vendor/sdl2/sdl2.pc
 build/bin/bin2txt
 build/bin/sdl-renderer
+build/bin/sokol-renderer
 build/bin/tic80
+build/bin/tic80-sokol
 out/
 build/bin/
 build/vendor/curl/libcurl.pc

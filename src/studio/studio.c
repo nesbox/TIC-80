@@ -120,7 +120,7 @@ struct Studio
 {
     tic_mem* tic;
 
-    bool alive;
+    bool quit;
 
     EditorMode mode;
     EditorMode prevMode;
@@ -228,6 +228,7 @@ struct Studio
     s32 samplerate;
     tic_font systemFont;
 
+    void *userdata;
 };
 
 #if defined(BUILD_EDITORS)
@@ -408,7 +409,7 @@ void sfx_stop(tic_mem* tic, s32 channel)
 char getKeyboardText(Studio* studio)
 {
     char text;
-    if(!tic_sys_keyboard_text(&text))
+    if(!tic_sys_keyboard_text(&text, studio->userdata))
     {
         tic_mem* tic = studio->tic;
         tic80_input* input = &tic->ram->input;
@@ -560,10 +561,10 @@ void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color)
     tic_tool_poke4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE, color);
 }
 
-u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y)
+u8 getSpritePixel(const tic_tile* tiles, s32 x, s32 y)
 {
     // TODO: check spritesheet rect
-    return tic_tool_peek4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
+    return tic_tool_peek4(getSpritePtr((tic_tile*)tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
 }
 
 #if defined(BUILD_EDITORS)
@@ -682,6 +683,11 @@ struct Sprite* getSpriteEditor(Studio* studio)
     return studio->banks.sprite[studio->bank.index.sprites];
 }
 #endif
+
+struct Console* getConsole(Studio* studio)
+{
+    return studio->console;
+}
 
 const StudioConfig* studio_config(Studio* studio)
 {
@@ -1157,7 +1163,7 @@ static void showPopupMessage(Studio* studio, const char* text)
 
 static void exitConfirm(Studio* studio, bool yes, void* data)
 {
-    studio->alive = yes;
+    studio->quit = yes;
 }
 
 void studio_exit(Studio* studio)
@@ -1724,15 +1730,13 @@ static inline bool keyWasPressedOnce(Studio* studio, s32 key)
 
 static void gotoFullscreen(Studio* studio)
 {
-    tic_sys_fullscreen_set(studio->config->data.options.fullscreen = !tic_sys_fullscreen_get());
+    tic_sys_fullscreen_set(studio->config->data.options.fullscreen = !tic_sys_fullscreen_get(studioUserdata(studio)), studio->userdata);
 }
 
-#if defined(CRT_SHADER_SUPPORT)
 static void switchCrtMonitor(Studio* studio)
 {
     studio->config->data.options.crt = !studio->config->data.options.crt;
 }
-#endif
 
 #if defined(BUILD_EDITORS)
 static u32 getTime()
@@ -1826,9 +1830,7 @@ static void processShortcuts(Studio* studio)
     bool alt = tic_api_key(tic, tic_key_alt);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
-#if defined(CRT_SHADER_SUPPORT)
     if(keyWasPressedOnce(studio, tic_key_f6)) switchCrtMonitor(studio);
-#endif
 
     if(alt)
     {
@@ -2228,9 +2230,6 @@ static void processMouseStates(Studio* studio)
 
     tic_mem* tic = studio->tic;
 
-    tic->ram->vram.vars.cursor.sprite = tic_cursor_arrow;
-    tic->ram->vram.vars.cursor.system = true;
-
     for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
     {
         MouseState* state = &studio->mouse.state[i];
@@ -2275,14 +2274,14 @@ static void doCodeExport(Studio* studio)
         sprintf(pos, "-- pos: %i,%i\n", x, y);
     }
 
-    if(strcmp(studio->bytebattle.last.postag, pos) || strcmp(studio->bytebattle.last.code.data, studio->code->src))
+    if(strcmp(studio->bytebattle.last.postag, pos) || strcmp(studio->bytebattle.last.code, studio->code->src))
     {
         FILE* file = fopen(studio->bytebattle.exp, "wb");
 
         if(file)
         {
             strcpy(studio->bytebattle.last.postag, pos);
-            strcpy(studio->bytebattle.last.code.data, studio->code->src);
+            strcpy(studio->bytebattle.last.code, studio->code->src);
 
             fwrite(pos, 1, strlen(pos), file);
             fwrite(studio->code->src, 1, strlen(studio->code->src), file);
@@ -2376,7 +2375,7 @@ static void blitCursor(Studio* studio)
 
         for(s32 y = s.y, endy = MIN(y + TIC_SPRITESIZE, TIC80_FULLHEIGHT), i = 0; y != endy; ++y, dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
             for(s32 x = s.x, endx = x + TIC_SPRITESIZE; x != endx; ++x, ++i, ++dst)
-                if(x < TIC80_FULLWIDTH)
+                if(x >= 0 && x < TIC80_FULLWIDTH)
                 {
                     u8 c = tic_tool_peek4(tile->data, i);
                     if(c)
@@ -2586,8 +2585,15 @@ void studio_delete(Studio* studio)
 #if defined(BUILD_EDITORS)
     tic_net_close(studio->net);
     free(studio->video.buffer);
-    if(studio->bytebattle.exp) free(studio->bytebattle.exp);
-    if(studio->bytebattle.imp) free(studio->bytebattle.imp);
+
+    if(studio->bytebattle.last.code) 
+        free(studio->bytebattle.last.code);
+
+    if(studio->bytebattle.exp) 
+        free(studio->bytebattle.exp);
+
+    if(studio->bytebattle.imp) 
+        free(studio->bytebattle.imp);
 #endif
 
     free(studio->fs);
@@ -2681,7 +2687,7 @@ void studio_keymapchanged(Studio* studio, tic_layout keyboardLayout)
 
 bool studio_alive(Studio* studio)
 {
-    return studio->alive;
+    return !studio->quit;
 }
 
 #if defined(TIC_MODULE_EXT)
@@ -2710,7 +2716,12 @@ static bool onEnumModule(const char* name, const char* title, const char* hash, 
 }
 #endif
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale, tic_layout keyboardLayout)
+void *studioUserdata(Studio* studio)
+{
+    return studio->userdata;
+}
+
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale, tic_layout keyboardLayout, void *userdata)
 {
     setbuf(stdout, NULL);
 
@@ -2766,6 +2777,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         .bytebattle = {0},
 #endif
         .tic = tic_core_create(samplerate, format),
+        .userdata = userdata,
     };
 
     {
@@ -2835,7 +2847,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->config->data.uiScale = maxscale;
     }
 
-    initStart(studio->start, studio, args.cart);
+    initStart(studio->start, studio);
     initRunMode(studio);
 
 #if defined(BUILD_EDITORS)
@@ -2850,13 +2862,8 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     if(args.volume >= 0)
         studio->config->data.options.volume = args.volume & 0x0f;
 
-#if defined(CRT_SHADER_SUPPORT)
     studio->config->data.options.crt        |= args.crt;
-#endif
-
     studio->config->data.options.fullscreen |= args.fullscreen;
-    studio->config->data.options.vsync      |= args.vsync;
-    studio->config->data.soft               |= args.soft;
     studio->config->data.cli                |= args.cli;
 
 #if defined(BUILD_EDITORS)
@@ -2865,6 +2872,8 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     else if(args.codeimport)
         studio->bytebattle.imp = strdup(args.codeimport);
 
+    studio->bytebattle.last.code = malloc(TIC_CODE_SIZE);
+    memset(studio->bytebattle.last.code, 0, TIC_CODE_SIZE);
     studio->bytebattle.delay = args.delay;
     studio->bytebattle.limit.lower = args.lowerlimit;
 

@@ -64,26 +64,17 @@
 #define CART_EXT ".tic"
 #define PNG_EXT ".png"
 
-#if defined(CRT_SHADER_SUPPORT)
-#   define CRT_CMD_PARAM(macro)                                 \
-    macro(crt, bool, BOOLEAN, "", "enable CRT monitor effect")
-#else
-#   define CRT_CMD_PARAM(macro)
-#endif
-
 #define CMD_PARAMS_LIST(macro)                                                              \
     macro(skip,         int,    BOOLEAN,    "",         "skip startup animation")           \
     macro(volume,       s32,    INTEGER,    "=<int>",   "global volume value [0-15]")       \
     macro(cli,          int,    BOOLEAN,    "",         "console only output")              \
     macro(fullscreen,   int,    BOOLEAN,    "",         "enable fullscreen mode")           \
-    macro(vsync,        int,    BOOLEAN,    "",         "enable VSYNC")                     \
-    macro(soft,         int,    BOOLEAN,    "",         "use software rendering")           \
     macro(fs,           char*,  STRING,     "=<str>",   "path to the file system folder")   \
     macro(scale,        s32,    INTEGER,    "=<int>",   "main window scale")                \
     macro(cmd,          char*,  STRING,     "=<str>",   "run commands in the console")      \
     macro(keepcmd,      int,    BOOLEAN,    "",         "re-execute commands on every run") \
     macro(version,      int,    BOOLEAN,    "",         "print program version")            \
-    CRT_CMD_PARAM(macro)
+    macro(crt,          bool,   BOOLEAN,    "",         "enable CRT monitor effect")
 
 #define SHOW_TOOLTIP(STUDIO, FORMAT, ...)   \
 do{                                         \
@@ -221,6 +212,7 @@ void studioConfigChanged(Studio* studio);
 void setStudioMode(Studio* studio, EditorMode mode);
 EditorMode getStudioMode(Studio* studio);
 void exitStudio(Studio* studio);
+void *studioUserdata(Studio* studio);
 
 void setStudioViMode(Studio* studio, ViMode mode);
 ViMode getStudioViMode(Studio* studio);
@@ -252,7 +244,7 @@ void setStudioEvent(Studio* studio, StudioEvent event);
 void showTooltip(Studio* studio, const char* text);
 
 void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);
-u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y);
+u8 getSpritePixel(const tic_tile* tiles, s32 x, s32 y);
 
 typedef void(*ConfirmCallback)(Studio* studio, bool yes, void* data);
 void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback callback, void* data);
@@ -284,6 +276,7 @@ bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period);
 const StudioConfig* getConfig(Studio* studio);
 struct Start* getStartScreen(Studio* studio);
 struct Sprite* getSpriteEditor(Studio* studio);
+struct Console* getConsole(Studio* studio);
 
 const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* filename);
 const char* studioExportSfx(Studio* studio, s32 sfx, const char* filename);
@@ -307,7 +300,7 @@ typedef struct
 
     struct
     {
-        tic_code code;
+        char *code;
         char postag[32];
     } last;
 

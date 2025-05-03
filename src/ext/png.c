@@ -110,7 +110,7 @@ png_img png_read(png_buffer buf, png_buffer *cart)
             png_unknown_chunkp unknowns = NULL;
             int num_unknowns;
 
-            png_set_keep_unknown_chunks(png, PNG_HANDLE_CHUNK_ALWAYS, EXTRA_CHUNK, 1);
+            png_set_keep_unknown_chunks(png, PNG_HANDLE_CHUNK_ALWAYS, (u8*)EXTRA_CHUNK, 1);
             png_read_end(png, info);
             num_unknowns = png_get_unknown_chunks(png, info, &unknowns);
             for(s32 i = 0; i < num_unknowns; i++)
@@ -173,7 +173,7 @@ png_buffer png_write(png_img src, png_buffer cart)
         unknowns.size = cart.size;
         unknowns.location = PNG_AFTER_IDAT;
         png_set_unknown_chunks(png, info, &unknowns, 1);
-        png_set_keep_unknown_chunks(png, PNG_HANDLE_CHUNK_ALWAYS, EXTRA_CHUNK, 1);
+        png_set_keep_unknown_chunks(png, PNG_HANDLE_CHUNK_ALWAYS, (u8*)EXTRA_CHUNK, 1);
     }
 
     png_write_info(png, info);

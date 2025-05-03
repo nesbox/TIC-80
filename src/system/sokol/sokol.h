@@ -22,32 +22,17 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include <sokol_app.h>
+#include <sokol_gfx.h>
+#include <sokol_time.h>
+#include <sokol_audio.h>
+#include <sokol_glue.h>
+#include <util/sokol_color.h>
+#include <util/sokol_gl.h>
 
-typedef struct Start Start;
+#if !defined(NDEBUG)
+#include <sokol_log.h>
+#endif
 
-typedef struct stage {
-    void(*fn)(Start*);
-    u8 ticks;
-} Stage;
-
-struct Start
-{
-    Studio* studio;
-    tic_mem* tic;
-
-    bool initialized;
-    Stage stages[5];
-
-    u32 stage;
-    s32 ticks;
-    bool play;
-
-    char text[STUDIO_TEXT_BUFFER_SIZE];
-    u8 color[STUDIO_TEXT_BUFFER_SIZE];
-
-    void (*tick)(Start*);
-};
-
-void initStart(Start* start, Studio* studio);
-void freeStart(Start* start);
+#include "sokol_gamepad.h"
+#include "sokol_sys.h"

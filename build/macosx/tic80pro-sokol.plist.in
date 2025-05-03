@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleDisplayName</key>
+  <string>TIC-80 Pro Sokol</string>
+  <key>CFBundleExecutable</key>
+  <string>tic80pro-sokol</string>
+  <key>CFBundleIconFile</key>
+  <string>tic80.icns</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.nesbox.tic</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>TIC-80 Pro Sokol</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_REVISION@</string>
+  <key>CFBundleVersion</key>
+  <string>@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_REVISION@</string>
+  <key>NSHumanReadableCopyright</key>
+  <string>https://tic80.com © 2017-@VERSION_YEAR@</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+</dict>
+</plist>

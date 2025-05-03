@@ -48,7 +48,12 @@ target_include_directories(tic80studio
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-target_link_libraries(tic80studio PUBLIC tic80core PRIVATE zip wave_writer argparse giflib png)
+if(BAREMETALPI)
+    target_include_directories(tic80studio
+    PRIVATE ${THIRDPARTY_DIR}/circle-stdlib/libs/circle)
+endif()
+
+target_link_libraries(tic80studio PUBLIC tic80core PRIVATE wave_writer argparse giflib png)
 
 if(USE_NAETT)
     target_compile_definitions(tic80studio PRIVATE USE_NAETT)
@@ -57,10 +62,6 @@ endif()
 
 if(BUILD_PRO)
     target_compile_definitions(tic80studio PRIVATE TIC80_PRO)
-endif()
-
-if(BUILD_SDLGPU)
-    target_compile_definitions(tic80studio PUBLIC CRT_SHADER_SUPPORT)
 endif()
 
 if(BUILD_EDITORS)

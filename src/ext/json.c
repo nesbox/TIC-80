@@ -70,21 +70,58 @@ static s32 getJsonItem(const char *var, s32 parent, jsmntype_t type)
     return 0;
 }
 
-bool json_bool(const char *var, s32 parent)
+bool json_bool(const char *var, s32 parent, bool* value)
 {
-    const jsmntok_t *t = &state.t[getJsonItem(var, parent, JSMN_PRIMITIVE)];
-    return strncmp(state.json + t->start, "true", t->end - t->start) == 0;
+    s32 item = getJsonItem(var, parent, JSMN_PRIMITIVE);
+
+    if(item)
+    {
+        const jsmntok_t *t = &state.t[item];
+        *value = strncmp(state.json + t->start, "true", t->end - t->start) == 0;
+
+        return true;
+    }
+
+    return false;
 }
 
-s32 json_int(const char *var, s32 parent)
+bool json_s32(const char *var, s32 parent, s32* value)
 {
-    return atoi(state.json + state.t[getJsonItem(var, parent, JSMN_PRIMITIVE)].start);
+    s32 item = getJsonItem(var, parent, JSMN_PRIMITIVE);
+
+    if(item)
+    {
+        *value = atoi(state.json + state.t[item].start);
+        return true;
+    }
+
+    return false;
+}
+
+bool json_u8(const char *var, s32 parent, u8* value)
+{
+    s32 item = getJsonItem(var, parent, JSMN_PRIMITIVE);
+
+    if(item)
+    {
+        *value = atoi(state.json + state.t[item].start);
+        return true;
+    }
+
+    return false;
 }
 
 bool json_string(const char *var, s32 parent, char* value, s32 size)
 {
-    const jsmntok_t* t = &state.t[getJsonItem(var, parent, JSMN_STRING)];
-    return snprintf(value, size, "%.*s", t->end - t->start, state.json + t->start) > 0;
+    s32 item = getJsonItem(var, parent, JSMN_STRING);
+
+    if(item)
+    {
+        const jsmntok_t* t = &state.t[item];
+        return snprintf(value, size, "%.*s", t->end - t->start, state.json + t->start) > 0;
+    }
+
+    return false;
 }
 
 s32 json_array(const char *var, s32 parent)

@@ -1,0 +1,21 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="com.nesbox.tic80ws"
+  android:versionCode="1"
+  android:versionName="1.0">
+  <uses-sdk android:minSdkVersion="11" android:targetSdkVersion="28"/>
+  <uses-permission android:name="android.permission.INTERNET"></uses-permission>
+  <uses-feature android:glEsVersion="0x00030000"></uses-feature>
+  <application android:label="TIC-80" android:debuggable="true" android:hasCode="false" android:icon="@mipmap/ic_launcher">
+    <activity android:name="android.app.NativeActivity"
+      android:label="TIC-80"
+      android:launchMode="singleTask"
+      android:screenOrientation="fullUser"
+      android:configChanges="orientation|screenSize|keyboard|keyboardHidden">
+      <meta-data android:name="android.app.lib_name" android:value="tic80ws"/>
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

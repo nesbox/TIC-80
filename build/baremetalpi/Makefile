@@ -31,7 +31,6 @@ LIBS :=  \
     $(TIC80LIB)/liblua.a \
     $(TIC80LIB)/libmoon.a \
     $(TIC80LIB)/libfennel.a \
-    $(TIC80LIB)/libzip.a \
     $(TIC80LIB)/libblipbuf.a \
     $(TIC80LIB)/libsquirrel.a \
     $(TIC80LIB)/libpython.a \

@@ -28,7 +28,7 @@
 
 #define CLOCKRATE (255<<13)
 #define TIC_DEFAULT_COLOR 15
-#define TIC_SOUND_RINGBUF_LEN 12 // in worst case, this induces ~ 12 tick delay i.e. 200 ms
+#define TIC_SOUND_RINGBUF_LEN 6 // in worst case, this induces ~ 12 tick delay i.e. 200 ms
 
 typedef struct
 {
