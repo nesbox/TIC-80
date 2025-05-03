@@ -178,20 +178,9 @@ include(cmake/naett.cmake)
 include(cmake/png.cmake)
 include(cmake/studio.cmake)
 
-if(BUILD_SDL)
-    include(cmake/sdl.cmake)
-endif()
-
-if(BUILD_SOKOL)
-    include(cmake/sokol.cmake)
-endif()
-
-if(BUILD_LIBRETRO)
-    include(cmake/libretro.cmake)
-endif()
-
-if(NINTENDO_3DS)
-    include(cmake/n3ds.cmake)
-endif()
+include(cmake/sdl.cmake)
+include(cmake/sokol.cmake)
+include(cmake/libretro.cmake)
+include(cmake/n3ds.cmake)
 
 include(cmake/install.cmake)

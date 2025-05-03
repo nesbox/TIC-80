@@ -73,13 +73,10 @@ if(BUILD_SOKOL)
     # endif()
 
     # add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/build/crt.h
-    #     COMMAND ${CMAKE_SOURCE_DIR}/vendor/sokol-tools-bin/bin/${SHDC} -i ${CMAKE_SOURCE_DIR}/src/system/sokol/crt.glsl -o ${CMAKE_SOURCE_DIR}/build/crt.h -l glsl410:glsl300es:hlsl4:metal_macos:metal_ios:wgsl --ifdef
+    #     COMMAND ${CMAKE_SOURCE_DIR}/vendor/sokol-tools-bin/bin/${SHDC} -i ${CMAKE_SOURCE_DIR}/src/system/sokol/crt.glsl -o ${CMAKE_SOURCE_DIR}/src/system/sokol/crt.h -l glsl410:glsl300es:hlsl4:metal_macos:metal_ios:wgsl --ifdef
     #     DEPENDS ${CMAKE_SOURCE_DIR}/src/system/sokol/crt.glsl)
 
-    set(TIC80_SRC 
-        ${CMAKE_SOURCE_DIR}/src/system/sokol/main.c
-        ${CMAKE_SOURCE_DIR}/build/crt.h
-    )
+    set(TIC80_SRC ${CMAKE_SOURCE_DIR}/src/system/sokol/main.c)
 
     if(WIN32)
 
