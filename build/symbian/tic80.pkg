@@ -1,0 +1,9 @@
+#{"tic80"},(0xE1C57D10),1,0,0
+
+%{"tic80"}
+:"tic80"
+
+"tic80.exe"-"!:\sys\bin\tic80.exe"
+"tic80_reg.rsc"-"!:\private\10003a3f\import\apps\tic80_reg.rsc"
+"tic80.rsc"-"!:\resource\apps\tic80.rsc"
+"tic80_icon.mif"-"!:\resource\apps\tic80_icon.mif"

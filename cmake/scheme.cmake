@@ -2,7 +2,14 @@
 # SCHEME (S7)
 ################################
 
-option(BUILD_WITH_SCHEME "Scheme Enabled" ${BUILD_WITH_ALL})
+if (SYMBIAN)
+    # Object file is too big to be linked...
+    set(BUILD_WITH_SCHEME_DEFAULT 0)
+else()
+    set(BUILD_WITH_SCHEME_DEFAULT ${BUILD_WITH_ALL})
+endif()
+
+option(BUILD_WITH_SCHEME "Scheme Enabled" ${BUILD_WITH_SCHEME_DEFAULT})
 message("BUILD_WITH_SCHEME: ${BUILD_WITH_SCHEME}")
 
 if(BUILD_WITH_SCHEME)

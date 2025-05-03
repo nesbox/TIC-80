@@ -29,7 +29,7 @@ if(BUILD_TOOLS)
     target_include_directories(xplode PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(xplode tic80core png)
 
-    if(LINUX)
+    if(LINUX AND NOT SYMBIAN)
         target_link_libraries(xplode m)
     endif()
 
