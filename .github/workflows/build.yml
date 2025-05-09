@@ -22,8 +22,8 @@ jobs:
         run: |
           COPY /Y build\janet\janetconf.h vendor\janet\src\conf\janetconf.h
           cd build
-          cmake -G "Visual Studio 16 2019" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DBUILD_SDL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --config MinSizeRel --parallel
+          cmake -G "Visual Studio 16 2019" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DBUILD_SDL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --parallel
 
       - name: Deploy
         uses: actions/upload-artifact@v4
@@ -38,8 +38,8 @@ jobs:
         run: |
           COPY /Y build\janet\janetconf.h vendor\janet\src\conf\janetconf.h
           cd build
-          cmake -G "Visual Studio 16 2019" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON  -DBUILD_SDL=ON ..
-          cmake --build . --config MinSizeRel --parallel
+          cmake -G "Visual Studio 16 2019" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON  -DBUILD_SDL=ON ..
+          cmake --build . --parallel
 
   # === Windows ===
   windows:
@@ -59,8 +59,8 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --config MinSizeRel --parallel
+          cmake -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --parallel
 
       - name: Deploy
         uses: actions/upload-artifact@v4
@@ -74,8 +74,8 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
+          cmake -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
 
   # === Windows MinGW-64 ===
   windows-mingw:
@@ -108,7 +108,7 @@ jobs:
         shell: bash
         run: |
           cd build
-          cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
+          cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
   # === Ubuntu ===
@@ -135,7 +135,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -149,8 +149,8 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
 
   # === Ubuntu-arm64 ===
   linux-arm:
@@ -176,7 +176,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -190,8 +190,8 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
 
   # === Ubuntu gcc14 ===
   linux-gcc14:
@@ -218,7 +218,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -232,8 +232,8 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
 
   # === Nintendo 3DS build ===
   nintendo-3ds:
@@ -253,7 +253,7 @@ jobs:
 
       - name: Build
         run: |
-          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF ..
+          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF ..
           cmake --build build --parallel
 
       - name: Deploy
@@ -278,7 +278,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -292,7 +292,7 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
   # === MacOS 14 / arm64 ===
@@ -311,7 +311,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -324,7 +324,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
   # === Webapp ===
@@ -346,7 +346,7 @@ jobs:
       - name: Build all
         run: |
           cd build
-          emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
+          emcmake cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
           cp webapp/* bin
 
@@ -380,7 +380,7 @@ jobs:
         run: |
           cd build
           cmake -G Ninja \
-            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON \
             -DBUILD_WITH_ALL=ON \
             -DBUILD_WITH_RUBY=OFF \
             -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \

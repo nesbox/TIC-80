@@ -609,7 +609,7 @@ static void frame(void *userdata)
     
     if(!app->thread)
     {
-        if(!studio_alive(app->studio))
+        if(studio_alive(app->studio))
         {
             sapp_quit();
         }

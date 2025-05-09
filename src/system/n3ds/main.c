@@ -584,7 +584,7 @@ int main(int argc, char **argv) {
 
     n3ds_sound_init(AUDIO_FREQ);
 
-    while (aptMainLoop() && !studio_alive(platform.studio)) {
+    while (aptMainLoop() && studio_alive(platform.studio)) {
         u32 start_frame = C3D_FrameCounter(0);
 
         keyboard_update();

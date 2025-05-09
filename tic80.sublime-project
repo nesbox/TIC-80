@@ -3,38 +3,42 @@
     [
         {
             "name": "build",
-            "shell_cmd": "cmake -DCMAKE_BUILD_TYPE=MinSizeRel .. && ninja",
+            "shell_cmd": "cmake --build . --parallel",
             "working_dir": "${project_path}/build",
             "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
             "variants":
             [
                 {
-                    "name": "fresh desktop",
+                    "name": "desktop",
                     "shell_cmd": "cmake -G Ninja .. --fresh"
                 },
                 {
-                    "name": "fresh webapp",
+                    "name": "webapp",
                     "shell_cmd": "emcmake cmake -G Ninja .. --fresh"
                 },
                 {
-                    "name": "fresh pro",
-                    "shell_cmd": "cmake cmake -G Ninja -DBUILD_PRO=ON .. --fresh"
-                },
-                {
-                    "name" : "fresh android",
+                    "name" : "android",
                     "shell_cmd": "cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=ndk-bundle/build/cmake/android.toolchain.cmake -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-28 .. --fresh",
                 },
                 {
-                    "name": "make",
-                    "shell_cmd": "ninja"
-                },
-                {
                     "name": "run",
-                    "shell_cmd": "ninja tic80 && ${project_path}/build/bin/tic80 --skip"
+                    "shell_cmd": "cmake --build . --parallel && ${project_path}/build/bin/tic80 --skip"
                 },
                 {
-                    "name": "clean",
-                    "shell_cmd": "ninja -t clean"
+                    "name": "PRO=ON",
+                    "shell_cmd": "cmake -DBUILD_PRO=ON .."
+                },
+                {
+                    "name": "IPO=ON",
+                    "shell_cmd": "cmake -DBUILD_IPO=ON .."
+                },
+                {
+                    "name": "CMAKE_BUILD_TYPE=MinSizeRel",
+                    "shell_cmd": "cmake -DCMAKE_BUILD_TYPE=MinSizeRel .."
+                },
+                {
+                    "name": "CMAKE_BUILD_TYPE=Release",
+                    "shell_cmd": "cmake -DCMAKE_BUILD_TYPE=Release .."
                 },
             ]
         }

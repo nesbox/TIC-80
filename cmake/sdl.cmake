@@ -24,6 +24,10 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_LIBRARIES)
         set(SDL_STATIC_PIC ON CACHE BOOL "" FORCE)
     endif()
 
+    if(BUILD_STATIC)
+        set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    endif()
+
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
 
 endif()
