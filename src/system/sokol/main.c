@@ -609,7 +609,7 @@ static void frame(void *userdata)
     
     if(!app->thread)
     {
-        if(studio_alive(app->studio))
+        if(!studio_alive(app->studio))
         {
             sapp_quit();
         }
@@ -999,7 +999,7 @@ sapp_desc sokol_main(s32 argc, char* argv[])
 
     if(studio_config(app->studio)->cli)
     {
-        while (!studio_alive(app->studio))
+        while (studio_alive(app->studio))
             studio_tick(app->studio, app->input);
 
         exit(0);
