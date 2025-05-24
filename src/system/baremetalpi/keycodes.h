@@ -104,7 +104,7 @@ tic_key_numpad8,	 // KeyUp, 0x60
 tic_key_numpad9,	 // KeyPageUp, 0x61
 tic_key_numpad0,	 // KeyInsert, 0x62
 tic_key_numpadperiod,	 // KeyDelete, 0x63
-tic_key_iso_extra,	 // '<', 0x64
+tic_key_unknown,	 // '<', 0x64
 tic_key_unknown,	 // KeyApplication, 0x65
 tic_key_unknown,	 // KeyNone, 0x66
 tic_key_unknown,	 // KeyNone, 0x67
