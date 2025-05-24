@@ -36,6 +36,7 @@
   - [FreeBSD](#freebsd)
 - [Install Instructions](#install-instructions)
   - [Linux](#linux-1)
+  - [Android](#android)
   - [iOS / tvOS](#ios--tvos)
   - [Credits](#credits)
 
@@ -382,6 +383,10 @@ TIC-80 can now be run with `tic80` (if installed) or `./tic80` (with no installa
 You can find iOS/tvOS version here
 - 0.60.3: https://github.com/brunophilipe/TIC-80
 - 0.45.0: https://github.com/CliffsDover/TIC-80
+
+## Android
+You can find the compiled version ready download and install [on F-Droid](https://f-droid.org/packages/com.nesbox.tic/):  
+[<img alt="Get it on F-Droid" src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" width="256">](https://f-droid.org/packages/com.nesbox.tic/)
 
 ## Credits
 * Filippo Rivato — [Twitter @HomineLudens](https://twitter.com/HomineLudens)
