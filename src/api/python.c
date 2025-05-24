@@ -151,7 +151,7 @@ static bool py_spr(int argc, py_Ref argv)
     int rotate;
     int w;
     int h;
-    char colors[16];
+    u8 colors[16];
     for (int i = 0; i < 9; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
     tic_core* core = get_core();
@@ -402,7 +402,7 @@ static bool py_key(int argc, py_Ref argv)
         return ValueError("unknown keyboard input");
     }
 
-    bool pressed = core->api.key(tic, code);
+    bool pressed = core->api.key(tic, code == -1 ? tic_key_unknown : code);
     py_newbool(py_retval(), pressed);
 
     return true;
@@ -426,7 +426,7 @@ static bool py_keyp(int argc, py_Ref argv)
         return ValueError("unknown keyboard input");
     }
 
-    bool pressed = core->api.keyp(tic, code, hold, period);
+    bool pressed = core->api.keyp(tic, code == -1 ? tic_key_unknown : code, hold, period);
     py_newbool(py_retval(), pressed);
 
     return true;
@@ -486,7 +486,7 @@ static bool py_map(int argc, py_Ref argv)
 {
     int x, y, w, h, sx, sy, colorkey, scale;
     bool use_remap;
-    char colors[16];
+    u8 colors[16];
 
     PY_CHECK_ARG_TYPE(0, tp_int);
     PY_CHECK_ARG_TYPE(1, tp_int);
@@ -972,7 +972,7 @@ static bool py_ttri(int argc, py_Ref argv)
     double x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3;
     int texsrc, chromakey;
     double z1, z2, z3;
-    char colors[16];
+    u8 colors[16];
     PY_CHECK_ARG_TYPE(12, tp_int);
     if (py_istype(py_arg(13), tp_int) || py_istype(py_arg(13), tp_list))
     { //it's one of the types
