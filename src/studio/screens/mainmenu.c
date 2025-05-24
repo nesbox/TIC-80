@@ -173,6 +173,8 @@ static MenuOption VolumeOption =
     optionVolumeSet,
 };
 
+#if defined(BUILD_EDITORS)
+
 static s32 optionAutoSaveGet(void* data)
 {
     StudioMainMenu* main = data;
@@ -192,7 +194,6 @@ static MenuOption AutoSaveOption =
     optionAutoSaveSet,
 };
 
-#if defined(BUILD_EDITORS)
 static s32 optionTabSizeGet(void* data)
 {
     StudioMainMenu* main = data;
@@ -265,6 +266,7 @@ static MenuOption KeybindModeOption =
 };
 
 static void showEditorMenu(void* data, s32 pos);
+static void showOtherMenu(void* data, s32 pos);
 
 #endif
 
@@ -283,10 +285,10 @@ enum
     OptionsMenu_FullscreenOption,
     OptionsMenu_IntegerScaleOption,
     OptionsMenu_VolumeOption,
-#if defined(BUILD_EDITORS)
-    OptionsMenu_Editor,
-#endif
     OptionsMenu_Gamepad,
+#if defined(BUILD_EDITORS)
+    OptionsMenu_Other,
+#endif
     OptionsMenu_Separator,
     OptionsMenu_Back,
 };
@@ -297,13 +299,12 @@ static const MenuItem OptionMenu[] =
     {"FULLSCREEN",      NULL,   &FullscreenOption},
     {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
     {"VOLUME",          NULL,   &VolumeOption},
-    {"AUTOSAVE",        NULL,   &AutoSaveOption, "Keep carts loaded from the web"},
+    {"SETUP GAMEPAD", showGamepadMenu},
 #if defined(BUILD_EDITORS)
-    {"EDITOR OPTIONS", showEditorMenu},
+    {"OTHER", showOtherMenu},
 #endif
-    {"SETUP GAMEPAD",       showGamepadMenu},
     {""},
-    {"BACK",            showMainMenu, .back = true},
+    {"BACK", showMainMenu, .back = true},
 };
 
 static void showOptionsMenu(void* data, s32 pos);
@@ -316,6 +317,30 @@ static void gameMenuHandler(void* data, s32 pos)
 }
 
 #if defined(BUILD_EDITORS)
+
+enum
+{
+    OtherMenu_Autosave,
+    OtherMenu_Editor,
+    OtherMenu_Separator,
+    OtherMenu_Back,
+};
+
+static const MenuItem OtherMenu[] =
+{
+    {"AUTOSAVE", NULL, &AutoSaveOption, "Keep carts loaded from the web"},
+    {"EDITOR OPTIONS", showEditorMenu},
+    {""},
+    {"BACK", showOptionsMenu, .back = true},
+};
+
+static void showOtherMenu(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+
+    studio_menu_init(main->menu, OtherMenu,
+        COUNT_OF(OtherMenu), OtherMenu_Autosave, OptionsMenu_Other, showOptionsMenu, main);
+}
 
 enum
 {
@@ -338,7 +363,7 @@ static void showEditorMenu(void* data, s32 pos)
     StudioMainMenu* main = data;
 
     studio_menu_init(main->menu, EditorMenu,
-        COUNT_OF(EditorMenu), EditorMenu_KeybindMode, OptionsMenu_Editor, showOptionsMenu, main);
+        COUNT_OF(EditorMenu), EditorMenu_KeybindMode, OtherMenu_Editor, showOtherMenu, main);
 }
 #endif
 

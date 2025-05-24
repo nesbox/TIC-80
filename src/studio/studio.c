@@ -2909,18 +2909,22 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     if(args.cli)
         args.skip = true;
 
-#if defined(BUILD_EDITORS)
     if(args.skip)
     {
+#if defined(BUILD_EDITORS)
         if(getBytebattle(studio))
         {
             studio->console->tick(studio->console);
             gotoCode(studio);
         }
         else
+        {
             setStudioMode(studio, TIC_CONSOLE_MODE);
-    }
+        }
+#else
+        setStudioMode(studio, TIC_RUN_MODE);
 #endif
+    }
 
     return studio;
 }
