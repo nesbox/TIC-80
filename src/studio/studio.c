@@ -682,12 +682,13 @@ struct Sprite* getSpriteEditor(Studio* studio)
 {
     return studio->banks.sprite[studio->bank.index.sprites];
 }
-#endif
 
 struct Console* getConsole(Studio* studio)
 {
     return studio->console;
 }
+
+#endif
 
 const StudioConfig* studio_config(Studio* studio)
 {
@@ -2615,35 +2616,29 @@ static StartArgs parseArgs(s32 argc, char **argv)
         NULL,
     };
 
-    StartArgs args = {0};
-    args.volume = -1;
+    StartArgs args = 
+    {
+#define OPTION_DEF(name, ctype, type, def, post, help) .name = def,
+        STRATUP_OPTIONS_LIST(OPTION_DEF)
+        BYTEBATTLE_OPTIONS_LIST(OPTION_DEF)
+        FFT_OPTIONS_LIST(OPTION_DEF)
+#undef  OPTION_DEF
 
-#if defined(BUILD_EDITORS)
-    args.lowerlimit = 256;
-    args.upperlimit = 512;
-    args.fftlist = 0;
-#endif
+    };
 
     struct argparse_option options[] =
     {
         OPT_HELP(),
-#define CMD_PARAMS_DEF(name, ctype, type, post, help) OPT_##type('\0', #name, &args.name, help),
-        CMD_PARAMS_LIST(CMD_PARAMS_DEF)
-#undef  CMD_PARAMS_DEF
+#define OPTION_DEF(name, ctype, type, def, post, help) OPT_##type('\0', #name, &args.name, help),
+        STRATUP_OPTIONS_LIST(OPTION_DEF)
 #if defined(BUILD_EDITORS)
         OPT_GROUP("Byte battle options:\n"),
-        OPT_STRING('\0',    "codeexport",    &args.codeexport,   "export code to filename"),
-        OPT_STRING('\0',    "codeimport",    &args.codeimport,   "import code from filename"),
-        OPT_INTEGER('\0',   "delay",         &args.delay,        "codeexport / codeimport update interval in ticks"),
-        OPT_INTEGER('\0',   "lowerlimit",    &args.lowerlimit,   "lower limit for code size (256 by default)"),
-        OPT_INTEGER('\0',   "upperlimit",    &args.upperlimit,   "upper limit for code size (512 by default)"),
-        OPT_INTEGER('\0',   "battletime",    &args.battletime,   "battletime in minutes"),
+        BYTEBATTLE_OPTIONS_LIST(OPTION_DEF)
+
         OPT_GROUP("FFT options:\n"),
-        OPT_BOOLEAN('\0', "fft", &args.fft, "enable FFT support"),
-        OPT_BOOLEAN('\0', "fftlist", &args.fftlist, "list FFT devices"),
-        OPT_BOOLEAN('\0', "fftcaptureplaybackdevices", &args.fftcaptureplaybackdevices, "Capture playback devices for loopback (Windows only)"),
-        OPT_STRING('\0', "fftdevice", &args.fftdevice, "name of the device to use with FFT"),
+        FFT_OPTIONS_LIST(OPTION_DEF)
 #endif
+#undef  OPTION_DEF
         OPT_END(),
     };
 
@@ -2856,21 +2851,33 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     initModules(studio);
 #endif
 
-    if(args.scale)
+    if(args.scale > 0)
+    {
         studio->config->data.uiScale = args.scale;
+    }
 
     if(args.volume >= 0)
+    {
         studio->config->data.options.volume = args.volume & 0x0f;
+    }
 
-    studio->config->data.options.crt        |= args.crt;
+    if(args.nocrt)
+    {
+        studio->config->data.options.crt = !args.nocrt;
+    }
+
     studio->config->data.options.fullscreen |= args.fullscreen;
     studio->config->data.cli                |= args.cli;
 
 #if defined(BUILD_EDITORS)
     if(args.codeexport)
+    {
         studio->bytebattle.exp = strdup(args.codeexport);
+    }
     else if(args.codeimport)
+    {
         studio->bytebattle.imp = strdup(args.codeimport);
+    }
 
     studio->bytebattle.last.code = malloc(TIC_CODE_SIZE);
     memset(studio->bytebattle.last.code, 0, TIC_CODE_SIZE);
@@ -2890,6 +2897,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         FFT_EnumerateDevices();
         exit(0);
     }
+
     studio->config->data.fft = args.fft;
     studio->config->data.fftcaptureplaybackdevices = args.fftcaptureplaybackdevices;
     studio->config->data.fftdevice = args.fftdevice;

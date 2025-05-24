@@ -64,17 +64,38 @@
 #define CART_EXT ".tic"
 #define PNG_EXT ".png"
 
-#define CMD_PARAMS_LIST(macro)                                                              \
-    macro(skip,         int,    BOOLEAN,    "",         "skip startup animation")           \
-    macro(volume,       s32,    INTEGER,    "=<int>",   "global volume value [0-15]")       \
-    macro(cli,          int,    BOOLEAN,    "",         "console only output")              \
-    macro(fullscreen,   int,    BOOLEAN,    "",         "enable fullscreen mode")           \
-    macro(fs,           char*,  STRING,     "=<str>",   "path to the file system folder")   \
-    macro(scale,        s32,    INTEGER,    "=<int>",   "main window scale")                \
-    macro(cmd,          char*,  STRING,     "=<str>",   "run commands in the console")      \
-    macro(keepcmd,      int,    BOOLEAN,    "",         "re-execute commands on every run") \
-    macro(version,      int,    BOOLEAN,    "",         "print program version")            \
-    macro(crt,          bool,   BOOLEAN,    "",         "enable CRT monitor effect")
+#define STRATUP_OPTIONS_LIST(macro)                                                                          \
+    macro(skip,         bool,   BOOLEAN,    false,    "",         "skip startup animation")             \
+    macro(volume,       int,    INTEGER,    -1,       "=<int>",   "global volume value [0-15]")         \
+    macro(cli,          bool,   BOOLEAN,    false,    "",         "console only output")                \
+    macro(fullscreen,   bool,   BOOLEAN,    false,    "",         "enable fullscreen mode")             \
+    macro(fs,           char*,  STRING,     NULL,     "=<str>",   "path to the file system folder")     \
+    macro(scale,        int,    INTEGER,    -1,       "=<int>",   "main window scale")                  \
+    macro(cmd,          char*,  STRING,     NULL,     "=<str>",   "run commands in the console")        \
+    macro(keepcmd,      bool,   BOOLEAN,    false,    "",         "re-execute commands on every run")   \
+    macro(version,      bool,   BOOLEAN,    false,    "",         "print program version")              \
+    macro(nocrt,        bool,   BOOLEAN,    false,    "",         "disable CRT monitor effect")
+
+#if defined(BUILD_EDITORS)
+
+#define BYTEBATTLE_OPTIONS_LIST(macro) \
+    macro(codeexport,   char*,  STRING,     NULL,   "=<str>", "export code to filename")                          \
+    macro(codeimport,   char*,  STRING,     NULL,   "=<str>", "import code from filename")                        \
+    macro(delay,        int,    INTEGER,    0,      "=<int>", "codeexport / codeimport update interval in ticks") \
+    macro(lowerlimit,   int,    INTEGER,    256,    "=<int>", "lower limit for code size (256 by default)")       \
+    macro(upperlimit,   int,    INTEGER,    512,    "=<int>", "upper limit for code size (512 by default)")       \
+    macro(battletime,   int,    INTEGER,    0,      "=<int>", "battletime in minutes")
+
+#define FFT_OPTIONS_LIST(macro) \
+    macro(fft,                          bool,   BOOLEAN,    false,  "",         "enable FFT support")                                     \
+    macro(fftlist,                      bool,   BOOLEAN,    false,  "",         "list FFT devices")                                       \
+    macro(fftcaptureplaybackdevices,    bool,   BOOLEAN,    false,  "",         "capture playback devices for loopback (Windows only)")   \
+    macro(fftdevice,                    char*,  STRING,     NULL,   "=<str>",   "name of the device to use with FFT")
+
+#else
+#define BYTEBATTLE_OPTIONS_LIST(macro)
+#define FFT_OPTIONS_LIST(macro)
+#endif
 
 #define SHOW_TOOLTIP(STUDIO, FORMAT, ...)   \
 do{                                         \
@@ -87,23 +108,11 @@ do{                                         \
 typedef struct
 {
     char *cart;
-#define CMD_PARAMS_DEF(name, ctype, type, post, help) ctype name;
-    CMD_PARAMS_LIST(CMD_PARAMS_DEF)
-#undef  CMD_PARAMS_DEF
-
-#if defined(BUILD_EDITORS)
-    const char *codeexport;
-    const char *codeimport;
-    s32 delay;
-    s32 lowerlimit;
-    s32 upperlimit;
-    s32 battletime;
-
-    int fft;
-    int fftlist;
-    int fftcaptureplaybackdevices;
-    const char *fftdevice;
-#endif
+#define OPTION_DEF(name, ctype, type, def, post, help) ctype name;
+    STRATUP_OPTIONS_LIST(OPTION_DEF)
+    BYTEBATTLE_OPTIONS_LIST(OPTION_DEF)
+    FFT_OPTIONS_LIST(OPTION_DEF)
+#undef  OPTION_DEF
 } StartArgs;
 
 typedef enum

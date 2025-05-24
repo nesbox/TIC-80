@@ -72,7 +72,7 @@
     macro(api)                  \
     macro(keys)                 \
     macro(buttons)              \
-    macro(startup)              \
+    macro(options)              \
     macro(hotkeys)              \
     macro(terms)                \
     macro(license)
@@ -295,9 +295,9 @@ static const char* LicenseText =
 
 static const struct StartupOption {const char* name; const char* help;} StartupOptions[] =
 {
-#define CMD_PARAMS_DEF(name, ctype, type, post, help) {#name post, help},
-    CMD_PARAMS_LIST(CMD_PARAMS_DEF)
-#undef CMD_PARAMS_DEF
+#define OPTION_DEF(name, ctype, type, def, post, help) {#name post, help},
+    STRATUP_OPTIONS_LIST(OPTION_DEF)
+#undef OPTION_DEF
 };
 
 struct CommandDesc
@@ -3725,7 +3725,7 @@ static void onHelp_welcome(Console* console)
     printBack(console, WelcomeText);
 }
 
-static void onHelp_startup(Console* console)
+static void onHelp_options(Console* console)
 {
     char buf[TICNAME_MAX];
     printFront(console, "\nStartup options:\n");
