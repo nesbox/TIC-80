@@ -7,7 +7,7 @@
   - [Features](#features)
 - [Binary Downloads](#binary-downloads)
   - [Nightly builds](#nightly-builds)
-  - [Unofficial Linux/arm64 nightly builds](#unofficial-linuxarm64-nightly-builds)
+  - [Unofficial Linux/arm64 nightly builds](#unofficial-builds)
 - [Pro Version](#pro-version)
   - [Pro Features](#pro-features)
 - [Community](#community)
