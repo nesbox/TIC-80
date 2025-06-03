@@ -2861,11 +2861,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->config->data.options.volume = args.volume & 0x0f;
     }
 
-    if(args.nocrt)
-    {
-        studio->config->data.options.crt = !args.nocrt;
-    }
-
     studio->config->data.options.fullscreen |= args.fullscreen;
     studio->config->data.cli                |= args.cli;
 

@@ -73,8 +73,7 @@
     macro(scale,        int,    INTEGER,    -1,       "=<int>",   "main window scale")                  \
     macro(cmd,          char*,  STRING,     NULL,     "=<str>",   "run commands in the console")        \
     macro(keepcmd,      bool,   BOOLEAN,    false,    "",         "re-execute commands on every run")   \
-    macro(version,      bool,   BOOLEAN,    false,    "",         "print program version")              \
-    macro(nocrt,        bool,   BOOLEAN,    false,    "",         "disable CRT monitor effect")
+    macro(version,      bool,   BOOLEAN,    false,    "",         "print program version")
 
 #if defined(BUILD_EDITORS)
 
