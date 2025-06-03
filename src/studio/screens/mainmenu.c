@@ -321,14 +321,35 @@ static void gameMenuHandler(void* data, s32 pos)
 enum
 {
     OtherMenu_Autosave,
+    OtherMenu_AutohideCursor,
     OtherMenu_Editor,
     OtherMenu_Separator,
     OtherMenu_Back,
 };
 
+static s32 optionHisdeCursorGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->autohideCursor == 1;
+}
+
+static void optionHisdeCursorSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->autohideCursor = (pos == 1);
+}
+
+static MenuOption HideCursorOption =
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionHisdeCursorGet,
+    optionHisdeCursorSet,
+};
+
 static const MenuItem OtherMenu[] =
 {
     {"AUTOSAVE", NULL, &AutoSaveOption, "Keep carts loaded from the web"},
+    {"AUTOHIDE CURSOR", NULL, &HideCursorOption, "Autohide mouse cursor after 5 sec"},
     {"EDITOR OPTIONS", showEditorMenu},
     {""},
     {"BACK", showOptionsMenu, .back = true},

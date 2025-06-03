@@ -84,6 +84,7 @@ static void setDefault(Config* config)
             .keybindMode    = KEYBIND_STANDARD,
             .tabMode        = TAB_AUTO,
             .tabSize        = 1,
+            .autohideCursor = true,
 #endif
         },
     };
@@ -169,6 +170,7 @@ static void loadOptions(Config* config)
             json_s32("keybindMode", 0, (s32*)&options->keybindMode);
             json_s32("tabMode", 0, (s32*)&options->tabMode);
             json_s32("tabSize", 0, &options->tabSize);
+            json_bool("autohideCursor", 0, &options->autohideCursor);
 #endif
         }
     }
@@ -231,32 +233,31 @@ static void saveOptions(Config* config)
     string buf;
     sprintf(buf.data, JSON(
         {
-            "crt":%s,
-            "fullscreen":%s,
-            "integerScale":%s,
-            "volume":%i,
-            "autosave":%s,
-            "mapping":"%s"
+            "crt":%s
+            , "fullscreen":%s
+            , "integerScale":%s
+            , "volume":%i
+            , "autosave":%s
+            , "mapping":"%s"
 #if defined(BUILD_EDITORS)
-            ,
-            "keybindMode":%i,
-            "tabMode":%i,
-            "tabSize":%i
+            , "keybindMode":%i
+            , "tabMode":%i
+            , "tabSize":%i
+            , "autohideCursor":%s
 #endif
         })
-        ,
-        bool2str(options->crt),
-        bool2str(options->fullscreen),
-        bool2str(options->integerScale),
-        options->volume,
-        bool2str(options->autosave),
-        data2str(&options->mapping, sizeof options->mapping).data
+        , bool2str(options->crt)
+        , bool2str(options->fullscreen)
+        , bool2str(options->integerScale)
+        , options->volume
+        , bool2str(options->autosave)
+        , data2str(&options->mapping, sizeof options->mapping).data
 
 #if defined(BUILD_EDITORS)
-        ,
-        options->keybindMode,
-        options->tabMode,
-        options->tabSize
+        , options->keybindMode
+        , options->tabMode
+        , options->tabSize
+        , bool2str(options->autohideCursor)
 #endif
         );
 

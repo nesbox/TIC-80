@@ -129,6 +129,10 @@ struct Studio
     struct
     {
         MouseState state[3];
+#if defined(BUILD_EDITORS)
+        s32 counter;
+        tic80_mouse last;
+#endif
     } mouse;
 
 #if defined(BUILD_EDITORS)
@@ -2231,6 +2235,9 @@ static void processMouseStates(Studio* studio)
 
     tic_mem* tic = studio->tic;
 
+    tic->ram->vram.vars.cursor.sprite = tic_cursor_arrow;
+    tic->ram->vram.vars.cursor.system = true;
+
     for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
     {
         MouseState* state = &studio->mouse.state[i];
@@ -2428,8 +2435,8 @@ void studio_tick(Studio* studio, tic80_input input)
 #if defined(BUILD_EDITORS)
             [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL, NULL, sprite},
             [TIC_MAP_MODE]      = {map->scanline,           NULL, NULL, map},
-            [TIC_WORLD_MODE]    = {studio->world->scanline,    NULL, NULL, studio->world},
-            [TIC_SURF_MODE]     = {studio->surf->scanline,     NULL, NULL, studio->surf},
+            [TIC_WORLD_MODE]    = {studio->world->scanline, NULL, NULL, studio->world},
+            [TIC_SURF_MODE]     = {studio->surf->scanline,  NULL, NULL, studio->surf},
 #endif
         };
 
@@ -2443,7 +2450,28 @@ void studio_tick(Studio* studio, tic80_input input)
             ? tic_core_blit_ex(tic, callback[studio->mode])
             : tic_core_blit(tic);
 
-        blitCursor(studio);
+#if defined(BUILD_EDITORS)
+        if(studio->config->data.options.autohideCursor)
+        {
+            if(input.mouse.x != studio->mouse.last.x ||
+                input.mouse.y != studio->mouse.last.y)
+            {
+                // set 5 sec delay
+                studio->mouse.counter = TIC80_FRAMERATE * 5;
+            }
+
+            studio->mouse.last = input.mouse;
+
+            if(studio->mouse.counter-- > 0)
+            {
+                blitCursor(studio);
+            }
+        }
+        else
+#endif
+        {
+            blitCursor(studio);
+        }
 
 #if defined(BUILD_EDITORS)
         if(isRecordFrame(studio))

@@ -138,6 +138,7 @@ typedef struct
         enum KeybindMode keybindMode;
         enum TabMode tabMode;
         s32 tabSize;
+        bool autohideCursor;
 #endif
     } options;
 
