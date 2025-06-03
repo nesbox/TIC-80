@@ -1157,18 +1157,16 @@ static bool replaceSelection(Code* code)
     return false;
 }
 
-static inline enum KeybindMode getKeybindMode(Code* code)
+static inline KeybindMode getKeybindMode(Code* code)
 {
     return getConfig(code->studio)->options.keybindMode;
 }
 
-
 static inline bool shouldUseStructuredEdit(Code* code)
 {
-    const bool emacsMode = getKeybindMode(code) == KEYBIND_EMACS;
+    const bool emacsMode = getKeybindMode(code) == KeybindMode_Emacs;
     return tic_get_script(code->tic)->useStructuredEdition && emacsMode;
 }
-
 
 static bool structuredDeleteOverride(Code* code, char* pos)
 {
@@ -1534,12 +1532,12 @@ static void redo(Code* code)
 }
 
 static bool useSpacesForTab(Code* code) {
-    enum TabMode tabmode = getConfig(code->studio)->options.tabMode;
+    TabMode tabmode = getConfig(code->studio)->options.tabMode;
 
 
-    if (tabmode == TAB_SPACE)
+    if (tabmode == TabMode_Space)
         return true;
-    else if (tabmode == TAB_TAB)
+    else if (tabmode == TabMode_Tab)
         return false;
     else { //auto mode
         tic_mem* tic = code->tic;
@@ -2908,15 +2906,15 @@ static void processKeyboard(Code* code)
 {
     tic_mem* tic = code->tic;
 
-    enum KeybindMode keymode = getKeybindMode(code);
+    KeybindMode keymode = getKeybindMode(code);
 
-    if (keymode == KEYBIND_VI)
+    if (keymode == KeybindMode_Vi)
     {
         processViKeyboard(code);
         return;
     }
 
-    const bool emacsMode = keymode == KEYBIND_EMACS;
+    const bool emacsMode = keymode == KeybindMode_Emacs;
 
     if (!emacsMode)
     {

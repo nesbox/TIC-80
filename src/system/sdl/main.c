@@ -1062,22 +1062,22 @@ static void handleKeydown(SDL_Keycode keycode, bool down, bool* state, bool* pre
 #endif
 }
 
-tic_layout detect_keyboard_layout()
+static tic_kbdlayout detect_keyboard_layout()
 {
     char q = SDL_GetKeyFromScancode(SDL_SCANCODE_Q);
     char w = SDL_GetKeyFromScancode(SDL_SCANCODE_W);
     char y = SDL_GetKeyFromScancode(SDL_SCANCODE_Y);
 
-    tic_layout layout = tic_layout_unknown;
+    tic_kbdlayout layout = tic_kbdlayout_unknown;
 
-    if (q == 'q' && w == 'w' && y == 'y') layout = tic_layout_qwerty; // US etc.
-    if (q == 'a' && w == 'z' && y == 'y') layout = tic_layout_azerty; // French
-    if (q == 'q' && w == 'w' && y == 'z') layout = tic_layout_qwertz; // German etc.
-    if (q == 'q' && w == 'z' && y == 'y') layout = tic_layout_qzerty; // Italian
+    if (q == 'q' && w == 'w' && y == 'y') layout = tic_kbdlayout_qwerty; // US etc.
+    if (q == 'a' && w == 'z' && y == 'y') layout = tic_kbdlayout_azerty; // French
+    if (q == 'q' && w == 'w' && y == 'z') layout = tic_kbdlayout_qwertz; // German etc.
+    if (q == 'q' && w == 'z' && y == 'y') layout = tic_kbdlayout_qzerty; // Italian
     // Don't ask me why it detects k instead of l
-    if (q == 'x' && w == 'v' && y == 'k') layout = tic_layout_de_neo; // xvlcwk - German Neo
+    if (q == 'x' && w == 'v' && y == 'k') layout = tic_kbdlayout_deneo; // xvlcwk - German Neo
     // ...or why it detects p instead of u
-    if (q == 'j' && w == 'd' && y == 'p') layout = tic_layout_de_bone; // jduaxp - German Bone
+    if (q == 'j' && w == 'd' && y == 'p') layout = tic_kbdlayout_debone; // jduaxp - German Bone
 
     return layout;
 }
@@ -1283,9 +1283,9 @@ static void renderKeyboard()
 
         if(key > tic_key_unknown)
         {
-            for(s32 k = 0; k < COUNT_OF(KbdLayout); k++)
+            for(s32 k = 0; k < COUNT_OF(tic_kbdlayout); k++)
             {
-                if(key == KbdLayout[k])
+                if(key == tic_kbdlayout[k])
                 {
                     SDL_Rect src2 =
                     {
@@ -1773,6 +1773,11 @@ void tic_sys_default_mapping(tic_mapping* mapping)
     }
 }
 
+tic_kbdlayout tic_sys_default_kbdlayout()
+{
+    return detect_keyboard_layout();
+}
+
 static void gpuTick()
 {
     const tic_mem* tic = studio_mem(platform.studio);
@@ -1958,7 +1963,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
         SDL_Log("Unable to initialize SDL Game Controller: %i, %s\n", result, SDL_GetError());
     }
 
-    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale(), detect_keyboard_layout(), NULL);
+    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale(), NULL);
 
     SCOPE(studio_delete(platform.studio))
     {

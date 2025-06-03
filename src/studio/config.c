@@ -80,9 +80,10 @@ static void setDefault(Config* config)
             .fullscreen     = false,
             .integerScale   = false,
             .autosave       = false,
+            .kbdlayout      = tic_sys_default_kbdlayout(),
 #if defined(BUILD_EDITORS)
-            .keybindMode    = KEYBIND_STANDARD,
-            .tabMode        = TAB_AUTO,
+            .keybindMode    = KeybindMode_Standard,
+            .tabMode        = TabMode_Auto,
             .tabSize        = 1,
             .autohideCursor = true,
 #endif
@@ -166,6 +167,12 @@ static void loadOptions(Config* config)
             json_string("mapping", 0, mapping.data, sizeof mapping);
             tic_tool_str2buf(mapping.data, strlen(mapping.data), &options->mapping, false);
 
+            {
+                s32 layout;
+                json_s32("kbdlayout", 0, &layout);
+                options->kbdlayout = layout;
+            }
+
 #if defined(BUILD_EDITORS)
             json_s32("keybindMode", 0, (s32*)&options->keybindMode);
             json_s32("tabMode", 0, (s32*)&options->tabMode);
@@ -239,6 +246,7 @@ static void saveOptions(Config* config)
             , "volume":%i
             , "autosave":%s
             , "mapping":"%s"
+            , "kbdlayout":%i
 #if defined(BUILD_EDITORS)
             , "keybindMode":%i
             , "tabMode":%i
@@ -252,6 +260,7 @@ static void saveOptions(Config* config)
         , options->volume
         , bool2str(options->autosave)
         , data2str(&options->mapping, sizeof options->mapping).data
+        , options->kbdlayout
 
 #if defined(BUILD_EDITORS)
         , options->keybindMode

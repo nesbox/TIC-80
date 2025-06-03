@@ -69,6 +69,20 @@ bool    tic_sys_keyboard_text(char* text, void* userdata);
 void    tic_sys_update_config();
 void    tic_sys_default_mapping(tic_mapping* mapping);
 
+typedef enum 
+{
+    tic_kbdlayout_unknown,
+    tic_kbdlayout_first,
+    tic_kbdlayout_qwerty = tic_kbdlayout_first,
+    tic_kbdlayout_azerty,
+    tic_kbdlayout_qwertz,
+    tic_kbdlayout_qzerty,
+    tic_kbdlayout_deneo,
+    tic_kbdlayout_debone,
+} tic_kbdlayout;
+
+tic_kbdlayout tic_sys_default_kbdlayout();
+
 #define CODE_COLORS_LIST(macro) \
     macro(BG)       \
     macro(FG)       \
@@ -79,17 +93,19 @@ void    tic_sys_default_mapping(tic_mapping* mapping);
     macro(COMMENT)  \
     macro(SIGN)
 
-enum KeybindMode {
-    KEYBIND_STANDARD,
-    KEYBIND_EMACS,
-    KEYBIND_VI
-};
+typedef enum 
+{
+    KeybindMode_Standard,
+    KeybindMode_Emacs,
+    KeybindMode_Vi,
+} KeybindMode;
 
-enum TabMode {
-    TAB_AUTO,
-    TAB_TAB,
-    TAB_SPACE
-};
+typedef enum 
+{
+    TabMode_Auto,
+    TabMode_Tab,
+    TabMode_Space,
+} TabMode;
 
 typedef struct
 {
@@ -134,9 +150,11 @@ typedef struct
         s32 volume;
         bool autosave;
         tic_mapping mapping;
+        tic_kbdlayout kbdlayout;
+
 #if defined(BUILD_EDITORS)
-        enum KeybindMode keybindMode;
-        enum TabMode tabMode;
+        KeybindMode keybindMode;
+        TabMode tabMode;
         s32 tabSize;
         bool autohideCursor;
 #endif
@@ -145,12 +163,10 @@ typedef struct
     const tic_cartridge* cart;
 
     s32 uiScale;
-
-    int fft;
-    int fftcaptureplaybackdevices;
+    s32 fft;
+    s32 fftcaptureplaybackdevices;
     const char *fftdevice;
 
-    tic_layout keyboardLayout;
 } StudioConfig;
 
 typedef struct Studio Studio;
@@ -163,13 +179,13 @@ const tic_mem* studio_mem(Studio* studio);
 void studio_tick(Studio* studio, tic80_input input);
 void studio_sound(Studio* studio);
 void studio_load(Studio* studio, const char* file);
-void studio_keymapchanged(Studio *studio, tic_layout keyboardLayout);
+void studio_keymapchanged(Studio *studio, tic_kbdlayout kbdlayout);
 bool studio_alive(Studio* studio);
 void studio_exit(Studio* studio);
 void studio_delete(Studio* studio);
 const StudioConfig* studio_config(Studio* studio);
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, tic_layout keyboardLayout, void *userdata);
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, void *userdata);
 
 #ifdef __cplusplus
 }

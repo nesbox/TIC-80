@@ -166,16 +166,6 @@ typedef union
     u32 data;
 } tic80_keyboard;
 
-typedef enum {
-    tic_layout_unknown = 0,
-    tic_layout_qwerty,
-    tic_layout_azerty,
-    tic_layout_qwertz,
-    tic_layout_qzerty,
-    tic_layout_de_neo,
-    tic_layout_de_bone
-} tic_layout;
-
 typedef struct
 {
     tic80_gamepads gamepads;

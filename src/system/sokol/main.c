@@ -251,6 +251,11 @@ void tic_sys_default_mapping(tic_mapping* mapping)
     };
 }
 
+tic_kbdlayout tic_sys_default_kbdlayout()
+{
+    return tic_kbdlayout_qwerty;
+}
+
 bool tic_sys_keyboard_text(char* text, void *userdata)
 {
     App *app = userdata;
@@ -995,7 +1000,7 @@ sapp_desc sokol_main(s32 argc, char* argv[])
     saudio_setup(&app->audio.desc);
     
     const char* path = ssys_app_folder(TIC_PACKAGE, TIC_NAME);
-    app->studio = studio_create(argc, argv, saudio_sample_rate(), TIC80_PIXEL_COLOR_RGBA8888, path, INT32_MAX, tic_layout_qwerty, app);
+    app->studio = studio_create(argc, argv, saudio_sample_rate(), TIC80_PIXEL_COLOR_RGBA8888, path, INT32_MAX, app);
 
     if(studio_config(app->studio)->cli)
     {

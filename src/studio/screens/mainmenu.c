@@ -234,7 +234,7 @@ static s32 optionTabModeGet(void* data)
 static void optionTabModeSet(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
-    main->options->tabMode = (enum TabMode) pos;
+    main->options->tabMode = (TabMode) pos;
 }
 
 
@@ -255,7 +255,7 @@ static s32 optionKeybindModeGet(void* data)
 static void optionKeybindModeSet(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
-    main->options->keybindMode = (enum KeybindMode) pos;
+    main->options->keybindMode = (KeybindMode) pos;
 }
 
 static MenuOption KeybindModeOption =
@@ -318,22 +318,13 @@ static void gameMenuHandler(void* data, s32 pos)
 
 #if defined(BUILD_EDITORS)
 
-enum
-{
-    OtherMenu_Autosave,
-    OtherMenu_AutohideCursor,
-    OtherMenu_Editor,
-    OtherMenu_Separator,
-    OtherMenu_Back,
-};
-
-static s32 optionHisdeCursorGet(void* data)
+static s32 optionHideCursorGet(void* data)
 {
     StudioMainMenu* main = data;
     return main->options->autohideCursor == 1;
 }
 
-static void optionHisdeCursorSet(void* data, s32 pos)
+static void optionHideCursorSet(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     main->options->autohideCursor = (pos == 1);
@@ -342,14 +333,52 @@ static void optionHisdeCursorSet(void* data, s32 pos)
 static MenuOption HideCursorOption =
 {
     OPTION_VALUES({OffValue, OnValue}),
-    optionHisdeCursorGet,
-    optionHisdeCursorSet,
+    optionHideCursorGet,
+    optionHideCursorSet,
+};
+
+static s32 optionKdbLayoutGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->kbdlayout - tic_kbdlayout_first;
+}
+
+static void optionKdbLayoutSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->kbdlayout = pos + tic_kbdlayout_first;
+}
+
+static MenuOption KbdLayoutOption =
+{
+    OPTION_VALUES(
+    {
+        "QWERTY",
+        "AZERTY",
+        "QWERTZ",
+        "QZERTY",
+        "DE NEO",
+        "DEBONE",
+    }),
+    optionKdbLayoutGet,
+    optionKdbLayoutSet,
+};
+
+enum
+{
+    OtherMenu_Autosave,
+    OtherMenu_AutohideCursor,
+    OtherMenu_KeyboardLayout,
+    OtherMenu_Editor,
+    OtherMenu_Separator,
+    OtherMenu_Back,
 };
 
 static const MenuItem OtherMenu[] =
 {
     {"AUTOSAVE", NULL, &AutoSaveOption, "Keep carts loaded from the web"},
     {"AUTOHIDE CURSOR", NULL, &HideCursorOption, "Autohide mouse cursor after 5 sec"},
+    {"KEYBOARD LAYOUT", NULL, &KbdLayoutOption},
     {"EDITOR OPTIONS", showEditorMenu},
     {""},
     {"BACK", showOptionsMenu, .back = true},
@@ -365,6 +394,7 @@ static void showOtherMenu(void* data, s32 pos)
 
 enum
 {
+    EditorMenu_TabSize,
     EditorMenu_KeybindMode,
     EditorMenu_Separator,
     EditorMenu_Back,

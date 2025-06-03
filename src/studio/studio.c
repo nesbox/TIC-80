@@ -1346,7 +1346,7 @@ ViMode getStudioViMode(Studio* studio) {
 
 bool checkStudioViMode(Studio* studio, ViMode mode) {
     return (
-        getConfig(studio)->options.keybindMode == KEYBIND_VI
+        getConfig(studio)->options.keybindMode == KeybindMode_Vi
         && getStudioViMode(studio) == mode
     );
 }
@@ -1841,7 +1841,7 @@ static void processShortcuts(Studio* studio)
     {
         if (enterWasPressedOnce(studio)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
-        else if(studio->mode != TIC_RUN_MODE && studio->config->data.keyboardLayout != tic_layout_azerty)
+        else if(studio->mode != TIC_RUN_MODE && studio->config->data.options.kbdlayout != tic_kbdlayout_azerty)
         {
 #ifndef KEYBOARD_LAYOUT_ES
             if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
@@ -1889,7 +1889,7 @@ static void processShortcuts(Studio* studio)
         else if(keyWasPressedOnce(studio, tic_key_escape))
         {
             if(
-                getConfig(studio)->options.keybindMode == KEYBIND_VI
+                getConfig(studio)->options.keybindMode == KeybindMode_Vi
                 && getStudioViMode(studio) != VI_NORMAL
             )
                 return;
@@ -2703,9 +2703,9 @@ static void setPopupHide(void* data)
 
 #endif
 
-void studio_keymapchanged(Studio* studio, tic_layout keyboardLayout)
+void studio_keymapchanged(Studio* studio, tic_kbdlayout kbdlayout)
 {
-    studio->config->data.keyboardLayout = keyboardLayout;
+    studio->config->data.options.kbdlayout = kbdlayout;
 }
 
 bool studio_alive(Studio* studio)
@@ -2744,7 +2744,7 @@ void *studioUserdata(Studio* studio)
     return studio->userdata;
 }
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale, tic_layout keyboardLayout, void *userdata)
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale, void *userdata)
 {
     setbuf(stdout, NULL);
 
@@ -2924,7 +2924,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->config->data.fft = args.fft;
     studio->config->data.fftcaptureplaybackdevices = args.fftcaptureplaybackdevices;
     studio->config->data.fftdevice = args.fftdevice;
-    studio->config->data.keyboardLayout = keyboardLayout;
 #endif
 
     studioConfigChanged(studio);

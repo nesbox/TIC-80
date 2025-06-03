@@ -162,6 +162,11 @@ void tic_sys_default_mapping(tic_mapping* mapping)
     };
 }
 
+tic_kbdlayout tic_sys_default_kbdlayout()
+{
+    return tic_kbdlayout_qwerty;
+}
+
 bool tic_sys_keyboard_text(char* text, void *userdata)
 {
     return false;
@@ -334,7 +339,7 @@ TShutdownMode Run(void)
         char  arg0[] = "xxkernel";
         char* argv[] = { &arg0[0], NULL };
         int argc = 1;
-        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty, NULL);
+        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, NULL);
     }
     else
     {
@@ -344,7 +349,7 @@ TShutdownMode Run(void)
         char* argv[] = { &arg0[0], &arg1[0], NULL };
         int argc = 2;
         dbg("Without keyboard\n");
-        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty, NULL);
+        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, NULL);
     }
     dbg("studio_create OK\n");
 
