@@ -758,7 +758,7 @@ static char* getDemoCartPath(char* path, const tic_script* script)
     return path;
 }
 
-static void* getDemoCart(Console* console, const tic_script* script, s32* size)
+static const u8* getDemoCart(Console* console, const tic_script* script, s32* size)
 {
     char path[1024];
     getDemoCartPath(path, script);
@@ -770,17 +770,8 @@ static void* getDemoCart(Console* console, const tic_script* script, s32* size)
             return data;
     }
 
-    u8* data = calloc(1, sizeof(tic_cartridge));
-
-    if(data)
-    {
-        *size = tic_tool_unzip(data, sizeof(tic_cartridge), script->demo.data, script->demo.size);
-
-        if(*size)
-            tic_fs_saveroot(console->fs, path, data, *size, false);
-    }
-
-    return data;
+    *size = script->demo.size;
+    return script->demo.data;
 }
 
 static void setCartName(Console* console, const char* name, const char* path)
@@ -794,8 +785,6 @@ static void setCartName(Console* console, const char* name, const char* path)
 
 static void onLoadDemoCommandConfirmed(Console* console, const tic_script* script)
 {
-    void* data = NULL;
-    s32 size = 0;
 
     {
         char path[1024];
@@ -804,7 +793,8 @@ static void onLoadDemoCommandConfirmed(Console* console, const tic_script* scrip
         setCartName(console, name, tic_fs_path(console->fs, name));
     }
 
-    data = getDemoCart(console, script, &size);
+    s32 size;
+    const u8* data = getDemoCart(console, script, &size);
     tic_cart_load(&console->tic->cart, data, size);
     tic_api_reset(console->tic);
 
@@ -813,8 +803,6 @@ static void onLoadDemoCommandConfirmed(Console* console, const tic_script* scrip
     printBack(console, "\ncart ");
     printFront(console, console->rom.name);
     printBack(console, " loaded!\n");
-
-    free(data);
 }
 
 static void onCartLoaded(Console* console, const char* name, const char* section)
@@ -1175,15 +1163,13 @@ static void onLoadCommand(Console* console)
 
 static void loadDemo(Console* console, const tic_script* script)
 {
-    s32 size = 0;
-    u8* data = getDemoCart(console, script, &size);
+    s32 size;
+    const u8* data = getDemoCart(console, script, &size);
 
     if(data)
     {
         tic_cart_load(&console->tic->cart, data, size);
         tic_api_reset(console->tic);
-
-        free(data);
     }
 
     memset(console->rom.name, 0, sizeof console->rom.name);
@@ -1641,42 +1627,38 @@ static void onClsCommand(Console* console)
 static void onInstallDemosCommand(Console* console)
 {
     tic_fs* fs = console->fs;
-    u8* data = (u8*)newCart();
+    
+    printBack(console, "\nadded carts:\n\n");
 
-    SCOPE(free(data))
+    FOREACH_LANG(ln)
     {
-        printBack(console, "\nadded carts:\n\n");
-
-        FOREACH_LANG(ln)
+        for(const struct tic_demo *demo = ln->demos; demo && demo->data; demo++)
         {
-            for(const struct tic_demo *demo = ln->demos; demo && demo->data; demo++)
-            {
-                tic_fs_save(fs, demo->name, data, tic_tool_unzip(data, sizeof(tic_cartridge), demo->data, demo->size), true);
-                printFront(console, demo->name);
-                printLine(console);
-            }
+            tic_fs_save(fs, demo->name, demo->data, demo->size, true);
+            printFront(console, demo->name);
+            printLine(console);
         }
-
-        static const char* Bunny = "bunny";
-
-        tic_fs_makedir(fs, Bunny);
-        tic_fs_changedir(fs, Bunny);
-
-        FOREACH_LANG(ln)
-        {
-            // having a Mark is not mandatory
-            if (ln->mark.data != NULL)
-            {
-                tic_fs_save(fs, ln->mark.name, data, tic_tool_unzip(data, sizeof(tic_cartridge), ln->mark.data, ln->mark.size), true);
-                printFront(console, Bunny);
-                printFront(console, "/");
-                printFront(console, ln->mark.name);
-                printLine(console);
-            }
-        }
-
-        tic_fs_dirback(fs);
     }
+
+    static const char* Bunny = "bunny";
+
+    tic_fs_makedir(fs, Bunny);
+    tic_fs_changedir(fs, Bunny);
+
+    FOREACH_LANG(ln)
+    {
+        // having a Mark is not mandatory
+        if (ln->mark.data != NULL)
+        {
+            tic_fs_save(fs, ln->mark.name, ln->mark.data, ln->mark.size, true);
+            printFront(console, Bunny);
+            printFront(console, "/");
+            printFront(console, ln->mark.name);
+            printLine(console);
+        }
+    }
+
+    tic_fs_dirback(fs);
 
     commandDone(console);
 }
@@ -2494,7 +2476,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
                         static const u8 Cartridge[] =
                         {
-                            #include "../build/assets/cart.png.dat"
+                            #include "cart.png.dat"
                         };
 
                         png_buffer template = {(u8*)Cartridge, sizeof Cartridge};

@@ -52,7 +52,7 @@ option(BUILD_WITH_ALL "Build all supported scripts" ${BUILD_WITH_ALL_DEFAULT})
 option(BUILD_SDL "SDL Enabled" OFF)
 option(BUILD_SOKOL "Sokol Enabled" ${BUILD_SOKOL_DEFAULT})
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
-option(BUILD_TOOLS "bin2txt prj2cart" OFF)
+option(BUILD_TOOLS "prj2cart" OFF)
 option(BUILD_EDITORS "Build cart editors" ON)
 option(BUILD_PRO "Build PRO version" OFF)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
@@ -73,17 +73,6 @@ endif()
 if(NOT TIC80_TARGET)
     set(TIC80_TARGET tic80)
 endif()
-
-add_library(runtime INTERFACE)
-
-if(BUILD_STATIC)
-    set(TIC_RUNTIME STATIC)
-    target_compile_definitions(runtime INTERFACE TIC_RUNTIME_STATIC)
-else()
-    set(TIC_RUNTIME SHARED)
-endif()
-
-target_compile_definitions(runtime INTERFACE BUILD_DEPRECATED)
 
 message("PREFER_SYSTEM_LIBRARIES: ${PREFER_SYSTEM_LIBRARIES}")
 message("BUILD_STATIC: ${BUILD_STATIC}")
@@ -155,6 +144,9 @@ endif()
 
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
 set(DEMO_CARTS_IN ${CMAKE_SOURCE_DIR}/demos)
+
+include(cmake/assets.cmake)
+include(cmake/runtime.cmake)
 
 include(cmake/gif.cmake)
 include(cmake/blipbuf.cmake)

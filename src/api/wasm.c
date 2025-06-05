@@ -1327,12 +1327,12 @@ void evalWasm(tic_mem* tic, const char* code) {
 
 static const u8 DemoRom[] =
 {
-    #include "../build/assets/wasmdemo.tic.dat"
+    #include "wasmdemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
 {
-    #include "../build/assets/wasmmark.tic.dat"
+    #include "wasmmark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Wasm) =

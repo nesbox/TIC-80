@@ -1274,12 +1274,12 @@ static const tic_outline_item* getMRubyOutline(const char* code, s32* size)
 
 static const u8 DemoRom[] =
 {
-    #include "../build/assets/rubydemo.tic.dat"
+    #include "rubydemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
 {
-    #include "../build/assets/rubymark.tic.dat"
+    #include "rubymark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Ruby) =

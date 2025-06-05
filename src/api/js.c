@@ -1288,12 +1288,12 @@ static void evalJs(tic_mem* tic, const char* code)
 
 static const u8 DemoRom[] =
 {
-    #include "../build/assets/jsdemo.tic.dat"
+    #include "jsdemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
 {
-    #include "../build/assets/jsmark.tic.dat"
+    #include "jsmark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Js) =

@@ -1,5 +1,5 @@
 ################################
-# bin2txt cart2prj prj2cart xplode wasmp2cart
+# cart2prj prj2cart xplode wasmp2cart
 ################################
 
 if(BUILD_TOOLS)
@@ -17,9 +17,6 @@ if(BUILD_TOOLS)
     add_executable(wasmp2cart ${TOOLS_DIR}/wasmp2cart.c ${CMAKE_SOURCE_DIR}/src/studio/project.c)
     target_include_directories(wasmp2cart PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(wasmp2cart tic80core)
-
-    add_executable(bin2txt ${TOOLS_DIR}/bin2txt.c)
-    target_link_libraries(bin2txt zlib)
 
     add_executable(xplode
         ${TOOLS_DIR}/xplode.c

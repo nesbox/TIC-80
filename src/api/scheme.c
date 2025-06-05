@@ -1057,12 +1057,12 @@ static const char* SchemeAPIKeywords[] = {
 
 static const u8 DemoRom[] =
 {
-    #include "../build/assets/schemedemo.tic.dat"
+    #include "schemedemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
 {
-    #include "../build/assets/schememark.tic.dat"
+    #include "schememark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Scheme) =

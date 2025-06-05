@@ -188,12 +188,12 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
 
 static const u8 DemoRom[] =
 {
-    #include "../build/assets/moondemo.tic.dat"
+    #include "moondemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
 {
-    #include "../build/assets/moonmark.tic.dat"
+    #include "moonmark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Moon) =

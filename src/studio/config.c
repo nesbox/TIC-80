@@ -93,17 +93,12 @@ static void setDefault(Config* config)
     tic_sys_default_mapping(&config->data.options.mapping);
 
     {
-        static const u8 ConfigZip[] =
+        static const u8 ConfigCart[] =
         {
-            #include "../build/assets/config.tic.dat"
+            #include "config.tic.dat"
         };
 
-        u8* data = malloc(sizeof(tic_cartridge));
-
-        SCOPE(free(data))
-        {
-            update(config, data, tic_tool_unzip(data, sizeof(tic_cartridge), ConfigZip, sizeof ConfigZip));
-        }
+        update(config, ConfigCart, sizeof ConfigCart);
     }
 }
 

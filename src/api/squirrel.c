@@ -1922,12 +1922,12 @@ void evalSquirrel(tic_mem* tic, const char* code) {
 
 static const u8 DemoRom[] =
 {
-    #include "../build/assets/squirreldemo.tic.dat"
+    #include "squirreldemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
 {
-    #include "../build/assets/squirrelmark.tic.dat"
+    #include "squirrelmark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Squirrel) =

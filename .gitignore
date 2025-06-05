@@ -61,13 +61,12 @@ lib/windows/tic.aps
 lib/macos/.DS_Store
 tools/bundler/assets/
 tools/bundler/bin/
-tools/bin2txt/*.exe
-tools/bin2txt/bin2txt
 build/windows/gif/Debug/
 build/windows/gif/Release/
 tests/*.exe
 tests/test.gif
 tests/test_data.gif
+build/*.dat
 build/uwp/gif/x64/
 build/uwp/gif/Release/
 build/uwp/gif/ARM/
@@ -156,7 +155,6 @@ build/vendor/sdl2/SDL2.spec
 build/vendor/sdl2/include/SDL_config.h
 build/vendor/sdl2/sdl2-config
 build/vendor/sdl2/sdl2.pc
-build/bin/bin2txt
 build/bin/sdl-renderer
 build/bin/sokol-renderer
 build/bin/tic80

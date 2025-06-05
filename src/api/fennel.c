@@ -189,7 +189,7 @@ static void evalFennel(tic_mem* tic, const char* code) {
 
 static const u8 DemoRom[] =
 {
-    #include "../build/assets/fenneldemo.tic.dat"
+    #include "fenneldemo.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Fennel) =

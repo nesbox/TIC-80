@@ -41,7 +41,7 @@ set(TIC80_OUTPUT tic80)
 
 add_library(tic80studio STATIC
     ${TIC80STUDIO_SRC}
-    ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat)
+    ${CMAKE_SOURCE_DIR}/build/cart.png.dat)
 
 target_include_directories(tic80studio
     PRIVATE ${THIRDPARTY_DIR}/jsmn

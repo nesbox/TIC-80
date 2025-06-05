@@ -1316,12 +1316,12 @@ static const tic_outline_item* getJanetOutline(const char* code, s32* size)
 
 static const u8 DemoRom[] =
 {
-    #include "../build/assets/janetdemo.tic.dat"
+    #include "janetdemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
 {
-    #include "../build/assets/janetmark.tic.dat"
+    #include "janetmark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Janet) =
