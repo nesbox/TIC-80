@@ -1,16 +1,13 @@
 set -e
 
-export JAVA_HOME=${PWD}/openlogic-openjdk-8u382-b05-windows-64
-
-EXE=".exe"
-BAT=".bat"
+EXE=""
+BAT=""
 NAME=tic80
 ABI=arm64-v8a
 VERSION=28
 
 RT_JAR="${JAVA_HOME}/jre/lib/rt.jar"
-SDK_HOME=./
-BUILD_TOOLS=${SDK_HOME}build-tools/29.0.3/
+BUILD_TOOLS=${ANDROID_HOME}/build-tools/29.0.3/
 SRC_DIR=src/com/nesbox/${NAME}
 
 AAPT=${BUILD_TOOLS}aapt${EXE}
@@ -19,21 +16,19 @@ ZIPALIGN=${BUILD_TOOLS}zipalign${EXE}
 APKSIGNER=${BUILD_TOOLS}apksigner${BAT}
 
 RELEASE_STORE_FILE=release.keystore
-RELEASE_STORE_PASSWORD=123456
 RELEASE_KEY_ALIAS=alias_name
-RELEASE_KEY_PASSWORD=123456
 
-mkdir -p bin
+mkdir -p dex
 mkdir -p obj
 mkdir -p lib/${ABI}
 mkdir -p src/com/nesbox/${NAME}
 
-cp ${NAME}.so lib/${ABI}/lib${NAME}.so
+cp bin/${NAME}.so lib/${ABI}/lib${NAME}.so
 
-${AAPT} package -v -f -m -S android/res -J src -M android/AndroidManifest.xml -I ${SDK_HOME}platforms/android-${VERSION}/android.jar
+${AAPT} package -v -f -m -S android/res -J src -M android/AndroidManifest.xml -I ${ANDROID_HOME}/platforms/android-${VERSION}/android.jar
 ${JAVA_HOME}/bin/javac -d ./obj -source 1.7 -target 1.7 -sourcepath src -bootclasspath "${RT_JAR}" "${SRC_DIR}/R.java"
-${DX} --verbose --dex --output=bin/classes.dex ./obj
-${AAPT} package -v -f -S android/res -M android/AndroidManifest.xml -I ${SDK_HOME}platforms/android-${VERSION}/android.jar -F ${NAME}-unaligned.apk bin
+${DX} --verbose --dex --output=dex/classes.dex ./obj
+${AAPT} package -v -f -S android/res -M android/AndroidManifest.xml -I ${ANDROID_HOME}/platforms/android-${VERSION}/android.jar -F ${NAME}-unaligned.apk dex
 ${AAPT} add -v ${NAME}-unaligned.apk lib/${ABI}/lib${NAME}.so
 ${ZIPALIGN} -f 4 ${NAME}-unaligned.apk ${NAME}.apk
 

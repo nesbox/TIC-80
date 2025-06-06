@@ -6,6 +6,11 @@ compile_commands.json
 compile_flags.txt
 sexit
 .vscode/
+build/dex
+build/obj
+build/src
+build/*.keystore
+build/*.apk
 build/install_manifest.txt
 build/vendor/
 build/uwp/tic/Debug/
