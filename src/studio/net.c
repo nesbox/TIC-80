@@ -397,23 +397,23 @@ struct tic_net
     s32 count;
 };
 
-// !TODO: fix it for Android
-// #if defined(__ANDROID__)
-// #include <jni.h>
-// JNIEnv *Android_JNI_GetEnv();
-// #endif
+#if defined(__ANDROID__)
+
+#include <android/native_activity.h>
+const void* sapp_android_get_native_activity(void);
+
+#endif
 
 tic_net* tic_net_create(const char* host)
 {
-// #if defined(__ANDROID__)
-//     JNIEnv *env = Android_JNI_GetEnv();
-//     JavaVM *vm = NULL;
-//     (*env)->GetJavaVM(env, &vm);
+#if defined(__ANDROID__)
 
-//     naettInit(vm);
-// #else
+    const ANativeActivity* activity = sapp_android_get_native_activity();
+    naettInit(activity->vm);
+
+#else
     naettInit(NULL);
-// #endif
+#endif
 
     tic_net* net = NEW(tic_net);
     memset(net, 0, sizeof(tic_net));

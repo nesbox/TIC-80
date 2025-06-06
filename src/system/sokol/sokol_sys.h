@@ -312,7 +312,36 @@ SOKOL_API_DECL void ssys_open_url(const char *url)
 
 SOKOL_API_DECL const char* ssys_app_folder(const char *org, const char *app)
 {
-    return "/";
+    static _sbuf result;
+
+    const ANativeActivity* activity = sapp_android_get_native_activity();
+    JNIEnv *env = activity->env;
+
+    (*activity->vm)->AttachCurrentThread(activity->vm, &env, NULL);
+
+    // this is the Activity (subclass of Context)
+    jobject context = activity->clazz;
+
+    // context.getFilesDir()
+    jclass contextClass = (*env)->GetObjectClass(env, context);
+    jmethodID getFilesDirID = (*env)->GetMethodID(env, contextClass, "getFilesDir", "()Ljava/io/File;");
+    jobject fileObj = (*env)->CallObjectMethod(env, context, getFilesDirID);
+
+    // file.getCanonicalPath()
+    jclass fileClass = (*env)->GetObjectClass(env, fileObj);
+    jmethodID getCanonicalPathID = (*env)->GetMethodID(env, fileClass, "getCanonicalPath", "()Ljava/lang/String;");
+    jstring canonicalPath = (jstring)(*env)->CallObjectMethod(env, fileObj, getCanonicalPathID);
+
+    const char* path = (*env)->GetStringUTFChars(env, canonicalPath, NULL);
+    snprintf(result, sizeof result, "%s/", path);
+    (*env)->ReleaseStringUTFChars(env, canonicalPath, path);
+
+    (*env)->DeleteLocalRef(env, contextClass);
+    (*env)->DeleteLocalRef(env, fileObj);
+    (*env)->DeleteLocalRef(env, fileClass);
+    (*env)->DeleteLocalRef(env, canonicalPath);
+
+    return result;
 }
 
 SOKOL_API_DECL void ssys_open_folder(const char *folder){}
