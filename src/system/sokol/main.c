@@ -857,6 +857,15 @@ static void processMouse(App *app, sapp_mousebutton btn, s32 down)
     }
 }
 
+static void processTouch(App *app, const sapp_touchpoint *touch)
+{
+    tic80_input* input = &app->input;
+
+    Rect r = viewport(app);
+    app->mouse.x = (touch->pos_x - r.x) * TIC80_FULLWIDTH / r.w;
+    app->mouse.y = (touch->pos_y - r.y) * TIC80_FULLHEIGHT / r.h;
+}
+
 static void event(const sapp_event* event, void *userdata)
 {
     App *app = userdata;
@@ -900,6 +909,17 @@ static void event(const sapp_event* event, void *userdata)
             break;
         case SAPP_EVENTTYPE_MOUSE_SCROLL:
             input->mouse.scrolly = event->scroll_y > 0 ? 1 : -1;
+            break;
+        case SAPP_EVENTTYPE_TOUCHES_BEGAN:
+            processTouch(app, &event->touches[0]);
+            processMouse(app, SAPP_MOUSEBUTTON_LEFT, 1);
+            break;
+        case SAPP_EVENTTYPE_TOUCHES_ENDED:
+            processTouch(app, &event->touches[0]);
+            processMouse(app, SAPP_MOUSEBUTTON_LEFT, 0);
+            break;
+        case SAPP_EVENTTYPE_TOUCHES_MOVED:
+            processTouch(app, &event->touches[0]);
             break;
         default:
             break;
