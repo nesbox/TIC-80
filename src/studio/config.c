@@ -37,8 +37,6 @@
 #define INTEGER_SCALE_DEFAULT true
 #endif
 
-#define JSON(...) #__VA_ARGS__
-
 static void readConfig(Config* config)
 {
     const char* json = config->cart->code.data;
@@ -249,24 +247,24 @@ static void saveOptions(Config* config)
     const struct StudioOptions* options = &config->data.options;
 
     string buf;
-    sprintf(buf.data, JSON(
-        {
+    sprintf(buf.data,
+        "{ "
 #if defined(CRT_SHADER_SUPPORT)
-            "crt":%s,
+            "\"crt\":%s, "
 #endif
-            "fullscreen":%s,
-            "vsync":%s,
-            "integerScale":%s,
-            "volume":%i,
-            "autosave":%s,
-            "mapping":"%s"
+            "\"fullscreen\":%s, "
+            "\"vsync\":%s, "
+            "\"integerScale\":%s, "
+            "\"volume\":%i, "
+            "\"autosave\":%s, "
+            "\"mapping\":\"%s\""
 #if defined(BUILD_EDITORS)
-            ,
-            "keybindMode":%i,
-            "tabMode":%i,
-            "tabSize":%i
+            ", "
+            "\"keybindMode\":%i, "
+            "\"tabMode\":%i, "
+            "\"tabSize\":%i"
 #endif
-        })
+        " }"
         ,
 #if defined(CRT_SHADER_SUPPORT)
         bool2str(options->crt),
