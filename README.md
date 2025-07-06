@@ -337,20 +337,20 @@ run the following commands in the Terminal
 ```
 brew install git cmake
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_WITH_ALL=On ..
+cmake -DBUILD_WITH_ALL=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
 make -j4
 ```
 
 to create application icon for development version
 ```
-mkdir -p ~/Applications/TIC80dev.app/Contents/{MacOS,Resources}
-cp -f macosx/tic80.plist ~/Applications/TIC80dev.app/Contents/Info.plist
-cp -f macosx/tic80.icns ~/Applications/TIC80dev.app/Contents/Resources
-cat > ~/Applications/TIC80dev.app/Contents/MacOS/tic80 <<EOF
+mkdir -p ~/Applications/tic80dev.app/Contents/{MacOS,Resources}
+cp -f macosx/tic80.plist ~/Applications/tic80dev.app/Contents/Info.plist
+cp -f macosx/tic80.icns ~/Applications/tic80dev.app/Contents/Resources
+cat > ~/Applications/tic80dev.app/Contents/MacOS/tic80 <<EOF
 #!/bin/sh
-exec /Users/nesbox/projects/TIC-80/build/bin/tic80 --skip --scale 2 >/dev/null
+exec /Users/nesbox/projects/TIC-80/build/bin/tic80 --skip >/dev/null
 EOF
-chmod +x ~/Applications/TIC80dev.app/Contents/MacOS/TIC80dev
+chmod +x ~/Applications/tic80dev.app/Contents/MacOS/tic80
 ```
 Make sure to update the absolute path to the tic80 binary in the script, or
 update the launch arguments.
