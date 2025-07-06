@@ -7,47 +7,9 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
-  # === Windows XP ===
-  winxp:
-    runs-on: windows-2019
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - name: Build
-        shell: cmd
-        run: |
-          COPY /Y build\janet\janetconf.h vendor\janet\src\conf\janetconf.h
-          cd build
-          cmake -G "Visual Studio 16 2019" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --config MinSizeRel --parallel
-
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-winxp"
-          path: |
-            build/bin/tic80.exe
-            build/bin/*.dll
-
-      - name: Build Pro
-        shell: cmd
-        run: |
-          COPY /Y build\janet\janetconf.h vendor\janet\src\conf\janetconf.h
-          cd build
-          cmake -G "Visual Studio 16 2019" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
-
   # === Windows ===
   windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +25,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 16 2019" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --config MinSizeRel --parallel
 
       - name: Deploy
@@ -78,7 +40,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 16 2019" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config MinSizeRel --parallel
 
   # === Windows MinGW-64 ===
