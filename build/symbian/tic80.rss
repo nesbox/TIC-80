@@ -1,0 +1,28 @@
+NAME    TICS
+
+#include <eikon.rh>
+#include "tic80.hrh"
+#include "tic80.rls"
+#include <avkon.rsg>
+#include <avkon.rh>
+#include <avkon.mbg>
+#include <appinfo.rh>
+
+RESOURCE RSS_SIGNATURE { }
+RESOURCE TBUF { buf="tic80"; }
+RESOURCE EIK_APP_INFO
+    {
+    cba=R_AVKON_SOFTKEYS_OPTIONS_BACK;
+    }
+
+RESOURCE LOCALISABLE_APP_INFO r_tic80_localisable_app_info
+    {
+    short_caption = STRING_r_app_short_caption_string;
+    caption_and_icon =
+    CAPTION_AND_ICON_INFO
+        {
+        caption         = STRING_r_app_caption_string;
+        number_of_icons = 1;
+        icon_file       = "\\resource\\apps\\tic80_icon.mif";
+        };
+    }

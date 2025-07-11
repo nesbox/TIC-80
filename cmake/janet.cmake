@@ -2,7 +2,13 @@
 # Janet
 ################################
 
-option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_ALL})
+if (SYMBIAN)
+    # Incompatible with Symbian…?
+    set(BUILD_WITH_JANET_DEFAULT 0)
+else()
+    set(BUILD_WITH_JANET_DEFAULT ${BUILD_WITH_ALL})
+endif()
+option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_JANET_DEFAULT})
 message("BUILD_WITH_JANET: ${BUILD_WITH_JANET}")
 
 if(BUILD_WITH_JANET AND PREFER_SYSTEM_LIBRARIES)
