@@ -60,7 +60,7 @@ static int prepare_colorindex(py_Ref index, u8* buffer)
         for (int i = 0; i < list_len; i++)
         {
             py_ItemRef item = py_list_getitem(index, i);
-            if(!py_checkint(item)) return -1;
+            if (!py_checkint(item)) return -1;
             buffer[i] = py_toint(item);
         }
         return list_len;
@@ -398,10 +398,10 @@ static bool py_line(int argc, py_Ref argv)
     return true;
 }
 
-static void remap_callback(void* ctx, s32 x, s32 y, RemapResult* res)
+static void remap_callback(void* callable, s32 x, s32 y, RemapResult* out)
 {
     py_StackRef p0 = py_peek(0);
-    py_push(py_peek(-1));
+    py_push(callable);
     py_pushnil();
     py_newint(py_pushtmp(), x);
     py_newint(py_pushtmp(), y);
@@ -412,23 +412,23 @@ static void remap_callback(void* ctx, s32 x, s32 y, RemapResult* res)
         return;
     }
 
-    py_Ref list = py_retval();
-    if (!py_checktype(list, tp_tuple))
+    py_Ref res = py_retval();
+    if (!py_checktype(res, tp_tuple))
     {
         log_and_clearexc(p0);
         return;
     }
 
-    if (py_tuple_len(list) != 3)
+    if (py_tuple_len(res) != 3)
     {
         TypeError("remap function should return a tuple of 3 items");
         log_and_clearexc(p0);
         return;
     }
 
-    py_ItemRef arg0 = py_tuple_getitem(list, 0);
-    py_ItemRef arg1 = py_tuple_getitem(list, 1);
-    py_ItemRef arg2 = py_tuple_getitem(list, 2);
+    py_ItemRef arg0 = py_tuple_getitem(res, 0);
+    py_ItemRef arg1 = py_tuple_getitem(res, 1);
+    py_ItemRef arg2 = py_tuple_getitem(res, 2);
 
     if (!py_checktype(arg0, tp_int) ||
         !py_checktype(arg1, tp_int) ||
@@ -438,9 +438,9 @@ static void remap_callback(void* ctx, s32 x, s32 y, RemapResult* res)
         return;
     }
 
-    res->index = py_toint(arg0);
-    res->flip = py_toint(arg1);
-    res->rotate = py_toint(arg2);
+    out->index = py_toint(arg0);
+    out->flip = py_toint(arg1);
+    out->rotate = py_toint(arg2);
 }
 
 // map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap=None)
@@ -468,7 +468,10 @@ static bool py_map(int argc, py_Ref argv)
     tic_core* core = get_core();
     if (!py_isnone(py_arg(8)))
     {
-        core->api.map((tic_mem*)core, x, y, w, h, sx, sy, colors, colors_count, scale, remap_callback, core->currentVM);
+        py_StackRef tmp = py_pushtmp();
+        py_assign(tmp, py_arg(8));
+        core->api.map((tic_mem*)core, x, y, w, h, sx, sy, colors, colors_count, scale, remap_callback, tmp);
+        py_pop();
     }
     else
     {
