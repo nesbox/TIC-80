@@ -60,6 +60,7 @@ static int prepare_colorindex(py_Ref index, u8* buffer)
         for (int i = 0; i < list_len; i++)
         {
             py_ItemRef item = py_list_getitem(index, i);
+            if(!py_checkint(item)) return -1;
             buffer[i] = py_toint(item);
         }
         return list_len;
@@ -286,7 +287,6 @@ static bool py_fget(int argc, py_Ref argv)
     u8 flag = py_toint(py_arg(1));
 
     tic_core* core = get_core();
-    core->api.fget((tic_mem*)core, sprite_id, flag);
     bool res = core->api.fget((tic_mem*)core, sprite_id, flag);
     py_newbool(py_retval(), res);
     return true;
@@ -522,7 +522,6 @@ static bool py_mget(int argc, py_Ref argv)
     s32 y = py_toint(py_arg(1));
 
     tic_core* core = get_core();
-    core->api.mget((tic_mem*)core, x, y);
     u8 res = core->api.mget((tic_mem*)core, x, y);
     py_newint(py_retval(), res);
     return true;
@@ -944,6 +943,7 @@ static bool py_trace(int argc, py_Ref argv)
 {
     PY_CHECK_ARG_TYPE(1, tp_int);
     u8 color = py_toint(py_arg(1));
+
     if (!py_str(py_arg(0))) return false;
     py_Ref arg0 = py_pushtmp();
     py_assign(arg0, py_retval());
