@@ -468,10 +468,7 @@ static bool py_map(int argc, py_Ref argv)
     tic_core* core = get_core();
     if (!py_isnone(py_arg(8)))
     {
-        py_StackRef tmp = py_pushtmp();
-        py_assign(tmp, py_arg(8));
-        core->api.map((tic_mem*)core, x, y, w, h, sx, sy, colors, colors_count, scale, remap_callback, tmp);
-        py_pop();
+        core->api.map((tic_mem*)core, x, y, w, h, sx, sy, colors, colors_count, scale, remap_callback, py_arg(8));
     }
     else
     {
