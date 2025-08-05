@@ -136,5 +136,6 @@ cmake -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
       $STATIC_FLAG \
       -DBUILD_WITH_ALL=On \
       -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
       .. && \
 cmake --build . --config "$BUILD_TYPE" --parallel "$THREADS"
