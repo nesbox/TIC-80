@@ -455,8 +455,7 @@ jobs:
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: |
-            build/bin
+          path: build/bin
 
   # === GitHub Pages ===
   pages:
