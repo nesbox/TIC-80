@@ -89,14 +89,15 @@ if(BUILD_SOKOL)
         set_target_properties(tic80 PROPERTIES PREFIX "")
     elseif(EMSCRIPTEN)
         add_executable(tic80 ${TIC80_SRC})
-        set_target_properties(tic80 PROPERTIES LINK_FLAGS "
-            -s USE_WEBGPU=1 
-            -s ALLOW_MEMORY_GROWTH=1 
-            -s FETCH=1 
-            -s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=['$dynCall','$writeArrayToMemory'] 
-            -s EXPORTED_RUNTIME_METHODS=['FS']  
-            -s EXPORT_ES6=1 
-            -s MODULARIZE=1")
+        set_target_properties(tic80 PROPERTIES LINK_FLAGS 
+            "-s USE_WEBGPU=1"
+            "-s ALLOW_MEMORY_GROWTH=1"
+            "-s FETCH=1"
+            "-s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=['$dynCall','$writeArrayToMemory']"
+            "-s EXPORTED_RUNTIME_METHODS=['FS']"
+            "-s EXPORT_ES6=1"
+            "-s MODULARIZE=1"
+        )
     else()
         add_executable(tic80 ${TIC80_SRC})
     endif()
