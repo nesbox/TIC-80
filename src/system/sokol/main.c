@@ -465,7 +465,7 @@ static void init(void *userdata)
     {
         .width = TIC80_FULLWIDTH,
         .height = TIC80_FULLHEIGHT,
-        .usage = SG_USAGE_STREAM,
+        .usage.stream_update = true,
     });
 
     app->linear = sg_make_sampler(&(sg_sampler_desc)
@@ -497,7 +497,7 @@ static void init(void *userdata)
 
         app->crt.image = sg_make_image(&(sg_image_desc)
         {
-            .render_target = true,
+            .usage.render_attachment = true,
             .width = TIC80_FULLWIDTH * CRT_SCALE,
             .height = TIC80_FULLHEIGHT * CRT_SCALE,
             .pixel_format = SG_PIXELFORMAT_RGBA8,
