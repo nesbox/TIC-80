@@ -453,10 +453,10 @@ jobs:
             build/bin/*
 
       - name: Upload pages artifact
-        uses: actions/upload-pages-artifact@v3 # or specific "vX.X.X" version tag for this action
+        uses: actions/upload-pages-artifact@v3
         with:
           path: |
-            build/bin/*
+            build/bin
 
   # === GitHub Pages ===
   pages:
