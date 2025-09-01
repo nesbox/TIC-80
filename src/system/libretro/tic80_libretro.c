@@ -1034,7 +1034,7 @@ void tic80_libretro_variables(bool startup)
 		state->mouseHideTimerStart = atoi(var.value);
 		if (state->mouseHideTimerStart > 0) {
 			state->mouseHideTimerStart = state->mouseHideTimerStart * TIC80_FRAMERATE;
-			state->mouseHideTimer = state->mouseHideTimerStart;
+			state->mouseHideTimer = 0; // Cursor starts hidden
 		}
 		else {
 			state->mouseHideTimerStart = 0;
