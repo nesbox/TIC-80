@@ -1217,13 +1217,13 @@ static const char* const PythonKeywords[] =
         "return", "try", "while", "with", "yield"};
 
 static const u8 DemoRom[] =
-    {
-#include "../build/assets/pythondemo.tic.dat"
+{
+    #include "pythondemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
-    {
-#include "../build/assets/pythonmark.tic.dat"
+{
+    #include "pythonmark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Python) =
