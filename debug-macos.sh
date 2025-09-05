@@ -110,8 +110,18 @@ if [ "$HOMEBREW" = true ]; then
   export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
   export LDFLAGS="-L/opt/homebrew/opt/llvm/lib/c++ -Wl,-rpath,/opt/homebrew/opt/llvm/lib/c++ -L/opt/homebrew/opt/llvm/lib"
   export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
+  
+  # Add explicit compiler flags like MacPorts does
+  CLANG="/opt/homebrew/opt/llvm/bin/clang"
+  CLANGPP="/opt/homebrew/opt/llvm/bin/clang++"
+  if [ -z "$CLANG" ] || [ -z "$CLANGPP" ]; then
+    echo "Homebrew clang or clang++ not found. Please ensure llvm is installed via Homebrew."
+    exit 1
+  fi
+  COMPILER_FLAGS="$COMPILER_FLAGS -DCMAKE_C_COMPILER=$CLANG -DCMAKE_CXX_COMPILER=$CLANGPP"
+  
   echo
-  echo "Using clang at $(which clang) and clang++ at $(which clang++) from Homebrew"
+  echo "Using clang at $CLANG and clang++ at $CLANGPP from Homebrew"
 fi
 
 if [ "$STATIC" = true ]; then
@@ -147,5 +157,6 @@ cmake -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
       $STATIC_FLAG \
       -DBUILD_WITH_ALL=On \
       -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
+      -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
       .. && \
 cmake --build . --config "$BUILD_TYPE" --parallel
