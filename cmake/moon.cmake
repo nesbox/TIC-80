@@ -14,6 +14,7 @@ if(BUILD_WITH_MOON)
         ${LPEG_DIR}/lpprint.c
         ${LPEG_DIR}/lptree.c
         ${LPEG_DIR}/lpvm.c
+        ${LPEG_DIR}/lpcset.c
     )
 
     add_library(lpeg STATIC ${LPEG_SRC})
