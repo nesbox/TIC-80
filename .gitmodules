@@ -10,10 +10,6 @@
 	path = vendor/giflib
 	url = https://github.com/nesbox/giflib.git
 	shallow = true
-[submodule "vendor/lpeg"]
-	path = vendor/lpeg
-	url = https://github.com/nesbox/lpeg.git
-	shallow = true
 [submodule "vendor/lua"]
 	path = vendor/lua
 	url = https://github.com/lua/lua.git
@@ -87,3 +83,6 @@
 	url = https://github.com/pocketpy/pocketpy.git
 	shallow = true
 
+[submodule "vendor/lpeg"]
+	path = vendor/lpeg
+	url = https://github.com/roberto-ieru/LPeg.git
