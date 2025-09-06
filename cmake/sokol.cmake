@@ -96,11 +96,7 @@ if(BUILD_SOKOL)
     elseif(EMSCRIPTEN)
         add_executable(tic80 ${TIC80_SRC})
 
-        set(LINK_FLAGS "-s EXPORT_ES6=1 
-            -s ALLOW_MEMORY_GROWTH=1 
-            -s FETCH=1 
-            -s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=['$dynCall','$writeArrayToMemory'] 
-            -s EXPORTED_RUNTIME_METHODS=['FS']")
+        set(LINK_FLAGS "-s EXPORT_ES6=1 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=['$dynCall','$writeArrayToMemory'] -s EXPORTED_RUNTIME_METHODS=['FS']")
 
         if(BUILD_SOKOL_WEBGPU)
             set_target_properties(tic80 PROPERTIES LINK_FLAGS "${LINK_FLAGS} --use-port=emdawnwebgpu")
