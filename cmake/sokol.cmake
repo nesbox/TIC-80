@@ -15,8 +15,13 @@ if(BUILD_SOKOL)
     elseif(WIN32)
         target_compile_definitions(sokol PUBLIC SOKOL_D3D11 UNICODE)
     elseif(EMSCRIPTEN)
-        target_compile_definitions(sokol PUBLIC SOKOL_WGPU)
-        target_compile_options(sokol PRIVATE --use-port=emdawnwebgpu)
+
+        if(BUILD_SOKOL_WEBGPU)
+            target_compile_definitions(sokol PUBLIC SOKOL_WGPU)
+            target_compile_options(sokol PRIVATE --use-port=emdawnwebgpu)
+        else()
+            target_compile_definitions(sokol PUBLIC SOKOL_GLES3)
+        endif()
     endif()
 
     if(APPLE)
@@ -90,8 +95,18 @@ if(BUILD_SOKOL)
         set_target_properties(tic80 PROPERTIES PREFIX "")
     elseif(EMSCRIPTEN)
         add_executable(tic80 ${TIC80_SRC})
-        target_link_options(tic80 PRIVATE -s EXPORT_ES6=1)
-        set_target_properties(tic80 PROPERTIES LINK_FLAGS --use-port=emdawnwebgpu -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=['$dynCall','$writeArrayToMemory123'] -s EXPORTED_RUNTIME_METHODS=['FS'])
+
+        set(LINK_FLAGS "-s EXPORT_ES6=1 
+            -s ALLOW_MEMORY_GROWTH=1 
+            -s FETCH=1 
+            -s DEFAULT_LIBRARY_FUNCS_TO_INCLUDE=['$dynCall','$writeArrayToMemory'] 
+            -s EXPORTED_RUNTIME_METHODS=['FS']")
+
+        if(BUILD_SOKOL_WEBGPU)
+            set_target_properties(tic80 PROPERTIES LINK_FLAGS "${LINK_FLAGS} --use-port=emdawnwebgpu")
+        else()
+            set_target_properties(tic80 PROPERTIES LINK_FLAGS "${LINK_FLAGS} -s USE_WEBGL2=1")
+        endif()
     else()
         add_executable(tic80 ${TIC80_SRC})
     endif()
