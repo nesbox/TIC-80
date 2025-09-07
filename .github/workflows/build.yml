@@ -438,6 +438,8 @@ jobs:
         with:
           ruby-version: 2.6
 
+      - uses: actions/setup-node@v5
+
       - name: Build all
         run: |
           cd build
@@ -452,10 +454,17 @@ jobs:
           path: |
             build/bin/*
 
+      - name: Build website
+        run: |
+          cp build/bin/* website/public
+          cd website
+          npm install
+          npm run build
+
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build/bin
+          path: website/dist
 
   # === GitHub Pages ===
   pages:
