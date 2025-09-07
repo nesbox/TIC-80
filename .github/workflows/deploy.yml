@@ -1,0 +1,21 @@
+name: Deploy to Production
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
+    branches:
+      - website
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
