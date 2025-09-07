@@ -456,7 +456,8 @@ jobs:
 
       - name: Build website
         run: |
-          cp build/bin/* website/public
+          mkdir -p website/public/app
+          cp build/bin/* website/public/app
           cd website
           npm install
           npm run build
