@@ -25,7 +25,6 @@
 #if defined(BUILD_EDITORS)
 
 #include <time.h>
-#include <sys/time.h>
 #include "editors/code.h"
 #include "editors/sprite.h"
 #include "editors/map.h"
@@ -1668,20 +1667,47 @@ static void generateScreenshotName(Studio* studio, const char* extension, char f
     size_t baseLen = dot ? (size_t)(dot - romName) : strlen(romName);
 
     // --- Current time ---
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
 
-    struct tm* tm = localtime(&tv.tv_sec);
+    time_t sec = 0;
+    long msec = 0;
+
+    // Try to get high-resolution time (C11). On success, sec+msec populated.
+    // If not available, we fall back to seconds only (msec stays 0).
+#if defined(_MSC_VER) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L))
+    {
+        struct timespec ts;
+        if (timespec_get(&ts, TIME_UTC) == TIME_UTC) {
+            sec = ts.tv_sec;
+            msec = (long)(ts.tv_nsec / 1000000L);
+        } else {
+            sec = time(NULL);
+        }
+    }
+#else
+    sec = time(NULL);
+#endif
+
+    struct tm tm_local;
+
+    // Thread-safe localtime
+#if defined(_WIN32)
+    // Windows secure version
+    localtime_s(&tm_local, &sec);
+#else
+    // POSIX re-entrant version
+    localtime_r(&sec, &tm_local);
+#endif
+
     char timestamp[32] = {0};
 
-    if (tm)
+    if (&tm_local)
     {
         // -yymmdd-hhmmss
-        strftime(timestamp, sizeof(timestamp), "-%y%m%d-%H%M%S", tm);
+        strftime(timestamp, sizeof(timestamp), "-%y%m%d-%H%M%S", &tm_local);
 
         // append milliseconds
         size_t len = strlen(timestamp);
-        snprintf(timestamp + len, sizeof(timestamp) - len, "-%03ld", tv.tv_usec / 1000);
+        snprintf(timestamp + len, sizeof(timestamp) - len, "-%03ld", msec);
     }
 
     // --- Adjust baseLen to prevent overflow ---
