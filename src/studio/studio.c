@@ -24,6 +24,12 @@
 
 #if defined(BUILD_EDITORS)
 
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <sys/time.h>
+#endif
+
 #include "editors/code.h"
 #include "editors/sprite.h"
 #include "editors/map.h"
@@ -66,6 +72,9 @@
 #endif
 
 #define MD5_HASHSIZE 16
+
+// interval between the Windows and Unix epoch
+#define UNIX_EPOCH_IN_FILETIME 116444736000000000ULL
 
 #if defined(TIC80_PRO)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
@@ -229,13 +238,6 @@ struct Studio
     tic_font systemFont;
 
 };
-
-#if defined(BUILD_EDITORS)
-
-static const char VideoGif[] = "video%i.gif";
-static const char ScreenGif[] = "screen%i.gif";
-
-#endif
 
 static void emptyDone(void* data) {}
 
@@ -1663,18 +1665,81 @@ static void setCoverImage(Studio* studio)
     }
 }
 
-static void stopVideoRecord(Studio* studio, const char* name)
+static void generateScreenshotName(Studio* studio, const char* extension, char filenameOut[TICNAME_MAX])
+{
+    const char* romName = studio->console->rom.name;
+
+    // --- Strip extension ---
+    const char* dot = strrchr(romName, '.');
+    size_t baseLen = dot ? (size_t)(dot - romName) : strlen(romName);
+
+    // --- Get current time with millisecond precision ---
+    time_t sec = 0;
+    long msec = 0;
+
+#if defined(_WIN32)
+    // Windows: Use GetSystemTimeAsFileTime for high precision.
+    // It provides time in 100-nanosecond intervals since Jan 1, 1601.
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+
+    ULARGE_INTEGER uli;
+    uli.LowPart = ft.dwLowDateTime;
+    uli.HighPart = ft.dwHighDateTime;
+
+    // Convert FILETIME to Unix seconds and milliseconds
+    sec = (time_t)((uli.QuadPart - UNIX_EPOCH_IN_FILETIME) / 10000000ULL);
+    msec = (long)((uli.QuadPart / 10000) % 1000);
+#else
+    // Other systems (Linux, macOS, 3DS, etc.): Use gettimeofday, which is widely available.
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    sec = tv.tv_sec;
+    msec = (long)(tv.tv_usec / 1000);
+#endif
+
+    // --- Convert seconds to a local time structure (thread-safe) ---
+    struct tm tm_local;
+
+    // Thread-safe localtime
+#if defined(_WIN32)
+    // Windows secure version
+    localtime_s(&tm_local, &sec);
+#else
+    // POSIX re-entrant version
+    localtime_r(&sec, &tm_local);
+#endif
+
+    // --- Format the timestamp string ---
+    char timestamp[32] = {0};
+
+    // Format as -yymmdd-hhmmss
+    strftime(timestamp, sizeof(timestamp), "-%y%m%d-%H%M%S", &tm_local);
+
+    // Append milliseconds
+    size_t len = strlen(timestamp);
+    snprintf(timestamp + len, sizeof(timestamp) - len, "-%03ld", msec);
+
+    // --- Adjust baseLen to prevent overflow ---
+    size_t maxBaseLen = TICNAME_MAX
+                      - strlen(timestamp)
+                      - strlen(extension)
+                      - 1; // for null terminator
+
+    if (baseLen > maxBaseLen)
+        baseLen = maxBaseLen;
+
+    // --- Build the final filename string ---
+    snprintf(filenameOut, TICNAME_MAX, "%.*s%s%s",
+             (int)baseLen, romName, timestamp, extension);
+}
+
+static void stopVideoRecord(Studio* studio)
 {
     MsfGifResult result = msf_gif_end(&studio->video.gif);
 
-    // Find an available filename to save.
-    s32 i = 0;
     char filename[TICNAME_MAX];
-    do
-    {
-        snprintf(filename, sizeof filename, name, ++i);
-    }
-    while(tic_fs_exists(studio->fs, filename));
+    generateScreenshotName(studio, ".gif", filename);
 
     // Now that it has found an available filename, save it.
     if(tic_fs_save(studio->fs, filename, result.data, result.dataSize, true))
@@ -1696,7 +1761,7 @@ static void startVideoRecord(Studio* studio)
 {
     if(studio->video.record)
     {
-        stopVideoRecord(studio, VideoGif);
+        stopVideoRecord(studio);
     }
     else
     {
@@ -2037,7 +2102,7 @@ static void recordFrame(Studio* studio, u32* pixels)
         if(studio->video.screenshot)
         {
             studio->video.screenshot = false;
-            stopVideoRecord(studio, ScreenGif);
+            stopVideoRecord(studio);
             return;
         }
 
