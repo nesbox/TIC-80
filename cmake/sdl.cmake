@@ -24,19 +24,13 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_LIBRARIES)
         set(SDL_STATIC_PIC ON CACHE BOOL "" FORCE)
     endif()
 
-    # Ensure SDL2 builds with the same runtime as the rest of the project
-    if(MSVC)
-        # Force MSVC runtime globally
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
-    endif()
 
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
 
     if(MSVC)
-        # Force MSVC runtime for the SDL2 library specifically
-        set_property(DIRECTORY ${THIRDPARTY_DIR}/sdl2 PROPERTY
-            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-
+        # CMake policy CMP0079
+        # This allows linking libraries to targets not built in the current directory.
+        cmake_policy_set(CMP0079 NEW)
         target_link_libraries(SDL2 PRIVATE
             libcmt.lib
             libvcruntime.lib
