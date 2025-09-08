@@ -24,6 +24,8 @@
 
 #if defined(BUILD_EDITORS)
 
+#include <time.h>
+#include <sys/time.h>
 #include "editors/code.h"
 #include "editors/sprite.h"
 #include "editors/map.h"
@@ -229,13 +231,6 @@ struct Studio
     tic_font systemFont;
 
 };
-
-#if defined(BUILD_EDITORS)
-
-static const char VideoGif[] = "video%i.gif";
-static const char ScreenGif[] = "screen%i.gif";
-
-#endif
 
 static void emptyDone(void* data) {}
 
@@ -1663,18 +1658,52 @@ static void setCoverImage(Studio* studio)
     }
 }
 
-static void stopVideoRecord(Studio* studio, const char* name)
+static void generateScreenshotName(Studio* studio, const char* extension, char filenameOut[TICNAME_MAX])
+{
+    const char* romName = studio->console->rom.name;
+
+    // --- Strip extension ---
+    const char* dot = strrchr(romName, '.');
+
+    size_t baseLen = dot ? (size_t)(dot - romName) : strlen(romName);
+
+    // --- Current time ---
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    struct tm* tm = localtime(&tv.tv_sec);
+    char timestamp[32] = {0};
+
+    if (tm)
+    {
+        // -yymmdd-hhmmss
+        strftime(timestamp, sizeof(timestamp), "-%y%m%d-%H%M%S", tm);
+
+        // append milliseconds
+        size_t len = strlen(timestamp);
+        snprintf(timestamp + len, sizeof(timestamp) - len, "-%03ld", tv.tv_usec / 1000);
+    }
+
+    // --- Adjust baseLen to prevent overflow ---
+    size_t maxBaseLen = TICNAME_MAX
+                      - strlen(timestamp)
+                      - strlen(extension)
+                      - 1; // for null terminator
+
+    if (baseLen > maxBaseLen)
+        baseLen = maxBaseLen;
+
+    // --- Build final string ---
+    snprintf(filenameOut, TICNAME_MAX, "%.*s%s%s",
+             (int)baseLen, romName, timestamp, extension);
+}
+
+static void stopVideoRecord(Studio* studio)
 {
     MsfGifResult result = msf_gif_end(&studio->video.gif);
 
-    // Find an available filename to save.
-    s32 i = 0;
     char filename[TICNAME_MAX];
-    do
-    {
-        snprintf(filename, sizeof filename, name, ++i);
-    }
-    while(tic_fs_exists(studio->fs, filename));
+    generateScreenshotName(studio, ".gif", filename);
 
     // Now that it has found an available filename, save it.
     if(tic_fs_save(studio->fs, filename, result.data, result.dataSize, true))
@@ -1696,7 +1725,7 @@ static void startVideoRecord(Studio* studio)
 {
     if(studio->video.record)
     {
-        stopVideoRecord(studio, VideoGif);
+        stopVideoRecord(studio);
     }
     else
     {
@@ -2037,7 +2066,7 @@ static void recordFrame(Studio* studio, u32* pixels)
         if(studio->video.screenshot)
         {
             studio->video.screenshot = false;
-            stopVideoRecord(studio, ScreenGif);
+            stopVideoRecord(studio);
             return;
         }
 
