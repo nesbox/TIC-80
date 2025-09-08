@@ -30,18 +30,6 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_LIBRARIES)
 
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
 
-    if(MSVC)
-        # CMake policy CMP0079
-        # This allows linking libraries to targets not built in the current directory.
-        cmake_policy(SET CMP0079 NEW)
-
-        target_link_libraries(SDL2 PRIVATE
-            libcmt.lib
-            libvcruntime.lib
-            libucrt.lib
-        )
-    endif()
-
 endif()
 
 ################################
