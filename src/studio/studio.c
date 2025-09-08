@@ -24,7 +24,12 @@
 
 #if defined(BUILD_EDITORS)
 
-#include <time.h>
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <sys/time.h>
+#endif
+
 #include "editors/code.h"
 #include "editors/sprite.h"
 #include "editors/map.h"
@@ -67,6 +72,9 @@
 #endif
 
 #define MD5_HASHSIZE 16
+
+// interval between the Windows and Unix epoch
+#define UNIX_EPOCH_IN_FILETIME 116444736000000000ULL
 
 #if defined(TIC80_PRO)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
@@ -1663,30 +1671,34 @@ static void generateScreenshotName(Studio* studio, const char* extension, char f
 
     // --- Strip extension ---
     const char* dot = strrchr(romName, '.');
-
     size_t baseLen = dot ? (size_t)(dot - romName) : strlen(romName);
 
-    // --- Current time ---
-
+    // --- Get current time with millisecond precision ---
     time_t sec = 0;
     long msec = 0;
 
-    // Try to get high-resolution time (C11). On success, sec+msec populated.
-    // If not available, we fall back to seconds only (msec stays 0).
-#if defined(_MSC_VER) || (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L))
-    {
-        struct timespec ts;
-        if (timespec_get(&ts, TIME_UTC) == TIME_UTC) {
-            sec = ts.tv_sec;
-            msec = (long)(ts.tv_nsec / 1000000L);
-        } else {
-            sec = time(NULL);
-        }
-    }
+#if defined(_WIN32)
+    // Windows: Use GetSystemTimeAsFileTime for high precision.
+    // It provides time in 100-nanosecond intervals since Jan 1, 1601.
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+
+    ULARGE_INTEGER uli;
+    uli.LowPart = ft.dwLowDateTime;
+    uli.HighPart = ft.dwHighDateTime;
+
+    // Convert FILETIME to Unix seconds and milliseconds
+    sec = (time_t)((uli.QuadPart - UNIX_EPOCH_IN_FILETIME) / 10000000ULL);
+    msec = (long)((uli.QuadPart / 10000) % 1000);
 #else
-    sec = time(NULL);
+    // Other systems (Linux, macOS, 3DS, etc.): Use gettimeofday, which is widely available.
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    sec = tv.tv_sec;
+    msec = (long)(tv.tv_usec / 1000);
 #endif
 
+    // --- Convert seconds to a local time structure (thread-safe) ---
     struct tm tm_local;
 
     // Thread-safe localtime
@@ -1698,17 +1710,15 @@ static void generateScreenshotName(Studio* studio, const char* extension, char f
     localtime_r(&sec, &tm_local);
 #endif
 
+    // --- Format the timestamp string ---
     char timestamp[32] = {0};
 
-    if (&tm_local)
-    {
-        // -yymmdd-hhmmss
-        strftime(timestamp, sizeof(timestamp), "-%y%m%d-%H%M%S", &tm_local);
+    // Format as -yymmdd-hhmmss
+    strftime(timestamp, sizeof(timestamp), "-%y%m%d-%H%M%S", &tm_local);
 
-        // append milliseconds
-        size_t len = strlen(timestamp);
-        snprintf(timestamp + len, sizeof(timestamp) - len, "-%03ld", msec);
-    }
+    // Append milliseconds
+    size_t len = strlen(timestamp);
+    snprintf(timestamp + len, sizeof(timestamp) - len, "-%03ld", msec);
 
     // --- Adjust baseLen to prevent overflow ---
     size_t maxBaseLen = TICNAME_MAX
@@ -1719,7 +1729,7 @@ static void generateScreenshotName(Studio* studio, const char* extension, char f
     if (baseLen > maxBaseLen)
         baseLen = maxBaseLen;
 
-    // --- Build final string ---
+    // --- Build the final filename string ---
     snprintf(filenameOut, TICNAME_MAX, "%.*s%s%s",
              (int)baseLen, romName, timestamp, extension);
 }
