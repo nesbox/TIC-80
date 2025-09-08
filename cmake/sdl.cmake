@@ -36,6 +36,12 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_LIBRARIES)
         # Force MSVC runtime for the SDL2 library specifically
         set_property(DIRECTORY ${THIRDPARTY_DIR}/sdl2 PROPERTY
             MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+        target_link_libraries(SDL2 PRIVATE
+            libcmt.lib
+            libvcruntime.lib
+            libucrt.lib
+        )
     endif()
 
 endif()
