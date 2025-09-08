@@ -24,6 +24,11 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_LIBRARIES)
         set(SDL_STATIC_PIC ON CACHE BOOL "" FORCE)
     endif()
 
+    # Ensure SDL2 builds with the same runtime as the rest of the project
+    if(MSVC)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
+    endif()
+
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
 
 endif()
