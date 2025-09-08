@@ -26,7 +26,12 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_LIBRARIES)
 
     # Ensure SDL2 builds with the same runtime as the rest of the project
     if(MSVC)
+        # Force MSVC runtime globally
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
+
+        # Also force it inside the SDL2 directory specifically
+        set_property(DIRECTORY ${THIRDPARTY_DIR}/sdl2 PROPERTY
+            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
     endif()
 
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
