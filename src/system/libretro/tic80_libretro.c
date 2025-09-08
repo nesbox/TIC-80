@@ -766,6 +766,49 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 }
 
 /**
+ * Gets the 32-bit color value from the TIC-80 palette.
+ */
+static u32 get_screen_color(tic_mem* tic, u8 index)
+{
+	tic_rgb color = tic->ram->vram.palette.colors[index];
+	// The core requests RETRO_PIXEL_FORMAT_XRGB8888, so we format the color as 0x00RRGGBB.
+	return (color.r << 16) | (color.g << 8) | (color.b);
+}
+
+/**
+ * Draws a single pixel directly to the final screen buffer.
+ */
+static void draw_pixel_on_screen(u32* screen, s32 x, s32 y, u32 color)
+{
+	// Bounds check against the visible screen area
+	if (x < 0 || x >= TIC80_WIDTH || y < 0 || y >= TIC80_HEIGHT)
+		return;
+
+	s32 full_x = x + TIC80_OFFSET_LEFT;
+	s32 full_y = y + TIC80_OFFSET_TOP;
+
+	screen[full_y * TIC80_FULLWIDTH + full_x] = color;
+}
+
+/**
+ * Draws a horizontal line directly to the final screen buffer.
+ */
+static void draw_hline_on_screen(u32* screen, s32 x1, s32 x2, s32 y, u32 color)
+{
+	for (s32 x = x1; x <= x2; x++)
+		draw_pixel_on_screen(screen, x, y, color);
+}
+
+/**
+ * Draws a vertical line directly to the final screen buffer.
+ */
+static void draw_vline_on_screen(u32* screen, s32 x, s32 y1, s32 y2, u32 color)
+{
+	for (s32 y = y1; y <= y2; y++)
+		draw_pixel_on_screen(screen, x, y, color);
+}
+
+/**
  * Draws a software cursor on the screen where the mouse is.
  */
 void tic80_libretro_mousecursor(tic80* game, tic80_mouse* mouse, enum mouse_cursor_type cursortype)
@@ -777,26 +820,45 @@ void tic80_libretro_mousecursor(tic80* game, tic80_mouse* mouse, enum mouse_curs
 		return;
 	}
 
-	tic_mem* tic = (tic_mem*)state->tic;
+	tic_mem* tic = (tic_mem*)game;
+	u32* screen = game->screen;
+	s32 mx = state->mouseX;
+	s32 my = state->mouseY;
 
-	// Draw the cursor.
-	// TODO: Fix the cursor not being drawn on the screen by possibly modifing game->screen directly.
+	// Calculate the final 32-bit color value
+	u32 cursor_color = get_screen_color(tic, state->mouseCursorColor);
+
+	// Draw the cursor directly to the screen buffer.
 	switch (cursortype) {
 		case MOUSE_CURSOR_NONE:
 			// Nothing.
 		break;
 		case MOUSE_CURSOR_DOT:
-			tic_api_pix(tic, state->mouseX, state->mouseY, state->mouseCursorColor, false);
+			draw_pixel_on_screen(screen, mx, my, cursor_color);
 		break;
 		case MOUSE_CURSOR_CROSS:
-			tic_api_line(tic, state->mouseX - 4, state->mouseY, state->mouseX - 2, state->mouseY, state->mouseCursorColor);
-			tic_api_line(tic, state->mouseX + 2, state->mouseY, state->mouseX + 4, state->mouseY, state->mouseCursorColor);
-			tic_api_line(tic, state->mouseX, state->mouseY - 4, state->mouseX, state->mouseY - 2, state->mouseCursorColor);
-			tic_api_line(tic, state->mouseX, state->mouseY + 2, state->mouseX, state->mouseY + 4, state->mouseCursorColor);
+			draw_hline_on_screen(screen, mx - 4, mx - 2, my, cursor_color);
+			draw_hline_on_screen(screen, mx + 2, mx + 4, my, cursor_color);
+			draw_vline_on_screen(screen, mx, my - 4, my - 2, cursor_color);
+			draw_vline_on_screen(screen, mx, my + 2, my + 4, cursor_color);
 		break;
 		case MOUSE_CURSOR_ARROW:
-			tic_api_tri(tic, state->mouseX, state->mouseY, state->mouseX + 3, state->mouseY, state->mouseX, state->mouseY + 3, state->mouseCursorColor);
-			tic_api_line(tic, state->mouseX + 3, state->mouseY, state->mouseX, state->mouseY + 3, tic_color_black);
+		{
+			// Calculate black for the outline.
+			u32 black_color = get_screen_color(tic, tic_color_black);
+
+			// Draw the filled triangle part of the arrow
+			for (int y = 0; y <= 2; y++) {
+				for (int x = 0; x <= 2 - y; x++) {
+					draw_pixel_on_screen(screen, mx + x, my + y, cursor_color);
+				}
+			}
+			// Draw the black outline (hypotenuse of the triangle)
+			draw_pixel_on_screen(screen, mx + 3, my, black_color);
+			draw_pixel_on_screen(screen, mx + 2, my + 1, black_color);
+			draw_pixel_on_screen(screen, mx + 1, my + 2, black_color);
+			draw_pixel_on_screen(screen, mx, my + 3, black_color);
+		}
 		break;
 	}
 }
@@ -972,7 +1034,7 @@ void tic80_libretro_variables(bool startup)
 		state->mouseHideTimerStart = atoi(var.value);
 		if (state->mouseHideTimerStart > 0) {
 			state->mouseHideTimerStart = state->mouseHideTimerStart * TIC80_FRAMERATE;
-			state->mouseHideTimer = state->mouseHideTimerStart;
+			state->mouseHideTimer = 0; // Cursor starts hidden
 		}
 		else {
 			state->mouseHideTimerStart = 0;
