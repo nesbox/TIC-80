@@ -68,3 +68,5 @@
     REP##HUNDREDS(REP10(REP10(__VA_ARGS__)))  \
     REP##TENS(REP10(__VA_ARGS__))             \
     REP##ONES(__VA_ARGS__)
+
+#define LPRINTF(FMT, ...) printf("tic80: in file %s: in function %s: at line %d: " FMT "\n", __FILE__, __func__, __LINE__, ##__VA_ARGS__)
