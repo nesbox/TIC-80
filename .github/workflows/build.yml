@@ -444,6 +444,20 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: Debug CMake
+        run: |
+          echo "== which cmake =="
+          which cmake || true
+          echo
+          echo "== cmake --version =="
+          cmake --version || true
+          echo
+          echo "== ANDROID_SDK_ROOT =="
+          echo "$ANDROID_SDK_ROOT"
+          echo
+          echo "== ls \$ANDROID_SDK_ROOT/cmake =="
+          ls -R "$ANDROID_SDK_ROOT/cmake" || echo "No cmake in SDK"
+
       - name: Build
         run: |
           cd build/android
