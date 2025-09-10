@@ -437,6 +437,11 @@ jobs:
           add-to-path: false
           local-cache: true
 
+      - name: Install CMake from Android SDK
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "cmake;3.31.6"
+
       - name: set up JDK 11
         uses: actions/setup-java@v4
         with:
