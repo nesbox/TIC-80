@@ -2,6 +2,15 @@
 # GIFLIB
 ################################
 
+FetchContent_Declare(
+  msf_gif
+  # version of Oct 2, 2021
+  URL https://raw.githubusercontent.com/notnullnotvoid/msf_gif/7829c8f439d013deeb54eba94761403e1da2a960/msf_gif.h
+  DOWNLOAD_NO_EXTRACT TRUE
+  SOURCE_DIR ${THIRDPARTY_DIR}/msf_gif
+)
+FetchContent_MakeAvailable(msf_gif)
+
 if(PREFER_SYSTEM_LIBRARIES)
     find_path(giflib_INCLUDE_DIR NAMES gif_lib.h)
     find_library(giflib_LIBRARY NAMES gif)
