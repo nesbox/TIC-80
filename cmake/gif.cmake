@@ -4,8 +4,9 @@
 
 FetchContent_Declare(
   msf_gif
-  # version of Oct 2, 2021
-  URL https://raw.githubusercontent.com/notnullnotvoid/msf_gif/7829c8f439d013deeb54eba94761403e1da2a960/msf_gif.h
+  # version of May 2, 2025 + Sept 10 patch
+  # https://github.com/notnullnotvoid/msf_gif/pull/13
+  URL https://raw.githubusercontent.com/notnullnotvoid/msf_gif/a17d1109ddb8f5965d5a0c194991e094838a14a0/msf_gif.h
   DOWNLOAD_NO_EXTRACT TRUE
   SOURCE_DIR ${THIRDPARTY_DIR}/msf_gif
 )
