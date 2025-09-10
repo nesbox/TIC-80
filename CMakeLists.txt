@@ -1,6 +1,15 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 
 include(cmake/version.cmake)
+
+# Set the default runtime library for the entire project BEFORE project()
+if(MSVC)
+    if(BUILD_STATIC)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL$<$<CONFIG:Debug>:Debug>")
+    endif()
+endif()
 
 project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LANGUAGES C CXX)
 
@@ -115,7 +124,6 @@ if (NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
 endif()
 
 if(MSVC)
-
     add_definitions("/D\"_CRT_SECURE_NO_WARNINGS\"")
     add_definitions("/D\"_CRT_NONSTDC_NO_DEPRECATE\"")
 
@@ -124,20 +132,9 @@ if(MSVC)
         set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
         set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
         set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/bin )
-
-        # use static runtime
-        # !TODO: use set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>") from cmake 3.15 instead
-        if(CMAKE_C_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
-            string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_${OUTPUTCONFIG} "${CMAKE_C_FLAGS_${OUTPUTCONFIG}}")
-        endif()
-
-        if(CMAKE_CXX_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
-            string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_${OUTPUTCONFIG} "${CMAKE_CXX_FLAGS_${OUTPUTCONFIG}}")
-        endif()
     endforeach()
 
 else()
-
     set(CMAKE_C_STANDARD 11)
 endif()
 

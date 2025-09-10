@@ -44,6 +44,10 @@ if(BUILD_WITH_JS)
 
     add_library(quickjs STATIC ${QUICKJS_SRC})
     target_compile_definitions(quickjs PRIVATE CONFIG_VERSION="${CONFIG_VERSION}")
+    
+    set_target_properties(quickjs PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+    )
 
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_compile_definitions(quickjs PRIVATE DUMP_LEAKS)
