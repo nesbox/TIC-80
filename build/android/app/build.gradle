@@ -54,7 +54,9 @@ android {
         externalNativeBuild {
             cmake {
                 path '../../../CMakeLists.txt'
-                version "3.31.8" // CMake version gradles downloads and uses
+                version "3.31.5" // CMake version try to use.
+                // Gradles search in SDK ($ANDROID_SDK_ROOT/cmake)
+                // PATH (/usr/local/bin/cmake) or cmake.dir property
             }
         }
     }
