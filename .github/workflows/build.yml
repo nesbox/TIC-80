@@ -433,7 +433,7 @@ jobs:
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r23
+          ndk-version: r21e
           add-to-path: false
           local-cache: true
 
@@ -443,20 +443,6 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
           cache: gradle
-
-      - name: Debug CMake
-        run: |
-          echo "== which cmake =="
-          which cmake || true
-          echo
-          echo "== cmake --version =="
-          cmake --version || true
-          echo
-          echo "== ANDROID_SDK_ROOT =="
-          echo "$ANDROID_SDK_ROOT"
-          echo
-          echo "== ls \$ANDROID_SDK_ROOT/cmake =="
-          ls -R "$ANDROID_SDK_ROOT/cmake" || echo "No cmake in SDK"
 
       - name: Build
         run: |
