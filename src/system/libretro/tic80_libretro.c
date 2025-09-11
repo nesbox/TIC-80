@@ -163,7 +163,7 @@ void tic80_libretro_frame_time(retro_usec_t usec) {
 		return;
 	}
 
-	state->frameTime = usec;
+	state->frameTime += usec;
 }
 
 /**
