@@ -803,7 +803,7 @@ static bool isKbdVisible()
 
     return h - rect.h - KBD_ROWS * w / KBD_COLS >= 0
 #if defined(__TIC_ANDROID__)
-        // && !SDL_IsTextInputActive()
+        && !SDL_IsTextInputActive()
 #endif
         ;
 }
@@ -1202,10 +1202,6 @@ static void pollEvents()
 #if defined(TOUCH_INPUT_SUPPORT)
             platform.keyboard.touch.useText = false;
             handleKeydown(event.key.keysym.sym, true, platform.keyboard.touch.state, NULL);
-
-            if(event.key.keysym.sym != SDLK_AC_BACK)
-                if(!SDL_IsTextInputActive())
-                    SDL_StartTextInput();
 #endif
 
             handleKeydown(event.key.keysym.sym, true, platform.keyboard.state, platform.keyboard.pressed);
