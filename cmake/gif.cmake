@@ -9,7 +9,7 @@ if(PREFER_SYSTEM_LIBRARIES)
         add_library(giflib UNKNOWN IMPORTED GLOBAL)
         set_target_properties(giflib PROPERTIES
             IMPORTED_LOCATION "${giflib_LIBRARY}"
-            INTERFACE_INCLUDE_DIRECTORIES "${giflib_INCLUDE_DIR};${THIRDPARTY_DIR}/msf_gif"
+            INTERFACE_INCLUDE_DIRECTORIES "${giflib_INCLUDE_DIR}"
         )
         message(STATUS "Use system library: giflib")
         return()
@@ -32,5 +32,4 @@ add_library(giflib STATIC ${GIFLIB_SRC})
 target_include_directories(giflib
     PRIVATE ${GIFLIB_DIR}
     INTERFACE
-        ${THIRDPARTY_DIR}/giflib
-        ${THIRDPARTY_DIR}/msf_gif)
+        ${THIRDPARTY_DIR}/giflib)

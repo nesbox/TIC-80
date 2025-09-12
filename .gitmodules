@@ -66,10 +66,6 @@
 	path = vendor/naett
 	url = https://github.com/erkkah/naett.git
 	shallow = true
-[submodule "vendor/msf_gif"]
-	path = vendor/msf_gif
-	url = https://github.com/notnullnotvoid/msf_gif.git
-	shallow = true
 [submodule "vendor/dlfcn"]
 	path = vendor/dlfcn
 	url = https://github.com/dlfcn-win32/dlfcn-win32.git
@@ -86,7 +82,6 @@
 	path = vendor/pocketpy
 	url = https://github.com/pocketpy/pocketpy.git
 	shallow = true
-
 [submodule "vendor/lpeg"]
 	path = vendor/lpeg
 	url = https://github.com/roberto-ieru/LPeg.git
