@@ -803,7 +803,7 @@ static bool isKbdVisible()
 
     return h - rect.h - KBD_ROWS * w / KBD_COLS >= 0
 #if defined(__TIC_ANDROID__)
-        && !SDL_IsTextInputActive()
+        // && !SDL_IsTextInputActive()
 #endif
         ;
 }
