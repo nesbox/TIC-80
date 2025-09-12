@@ -336,7 +336,7 @@ RETRO_API void retro_get_system_info(struct retro_system_info *info)
 	memset(info, 0, sizeof(*info));
 	info->library_name     = TIC_NAME;
 	info->library_version  = TIC_VERSION;
-	info->valid_extensions = "tic";
+	info->valid_extensions = "tic|png";
 	info->need_fullpath    = false;
 	info->block_extract    = false;
 }
