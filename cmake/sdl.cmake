@@ -223,10 +223,11 @@ if(BUILD_SDL)
         install(TARGETS ${TIC80_TARGET} DESTINATION bin)
 
         SET(TIC80_DESKTOP_DIR     "share/applications/")
+        SET(TIC80_MIME_DIR        "share/mime/packages/")
         SET(TIC80_PIXMAPS_DIR     "share/icons/")
 
         install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop DESTINATION ${TIC80_DESKTOP_DIR})
-        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_DESKTOP_DIR})
+        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_MIME_DIR})
         install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_PIXMAPS_DIR})
 
     endif()

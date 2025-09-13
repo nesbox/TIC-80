@@ -373,7 +373,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -387,7 +387,7 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
   # === MacOS 14 / arm64 ===
@@ -453,35 +453,6 @@ jobs:
           name: "tic80-webapp"
           path: |
             build/bin/*
-
-      - name: Build website
-        run: |
-          mkdir -p website/public/app
-          cp build/bin/* website/public/app
-          cd website
-          npm install
-          npm run build
-
-      - name: Upload pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: website/dist
-
-  # === GitHub Pages ===
-  pages:
-    runs-on: ubuntu-latest
-    needs: webapp
-
-    # !TODO: change it main
-    if: github.ref == 'refs/heads/website'
-
-    permissions:
-      pages: write
-      id-token: write
-
-    steps:
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
 
   # === Android ===
   android:

@@ -43,7 +43,7 @@
 #include "wave_writer.h"
 #include "ext/gif.h"
 #define MSF_GIF_IMPL
-#include "msf_gif.h"
+#include "ext/msf_gif.h"
 
 #include "../fftdata.h"
 #include "ext/fft.h"
