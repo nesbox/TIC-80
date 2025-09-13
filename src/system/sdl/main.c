@@ -1947,6 +1947,12 @@ static s32 start(s32 argc, char **argv, const char* folder)
                 setWindowIcon();
                 initGPU();
 
+#if defined(__TIC_ANDROID__)
+                // The SDLActivity from SDL v2.32 starts with text input active.
+                // We must explicitly stop it to show our custom keyboard by default.
+                SDL_StopTextInput();
+#endif
+
                 if(studio_config(platform.studio)->options.fullscreen)
                     tic_sys_fullscreen_set(true);
             }
