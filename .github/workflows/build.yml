@@ -438,6 +438,8 @@ jobs:
         with:
           ruby-version: 2.6
 
+      - uses: actions/setup-node@v5
+
       - name: Build all
         run: |
           cd build
@@ -451,6 +453,35 @@ jobs:
           name: "tic80-webapp"
           path: |
             build/bin/*
+
+      - name: Build website
+        run: |
+          mkdir -p website/public/app
+          cp build/bin/* website/public/app
+          cd website
+          npm install
+          npm run build
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/dist
+
+  # === GitHub Pages ===
+  pages:
+    runs-on: ubuntu-latest
+    needs: webapp
+
+    # !TODO: change it main
+    if: github.ref == 'refs/heads/website'
+
+    permissions:
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
 
   # === Android ===
   android:

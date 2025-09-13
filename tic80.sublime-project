@@ -40,6 +40,10 @@
                     "name": "CMAKE_BUILD_TYPE=Release",
                     "shell_cmd": "cmake -DCMAKE_BUILD_TYPE=Release .."
                 },
+                {
+                    "name": "SOKOL_WEBGPU=ON",
+                    "shell_cmd": "cmake -DBUILD_SOKOL_WEBGPU=ON .."
+                },
             ]
         }
     ],
