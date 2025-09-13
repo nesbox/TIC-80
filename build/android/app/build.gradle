@@ -8,6 +8,7 @@ else {
 }
 
 android {
+    namespace "com.nesbox.tic"
     compileSdkVersion 31
     defaultConfig {
         if (buildAsApplication) {
@@ -58,8 +59,8 @@ android {
         }
     }
 
-    lintOptions {
-        abortOnError false
+    lint {
+        abortOnError = false
     }
 
     if (buildAsLibrary) {
@@ -67,8 +68,8 @@ android {
             variant.outputs.each { output ->
                 def outputFile = output.outputFile
                 if (outputFile != null && outputFile.name.endsWith(".aar")) {
-                    def fileName = "org.libsdl.app.aar";
-                    output.outputFile = new File(outputFile.parent, fileName);
+                    def fileName = "org.libsdl.app.aar"
+                    output.outputFile = new File(outputFile.parent, fileName)
                 }
             }
         }
