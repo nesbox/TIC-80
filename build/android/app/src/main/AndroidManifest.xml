@@ -92,8 +92,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="*/*" />
-                <data android:pathPattern=".*\\.tic" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.tic" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.png" />
             </intent-filter>
            
         </activity>
