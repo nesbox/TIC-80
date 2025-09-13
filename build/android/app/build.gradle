@@ -10,6 +10,7 @@ else {
 android {
     namespace "com.nesbox.tic"
     compileSdkVersion 31
+    ndkVersion "23.2.8568313"
     defaultConfig {
         if (buildAsApplication) {
             applicationId "com.nesbox.tic"
