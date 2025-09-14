@@ -31,7 +31,7 @@
 
         </div>
 
-        <canvas style="width: 100%; height: 100%; margin: 0 auto; display: block; image-rendering: pixelated;" id="canvas" oncontextmenu="event.preventDefault()" onmousedown="window.focus()"></canvas>
+        <canvas style="width: 100%; height: 100%; margin: 0 auto; display: block; image-rendering: pixelated;" id="canvas" oncontextmenu="event.preventDefault()" onmousedown="window.focus()" tabindex="0"></canvas>
     </div>
 
     <div id="add-modal" class="modal">
@@ -45,6 +45,61 @@
     <script type="text/javascript">
         var Module = {canvas: document.getElementById('canvas')}
 
+        // Safari/WebKit-only: remap Arrow keys with location 3 (numpad) to location 0.
+        (function(){
+            const ua = navigator.userAgent || '';
+            const isWebKit = /AppleWebKit/i.test(ua);
+            if (!isWebKit) return;
+
+            const synthesizeArrowWithLocation0 = (orig) => {
+                try {
+                    const ev = new KeyboardEvent(orig.type, {
+                        key: orig.key,
+                        code: orig.code,
+                        location: 0,
+                        repeat: orig.repeat,
+                        ctrlKey: orig.ctrlKey,
+                        shiftKey: orig.shiftKey,
+                        altKey: orig.altKey,
+                        metaKey: orig.metaKey,
+                        bubbles: true,
+                        cancelable: true,
+                    });
+                    Object.defineProperty(ev, 'which', { get: () => orig.which });
+                    Object.defineProperty(ev, 'keyCode', { get: () => orig.keyCode });
+                    return ev;
+                } catch { return null; }
+            };
+
+            const remapArrowLocationCapture = (e) => {
+                const isArrow = (e.key && e.key.startsWith('Arrow')) || (e.code && e.code.startsWith('Arrow'));
+                if (!isArrow) return;
+                if (e.location === 3) {
+                    const syn = synthesizeArrowWithLocation0(e);
+                    if (syn) {
+                        e.stopImmediatePropagation();
+                        e.preventDefault();
+                        (e.target || document.getElementById('canvas')).dispatchEvent(syn);
+                    }
+                }
+            };
+
+            ['keydown','keyup'].forEach(t => document.addEventListener(t, remapArrowLocationCapture, true));
+        })();
+
+        // Prevent page scrolling while the game canvas is focused
+        (function(){
+            const canvasEl = document.getElementById('canvas');
+            const preventArrowDefault = (e) => {
+                const key = e.key || e.code;
+                const kc = e.keyCode || e.which;
+                const isArrow = (key && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)) || (kc >= 37 && kc <= 40);
+                if (isArrow && document.activeElement === canvasEl) e.preventDefault();
+            };
+            document.addEventListener('keydown', preventArrowDefault, { passive: false });
+            canvasEl.addEventListener('keydown', preventArrowDefault, { passive: false });
+        })();
+
         const gameFrame = document.getElementById('game-frame')
 
         gameFrame.addEventListener('click', function() {
@@ -53,6 +108,8 @@
             scriptTag.src = 'tic80.js'; // set the source of the script to your script
             firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
             this.remove()
+            // Focus canvas to ensure keyboard events are routed to the game
+            document.getElementById('canvas').focus()
         });
     </script>
 </body>

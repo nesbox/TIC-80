@@ -34,6 +34,61 @@
 
         navigator.serviceWorker.register('serviceworker.js')
 
+        // Safari/WebKit-only: remap Arrow keys with location 3 (numpad) to location 0.
+        (function(){
+            const ua = navigator.userAgent || '';
+            const isWebKit = /AppleWebKit/i.test(ua);
+            if (!isWebKit) return;
+
+            const synthesizeArrowWithLocation0 = (orig) => {
+                try {
+                    const ev = new KeyboardEvent(orig.type, {
+                        key: orig.key,
+                        code: orig.code,
+                        location: 0,
+                        repeat: orig.repeat,
+                        ctrlKey: orig.ctrlKey,
+                        shiftKey: orig.shiftKey,
+                        altKey: orig.altKey,
+                        metaKey: orig.metaKey,
+                        bubbles: true,
+                        cancelable: true,
+                    });
+                    Object.defineProperty(ev, 'which', { get: () => orig.which });
+                    Object.defineProperty(ev, 'keyCode', { get: () => orig.keyCode });
+                    return ev;
+                } catch { return null; }
+            };
+
+            const remapArrowLocationCapture = (e) => {
+                const isArrow = (e.key && e.key.startsWith('Arrow')) || (e.code && e.code.startsWith('Arrow'));
+                if (!isArrow) return;
+                if (e.location === 3) {
+                    const syn = synthesizeArrowWithLocation0(e);
+                    if (syn) {
+                        e.stopImmediatePropagation();
+                        e.preventDefault();
+                        (e.target || document.getElementById('canvas')).dispatchEvent(syn);
+                    }
+                }
+            };
+
+            ['keydown','keyup'].forEach(t => document.addEventListener(t, remapArrowLocationCapture, true));
+        })();
+
+        // Prevent page scrolling while the canvas is focused
+        (function(){
+            const canvasEl = document.getElementById('canvas');
+            const preventArrowDefault = (e) => {
+                const key = e.key || e.code;
+                const kc = e.keyCode || e.which;
+                const isArrow = (key && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)) || (kc >= 37 && kc <= 40);
+                if (isArrow && document.activeElement === canvasEl) e.preventDefault();
+            };
+            document.addEventListener('keydown', preventArrowDefault, { passive: false });
+            canvasEl.addEventListener('keydown', preventArrowDefault, { passive: false });
+        })();
+
         const initialize = () => {
             const canvasSelector = '#canvas'
             const canvasElement = document.querySelector(canvasSelector)
