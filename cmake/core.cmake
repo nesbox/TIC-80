@@ -29,6 +29,7 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/ext/fft.c
     ${TIC80CORE_DIR}/ext/kiss_fft.c
     ${TIC80CORE_DIR}/ext/kiss_fftr.c
+    ${TIC80CORE_DIR}/ext/png.c
 )
 
 if(BUILD_DEPRECATED)
