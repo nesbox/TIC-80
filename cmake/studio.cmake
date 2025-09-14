@@ -39,20 +39,35 @@ endif()
 
 set(TIC80_OUTPUT tic80)
 
-# Generate embedded HTML templates
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h
-    COMMAND ${CMAKE_COMMAND} -E echo "Generating embedded HTML templates..."
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/embed_html.py ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h
-    DEPENDS ${CMAKE_SOURCE_DIR}/build/html/export.html ${CMAKE_CURRENT_BINARY_DIR}/bin/tic80.js ${CMAKE_CURRENT_BINARY_DIR}/bin/tic80.wasm
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Embedding HTML templates for offline export"
-)
+# Generate embedded HTML templates (optional feature)
+option(BUILD_HTMLLOCAL_EXPORT "Enable htmllocal export with embedded templates" OFF)
+
+if(BUILD_HTMLLOCAL_EXPORT)
+    # Check if web build artifacts exist (they should be pre-built)
+    if(EXISTS ${CMAKE_SOURCE_DIR}/build/html/export.html AND EXISTS ${CMAKE_SOURCE_DIR}/build/bin/tic80.js AND EXISTS ${CMAKE_SOURCE_DIR}/build/bin/tic80.wasm)
+        add_custom_command(
+            OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h
+            COMMAND ${CMAKE_COMMAND} -E echo "Generating embedded HTML templates..."
+            COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/embed_html.py ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h
+            DEPENDS ${CMAKE_SOURCE_DIR}/build/html/export.html ${CMAKE_SOURCE_DIR}/build/bin/tic80.js ${CMAKE_SOURCE_DIR}/build/bin/tic80.wasm
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            COMMENT "Embedding HTML templates for offline export"
+        )
+        set(EMBEDDED_HTML_TEMPLATES ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h)
+        message(STATUS "htmllocal export enabled - using pre-built web artifacts")
+    else()
+        message(FATAL_ERROR "BUILD_HTMLLOCAL_EXPORT is ON but web artifacts not found in build/ directory")
+    endif()
+else()
+    # Create placeholder file
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h "// No embedded HTML templates - BUILD_HTMLLOCAL_EXPORT disabled\n")
+    set(EMBEDDED_HTML_TEMPLATES ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h)
+endif()
 
 add_library(tic80studio STATIC
     ${TIC80STUDIO_SRC}
     ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
-    ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h)
+    ${EMBEDDED_HTML_TEMPLATES})
 
 target_include_directories(tic80studio
     PRIVATE ${THIRDPARTY_DIR}/jsmn

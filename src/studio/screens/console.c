@@ -2315,6 +2315,12 @@ static void onExport_htmllocal(Console* console, const char* param, const char* 
     // Include embedded HTML templates
     #include "embedded_html_templates.h"
 
+    // Check if embedded templates are available
+    #if !defined(embedded_html_template) || !defined(embedded_tic80_js) || !defined(embedded_tic80_wasm)
+        printError(console, "htmllocal export not available - build without WASM artifacts");
+        return;
+    #endif
+
     // Create a new ZIP file and add the template as index.html
     struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
     if(zip)
