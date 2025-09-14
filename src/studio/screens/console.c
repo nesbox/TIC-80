@@ -2307,19 +2307,15 @@ static void onExport_html(Console* console, const char* param, const char* filen
  */
 static void onExport_htmllocal(Console* console, const char* param, const char* filename, ExportParams params)
 {
+    // Include embedded HTML templates
+    #include "embedded_html_templates.h"
+
+    // Check if this build supports htmllocal export
+    #ifdef embedded_html_template
     // Embedded HTML export - use templates compiled into binary (offline)
     tic_mem* tic = console->tic;
     const char* zipFilename = getFilename(filename, ".zip");
     const char* zipPath = tic_fs_path(console->fs, zipFilename);
-
-    // Include embedded HTML templates
-    #include "embedded_html_templates.h"
-
-    // Check if embedded templates are available
-    #if !defined(embedded_html_template) || !defined(embedded_tic80_js) || !defined(embedded_tic80_wasm)
-        printError(console, "htmllocal export not available - build without WASM artifacts");
-        return;
-    #endif
 
     // Create a new ZIP file and add the template as index.html
     struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
@@ -2361,6 +2357,10 @@ static void onExport_htmllocal(Console* console, const char* param, const char* 
     {
         printError(console, "can't create zip file");
     }
+    #else
+    // htmllocal export not available in this build
+    printError(console, "htmllocal export not available - disabled at build time");
+    #endif
 }
 
 static void onExport_tiles(Console* console, const char* param, const char* filename, ExportParams params)
