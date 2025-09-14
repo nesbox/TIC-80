@@ -89,11 +89,24 @@
             </intent-filter>
 
             <!-- Drop file event -->
+            <!-- Handle .tic files -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="*/*" android:pathPattern=".*\\.tic" />
-                <data android:mimeType="*/*" android:pathPattern=".*\\.png" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.tic" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+
+            <!-- Handle .png files -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="image/png" />
             </intent-filter>
            
         </activity>
