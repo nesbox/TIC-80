@@ -89,7 +89,7 @@
             canvasEl.addEventListener('keydown', preventArrowDefault, { passive: false });
         })();
 
-        const gameFrame = document.getElementById('game-frame')
+        const gameFrame = document.getElementById('game-frame');
         const displayStyle = window.getComputedStyle(gameFrame).display;
 
         if (displayStyle === 'none') 
@@ -97,6 +97,7 @@
             let scriptTag = document.createElement('script'), // create a script tag
             firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
             scriptTag.src = 'tic80.js'; // set the source of the script to your script
+            scriptTag.type = 'text/javascript'; // explicitly set as regular script, not module
             firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
             // Focus canvas to ensure keyboard events are routed to the game
             document.getElementById('canvas').focus()
@@ -105,6 +106,7 @@
                 let scriptTag = document.createElement('script'), // create a script tag
                 firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
                 scriptTag.src = 'tic80.js'; // set the source of the script to your script
+                scriptTag.type = 'text/javascript'; // explicitly set as regular script, not module
                 firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
                 this.remove()
                 // Focus canvas to ensure keyboard events are routed to the game

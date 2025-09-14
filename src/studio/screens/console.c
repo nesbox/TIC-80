@@ -105,6 +105,7 @@
     macro(rpi)                  \
     macro(mac)                  \
     macro(html)                 \
+    macro(htmllocal)            \
     macro(binary)               \
     macro(tiles)                \
     macro(sprites)              \
@@ -2294,6 +2295,66 @@ static void onExport_mac(Console* console, const char* param, const char* filena
 static void onExport_html(Console* console, const char* param, const char* filename, ExportParams params)
 {
     exportGame(console, getFilename(filename, ".zip"), param, onHtmlExportGet, params);
+}
+
+/*
+ * HTML Export Options:
+ *
+ * export html <name>       - Downloads HTML5 templates from remote server
+ * export htmllocal <name>  - Uses HTML5 templates embedded in TIC-80 binary
+ *
+ * Both create similar ZIP files containing index.html, cart.tic, tic80.js, and tic80.wasm
+ */
+static void onExport_htmllocal(Console* console, const char* param, const char* filename, ExportParams params)
+{
+    // Embedded HTML export - use templates compiled into binary (offline)
+    tic_mem* tic = console->tic;
+    const char* zipFilename = getFilename(filename, ".zip");
+    const char* zipPath = tic_fs_path(console->fs, zipFilename);
+
+    // Include embedded HTML templates
+    #include "embedded_html_templates.h"
+
+    // Create a new ZIP file and add the template as index.html
+    struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+    if(zip)
+    {
+        // Add the HTML template as index.html
+        zip_entry_open(zip, "index.html");
+        zip_entry_write(zip, embedded_html_template, embedded_html_template_size);
+        zip_entry_close(zip);
+
+        // Add the cart data
+        void* cart = newCart();
+        if(cart)
+        {
+            s32 cartSize = tic_cart_save(&tic->cart, cart);
+            if(cartSize)
+            {
+                zip_entry_open(zip, "cart.tic");
+                zip_entry_write(zip, cart, cartSize);
+                zip_entry_close(zip);
+            }
+            free(cart);
+        }
+
+        // Add embedded tic80.js
+        zip_entry_open(zip, "tic80.js");
+        zip_entry_write(zip, embedded_tic80_js, embedded_tic80_js_size);
+        zip_entry_close(zip);
+
+        // Add embedded tic80.wasm
+        zip_entry_open(zip, "tic80.wasm");
+        zip_entry_write(zip, embedded_tic80_wasm, embedded_tic80_wasm_size);
+        zip_entry_close(zip);
+
+        zip_close(zip);
+        onFileExported(console, zipFilename, true);
+    }
+    else
+    {
+        printError(console, "can't create zip file");
+    }
 }
 
 static void onExport_tiles(Console* console, const char* param, const char* filename, ExportParams params)

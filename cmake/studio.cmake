@@ -39,9 +39,20 @@ endif()
 
 set(TIC80_OUTPUT tic80)
 
+# Generate embedded HTML templates
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h
+    COMMAND ${CMAKE_COMMAND} -E echo "Generating embedded HTML templates..."
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/embed_html.py ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h
+    DEPENDS ${CMAKE_SOURCE_DIR}/build/html/export.html ${CMAKE_CURRENT_BINARY_DIR}/bin/tic80.js ${CMAKE_CURRENT_BINARY_DIR}/bin/tic80.wasm
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Embedding HTML templates for offline export"
+)
+
 add_library(tic80studio STATIC
     ${TIC80STUDIO_SRC}
-    ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat)
+    ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
+    ${CMAKE_CURRENT_BINARY_DIR}/embedded_html_templates.h)
 
 target_include_directories(tic80studio
     PRIVATE ${THIRDPARTY_DIR}/jsmn
