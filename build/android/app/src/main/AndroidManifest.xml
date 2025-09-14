@@ -89,11 +89,31 @@
             </intent-filter>
 
             <!-- Drop file event -->
+            <!-- Handle .tic files -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <!-- case insensitive options is only available from Android 12, so we have to list all -->
                 <data android:mimeType="*/*" android:pathPattern=".*\\.tic" />
-                <data android:mimeType="*/*" android:pathPattern=".*\\.png" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.Tic" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.TIc" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.TIC" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.tIc" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.tIC" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.tiC" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.TiC" />
+            </intent-filter>
+
+            <!-- Handle .png files -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="image/png" />
             </intent-filter>
            
         </activity>
