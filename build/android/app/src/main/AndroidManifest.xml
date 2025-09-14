@@ -96,8 +96,15 @@
                 <data android:scheme="content" />
                 <data android:scheme="file" />
                 <data android:host="*" />
-                <data android:pathPattern=".*\\.tic" />
-                <data android:mimeType="*/*" />
+                <!-- case insensitive options is only available from Android 12, so we have to list all -->
+                <data android:mimeType="*/*" android:pathPattern=".*\\.tic" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.Tic" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.TIc" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.TIC" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.tIc" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.tIC" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.tiC" />
+                <data android:mimeType="*/*" android:pathPattern=".*\\.TiC" />
             </intent-filter>
 
             <!-- Handle .png files -->
