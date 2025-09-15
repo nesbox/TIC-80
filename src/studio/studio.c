@@ -1531,30 +1531,6 @@ bool project_ext(const char* name)
     return false;
 }
 
-tic_cartridge* loadPngCart(png_buffer buffer)
-{
-    png_buffer zip = png_decode(buffer);
-
-    if (zip.size)
-    {
-        png_buffer buf = png_create(sizeof(tic_cartridge));
-
-        buf.size = tic_tool_unzip(buf.data, buf.size, zip.data, zip.size);
-        free(zip.data);
-
-        if(buf.size)
-        {
-            tic_cartridge* cart = malloc(sizeof(tic_cartridge));
-            tic_cart_load(cart, buf.data, buf.size);
-            free(buf.data);
-
-            return cart;
-        }
-    }
-
-    return NULL;
-}
-
 void studioRomSaved(Studio* studio)
 {
     updateTitle(studio);

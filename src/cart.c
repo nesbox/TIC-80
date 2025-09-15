@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include "tic_assert.h"
 #include "tools.h"
+#include "ext/png.h"
 
 typedef enum
 {
@@ -81,6 +82,42 @@ static s32 chunkSize(const Chunk* chunk)
     return chunk->size == 0 && (chunk->type == CHUNK_CODE || chunk->type == CHUNK_BINARY) ? TIC_BANK_SIZE : retro_le_to_cpu16(chunk->size);
 }
 
+static png_buffer getRawCartFromPng(png_buffer buffer)
+{
+    png_buffer zip = png_decode(buffer);
+
+    if (zip.size)
+    {
+        png_buffer buf = png_create(sizeof(tic_cartridge));
+
+        buf.size = tic_tool_unzip(buf.data, buf.size, zip.data, zip.size);
+        free(zip.data);
+
+        if(buf.size)
+            return buf;
+
+        free(buf.data);
+    }
+
+    return (png_buffer){.data = NULL, .size = 0};
+}
+
+tic_cartridge* loadPngCart(png_buffer buffer)
+{
+    png_buffer buf = getRawCartFromPng(buffer);
+
+    if(buf.data)
+    {
+        tic_cartridge* cart = malloc(sizeof(tic_cartridge));
+        tic_cart_load(cart, buf.data, buf.size);
+        free(buf.data);
+
+        return cart;
+    }
+
+    return NULL;
+}
+
 void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 {
     memset(cart, 0, sizeof(tic_cartridge));
@@ -90,27 +127,16 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
     // check if this cartridge is in PNG format
     if (!memcmp(buffer, "\x89PNG", 4))
     {
-        s32 siz;
-        const u8* ptr = buffer + 8;
-        // iterate on chunks until we find a cartridge
-        while (ptr < end)
+        png_buffer buf = getRawCartFromPng((png_buffer){.data = (u8*)buffer, .size = size});
+
+        if(buf.data)
         {
-            siz = ((ptr[0] << 24) | (ptr[1] << 16) | (ptr[2] << 8) | ptr[3]);
-            if (!memcmp(ptr + 4, "caRt", 4) && siz > 0)
-            {
-                chunk_cart = malloc(sizeof(tic_cartridge));
-                if (chunk_cart)
-                {
-                    size = tic_tool_unzip(chunk_cart, sizeof(tic_cartridge), ptr + 8, siz);
-                    buffer = chunk_cart;
-                    end = buffer + size;
-                }
-                break;
-            }
-            ptr += siz + 12;
+            chunk_cart = buf.data;
+            buffer = buf.data;
+            size = buf.size;
+            end = buffer + size;
         }
-        // error, no TIC-80 cartridge chunk in PNG???
-        if (!chunk_cart)
+        else
             return;
     }
 

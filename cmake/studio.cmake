@@ -13,6 +13,7 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/fs.c
     ${TIC80LIB_DIR}/ext/md5.c
     ${TIC80LIB_DIR}/ext/json.c
+    ${TIC80LIB_DIR}/ext/png.c
 )
 
 if(BUILD_EDITORS)
@@ -28,7 +29,6 @@ if(BUILD_EDITORS)
         ${TIC80LIB_DIR}/studio/net.c
         ${TIC80LIB_DIR}/ext/history.c
         ${TIC80LIB_DIR}/ext/gif.c
-        ${TIC80LIB_DIR}/ext/png.c
     )
 endif()
 
