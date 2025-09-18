@@ -15,8 +15,8 @@ android {
         if (buildAsApplication) {
             applicationId "com.nesbox.tic"
         }
-        minSdkVersion 24
-        targetSdkVersion 31
+        minSdkVersion 24 // Android 7.0 (Nougat)
+        targetSdkVersion 31 // Android 12 (Snow Cone)
         versionCode 10200
         versionName "1.02.00"
         ndk {
