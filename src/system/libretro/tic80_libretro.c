@@ -77,7 +77,6 @@ struct tic80_state
 	int mouseHideTimer;
 	int mouseHideTimerStart;
 	tic80* tic;
-	retro_usec_t frameTime;
 };
 static struct tic80_state* state = NULL;
 
@@ -86,11 +85,7 @@ static struct tic80_state* state = NULL;
  */
 static u64 tic80_libretro_counter()
 {
-	if (state == NULL) {
-		return 0;
-	}
-
-	return (u64)state->frameTime;
+	return clock();
 }
 
 /**
@@ -98,7 +93,7 @@ static u64 tic80_libretro_counter()
  */
 static u64 tic80_libretro_frequency()
 {
-	return TIC80_FREQUENCY;
+	return CLOCKS_PER_SEC;
 }
 
 /**
@@ -153,17 +148,6 @@ void tic80_libretro_fallback_log(enum retro_log_level level, const char *fmt, ..
 	va_start(va, fmt);
 	vfprintf(stderr, fmt, va);
 	va_end(va);
-}
-
-/**
- * libretro callback; Called to indicate how much time has passed since last retro_run().
- */
-void tic80_libretro_frame_time(retro_usec_t usec) {
-	if (state == NULL) {
-		return;
-	}
-
-	state->frameTime += usec;
 }
 
 /**
@@ -1113,16 +1097,6 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 	// Ensure content data is available.
 	if (info->data == NULL) {
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] No content data provided.\n");
-		return false;
-	}
-
-	// Set up the frame time callback.
-	struct retro_frame_time_callback frame_time = {
-		.callback = tic80_libretro_frame_time,
-		.reference = TIC80_FREQUENCY / TIC80_FRAMERATE,
-	};
-	if (!environ_cb(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time)) {
-		log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to set frame time callback.\n");
 		return false;
 	}
 
