@@ -77,6 +77,7 @@ struct tic80_state
 	int mouseHideTimer;
 	int mouseHideTimerStart;
 	tic80* tic;
+	retro_perf_get_time_usec_t get_time_usec; // Function pointer for the high-res timer
 };
 static struct tic80_state* state = NULL;
 
@@ -85,7 +86,13 @@ static struct tic80_state* state = NULL;
  */
 static u64 tic80_libretro_counter()
 {
-	return clock();
+	if (state == NULL) {
+		return 0;
+	}
+
+    // return the elapsed microseconds since the game started
+	// adjusted by fast-forward or slow motion.
+	return state->get_time_usec();
 }
 
 /**
@@ -93,7 +100,7 @@ static u64 tic80_libretro_counter()
  */
 static u64 tic80_libretro_frequency()
 {
-	return CLOCKS_PER_SEC;
+	return TIC80_FREQUENCY;
 }
 
 /**
@@ -1100,6 +1107,16 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 		return false;
 	}
 
+	// Set up the frame time callback.
+	// struct retro_frame_time_callback frame_time = {
+	// 	.callback = tic80_libretro_frame_time,
+	// 	.reference = TIC80_FREQUENCY / TIC80_FRAMERATE,
+	// };
+	// if (!environ_cb(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time)) {
+	// 	log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to set frame time callback.\n");
+	// 	return false;
+	// }
+
 	// Set up the TIC-80 environment.
 #if RETRO_IS_BIG_ENDIAN
 	state->tic = tic80_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_ARGB8888);
@@ -1129,6 +1146,22 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 		retro_unload_game();
 		return false;
 	}
+
+	// --- TIMING INITIALIZATION --- Start
+
+	// Performance callback struct
+    struct retro_perf_callback perf_cb = {0};
+    state->get_time_usec = NULL;
+
+    // Request the performance interface from the frontend
+	if (!(environ_cb(RETRO_ENVIRONMENT_GET_PERF_INTERFACE, &perf_cb) && perf_cb.get_time_usec)) {
+		log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to get high-resolution timer.\n");
+		return false;
+	}
+
+	state->get_time_usec = perf_cb.get_time_usec;
+
+	// --- TIMING INITIALIZATION --- End
 
 	// Set up the input descriptors.
 	tic80_libretro_input_descriptors();
