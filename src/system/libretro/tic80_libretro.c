@@ -1107,16 +1107,6 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 		return false;
 	}
 
-	// Set up the frame time callback.
-	// struct retro_frame_time_callback frame_time = {
-	// 	.callback = tic80_libretro_frame_time,
-	// 	.reference = TIC80_FREQUENCY / TIC80_FRAMERATE,
-	// };
-	// if (!environ_cb(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time)) {
-	// 	log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to set frame time callback.\n");
-	// 	return false;
-	// }
-
 	// Set up the TIC-80 environment.
 #if RETRO_IS_BIG_ENDIAN
 	state->tic = tic80_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_ARGB8888);
