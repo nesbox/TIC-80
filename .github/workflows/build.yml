@@ -237,7 +237,7 @@ jobs:
         run: |
           git apply build/baremetalpi/circle.patch
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON ..
           make tic80studio -j$(nproc)
           cd baremetalpi
           make -j$(nproc)
