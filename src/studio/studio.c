@@ -2773,9 +2773,23 @@ void studio_keymapchanged(Studio* studio, tic_kbdlayout kbdlayout)
     studio->config->data.options.kbdlayout = kbdlayout;
 }
 
+#if defined(__TIC_EMSCRIPTEN__)
+static bool forceExitFlag = false;
+
+void force_exit()
+{
+    forceExitFlag = true;
+}
+
+#endif
+
 bool studio_alive(Studio* studio)
 {
-    return !studio->quit;
+    return !studio->quit
+#if defined(__TIC_EMSCRIPTEN__)
+        && !forceExitFlag
+#endif
+    ;
 }
 
 #if defined(TIC_MODULE_EXT)
