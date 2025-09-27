@@ -22,6 +22,7 @@
 
 #include "net.h"
 #include "defines.h"
+#include "tic80_config.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -62,7 +63,6 @@ static void downloadSucceeded(emscripten_fetch_t *fetch)
 
     data->callback(&getData);
 
-    free((void*)fetch->data);
     free(data);
 
     emscripten_fetch_close(fetch);

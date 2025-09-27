@@ -4261,6 +4261,34 @@ static void processGamepad(Console* console)
     }
 }
 
+static void onHttpCartGet(const net_get_data* data)
+{
+    Console* console = (Console*)data->calldata;
+    tic_mem* tic = console->tic;
+
+    switch(data->type)
+    {
+    case net_get_done:
+        {
+            tic_cart_load(&tic->cart, data->done.data, data->done.size);
+            studioRomLoaded(console->studio);
+            runGame(console->studio);
+            commandDone(console);
+        }
+        break;
+    case net_get_error:
+        {
+            printError(console, "\nerror: cart not loaded!");
+            commandDone(console);
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+static bool cmdLoadCart(Console* console, const char* path);
+
 static void tick(Console* console)
 {
     tic_mem* tic = console->tic;
@@ -4275,8 +4303,24 @@ static void tick(Console* console)
     {
         if(console->args.cart)
         {
-            console->tickCounter++;
-            runGame(console->studio);
+            printBack(console, "\nloading cart...");
+
+            if (!cmdLoadCart(console, console->args.cart))
+            {
+#if !defined(__TIC_EMSCRIPTEN__)
+
+                if(strncmp(console->args.cart, TIC_WEBSITE, STRLEN(TIC_WEBSITE)) == 0)
+                {
+                    console->args.cart += STRLEN(TIC_WEBSITE);
+                }
+#endif
+                tic_net_get(console->net, console->args.cart, onHttpCartGet, console);
+            }
+            else
+            {
+                runGame(console->studio);
+                commandDone(console);
+            }
         }
         else
         {
@@ -4291,9 +4335,9 @@ static void tick(Console* console)
                 if(getConfig(console->studio)->checkNewVersion)
                     tic_net_get(console->net, "/json?fn=version", onHttpVersionGet, console);
             }
-        }
 
-        commandDone(console);
+            commandDone(console);
+        }
     }
 
     tic_api_cls(tic, TIC_COLOR_BG);
@@ -4486,15 +4530,6 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
             ptr < end; ptr += CONSOLE_BUFFER_WIDTH)
             if(*ptr)
                 puts(ptr);
-    }
-
-    if (args.cart)
-    {
-        if (!cmdLoadCart(console, args.cart))
-        {
-            printf("error: cart `%s` not loaded\n", args.cart);
-            exit(1);
-        }
     }
 }
 
