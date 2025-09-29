@@ -242,12 +242,10 @@ static void saveOptions(Config* config)
             , "autosave":%s
             , "mapping":"%s"
             , "kbdlayout":%i
-#if defined(BUILD_EDITORS)
             , "keybindMode":%i
             , "tabMode":%i
             , "tabSize":%i
             , "autohideCursor":%s
-#endif
         })
         , bool2str(options->crt)
         , bool2str(options->fullscreen)
