@@ -1016,13 +1016,22 @@ sapp_desc sokol_main(s32 argc, char* argv[])
     App *app = NEW(App);
     memset(app, 0, sizeof *app);
 
-    app->audio.desc.num_channels = TIC80_SAMPLE_CHANNELS;
-    saudio_setup(&app->audio.desc);
+    bool cli = false;
+    for(s32 i = 0; i < argc; i++)
+        if(strcmp(argv[i], "--cli") == 0)
+            cli = true;
+
+    if(!cli)
+    {
+        app->audio.desc.num_channels = TIC80_SAMPLE_CHANNELS;
+        saudio_setup(&app->audio.desc);        
+    }
     
     const char* path = ssys_app_folder(TIC_PACKAGE, TIC_NAME);
-    app->studio = studio_create(argc, argv, saudio_sample_rate(), TIC80_PIXEL_COLOR_RGBA8888, path, INT32_MAX, app);
+    app->studio = studio_create(argc, argv, cli ? TIC80_SAMPLERATE : saudio_sample_rate(), 
+        TIC80_PIXEL_COLOR_RGBA8888, path, INT32_MAX, app);
 
-    if(studio_config(app->studio)->cli)
+    if(cli)
     {
         while (studio_alive(app->studio))
             studio_tick(app->studio, app->input);
