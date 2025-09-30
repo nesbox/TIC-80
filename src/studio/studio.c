@@ -1553,7 +1553,9 @@ void studioRomLoaded(Studio* studio)
 {
     initModules(studio);
 
-    updateTitle(studio);
+    if(!studio_config(studio)->cli)
+        updateTitle(studio);
+
     updateHash(studio);
     updateMDate(studio);
 }
