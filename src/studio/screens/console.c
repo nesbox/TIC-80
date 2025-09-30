@@ -118,18 +118,18 @@
     ALONE_KEY(macro)
 
 static const char* WelcomeText =
-    "TIC-80 is a fantasy computer for making, playing and sharing tiny games.\n\n"
-    "It has built-in tools for development: code, sprites, maps, sound editors and the command line, "
+    "TIC-80 is a fantasy computer for making, playing, and sharing tiny games.\n\n"
+    "It has built-in tools for development: code, sprite, map, and sound editors, plus a command line interface, "
     "which is enough to create a mini retro game.\n"
-    "In the end, you will get a cartridge file, which can be stored and played on the website.\n\n"
-    "Also, the game can be packed into a player that works on all popular platforms and distributed as you wish.\n"
-    "To make a retro-style game, the whole creation process takes place under some technical limitations: "
-    "240x136 pixels display, 16 color palette, 256 8x8 color sprites, 4 channel sound, etc.";
+    "At the end, you get a cartridge file that can be stored and played on the website.\n\n"
+    "Games can also be packaged into players that work on all popular platforms and distributed as desired.\n"
+    "To create a retro-style game, the entire development process operates under technical limitations: "
+    "240x136 pixel display, 16-color palette, 256 8x8 color sprites, 4-channel sound, etc.";
 
 static const struct SpecRow {const char* section; const char* info;} SpecText1[] =
 {
-    {"DISPLAY", "240x136 pixels, 16 colors palette."},
-    {"INPUT",   "4 gamepads with 8 buttons / mouse / keyboard."},
+    {"DISPLAY", "240x136 pixels, 16-color palette."},
+    {"INPUT",   "4 gamepads with 8 buttons, mouse, and keyboard."},
     {"SPRITES", "256 8x8 tiles and 256 8x8 sprites."},
     {"MAP",     "240x136 cells, 1920x1088 pixels."},
     {"SOUND",   "4 channels with configurable waveforms."},
@@ -140,7 +140,7 @@ static const struct SpecRow {const char* section; const char* info;} SpecText1[]
 static const struct HotkeysRowGeneral {const char* section; const char* info;} HotkeysTextGeneral[] =
 {
     {"CTRL+R/ENTER",  "Run current project."},
-    {"CTRL+S",        "Save cart."},
+    {"CTRL+S",        "Save cartridge."},
     {"CTRL+X/C/V",    "Cut/copy/paste in the editors."},
     {"CTRL+Z/Y",      "Undo/redo changes in the editors."},
     {"F6",            "Toggle CRT filter."},
@@ -2519,13 +2519,13 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
                             const u8* screen = tic->ram->vram.screen.data;
-							const tic_rgb Sweetie16[] = {
-								{0x1a, 0x1c, 0x2c}, {0x5d, 0x27, 0x5d}, {0xb1, 0x3e, 0x53}, {0xef, 0x7d, 0x57},
-								{0xff, 0xcd, 0x75}, {0xa7, 0xf0, 0x70}, {0x38, 0xb7, 0x64}, {0x25, 0x71, 0x79},
-								{0x29, 0x36, 0x6f}, {0x3b, 0x5d, 0xc9}, {0x41, 0xa6, 0xf6}, {0x73, 0xef, 0xf7},
-								{0xf4, 0xf4, 0xf4}, {0x94, 0xb0, 0xc2}, {0x56, 0x6c, 0x86}, {0x33, 0x3c, 0x57}
-							};
-							const tic_rgb* pal = Sweetie16;
+                            const tic_rgb Sweetie16[] = {
+                                {0x1a, 0x1c, 0x2c}, {0x5d, 0x27, 0x5d}, {0xb1, 0x3e, 0x53}, {0xef, 0x7d, 0x57},
+                                {0xff, 0xcd, 0x75}, {0xa7, 0xf0, 0x70}, {0x38, 0xb7, 0x64}, {0x25, 0x71, 0x79},
+                                {0x29, 0x36, 0x6f}, {0x3b, 0x5d, 0xc9}, {0x41, 0xa6, 0xf6}, {0x73, 0xef, 0xf7},
+                                {0xf4, 0xf4, 0xf4}, {0x94, 0xb0, 0xc2}, {0x56, 0x6c, 0x86}, {0x33, 0x3c, 0x57}
+                            };
+                            const tic_rgb* pal = Sweetie16;
 
                             for(s32 y = 0; y < Height; y++)
                                 for(s32 x = 0; x < Width; x++)
@@ -2804,7 +2804,7 @@ static const char HelpUsage[] = "help [<text>"
 #define ADDGET_FILE(macro)                                                              \
     macro("add",                                                                        \
         NULL,                                                                           \
-        "Upload file to the  local storage.",                                           \
+        "Upload file to the local storage.",                                            \
         NULL,                                                                           \
         onAddCommand,                                                                   \
         NULL,                                                                           \
@@ -2823,7 +2823,7 @@ static const char HelpUsage[] = "help [<text>"
 #define COMMANDS_LIST(macro)                                                            \
     macro("help",                                                                       \
         NULL,                                                                           \
-        "Show help info about commands/api/...",                                        \
+        "Show help information about commands/API/...",                                 \
         HelpUsage,                                                                      \
         onHelpCommand,                                                                  \
         tabCompleteHelp,                                                                \
@@ -2855,10 +2855,10 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("load",                                                                       \
         NULL,                                                                           \
-        "Load cartridge from the local filesystem"                                      \
-        "(there's no need to type the .tic extension).\n"                               \
-        "You can also load just the section (sprites, map, screen etc)"                 \
-        "from another cart.",                                                           \
+        "Load cartridge from the local filesystem "                                     \
+        "(no need to type the .tic extension).\n"                                       \
+        "You can also load just a section (sprites, map, screen, etc.) "                \
+        "from another cartridge.",                                                      \
         "load <cart> [code" TIC_SYNC_LIST(SECTION_DEF) "]",                             \
         onLoadCommand,                                                                  \
         tabCompleteFiles,                                                               \
@@ -2866,9 +2866,10 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("save",                                                                       \
         NULL,                                                                           \
-        "Save cartridge to the local filesystem (Hotkey: CTRL+S), use $LANG_EXTENSIONS$"\
+        "Save cartridge to the local filesystem (Hotkey: CTRL+S). "                     \
+        "Use a $LANG_EXTENSIONS$ "                                                      \
         "cart extension to save it in text format (PRO feature).\n"                     \
-        "Use .png file extension to save it as a png cart.",                            \
+        "Use .png file extension to save it as a PNG cartridge.",                       \
         "save <cart>",                                                                  \
         onSaveCommand,                                                                  \
         tabCompleteFiles,                                                               \
@@ -2884,8 +2885,8 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("resume",                                                                     \
         NULL,                                                                           \
-        "Resume last run cart / project. Reload game code\n"                            \
-        "first if given reload as an argument.",                                        \
+        "Resume the last run cartridge/project. "                                       \
+        "Reload game code first if 'reload' is given as an argument.",                  \
         "resume [reload]",                                                              \
         onResumeCommand,                                                                \
         NULL,                                                                           \
@@ -2893,12 +2894,10 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("eval",                                                                       \
         "=",                                                                            \
-        "Run provided code within the console, "                                        \
-        "useful for debugging and testing.\n"                                           \
-        "\nTips\n"                                                                      \
-        "- Use trace() to log the results. Eg: eval trace(2+2)\n"                       \
-        "- The virtual machine should be launched first by "                            \
-        "running a cart; otherwise it will output an empty string.",                    \
+        "Run provided code within the console, useful for debugging and testing.\n\n"   \
+        "Tips:\n- Use trace() to log the results. E.g.: eval trace(2+2)\n"              \
+        "- The virtual machine should be launched first by running a cartridge; "       \
+        "otherwise it will output an empty string.",                                    \
         NULL,                                                                           \
         onEvalCommand,                                                                  \
         NULL,                                                                           \
@@ -2930,7 +2929,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("folder",                                                                     \
         NULL,                                                                           \
-        "Open working directory in OS.",                                                \
+        "Open working directory in the operating system.",                              \
         NULL,                                                                           \
         onFolderCommand,                                                                \
         NULL,                                                                           \
@@ -2938,10 +2937,9 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("export",                                                                     \
         NULL,                                                                           \
-        "export sprites/map/... as a .png image "                                       \
-        "or export sfx and music to .wav files.",                                       \
-        "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "] "                            \
-        "<file> [" EXPORT_KEYS_LIST(EXPORT_KEYS_DEF) "]" ,                           \
+        "Export sprites/map/... as PNG images or export SFX and music to WAV files.",   \
+        "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "] "                               \
+        "<file> [" EXPORT_KEYS_LIST(EXPORT_KEYS_DEF) "]" ,                              \
         onExportCommand,                                                                \
         tabCompleteExport,                                                              \
         tabCompleteFiles)                                                               \
@@ -2949,10 +2947,9 @@ static const char HelpUsage[] = "help [<text>"
     macro("import",                                                                     \
         NULL,                                                                           \
         "Import code/sprites/map/... from an external file.\n"                          \
-        "While importing images, colors are merged to the "                             \
-        "closest color of the palette.",                                                \
-        "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "] "                            \
-        "<file> [" IMPORT_KEYS_LIST(IMPORT_KEYS_DEF) "]",                            \
+        "When importing images, colors are merged to the closest color in the palette.",\
+        "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "] "                               \
+        "<file> [" IMPORT_KEYS_LIST(IMPORT_KEYS_DEF) "]",                               \
         onImportCommand,                                                                \
         tabCompleteImport,                                                              \
         tabCompleteFiles)                                                               \
@@ -2975,7 +2972,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("demo",                                                                       \
         NULL,                                                                           \
-        "Install demo carts to the current directory.",                                 \
+        "Install demo cartridges to the current directory.",                            \
         NULL,                                                                           \
         onInstallDemosCommand,                                                          \
         NULL,                                                                           \
@@ -2983,9 +2980,8 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("config",                                                                     \
         NULL,                                                                           \
-        "Edit system configuration cartridge.\n"                                        \
-        "Use `reset` param to reset current configuration.\n"                           \
-        "Use `default` to edit default cart template.",                                 \
+        "Edit system configuration cartridge.\nUse `reset` parameter to reset "         \
+        "current configuration.\nUse `default` to edit default cartridge template.",    \
         "config [reset|default]",                                                       \
         onConfigCommand,                                                                \
         tabCompleteConfig,                                                              \
@@ -2993,7 +2989,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("surf",                                                                       \
         NULL,                                                                           \
-        "Open carts browser.",                                                          \
+        "Open cartridge browser.",                                                      \
         NULL,                                                                           \
         onSurfCommand,                                                                  \
         NULL,                                                                           \
@@ -3001,7 +2997,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("menu",                                                                       \
         NULL,                                                                           \
-        "Show menu where you can setup video, sound and input options.",                \
+        "Show menu where you can set up video, sound, and input options.",              \
         NULL,                                                                           \
         onGameMenuCommand,                                                              \
         NULL,                                                                           \
@@ -3069,15 +3065,14 @@ static void tabCompleteHelp(TabCompleteData* data)
 static s32 createRamTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n+-----------------------------------+"
-                        "\n|           96KB RAM LAYOUT         |"
-                        "\n+-------+-------------------+-------+"
+    ptr += sprintf(ptr, "\n.-----------------------------------."
+                        "\n|           80KB RAM LAYOUT         |"
+                        "\n|-----------------------------------|"
                         "\n| ADDR  | INFO              | BYTES |"
-                        "\n+-------+-------------------+-------+");
+                        "\n|-----------------------------------|");
 
     static const struct Row {s32 addr; const char* info;} Rows[] =
     {
-        {0,                                         "<VRAM>"},
         {offsetof(tic_ram, tiles),                  "TILES"},
         {offsetof(tic_ram, sprites),                "SPRITES"},
         {offsetof(tic_ram, map),                    "MAP"},
@@ -3107,7 +3102,7 @@ static s32 createRamTable(char* buf)
     for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
         ptr += sprintf(ptr, "\n| %05X | %-17s | %-5i |", row->addr, row->info, (row + 1)->addr - row->addr);
 
-    ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
+    ptr += sprintf(ptr, "\n'-----------------------------------'\n");
 
     return strlen(buf);
 }
@@ -3115,11 +3110,11 @@ static s32 createRamTable(char* buf)
 static s32 createVRamTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n+-----------------------------------+"
+    ptr += sprintf(ptr, "\n.-----------------------------------."
                         "\n|          16KB VRAM LAYOUT         |"
-                        "\n+-------+-------------------+-------+"
+                        "\n|-----------------------------------|"
                         "\n| ADDR  | INFO              | BYTES |"
-                        "\n+-------+-------------------+-------+");
+                        "\n|-----------------------------------|");
 
     static const struct Row {s32 addr; const char* info;} Rows[] =
     {
@@ -3130,14 +3125,14 @@ static s32 createVRamTable(char* buf)
         {offsetof(tic_ram, vram.vars.offset),   "SCREEN OFFSET"},
         {offsetof(tic_ram, vram.vars.cursor),   "MOUSE CURSOR"},
         {offsetof(tic_ram, vram.blit),          "BLIT SEGMENT"},
-        {offsetof(tic_ram, vram.reserved),      "... (reserved) "},
+        {offsetof(tic_ram, vram.reserved),      "** RESERVED **"},
         {TIC_VRAM_SIZE,                         ""},
     };
 
     for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
         ptr += sprintf(ptr, "\n| %05X | %-17s | %-5i |", row->addr, row->info, (row + 1)->addr - row->addr);
 
-    ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
+    ptr += sprintf(ptr, "\n'-----------------------------------'\n");
 
     return strlen(buf);
 }
@@ -3145,9 +3140,9 @@ static s32 createVRamTable(char* buf)
 static s32 createKeysTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n+----+------------+ +----+------------+"
+    ptr += sprintf(ptr, "\n.-----------------. .-----------------."
                         "\n|CODE|    KEY     | |CODE|    KEY     |"
-                        "\n+----+------------+ +----+------------+");
+                        "\n|-----------------| |-----------------|");
 
     static const struct Row {s32 code; const char* key;} Rows[] =
     {
@@ -3252,7 +3247,7 @@ static s32 createKeysTable(char* buf)
         ptr += sprintf(ptr, "\n| %2d | %-11s| | %2d | %-11s|", row->code, row->key, alt->code, alt->key);
     }
 
-    ptr += sprintf(ptr, "\n+----+------------+ +----+------------+\n");
+    ptr += sprintf(ptr, "\n'-----------------' '-----------------'\n");
 
     return strlen(buf);
 }
@@ -3260,9 +3255,9 @@ static s32 createKeysTable(char* buf)
 static s32 createButtonsTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n+--------+----+----+----+----+"
+    ptr += sprintf(ptr, "\n.----------------------------."
                         "\n| ACTION | P1 | P2 | P3 | P4 |"
-                        "\n+--------+----+----+----+----+");
+                        "\n|----------------------------|");
 
     static const struct Row {const char* action;} Rows[] =
     {
@@ -3282,7 +3277,7 @@ static s32 createButtonsTable(char* buf)
         id++;
     }
 
-    ptr += sprintf(ptr, "\n+--------+----+----+----+----+\n");
+    ptr += sprintf(ptr, "\n'----------------------------'\n");
 
     return strlen(buf);
 }
@@ -3296,6 +3291,17 @@ static void onExport_help(Console* console, const char* param, const char* name,
     SCOPE(free(buf))
     {
         ptr += sprintf(ptr, "# " TIC_NAME_FULL "\n" TIC_VERSION"\n" TIC_COPYRIGHT"\n");
+        ptr += sprintf(ptr, "\n## Table of Contents\n\n"
+                            "- [Welcome](#welcome)\n"
+                            "- [Specification](#specification)\n"
+                            "- [Console commands](#console-commands)\n"
+                            "- [API functions](#api-functions)\n"
+                            "- [Button IDs](#button-ids)\n"
+                            "- [Key IDs](#key-ids)\n"
+                            "- [Startup options](#startup-options)\n"
+                            "- [Terms of Use](#terms-of-use)\n"
+                            "- [Privacy Policy](#privacy-policy)\n"
+                            "- [MIT License](#mit-license)\n");
         ptr += sprintf(ptr, "\n## Welcome\n%s\n", WelcomeText);
         ptr += sprintf(ptr, "\n## Specification\n```\n");
 
@@ -3546,7 +3552,8 @@ static void printTable(Console* console, const char* text)
 
             switch(symbol)
             {
-            case '+':
+            case '\'':
+            case '.':
             case '|':
             case '-':
                 color = tic_color_dark_grey;
@@ -4209,8 +4216,8 @@ static void processKeyboard(Console* console)
         else
         {
             if(keyWasPressed(console->studio, tic_key_up)) {
-			    onHistoryUp(console);
-			    scrollConsole(console);
+                onHistoryUp(console);
+                scrollConsole(console);
             }
             else if(keyWasPressed(console->studio, tic_key_down)) onHistoryDown(console);
             else if(keyWasPressed(console->studio, tic_key_left))
