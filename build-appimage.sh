@@ -22,14 +22,13 @@ APPDIR="TIC-80.AppDir"
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin"
 mkdir -p "$APPDIR/usr/lib"
-mkdir -p "$APPDIR/usr/share/applications"
 mkdir -p "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
 # Copy binary
 cp build/bin/tic80 "$APPDIR/usr/bin/"
 
-# Copy desktop file
-sed 's|Icon=tic80|Icon=tic80.png|' build/linux/tic80.desktop.in > "$APPDIR/usr/share/applications/tic80.desktop"
+# Copy desktop file (must be in AppDir root and named after the AppImage)
+sed 's|Icon=tic80|Icon=tic80.png|' build/linux/tic80.desktop.in > "$APPDIR/TIC-80.desktop"
 
 # Copy icon
 cp build/linux/tic80.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/"
