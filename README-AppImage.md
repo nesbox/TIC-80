@@ -34,6 +34,7 @@ This script will:
 
 The AppImage includes:
 - TIC-80 executable (tic80 binary)
+- Required libraries (curl, etc. for Linux networking)
 - Desktop integration files (.desktop, icon)
 - AppRun script for proper execution
 
@@ -56,6 +57,6 @@ The AppImage is automatically built and deployed via GitHub Actions:
 
 ## Notes
 
-- TIC-80 is designed to be statically linked, so the AppImage should not require external libraries
+- The AppImage bundles all required libraries (like curl for networking), making it truly portable
 - Desktop integration works automatically when the AppImage is run
 - For development tools and demo assets, users should download the full TIC-80 distribution

@@ -42,8 +42,11 @@ exec "${HERE}/usr/bin/tic80" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"
 
-# Copy required libraries (if any - TIC-80 should be statically linked)
-# ldd build/bin/tic80 | grep "=>" | awk '{print $3}' | xargs -I {} cp {} "$APPDIR/usr/lib/" 2>/dev/null || true
+# Copy required libraries (TIC-80 links against curl on Linux)
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    echo "Copying required libraries..."
+    ldd build/bin/tic80 | grep "=>" | awk '{print $3}' | xargs -I {} cp {} "$APPDIR/usr/lib/" 2>/dev/null || true
+fi
 
 # Download appimagetool if not present
 if [ ! -f "appimagetool.AppImage" ]; then
