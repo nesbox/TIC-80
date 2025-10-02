@@ -219,6 +219,7 @@ if(BUILD_SDL)
     if(LINUX)
 
         configure_file("${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop.in" "${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop")
+        configure_file("${PROJECT_SOURCE_DIR}/build/linux/com.tic80.TIC_80.metainfo.xml.in" "${PROJECT_SOURCE_DIR}/build/linux/com.tic80.TIC_80.metainfo.xml")
 
         install(TARGETS ${TIC80_TARGET} DESTINATION bin)
 
@@ -229,6 +230,7 @@ if(BUILD_SDL)
         install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop DESTINATION ${TIC80_DESKTOP_DIR})
         install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_MIME_DIR})
         install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_PIXMAPS_DIR})
+        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/com.tic80.TIC_80.metainfo.xml DESTINATION share/metainfo/)
 
     endif()
 endif()

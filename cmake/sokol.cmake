@@ -114,4 +114,22 @@ if(BUILD_SOKOL)
 
     target_link_libraries(tic80 PRIVATE tic80studio sokol)
 
+    if(LINUX)
+
+        configure_file("${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop.in" "${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop")
+        configure_file("${PROJECT_SOURCE_DIR}/build/linux/com.tic80.TIC_80.metainfo.xml.in" "${PROJECT_SOURCE_DIR}/build/linux/com.tic80.TIC_80.metainfo.xml")
+
+        install(TARGETS tic80 DESTINATION bin)
+
+        SET(TIC80_DESKTOP_DIR     "share/applications/")
+        SET(TIC80_MIME_DIR        "share/mime/packages/")
+        SET(TIC80_PIXMAPS_DIR     "share/icons/")
+
+        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop DESTINATION ${TIC80_DESKTOP_DIR})
+        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_MIME_DIR})
+        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_PIXMAPS_DIR})
+        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/com.tic80.TIC_80.metainfo.xml DESTINATION share/metainfo/)
+
+    endif()
+
 endif()

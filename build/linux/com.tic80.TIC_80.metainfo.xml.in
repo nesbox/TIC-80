@@ -56,7 +56,7 @@
     </screenshots>
     <content_rating type="oars-1.1"/>
     <releases>
-        <release version="1.0.2164" date="2022-05-02">
+        <release version="@PROJECT_VERSION@" date="@VERSION_YEAR@-@VERSION_MONTH@-@VERSION_DAY@">
         </release>
     </releases>
 </component>
