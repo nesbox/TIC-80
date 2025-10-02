@@ -3589,7 +3589,9 @@ static void onHelp_buttons(Console* console)
 
 static void onHelp_version(Console* console)
 {
-    consolePrint(console, "\n"TIC_VERSION, CONSOLE_BACK_TEXT_COLOR);
+    if(!studio_config(console->studio)->cli)
+        printLine(console);
+    consolePrint(console, TIC_VERSION, CONSOLE_BACK_TEXT_COLOR);
 }
 
 static void onHelp_spec(Console* console)
