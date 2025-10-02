@@ -34,7 +34,7 @@ This script will:
 
 The AppImage includes:
 - TIC-80 executable (tic80 binary)
-- Desktop integration files (.desktop, icon, metainfo)
+- Desktop integration files (.desktop, icon)
 - AppRun script for proper execution
 
 ## Distribution
