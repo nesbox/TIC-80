@@ -39,7 +39,7 @@ jobs:
   #         ruby-version: 2.6
   #
   #     - name: Build
-        shell: cmd
+  #       shell: cmd
   #       run: |
   #         cd build
   #         cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
