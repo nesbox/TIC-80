@@ -36,10 +36,17 @@ sed 's|Icon=tic80|Icon=tic80.png|' build/linux/tic80.desktop.in > "$APPDIR/usr/s
 cp build/linux/tic80.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/"
 
 # Configure and copy metainfo
-sed -e "s/@PROJECT_VERSION@/$(grep VERSION_MAJOR cmake/version.cmake | cut -d'"' -f2).$(grep VERSION_MINOR cmake/version.cmake | cut -d'"' -f2).$(grep VERSION_REVISION cmake/version.cmake | cut -d'"' -f2)/g" \
-    -e "s/@VERSION_YEAR@/$(date +%Y)/g" \
-    -e "s/@VERSION_MONTH@/$(date +%m)/g" \
-    -e "s/@VERSION_DAY@/$(date +%d)/g" \
+VERSION_MAJOR=$(grep VERSION_MAJOR cmake/version.cmake | cut -d'"' -f2)
+VERSION_MINOR=$(grep VERSION_MINOR cmake/version.cmake | cut -d'"' -f2)
+VERSION_REVISION=$(grep VERSION_REVISION cmake/version.cmake | cut -d'"' -f2)
+VERSION_YEAR=$(date +%Y)
+VERSION_MONTH=$(date +%m)
+VERSION_DAY=$(date +%d)
+
+sed -e "s/@PROJECT_VERSION@/$VERSION_MAJOR.$VERSION_MINOR.$VERSION_REVISION/g" \
+    -e "s/@VERSION_YEAR@/$VERSION_YEAR/g" \
+    -e "s/@VERSION_MONTH@/$VERSION_MONTH/g" \
+    -e "s/@VERSION_DAY@/$VERSION_DAY/g" \
     build/linux/com.tic80.TIC_80.metainfo.xml.in > "$APPDIR/usr/share/metainfo/com.tic80.TIC_80.metainfo.xml"
 
 # Create AppRun script
