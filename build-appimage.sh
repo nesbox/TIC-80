@@ -36,9 +36,9 @@ sed 's|Icon=tic80|Icon=tic80.png|' build/linux/tic80.desktop.in > "$APPDIR/usr/s
 cp build/linux/tic80.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/"
 
 # Configure and copy metainfo
-VERSION_MAJOR=$(grep VERSION_MAJOR cmake/version.cmake | cut -d'"' -f2)
-VERSION_MINOR=$(grep VERSION_MINOR cmake/version.cmake | cut -d'"' -f2)
-VERSION_REVISION=$(grep VERSION_REVISION cmake/version.cmake | cut -d'"' -f2)
+VERSION_MAJOR=$(grep "VERSION_MAJOR" cmake/version.cmake | sed 's/.*VERSION_MAJOR \([0-9]*\).*/\1/')
+VERSION_MINOR=$(grep "VERSION_MINOR" cmake/version.cmake | sed 's/.*VERSION_MINOR \([0-9]*\).*/\1/')
+VERSION_REVISION=$(grep "VERSION_REVISION" cmake/version.cmake | sed 's/.*VERSION_REVISION \([0-9]*\).*/\1/')
 VERSION_YEAR=$(date +%Y)
 VERSION_MONTH=$(date +%m)
 VERSION_DAY=$(date +%d)
