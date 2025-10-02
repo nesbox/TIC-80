@@ -3061,15 +3061,14 @@ static void tabCompleteHelp(TabCompleteData* data)
     finishTabComplete(data);
 }
 
-
 static s32 createRamTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n.-----------------------------------."
-                        "\n|           80KB RAM LAYOUT         |"
-                        "\n|-----------------------------------|"
+    ptr += sprintf(ptr, "\n,-----------------------------------."
+                        "\n|     --=  80KB RAM LAYOUT  =--     |"
+                        "\n:===================================:"
                         "\n| ADDR  | INFO              | BYTES |"
-                        "\n|-----------------------------------|");
+                        "\n|-------+-------------------+-------|");
 
     static const struct Row {s32 addr; const char* info;} Rows[] =
     {
@@ -3110,11 +3109,11 @@ static s32 createRamTable(char* buf)
 static s32 createVRamTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n.-----------------------------------."
-                        "\n|          16KB VRAM LAYOUT         |"
-                        "\n|-----------------------------------|"
+    ptr += sprintf(ptr, "\n,-----------------------------------."
+                        "\n|     --=  16KB VRAM LAYOUT  =--    |"
+                        "\n:===================================:"
                         "\n| ADDR  | INFO              | BYTES |"
-                        "\n|-----------------------------------|");
+                        "\n|-------+-------------------+-------|");
 
     static const struct Row {s32 addr; const char* info;} Rows[] =
     {
@@ -3140,9 +3139,9 @@ static s32 createVRamTable(char* buf)
 static s32 createKeysTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n.-----------------. .-----------------."
+    ptr += sprintf(ptr, "\n,-----------------. ,-----------------."
                         "\n|CODE|    KEY     | |CODE|    KEY     |"
-                        "\n|-----------------| |-----------------|");
+                        "\n|----+------------| |----+------------|");
 
     static const struct Row {s32 code; const char* key;} Rows[] =
     {
@@ -3255,9 +3254,9 @@ static s32 createKeysTable(char* buf)
 static s32 createButtonsTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n.----------------------------."
+    ptr += sprintf(ptr, "\n,----------------------------."
                         "\n| ACTION | P1 | P2 | P3 | P4 |"
-                        "\n|----------------------------|");
+                        "\n|--------+----+----+----+----|");
 
     static const struct Row {const char* action;} Rows[] =
     {
@@ -3308,10 +3307,8 @@ static void onExport_help(Console* console, const char* param, const char* name,
         FOR(const struct SpecRow*, row, SpecText1)
             ptr += sprintf(ptr, "%-10s%s\n", row->section, row->info);
 
-        ptr += sprintf(ptr, "```\n```\n");
-        ptr += createRamTable(ptr);
-        ptr += sprintf(ptr, "```\n```");
         ptr += createVRamTable(ptr);
+        ptr += createRamTable(ptr);
         ptr += sprintf(ptr, "```\n\n## Console commands\n");
 
         FOR(const Command*, cmd, Commands)
@@ -3548,19 +3545,9 @@ static void printTable(Console* console, const char* text)
             nextLine(console);
         else
         {
-            u8 color = 0;
-
-            switch(symbol)
-            {
-            case '\'':
-            case '.':
-            case '|':
-            case '-':
-                color = tic_color_dark_grey;
-                break;
-            default:
-                color = CONSOLE_FRONT_TEXT_COLOR;
-            }
+            u8 color = strchr("'=:+.|-,", symbol) 
+                ? tic_color_dark_grey 
+                : CONSOLE_FRONT_TEXT_COLOR;
 
             setSymbol(console, symbol, color, cursorOffset(console));
 
