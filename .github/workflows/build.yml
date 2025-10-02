@@ -121,6 +121,11 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
+      - name: Build AppImage
+        run: |
+          chmod +x build-appimage.sh
+          ./build-appimage.sh
+
       - name: Deploy
         uses: actions/upload-artifact@v4
         with:
@@ -128,6 +133,12 @@ jobs:
           path: |
             build/bin/tic80
             build/bin/*.so
+
+      - name: Deploy AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-appimage"
+          path: TIC-80.AppImage
 
       - name: Build Pro
         run: |
