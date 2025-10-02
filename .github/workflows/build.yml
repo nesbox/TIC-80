@@ -3,96 +3,96 @@ name: Build
 on: [push, pull_request]
 
 jobs:
-  # === Windows SDL ===
-  windows-sdl:
-    runs-on: windows-2022
+  # === Windows SDL === (DISABLED)
+  # windows-sdl:
+  #   runs-on: windows-2022
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - uses: ruby/setup-ruby@v1
+  #       with:
+  #         ruby-version: 2.6
+  #
+  #     - name: Build
+  #       shell: cmd
+  #       run: |
+  #         cd build
+  #         cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+  #         cmake --build . --parallel
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - name: Build
+  # === Windows === (DISABLED)
+  # windows:
+  #   runs-on: windows-2022
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - uses: ruby/setup-ruby@v1
+  #       with:
+  #         ruby-version: 2.6
+  #
+  #     - name: Build
         shell: cmd
-        run: |
-          cd build
-          cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
+  #       run: |
+  #         cd build
+  #         cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+  #         cmake --build . --parallel
+  #
+  #     - name: Deploy
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: "tic80-windows"
+  #         path: |
+  #           build/bin/tic80.exe
+  #           build/bin/*.dll
+  #
+  #     - name: Build Pro
+  #       shell: cmd
+  #       run: |
+  #         cd build
+  #         cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
+  #         cmake --build . --parallel
 
-  # === Windows ===
-  windows:
-    runs-on: windows-2022
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - name: Build
-        shell: cmd
-        run: |
-          cd build
-          cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
-
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-windows"
-          path: |
-            build/bin/tic80.exe
-            build/bin/*.dll
-
-      - name: Build Pro
-        shell: cmd
-        run: |
-          cd build
-          cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
-
-  # === Windows MinGW-64 ===
-  windows-mingw:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-
-    steps:
-      - name: Setup Mingw
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            base-devel
-            git
-            gcc
-
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - name: Build
-        shell: bash
-        run: |
-          cd build
-          cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
+  # === Windows MinGW-64 === (DISABLED)
+  # windows-mingw:
+  #   runs-on: windows-latest
+  #   defaults:
+  #     run:
+  #       shell: msys2 {0}
+  #
+  #   steps:
+  #     - name: Setup Mingw
+  #       uses: msys2/setup-msys2@v2
+  #       with:
+  #         msystem: UCRT64
+  #         update: true
+  #         install: >-
+  #           base-devel
+  #           git
+  #           gcc
+  #
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - uses: ruby/setup-ruby@v1
+  #       with:
+  #         ruby-version: 2.6
+  #
+  #     - name: Build
+  #       shell: bash
+  #       run: |
+  #         cd build
+  #         cmake -G "MSYS Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
+  #         cmake --build . --parallel
 
   # === Ubuntu ===
   linux-gcc12:
@@ -146,368 +146,368 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
-  # === Ubuntu-arm64 ===
-  linux-arm:
-    runs-on: ubuntu-22.04-arm
+  # === Ubuntu-arm64 === (DISABLED)
+  # linux-arm:
+  #   runs-on: ubuntu-22.04-arm
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - uses: ruby/setup-ruby@v1
+  #       with:
+  #         ruby-version: 2.6
+  #
+  #     - name: Install
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install gcc-12 g++-12 libxi-dev libxcursor-dev libasound2-dev libgl-dev -y
+  #         sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
+  #         sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
+  #
+  #     - name: Build
+  #       run: |
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
+  #         cmake --build . --parallel
+  #
+  #     - name: Deploy
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: "tic80-linux-arm"
+  #       path: |
+  #         build/bin/tic80
+  #         build/bin/*.so
+  #
+  #     - name: Build Pro
+  #       run: |
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
+  #         cmake --build . --parallel
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
+  # === Ubuntu gcc14 === (DISABLED)
+  # linux-gcc14:
+  #   runs-on: ubuntu-24.04
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #       fetch-depth: 0
+  #
+  #     - uses: ruby/setup-ruby@v1
+  #       with:
+  #         ruby-version: 2.6
+  #
+  #     - name: Install
+  #       run: |
+  #         sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
+  #         sudo apt update
+  #         sudo apt-get install gcc-14 g++-14 libxi-dev libxcursor-dev libasound2-dev libgl-dev -y
+  #         sudo ln -s -f /usr/bin/gcc-14 /usr/bin/gcc
+  #         sudo ln -s -f /usr/bin/g++-14 /usr/bin/g++
+  #
+  #     - name: Build
+  #       run: |
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
+  #         cmake --build . --parallel
 
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
+  # === Raspberry PI 1-4 Bare Metal === (DISABLED)
+  # rpi-baremetal:
+  #   runs-on: ubuntu-latest
+  #   container: miguelhrvs/baremetalapi-tic80:latest
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - name: Install Host toolchain
+  #       run: |
+  #         apt-get update
+  #         apt-get install --assume-yes build-essential ruby-full
+  #
+  #     - name: Prebuild
+  #       run: |
+  #         cd vendor
+  #         git clone --recursive https://github.com/smuehlst/circle-stdlib
+  #         cd circle-stdlib
+  #         git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+  #         git submodule update --recursive
+  #         ./configure -r 3
+  #         make -j$(nproc)
+  #         cd libs/circle/addon/vc4/sound/
+  #         make -j$(nproc)
+  #         cd ../vchiq
+  #         make -j$(nproc)
+  #         cd ../../linux
+  #         make -j$(nproc)
+  #
+  #     - name: Build
+  #       run: |
+  #         git apply build/baremetalpi/circle.patch
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
+  #         make tic80studio -j$(nproc)
+  #         cd baremetalpi
+  #         make -j$(nproc)
+  #         cd ../../vendor/circle-stdlib/libs/circle/boot/
+  #         make -j$(nproc)
+  #
+  #     - name: Pack
+  #       run: |
+  #         cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+  #         cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+  #
+  #     - name: Deploy
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: "tic80-rpi-baremetal"
+  #         path: |
+  #           vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
+  #           vendor/circle-stdlib/libs/circle/boot/config.txt
+  #           vendor/circle-stdlib/libs/circle/boot/kernel.img
+  #           vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+  #           vendor/circle-stdlib/libs/circle/boot/start.elf
+  #           vendor/circle-stdlib/libs/circle/boot/fixup.dat
+  #           vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
 
-      - name: Install
-        run: |
-          sudo apt-get update
-          sudo apt-get install gcc-12 g++-12 libxi-dev libxcursor-dev libasound2-dev libgl-dev -y
-          sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
-          sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
-          
-      - name: Build
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
+  # === Raspberry PI 4-5 Bare Metal === (DISABLED)
+  # rpi4-baremetal:
+  #   runs-on: ubuntu-latest
+  #   container: miguelhrvs/baremetalapi-tic80:latest
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - name: Install Host toolchain
+  #       run: |
+  #         apt-get update
+  #         apt-get install --assume-yes build-essential ruby-full
+  #
+  #     - name: Prebuild
+  #       run: |
+  #         cd vendor
+  #         git clone --recursive https://github.com/smuehlst/circle-stdlib
+  #         cd circle-stdlib
+  #         git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+  #         git submodule update --recursive
+  #         ./configure -r 4
+  #         make -j$(nproc)
+  #         cd libs/circle/addon/vc4/sound/
+  #         make -j$(nproc)
+  #         cd ../vchiq
+  #         make -j$(nproc)
+  #         cd ../../linux
+  #         make -j$(nproc)
+  #
+  #     - name: Build
+  #       run: |
+  #         git apply build/baremetalpi/circle.patch
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
+  #         make tic80studio -j$(nproc)
+  #         cd baremetalpi
+  #         make -j$(nproc)
+  #         cd ../../vendor/circle-stdlib/libs/circle/boot/
+  #         make -j$(nproc)
+  #
+  #     - name: Pack
+  #       run: |
+  #         cp build/baremetalpi/kernel7l.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+  #         cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+  #
+  #     - name: Deploy
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: "tic80-rpi4-baremetal"
+  #         path: |
+  #           vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb
+  #           vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb
+  #           vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb
+  #           vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-5-b.dtb
+  #           vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+  #           vendor/circle-stdlib/libs/circle/boot/config.txt
+  #           vendor/circle-stdlib/libs/circle/boot/COPYING.linux
+  #           vendor/circle-stdlib/libs/circle/boot/fixup4.dat
+  #           vendor/circle-stdlib/libs/circle/boot/kernel.img
+  #           vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+  #           vendor/circle-stdlib/libs/circle/boot/start4.elf
 
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-linux-arm"
-          path: |
-            build/bin/tic80
-            build/bin/*.so
+  # === Nintendo 3DS build === (DISABLED)
+  # nintendo-3ds:
+  #   runs-on: ubuntu-latest
+  #   container: devkitpro/devkitarm:20250102
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - name: Install Host toolchain
+  #       run: |
+  #         apt-get update
+  #         apt-get install --assume-yes build-essential ruby-full
+  #
+  #     - name: Build
+  #       run: |
+  #         cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF ..
+  #         cmake --build build --parallel
+  #
+  #     - name: Deploy
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: "tic80-nintendo-3ds"
+  #         path: build/bin/tic80.3dsx
 
-      - name: Build Pro
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
+  # === MacOS 13 === (DISABLED)
+  # macos:
+  #   runs-on: macos-13
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - name: Install
+  #       run: brew uninstall --ignore-dependencies libidn2
+  #
+  #     - name: Build
+  #       run: |
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+  #         cmake --build . --parallel
+  #
+  #     - name: Deploy
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: "tic80-macos"
+  #         path: |
+  #           build/bin/tic80
+  #           build/bin/*.dylib
+  #
+  #     - name: Build Pro
+  #       run: |
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+  #         cmake --build . --parallel
 
-  # === Ubuntu gcc14 ===
-  linux-gcc14:
-    runs-on: ubuntu-24.04
+  # === MacOS 14 / arm64 === (DISABLED)
+  # macos-arm:
+  #   runs-on: macos-14
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - name: Install
+  #       run: brew uninstall --ignore-dependencies libidn2
+  #
+  #     - name: Build
+  #       run: |
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
+  #         cmake --build . --parallel
+  #
+  #     - name: Deploy
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: "tic80-macos-arm"
+  #         path: |
+  #           build/bin/tic80
+  #
+  #     - name: Build
+  #       run: |
+  #         cd build
+  #         cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
+  #         cmake --build . --parallel
 
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
+  # === Webapp === (DISABLED)
+  # webapp:
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - uses: mymindstorm/setup-emsdk@v14
+  #
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - uses: ruby/setup-ruby@v1
+  #       with:
+  #         ruby-version: 2.6
+  #
+  #     - uses: actions/setup-node@v5
+  #
+  #     - name: Build all
+  #       run: |
+  #         cd build
+  #         emcmake cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
+  #         cmake --build . --parallel
+  #         cp webapp/* bin
+  #
+  #     - name: Deploy
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: "tic80-webapp"
+  #         path: |
+  #           build/bin/*
 
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - name: Install
-        run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
-          sudo apt update
-          sudo apt-get install gcc-14 g++-14 libxi-dev libxcursor-dev libasound2-dev libgl-dev -y
-          sudo ln -s -f /usr/bin/gcc-14 /usr/bin/gcc
-          sudo ln -s -f /usr/bin/g++-14 /usr/bin/g++
-          
-      - name: Build
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
-
-  # === Raspberry PI 1-4 Bare Metal ===
-  rpi-baremetal:
-    runs-on: ubuntu-latest
-    container: miguelhrvs/baremetalapi-tic80:latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Install Host toolchain
-        run: |
-          apt-get update
-          apt-get install --assume-yes build-essential ruby-full
-
-      - name: Prebuild
-        run: |
-          cd vendor
-          git clone --recursive https://github.com/smuehlst/circle-stdlib
-          cd circle-stdlib
-          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
-          git submodule update --recursive
-          ./configure -r 3
-          make -j$(nproc)
-          cd libs/circle/addon/vc4/sound/
-          make -j$(nproc)
-          cd ../vchiq
-          make -j$(nproc)
-          cd ../../linux
-          make -j$(nproc)
-
-      - name: Build
-        run: |
-          git apply build/baremetalpi/circle.patch
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
-          make tic80studio -j$(nproc)
-          cd baremetalpi
-          make -j$(nproc)
-          cd ../../vendor/circle-stdlib/libs/circle/boot/
-          make -j$(nproc)
-
-      - name: Pack
-        run: |
-          cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel.img
-          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
-
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-rpi-baremetal"
-          path: |
-            vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
-            vendor/circle-stdlib/libs/circle/boot/config.txt
-            vendor/circle-stdlib/libs/circle/boot/kernel.img
-            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
-            vendor/circle-stdlib/libs/circle/boot/start.elf
-            vendor/circle-stdlib/libs/circle/boot/fixup.dat
-            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
-
-  # === Raspberry PI 4-5 Bare Metal ===
-  rpi4-baremetal:
-    runs-on: ubuntu-latest
-    container: miguelhrvs/baremetalapi-tic80:latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Install Host toolchain
-        run: |
-          apt-get update
-          apt-get install --assume-yes build-essential ruby-full
-
-      - name: Prebuild
-        run: |
-          cd vendor
-          git clone --recursive https://github.com/smuehlst/circle-stdlib
-          cd circle-stdlib
-          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
-          git submodule update --recursive
-          ./configure -r 4
-          make -j$(nproc)
-          cd libs/circle/addon/vc4/sound/
-          make -j$(nproc)
-          cd ../vchiq
-          make -j$(nproc)
-          cd ../../linux
-          make -j$(nproc)
-
-      - name: Build
-        run: |
-          git apply build/baremetalpi/circle.patch
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
-          make tic80studio -j$(nproc)
-          cd baremetalpi
-          make -j$(nproc)
-          cd ../../vendor/circle-stdlib/libs/circle/boot/
-          make -j$(nproc)
-
-      - name: Pack
-        run: |
-          cp build/baremetalpi/kernel7l.img vendor/circle-stdlib/libs/circle/boot/kernel.img
-          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
-
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-rpi4-baremetal"
-          path: |
-            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb
-            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb
-            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb
-            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-5-b.dtb
-            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
-            vendor/circle-stdlib/libs/circle/boot/config.txt
-            vendor/circle-stdlib/libs/circle/boot/COPYING.linux
-            vendor/circle-stdlib/libs/circle/boot/fixup4.dat
-            vendor/circle-stdlib/libs/circle/boot/kernel.img
-            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
-            vendor/circle-stdlib/libs/circle/boot/start4.elf
-
-  # === Nintendo 3DS build ===
-  nintendo-3ds:
-    runs-on: ubuntu-latest
-    container: devkitpro/devkitarm:20250102
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Install Host toolchain
-        run: |
-          apt-get update
-          apt-get install --assume-yes build-essential ruby-full
-
-      - name: Build
-        run: |
-          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF ..
-          cmake --build build --parallel
-
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-nintendo-3ds"
-          path: build/bin/tic80.3dsx
-
-  # === MacOS 13 ===
-  macos:
-    runs-on: macos-13
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Install
-        run: brew uninstall --ignore-dependencies libidn2
-
-      - name: Build
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
-
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-macos"
-          path: |
-            build/bin/tic80
-            build/bin/*.dylib
-
-      - name: Build Pro
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
-
-  # === MacOS 14 / arm64 ===
-  macos-arm:
-    runs-on: macos-14
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Install
-        run: brew uninstall --ignore-dependencies libidn2
-
-      - name: Build
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
-
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-macos-arm"
-          path: |
-            build/bin/tic80
-
-      - name: Build
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_PRO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
-
-  # === Webapp ===
-  webapp:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: mymindstorm/setup-emsdk@v14
-
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - uses: actions/setup-node@v5
-
-      - name: Build all
-        run: |
-          cd build
-          emcmake cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
-          cp webapp/* bin
-
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-webapp"
-          path: |
-            build/bin/*
-
-  # === Android ===
-  android:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept licenses
-        run: yes | sdkmanager --licenses
-
-      - name: Install build tools and platform tools
-        run: sdkmanager "platforms;android-28" "build-tools;29.0.3" platform-tools ndk-bundle
-
-      - name: Setup JDK 8
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '8'
-
-      - name: Build
-        env:
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: |
-          cd build
-          cmake -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON \
-            -DBUILD_WITH_ALL=ON \
-            -DBUILD_WITH_RUBY=OFF \
-            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM=android-28 ..
-          cmake --build . --parallel
-          sh android/apk.sh
-
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-android"
-          path: build/tic80.apk
+  # === Android === (DISABLED)
+  # android:
+  #   runs-on: ubuntu-latest
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #       with:
+  #         submodules: recursive
+  #         fetch-depth: 0
+  #
+  #     - name: Set up Android SDK
+  #       uses: android-actions/setup-android@v3
+  #
+  #     - name: Accept licenses
+  #       run: yes | sdkmanager --licenses
+  #
+  #     - name: Install build tools and platform tools
+  #       run: sdkmanager "platforms;android-28" "build-tools;29.0.3" platform-tools ndk-bundle
+  #
+  #     - name: Setup JDK 8
+  #       uses: actions/setup-java@v4
+  #       with:
+  #         distribution: 'temurin'
+  #         java-version: '8'
+  #
+  #     - name: Build
+  #       env:
+  #         RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+  #         RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+  #       run: |
+  #         cd build
+  #         cmake -G Ninja \
+  #           -DCMAKE_BUILD_TYPE=Release -DBUILD_IPO=ON \
+  #           -DBUILD_WITH_ALL=ON \
+  #           -DBUILD_WITH_RUBY=OFF \
+  #           -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+  #           -DANDROID_ABI=arm64-v8a \
+  #           -DANDROID_PLATFORM=android-28 ..
+  #         cmake --build . --parallel
+  #         sh android/apk.sh
+  #
+  #     - name: Deploy
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: "tic80-android"
+  #         path: build/tic80.apk
