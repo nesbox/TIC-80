@@ -74,7 +74,12 @@ struct tic_fs
 void syncfs()
 {
 #if defined(__TIC_EMSCRIPTEN__)
-    EM_ASM({Module.syncFSRequests++;});
+    EM_ASM({
+        if (Module.syncTimerId) { clearTimeout(Module.syncTimerId); }
+        Module.syncTimerId = setTimeout(function() {
+            FS.syncfs(function(err){});
+        }, 100);
+    });
 #endif
 }
 
