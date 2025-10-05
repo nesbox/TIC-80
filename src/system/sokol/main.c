@@ -606,6 +606,9 @@ static void frame(void *userdata)
 {
     App *app = userdata;
 
+    if(!app->studio)
+        return;
+
     // use 20th tick to detect monitor refresh rate
     if(sapp_frame_count() == 20)
     {
@@ -953,7 +956,8 @@ static void cleanup(void *userdata)
 
     LOCK(app)
     {
-        studio_delete(app->studio);
+        if(app->studio)
+            studio_delete(app->studio);
     }
 
     if(app->thread)
@@ -1010,6 +1014,17 @@ static const sapp_icon_desc iconDesc(App *app)
             }
         };
 }
+
+#if defined(__TIC_EMSCRIPTEN__)
+
+void force_exit()
+{
+    App *app = sapp_userdata();    
+    studio_delete(app->studio);
+    app->studio = NULL;
+}
+
+#endif
 
 sapp_desc sokol_start(s32 argc, char* argv[])
 {
