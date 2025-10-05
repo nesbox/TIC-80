@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
 
 #else
 
-sapp_desc sokol_main(s32 argc, char* argv[])
+sapp_desc sokol_main(int argc, char* argv[])
 {
     return sokol_start(argc, argv);
 }
