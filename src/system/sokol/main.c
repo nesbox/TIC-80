@@ -1011,7 +1011,7 @@ static const sapp_icon_desc iconDesc(App *app)
         };
 }
 
-sapp_desc sokol_main(s32 argc, char* argv[])
+sapp_desc sokol_start(s32 argc, char* argv[])
 {
     App *app = NEW(App);
     memset(app, 0, sizeof *app);
@@ -1028,19 +1028,6 @@ sapp_desc sokol_main(s32 argc, char* argv[])
     }
     
     const char* path = ssys_app_folder(TIC_PACKAGE, TIC_NAME);
-
-#if defined(__TIC_EMSCRIPTEN__)
-    EM_ASM_
-    (
-        {
-            var dir = UTF8ToString($0);
-            FS.mkdirTree(dir);
-            FS.mount(IDBFS, {}, dir);
-            FS.syncfs(true, function(err) {});
-
-        }, path
-    );
-#endif
 
     app->studio = studio_create(argc, argv, cli ? TIC80_SAMPLERATE : saudio_sample_rate(),
         TIC80_PIXEL_COLOR_RGBA8888, path, INT32_MAX, app);

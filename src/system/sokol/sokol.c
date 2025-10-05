@@ -23,3 +23,48 @@
 #define SOKOL_IMPL
 
 #include "sokol.h"
+
+extern sapp_desc sokol_start(int argc, char* argv[]);
+
+static void start(int argc, char* argv[])
+{
+    sapp_desc desc = sokol_start(argc, argv);
+    sapp_run(&desc);
+}
+
+#if defined(SOKOL_NO_ENTRY)
+
+int main(int argc, char* argv[]) 
+{
+#if defined(__EMSCRIPTEN__)
+
+    EM_ASM_
+    (
+        {
+            var dir = 'com.nesbox.tic/TIC-80/';
+            FS.mkdirTree(dir);
+            FS.mount(IDBFS, {}, dir);
+            FS.syncfs(true, function(err) {
+                dynCall('vip', $0, [$1, $2]);
+            });
+
+        }, start, argc, argv
+    );
+
+#else
+
+    start(argc, argv)
+
+#endif
+
+    return 0;
+}
+
+#else
+
+sapp_desc sokol_main(s32 argc, char* argv[])
+{
+    return sokol_start(argc, argv);
+}
+
+#endif

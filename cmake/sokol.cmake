@@ -16,6 +16,8 @@ if(BUILD_SOKOL)
         target_compile_definitions(sokol PUBLIC SOKOL_D3D11 UNICODE)
     elseif(EMSCRIPTEN)
 
+        target_compile_definitions(sokol PUBLIC SOKOL_NO_ENTRY)
+        
         if(BUILD_SOKOL_WEBGPU)
             target_compile_definitions(sokol PUBLIC SOKOL_WGPU)
             target_compile_options(sokol PRIVATE --use-port=emdawnwebgpu)
