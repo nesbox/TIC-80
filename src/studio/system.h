@@ -36,7 +36,7 @@
 #define TIC_NAME "TIC-80"
 #define TIC_NAME_FULL TIC_NAME " tiny computer"
 #define TIC_TITLE TIC_NAME_FULL " " TIC_VERSION
-#define TIC_HOST "tic80.com"
+#define TIC_HOST "web.tic80.com"
 #if defined(__TIC_WIN7__)
     #define TIC_WEBSITE_PROTOCOL "http://"
 #else

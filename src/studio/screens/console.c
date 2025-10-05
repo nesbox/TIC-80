@@ -4329,7 +4329,7 @@ static void tick(Console* console)
                 printBack(console, " for help\n");
 
                 if(getConfig(console->studio)->checkNewVersion)
-                    tic_net_get(console->net, "/json?fn=version", onHttpVersionGet, console);
+                    tic_net_get(console->net, "/version.json", onHttpVersionGet, console);
             }
 
             commandDone(console);
