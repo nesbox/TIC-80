@@ -111,10 +111,8 @@ bool json_u8(const char *var, s32 parent, u8* value)
     return false;
 }
 
-bool json_string(const char *var, s32 parent, char* value, s32 size)
+bool json_string_item(s32 item, char* value, s32 size)
 {
-    s32 item = getJsonItem(var, parent, JSMN_STRING);
-
     if(item)
     {
         const jsmntok_t* t = &state.t[item];
@@ -122,6 +120,24 @@ bool json_string(const char *var, s32 parent, char* value, s32 size)
     }
 
     return false;
+}
+
+bool json_tostring(s32 item, char* value, s32 size)
+{
+    if(item)
+    {
+        const jsmntok_t* t = &state.t[item];
+        return snprintf(value, size, "%.*s", t->end - t->start, state.json + t->start) > 0;
+    }
+
+    return false;
+}
+
+bool json_string(const char *var, s32 parent, char* value, s32 size)
+{
+    s32 item = getJsonItem(var, parent, JSMN_STRING);
+
+    return json_tostring(item, value, size);
 }
 
 s32 json_array(const char *var, s32 parent)

@@ -26,7 +26,6 @@
 #include "studio/config.h"
 #include "console.h"
 #include "menu.h"
-#include "ext/gif.h"
 #include "ext/png.h"
 
 #if defined(TIC80_PRO)
@@ -57,7 +56,7 @@ struct SurfItem
 {
     char* label;
     char* name;
-    char* hash;
+    char* url;
     s32 id;
     tic_screen* cover;
 
@@ -140,7 +139,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
 #ifdef CAN_OPEN_URL
 
-    if(surf->menu.count > 0 && getMenuItem(surf)->hash)
+    if(surf->menu.count > 0 && getMenuItem(surf)->url)
     {
         enum{Gap = 10, TipX = 134, SelectWidth = 54};
 
@@ -204,7 +203,7 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
         *item = (SurfItem)
         {
             .name = strdup(name),
-            .hash = hash ? strdup(hash) : NULL,
+            .url = hash ? strdup(hash) : NULL,
             .id = id,
             .dir = dir,
         };
@@ -271,7 +270,7 @@ static void resetMenu(Surf* surf)
 
             free(item->name);
 
-            FREE(item->hash);
+            FREE(item->url);
             FREE(item->cover);
             FREE(item->label);
             FREE(item->palette);
@@ -290,29 +289,52 @@ static void updateMenuItemCover(Surf* surf, s32 pos, const u8* cover, s32 size)
 {
     SurfItem* item = &surf->menu.items[pos];
 
-    gif_image* image = gif_read_data(cover, size);
+    png_img img = png_read((png_buffer){(u8*)cover, size}, NULL);
 
-    if(image)
+    if(img.data) SCOPE(free(img.data))
     {
         item->cover = malloc(sizeof(tic_screen));
         item->palette = malloc(sizeof(tic_palette));
 
-        if (image->width == TIC80_WIDTH
-            && image->height == TIC80_HEIGHT
-            && image->colors <= TIC_PALETTE_SIZE)
+        if (img.width == TIC80_WIDTH && img.height == TIC80_HEIGHT)
         {
-            memcpy(item->palette, image->palette, image->colors * sizeof(tic_rgb));
+            // collect unique colors (assuming the image is 16-color indexed)
+            tic_palette unique_colors = {0};
+            u8 num_colors = 0;
 
             for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-                tic_tool_poke4(item->cover->data, i, image->buffer[i]);
+            {
+                png_rgba pixel = img.pixels[i];
+                tic_rgb color = {pixel.r, pixel.g, pixel.b};
+                u8 index = TIC_PALETTE_SIZE;
+
+                // find existing color
+                for(u8 j = 0; j < num_colors; j++)
+                    if(memcmp(&unique_colors.colors[j], &color, sizeof(tic_rgb)) == 0)
+                    {
+                        index = j;
+                        break;
+                    }
+
+                // add new color if not found and palette not full
+                if(index == TIC_PALETTE_SIZE && num_colors < TIC_PALETTE_SIZE)
+                {
+                    unique_colors.colors[num_colors] = color;
+                    index = num_colors++;
+                }
+
+                // set pixel index (default to 0 if palette full)
+                tic_tool_poke4(item->cover->data, i, index < TIC_PALETTE_SIZE ? index : 0);
+            }
+
+            // set palette from collected colors
+            memcpy(item->palette, &unique_colors, sizeof(tic_palette));
         }
         else
         {
             memset(item->cover, 0, sizeof(tic_screen));
             memset(item->palette, 0, sizeof(tic_palette));
         }
-
-        gif_close(image);
     }
 }
 
@@ -355,8 +377,10 @@ static void requestCover(Surf* surf, SurfItem* item)
     CoverLoadingData coverLoadingData = {surf, surf->menu.pos};
     tic_fs_dir(surf->fs, coverLoadingData.dir);
 
-    const char* hash = item->hash;
-    sprintf(coverLoadingData.cachePath, TIC_CACHE "%s.gif", hash);
+    const char *url = item->url;
+    const char *hash = md5str(item->url, strlen(item->url));
+
+    sprintf(coverLoadingData.cachePath, TIC_CACHE "%s.png", hash);
 
     {
         s32 size = 0;
@@ -366,13 +390,19 @@ static void requestCover(Surf* surf, SurfItem* item)
         {
             updateMenuItemCover(surf, surf->menu.pos, data, size);
             free(data);
+            return;
         }
     }
 
     char path[TICNAME_MAX];
-    sprintf(path, "/cart/%s/cover.gif", hash);
+    strcpy(path, url);
+    char *pos = strrchr(path, '.');
 
-    tic_net_get(surf->net, path, coverLoaded, MOVE(coverLoadingData));
+    if(pos)
+    {
+        strcpy(pos, "/cover.png");
+        tic_net_get(surf->net, path, coverLoaded, MOVE(coverLoadingData));
+    }
 }
 
 static void loadCover(Surf* surf)
@@ -429,7 +459,7 @@ static void loadCover(Surf* surf)
             free(data);
         }
     }
-    else if(item->hash && !item->cover)
+    else if(item->url && !item->cover)
     {
         requestCover(surf, item);
     }
@@ -577,9 +607,9 @@ static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
         Surf* surf = data;
         SurfItem* item = getMenuItem(surf);
 
-        if (item->hash)
+        if (item->url)
         {
-            surf->console->loadByHash(surf->console, item->name, item->hash, NULL, onCartLoaded, surf);
+            surf->console->loadByHash(surf->console, item->name, item->url, NULL, onCartLoaded, surf);
         }
         else
         {
@@ -706,8 +736,14 @@ static void processGamepad(Surf* surf)
             if(!item->dir)
             {
                 char url[TICNAME_MAX];
-                sprintf(url, TIC_WEBSITE "/play?cart=%i", item->id);
-                tic_sys_open_url(url);
+                strcpy(url, TIC_WEBSITE);
+                strcat(url, item->url);
+                char *pos = strrchr(url, '.');
+                if(pos)
+                {
+                    *pos = 0;
+                    tic_sys_open_url(url);
+                } 
             }
         }
 #endif

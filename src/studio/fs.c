@@ -285,26 +285,26 @@ static void onDirResponse(const net_get_data* netData)
         {
             typedef char string[TICNAME_MAX];
 
-            string name, hash, filename;
-
             s32 folders = json_array("folders", 0);
             for(s32 i = 0, size = json_array_size(folders); i < size; i++)
             {
-                if(json_string("name", json_array_item(folders, i), name, sizeof name))
+                string name;
+                if(json_tostring(json_array_item(folders, i), name, sizeof name))
                     netDirData->item(name, NULL, NULL, 0, netDirData->data, true);
             }
 
             s32 files = json_array("files", 0);
             for(s32 i = 0, size = json_array_size(files); i < size; i++)
             {
-                s32 item = json_array_item(files, i);
-                s32 id;
-
-                if(json_string("name", item, name, sizeof name)
-                    && json_string("hash", item, hash, sizeof hash)
-                    && json_string("filename", item, filename, sizeof filename)
-                    && json_s32("id", item, &id))
-                    netDirData->item(filename, name, hash, id, netDirData->data, false);
+                string url;
+                if(json_tostring(json_array_item(files, i), url, sizeof url))
+                {
+                    char *base = strrchr(url, '/');
+                    if(base)
+                    {
+                        netDirData->item(base + 1, base + 1, url, 0, netDirData->data, false);
+                    }
+                }
             }
         }
     }
@@ -416,7 +416,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
     if(isPublic(fs))
     {
         char request[TICNAME_MAX];
-        snprintf(request, sizeof request, "/json?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
+        snprintf(request, sizeof request, "/dev%s/index.json", fs->work + STRLEN(TIC_HOST));
 
         NetDirData netDirData = { onItem, onDone, data };
         tic_net_get(fs->net, request, onDirResponse, MOVE(netDirData));
@@ -787,7 +787,7 @@ static void fileByHashLoaded(const net_get_data* netData)
     }
 }
 
-void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_callback callback, void* data)
+void tic_fs_hashload(tic_fs* fs, const char* name, const char* url, fs_load_callback callback, void* data)
 {
 #if defined(BAREMETALPI)
     // TODO BAREMETALPI
@@ -795,6 +795,7 @@ void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_cal
 #else
 
     char cachePath[TICNAME_MAX];
+    const char *hash = md5str(url, strlen(url));
     snprintf(cachePath, sizeof cachePath, TIC_CACHE "%s.tic", hash);
 
     {
@@ -809,11 +810,9 @@ void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_cal
     }
 
 #if defined(BUILD_EDITORS)
-    char path[TICNAME_MAX];
-    snprintf(path, sizeof path, "/cart/%s/%s", hash, name);
 
     LoadFileByHashData loadFileByHashData = { fs, callback, data, strdup(cachePath) };
-    tic_net_get(fs->net, path, fileByHashLoaded, MOVE(loadFileByHashData));
+    tic_net_get(fs->net, url, fileByHashLoaded, MOVE(loadFileByHashData));
 #endif
 
 #endif

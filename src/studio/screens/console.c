@@ -884,12 +884,12 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     commandDone(console);
 }
 
-static void loadByHash(Console* console, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data)
+static void loadByHash(Console* console, const char* name, const char* url, const char* section, fs_done_callback callback, void* data)
 {
     console->active = false;
 
     LoadByHashData loadByHashData = { console, strdup(name), section ? strdup(section) : NULL, callback, data};
-    tic_fs_hashload(console->fs, name, hash, loadByHashDone, MOVE(loadByHashData));
+    tic_fs_hashload(console->fs, name, url, loadByHashDone, MOVE(loadByHashData));
 }
 
 typedef struct
