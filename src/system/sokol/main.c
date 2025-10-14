@@ -468,8 +468,6 @@ static void init(void *userdata)
 #endif
     });
 
-    stm_setup();
-
     app->image = sg_make_image(&(sg_image_desc)
     {
         .width = TIC80_FULLWIDTH,
@@ -1044,6 +1042,8 @@ void force_exit()
 
 sapp_desc sokol_start(s32 argc, char* argv[])
 {
+    stm_setup();
+    
     App *app = NEW(App);
     memset(app, 0, sizeof *app);
 
@@ -1059,7 +1059,7 @@ sapp_desc sokol_start(s32 argc, char* argv[])
     if(!cli)
     {
         app->audio.desc.num_channels = TIC80_SAMPLE_CHANNELS;
-        saudio_setup(&app->audio.desc);        
+        saudio_setup(&app->audio.desc);
     }
     
     const char* path = ssys_app_folder(TIC_PACKAGE, TIC_NAME);

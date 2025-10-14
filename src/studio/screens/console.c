@@ -28,7 +28,6 @@
 #include "studio/config.h"
 #include "ext/png.h"
 #include "ext/json.h"
-// #include "zip.h"
 #include "retro_endianness.h"
 
 #if defined(TIC80_PRO)
@@ -4314,7 +4313,11 @@ static void tick(Console* console)
             }
             else
             {
-                runGame(console->studio);
+                if(!console->args.cli)
+                {
+                    runGame(console->studio);
+                }
+                
                 commandDone(console);
             }
         }
@@ -4338,6 +4341,7 @@ static void tick(Console* console)
 
     tic_api_cls(tic, TIC_COLOR_BG);
     drawConsoleText(console);
+    console->tickCounter++;
 
     {
         if(console->cursor.delay)
@@ -4364,7 +4368,6 @@ static void tick(Console* console)
         }
     }
 
-    console->tickCounter++;
 }
 
 static inline bool isslash(char c)
