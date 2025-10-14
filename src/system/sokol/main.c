@@ -593,25 +593,17 @@ static void checkrate(App* app)
     }
     else
     {
-        s32 refreshrate = 1.0 / sapp_frame_duration();
+        float refresh_rate = 1.0f / sapp_frame_duration();
+        float target = refresh_rate / (float)TIC80_FRAMERATE;
+        s32 div = (s32)roundf(target);
 
-        // check monitor refresh rate +-5Hz
-        if(refreshrate == CLAMP(refreshrate, TIC80_FRAMERATE - 5, TIC80_FRAMERATE + 5))
+        if (div >= 1 && div <= 4 && fabsf(refresh_rate - div * TIC80_FRAMERATE) <= 5.0f)
         {
     #if defined(__TIC_EMSCRIPTEN__)
-            emscripten_set_main_loop_timing(EM_TIMING_RAF, 1);
+            emscripten_set_main_loop_timing(EM_TIMING_RAF, div);
     #else
-            // use every frame on 60Hz
-            app->divider = 1;
-    #endif
-        }
-        else if(refreshrate == CLAMP(refreshrate, 2 * TIC80_FRAMERATE - 5, 2 * TIC80_FRAMERATE + 5))
-        {
-    #if defined(__TIC_EMSCRIPTEN__)
-            emscripten_set_main_loop_timing(EM_TIMING_RAF, 2);
-    #else
-            // use every 2nd frame on 120Hz
-            app->divider = 2;
+            // use every frame
+            app->divider = div;
     #endif
         }
         else
