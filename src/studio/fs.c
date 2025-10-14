@@ -64,10 +64,12 @@
 
 static const char* PublicDir = TIC_HOST;
 
+typedef char string[TICNAME_MAX];
+
 struct tic_fs
 {
-    char dir[TICNAME_MAX];
-    char work[TICNAME_MAX];
+    string dir;
+    string work;
     tic_net* net;
 };
 
@@ -85,7 +87,7 @@ void syncfs()
 
 const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 {
-    static char path[TICNAME_MAX];
+    static string path;
 
     snprintf(path, sizeof path, "%s%s", fs->dir, name);
 
@@ -103,14 +105,14 @@ const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 
 const char* tic_fs_path(tic_fs* fs, const char* name)
 {
-    static char path[TICNAME_MAX+1];
+    static string path;
 
     if(*name == '/')
-        strncpy(path, name + 1, sizeof path);
+        snprintf(path, sizeof path, "%s", name + 1);
     else if(strlen(fs->work))
         snprintf(path, sizeof path, "%s/%s", fs->work, name);
     else
-        strncpy(path, name, sizeof path);
+        snprintf(path, sizeof path, "%s", name);
 
     return tic_fs_pathroot(fs, path);
 }
@@ -283,8 +285,6 @@ static void onDirResponse(const net_get_data* netData)
     {
         if(json_parse((char*)netData->done.data, netData->done.size))
         {
-            typedef char string[TICNAME_MAX];
-
             s32 folders = json_array("folders", 0);
             for(s32 i = 0, size = json_array_size(folders); i < size; i++)
             {
@@ -340,7 +340,7 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
         return;
     }
 
-    static char path2[TICNAME_MAX];
+    static string path2;
     strncpy(path2, path, sizeof path2);
 
     if (path2[strlen(path2) - 1] == '/')    // one character
@@ -422,7 +422,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
 #if defined(BUILD_EDITORS)
     if(isPublic(fs))
     {
-        char request[TICNAME_MAX];
+        string request;
         snprintf(request, sizeof request, "%s/index.json", fs->work + STRLEN(TIC_HOST));
 
         NetDirData netDirData = { onItem, onDone, data };
@@ -512,15 +512,18 @@ void tic_fs_dir(tic_fs* fs, char* dir)
 
 void tic_fs_changedir(tic_fs* fs, const char* dir)
 {
-    char temp[TICNAME_MAX+1];
+    string temp;
 
-    if (strlen(fs->work) > 0) {
-        snprintf(temp, TICNAME_MAX+1, "%s/%s", fs->work, dir);
-    } else {
-        snprintf(temp, TICNAME_MAX, "%s", dir);
+    if (strlen(fs->work) > 0) 
+    {
+        snprintf(temp, sizeof temp, "%s/%s", fs->work, dir);
+    } 
+    else 
+    {
+        snprintf(temp, sizeof temp, "%s", dir);
     }
 
-    strncpy(fs->work, temp, TICNAME_MAX - 1);
+    snprintf(fs->work, sizeof fs->work, "%s", temp);
 
 #if defined(__TIC_WINDOWS__)
     for(char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
@@ -769,7 +772,7 @@ typedef struct
     tic_fs* fs;
     fs_load_callback done;
     void* data;
-    char cachePath[TICNAME_MAX];
+    string cachePath;
 } LoadFileByHashData;
 
 static void fileByHashLoaded(const net_get_data* netData)
@@ -803,26 +806,21 @@ void tic_fs_hashload(tic_fs* fs, const char* name, const char* url, fs_load_call
 #if defined(BUILD_EDITORS)
     LoadFileByHashData loadFileByHashData = { fs, callback, data };
 
-    const char *hash = strrchr(url, '?');
+    const char *hash = md5str(url, strlen(url));
+    snprintf(loadFileByHashData.cachePath, sizeof loadFileByHashData.cachePath, TIC_CACHE "%s.tic", hash);
 
-    if(hash)
     {
-        snprintf(loadFileByHashData.cachePath, sizeof loadFileByHashData.cachePath, TIC_CACHE "%s.tic", hash + 1);
-
+        s32 size = 0;
+        void* buffer = tic_fs_loadroot(fs, loadFileByHashData.cachePath, &size);
+        if (buffer)
         {
-            s32 size = 0;
-            void* buffer = tic_fs_loadroot(fs, loadFileByHashData.cachePath, &size);
-            if (buffer)
-            {
-                callback(buffer, size, data);
-                free(buffer);
-                return;
-            }
+            callback(buffer, size, data);
+            free(buffer);
+            return;
         }
-
-
-        tic_net_get(fs->net, url, fileByHashLoaded, MOVE(loadFileByHashData));
     }
+
+    tic_net_get(fs->net, url, fileByHashLoaded, MOVE(loadFileByHashData));
 
 #endif
 
@@ -967,7 +965,7 @@ tic_fs* tic_fs_create(const char* path, tic_net* net)
 {
     tic_fs* fs = (tic_fs*)calloc(1, sizeof(tic_fs));
 
-    strncpy(fs->dir, path, TICNAME_MAX);
+    snprintf(fs->dir, sizeof fs->dir, "%s", path);
 
     if(path[strlen(path) - 1] != SEP[0])
         strcat(fs->dir, SEP);
@@ -979,11 +977,11 @@ tic_fs* tic_fs_create(const char* path, tic_net* net)
 
 const char* fs_apppath()
 {
-    static char apppath[TICNAME_MAX];
+    static string apppath;
 
 #if defined(__TIC_WINDOWS__)
     {
-        wchar_t wideAppPath[TICNAME_MAX];
+        wchar_t wideAppPath[sizeof apppath];
         GetModuleFileNameW(NULL, wideAppPath, sizeof wideAppPath);
         WideCharToMultiByte(CP_UTF8, 0, wideAppPath, COUNT_OF(wideAppPath), apppath, COUNT_OF(apppath), 0, 0);
     }
@@ -1000,7 +998,7 @@ const char* fs_apppath()
 
 const char* fs_appfolder()
 {
-    static char appfolder[TICNAME_MAX];
+    static string appfolder;
     strcpy(appfolder, fs_apppath());
 
     char* pos = strrchr(appfolder, SLASH_SYMBOL);
