@@ -111,11 +111,11 @@ u64 tic_sys_freq_get()
     return HZ;
 }
 
-void tic_sys_fullscreen_set(bool value, void *userdata)
+void tic_sys_fullscreen_set(bool value)
 {
 }
 
-bool tic_sys_fullscreen_get(void *userdata)
+bool tic_sys_fullscreen_get()
 {
     return false;
 }

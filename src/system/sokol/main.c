@@ -83,9 +83,9 @@ typedef struct
 
     struct
     {
-        char title[TICNAME_MAX];
+        char data[TICNAME_MAX];
         bool async;
-    } window;
+    } title;
 
 } App;
 
@@ -148,24 +148,24 @@ u64 tic_sys_freq_get()
     return 1e9;
 }
 
-void tic_sys_fullscreen_set(bool value, void *userdata)
+void tic_sys_fullscreen_set(bool value)
 {
-    App *app = userdata;
+    App *app = sapp_userdata();
     app->fullscreen.async = true;
     app->fullscreen.set = !app->fullscreen.set;
 }
 
-bool tic_sys_fullscreen_get(void *userdata)
+bool tic_sys_fullscreen_get()
 {
-    App *app = userdata;
+    App *app = sapp_userdata();
     return app->fullscreen.set;
 }
 
 void tic_sys_title(const char* title)
 {
     App *app = sapp_userdata();
-    app->window.async = true;
-    strcpy(app->window.title, title);
+    app->title.async = true;
+    strcpy(app->title.data, title);
 }
 
 void tic_sys_addfile(void(*callback)(void* userdata, const char* name, const u8* buffer, s32 size), void* userdata)
@@ -576,22 +576,23 @@ static void drawImage(Rect r,sg_image image, sg_sampler sampler)
     sgl_disable_texture();
 }
 
+static void threadedMode(App* app)
+{
+    #if defined(__TIC_EMSCRIPTEN__)
+    emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, 1000 / TIC80_FRAMERATE);
+    #else
+    // use separate thread to call tick
+    if(!app->thread)
+    {
+        mutex_init(&app->lock);
+        thread_create(&app->thread, loop, app);
+    }
+    #endif
+}
+
 static void checkrate(App* app)
 {
-    if(app->threaded)
-    {
-        #if defined(__TIC_EMSCRIPTEN__)
-        emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, 1000 / TIC80_FRAMERATE);
-        #else
-        // use separate thread to call tick
-        if(!app->thread)
-        {
-            mutex_init(&app->lock);
-            thread_create(&app->thread, loop, app);
-        }
-        #endif
-    }
-    else
+    if(!app->threaded)
     {
         float refresh_rate = 1.0f / sapp_frame_duration();
         float target = refresh_rate / (float)TIC80_FRAMERATE;
@@ -606,17 +607,9 @@ static void checkrate(App* app)
             app->divider = div;
     #endif
         }
-        else
-        {
-    #if defined(__TIC_EMSCRIPTEN__)
-            emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, 1000 / TIC80_FRAMERATE);
-    #else
-            // use separate thread to call tick
-            mutex_init(&app->lock);
-            thread_create(&app->thread, loop, app);
-    #endif
-        }
+        else threadedMode(app);
     }
+    else threadedMode(app);
 }
 
 static void frame(void *userdata)
@@ -966,10 +959,10 @@ static void event(const sapp_event* event, void *userdata)
 #endif
     }
 
-    if(app->window.async)
+    if(app->title.async)
     {
-        app->window.async = false;
-        sapp_set_window_title(app->window.title);
+        app->title.async = false;
+        sapp_set_window_title(app->title.data);
     }
 }
 

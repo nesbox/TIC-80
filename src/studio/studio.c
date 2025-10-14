@@ -1778,7 +1778,7 @@ static inline bool keyWasPressedOnce(Studio* studio, s32 key)
 
 static void gotoFullscreen(Studio* studio)
 {
-    tic_sys_fullscreen_set(studio->config->data.options.fullscreen = !tic_sys_fullscreen_get(studioUserdata(studio)), studio->userdata);
+    tic_sys_fullscreen_set(studio->config->data.options.fullscreen = !tic_sys_fullscreen_get());
 }
 
 static void switchCrtMonitor(Studio* studio)

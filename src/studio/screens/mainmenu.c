@@ -90,14 +90,13 @@ bool studio_mainmenu_keyboard(StudioMainMenu* main)
 
 static s32 optionFullscreenGet(void* data)
 {
-    StudioMainMenu* main = data;
-    return tic_sys_fullscreen_get(studioUserdata(main->studio)) ? 1 : 0;
+    return tic_sys_fullscreen_get() ? 1 : 0;
 }
 
 static void optionFullscreenSet(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
-    tic_sys_fullscreen_set(main->options->fullscreen = (pos == 1), studioUserdata(main->studio));
+    tic_sys_fullscreen_set(main->options->fullscreen = (pos == 1));
 }
 
 static const char OffValue[] =  "OFF";

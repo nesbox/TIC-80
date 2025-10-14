@@ -1411,7 +1411,7 @@ u64 tic_sys_freq_get()
     return SDL_GetPerformanceFrequency();
 }
 
-bool tic_sys_fullscreen_get(void* userdata)
+bool tic_sys_fullscreen_get()
 {
 #if defined(CRT_SHADER_SUPPORT)
     if(!studio_config(platform.studio)->soft)
@@ -1426,7 +1426,7 @@ bool tic_sys_fullscreen_get(void* userdata)
     }
 }
 
-void tic_sys_fullscreen_set(bool value, void *userdata)
+void tic_sys_fullscreen_set(bool value)
 {
 #if defined(CRT_SHADER_SUPPORT)
     if(!studio_config(platform.studio)->soft)
@@ -2000,7 +2000,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 #endif
 
                 if(studio_config(platform.studio)->options.fullscreen)
-                    tic_sys_fullscreen_set(true, platform.studio);
+                    tic_sys_fullscreen_set(true);
             }
 
             SDL_PauseAudioDevice(platform.audio.device, 0);
