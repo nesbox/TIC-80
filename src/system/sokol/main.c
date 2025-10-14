@@ -73,12 +73,19 @@ typedef struct
     thread_t thread;
     mutex_t lock;
     s32 divider;
+    bool threaded;
 
     struct
     {
         bool set;
         bool async;
     } fullscreen;
+
+    struct
+    {
+        char title[TICNAME_MAX];
+        bool async;
+    } window;
 
 } App;
 
@@ -156,7 +163,9 @@ bool tic_sys_fullscreen_get(void *userdata)
 
 void tic_sys_title(const char* title)
 {
-    sapp_set_window_title(title);
+    App *app = sapp_userdata();
+    app->window.async = true;
+    strcpy(app->window.title, title);
 }
 
 void tic_sys_addfile(void(*callback)(void* userdata, const char* name, const u8* buffer, s32 size), void* userdata)
@@ -569,36 +578,52 @@ static void drawImage(Rect r,sg_image image, sg_sampler sampler)
 
 static void checkrate(App* app)
 {
-    s32 refreshrate = 1.0 / sapp_frame_duration();
-
-    // check monitor refresh rate +-5Hz
-    if(refreshrate == CLAMP(refreshrate, TIC80_FRAMERATE - 5, TIC80_FRAMERATE + 5))
+    if(app->threaded)
     {
-#if defined(__TIC_EMSCRIPTEN__)
-        emscripten_set_main_loop_timing(EM_TIMING_RAF, 1);
-#else
-        // use every frame on 60Hz
-        app->divider = 1;
-#endif
-    }
-    else if(refreshrate == CLAMP(refreshrate, 2 * TIC80_FRAMERATE - 5, 2 * TIC80_FRAMERATE + 5))
-    {
-#if defined(__TIC_EMSCRIPTEN__)
-        emscripten_set_main_loop_timing(EM_TIMING_RAF, 2);
-#else
-        // use every 2nd frame on 120Hz
-        app->divider = 2;
-#endif
+        #if defined(__TIC_EMSCRIPTEN__)
+        emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, 1000 / TIC80_FRAMERATE);
+        #else
+        // use separate thread to call tick
+        if(!app->thread)
+        {
+            mutex_init(&app->lock);
+            thread_create(&app->thread, loop, app);
+        }
+        #endif
     }
     else
     {
-#if defined(__TIC_EMSCRIPTEN__)
-        emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, 1000 / TIC80_FRAMERATE);
-#else
-        // use separate thread to call tick
-        mutex_init(&app->lock);
-        thread_create(&app->thread, loop, app);
-#endif
+        s32 refreshrate = 1.0 / sapp_frame_duration();
+
+        // check monitor refresh rate +-5Hz
+        if(refreshrate == CLAMP(refreshrate, TIC80_FRAMERATE - 5, TIC80_FRAMERATE + 5))
+        {
+    #if defined(__TIC_EMSCRIPTEN__)
+            emscripten_set_main_loop_timing(EM_TIMING_RAF, 1);
+    #else
+            // use every frame on 60Hz
+            app->divider = 1;
+    #endif
+        }
+        else if(refreshrate == CLAMP(refreshrate, 2 * TIC80_FRAMERATE - 5, 2 * TIC80_FRAMERATE + 5))
+        {
+    #if defined(__TIC_EMSCRIPTEN__)
+            emscripten_set_main_loop_timing(EM_TIMING_RAF, 2);
+    #else
+            // use every 2nd frame on 120Hz
+            app->divider = 2;
+    #endif
+        }
+        else
+        {
+    #if defined(__TIC_EMSCRIPTEN__)
+            emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, 1000 / TIC80_FRAMERATE);
+    #else
+            // use separate thread to call tick
+            mutex_init(&app->lock);
+            thread_create(&app->thread, loop, app);
+    #endif
+        }
     }
 }
 
@@ -948,6 +973,12 @@ static void event(const sapp_event* event, void *userdata)
         app->fullscreen.set = sapp_is_fullscreen();
 #endif
     }
+
+    if(app->window.async)
+    {
+        app->window.async = false;
+        sapp_set_window_title(app->window.title);
+    }
 }
 
 static void cleanup(void *userdata)
@@ -1033,8 +1064,12 @@ sapp_desc sokol_start(s32 argc, char* argv[])
 
     bool cli = false;
     for(s32 i = 0; i < argc; i++)
+    {
         if(strcmp(argv[i], "--cli") == 0)
             cli = true;
+        else if(strcmp(argv[i], "--threaded") == 0)
+            app->threaded = true;
+    }
 
     if(!cli)
     {
