@@ -299,10 +299,17 @@ static void onDirResponse(const net_get_data* netData)
                 string url;
                 if(json_tostring(json_array_item(files, i), url, sizeof url))
                 {
-                    char *base = strrchr(url, '/');
+                    const char *base = strrchr(url, '/');
                     if(base)
                     {
-                        netDirData->item(base + 1, base + 1, url, 0, netDirData->data, false);
+                        string name;
+                        const char *hash = strrchr(url, '?');
+
+                        if(hash)
+                        {
+                            snprintf(name, hash - base, "%s", base + 1);
+                            netDirData->item(name, NULL, url, 0, netDirData->data, false);
+                        }
                     }
                 }
             }
@@ -762,7 +769,7 @@ typedef struct
     tic_fs* fs;
     fs_load_callback done;
     void* data;
-    char* cachePath;
+    char cachePath[TICNAME_MAX];
 } LoadFileByHashData;
 
 static void fileByHashLoaded(const net_get_data* netData)
@@ -780,7 +787,6 @@ static void fileByHashLoaded(const net_get_data* netData)
     case net_get_done:
     case net_get_error:
 
-        free(loadFileByHashData->cachePath);
         free(loadFileByHashData);
         break;
     default: break;
@@ -794,25 +800,30 @@ void tic_fs_hashload(tic_fs* fs, const char* name, const char* url, fs_load_call
     return;
 #else
 
-    char cachePath[TICNAME_MAX];
-    const char *hash = md5str(url, strlen(url));
-    snprintf(cachePath, sizeof cachePath, TIC_CACHE "%s.tic", hash);
+#if defined(BUILD_EDITORS)
+    LoadFileByHashData loadFileByHashData = { fs, callback, data };
 
+    const char *hash = strrchr(url, '?');
+
+    if(hash)
     {
-        s32 size = 0;
-        void* buffer = tic_fs_loadroot(fs, cachePath, &size);
-        if (buffer)
+        snprintf(loadFileByHashData.cachePath, sizeof loadFileByHashData.cachePath, TIC_CACHE "%s.tic", hash + 1);
+
         {
-            callback(buffer, size, data);
-            free(buffer);
-            return;
+            s32 size = 0;
+            void* buffer = tic_fs_loadroot(fs, loadFileByHashData.cachePath, &size);
+            if (buffer)
+            {
+                callback(buffer, size, data);
+                free(buffer);
+                return;
+            }
         }
+
+
+        tic_net_get(fs->net, url, fileByHashLoaded, MOVE(loadFileByHashData));
     }
 
-#if defined(BUILD_EDITORS)
-
-    LoadFileByHashData loadFileByHashData = { fs, callback, data, strdup(cachePath) };
-    tic_net_get(fs->net, url, fileByHashLoaded, MOVE(loadFileByHashData));
 #endif
 
 #endif

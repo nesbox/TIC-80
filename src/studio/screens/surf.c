@@ -378,19 +378,22 @@ static void requestCover(Surf* surf, SurfItem* item)
     tic_fs_dir(surf->fs, coverLoadingData.dir);
 
     const char *url = item->url;
-    const char *hash = md5str(item->url, strlen(item->url));
+    const char *hash = strrchr(url, '?');
 
-    sprintf(coverLoadingData.cachePath, TIC_CACHE "%s.png", hash);
-
+    if(hash)
     {
-        s32 size = 0;
-        void* data = tic_fs_loadroot(surf->fs, coverLoadingData.cachePath, &size);
+        sprintf(coverLoadingData.cachePath, TIC_CACHE "%s.png", hash + 1);
 
-        if (data)
         {
-            updateMenuItemCover(surf, surf->menu.pos, data, size);
-            free(data);
-            return;
+            s32 size = 0;
+            void* data = tic_fs_loadroot(surf->fs, coverLoadingData.cachePath, &size);
+
+            if (data)
+            {
+                updateMenuItemCover(surf, surf->menu.pos, data, size);
+                free(data);
+                return;
+            }
         }
     }
 
