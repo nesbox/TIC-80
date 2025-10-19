@@ -423,7 +423,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
     if(isPublic(fs))
     {
         string request;
-        snprintf(request, sizeof request, "%s/index.json", fs->work + STRLEN(TIC_HOST));
+        snprintf(request, sizeof request, "%s/tree.json", fs->work + STRLEN(TIC_HOST));
 
         NetDirData netDirData = { onItem, onDone, data };
         tic_net_get(fs->net, request, onDirResponse, MOVE(netDirData));
