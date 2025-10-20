@@ -30,6 +30,7 @@ LIBS :=  \
     $(TIC80LIB)/libluaapi.a \
     $(TIC80LIB)/liblua.a \
     $(TIC80LIB)/libmoon.a \
+    $(TIC80LIB)/libyuescript.a \
     $(TIC80LIB)/libfennel.a \
     $(TIC80LIB)/libzip.a \
     $(TIC80LIB)/libblipbuf.a \
