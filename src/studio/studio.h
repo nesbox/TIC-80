@@ -40,7 +40,11 @@
 #define KEYBOARD_HOLD 20
 #define KEYBOARD_PERIOD 3
 
+#ifdef BAREMETALPI
+#define TIC_LOCAL "../.tic80/"
+#else
 #define TIC_LOCAL ".local/"
+#endif
 #define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_HASH "/"
 #define TIC_CACHE TIC_LOCAL "cache/"
 

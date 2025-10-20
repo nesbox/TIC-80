@@ -7,7 +7,7 @@
   - [Features](#features)
 - [Binary Downloads](#binary-downloads)
   - [Nightly builds](#nightly-builds)
-  - [Unofficial Linux/arm64 nightly builds](#unofficial-linuxarm64-nightly-builds)
+  - [Unofficial Linux/arm64 nightly builds](#unofficial-builds)
 - [Pro Version](#pro-version)
   - [Pro Features](#pro-features)
 - [Community](#community)
@@ -36,6 +36,7 @@
   - [FreeBSD](#freebsd)
 - [Install Instructions](#install-instructions)
   - [Linux](#linux-1)
+  - [Android](#android)
   - [iOS / tvOS](#ios--tvos)
   - [Credits](#credits)
 
@@ -224,7 +225,7 @@ Run the following commands from a terminal:
 ```
 sudo apt update && sudo apt -y install build-essential cmake git libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On .. && cmake --build . --parallel
+cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On -DBUILD_STATIC=On .. && cmake --build . --parallel
 ```
 
 Install with [Install Instructions](#install-instructions)
@@ -336,20 +337,20 @@ run the following commands in the Terminal
 ```
 brew install git cmake
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_WITH_ALL=On ..
+cmake -DBUILD_WITH_ALL=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
 make -j4
 ```
 
 to create application icon for development version
 ```
-mkdir -p ~/Applications/TIC80dev.app/Contents/{MacOS,Resources}
-cp -f macosx/tic80.plist ~/Applications/TIC80dev.app/Contents/Info.plist
-cp -f macosx/tic80.icns ~/Applications/TIC80dev.app/Contents/Resources
-cat > ~/Applications/TIC80dev.app/Contents/MacOS/tic80 <<EOF
+mkdir -p ~/Applications/tic80dev.app/Contents/{MacOS,Resources}
+cp -f macosx/tic80.plist ~/Applications/tic80dev.app/Contents/Info.plist
+cp -f macosx/tic80.icns ~/Applications/tic80dev.app/Contents/Resources
+cat > ~/Applications/tic80dev.app/Contents/MacOS/tic80 <<EOF
 #!/bin/sh
-exec /Users/nesbox/projects/TIC-80/build/bin/tic80 --skip --scale 2 >/dev/null
+exec /Users/nesbox/projects/TIC-80/build/bin/tic80 --skip >/dev/null
 EOF
-chmod +x ~/Applications/TIC80dev.app/Contents/MacOS/TIC80dev
+chmod +x ~/Applications/tic80dev.app/Contents/MacOS/tic80
 ```
 Make sure to update the absolute path to the tic80 binary in the script, or
 update the launch arguments.
@@ -382,6 +383,10 @@ TIC-80 can now be run with `tic80` (if installed) or `./tic80` (with no installa
 You can find iOS/tvOS version here
 - 0.60.3: https://github.com/brunophilipe/TIC-80
 - 0.45.0: https://github.com/CliffsDover/TIC-80
+
+## Android
+You can find the compiled version ready download and install [on F-Droid](https://f-droid.org/packages/com.nesbox.tic/):  
+[<img alt="Get it on F-Droid" src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" width="256">](https://f-droid.org/packages/com.nesbox.tic/)
 
 ## Credits
 * Filippo Rivato — [Twitter @HomineLudens](https://twitter.com/HomineLudens)

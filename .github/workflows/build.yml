@@ -7,47 +7,9 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
-  # === Windows XP ===
-  winxp:
-    runs-on: windows-2019
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - name: Build
-        shell: cmd
-        run: |
-          COPY /Y build\janet\janetconf.h vendor\janet\src\conf\janetconf.h
-          cd build
-          cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
-
-      - name: Deploy
-        uses: actions/upload-artifact@v4
-        with:
-          name: "tic80-winxp"
-          path: |
-            build/bin/tic80.exe
-            build/bin/*.dll
-
-      - name: Build Pro
-        shell: cmd
-        run: |
-          COPY /Y build\janet\janetconf.h vendor\janet\src\conf\janetconf.h
-          cd build
-          cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
-
   # === Windows ===
   windows:
-    runs-on: windows-2019
+    runs-on: windows-2022
 
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +25,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 16 2019" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --config MinSizeRel --parallel
 
       - name: Deploy
@@ -78,7 +40,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 16 2019" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config MinSizeRel --parallel
 
   # === Windows MinGW-64 ===
@@ -99,14 +61,14 @@ jobs:
             git
             gcc
 
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
       - uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
 
       - name: Build
         shell: bash
@@ -146,6 +108,47 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: "tic80-linux-gcc12"
+          path: |
+            build/bin/tic80
+            build/bin/*.so
+
+      - name: Build Pro
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake --build . --config MinSizeRel --parallel
+
+  # === Ubuntu-arm64 ===
+  linux-arm64-gcc12-glibc235:
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-12 g++-12 libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
+          sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
+          sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
+          
+      - name: Build
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-linux-arm64-gcc12"
           path: |
             build/bin/tic80
             build/bin/*.so
@@ -196,42 +199,6 @@ jobs:
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
-
-  # === Raspberry PI ===
-  rpi:
-    runs-on: ubuntu-latest
-    container: nesbox/rpi-tic80:latest
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Install Host toolchain
-        run: |
-          apt-get update
-          apt-get install --assume-yes build-essential ruby-full gcc-8-arm-linux-gnueabihf g++-8-arm-linux-gnueabihf
-
-      - name: Build
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
-
-      - name: Deploy
-        uses: actions/upload-artifact@v3
-        with:
-          name: "tic80-rpi"
-          path: |
-            build/bin/tic80
-            build/bin/*.so
-
-      - name: Build Pro
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake ..
           cmake --build . --config MinSizeRel --parallel
 
   # === Raspberry PI 1-4 Bare Metal ===
@@ -363,7 +330,7 @@ jobs:
   # === Nintendo 3DS build ===
   nintendo-3ds:
     runs-on: ubuntu-latest
-    container: devkitpro/devkitarm:latest
+    container: devkitpro/devkitarm:20250102
 
     steps:
       - uses: actions/checkout@v4
@@ -403,7 +370,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -417,7 +384,7 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
   # === MacOS 14 / arm64 ===
@@ -436,7 +403,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -466,14 +433,14 @@ jobs:
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r21e
+          ndk-version: r23
           add-to-path: false
           local-cache: true
 
-      - name: set up JDK 11
+      - name: set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
           cache: gradle
 

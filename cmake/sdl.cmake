@@ -1,7 +1,19 @@
 ################################
 # SDL2
 ################################
-if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI)
+if(PREFER_SYSTEM_LIBRARIES)
+    find_package(SDL2)
+    if(SDL2_FOUND)
+        add_library(SDL2 ALIAS SDL2::SDL2)
+        add_library(SDL2-static ALIAS SDL2::SDL2)
+        message(STATUS "Use system library: SDL2")
+    else()
+        message(WARNING "System library SDL2 not found")
+    endif()
+endif()
+
+
+if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_LIBRARIES)
 
     if(WIN32)
         set(HAVE_LIBC TRUE)
@@ -12,7 +24,20 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI)
         set(SDL_STATIC_PIC ON CACHE BOOL "" FORCE)
     endif()
 
+
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
+
+    if(MSVC)
+        # CMake policy CMP0079
+        # This allows linking libraries to targets not built in the current directory.
+        cmake_policy(SET CMP0079 NEW)
+
+        target_link_libraries(SDL2 PRIVATE
+            libcmt.lib
+            libvcruntime.lib
+            libucrt.lib
+        )
+    endif()
 
 endif()
 
@@ -207,10 +232,11 @@ if(BUILD_SDL)
         install(TARGETS ${TIC80_TARGET} DESTINATION bin)
 
         SET(TIC80_DESKTOP_DIR     "share/applications/")
+        SET(TIC80_MIME_DIR        "share/mime/packages/")
         SET(TIC80_PIXMAPS_DIR     "share/icons/")
 
         install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop DESTINATION ${TIC80_DESKTOP_DIR})
-        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_DESKTOP_DIR})
+        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_MIME_DIR})
         install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_PIXMAPS_DIR})
 
     endif()

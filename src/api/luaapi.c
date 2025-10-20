@@ -576,7 +576,7 @@ static s32 lua_ttri(lua_State* lua)
             }
         }
 
-        float z[3];
+        float z[3] = {0, 0, 0};
         bool depth = false;
 
         if(top == 17)

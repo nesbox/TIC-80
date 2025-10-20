@@ -24,6 +24,12 @@
 
 #if defined(BUILD_EDITORS)
 
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <sys/time.h>
+#endif
+
 #include "editors/code.h"
 #include "editors/sprite.h"
 #include "editors/map.h"
@@ -37,7 +43,7 @@
 #include "wave_writer.h"
 #include "ext/gif.h"
 #define MSF_GIF_IMPL
-#include "msf_gif.h"
+#include "ext/msf_gif.h"
 
 #include "../fftdata.h"
 #include "ext/fft.h"
@@ -66,6 +72,9 @@
 #endif
 
 #define MD5_HASHSIZE 16
+
+// interval between the Windows and Unix epoch
+#define UNIX_EPOCH_IN_FILETIME 116444736000000000ULL
 
 #if defined(TIC80_PRO)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
@@ -229,13 +238,6 @@ struct Studio
     tic_font systemFont;
 
 };
-
-#if defined(BUILD_EDITORS)
-
-static const char VideoGif[] = "video%i.gif";
-static const char ScreenGif[] = "screen%i.gif";
-
-#endif
 
 static void emptyDone(void* data) {}
 
@@ -413,8 +415,16 @@ char getKeyboardText(Studio* studio)
         tic_mem* tic = studio->tic;
         tic80_input* input = &tic->ram->input;
 
+#ifdef KEYBOARD_LAYOUT_ES
+        // US KEYS:                     " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./< ";
+        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789'!`+cn'o,.-< ";
+        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ=!\" $%&/()??^*CN\"a;:_> ";
+        static const char Alt[] =       "                            |@#        []} {\\     ";
+#else
         static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
         static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+        static const char Alt[] =       "                                                  ";
+#endif
 
         enum{Count = sizeof Symbols};
 
@@ -426,12 +436,13 @@ char getKeyboardText(Studio* studio)
             {
                 bool caps = tic_api_key(tic, tic_key_capslock);
                 bool shift = tic_api_key(tic, tic_key_shift);
+                bool alt = tic_api_key(tic, tic_key_alt);
 
-                return caps
-                    ? key >= tic_key_a && key <= tic_key_z
-                        ? shift ? Symbols[key] : Shift[key]
-                        : shift ? Shift[key] : Symbols[key]
-                    : shift ? Shift[key] : Symbols[key];
+                if (caps && key >= tic_key_a && key <= tic_key_z) shift = !shift;
+
+                return shift ? Shift[key]
+                    : alt ? Alt[key]
+                    : Symbols[key];
             }
         }
 
@@ -1520,30 +1531,6 @@ bool project_ext(const char* name)
     return false;
 }
 
-tic_cartridge* loadPngCart(png_buffer buffer)
-{
-    png_buffer zip = png_decode(buffer);
-
-    if (zip.size)
-    {
-        png_buffer buf = png_create(sizeof(tic_cartridge));
-
-        buf.size = tic_tool_unzip(buf.data, buf.size, zip.data, zip.size);
-        free(zip.data);
-
-        if(buf.size)
-        {
-            tic_cartridge* cart = malloc(sizeof(tic_cartridge));
-            tic_cart_load(cart, buf.data, buf.size);
-            free(buf.data);
-
-            return cart;
-        }
-    }
-
-    return NULL;
-}
-
 void studioRomSaved(Studio* studio)
 {
     updateTitle(studio);
@@ -1654,18 +1641,81 @@ static void setCoverImage(Studio* studio)
     }
 }
 
-static void stopVideoRecord(Studio* studio, const char* name)
+static void generateScreenshotName(Studio* studio, const char* extension, char filenameOut[TICNAME_MAX])
+{
+    const char* romName = studio->console->rom.name;
+
+    // --- Strip extension ---
+    const char* dot = strrchr(romName, '.');
+    size_t baseLen = dot ? (size_t)(dot - romName) : strlen(romName);
+
+    // --- Get current time with millisecond precision ---
+    time_t sec = 0;
+    long msec = 0;
+
+#if defined(_WIN32)
+    // Windows: Use GetSystemTimeAsFileTime for high precision.
+    // It provides time in 100-nanosecond intervals since Jan 1, 1601.
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+
+    ULARGE_INTEGER uli;
+    uli.LowPart = ft.dwLowDateTime;
+    uli.HighPart = ft.dwHighDateTime;
+
+    // Convert FILETIME to Unix seconds and milliseconds
+    sec = (time_t)((uli.QuadPart - UNIX_EPOCH_IN_FILETIME) / 10000000ULL);
+    msec = (long)((uli.QuadPart / 10000) % 1000);
+#else
+    // Other systems (Linux, macOS, 3DS, etc.): Use gettimeofday, which is widely available.
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    sec = tv.tv_sec;
+    msec = (long)(tv.tv_usec / 1000);
+#endif
+
+    // --- Convert seconds to a local time structure (thread-safe) ---
+    struct tm tm_local;
+
+    // Thread-safe localtime
+#if defined(_WIN32)
+    // Windows secure version
+    localtime_s(&tm_local, &sec);
+#else
+    // POSIX re-entrant version
+    localtime_r(&sec, &tm_local);
+#endif
+
+    // --- Format the timestamp string ---
+    char timestamp[32] = {0};
+
+    // Format as -yymmdd-hhmmss
+    strftime(timestamp, sizeof(timestamp), "-%y%m%d-%H%M%S", &tm_local);
+
+    // Append milliseconds
+    size_t len = strlen(timestamp);
+    snprintf(timestamp + len, sizeof(timestamp) - len, "-%03ld", msec);
+
+    // --- Adjust baseLen to prevent overflow ---
+    size_t maxBaseLen = TICNAME_MAX
+                      - strlen(timestamp)
+                      - strlen(extension)
+                      - 1; // for null terminator
+
+    if (baseLen > maxBaseLen)
+        baseLen = maxBaseLen;
+
+    // --- Build the final filename string ---
+    snprintf(filenameOut, TICNAME_MAX, "%.*s%s%s",
+             (int)baseLen, romName, timestamp, extension);
+}
+
+static void stopVideoRecord(Studio* studio)
 {
     MsfGifResult result = msf_gif_end(&studio->video.gif);
 
-    // Find an available filename to save.
-    s32 i = 0;
     char filename[TICNAME_MAX];
-    do
-    {
-        snprintf(filename, sizeof filename, name, ++i);
-    }
-    while(tic_fs_exists(studio->fs, filename));
+    generateScreenshotName(studio, ".gif", filename);
 
     // Now that it has found an available filename, save it.
     if(tic_fs_save(studio->fs, filename, result.data, result.dataSize, true))
@@ -1687,7 +1737,7 @@ static void startVideoRecord(Studio* studio)
 {
     if(studio->video.record)
     {
-        stopVideoRecord(studio, VideoGif);
+        stopVideoRecord(studio);
     }
     else
     {
@@ -1827,6 +1877,7 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
         else if(studio->mode != TIC_RUN_MODE && studio->config->data.keyboardLayout != tic_layout_azerty)
         {
+#ifndef KEYBOARD_LAYOUT_ES
             if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_1))
             {
@@ -1840,6 +1891,7 @@ static void processShortcuts(Studio* studio)
             else if(keyWasPressedOnce(studio, tic_key_3)) setStudioMode(studio, TIC_MAP_MODE);
             else if(keyWasPressedOnce(studio, tic_key_4)) setStudioMode(studio, TIC_SFX_MODE);
             else if(keyWasPressedOnce(studio, tic_key_5)) setStudioMode(studio, TIC_MUSIC_MODE);
+#endif
         }
 #endif
     }
@@ -2026,7 +2078,7 @@ static void recordFrame(Studio* studio, u32* pixels)
         if(studio->video.screenshot)
         {
             studio->video.screenshot = false;
-            stopVideoRecord(studio, ScreenGif);
+            stopVideoRecord(studio);
             return;
         }
 
@@ -2217,9 +2269,6 @@ static void processMouseStates(Studio* studio)
 
     tic_mem* tic = studio->tic;
 
-    tic->ram->vram.vars.cursor.sprite = tic_cursor_arrow;
-    tic->ram->vram.vars.cursor.system = true;
-
     for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
     {
         MouseState* state = &studio->mouse.state[i];
@@ -2250,6 +2299,7 @@ static void processMouseStates(Studio* studio)
 #if defined(BUILD_EDITORS)
 static void doCodeExport(Studio* studio)
 {
+#ifndef BAREMETALPI
     char pos[sizeof studio->bytebattle.last.postag];
     {
         s32 x = 0, y = 0;
@@ -2277,10 +2327,12 @@ static void doCodeExport(Studio* studio)
             fclose(file);
         }
     }
+#endif
 }
 
 static void doCodeImport(Studio* studio)
 {
+#ifndef BAREMETALPI
     FILE* file = fopen(studio->bytebattle.imp, "rb");
 
     if(file)
@@ -2326,6 +2378,7 @@ static void doCodeImport(Studio* studio)
 
         fclose(file);
     }
+#endif
 }
 #endif
 
@@ -2622,8 +2675,8 @@ static StartArgs parseArgs(s32 argc, char **argv)
         OPT_BOOLEAN('\0', "fftlist", &args.fftlist, "list FFT devices"),
         OPT_BOOLEAN('\0', "fftcaptureplaybackdevices", &args.fftcaptureplaybackdevices, "Capture playback devices for loopback (Windows only)"),
         OPT_STRING('\0', "fftdevice", &args.fftdevice, "name of the device to use with FFT"),
-        OPT_END(),
 #endif
+        OPT_END(),
     };
 
     struct argparse argparse;

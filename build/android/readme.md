@@ -1,6 +1,9 @@
 # USEFUL ADB COMMANDS
 
 ## BUILD IN DOCKER
+
+You may need to add exec `sdkmanager "ndk;23.2.8568313"` just before `./gradlew assembleRelease`, the version must match the one shown in `app/build.gradle`.
+
 ```
 winpty docker exec -it nice_goldwasser bash -c "cd /tic80/build/android && ./gradlew assembleRelease" && adb install -r app/build/outputs/apk/arm8/release/app-arm8-release.apk && adb shell am start -n com.nesbox.tic/com.nesbox.tic.TIC
 ```

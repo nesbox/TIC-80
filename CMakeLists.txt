@@ -1,17 +1,17 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.10)
 
 include(cmake/version.cmake)
 
 project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LANGUAGES C CXX)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -flto -ffat-lto-objects")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -flto -ffat-lto-objects")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -flto -ffat-lto-objects")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -flto -ffat-lto-objects")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"  OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -flto")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -flto")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -flto")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -flto")
 endif()
 
 if(APPLE)
@@ -49,6 +49,8 @@ option(BUILD_NO_OPTIMIZATION "Build without optimizations for debugging" OFF)
 option(BUILD_ASAN_DEBUG "Build with AddressSanitizer" OFF)
 option(BUILD_WITH_ZLIB "Build with zlib linked" ON)
 option(TIC80_TARGET "Target binary suffix")
+option(PREFER_SYSTEM_LIBRARIES "Prefer link with system libraries" OFF)
+
 
 if(NOT TIC80_TARGET)
     set(TIC80_TARGET tic80)
@@ -69,6 +71,7 @@ endif()
 
 target_compile_definitions(runtime INTERFACE BUILD_DEPRECATED)
 
+message("PREFER_SYSTEM_LIBRARIES: ${PREFER_SYSTEM_LIBRARIES}")
 message("BUILD_STATIC: ${BUILD_STATIC}")
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
@@ -149,6 +152,7 @@ include(cmake/gif.cmake)
 include(cmake/blipbuf.cmake)
 include(cmake/zlib.cmake)
 include(cmake/zip.cmake)
+include(cmake/png.cmake)
 include(cmake/tools.cmake)
 
 include(cmake/lua.cmake)
@@ -168,7 +172,6 @@ include(cmake/core.cmake)
 include(cmake/wave.cmake)
 include(cmake/argparse.cmake)
 include(cmake/naett.cmake)
-include(cmake/png.cmake)
 include(cmake/studio.cmake)
 
 include(cmake/sdl.cmake)

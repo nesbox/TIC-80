@@ -49,18 +49,18 @@ tic_key_escape,	 // KeyEscape, 0x29
 tic_key_backspace,	 // KeyBackspace, 0x2A
 tic_key_tab,	 // KeyTabulator, 0x2B
 tic_key_space,	 // KeySpace, 0x2C
-tic_key_apostrophe,	 // '\'', 0x2D
-tic_key_unknown,	 // C('?'), 0x2E -- ^
-tic_key_leftbracket,	 // C('?'), 0x2F --  [
-tic_key_rightbracket,	 // '+', 0x30 --  ]
-tic_key_unknown,	 // C('?'), 0x31
-tic_key_unknown,	 // C('?'), 0x32
-tic_key_unknown,	 // C('?'), 0x33 -- @
-tic_key_unknown,	 // C('?'), 0x34 -- #
-tic_key_backslash,	 // '\\', 0x35
+tic_key_minus,	 // '-', 0x2D
+tic_key_equals,	 // '=', 0x2E
+tic_key_leftbracket,	 // '[', 0x2F
+tic_key_rightbracket,	 // ']', 0x30
+tic_key_backslash,	 // '\\', 0x31
+tic_key_backslash,	 // '\\', 0x32
+tic_key_semicolon,	 // ';', 0x33
+tic_key_apostrophe,	 // '\'', 0x34
+tic_key_grave,	 // '`', 0x35
 tic_key_comma,	 // ',', 0x36
 tic_key_period,	 // '.', 0x37
-tic_key_minus,	 // '-', 0x38
+tic_key_slash,	 // '/', 0x38
 tic_key_capslock,	 // KeyCapsLock, 0x39
 tic_key_f1,		 // KeyF1, 0x3A
 tic_key_f2,		 // KeyF2, 0x3B
