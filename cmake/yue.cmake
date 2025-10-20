@@ -54,7 +54,7 @@ if(BUILD_WITH_YUE)
     )
 
     if(NINTENDO_3DS)
-        target_compile_options(yuescript PRIVATE -ftls-model)
+        target_compile_options(yuescript PRIVATE -ftls-model=initial-exec)
     endif()
 
     if(MSVC)
