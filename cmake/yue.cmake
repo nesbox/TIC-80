@@ -53,6 +53,10 @@ if(BUILD_WITH_YUE)
         $<$<BOOL:${MSVC}>:_SCL_SECURE_NO_WARNINGS>
     )
 
+    if(NINTENDO_3DS)
+        target_compile_options(yuescript PRIVATE -ftls-model)
+    endif()
+
     if(MSVC)
         target_compile_definitions(yuescript PRIVATE _SCL_SECURE_NO_WARNINGS)
     else()
