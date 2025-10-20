@@ -158,6 +158,7 @@ include(cmake/tools.cmake)
 
 include(cmake/lua.cmake)
 include(cmake/moon.cmake)
+include(cmake/yue.cmake)
 include(cmake/fennel.cmake)
 include(cmake/wren.cmake)
 include(cmake/mruby.cmake)

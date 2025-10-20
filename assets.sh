@@ -21,6 +21,7 @@ build/bin/prj2cart demos/sfx.lua build/assets/sfx.tic
 build/bin/prj2cart demos/squirreldemo.nut build/assets/squirreldemo.tic
 build/bin/prj2cart demos/tetris.lua build/assets/tetris.tic
 build/bin/prj2cart demos/wrendemo.wren build/assets/wrendemo.tic
+build/bin/prj2cart demos/yuedemo.yue build/yuedemo.tic
 
 build/bin/wasmp2cart demos/wasm/wasmdemo.wasmp build/assets/wasmdemo.tic --binary demos/wasm/wasmdemo.wasm
 build/bin/wasmp2cart demos/bunny/wasmmark/wasmmark.wasmp build/assets/wasmmark.tic --binary demos/bunny/wasmmark/wasmmark.wasm
@@ -34,3 +35,4 @@ build/bin/prj2cart demos/bunny/rubymark.rb build/assets/rubymark.tic
 build/bin/prj2cart demos/bunny/schememark.scm build/assets/schememark.tic
 build/bin/prj2cart demos/bunny/squirrelmark.nut build/assets/squirrelmark.tic
 build/bin/prj2cart demos/bunny/wrenmark.wren build/assets/wrenmark.tic
+build/bin/prj2cart demos/bunny/yuemark.yue build/yuemark.tic

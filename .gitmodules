@@ -78,6 +78,10 @@
 	path = vendor/pocketpy
 	url = https://github.com/pocketpy/pocketpy.git
 	shallow = true
+[submodule "vendor/yuescript"]
+	path = vendor/yuescript
+	url = https://github.com/IppClub/YueScript.git
+	shallow = true
 [submodule "vendor/lpeg"]
 	path = vendor/lpeg
 	url = https://github.com/roberto-ieru/LPeg.git
