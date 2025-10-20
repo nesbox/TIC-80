@@ -51,6 +51,7 @@ target_include_directories(tic80core
     PRIVATE
         ${THIRDPARTY_DIR}/moonscript
         ${THIRDPARTY_DIR}/fennel
+        ${THIRDPARTY_DIR}/yuescript
         ${POCKETPY_DIR}/src
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
@@ -70,6 +71,10 @@ if(BUILD_STATIC)
 
     if(BUILD_WITH_MOON)
         target_link_libraries(tic80core PRIVATE moon)
+    endif()
+
+    if(BUILD_WITH_YUE)
+        target_link_libraries(tic80core PRIVATE yuescript)
     endif()
 
     if(BUILD_WITH_FENNEL)
