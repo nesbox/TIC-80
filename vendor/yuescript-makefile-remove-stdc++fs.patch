@@ -1,18 +1,13 @@
-*** Begin Patch
-*** Update File: vendor/yuescript/Makefile
-@@
--# Add platform related linker flag
--ifneq ($(UNAME_S),Darwin)
+diff --git a/makefile b/makefile
+index d7e85d3..299b352 100644
+--- a/makefile
++++ b/makefile
+@@ -60,7 +60,7 @@ endif
+ 
+ # Add platform related linker flag
+ ifneq ($(UNAME_S),Darwin)
 -	LINK_FLAGS += -lstdc++fs -Wl,-E
--	PLAT = linux
--else
--	LINK_FLAGS += -framework CoreFoundation -framework CoreServices
--endif
-+# Add platform related linker flag
-+ifneq ($(UNAME_S),Darwin)
 +	LINK_FLAGS += -Wl,-E
-+	PLAT = linux
-+else
-+	LINK_FLAGS += -framework CoreFoundation -framework CoreServices
-+endif
-*** End Patch
+ 	PLAT = linux
+ else
+ 	LINK_FLAGS += -framework CoreFoundation -framework CoreServices
