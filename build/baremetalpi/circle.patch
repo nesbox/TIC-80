@@ -1,22 +1,18 @@
 --- a/vendor/circle-stdlib/libs/circle/include/circle/types.h
 +++ b/vendor/circle-stdlib/libs/circle/include/circle/types.h
-@@ -21,14 +21,19 @@
+@@ -21,14 +21,15 @@
  #define _circle_types_h
  
  #include <assert.h>
 +#include <stdint.h>
-+
-+// Add missing errno definitions for strsignal.c
-+#define ERESTART 512
-+#define ENOTSUP 524
  
  typedef unsigned char		u8;
- typedef unsigned short		u16
+ typedef unsigned short		u16;
 -typedef unsigned int		u32;
 +typedef uint32_t			u32;
  
  typedef signed char		s8;
- typedef signed short		s16
+ typedef signed short		s16;
 -typedef signed int		s32;
 +typedef int32_t				s32;
  
