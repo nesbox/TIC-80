@@ -8,7 +8,7 @@ if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     if(MSVC)
         set(LINKER_FLAGS_RELEASE "/LTCG /OPT:REF /OPT:ICF")
     else()
-        set(FLAGS_RELEASE "-fno-function-sections -fno-data-sections -fno-unwind-tables -fno-asynchronous-unwind-tables")
+        set(FLAGS_RELEASE "-fno-function-sections -fno-data-sections")
 
         if(APPLE)
             set(LINKER_FLAGS_RELEASE "-Wl,-dead_strip")
