@@ -236,6 +236,7 @@ jobs:
       - name: Build
         run: |
           git apply build/baremetalpi/circle.patch
+          git apply build/yuescript-makefile-remove-stdc++fs.patch
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
           make tic80studio -j$(nproc)
@@ -297,6 +298,7 @@ jobs:
       - name: Build
         run: |
           git apply build/baremetalpi/circle.patch
+          git apply build/yuescript-makefile-remove-stdc++fs.patch
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
           make tic80studio -j$(nproc)
@@ -369,6 +371,7 @@ jobs:
 
       - name: Build
         run: |
+          git apply build/yuescript-makefile-remove-stdc++fs.patch
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel

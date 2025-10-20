@@ -1,7 +1,5 @@
-diff --git a/makefile b/makefile
-index d7e85d3..299b352 100644
---- a/makefile
-+++ b/makefile
+--- a/vendor/yuescript/makefile
++++ b/vendor/yuescript/makefile
 @@ -60,7 +60,7 @@ endif
  
  # Add platform related linker flag
