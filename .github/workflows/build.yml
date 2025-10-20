@@ -347,6 +347,7 @@ jobs:
 
       - name: Build
         run: |
+          git apply build/yuescript-makefile-remove-stdc++fs.patch
           cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF ..
           cmake --build build --parallel
 
@@ -371,7 +372,6 @@ jobs:
 
       - name: Build
         run: |
-          git apply build/yuescript-makefile-remove-stdc++fs.patch
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
