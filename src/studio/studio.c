@@ -22,6 +22,8 @@
 
 #include "studio.h"
 
+#define KEYBOARD_LAYOUT_ES 1
+
 #if defined(BUILD_EDITORS)
 
 #if defined(_WIN32)

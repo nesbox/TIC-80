@@ -2,7 +2,13 @@
 # SQUIRREL
 ################################
 
-option(BUILD_WITH_SQUIRREL "Squirrel Enabled" ${BUILD_WITH_ALL})
+if (SYMBIAN)
+    # Incompatible with Symbian…?
+    set(BUILD_WITH_SQUIRREL_DEFAULT 0)
+else()
+    set(BUILD_WITH_SQUIRREL_DEFAULT ${BUILD_WITH_ALL})
+endif()
+option(BUILD_WITH_SQUIRREL "Squirrel Enabled" ${BUILD_WITH_SQUIRREL_DEFAULT})
 message("BUILD_WITH_SQUIRREL: ${BUILD_WITH_SQUIRREL}")
 
 if(BUILD_WITH_SQUIRREL AND PREFER_SYSTEM_LIBRARIES)

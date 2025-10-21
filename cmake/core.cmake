@@ -122,6 +122,6 @@ if(BUILD_DEPRECATED)
     target_link_libraries(tic80core PRIVATE giflib)
 endif()
 
-if(LINUX)
+if(LINUX AND NOT SYMBIAN)
     target_link_libraries(tic80core PRIVATE m dl)
 endif()
