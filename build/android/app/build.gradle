@@ -8,13 +8,15 @@ else {
 }
 
 android {
+    namespace "com.nesbox.tic"
     compileSdkVersion 31
+    ndkVersion "23.2.8568313"
     defaultConfig {
         if (buildAsApplication) {
             applicationId "com.nesbox.tic"
         }
-        minSdkVersion 24
-        targetSdkVersion 31
+        minSdkVersion 24 // Android 7.0 (Nougat)
+        targetSdkVersion 31 // Android 12 (Snow Cone)
         versionCode 10200
         versionName "1.02.00"
         ndk {
@@ -58,8 +60,8 @@ android {
         }
     }
 
-    lintOptions {
-        abortOnError false
+    lint {
+        abortOnError = false
     }
 
     if (buildAsLibrary) {
@@ -67,8 +69,8 @@ android {
             variant.outputs.each { output ->
                 def outputFile = output.outputFile
                 if (outputFile != null && outputFile.name.endsWith(".aar")) {
-                    def fileName = "org.libsdl.app.aar";
-                    output.outputFile = new File(outputFile.parent, fileName);
+                    def fileName = "org.libsdl.app.aar"
+                    output.outputFile = new File(outputFile.parent, fileName)
                 }
             }
         }

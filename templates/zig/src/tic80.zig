@@ -422,8 +422,8 @@ pub fn nosfx() void {
 // ------
 // MEMORY
 
-pub fn pmemset(index: u32, value: u3) void {
-    raw.pmem(index, value);
+pub fn pmemset(index: u32, value: u32) void {
+    _ = raw.pmem(index, value);
 }
 
 pub fn pmemget(index: u32) u32 {
