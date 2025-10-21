@@ -422,3 +422,5 @@ You can find the compiled version ready download and install [on F-Droid](https:
 * Kii — [Github @kiikrindar](https://github.com/kiikrindar)
 * Matt Westcott — [Github @gasman](https://github.com/gasman)
 * NuSan — [Github @TheNuSan](https://github.com/thenusan)
+* Li Jin — [Github @pigpigyyy](https://github.com/pigpigyyy)
+* Dania Rifki — [Github @Kaleidosium](https://github.com/Kaleidosium)
