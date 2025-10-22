@@ -29,6 +29,10 @@
                     "shell_cmd": "cmake -DBUILD_PRO=ON .."
                 },
                 {
+                    "name": "BUILD_TOOLS=ON",
+                    "shell_cmd": "cmake -DBUILD_TOOLS=ON .."
+                },
+                {
                     "name": "IPO=ON",
                     "shell_cmd": "cmake -DBUILD_IPO=ON .."
                 },

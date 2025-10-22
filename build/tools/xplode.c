@@ -98,16 +98,7 @@ s32 main(s32 argc, char** argv)
                 free(img.data);
             }
 
-            // save cart
-            {
-                FileBuffer buffer = {sizeof(tic_cartridge), malloc(buffer.size)};
-                buffer.size = tic_cart_save(cart, buffer.data);
 
-                writeFile("cart.tic", buffer);
-                printf("cart.tic successfully exported\n");
-
-                free(buffer.data);
-            }
 
             // save project
             {
