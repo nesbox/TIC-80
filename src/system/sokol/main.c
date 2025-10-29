@@ -29,6 +29,9 @@
 
 #include "sokol.h"
 
+#define CLAY_IMPLEMENTATION
+#include "clay.h"
+
 #include "studio/studio.h"
 #include "crt.h"
 #include "thread.h"
@@ -39,6 +42,12 @@ typedef struct
 {
     Studio* studio;
     tic80_input input;
+
+    struct
+    {
+        float x, y;
+        bool down;
+    } pointer;
 
     struct
     {
@@ -447,6 +456,11 @@ static thread_ret_t loop(void* userdata)
     return 0;
 }
 
+static void HandleClayErrors(Clay_ErrorData errorData) 
+{
+    printf("%s\n", errorData.errorText.chars);
+}
+
 static void init(void *userdata)
 {
     App *app = userdata;
@@ -460,8 +474,8 @@ static void init(void *userdata)
     });
 
     sgl_setup(&(sgl_desc_t){
-        .max_vertices = 6,
-        .max_commands = 1,
+        // .max_vertices = 6,
+        // .max_commands = 1,
         .sample_count = 1,
 #if !defined(NDEBUG)
         .logger = {.func = slog_func},
@@ -532,6 +546,11 @@ static void init(void *userdata)
 #endif
 
     sgamepad_init();
+
+    u64 totalMemorySize = Clay_MinMemorySize();
+    Clay_Arena arena = Clay_CreateArenaWithCapacityAndMemory(totalMemorySize, malloc(totalMemorySize));
+
+    Clay_Initialize(arena, (Clay_Dimensions) { sapp_widthf(), sapp_heightf() }, (Clay_ErrorHandler) { HandleClayErrors });
 }
 
 typedef struct
@@ -608,6 +627,78 @@ static void checkrate(App* app)
         else threadedMode(app);
     }
     else threadedMode(app);
+}
+
+static void clayupd(App *app)
+{
+    const Clay_Color COLOR_LIGHT = (Clay_Color) {224, 215, 210, 255};
+    const Clay_Color COLOR_RED = (Clay_Color) {168, 66, 28, 255};
+    const Clay_Color COLOR_ORANGE = (Clay_Color) {225, 138, 50, 255};
+
+    Clay_SetLayoutDimensions((Clay_Dimensions) { sapp_widthf(), sapp_heightf() });
+    Clay_SetPointerState((Clay_Vector2) { app->pointer.x, app->pointer.y }, app->pointer.down);
+
+    Clay_BeginLayout();
+
+    CLAY(CLAY_ID("OuterContainer"), 
+    { 
+        .layout = 
+        { 
+            .sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}, 
+            .padding = CLAY_PADDING_ALL(16), 
+        }, 
+        .backgroundColor = {}
+    })
+    {
+        CLAY(CLAY_ID("SideBar"), 
+        {
+            .layout = 
+            { 
+                .sizing = {CLAY_SIZING_FIXED(500), CLAY_SIZING_GROW(0)}, 
+            },
+            .backgroundColor = COLOR_ORANGE
+        }){}
+
+        CLAY(CLAY_ID("Content"), 
+        {
+            .layout = 
+            { 
+                .sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}, 
+            },
+            .backgroundColor = COLOR_RED
+        }){}
+    }
+
+    Clay_RenderCommandArray renderCommands = Clay_EndLayout();
+
+    for (s32 i = 0; i < renderCommands.length; i++) 
+    {
+        Clay_RenderCommand *renderCommand = &renderCommands.internalArray[i];
+
+        switch (renderCommand->commandType) 
+        {
+            case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: 
+            {
+                // Clay_RectangleRenderData *config = &renderCommand->renderData.rectangle;
+
+                Clay_BoundingBox b = renderCommand->boundingBox;
+                Clay_Color c = renderCommand->renderData.rectangle.backgroundColor;
+
+                sgl_begin_quads();
+                sgl_v2f_c4b(b.x + 0,   b.y + 0, c.r, c.g, c.b, c.a);
+                sgl_v2f_c4b(b.x + b.width, b.y + 0, c.r, c.g, c.b, c.a);
+                sgl_v2f_c4b(b.x + b.width, b.y + b.height, c.r, c.g, c.b, c.a);
+                sgl_v2f_c4b(b.x + 0,   b.y + b.height, c.r, c.g, c.b, c.a);
+                sgl_end();
+
+            }
+
+            default:
+            {
+                break;
+            }
+        }
+    }
 }
 
 static void frame(void *userdata)
@@ -694,6 +785,8 @@ static void frame(void *userdata)
     {
         drawImage(viewport(app), app->image, app->nearest);
     }
+
+    clayupd(app);
 
     // draw screen
     sg_begin_pass(&(sg_pass)
@@ -906,16 +999,21 @@ static void event(const sapp_event* event, void *userdata)
             {
                 Rect r = viewport(app);
 
+                app->pointer.x = event->mouse_x;
+                app->pointer.y = event->mouse_y;
+
                 app->mouse.x = (event->mouse_x - r.x) * TIC80_FULLWIDTH / r.w;
                 app->mouse.y = (event->mouse_y - r.y) * TIC80_FULLHEIGHT / r.h;
                 app->mouse.dx = event->mouse_dx;
                 app->mouse.dy = event->mouse_dy;
             }
             break;
-        case SAPP_EVENTTYPE_MOUSE_DOWN: 
+        case SAPP_EVENTTYPE_MOUSE_DOWN:
+            app->pointer.down = true;
             processMouse(app, event->mouse_button, 1);
             break;
         case SAPP_EVENTTYPE_MOUSE_UP:
+            app->pointer.down = false;
             processMouse(app, event->mouse_button, 0);
             break;
         case SAPP_EVENTTYPE_MOUSE_SCROLL:

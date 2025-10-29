@@ -112,7 +112,8 @@ if(BUILD_SOKOL)
     target_include_directories(tic80 PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
-        ${THIRDPARTY_DIR}/sokol)
+        ${THIRDPARTY_DIR}/sokol
+        ${THIRDPARTY_DIR}/clay)
 
     target_link_libraries(tic80 PRIVATE tic80studio sokol)
 
