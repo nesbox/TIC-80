@@ -2278,6 +2278,9 @@ static void processMouseStates(Studio* studio)
 
     tic_mem* tic = studio->tic;
 
+    tic->ram->vram.vars.cursor.sprite = tic_cursor_arrow;
+    tic->ram->vram.vars.cursor.system = true;
+
     for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
     {
         MouseState* state = &studio->mouse.state[i];
