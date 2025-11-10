@@ -75,6 +75,11 @@ typedef struct
         sg_attachments att;
     } crt;
 
+    struct
+    {
+        Clay_BoundingBox box;
+    } player;
+
     sg_image image;
     sg_sampler linear;
     sg_sampler nearest;
@@ -553,46 +558,6 @@ static void init(void *userdata)
     Clay_Initialize(arena, (Clay_Dimensions) { sapp_widthf(), sapp_heightf() }, (Clay_ErrorHandler) { HandleClayErrors });
 }
 
-typedef struct
-{
-    float x, y, w, h;
-} Rect;
-
-static Rect viewport(App *app)
-{
-    float sw = sapp_widthf();
-    float sh = sapp_heightf();
-
-    if(studio_config(app->studio)->options.integerScale)
-    {
-        sw -= sapp_width() % TIC80_FULLWIDTH;
-        sh -= sapp_height() % TIC80_FULLHEIGHT;
-    }
-
-    float widthRatio = sw / TIC80_FULLWIDTH;
-    float heightRatio = sh / TIC80_FULLHEIGHT;
-    float optimalSize = widthRatio < heightRatio ? widthRatio : heightRatio;
-    float w = TIC80_FULLWIDTH * optimalSize;
-    float h = TIC80_FULLHEIGHT * optimalSize;
-    float x = (sapp_widthf() - w) / 2;
-    float y = (sapp_heightf() - h) / 2;
-
-    return (Rect){x, y, w, h};
-}
-
-static void drawImage(Rect r,sg_image image, sg_sampler sampler)
-{
-    sgl_enable_texture();
-    sgl_texture(image, sampler);
-    sgl_begin_quads();
-    sgl_v2f_t2f(r.x + 0,   r.y + 0,   0, 0);
-    sgl_v2f_t2f(r.x + r.w, r.y + 0,   1, 0);
-    sgl_v2f_t2f(r.x + r.w, r.y + r.h, 1, 1);
-    sgl_v2f_t2f(r.x + 0,   r.y + r.h, 0, 1);
-    sgl_end();
-    sgl_disable_texture();
-}
-
 static void threadedMode(App* app)
 {
     #if defined(__TIC_EMSCRIPTEN__)
@@ -629,68 +594,94 @@ static void checkrate(App* app)
     else threadedMode(app);
 }
 
-static void clayupd(App *app)
+static void renderImage(Clay_BoundingBox b, sg_image image, sg_sampler sampler)
 {
-    const Clay_Color COLOR_LIGHT = (Clay_Color) {224, 215, 210, 255};
-    const Clay_Color COLOR_RED = (Clay_Color) {168, 66, 28, 255};
-    const Clay_Color COLOR_ORANGE = (Clay_Color) {225, 138, 50, 255};
+    sgl_enable_texture();
+    sgl_texture(image, sampler);
+    sgl_begin_quads();
+    sgl_v2f_t2f(b.x + 0, b.y + 0, 0, 0);
+    sgl_v2f_t2f(b.x + b.width, b.y + 0, 1, 0);
+    sgl_v2f_t2f(b.x + b.width, b.y + b.height, 1, 1);
+    sgl_v2f_t2f(b.x + 0, b.y + b.height, 0, 1);
+    sgl_end();
+    sgl_disable_texture();
+}
 
-    Clay_SetLayoutDimensions((Clay_Dimensions) { sapp_widthf(), sapp_heightf() });
-    Clay_SetPointerState((Clay_Vector2) { app->pointer.x, app->pointer.y }, app->pointer.down);
+static void renderPlayer(App *app, Clay_BoundingBox b)
+{
+    // !TODO: fix integer scale
+    // if(studio_config(app->studio)->options.integerScale)
+    // {
+    //     sw -= sapp_width() % TIC80_FULLWIDTH;
+    //     sh -= sapp_height() % TIC80_FULLHEIGHT;
+    // }
 
-    Clay_BeginLayout();
+    app->player.box = b;
 
-    CLAY(CLAY_ID("OuterContainer"), 
-    { 
-        .layout = 
-        { 
-            .sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}, 
-            .padding = CLAY_PADDING_ALL(16), 
-        }, 
-        .backgroundColor = {}
-    })
+    bool crt = studio_config(app->studio)->options.crt;
+    if(crt)
     {
-        CLAY(CLAY_ID("SideBar"), 
-        {
-            .layout = 
-            { 
-                .sizing = {CLAY_SIZING_FIXED(500), CLAY_SIZING_GROW(0)}, 
-            },
-            .backgroundColor = COLOR_ORANGE
-        }){}
+        renderImage(b, app->crt.image, app->linear);
 
-        CLAY(CLAY_ID("Content"), 
-        {
-            .layout = 
-            { 
-                .sizing = {CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0)}, 
-            },
-            .backgroundColor = COLOR_RED
-        }){}
+        // draw crt
+        sg_begin_pass(&(sg_pass)
+        { 
+            .attachments = app->crt.att,
+        });
+
+        sgl_context_draw(app->crt.ctx);
+        sg_end_pass();
     }
+    else
+    {
+        renderImage(b, app->image, app->nearest);
+    }
+}
 
-    Clay_RenderCommandArray renderCommands = Clay_EndLayout();
+static void renderRect(Clay_BoundingBox b, Clay_Color c)
+{
+    sgl_c4b(c.r, c.g, c.b, c.a);
+
+    sgl_begin_quads();
+    sgl_v2f(b.x + 0, b.y + 0);
+    sgl_v2f(b.x + b.width, b.y + 0);
+    sgl_v2f(b.x + b.width, b.y + b.height);
+    sgl_v2f(b.x + 0, b.y + b.height);
+    sgl_end();
+}
+
+static void renderCommands(App *app, Clay_RenderCommandArray renderCommands)
+{
+    sgl_set_context(sgl_default_context());
+    sgl_defaults();
+
+    sgl_matrix_mode_projection();
+    sgl_ortho(0, sapp_widthf(), sapp_heightf(), 0, -1, +1);
 
     for (s32 i = 0; i < renderCommands.length; i++) 
     {
-        Clay_RenderCommand *renderCommand = &renderCommands.internalArray[i];
+        const Clay_RenderCommand *renderCommand = &renderCommands.internalArray[i];
 
         switch (renderCommand->commandType) 
         {
             case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: 
             {
-                // Clay_RectangleRenderData *config = &renderCommand->renderData.rectangle;
-
                 Clay_BoundingBox b = renderCommand->boundingBox;
                 Clay_Color c = renderCommand->renderData.rectangle.backgroundColor;
 
-                sgl_begin_quads();
-                sgl_v2f_c4b(b.x + 0,   b.y + 0, c.r, c.g, c.b, c.a);
-                sgl_v2f_c4b(b.x + b.width, b.y + 0, c.r, c.g, c.b, c.a);
-                sgl_v2f_c4b(b.x + b.width, b.y + b.height, c.r, c.g, c.b, c.a);
-                sgl_v2f_c4b(b.x + 0,   b.y + b.height, c.r, c.g, c.b, c.a);
-                sgl_end();
+                if(renderCommand->id == Clay_GetElementId(CLAY_STRING("Player")).id)
+                {
+                    renderPlayer(app, b);
+                }
+                else
+                {
+                    renderRect(b, c);
+                }
+            }
 
+            case CLAY_RENDER_COMMAND_TYPE_CUSTOM:
+            {
+                // !TODO: render player here instead rect
             }
 
             default:
@@ -699,6 +690,39 @@ static void clayupd(App *app)
             }
         }
     }
+}
+
+static void renderLayout(App *app)
+{
+    const Clay_Color COLOR_BLACK = (Clay_Color) {.a = 255};
+
+    Clay_SetLayoutDimensions((Clay_Dimensions) { sapp_widthf(), sapp_heightf() });
+    Clay_SetPointerState((Clay_Vector2) { app->pointer.x, app->pointer.y }, app->pointer.down);
+
+    Clay_BeginLayout();
+
+    CLAY(CLAY_ID("Layout"), 
+    { 
+        .layout = 
+        { 
+            .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, 
+            .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
+        }, 
+    })
+    {
+        CLAY(CLAY_ID("Player"), 
+        {
+            .layout = 
+            { 
+                .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, 
+            },
+
+            .aspectRatio = (float)TIC80_FULLWIDTH / TIC80_FULLHEIGHT,
+            .backgroundColor = COLOR_BLACK,
+        }){}
+    }
+
+    renderCommands(app, Clay_EndLayout());
 }
 
 static void frame(void *userdata)
@@ -751,7 +775,7 @@ static void frame(void *userdata)
         sgl_push_pipeline();
         sgl_load_pipeline(app->crt.pip);
 
-        drawImage((Rect)
+        renderImage((Clay_BoundingBox)
             {
                 0, 0, 
                 TIC80_FULLWIDTH * CRT_SCALE, 
@@ -762,31 +786,7 @@ static void frame(void *userdata)
         sgl_pop_pipeline();
     }
 
-    sgl_set_context(sgl_default_context());
-    sgl_defaults();
-
-    sgl_matrix_mode_projection();
-    sgl_ortho(0, sapp_widthf(), sapp_heightf(), 0, -1, +1);
-
-    if(crt)
-    {
-        drawImage(viewport(app), app->crt.image, app->linear);
-
-        // draw crt
-        sg_begin_pass(&(sg_pass)
-        { 
-            .attachments = app->crt.att,
-        });
-
-        sgl_context_draw(app->crt.ctx);
-        sg_end_pass();
-    }
-    else
-    {
-        drawImage(viewport(app), app->image, app->nearest);
-    }
-
-    clayupd(app);
+    renderLayout(app);
 
     // draw screen
     sg_begin_pass(&(sg_pass)
@@ -965,9 +965,9 @@ static void processTouch(App *app, const sapp_touchpoint *touch)
 {
     tic80_input* input = &app->input;
 
-    Rect r = viewport(app);
-    app->mouse.x = (touch->pos_x - r.x) * TIC80_FULLWIDTH / r.w;
-    app->mouse.y = (touch->pos_y - r.y) * TIC80_FULLHEIGHT / r.h;
+    Clay_BoundingBox b = app->player.box;
+    app->mouse.x = (touch->pos_x - b.x) * TIC80_FULLWIDTH / b.width;
+    app->mouse.y = (touch->pos_y - b.y) * TIC80_FULLHEIGHT / b.height;
 }
 
 static void event(const sapp_event* event, void *userdata)
@@ -997,13 +997,13 @@ static void event(const sapp_event* event, void *userdata)
             break;
         case SAPP_EVENTTYPE_MOUSE_MOVE:
             {
-                Rect r = viewport(app);
+                Clay_BoundingBox b = app->player.box;
 
                 app->pointer.x = event->mouse_x;
                 app->pointer.y = event->mouse_y;
 
-                app->mouse.x = (event->mouse_x - r.x) * TIC80_FULLWIDTH / r.w;
-                app->mouse.y = (event->mouse_y - r.y) * TIC80_FULLHEIGHT / r.h;
+                app->mouse.x = (event->mouse_x - b.x) * TIC80_FULLWIDTH / b.width;
+                app->mouse.y = (event->mouse_y - b.y) * TIC80_FULLHEIGHT / b.height;
                 app->mouse.dx = event->mouse_dx;
                 app->mouse.dy = event->mouse_dy;
             }
