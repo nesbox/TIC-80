@@ -76,7 +76,7 @@
 // interval between the Windows and Unix epoch
 #define UNIX_EPOCH_IN_FILETIME 116444736000000000ULL
 
-#if defined(TIC80_PRO)
+#if defined(TIC80_PRO) && defined(BUILD_EDITORS)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
 #else
 #define TIC_EDITOR_BANKS 1
@@ -348,7 +348,7 @@ const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* f
 #if TIC80_SAMPLE_CHANNELS == 2
         wave_enable_stereo();
 #endif
-#if defined(TIC80_PRO)
+#if defined(TIC80_PRO) && defined(BUILD_EDITORS)
         // chained = true in CLI. Set to false if want to use unchained
         bool chained = studio->bank.chained;
         if(chained)
@@ -700,7 +700,7 @@ struct Start* getStartScreen(Studio* studio)
     return studio->start;
 }
 
-#if defined (TIC80_PRO)
+#if defined(TIC80_PRO) && defined(BUILD_EDITORS)
 
 static void drawBankIcon(Studio* studio, s32 x, s32 y)
 {
@@ -1064,7 +1064,7 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
         "MUSIC EDITOR",
     };
 
-#if defined (TIC80_PRO)
+#if defined (TIC80_PRO) && defined(BUILD_EDITORS)
     enum {TextOffset = (COUNT_OF(Modes) + 2) * Size - 2};
     if(mode >= 1)
         drawBankIcon(studio, COUNT_OF(Modes) * Size + 2, 0);
@@ -1792,7 +1792,7 @@ static void startBattle(Studio* studio)
 }
 #endif
 
-#if defined(TIC80_PRO)
+#if defined(TIC80_PRO) && defined(BUILD_EDITORS)
 
 static void switchBank(Studio* studio, s32 bank)
 {
@@ -1906,7 +1906,7 @@ static void processShortcuts(Studio* studio)
         else if(keyWasPressedOnce(studio, tic_key_s)) saveProject(studio);
 #endif
 
-#if defined(TIC80_PRO)
+#if defined(TIC80_PRO) && defined(BUILD_EDITORS)
 
         else
             for(s32 bank = 0; bank < TIC_BANKS; bank++)
