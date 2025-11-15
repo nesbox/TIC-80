@@ -47,7 +47,7 @@
 #define COVER_X (TIC80_WIDTH - COVER_WIDTH - COVER_Y)
 #define COVER_FADEIN 96
 #define COVER_FADEOUT 256
-#define CAN_OPEN_URL (__TIC_WINDOWS__ || __TIC_LINUX__ || __TIC_MACOSX__ || __TIC_ANDROID__)
+#define CAN_OPEN_URL (!defined(__SYMBIAN32__) && (__TIC_WINDOWS__ || __TIC_LINUX__ || __TIC_MACOSX__ || __TIC_ANDROID__))
 
 static const char* PngExt = PNG_EXT;
 

@@ -50,6 +50,10 @@
 #       undef __TIC_LINUX__
 #       define __TIC_LINUX__ 1
 #       define TIC_MODULE_EXT ".so"
+#   elif defined(__SYMBIAN32__)
+#       undef __TIC_SYMBIAN__
+#       define __TIC_SYMBIAN__ 1
+#       define TIC_MODULE_EXT ".dll"
 #   endif
 #endif
 
@@ -58,6 +62,8 @@
 #else
 #   if defined(__TIC_WINDOWS__)
 #       define TIC_EXPORT __declspec(dllexport)
+#   elif defined(__SYMBIAN32__)
+#       define TIC_EXPORT EXPORT_C
 #   elif defined(__GNUC__) && __GNUC__ >= 4
 #       define TIC_EXPORT __attribute__ ((visibility("default")))
 #   endif
@@ -67,6 +73,8 @@
 #   if defined(TIC80_SHARED)
 #       if defined(__TIC_WINDOWS__)
 #           define TIC80_API __declspec(dllexport)
+#       elif defined(__SYMBIAN32__)
+#           define TIC80_API EXPORT_C
 #       elif defined(__TIC_LINUX__)
 #           define TIC80_API __attribute__ ((visibility("default")))
 #       endif
@@ -75,6 +83,6 @@
 #   endif
 #endif
 
-#if defined(ANDROID) || defined(__ANDROID__) || defined(BAREMETALPI) || defined(_3DS)
+#if defined(ANDROID) || defined(__ANDROID__) || defined(BAREMETALPI) || defined(_3DS) || defined(__EPOC32__)
 #   define TIC80_FFT_UNSUPPORTED 1
 #endif

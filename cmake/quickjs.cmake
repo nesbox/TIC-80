@@ -2,7 +2,13 @@
 # QuickJS
 ################################
 
-option(BUILD_WITH_JS "JS Enabled" ${BUILD_WITH_ALL})
+if (SYMBIAN)
+    # Incompatible with Symbian…?
+    set(BUILD_WITH_JS_DEFAULT 0)
+else()
+    set(BUILD_WITH_JS_DEFAULT ${BUILD_WITH_ALL})
+endif()
+option(BUILD_WITH_JS "JS Enabled" ${BUILD_WITH_JS_DEFAULT})
 message("BUILD_WITH_JS: ${BUILD_WITH_JS}")
 
 if(BUILD_WITH_JS AND PREFER_SYSTEM_LIBRARIES)

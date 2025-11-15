@@ -103,7 +103,10 @@ if(BUILD_WITH_LUA)
             ${CMAKE_SOURCE_DIR}/src
     )
 
-    if(NINTENDO_3DS)
+    if(SYMBIAN)
+        target_compile_definitions(luaapi PRIVATE l_signalT=int)
+    endif()
+    if(NINTENDO_3DS OR SYMBIAN)
         target_compile_definitions(luaapi PUBLIC LUA_32BITS)
     endif()
 
