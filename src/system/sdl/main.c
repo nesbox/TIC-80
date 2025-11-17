@@ -57,7 +57,7 @@
 #include <windows.h>
 #endif
 
-#if defined(__TIC_ANDROID__)
+#if defined(__TIC_ANDROID__) || defined(__SWITCH__)
 #include <sys/stat.h>
 #endif
 
@@ -1368,6 +1368,11 @@ static const char* getAppFolder()
         strcpy(appFolder, SDL_AndroidGetExternalStoragePath());
         const char AppFolder[] = "/" TIC_NAME "/";
         strcat(appFolder, AppFolder);
+        mkdir(appFolder, 0777);
+
+#elif defined(__SWITCH__)
+
+        strcpy(appFolder, "/switch/tic80");
         mkdir(appFolder, 0777);
 
 #else

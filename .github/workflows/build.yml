@@ -354,6 +354,35 @@ jobs:
           name: "tic80-nintendo-3ds"
           path: build/bin/tic80.3dsx
 
+  # === Nintendo Switch build ===
+  nintendo-switch:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkita64:20250728
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Host toolchain
+        run: |
+          apt-get update
+          apt-get install --assume-yes build-essential ruby-full
+
+      - name: Build
+        run: |
+          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/Switch.cmake \
+            -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON \
+            -DBUILD_WITH_PYTHON=OFF -DBUILD_WITH_YUE=OFF
+          cmake --build build --parallel
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-nintendo-switch"
+          path: build/bin/tic80.nro
+
   # === MacOS 13 ===
   macos:
     runs-on: macos-13

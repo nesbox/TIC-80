@@ -24,7 +24,7 @@ message("VERSION_HASH: ${VERSION_HASH}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
-if(ANDROID OR EMSCRIPTEN OR NINTENDO_3DS OR BAREMETALPI)
+if(ANDROID OR EMSCRIPTEN OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI)
     set(BUILD_STATIC_DEFAULT ON)
 else()
     set(BUILD_STATIC_DEFAULT OFF)
@@ -32,7 +32,11 @@ endif()
 
 set(BUILD_PLAYER_DEFAULT OFF)
 set(BUILD_LIBRETRO_DEFAULT OFF)
-set(BUILD_TOUCH_INPUT_DEFAULT ${ANDROID})
+if(ANDROID OR NINTENDO_SWITCH)
+    set(BUILD_TOUCH_INPUT_DEFAULT ON)
+else()
+    set(BUILD_TOUCH_INPUT_DEFAULT OFF)
+endif()
 set(BUILD_WITH_ALL_DEFAULT OFF)
 
 option(BUILD_STATIC "Static runtime" ${BUILD_STATIC_DEFAULT})
@@ -60,6 +64,10 @@ if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
 
+if(NINTENDO_SWITCH)
+    set(PREFER_SYSTEM_LIBRARIES ON)
+endif()
+
 add_library(runtime INTERFACE)
 
 if(BUILD_STATIC)
@@ -77,11 +85,7 @@ message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
 message("BUILD_WITH_ALL: ${BUILD_WITH_ALL}")
 
-if (NINTENDO_3DS)
-    set(BUILD_SDL OFF)
-endif()
-
-if (BAREMETALPI)
+if(NINTENDO_3DS OR BAREMETALPI)
     set(BUILD_SDL OFF)
 endif()
 
@@ -177,5 +181,6 @@ include(cmake/studio.cmake)
 include(cmake/sdl.cmake)
 include(cmake/libretro.cmake)
 include(cmake/n3ds.cmake)
+include(cmake/nswitch.cmake)
 
 include(cmake/install.cmake)
