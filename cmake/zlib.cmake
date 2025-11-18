@@ -14,8 +14,6 @@ if(PREFER_SYSTEM_LIBRARIES)
     endif()
 endif()
 
-if (NOT NINTENDO_3DS)
-
 set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib)
 set(ZLIB_SRC
     ${ZLIB_DIR}/adler32.c
@@ -33,11 +31,3 @@ set(ZLIB_SRC
 
 add_library(zlib STATIC ${ZLIB_SRC})
 target_include_directories(zlib INTERFACE ${THIRDPARTY_DIR}/zlib)
-
-else ()
-
-add_library(zlib STATIC IMPORTED)
-set_target_properties( zlib PROPERTIES IMPORTED_LOCATION ${DEVKITPRO}/portlibs/3ds/lib/libz.a )
-target_include_directories(zlib INTERFACE ${DEVKITPRO}/portlibs/3ds/include)
-
-endif ()

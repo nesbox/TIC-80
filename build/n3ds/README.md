@@ -2,7 +2,7 @@
 
 ## Requirements
 
-* devkitARM (tested on release 65, please use latest) + the 3ds-dev meta package
+* devkitARM + the 3ds-dev meta package
 * the following additional packages:
     * 3ds-libpng
     * 3ds-zlib
