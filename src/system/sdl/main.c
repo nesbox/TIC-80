@@ -1511,7 +1511,7 @@ void tic_sys_preseed()
 static void loadCrtShader()
 {
     static const char VertextShader[] =
-#if !defined (EMSCRIPTEN)
+#if !defined (EMSCRIPTEN) && !defined(__SWITCH__)
         "#version 110"                                                              "\n"
 #endif
         "attribute vec3 gpu_Vertex;"                                                "\n"
@@ -1529,7 +1529,7 @@ static void loadCrtShader()
     ;
 
     static const char PixelShader[] =
-#if !defined (EMSCRIPTEN)
+#if !defined (EMSCRIPTEN) && !defined(__SWITCH__)
         "#version 110"                                                                      "\n"
 #else
         "precision highp float;"                                                            "\n"

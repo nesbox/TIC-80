@@ -373,8 +373,8 @@ jobs:
       - name: Build
         run: |
           cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/Switch.cmake \
-            -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON \
-            -DBUILD_WITH_PYTHON=OFF -DBUILD_WITH_YUE=OFF
+            -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DBUILD_SDLGPU=ON \
+            -DBUILD_WITH_YUE=OFF
           cmake --build build --parallel
 
       - name: Deploy

@@ -94,7 +94,7 @@ set(SDLGPU_SRC
     ${SDLGPU_DIR}/externals/stb_image_write/stb_image_write.c
 )
 
-if(NOT ANDROID)
+if(NOT ANDROID AND NOT NINTENDO_SWITCH)
     list(APPEND SDLGPU_SRC
         ${SDLGPU_DIR}/renderer_GLES_1.c
         ${SDLGPU_DIR}/renderer_GLES_3.c
@@ -110,7 +110,7 @@ endif()
 
 add_library(sdlgpu STATIC ${SDLGPU_SRC})
 
-if(EMSCRIPTEN OR ANDROID)
+if(EMSCRIPTEN OR ANDROID OR NINTENDO_SWITCH)
     target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3 SDL_GPU_DISABLE_OPENGL)
 else()
     target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
@@ -144,6 +144,12 @@ if(ANDROID)
         ${ANDROID_GLES2_LIBRARY}
         ${ANDROID_GLES1_LIBRARY}
     )
+endif()
+
+if(NINTENDO_SWITCH)
+    find_package(PkgConfig REQUIRED)
+    pkg_search_module(GLES2 glesv2 REQUIRED IMPORTED_TARGET)
+    target_link_libraries(sdlgpu PkgConfig::GLES2)
 endif()
 
 if(NOT EMSCRIPTEN)
