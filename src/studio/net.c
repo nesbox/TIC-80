@@ -499,6 +499,10 @@ void tic_net_end(tic_net *net)
     }
 }
 
+#elif defined(__SWITCH__)
+
+// See net.c in src/system
+
 #else
 
 tic_net* tic_net_create(const char* host) {return NULL;}

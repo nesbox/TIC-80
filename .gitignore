@@ -179,6 +179,11 @@ CMakeSettings.json
 tic_mruby_build_config.rb.lock
 tic_mruby_wasm_build_config.rb.lock
 build/mruby_vendor-prefix/
+# switch
+build/*.nro
+build/*.nacp
+build/*.lst
+build/*.map
 **/.zig-cache
 **/zig-out
 .cache

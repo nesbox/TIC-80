@@ -49,7 +49,7 @@ if(BUILD_WITH_JS)
         target_compile_definitions(quickjs PRIVATE DUMP_LEAKS)
     endif()
 
-    if(BAREMETALPI OR NINTENDO_3DS)
+    if(BAREMETALPI OR NINTENDO_3DS OR NINTENDO_SWITCH)
         target_compile_definitions(quickjs PRIVATE POOR_CLIB)
     endif()
 
