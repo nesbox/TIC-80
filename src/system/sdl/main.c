@@ -29,6 +29,11 @@
 #include <string.h>
 #include <time.h>
 
+#ifdef __SWITCH__
+// from studio/studio.h
+extern void gotoMenu(Studio* studio);
+#endif
+
 #if defined(__TIC_LINUX__)
 #include <signal.h>
 #endif
@@ -982,11 +987,26 @@ static void processGamepad()
                         || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX, +1)
                         || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
 
+#ifdef __SWITCH__
+                    // nintendo layout
+                    gamepad->a = getButton(controller, SDL_CONTROLLER_BUTTON_B);
+                    gamepad->b = getButton(controller, SDL_CONTROLLER_BUTTON_A);
+                    gamepad->x = getButton(controller, SDL_CONTROLLER_BUTTON_Y);
+                    gamepad->y = getButton(controller, SDL_CONTROLLER_BUTTON_X);
+
+                    // "+" is a common way to quit homebrew, let's show the menu
+                    if(getButton(controller, SDL_CONTROLLER_BUTTON_START))
+                    {
+                        //studio_exit(platform.studio);
+                        gotoMenu(platform.studio);
+                    }
+#else
+                    // xbox layout
                     gamepad->a = getButton(controller, SDL_CONTROLLER_BUTTON_A);
                     gamepad->b = getButton(controller, SDL_CONTROLLER_BUTTON_B);
                     gamepad->x = getButton(controller, SDL_CONTROLLER_BUTTON_X);
                     gamepad->y = getButton(controller, SDL_CONTROLLER_BUTTON_Y);
-
+#endif
                     // !TODO: We have to find a better way to handle gamepad MENU button
                     // atm we show game menu for only Pause Menu button on XBox one controller
                     // issue #1220
@@ -1899,6 +1919,11 @@ static s32 start(s32 argc, char **argv, const char* folder)
 #if defined(__MACOSX__)
     SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
 #endif
+
+#ifdef __SWITCH__
+    SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "1");
+#endif
+
     int result = SDL_Init(SDL_INIT_VIDEO);
     if (result != 0)
     {
