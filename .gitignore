@@ -186,3 +186,6 @@ build/mruby_vendor-prefix/
 # byte battle / test files
 /*.lua
 /*.tic
+# 3ds files
+*.3dsx
+*.smdh

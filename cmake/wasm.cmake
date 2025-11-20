@@ -48,6 +48,11 @@ if(BUILD_WITH_WASM)
 
     add_library(wasm ${TIC_RUNTIME} ${WASM_SRC})
 
+    if(NINTENDO_3DS)
+        # TODO: seems to be broken with gcc 15.1
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DM3_HAS_TAIL_CALL=0")
+    endif()
+
     if(NOT BUILD_STATIC)
         set_target_properties(wasm PROPERTIES PREFIX "")
     else()

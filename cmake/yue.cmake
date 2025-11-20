@@ -54,6 +54,7 @@ if(BUILD_WITH_YUE)
     )
 
     if(NINTENDO_3DS)
+        # TODO: check if this really works
         target_compile_options(yuescript PRIVATE -ftls-model=initial-exec)
     endif()
 

@@ -75,6 +75,6 @@
 #   endif
 #endif
 
-#if defined(ANDROID) || defined(__ANDROID__) || defined(BAREMETALPI) || defined(_3DS)
+#if defined(ANDROID) || defined(__ANDROID__) || defined(BAREMETALPI) || defined(__3DS__)
 #   define TIC80_FFT_UNSUPPORTED 1
 #endif
