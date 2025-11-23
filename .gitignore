@@ -191,3 +191,6 @@ build/*.map
 # byte battle / test files
 /*.lua
 /*.tic
+# 3ds files
+*.3dsx
+*.smdh
