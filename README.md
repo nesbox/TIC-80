@@ -424,3 +424,4 @@ You can find the compiled version ready download and install [on F-Droid](https:
 * NuSan — [Github @TheNuSan](https://github.com/thenusan)
 * Li Jin — [Github @pigpigyyy](https://github.com/pigpigyyy)
 * Dania Rifki — [Github @Kaleidosium](https://github.com/Kaleidosium)
+* Carsten Teibes — [GitHub @carstene1ns](https://github.com/carstene1ns)

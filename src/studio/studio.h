@@ -42,6 +42,8 @@
 
 #ifdef BAREMETALPI
 #define TIC_LOCAL "../.tic80/"
+#elif defined(__SWITCH__)
+#define TIC_LOCAL "./data/"
 #else
 #define TIC_LOCAL ".local/"
 #endif

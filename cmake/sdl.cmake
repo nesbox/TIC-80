@@ -4,8 +4,13 @@
 if(PREFER_SYSTEM_LIBRARIES)
     find_package(SDL2)
     if(SDL2_FOUND)
-        add_library(SDL2 ALIAS SDL2::SDL2)
-        add_library(SDL2-static ALIAS SDL2::SDL2)
+        if(NINTENDO_SWITCH)
+            add_library(SDL2 ALIAS SDL2::SDL2-static)
+            add_library(SDL2-static ALIAS SDL2::SDL2-static)
+        else()
+            add_library(SDL2 ALIAS SDL2::SDL2)
+            add_library(SDL2-static ALIAS SDL2::SDL2)
+        endif()
         message(STATUS "Use system library: SDL2")
     else()
         message(WARNING "System library SDL2 not found")
@@ -89,7 +94,7 @@ set(SDLGPU_SRC
     ${SDLGPU_DIR}/externals/stb_image_write/stb_image_write.c
 )
 
-if(NOT ANDROID)
+if(NOT ANDROID AND NOT NINTENDO_SWITCH)
     list(APPEND SDLGPU_SRC
         ${SDLGPU_DIR}/renderer_GLES_1.c
         ${SDLGPU_DIR}/renderer_GLES_3.c
@@ -105,7 +110,7 @@ endif()
 
 add_library(sdlgpu STATIC ${SDLGPU_SRC})
 
-if(EMSCRIPTEN OR ANDROID)
+if(EMSCRIPTEN OR ANDROID OR NINTENDO_SWITCH)
     target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3 SDL_GPU_DISABLE_OPENGL)
 else()
     target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
@@ -139,6 +144,12 @@ if(ANDROID)
         ${ANDROID_GLES2_LIBRARY}
         ${ANDROID_GLES1_LIBRARY}
     )
+endif()
+
+if(NINTENDO_SWITCH)
+    find_package(PkgConfig REQUIRED)
+    pkg_search_module(GLES2 glesv2 REQUIRED IMPORTED_TARGET)
+    target_link_libraries(sdlgpu PkgConfig::GLES2)
 endif()
 
 if(NOT EMSCRIPTEN)
