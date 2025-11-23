@@ -25,7 +25,7 @@
 #include "net.h"
 #include "ext/json.h"
 
-#if defined(BAREMETALPI) || defined(_3DS)
+#if defined(BAREMETALPI)
   #ifdef EN_DEBUG
     #define dbg(...) printf(__VA_ARGS__)
   #else

@@ -20,6 +20,10 @@ if(BUILD_WITH_MOON)
     add_library(lpeg STATIC ${LPEG_SRC})
     target_include_directories(lpeg PRIVATE ${LUA_DIR})
 
+    if(NINTENDO_3DS)
+        target_compile_definitions(lpeg PUBLIC LUA_32BITS)
+    endif()
+
     add_library(moon ${TIC_RUNTIME} ${CMAKE_SOURCE_DIR}/src/api/moonscript.c)
 
     if(NOT BUILD_STATIC)
