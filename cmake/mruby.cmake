@@ -75,7 +75,7 @@ if(BUILD_WITH_RUBY)
     endif()
 
     if(APPLE)
-        exec_program(xcrun ARGS --sdk macosx --show-sdk-path OUTPUT_VARIABLE MRUBY_SYSROOT)
+        execute_process(COMMAND xcrun --sdk macosx --show-sdk-path OUTPUT_VARIABLE MRUBY_SYSROOT OUTPUT_STRIP_TRAILING_WHITESPACE)
     endif()
 
     if(ANDROID_NDK_HOME)
