@@ -368,7 +368,7 @@ m3ApiRawFunction(wasmtic_btn)
 
 m3ApiRawFunction(wasmtic_btnp)
 {
-    m3ApiReturnType  (bool)
+    m3ApiReturnType  (int32_t)
 
     m3ApiGetArg      (int32_t, index)
     m3ApiGetArg      (int32_t, hold)
@@ -380,7 +380,7 @@ m3ApiRawFunction(wasmtic_btnp)
     // knows this so we don't need to do any transaction, we can just pass the -1 values
     // straight thru
 
-    m3ApiReturn(core->api.btnp((tic_mem *)core, index, hold, period));
+    m3ApiReturn((int32_t)core->api.btnp((tic_mem *)core, index, hold, period));
 
     m3ApiSuccess();
 }
@@ -423,14 +423,14 @@ m3ApiRawFunction(wasmtic_keyp)
 
 m3ApiRawFunction(wasmtic_fget)
 {
-    m3ApiReturnType  (bool)
+    m3ApiReturnType  (int32_t)
 
     m3ApiGetArg      (int32_t, sprite_index);
     m3ApiGetArg      (int8_t, flag);
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
-    m3ApiReturn(core->api.fget(tic, sprite_index, flag));
+    m3ApiReturn(core->api.fget(tic, sprite_index, flag) ? 1 : 0);
 
     m3ApiSuccess();
 }
