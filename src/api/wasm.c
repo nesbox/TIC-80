@@ -379,8 +379,9 @@ m3ApiRawFunction(wasmtic_btnp)
     // -1 is the "default" placeholder for index, hold, and period but the TIC side API
     // knows this so we don't need to do any transaction, we can just pass the -1 values
     // straight thru
-
-    m3ApiReturn((int32_t)core->api.btnp((tic_mem *)core, index, hold, period));
+    
+    u32 pressed = core->api.btnp((tic_mem*)core, index, hold, period);
+    m3ApiReturn((int32_t)(pressed ? 1 : 0));
 
     m3ApiSuccess();
 }
