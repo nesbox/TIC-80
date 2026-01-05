@@ -80,6 +80,7 @@ typedef struct
         Clay_BoundingBox box;
     } player;
 
+    sgl_pipeline alphapip;
     sg_image image;
     sg_sampler linear;
     sg_sampler nearest;
@@ -466,6 +467,12 @@ static void HandleClayErrors(Clay_ErrorData errorData)
     printf("%s\n", errorData.errorText.chars);
 }
 
+static Clay_Dimensions measureText(Clay_StringSlice text, Clay_TextElementConfig *config, void *userData)
+{
+    // 5x3 font
+    return (Clay_Dimensions){18 * text.length, 12};
+}
+
 static void init(void *userdata)
 {
     App *app = userdata;
@@ -543,6 +550,22 @@ static void init(void *userdata)
         });
     }
 
+    // custom pipeline to enable alpha color
+    app->alphapip = sgl_make_pipeline(&(sg_pipeline_desc)
+    {
+        .colors[0] = 
+        {
+            .blend = 
+            {
+                .enabled = true,
+                .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
+                .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+                .src_factor_alpha = SG_BLENDFACTOR_ONE,
+                .dst_factor_alpha = SG_BLENDFACTOR_ZERO
+            }
+        }
+    });
+
     app->audio.samples = malloc(sizeof app->audio.samples[0] * saudio_sample_rate() / TIC80_FRAMERATE * TIC80_SAMPLE_CHANNELS);
     app->mouse.x = app->mouse.y = TIC80_FULLWIDTH;
 
@@ -556,6 +579,7 @@ static void init(void *userdata)
     Clay_Arena arena = Clay_CreateArenaWithCapacityAndMemory(totalMemorySize, malloc(totalMemorySize));
 
     Clay_Initialize(arena, (Clay_Dimensions) { sapp_widthf(), sapp_heightf() }, (Clay_ErrorHandler) { HandleClayErrors });
+    Clay_SetMeasureTextFunction(measureText, NULL);
 }
 
 static void threadedMode(App* app)
@@ -607,7 +631,7 @@ static void renderImage(Clay_BoundingBox b, sg_image image, sg_sampler sampler)
     sgl_disable_texture();
 }
 
-static void renderPlayer(App *app, Clay_BoundingBox b)
+static void playerCommand(App *app, Clay_BoundingBox b)
 {
     // !TODO: fix integer scale
     // if(studio_config(app->studio)->options.integerScale)
@@ -650,6 +674,21 @@ static void renderRect(Clay_BoundingBox b, Clay_Color c)
     sgl_end();
 }
 
+static void rectCommand(Clay_BoundingBox b, Clay_RectangleRenderData rect)
+{
+    renderRect(b, rect.backgroundColor);
+}
+
+static void borderCommand(Clay_BoundingBox b, Clay_BorderRenderData border)
+{
+    Clay_BorderWidth w = border.width;
+
+    renderRect((Clay_BoundingBox){b.x, b.y, b.width, w.top}, border.color);
+    renderRect((Clay_BoundingBox){b.x, b.y + b.height - w.bottom, b.width, w.bottom}, border.color);
+    renderRect((Clay_BoundingBox){b.x, b.y, w.left, b.height}, border.color);
+    renderRect((Clay_BoundingBox){b.x + b.width - w.right, b.y, w.right, b.height}, border.color);
+}
+
 static void renderCommands(App *app, Clay_RenderCommandArray renderCommands)
 {
     sgl_set_context(sgl_default_context());
@@ -657,37 +696,41 @@ static void renderCommands(App *app, Clay_RenderCommandArray renderCommands)
 
     sgl_matrix_mode_projection();
     sgl_ortho(0, sapp_widthf(), sapp_heightf(), 0, -1, +1);
+    sgl_load_pipeline(app->alphapip);
 
     for (s32 i = 0; i < renderCommands.length; i++) 
     {
         const Clay_RenderCommand *renderCommand = &renderCommands.internalArray[i];
 
+        Clay_BoundingBox b = renderCommand->boundingBox;
+
         switch (renderCommand->commandType) 
         {
-            case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: 
-            {
-                Clay_BoundingBox b = renderCommand->boundingBox;
-                Clay_Color c = renderCommand->renderData.rectangle.backgroundColor;
+        case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START: 
+            sgl_scissor_rectf(b.x, b.y, b.width, b.height, true);
+            break;
 
-                if(renderCommand->id == Clay_GetElementId(CLAY_STRING("Player")).id)
-                {
-                    renderPlayer(app, b);
-                }
-                else
-                {
-                    renderRect(b, c);
-                }
-            }
+        case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END: 
+            sgl_scissor_rectf(0, 0, sapp_widthf(), sapp_heightf(), true);
+            break;
 
-            case CLAY_RENDER_COMMAND_TYPE_CUSTOM:
-            {
-                // !TODO: render player here instead rect
-            }
+        case CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
+            rectCommand(b, renderCommand->renderData.rectangle);
+            break;
 
-            default:
+        case CLAY_RENDER_COMMAND_TYPE_BORDER:
+            borderCommand(b, renderCommand->renderData.border);
+            break;
+
+        case CLAY_RENDER_COMMAND_TYPE_CUSTOM:
             {
-                break;
+                App* app = renderCommand->renderData.custom.customData;
+                playerCommand(app, b);
             }
+            break;
+
+        default:
+            break;
         }
     }
 }
@@ -712,15 +755,16 @@ static void renderLayout(App *app)
         }, 
     })
     {
-        CLAY(CLAY_ID("Player"), 
+        CLAY_AUTO_ID( 
         {
+            .custom = { .customData = app },
+
             .layout = 
             { 
                 .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, 
             },
 
             .aspectRatio = (float)TIC80_FULLWIDTH / TIC80_FULLHEIGHT,
-            .backgroundColor = COLOR_BLACK,
         }){}
 
         CLAY_AUTO_ID(
@@ -745,7 +789,7 @@ static void renderLayout(App *app)
                 },
             })
             {
-                for(s32 i = 0; i < 3; i++)
+                for(s32 i = 0; i < 4; i++)
                 {
                     CLAY_AUTO_ID(
                     {
@@ -755,6 +799,7 @@ static void renderLayout(App *app)
                         },
 
                         .backgroundColor = COLOR_RED,
+                        .border = { .width = { 16, 16, 16, 16 }, .color = COLOR_BLUE },
                     }){}                    
                 }
             }
@@ -769,7 +814,7 @@ static void renderLayout(App *app)
                 },
             })
             {
-                for(s32 i = 0; i < 3; i++)
+                for(s32 i = 0; i < 4; i++)
                 {
                     CLAY_AUTO_ID(
                     {
@@ -779,6 +824,7 @@ static void renderLayout(App *app)
                         },
 
                         .backgroundColor = COLOR_BLUE,
+                        .border = { .width = { 16, 16, 16, 16 }, .color = COLOR_RED },
                     }){}                    
                 }
             }
@@ -828,6 +874,7 @@ static void frame(void *userdata)
         });
     }
 
+
     bool crt = studio_config(app->studio)->options.crt;
     if(crt)
     {
@@ -835,7 +882,6 @@ static void frame(void *userdata)
         sgl_defaults();
         sgl_matrix_mode_modelview();
         sgl_ortho(0, TIC80_FULLWIDTH * CRT_SCALE, TIC80_FULLHEIGHT * CRT_SCALE, 0, -1, +1);
-        sgl_push_pipeline();
         sgl_load_pipeline(app->crt.pip);
 
         renderImage((Clay_BoundingBox)
@@ -845,8 +891,6 @@ static void frame(void *userdata)
                 TIC80_FULLHEIGHT * CRT_SCALE,
             },
             app->image, app->nearest);
-
-        sgl_pop_pipeline();
     }
 
     renderLayout(app);
@@ -1045,6 +1089,12 @@ static void event(const sapp_event* event, void *userdata)
         {
         case SAPP_EVENTTYPE_KEY_DOWN:
             handleKeydown(app, event->key_code, true);
+
+            if(event->key_code == SAPP_KEYCODE_F12)
+            {
+                Clay_SetDebugModeEnabled(!Clay_IsDebugModeEnabled());
+            }
+
             break;
         case SAPP_EVENTTYPE_KEY_UP:
             handleKeydown(app, event->key_code, false);
@@ -1145,6 +1195,7 @@ static void cleanup(void *userdata)
 
     // destroy crt
     {
+        sgl_destroy_pipeline(app->alphapip);
         sgl_destroy_pipeline(app->crt.pip);
         sg_destroy_shader(app->crt.shader);
         sg_destroy_attachments(app->crt.att);
