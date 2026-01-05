@@ -695,13 +695,15 @@ static void renderCommands(App *app, Clay_RenderCommandArray renderCommands)
 static void renderLayout(App *app)
 {
     const Clay_Color COLOR_BLACK = (Clay_Color) {.a = 255};
+    const Clay_Color COLOR_RED = (Clay_Color) {.a = 255, .r = 255};
+    const Clay_Color COLOR_BLUE = (Clay_Color) {.a = 255, .b = 255};
 
     Clay_SetLayoutDimensions((Clay_Dimensions) { sapp_widthf(), sapp_heightf() });
     Clay_SetPointerState((Clay_Vector2) { app->pointer.x, app->pointer.y }, app->pointer.down);
 
     Clay_BeginLayout();
 
-    CLAY(CLAY_ID("Layout"), 
+    CLAY_AUTO_ID( 
     { 
         .layout = 
         { 
@@ -720,6 +722,67 @@ static void renderLayout(App *app)
             .aspectRatio = (float)TIC80_FULLWIDTH / TIC80_FULLHEIGHT,
             .backgroundColor = COLOR_BLACK,
         }){}
+
+        CLAY_AUTO_ID(
+        {
+            .floating = { .attachTo = CLAY_ATTACH_TO_PARENT },
+
+            .layout = 
+            { 
+                .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, 
+                .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
+            },
+        })
+        {
+
+            CLAY_AUTO_ID(
+            {
+                .layout = 
+                { 
+                    .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, 
+                    .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
+                    .childGap = 16,
+                },
+            })
+            {
+                for(s32 i = 0; i < 3; i++)
+                {
+                    CLAY_AUTO_ID(
+                    {
+                        .layout = 
+                        { 
+                            .sizing = {CLAY_SIZING_FIXED(100), CLAY_SIZING_FIXED(100)}, 
+                        },
+
+                        .backgroundColor = COLOR_RED,
+                    }){}                    
+                }
+            }
+
+            CLAY_AUTO_ID(
+            {
+                .layout = 
+                { 
+                    .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, 
+                    .childAlignment = { .x = CLAY_ALIGN_X_CENTER, .y = CLAY_ALIGN_Y_CENTER },
+                    .childGap = 16,
+                },
+            })
+            {
+                for(s32 i = 0; i < 3; i++)
+                {
+                    CLAY_AUTO_ID(
+                    {
+                        .layout = 
+                        { 
+                            .sizing = {CLAY_SIZING_FIXED(100), CLAY_SIZING_FIXED(100)}, 
+                        },
+
+                        .backgroundColor = COLOR_BLUE,
+                    }){}                    
+                }
+            }
+        }
     }
 
     renderCommands(app, Clay_EndLayout());
