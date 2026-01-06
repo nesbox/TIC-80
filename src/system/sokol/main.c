@@ -69,7 +69,7 @@ typedef struct
 
     struct
     {
-        sg_image image;
+        sg_image screen;
         sg_shader shader;
         sgl_context ctx;
         sgl_pipeline pip;
@@ -82,8 +82,9 @@ typedef struct
     } player;
 
     sgl_pipeline alphapip;
-    sg_image image;
-    sg_image fontmap;
+    sg_image screen;
+    sg_image sprites;
+    sg_image tiles;
     sg_sampler linear;
     sg_sampler nearest;
 
@@ -478,6 +479,27 @@ static Clay_Dimensions measureText(Clay_StringSlice text, Clay_TextElementConfig
     };
 }
 
+static sg_image initTiles(App *app, const tic_tile* src)
+{
+    u32 sprites[TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE];
+
+    tic_blitpal pal = tic_tool_palette_blit(&studio_config(app->studio)->cart->bank0.palette.vbank0, 
+        TIC80_PIXEL_COLOR_RGBA8888);
+
+    for(s32 i = 0; i < TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE; i++)
+    {
+        u8 color = getSpritePixel(src, i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE);
+        sprites[i] = color ? pal.data[color] : 0;
+    }
+
+    return sg_make_image(&(sg_image_desc)
+    {
+        .width = TIC_SPRITESHEET_SIZE,
+        .height = TIC_SPRITESHEET_SIZE,
+        .data.subimage[0][0] = SG_RANGE(sprites),
+    });
+}
+
 static void init(void *userdata)
 {
     App *app = userdata;
@@ -499,29 +521,15 @@ static void init(void *userdata)
 #endif
     });
 
-    app->image = sg_make_image(&(sg_image_desc)
+    app->screen = sg_make_image(&(sg_image_desc)
     {
         .width = TIC80_FULLWIDTH,
         .height = TIC80_FULLHEIGHT,
         .usage.stream_update = true,
     });
 
-    u32 font[TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE];
-
-    for(s32 i = 0; i < TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE; i++)
-    {
-        u8 color = getSpritePixel(studio_config(app->studio)->cart->bank0.sprites.data, 
-            i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE);
-
-        font[i] = color ? 0xffffffff : 0;
-    }
-
-    app->fontmap = sg_make_image(&(sg_image_desc)
-    {
-        .width = TIC_SPRITESHEET_SIZE,
-        .height = TIC_SPRITESHEET_SIZE,
-        .data.subimage[0][0] = SG_RANGE(font),
-    });
+    app->tiles = initTiles(app, studio_config(app->studio)->cart->bank0.tiles.data);
+    app->sprites = initTiles(app, studio_config(app->studio)->cart->bank0.sprites.data);
 
     app->linear = sg_make_sampler(&(sg_sampler_desc)
     {
@@ -550,7 +558,7 @@ static void init(void *userdata)
             .sample_count = 1,
         });
 
-        app->crt.image = sg_make_image(&(sg_image_desc)
+        app->crt.screen = sg_make_image(&(sg_image_desc)
         {
             .usage.render_attachment = true,
             .width = TIC80_FULLWIDTH * CRT_SCALE,
@@ -561,7 +569,7 @@ static void init(void *userdata)
 
         app->crt.att = sg_make_attachments(&(sg_attachments_desc)
         {
-            .colors[0].image = app->crt.image,
+            .colors[0].image = app->crt.screen,
         });
 
         app->crt.shader = sg_make_shader(crt_shader_desc(sg_query_backend()));
@@ -682,7 +690,7 @@ static void playerCommand(App *app, Clay_BoundingBox b)
     bool crt = studio_config(app->studio)->options.crt;
     if(crt)
     {
-        renderImage(b, app->crt.image, app->linear);
+        renderImage(b, app->crt.screen, app->linear);
 
         // draw crt
         sg_begin_pass(&(sg_pass)
@@ -695,7 +703,7 @@ static void playerCommand(App *app, Clay_BoundingBox b)
     }
     else
     {
-        renderImage(b, app->image, app->nearest);
+        renderImage(b, app->screen, app->nearest);
     }
 }
 
@@ -748,8 +756,25 @@ static void textCommand(App *app, Clay_BoundingBox b, Clay_TextRenderData data)
                 (c % TIC_SPRITESHEET_COLS) * TIC_SPRITESIZE, (c / TIC_SPRITESHEET_COLS) * TIC_SPRITESIZE,
                 TIC_SPRITESIZE, TIC_SPRITESIZE
             },
-            app->fontmap, app->nearest);
+            app->sprites, app->nearest);
     }
+}
+
+static void imageCommand(App *app, Clay_BoundingBox b, Clay_ImageRenderData data)
+{
+    Clay_Color c = data.backgroundColor;
+    sgl_c4b(c.r, c.g, c.b, c.a);
+
+    // 8x8 tile index
+    s32 t = (s32)(intptr_t)data.imageData;
+
+    renderTile(b,
+        (Clay_BoundingBox)
+        {
+            (t % TIC_SPRITESHEET_COLS) * TIC_SPRITESIZE, (t / TIC_SPRITESHEET_COLS) * TIC_SPRITESIZE,
+            TIC_SPRITESIZE, TIC_SPRITESIZE
+        },
+        app->tiles, app->nearest);
 }
 
 static void renderCommands(App *app, Clay_RenderCommandArray renderCommands)
@@ -798,6 +823,12 @@ static void renderCommands(App *app, Clay_RenderCommandArray renderCommands)
             }
             break;
 
+        case CLAY_RENDER_COMMAND_TYPE_IMAGE:
+            {
+                imageCommand(app, b, renderCommand->renderData.image);
+            }
+            break;
+
         default:
             printf("unhandled command: %i\n", renderCommand->commandType);
             break;
@@ -807,6 +838,7 @@ static void renderCommands(App *app, Clay_RenderCommandArray renderCommands)
 
 static void renderLayout(App *app)
 {
+    const Clay_Color COLOR_WHITE = (Clay_Color) {.r = 255, .g = 255, .b = 255, .a = 255};
     const Clay_Color COLOR_BLACK = (Clay_Color) {.a = 255};
     const Clay_Color COLOR_RED = (Clay_Color) {.a = 255, .r = 255};
     const Clay_Color COLOR_BLUE = (Clay_Color) {.a = 255, .b = 255};
@@ -864,13 +896,15 @@ static void renderLayout(App *app)
                 {
                     CLAY_AUTO_ID(
                     {
+                        // tile index of pad buttons
+                        .image = (void*)8 + i,
+
                         .layout = 
                         { 
                             .sizing = {CLAY_SIZING_FIXED(100), CLAY_SIZING_FIXED(100)}, 
                         },
 
-                        .backgroundColor = COLOR_RED,
-                        .border = { .width = { 16, 16, 16, 16 }, .color = COLOR_BLUE },
+                        .backgroundColor = COLOR_WHITE,
                     }){}                    
                 }
             }
@@ -889,13 +923,15 @@ static void renderLayout(App *app)
                 {
                     CLAY_AUTO_ID(
                     {
+                        // tile index of ABXY buttons
+                        .image = (void*)12 + i,
+
                         .layout = 
                         { 
                             .sizing = {CLAY_SIZING_FIXED(100), CLAY_SIZING_FIXED(100)}, 
                         },
 
-                        .backgroundColor = COLOR_BLUE,
-                        .border = { .width = { 16, 16, 16, 16 }, .color = COLOR_RED },
+                        .backgroundColor = COLOR_WHITE,
                     }){}                    
                 }
             }
@@ -935,7 +971,7 @@ static void frame(void *userdata)
     {        
         const tic80* product = &studio_mem(app->studio)->product;
 
-        sg_update_image(app->image, &(sg_image_data)
+        sg_update_image(app->screen, &(sg_image_data)
         {
             .subimage[0][0] = 
             {
@@ -961,7 +997,7 @@ static void frame(void *userdata)
                 TIC80_FULLWIDTH * CRT_SCALE, 
                 TIC80_FULLHEIGHT * CRT_SCALE,
             },
-            app->image, app->nearest);
+            app->screen, app->nearest);
     }
 
     renderLayout(app);
@@ -1270,11 +1306,13 @@ static void cleanup(void *userdata)
         sgl_destroy_pipeline(app->crt.pip);
         sg_destroy_shader(app->crt.shader);
         sg_destroy_attachments(app->crt.att);
-        sg_destroy_image(app->crt.image);
+        sg_destroy_image(app->crt.screen);
+        sg_destroy_image(app->tiles);
+        sg_destroy_image(app->sprites);
         sgl_destroy_context(app->crt.ctx);
     }
 
-    sg_destroy_image(app->image);
+    sg_destroy_image(app->screen);
     sg_destroy_sampler(app->linear);
     sg_destroy_sampler(app->nearest);
 
