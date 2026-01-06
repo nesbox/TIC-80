@@ -37,6 +37,7 @@
 #include "thread.h"
 
 #define CRT_SCALE 4
+#define CLAY_FONT_SCALE 2
 
 typedef struct
 {
@@ -82,6 +83,7 @@ typedef struct
 
     sgl_pipeline alphapip;
     sg_image image;
+    sg_image fontmap;
     sg_sampler linear;
     sg_sampler nearest;
 
@@ -469,8 +471,11 @@ static void HandleClayErrors(Clay_ErrorData errorData)
 
 static Clay_Dimensions measureText(Clay_StringSlice text, Clay_TextElementConfig *config, void *userData)
 {
-    // 5x3 font
-    return (Clay_Dimensions){18 * text.length, 12};
+    // 4x6 font
+    return (Clay_Dimensions){
+        TIC_ALTFONT_WIDTH * CLAY_FONT_SCALE * text.length, 
+        TIC_FONT_HEIGHT * CLAY_FONT_SCALE + config->lineHeight
+    };
 }
 
 static void init(void *userdata)
@@ -499,6 +504,23 @@ static void init(void *userdata)
         .width = TIC80_FULLWIDTH,
         .height = TIC80_FULLHEIGHT,
         .usage.stream_update = true,
+    });
+
+    u32 font[TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE];
+
+    for(s32 i = 0; i < TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE; i++)
+    {
+        u8 color = getSpritePixel(studio_config(app->studio)->cart->bank0.sprites.data, 
+            i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE);
+
+        font[i] = color ? 0xffffffff : 0;
+    }
+
+    app->fontmap = sg_make_image(&(sg_image_desc)
+    {
+        .width = TIC_SPRITESHEET_SIZE,
+        .height = TIC_SPRITESHEET_SIZE,
+        .data.subimage[0][0] = SG_RANGE(font),
     });
 
     app->linear = sg_make_sampler(&(sg_sampler_desc)
@@ -631,6 +653,21 @@ static void renderImage(Clay_BoundingBox b, sg_image image, sg_sampler sampler)
     sgl_disable_texture();
 }
 
+static void renderTile(Clay_BoundingBox b, Clay_BoundingBox t, sg_image image, sg_sampler sampler)
+{
+    sg_image_desc desc = sg_query_image_desc(image);
+
+    sgl_enable_texture();
+    sgl_texture(image, sampler);
+    sgl_begin_quads();
+    sgl_v2f_t2f(b.x + 0, b.y + 0,               (t.x) / desc.width,             (t.y) / desc.height);
+    sgl_v2f_t2f(b.x + b.width, b.y + 0,         (t.x + t.width) / desc.width,   (t.y) / desc.height);
+    sgl_v2f_t2f(b.x + b.width, b.y + b.height,  (t.x + t.width) / desc.width,   (t.y + t.height) / desc.height);
+    sgl_v2f_t2f(b.x + 0, b.y + b.height,        (t.x) / desc.width,             (t.y + t.height) / desc.height);
+    sgl_end();
+    sgl_disable_texture();
+}
+
 static void playerCommand(App *app, Clay_BoundingBox b)
 {
     // !TODO: fix integer scale
@@ -689,6 +726,32 @@ static void borderCommand(Clay_BoundingBox b, Clay_BorderRenderData border)
     renderRect((Clay_BoundingBox){b.x + b.width - w.right, b.y, w.right, b.height}, border.color);
 }
 
+static void textCommand(App *app, Clay_BoundingBox b, Clay_TextRenderData data)
+{
+    Clay_Color c = data.textColor;
+    sgl_c4b(c.r, c.g, c.b, c.a);
+
+    Clay_StringSlice text = data.stringContents;
+
+    for(s32 i = 0; i < text.length; i++)
+    {
+        s32 c = text.chars[i] + TIC_FONT_CHARS;
+
+        renderTile((Clay_BoundingBox)
+            {
+                b.x + i * TIC_ALTFONT_WIDTH * CLAY_FONT_SCALE, b.y, 
+                TIC_SPRITESIZE * CLAY_FONT_SCALE, 
+                TIC_SPRITESIZE * CLAY_FONT_SCALE,
+            },
+            (Clay_BoundingBox)
+            {
+                (c % TIC_SPRITESHEET_COLS) * TIC_SPRITESIZE, (c / TIC_SPRITESHEET_COLS) * TIC_SPRITESIZE,
+                TIC_SPRITESIZE, TIC_SPRITESIZE
+            },
+            app->fontmap, app->nearest);
+    }
+}
+
 static void renderCommands(App *app, Clay_RenderCommandArray renderCommands)
 {
     sgl_set_context(sgl_default_context());
@@ -729,7 +792,14 @@ static void renderCommands(App *app, Clay_RenderCommandArray renderCommands)
             }
             break;
 
+        case CLAY_RENDER_COMMAND_TYPE_TEXT:
+            {
+                textCommand(app, b, renderCommand->renderData.text);
+            }
+            break;
+
         default:
+            printf("unhandled command: %i\n", renderCommand->commandType);
             break;
         }
     }
@@ -743,6 +813,7 @@ static void renderLayout(App *app)
 
     Clay_SetLayoutDimensions((Clay_Dimensions) { sapp_widthf(), sapp_heightf() });
     Clay_SetPointerState((Clay_Vector2) { app->pointer.x, app->pointer.y }, app->pointer.down);
+    // Clay_UpdateScrollContainers(true, (Clay_Vector2) { mouseWheelX, mouseWheelY }, deltaTime);
 
     Clay_BeginLayout();
 
