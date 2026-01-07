@@ -610,6 +610,7 @@ static void init(void *userdata)
 
     Clay_Initialize(arena, (Clay_Dimensions) { sapp_widthf(), sapp_heightf() }, (Clay_ErrorHandler) { HandleClayErrors });
     Clay_SetMeasureTextFunction(measureText, NULL);
+    // Clay__debugViewWidth *=2;
 }
 
 static void threadedMode(App* app)
@@ -762,7 +763,9 @@ static void textCommand(App *app, Clay_BoundingBox b, Clay_TextRenderData data)
 
 static void imageCommand(App *app, Clay_BoundingBox b, Clay_ImageRenderData data)
 {
-    Clay_Color c = data.backgroundColor;
+    // white color for all the images by default, 
+    // if you want to tint image use data.backgroundColor instead
+    Clay_Color c = (Clay_Color) {.r = 255, .g = 255, .b = 255, .a = 255};
     sgl_c4b(c.r, c.g, c.b, c.a);
 
     // 8x8 tile index
@@ -897,14 +900,12 @@ static void renderLayout(App *app)
                     CLAY_AUTO_ID(
                     {
                         // tile index of pad buttons
-                        .image = (void*)8 + i,
+                        .image = (void*)(intptr_t)(8 + i),
 
                         .layout = 
                         { 
                             .sizing = {CLAY_SIZING_FIXED(100), CLAY_SIZING_FIXED(100)}, 
                         },
-
-                        .backgroundColor = COLOR_WHITE,
                     }){}                    
                 }
             }
@@ -924,14 +925,12 @@ static void renderLayout(App *app)
                     CLAY_AUTO_ID(
                     {
                         // tile index of ABXY buttons
-                        .image = (void*)12 + i,
+                        .image = (void*)(intptr_t)(12 + i),
 
                         .layout = 
                         { 
                             .sizing = {CLAY_SIZING_FIXED(100), CLAY_SIZING_FIXED(100)}, 
                         },
-
-                        .backgroundColor = COLOR_WHITE,
                     }){}                    
                 }
             }
