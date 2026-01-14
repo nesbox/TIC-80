@@ -701,13 +701,13 @@ static bool py_pmem(int argc, py_Ref argv)
         // set persistent memory
         PY_CHECK_ARG_TYPE(1, tp_int);
         u32 value = py_toint(py_arg(1));
-        core->api.pmem((tic_mem*)core, index, value, false);
+        core->api.pmem((tic_mem*)core, index, value, true);
         py_newnone(py_retval());
     }
     else
     {
         // get persistent memory
-        u32 res = core->api.pmem((tic_mem*)core, index, 0, true);
+        u32 res = core->api.pmem((tic_mem*)core, index, 0, false);
         py_newint(py_retval(), res);
     }
     return true;
