@@ -150,14 +150,18 @@ static bool py_spr(int argc, py_Ref argv)
 // s32 (*print)(tic_mem*, const char*, s32, s32, u8, bool, s32, bool)
 static bool py_print(int argc, py_Ref argv)
 {
-    PY_CHECK_ARG_TYPE(0, tp_str);
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
     PY_CHECK_ARG_TYPE(3, tp_int);
     PY_CHECK_ARG_TYPE(4, tp_bool);
     PY_CHECK_ARG_TYPE(5, tp_int);
     PY_CHECK_ARG_TYPE(6, tp_bool);
-    const char* text = py_tostr(py_arg(0));
+
+    // convert arg0 to string
+    if (!py_str(py_arg(0))) return false;
+    py_assign(py_pushtmp(), py_retval());
+    const char* text = py_tostr(py_peek(-1));
+
     s32 x = py_toint(py_arg(1));
     s32 y = py_toint(py_arg(2));
     u8 color = py_toint(py_arg(3));
@@ -167,6 +171,8 @@ static bool py_print(int argc, py_Ref argv)
 
     tic_core* core = get_core();
     s32 ps = core->api.print((tic_mem*)core, text, x, y, color, fixed, scale, alt);
+
+    py_pop();
     py_newint(py_retval(), ps);
     return true;
 }
