@@ -7,6 +7,7 @@
 
 /*
 cmake -B build2 -A x64 -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=On -DBUILD_WITH_ALL=Off -DBUILD_WITH_PYTHON=On
+cmake -B build2 -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=On -DBUILD_WITH_ALL=Off -DBUILD_WITH_PYTHON=On
 cmake --build build2 --parallel 8 --config MinSizeRel
 */
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
@@ -683,7 +684,7 @@ static bool py_pmem(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(0, tp_int);
     s32 index = py_toint(py_arg(0));
 
-    if (index >= TIC_PERSISTENT_SIZE)
+    if (index < 0 || index >= TIC_PERSISTENT_SIZE)
     {
         return ValueError("invalid tic persistent index");
     }
@@ -693,7 +694,7 @@ static bool py_pmem(int argc, py_Ref argv)
     {
         // set persistent memory
         PY_CHECK_ARG_TYPE(1, tp_int);
-        s32 value = py_toint(py_arg(1));
+        u32 value = py_toint(py_arg(1));
         core->api.pmem((tic_mem*)core, index, value, false);
         py_newnone(py_retval());
     }
@@ -1093,6 +1094,44 @@ void close_pkpy_v2(tic_mem* tic)
     }
 }
 
+static void patch_easing_module() {
+    py_GlobalRef mod = py_getmodule("easing");
+    assert(mod != NULL);
+#define DEF_EASE(x) py_setdict(mod, py_name("Ease" #x), py_getdict(mod, py_name(#x)));
+    DEF_EASE(Linear)
+    DEF_EASE(InSine)
+    DEF_EASE(OutSine)
+    DEF_EASE(InOutSine)
+    DEF_EASE(InQuad)
+    DEF_EASE(OutQuad)
+    DEF_EASE(InOutQuad)
+    DEF_EASE(InCubic)
+    DEF_EASE(OutCubic)
+    DEF_EASE(InOutCubic)
+    DEF_EASE(InQuart)
+    DEF_EASE(OutQuart)
+    DEF_EASE(InOutQuart)
+    DEF_EASE(InQuint)
+    DEF_EASE(OutQuint)
+    DEF_EASE(InOutQuint)
+    DEF_EASE(InExpo)
+    DEF_EASE(OutExpo)
+    DEF_EASE(InOutExpo)
+    DEF_EASE(InCirc)
+    DEF_EASE(OutCirc)
+    DEF_EASE(InOutCirc)
+    DEF_EASE(InBack)
+    DEF_EASE(OutBack)
+    DEF_EASE(InOutBack)
+    DEF_EASE(InElastic)
+    DEF_EASE(OutElastic)
+    DEF_EASE(InOutElastic)
+    DEF_EASE(InBounce)
+    DEF_EASE(OutBounce)
+    DEF_EASE(InOutBounce)
+#undef DEF_EASE
+}
+
 static bool init_pkpy_v2(tic_mem* tic, const char* code)
 {
     py_initialize();
@@ -1108,6 +1147,9 @@ static bool init_pkpy_v2(tic_mem* tic, const char* code)
     py_setvmctx(core);
     core->currentVM = (void*)py_retval();
     bind_pkpy_v2();
+
+    // https://github.com/nesbox/TIC-80/issues/2841
+    patch_easing_module();
 
     py_StackRef p0 = py_peek(0);
     if (!py_exec(code, "main.py", EXEC_MODE, NULL))
