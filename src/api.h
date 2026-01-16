@@ -520,7 +520,7 @@ enum
         1,                                                                                                              \
         0,                                                                                                              \
         u32,                                                                                                            \
-        tic_mem*, s32 index, u32 value, bool get)                                                                       \
+        tic_mem*, s32 index, u32 value, bool set)                                                                       \
                                                                                                                         \
                                                                                                                         \
     macro(time,                                                                                                         \
