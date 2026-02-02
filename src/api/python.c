@@ -7,6 +7,7 @@
 
 /*
 cmake -B build2 -A x64 -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=On -DBUILD_WITH_ALL=Off -DBUILD_WITH_PYTHON=On
+cmake -B build2 -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=On -DBUILD_WITH_ALL=Off -DBUILD_WITH_PYTHON=On
 cmake --build build2 --parallel 8 --config MinSizeRel
 */
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
@@ -149,14 +150,18 @@ static bool py_spr(int argc, py_Ref argv)
 // s32 (*print)(tic_mem*, const char*, s32, s32, u8, bool, s32, bool)
 static bool py_print(int argc, py_Ref argv)
 {
-    PY_CHECK_ARG_TYPE(0, tp_str);
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
     PY_CHECK_ARG_TYPE(3, tp_int);
     PY_CHECK_ARG_TYPE(4, tp_bool);
     PY_CHECK_ARG_TYPE(5, tp_int);
     PY_CHECK_ARG_TYPE(6, tp_bool);
-    const char* text = py_tostr(py_arg(0));
+
+    // convert arg0 to string
+    if (!py_str(py_arg(0))) return false;
+    py_assign(py_pushtmp(), py_retval());
+    const char* text = py_tostr(py_peek(-1));
+
     s32 x = py_toint(py_arg(1));
     s32 y = py_toint(py_arg(2));
     u8 color = py_toint(py_arg(3));
@@ -166,6 +171,8 @@ static bool py_print(int argc, py_Ref argv)
 
     tic_core* core = get_core();
     s32 ps = core->api.print((tic_mem*)core, text, x, y, color, fixed, scale, alt);
+
+    py_pop();
     py_newint(py_retval(), ps);
     return true;
 }
@@ -683,7 +690,7 @@ static bool py_pmem(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(0, tp_int);
     s32 index = py_toint(py_arg(0));
 
-    if (index >= TIC_PERSISTENT_SIZE)
+    if (index < 0 || index >= TIC_PERSISTENT_SIZE)
     {
         return ValueError("invalid tic persistent index");
     }
@@ -693,14 +700,14 @@ static bool py_pmem(int argc, py_Ref argv)
     {
         // set persistent memory
         PY_CHECK_ARG_TYPE(1, tp_int);
-        s32 value = py_toint(py_arg(1));
-        core->api.pmem((tic_mem*)core, index, value, false);
+        u32 value = py_toint(py_arg(1));
+        core->api.pmem((tic_mem*)core, index, value, true);
         py_newnone(py_retval());
     }
     else
     {
         // get persistent memory
-        u32 res = core->api.pmem((tic_mem*)core, index, 0, true);
+        u32 res = core->api.pmem((tic_mem*)core, index, 0, false);
         py_newint(py_retval(), res);
     }
     return true;
@@ -1093,6 +1100,44 @@ void close_pkpy_v2(tic_mem* tic)
     }
 }
 
+static void patch_easing_module() {
+    py_GlobalRef mod = py_getmodule("easing");
+    assert(mod != NULL);
+#define DEF_EASE(x) py_setdict(mod, py_name("Ease" #x), py_getdict(mod, py_name(#x)));
+    DEF_EASE(Linear)
+    DEF_EASE(InSine)
+    DEF_EASE(OutSine)
+    DEF_EASE(InOutSine)
+    DEF_EASE(InQuad)
+    DEF_EASE(OutQuad)
+    DEF_EASE(InOutQuad)
+    DEF_EASE(InCubic)
+    DEF_EASE(OutCubic)
+    DEF_EASE(InOutCubic)
+    DEF_EASE(InQuart)
+    DEF_EASE(OutQuart)
+    DEF_EASE(InOutQuart)
+    DEF_EASE(InQuint)
+    DEF_EASE(OutQuint)
+    DEF_EASE(InOutQuint)
+    DEF_EASE(InExpo)
+    DEF_EASE(OutExpo)
+    DEF_EASE(InOutExpo)
+    DEF_EASE(InCirc)
+    DEF_EASE(OutCirc)
+    DEF_EASE(InOutCirc)
+    DEF_EASE(InBack)
+    DEF_EASE(OutBack)
+    DEF_EASE(InOutBack)
+    DEF_EASE(InElastic)
+    DEF_EASE(OutElastic)
+    DEF_EASE(InOutElastic)
+    DEF_EASE(InBounce)
+    DEF_EASE(OutBounce)
+    DEF_EASE(InOutBounce)
+#undef DEF_EASE
+}
+
 static bool init_pkpy_v2(tic_mem* tic, const char* code)
 {
     py_initialize();
@@ -1108,6 +1153,9 @@ static bool init_pkpy_v2(tic_mem* tic, const char* code)
     py_setvmctx(core);
     core->currentVM = (void*)py_retval();
     bind_pkpy_v2();
+
+    // https://github.com/nesbox/TIC-80/issues/2841
+    patch_easing_module();
 
     py_StackRef p0 = py_peek(0);
     if (!py_exec(code, "main.py", EXEC_MODE, NULL))

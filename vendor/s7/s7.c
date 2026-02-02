@@ -375,7 +375,7 @@
   #define MS_WINDOWS 0
 #endif
 
-#if defined(_MSC_VER) || defined(__MINGW32__) || defined(S7_BAREMETALPI) || defined(S7_N3DS)
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(S7_BAREMETALPI) || defined(S7_N3DS) || defined(S7_SWITCH)
   #define Jmp_Buf       jmp_buf
   #define SetJmp(A, B)  setjmp(A)
   #define LongJmp(A, B) longjmp(A, B)
@@ -36582,7 +36582,7 @@ system captures the output as a string and returns it."
 }
 
 
-#if (!MS_WINDOWS) && !defined(S7_BAREMETALPI) && !defined(S7_N3DS)
+#if (!MS_WINDOWS) && !defined(S7_BAREMETALPI) && !defined(S7_N3DS) && !defined(S7_SWITCH)
 #include <dirent.h>
 
 /* -------------------------------- directory->list -------------------------------- */
@@ -92351,7 +92351,7 @@ static s7_pointer memory_usage(s7_scheme *sc)
   s7_pointer mu_let = s7_inlet(sc, sc->nil);
   s7_int gc_loc = gc_protect_1(sc, mu_let);
 
-#if !defined(S7_BAREMETALPI) && !defined(S7_N3DS)
+#if !defined(S7_BAREMETALPI) && !defined(S7_N3DS) && !defined(S7_SWITCH)
 #if (!_WIN32) /* (!MS_WINDOWS) */
   getrusage(RUSAGE_SELF, &info);
   ut = info.ru_utime;
@@ -92365,7 +92365,7 @@ static s7_pointer memory_usage(s7_scheme *sc)
 #endif
   add_slot_unchecked_with_id(sc, mu_let, make_symbol(sc, "IO", 2), cons(sc, make_integer(sc, info.ru_inblock), make_integer(sc, info.ru_oublock)));
 #endif
-#endif // !defined(S7_BAREMETALPI) && !defined(S7_N3DS)
+#endif // !defined(S7_BAREMETALPI) && !defined(S7_N3DS) && !defined(S7_SWITCH)
 
   add_slot_unchecked_with_id(sc, mu_let, make_symbol(sc, "rootlet-size", 12), make_integer(sc, sc->rootlet_entries));
   add_slot_unchecked_with_id(sc, mu_let, make_symbol(sc, "heap-size", 9),

@@ -34,6 +34,10 @@ if(BUILD_WITH_SCHEME)
         target_compile_definitions(scheme PRIVATE S7_N3DS)
     endif()
 
+    if (NINTENDO_SWITCH)
+        target_compile_definitions(scheme PRIVATE S7_SWITCH)
+    endif()
+
     if (BAREMETALPI)
         target_compile_definitions(scheme PRIVATE S7_BAREMETALPI)
     endif()
