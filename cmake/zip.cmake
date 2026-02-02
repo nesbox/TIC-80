@@ -34,3 +34,8 @@ if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR BAREMETALPI)
 # /home/runner/work/TIC-80/TIC-80/vendor/zip/src/zip.c:191:3: error: 'strncpy' output may be truncated copying between 0 and 512 bytes from a string of length 512 [-Werror=stringop-truncation]
 #   191 |   strncpy(npath, path, len);
 endif()
+if(BAREMETALPI)
+    # lstat is not available in circle-stdlib (bare-metal environment)
+    # Use stat instead, symlink handling isn't relevant on bare-metal anyway
+    target_compile_definitions(zip PRIVATE lstat=stat)
+endif()
