@@ -21,10 +21,18 @@ endif()
 set(CMAKE_DISABLE_TESTING ON CACHE BOOL "" FORCE)
 add_subdirectory(${THIRDPARTY_DIR}/zip)
 
-if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+if(CMAKE_C_COMPILER_ID MATCHES "GNU")
     target_compile_options(zip PRIVATE -Wno-type-limits -Wno-stringop-truncation)
-
 #  -Wno-type-limits due to:
 #     zip/src/miniz.h:8503:30: error: comparison is always false due to limited range of data type [-Werror=type-limits]
 #  8503 |     if (((mz_uint64)buf_size > 0xFFFFFFFF) || (uncomp_size > 0xFFFFFFFF)) {
+#
+#  -Wno-stringop-truncation due to:
+# /home/runner/work/TIC-80/TIC-80/vendor/zip/src/zip.c: In function ‘zip_archive_extract’:
+# /home/runner/work/TIC-80/TIC-80/vendor/zip/src/zip.c:191:3: error: ‘strncpy’ output may be truncated copying between 0 and 512 bytes from a string of length 512 [-Werror=stringop-truncation]
+#   191 |   strncpy(npath, path, len);
+endif()
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+    # Clang does not have -Wno-stringop-truncation
+    target_compile_options(zip PRIVATE -Wno-type-limits)
 endif()
