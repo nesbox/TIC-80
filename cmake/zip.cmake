@@ -30,9 +30,9 @@ endif()
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR BAREMETALPI)
     target_compile_options(zip PRIVATE -Wno-stringop-truncation)
 #  -Wno-stringop-truncation due to:
-# /home/runner/work/TIC-80/TIC-80/vendor/zip/src/zip.c: In function 'zip_archive_extract':
-# /home/runner/work/TIC-80/TIC-80/vendor/zip/src/zip.c:191:3: error: 'strncpy' output may be truncated copying between 0 and 512 bytes from a string of length 512 [-Werror=stringop-truncation]
-#   191 |   strncpy(npath, path, len);
+#     /home/runner/work/TIC-80/TIC-80/vendor/zip/src/zip.c: In function 'zip_archive_extract':
+#     /home/runner/work/TIC-80/TIC-80/vendor/zip/src/zip.c:191:3: error: 'strncpy' output may be truncated copying between 0 and 512 bytes from a string of length 512 [-Werror=stringop-truncation]
+#  191 |   strncpy(npath, path, len);
 endif()
 if(BAREMETALPI)
     # lstat is not available in circle-stdlib (bare-metal environment)
