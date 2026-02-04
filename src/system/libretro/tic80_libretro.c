@@ -1278,7 +1278,7 @@ size_t retro_serialize_size(void)
 		}
 	}
 
-	return size;
+	return size + sizeof(retro_usec_t);
 }
 
 /**
@@ -1309,20 +1309,28 @@ RETRO_API bool retro_serialize(void *data, size_t size)
 			*(u32*)dst = (u32)SerializedLuaSize;
 			dst += sizeof(u32);
 			memcpy(dst, SerializedLuaData, SerializedLuaSize);
+			dst += SerializedLuaSize;
 		} else {
 			// Not enough space for Lua data, but header might fit
 			if ((dst - (u8*)data) + sizeof(u32) <= size) {
 				*(u32*)dst = 0; // Indicate no Lua data saved
+				dst += sizeof(u32);
 			}
 		}
 	} else {
-        // If we allocated space for Lua in retro_serialize_size but no data was generated (e.g., not Lua core)
-        // or if serialization failed, write 0 size for Lua data.
-        // This ensures retro_unserialize can correctly skip.
-         if ((dst - (u8*)data) + sizeof(u32) <= size) {
-            *(u32*)dst = 0;
-         }
-    }
+		// If we allocated space for Lua in retro_serialize_size but no data was generated (e.g., not Lua core)
+		// or if serialization failed, write 0 size for Lua data.
+		// This ensures retro_unserialize can correctly skip.
+		if ((dst - (u8*)data) + sizeof(u32) <= size) {
+			*(u32*)dst = 0;
+			dst += sizeof(u32);
+		}
+	}
+
+	// Save frame time
+	if ((dst - (u8*)data) + sizeof(retro_usec_t) <= size) {
+		memcpy(dst, &state->frameTime, sizeof(retro_usec_t));
+	}
 
 	// Free the cached Lua data after serialization
 	free_serialized_lua();
@@ -1411,6 +1419,11 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 				}
 			}
 		}
+	}
+
+	// Restore frame time
+	if ((src - (const u8*)data) + sizeof(retro_usec_t) <= size) {
+		memcpy(&state->frameTime, src, sizeof(retro_usec_t));
 	}
 
 	return true;
