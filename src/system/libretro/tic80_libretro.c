@@ -1222,26 +1222,44 @@ static void serialize_lua(tic_core* core) {
 	if (!lua) return;
 
 	// Lua script to serialize the _G table, excluding built-in globals and standard callbacks
-	// It relies on finding global function names to serialize function references.
+	// Uses high precision for numbers and handles nested tables (without circular reference handling)
 	const char* script =
-		"local function getName(f) "
+		"local function getName(o,t) "
+		"if t~='function' then return nil end "
 		"for k,v in pairs(_G) do "
-		"if v==f and k~='_G' then return k end "
+		"if v==o and type(k)=='string' and k~='_G' and k~='package' and k~='coroutine' and "
+		"k~='table' and k~='io' and k~='os' and k~='string' and k~='math' and "
+		"k~='utf8' and k~='debug' then return k end "
 		"end return nil end "
-		"local function ser(o,v) "
-		"if type(o)=='number' or type(o)=='boolean' then return tostring(o) end "
-		"if type(o)=='string' then return string.format('%q',o) end "
-		"if type(o)=='function' then local n=getName(o) if n then return '_G[\"'..n..'\"]' end return 'nil' end "
-		"if type(o)=='table' and not v[o] then "
+		"local function ser(o,v,d) "
+		"d=d or 0 if d>20 then return 'nil' end "
+		"local t=type(o) "
+		"if t=='number' then return string.format('%.17g',o) end "
+		"if t=='boolean' then return tostring(o) end "
+		"if t=='string' then return string.format('%q',o) end "
+		"if t=='function' then local n=getName(o,t) if n then return '_G[\"'..n..'\"]' end return 'nil' end "
+		"if t=='table' then "
+		"if v[o] then return 'nil' end "
 		"v[o]=true local s='{' "
 		"for k,val in pairs(o) do "
-		"if k~='_G' and k~='package' and k~='coroutine' and k~='table' and k~='io' and "
-		"k~='os' and k~='string' and k~='math' and k~='utf8' and k~='debug' and "
-		"k~='print' and k~='trace' then "
-		"local ks=ser(k,v) local vs=ser(val,v) "
-		"if ks and vs and vs~='nil' then s=s..'['..ks..']='..vs..',' end end end "
-		"return s..'}' end return nil end "
-		"return ser(_G, {})";
+		"local kt=type(k) "
+		"if (kt=='string' or kt=='number') and k~='_G' and k~='package' and "
+		"k~='coroutine' and k~='table' and k~='io' and k~='os' and k~='string' and "
+		"k~='math' and k~='utf8' and k~='debug' and k~='print' and k~='trace' and "
+		"k~='cls' and k~='spr' and k~='map' and k~='mget' and k~='mset' and "
+		"k~='fget' and k~='fset' and k~='sfx' and k~='music' and k~='peek' and "
+		"k~='poke' and k~='peek4' and k~='poke4' and k~='memcpy' and k~='memset' and "
+		"k~='pmem' and k~='time' and k~='tstamp' and k~='exit' and k~='font' and "
+		"k~='mouse' and k~='circ' and k~='circb' and k~='rect' and k~='rectb' and "
+		"k~='line' and k~='pix' and k~='btn' and k~='btnp' and k~='key' and "
+		"k~='keyp' and k~='textri' and k~='ttri' and k~='clip' and k~='vbank' and "
+		"k~='sync' and k~='TIC' and k~='SCN' and k~='OVR' and k~='BOOT' and "
+		"k~='MENU' and k~='BDR' then "
+		"local ks=ser(k,v,d+1) local vs=ser(val,v,d+1) "
+		"if ks and vs and ks~='nil' and vs~='nil' then "
+		"s=s..'['..ks..']='..vs..',' end end end "
+		"v[o]=nil return s..'}' end return 'nil' end "
+		"return ser(_G,{})";
 
 	if (luaL_dostring(lua, script) == LUA_OK) {
 		if (lua_isstring(lua, -1)) {
