@@ -3,13 +3,18 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <math.h>
 #include "tic.h"
 #include "libretro-common/include/libretro.h"
 #include "retro_inline.h"
 #include "retro_endianness.h"
 #include "libretro_core_options.h"
 #include "api.h"
+#include "core/core.h"
+#include "script.h"
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+#include <stdlib.h>
 
 /**
  * system.h is used for:
@@ -1197,12 +1202,77 @@ RETRO_API bool retro_load_game_special(unsigned type, const struct retro_game_in
 	return retro_load_game(info);
 }
 
+static char* SerializedLuaData = NULL;
+static size_t SerializedLuaSize = 0;
+
+// Helper to free the cached serialized Lua data
+static void free_serialized_lua() {
+	if (SerializedLuaData) {
+		free(SerializedLuaData);
+		SerializedLuaData = NULL;
+	}
+	SerializedLuaSize = 0;
+}
+
+// Helper to serialize Lua _G table into a string
+static void serialize_lua(tic_core* core) {
+	free_serialized_lua();
+
+	lua_State* lua = core->currentVM;
+	if (!lua) return;
+
+	// Lua script to serialize the _G table, excluding built-in globals
+	const char* script =
+		"local function ser(o,v) "
+		"if type(o)=='number' or type(o)=='boolean' then return tostring(o) end "
+		"if type(o)=='string' then return string.format('%q',o) end "
+		"if type(o)=='table' and not v[o] then "
+		"v[o]=true local s='{' "
+		"for k,val in pairs(o) do "
+		"if k~='_G' and k~='package' and k~='coroutine' and k~='table' and k~='io' and "
+		"k~='os' and k~='string' and k~='math' and k~='utf8' and k~='debug' and k~='TIC' and "
+		"k~='SCN' and k~='BDR' and k~='OVR' and k~='print' and k~='trace' then "
+		"local ks=ser(k,v) local vs=ser(val,v) "
+		"if ks and vs then s=s..'['..ks..']='..vs..',' end end end "
+		"return s..'}' end return nil end "
+		"return ser(_G, {})";
+
+	if (luaL_dostring(lua, script) == LUA_OK) {
+		if (lua_isstring(lua, -1)) {
+			size_t len = 0;
+			const char* str = lua_tolstring(lua, -1, &len);
+			if (str) {
+				SerializedLuaData = malloc(len + 1);
+				if (SerializedLuaData) {
+					memcpy(SerializedLuaData, str, len);
+					SerializedLuaData[len] = '\0';
+					SerializedLuaSize = len;
+				}
+			}
+		}
+		lua_pop(lua, 1);
+	}
+}
+
 /**
  * libretro callback; Retrieve the size of the serialized memory.
  */
 size_t retro_serialize_size(void)
 {
-	return TIC_PERSISTENT_SIZE * sizeof(u32);
+	size_t size = sizeof(tic_ram) + sizeof(tic_core_state_data);
+
+	if (state && state->tic) {
+		tic_core* core = (tic_core*)state->tic;
+		const tic_script* config = tic_get_script(&core->memory);
+
+		// Only support Lua for now (ID 10)
+		if (config && config->id == 10 && core->currentVM) {
+			serialize_lua(core); // Populate SerializedLuaData and SerializedLuaSize
+			size += sizeof(u32) + SerializedLuaSize; // Size header + data
+		}
+	}
+
+	return size;
 }
 
 /**
@@ -1210,16 +1280,46 @@ size_t retro_serialize_size(void)
  */
 RETRO_API bool retro_serialize(void *data, size_t size)
 {
-	TIC_UNUSED(size);
 	if (state == NULL || state->tic == NULL || data == NULL) {
 		return false;
 	}
 
-	tic_mem* tic = (tic_mem*)state->tic;
-	u32* udata = (u32*)data;
-	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
-		udata[i] = tic->ram->persistent.data[i];
-	}
+	tic_core* core = (tic_core*)state->tic;
+	u8* dst = (u8*)data;
+
+	// Check if the provided buffer is large enough for the base state
+	if (size < sizeof(tic_ram) + sizeof(tic_core_state_data))
+		return false;
+
+	memcpy(dst, core->memory.ram, sizeof(tic_ram));
+	dst += sizeof(tic_ram);
+
+	memcpy(dst, &core->state, sizeof(tic_core_state_data));
+	dst += sizeof(tic_core_state_data);
+
+	// Append Lua state if available and fits
+	if (SerializedLuaSize > 0 && SerializedLuaData) {
+		if ((dst - (u8*)data) + sizeof(u32) + SerializedLuaSize <= size) {
+			*(u32*)dst = (u32)SerializedLuaSize;
+			dst += sizeof(u32);
+			memcpy(dst, SerializedLuaData, SerializedLuaSize);
+		} else {
+			// Not enough space for Lua data, but header might fit
+			if ((dst - (u8*)data) + sizeof(u32) <= size) {
+				*(u32*)dst = 0; // Indicate no Lua data saved
+			}
+		}
+	} else {
+        // If we allocated space for Lua in retro_serialize_size but no data was generated (e.g., not Lua core)
+        // or if serialization failed, write 0 size for Lua data.
+        // This ensures retro_unserialize can correctly skip.
+         if ((dst - (u8*)data) + sizeof(u32) <= size) {
+            *(u32*)dst = 0;
+         }
+    }
+
+	// Free the cached Lua data after serialization
+	free_serialized_lua();
 
 	return true;
 }
@@ -1229,14 +1329,82 @@ RETRO_API bool retro_serialize(void *data, size_t size)
  */
 RETRO_API bool retro_unserialize(const void *data, size_t size)
 {
-	if (state == NULL || state->tic == NULL || size != retro_serialize_size() || data == NULL) {
+	if (state == NULL || state->tic == NULL || size < sizeof(tic_ram) + sizeof(tic_core_state_data) || data == NULL) {
 		return false;
 	}
 
-	tic_mem* tic = (tic_mem*)state->tic;
-	u32* uData = (u32*)data;
-	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
-		tic->ram->persistent.data[i] = uData[i];
+	tic_core* core = (tic_core*)state->tic;
+	const u8* src = (const u8*)data;
+
+	memcpy(core->memory.ram, src, sizeof(tic_ram));
+	src += sizeof(tic_ram);
+
+	memcpy(&core->state, src, sizeof(tic_core_state_data));
+	src += sizeof(tic_core_state_data);
+
+	// Fix pointers that were invalidated by the restore
+	for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
+	{
+		core->state.sfx.channels[i].pos = &core->memory.ram->sfxpos[i];
+		core->state.music.channels[i].pos = &core->state.music.sfxpos[i];
+		core->state.music.commands[i].delay.row = NULL;
+	}
+
+	const tic_script* config = tic_get_script(&core->memory);
+	if (config)
+	{
+		core->state.tick = config->tick;
+		core->state.callback = config->callback;
+
+		// Restore Lua state if present and correct VM
+		if (config->id == 10 && core->currentVM) {
+			u32 luaSize = 0;
+			// Check if there's enough space to read the Lua size header
+			if ((src - (const u8*)data) + sizeof(u32) <= size) {
+				luaSize = *(const u32*)src;
+				src += sizeof(u32);
+
+				// If Lua data exists and fits within the remaining buffer
+				if (luaSize > 0 && (src - (const u8*)data) + luaSize <= size) {
+					lua_State* lua = core->currentVM;
+
+                    // Push "return " string
+                    lua_pushstring(lua, "return ");
+                    // Push the serialized Lua table string
+                    lua_pushlstring(lua, (const char*)src, luaSize);
+                    // Concatenate them: "return { ... }"
+                    lua_concat(lua, 2);
+
+                    // Load the concatenated string as a Lua chunk
+                    if (luaL_loadstring(lua, lua_tostring(lua, -1)) == LUA_OK) {
+                        // Execute the chunk, which should return the serialized table
+                        if (lua_pcall(lua, 0, 1, 0) == LUA_OK) {
+                            // Check if the result is a table
+                            if (lua_istable(lua, -1)) {
+                                // Iterate through the returned table and merge its contents into _G
+                                lua_pushnil(lua); // Push nil to start iteration
+                                while (lua_next(lua, -2) != 0) { // table is at -2, key at -2, value at -1
+                                    lua_getglobal(lua, "_G"); // Push _G table
+                                    lua_pushvalue(lua, -3); // Copy key from stack (-3 relative to _G)
+                                    lua_pushvalue(lua, -3); // Copy value from stack (-3 relative to _G)
+                                    lua_settable(lua, -3); // _G[key] = value
+                                    lua_pop(lua, 1); // Pop _G table
+                                    lua_pop(lua, 1); // Pop value, leave key for next iteration
+                                }
+                            }
+                        } else {
+                            log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua state unserialize error: %s\n", lua_tostring(lua, -1));
+                        }
+                    } else {
+                        log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua state loadstring error: %s\n", lua_tostring(lua, -1));
+                    }
+                    lua_pop(lua, 1); // Pop the result of the chunk (table or error message)
+                    lua_pop(lua, 1); // Pop the concatenated "return { ... }" string
+
+                    src += luaSize; // Advance source pointer past Lua data
+				}
+			}
+		}
 	}
 
 	return true;
