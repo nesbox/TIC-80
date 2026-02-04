@@ -1221,19 +1221,25 @@ static void serialize_lua(tic_core* core) {
 	lua_State* lua = core->currentVM;
 	if (!lua) return;
 
-	// Lua script to serialize the _G table, excluding built-in globals
+	// Lua script to serialize the _G table, excluding built-in globals and standard callbacks
+	// It relies on finding global function names to serialize function references.
 	const char* script =
+		"local function getName(f) "
+		"for k,v in pairs(_G) do "
+		"if v==f and k~='_G' then return k end "
+		"end return nil end "
 		"local function ser(o,v) "
 		"if type(o)=='number' or type(o)=='boolean' then return tostring(o) end "
 		"if type(o)=='string' then return string.format('%q',o) end "
+		"if type(o)=='function' then local n=getName(o) if n then return '_G[\"'..n..'\"]' end return 'nil' end "
 		"if type(o)=='table' and not v[o] then "
 		"v[o]=true local s='{' "
 		"for k,val in pairs(o) do "
 		"if k~='_G' and k~='package' and k~='coroutine' and k~='table' and k~='io' and "
-		"k~='os' and k~='string' and k~='math' and k~='utf8' and k~='debug' and k~='TIC' and "
-		"k~='SCN' and k~='BDR' and k~='OVR' and k~='print' and k~='trace' then "
+		"k~='os' and k~='string' and k~='math' and k~='utf8' and k~='debug' and "
+		"k~='print' and k~='trace' then "
 		"local ks=ser(k,v) local vs=ser(val,v) "
-		"if ks and vs then s=s..'['..ks..']='..vs..',' end end end "
+		"if ks and vs and vs~='nil' then s=s..'['..ks..']='..vs..',' end end end "
 		"return s..'}' end return nil end "
 		"return ser(_G, {})";
 
