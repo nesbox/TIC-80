@@ -1221,8 +1221,9 @@ static void serialize_lua(tic_core* core) {
 	lua_State* lua = core->currentVM;
 	if (!lua) return;
 
-	// Lua script to serialize the _G table, excluding built-in globals and standard callbacks
-	// Uses high precision for numbers and handles nested tables (without circular reference handling)
+	// Lua script to serialize the _G table
+	// Properly handles standard library references by serializing them as special markers
+	// Skips unserializable functions so they can be preserved during merge
 	const char* script =
 		"local function getName(o,t) "
 		"if t~='function' then return nil end "
@@ -1234,27 +1235,29 @@ static void serialize_lua(tic_core* core) {
 		"local function ser(o,v,d) "
 		"d=d or 0 if d>20 then return 'nil' end "
 		"local t=type(o) "
-		"if t=='number' then return string.format('%.17g',o) end "
+		"if t=='number' then return string.format('%.17g',o) end " // Test on game "Buried Deep"
 		"if t=='boolean' then return tostring(o) end "
 		"if t=='string' then return string.format('%q',o) end "
-		"if t=='function' then local n=getName(o,t) if n then return '_G[\"'..n..'\"]' end return 'nil' end "
+		// If function is unnamed, return nil to skip it (instead of 'nil' string)
+		"if t=='function' then local n=getName(o,t) if n then return '_G[\"'..n..'\"]' end return nil end "
 		"if t=='table' then "
+		// Check if this is a standard library reference
+		"if o==math then return '\"__STDLIB_MATH__\"' end "
+		"if o==table then return '\"__STDLIB_TABLE__\"' end "
+		"if o==string then return '\"__STDLIB_STRING__\"' end "
+		"if o==coroutine then return '\"__STDLIB_COROUTINE__\"' end "
+		"if o==package then return '\"__STDLIB_PACKAGE__\"' end "
+		"if o==io then return '\"__STDLIB_IO__\"' end "
+		"if o==os then return '\"__STDLIB_OS__\"' end "
+		"if o==utf8 then return '\"__STDLIB_UTF8__\"' end "
+		"if o==debug then return '\"__STDLIB_DEBUG__\"' end "
 		"if v[o] then return 'nil' end "
 		"v[o]=true local s='{' "
 		"for k,val in pairs(o) do "
 		"local kt=type(k) "
 		"if (kt=='string' or kt=='number') and k~='_G' and k~='package' and "
 		"k~='coroutine' and k~='table' and k~='io' and k~='os' and k~='string' and "
-		"k~='math' and k~='utf8' and k~='debug' and k~='print' and k~='trace' and "
-		"k~='cls' and k~='spr' and k~='map' and k~='mget' and k~='mset' and "
-		"k~='fget' and k~='fset' and k~='sfx' and k~='music' and k~='peek' and "
-		"k~='poke' and k~='peek4' and k~='poke4' and k~='memcpy' and k~='memset' and "
-		"k~='pmem' and k~='time' and k~='tstamp' and k~='exit' and k~='font' and "
-		"k~='mouse' and k~='circ' and k~='circb' and k~='rect' and k~='rectb' and "
-		"k~='line' and k~='pix' and k~='btn' and k~='btnp' and k~='key' and "
-		"k~='keyp' and k~='textri' and k~='ttri' and k~='clip' and k~='vbank' and "
-		"k~='sync' and k~='TIC' and k~='SCN' and k~='OVR' and k~='BOOT' and "
-		"k~='MENU' and k~='BDR' then "
+		"k~='math' and k~='utf8' and k~='debug' then "
 		"local ks=ser(k,v,d+1) local vs=ser(val,v,d+1) "
 		"if ks and vs and ks~='nil' and vs~='nil' then "
 		"s=s..'['..ks..']='..vs..',' end end end "
@@ -1413,15 +1416,121 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
                         if (lua_pcall(lua, 0, 1, 0) == LUA_OK) {
                             // Check if the result is a table
                             if (lua_istable(lua, -1)) {
-                                // Iterate through the returned table and merge its contents into _G
-                                lua_pushnil(lua); // Push nil to start iteration
-                                while (lua_next(lua, -2) != 0) { // table is at -2, key at -2, value at -1
-                                    lua_getglobal(lua, "_G"); // Push _G table
-                                    lua_pushvalue(lua, -3); // Copy key from stack (-3 relative to _G)
-                                    lua_pushvalue(lua, -3); // Copy value from stack (-3 relative to _G)
-                                    lua_settable(lua, -3); // _G[key] = value
-                                    lua_pop(lua, 1); // Pop _G table
-                                    lua_pop(lua, 1); // Pop value, leave key for next iteration
+                                // First pass: restore standard library references
+                                // This converts marker strings like "__STDLIB_MATH__" to actual library references
+                                // We iterate through the table and ONLY replace entries that have stdlib markers
+                                lua_pushnil(lua);
+                                while (lua_next(lua, -2) != 0) {
+                                    // key at -2, value at -1
+                                    int replaced = 0;
+                                    if (lua_isstring(lua, -1)) {
+                                        const char* str = lua_tostring(lua, -1);
+                                        if (strcmp(str, "__STDLIB_MATH__") == 0) {
+                                            lua_pop(lua, 1); // pop the string marker
+                                            lua_pushvalue(lua, -1); // copy key (at -1 now after pop)
+                                            lua_getglobal(lua, "math");
+                                            lua_settable(lua, -4); // table is at -4: table, key, key_copy, math
+                                            replaced = 1;
+                                        } else if (strcmp(str, "__STDLIB_TABLE__") == 0) {
+                                            lua_pop(lua, 1);
+                                            lua_pushvalue(lua, -1);
+                                            lua_getglobal(lua, "table");
+                                            lua_settable(lua, -4);
+                                            replaced = 1;
+                                        } else if (strcmp(str, "__STDLIB_STRING__") == 0) {
+                                            lua_pop(lua, 1);
+                                            lua_pushvalue(lua, -1);
+                                            lua_getglobal(lua, "string");
+                                            lua_settable(lua, -4);
+                                            replaced = 1;
+                                        } else if (strcmp(str, "__STDLIB_COROUTINE__") == 0) {
+                                            lua_pop(lua, 1);
+                                            lua_pushvalue(lua, -1);
+                                            lua_getglobal(lua, "coroutine");
+                                            lua_settable(lua, -4);
+                                            replaced = 1;
+                                        } else if (strcmp(str, "__STDLIB_PACKAGE__") == 0) {
+                                            lua_pop(lua, 1);
+                                            lua_pushvalue(lua, -1);
+                                            lua_getglobal(lua, "package");
+                                            lua_settable(lua, -4);
+                                            replaced = 1;
+                                        } else if (strcmp(str, "__STDLIB_IO__") == 0) {
+                                            lua_pop(lua, 1);
+                                            lua_pushvalue(lua, -1);
+                                            lua_getglobal(lua, "io");
+                                            lua_settable(lua, -4);
+                                            replaced = 1;
+                                        } else if (strcmp(str, "__STDLIB_OS__") == 0) {
+                                            lua_pop(lua, 1);
+                                            lua_pushvalue(lua, -1);
+                                            lua_getglobal(lua, "os");
+                                            lua_settable(lua, -4);
+                                            replaced = 1;
+                                        } else if (strcmp(str, "__STDLIB_UTF8__") == 0) {
+                                            lua_pop(lua, 1);
+                                            lua_pushvalue(lua, -1);
+                                            lua_getglobal(lua, "utf8");
+                                            lua_settable(lua, -4);
+                                            replaced = 1;
+                                        } else if (strcmp(str, "__STDLIB_DEBUG__") == 0) {
+                                            lua_pop(lua, 1);
+                                            lua_pushvalue(lua, -1);
+                                            lua_getglobal(lua, "debug");
+                                            lua_settable(lua, -4);
+                                            replaced = 1;
+                                        }
+                                    }
+                                    // If we didn't replace a stdlib marker, just pop the value
+                                    // to leave the key for lua_next to continue iteration
+                                    if (!replaced) {
+                                        lua_pop(lua, 1); // pop value, leave key for next iteration
+                                    }
+                                    // If we did replace, the settable already consumed key_copy and value,
+                                    // but original key is still at -1 for lua_next
+                                }
+                                
+                                // Second pass: merge the restored table into _G using a smart merge strategy
+                                // This preserves existing functions (code) that couldn't be serialized
+                                const char* merge_script = 
+                                    "local S = ...\n"
+                                    "local seen = {}\n"
+                                    "local function update(d, s)\n"
+                                    "    if seen[d] then return end\n"
+                                    "    seen[d] = true\n"
+                                    "    -- Update/Add keys from S to D\n"
+                                    "    for k,v in pairs(s) do\n"
+                                    "        if type(d[k]) == 'table' and type(v) == 'table' then\n"
+                                    "            update(d[k], v)\n"
+                                    "        else\n"
+                                    "            d[k] = v\n"
+                                    "        end\n"
+                                    "    end\n"
+                                    "    -- Remove keys in D not in S (ghost objects), unless they are functions (code)\n"
+                                    "    for k,v in pairs(d) do\n"
+                                    "        if s[k] == nil then\n"
+                                    "            if type(v) ~= 'function' then\n"
+                                    "                -- Protect standard libraries and special globals if they were missing in S\n"
+                                    "                if k ~= '_G' and k ~= 'package' and k ~= 'coroutine' and\n"
+                                    "                   k ~= 'table' and k ~= 'io' and k ~= 'os' and k ~= 'string' and\n"
+                                    "                   k ~= 'math' and k ~= 'utf8' and k ~= 'debug' then\n"
+                                    "                    d[k] = nil\n"
+                                    "                end\n"
+                                    "            end\n"
+                                    "        end\n"
+                                    "    end\n"
+                                    "end\n"
+                                    "update(_G, S)\n";
+
+                                if (luaL_loadstring(lua, merge_script) == LUA_OK) {
+                                    lua_pushvalue(lua, -2); // Push the table S (currently at -2)
+                                    if (lua_pcall(lua, 1, 0, 0) != LUA_OK) {
+                                        log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua merge script error: %s\n", lua_tostring(lua, -1));
+                                        lua_pop(lua, 1); // pop error
+                                    }
+                                } else {
+                                     log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua merge compile error: %s\n", lua_tostring(lua, -1));
+                                     lua_pop(lua, 1); // pop error
                                 }
                             }
                         } else {
@@ -1430,7 +1539,7 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
                     } else {
                         log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua state loadstring error: %s\n", lua_tostring(lua, -1));
                     }
-                    lua_pop(lua, 1); // Pop the result of the chunk (table or error message)
+                    lua_pop(lua, 1); // Pop the result of the chunk (table S or error message)
                     lua_pop(lua, 1); // Pop the concatenated "return { ... }" string
 
                     src += luaSize; // Advance source pointer past Lua data
