@@ -1326,10 +1326,11 @@ size_t retro_serialize_size(void)
 
 	if (state && state->tic) {
 		tic_core* core = (tic_core*)state->tic;
-		const tic_script* config = tic_get_script(&core->memory);
+		const tic_script* config = core->currentScript;
+		if (config == NULL) config = tic_get_script(&core->memory);
 
-		// Only support Lua for now (ID 10)
-		if (config && config->id == 10 && core->currentVM) {
+		// Only support Lua for now
+		if (config && strcmp(config->name, "lua") == 0 && core->currentVM) {
 			serialize_lua(core); // Populate SerializedLuaData and SerializedLuaSize
 			size += sizeof(u32) + SerializedLuaSize; // Size header + data
 		}
@@ -1348,6 +1349,33 @@ RETRO_API bool retro_serialize(void *data, size_t size)
 	}
 
 	tic_core* core = (tic_core*)state->tic;
+
+	const tic_script* config = core->currentScript;
+	if (config == NULL) config = tic_get_script(&core->memory);
+
+	if (config == NULL || strcmp(config->name, "lua") != 0) {
+		if (environ_cb) {
+			const char *txt = "Savestate currently not supported in non-Lua TIC-80 cartridges";
+
+			/* Attempt to use the modern 'Widget' notification style */
+			struct retro_message_ext msg_ext = {
+				.msg      = txt,
+				.duration = 3000,                      /* 3 seconds (milliseconds) */
+				.priority = 3,                         /* High priority triggers the widget */
+				.level    = RETRO_LOG_INFO,            /* Also sends to logs */
+				.target   = RETRO_MESSAGE_TARGET_ALL,  /* Show on OSD and logs */
+				.type     = RETRO_MESSAGE_TYPE_NOTIFICATION
+			};
+
+			/* If the frontend doesn't support _EXT (returns false), use the old fallback */
+			if (!environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE_EXT, &msg_ext)) {
+				struct retro_message msg = { txt, 180 }; /* 180 frames (~3s at 60fps) */
+				environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &msg);
+			}
+		}
+		return false;
+	}
+
 	u8* dst = (u8*)data;
 
 	// Check if the provided buffer is large enough for the base state
@@ -1421,14 +1449,16 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 		core->state.music.commands[i].delay.row = NULL;
 	}
 
-	const tic_script* config = tic_get_script(&core->memory);
+	const tic_script* config = core->currentScript;
+	if (config == NULL) config = tic_get_script(&core->memory);
+
 	if (config)
 	{
 		core->state.tick = config->tick;
 		core->state.callback = config->callback;
 
 		// Restore Lua state if present and correct VM
-		if (config->id == 10 && core->currentVM) {
+		if (strcmp(config->name, "lua") == 0 && core->currentVM) {
 			u32 luaSize = 0;
 			// Check if there's enough space to read the Lua size header
 			if ((src - (const u8*)data) + sizeof(u32) <= size) {
