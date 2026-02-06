@@ -1214,24 +1214,37 @@ static void free_serialized_lua() {
 	SerializedLuaSize = 0;
 }
 
+static int internal_lua_type(lua_State* L) {
+   lua_pushstring(L, lua_typename(L, lua_type(L, 1)));
+   return 1;
+}
+
 // Helper to serialize Lua _G table into a string
 static void serialize_lua(tic_core* core) {
 	free_serialized_lua();
 
 	lua_State* lua = core->currentVM;
-	if (!lua) return;
+	if (!lua) {
+		log_cb(RETRO_LOG_INFO, "Error, currentVM is NULL\n");
+		return;
+	}
+
+	// Important for Ghost game (1777). (overwritten type function)
+	lua_pushcfunction(lua, internal_lua_type);
+	lua_setglobal(lua, "__builtin_type");
 
 	// Lua script to serialize the _G table
 	// Properly handles standard library references by serializing them as special markers
 	// Skips unserializable functions so they can be preserved during merge
 	const char* script =
+		"local type = __builtin_type " // Important for Ghost (overwritten type function)
 		"local names = {} "
 		"local libs = {'math','table','string','coroutine','package','io','os','utf8','debug'} "
 		"for _,n in ipairs(libs) do if _G[n] then names[_G[n]] = n end end "
 		"names[_G] = '_G' "
 		"local visited = {} "
 		"local function scan(t, path, d) "
-		"  if d>4 or visited[t] then return end "
+		"  if d>8 or visited[t] then return end "
 		"  visited[t] = true "
 		"  for k,v in pairs(t) do "
 		"    if type(k)=='string' and k:match('^[%a_][%w_]*$') then "
@@ -1297,7 +1310,8 @@ static void serialize_lua(tic_core* core) {
 		"    end "
 		"    s = s .. '}' "
 		"    if mte then s = s .. ',' .. mte .. ')' end "
-		"    v[o]=nil return s "
+		"    v[o]=nil "
+		"    return s "
 		"  end "
 		"  return nil "
 		"end "
@@ -1314,10 +1328,26 @@ static void serialize_lua(tic_core* core) {
 					SerializedLuaData[len] = '\0';
 					SerializedLuaSize = len;
 				}
+			} else {
+				log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua serialization script returned nil\n");
+			}
+		} else {
+			const char* error_msg = lua_tostring(lua, -1);
+			if(!error_msg) {
+				log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua serialization script probably returned nil\n");
+			} else {
+				log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua serialization error: %s\n", error_msg);
 			}
 		}
 		lua_pop(lua, 1);
+	} else {
+		const char* error_msg = lua_tostring(lua, -1);
+		log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua serialization script compile error: %s\n", error_msg ? error_msg : "unknown error");
+		lua_pop(lua, 1);  // Remove error message from stack
 	}
+
+	lua_pushnil(lua);
+	lua_setglobal(lua, "__builtin_type");
 }
 
 /**
@@ -1472,6 +1502,11 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 				if (luaSize > 0 && (src - (const u8*)data) + luaSize <= size) {
 					lua_State* lua = core->currentVM;
 
+					// Important for Ghost game (1777). (overwritten type function)
+					// Inject __builtin_type helper for the merge script
+					lua_pushcfunction(lua, internal_lua_type);
+					lua_setglobal(lua, "__builtin_type");
+
                     // Push "return " string
                     lua_pushstring(lua, "return ");
                     // Push the serialized Lua table string
@@ -1562,9 +1597,11 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
                                 // Second pass: merge the restored table into _G using a smart merge strategy
                                 // This preserves existing functions (code) that couldn't be serialized
                                 const char* merge_script = 
-                                    "local S = ...\n"
-                                    "local seen = {}\n"
-                                    "local STDLIB = {\n"
+                                    "local type = __builtin_type\n" // Important for Ghost (overwritten type function)
+									"_G.__builtin_type = nil\n"
+									"local S = ...\n"
+									"local seen = {}\n"
+									"local STDLIB = {\n"
                                     "  __STDLIB_MATH__ = math, __STDLIB_TABLE__ = table, __STDLIB_STRING__ = string,\n"
                                     "  __STDLIB_COROUTINE__ = coroutine, __STDLIB_PACKAGE__ = package, __STDLIB_IO__ = io,\n"
                                     "  __STDLIB_OS__ = os, __STDLIB_UTF8__ = utf8, __STDLIB_DEBUG__ = debug\n"
