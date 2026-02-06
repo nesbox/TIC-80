@@ -1261,8 +1261,11 @@ static void serialize_lua(tic_core* core) {
 		"  d=d or 0 if d>30 then return nil end "
 		"  local t=type(o) "
 		"  if t=='number' then " // Important for Bouncelot (preserves float vs int)
+		"    if o~=o then return '(0/0)' end " // Important for Katzu: NaN check
+		"    if o==math.huge then return '(1/0)' end " // Positive infinity
+		"    if o==-math.huge then return '(-1/0)' end " // Negative infinity
 		"    local s=string.format('%.17g',o) " // Important for Buried Deep (preserves precision)
-		"    if math.type(o)=='float' and not s:find('[^%-0-9]') then s=s..'.0' end "
+		"    if math.type and math.type(o)=='float' and not s:find('[^%-0-9]') then s=s..'.0' end " // Safety check for math.type
 		"    return s "
 		"  end "
 		"  if t=='boolean' then return tostring(o) end "
