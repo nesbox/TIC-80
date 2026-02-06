@@ -83,6 +83,7 @@ struct tic80_state
 	int mouseHideTimerStart;
 	tic80* tic;
 	retro_usec_t frameTime;
+	retro_usec_t lastSerializedTick;
 };
 static struct tic80_state* state = NULL;
 
@@ -1221,6 +1222,13 @@ static int internal_lua_type(lua_State* L) {
 
 // Helper to serialize Lua _G table into a string
 static void serialize_lua(tic_core* core) {
+	// Optimization: If we already serialized for this tick, reuse the cached data.
+	// This prevents triple-execution of the serialization script when the frontend calls
+	// retro_serialize_size multiple times before retro_serialize.
+	if (SerializedLuaData && state && state->lastSerializedTick == state->frameTime) {
+		return;
+	}
+
 	free_serialized_lua();
 
 	lua_State* lua = core->currentVM;
@@ -1327,6 +1335,7 @@ static void serialize_lua(tic_core* core) {
 					memcpy(SerializedLuaData, str, len);
 					SerializedLuaData[len] = '\0';
 					SerializedLuaSize = len;
+					if (state) state->lastSerializedTick = state->frameTime;
 				}
 			} else {
 				log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua serialization script returned nil\n");
@@ -1461,6 +1470,9 @@ RETRO_API bool retro_serialize(void *data, size_t size)
  */
 RETRO_API bool retro_unserialize(const void *data, size_t size)
 {
+	// Invalidate the cache when loading a state
+	free_serialized_lua();
+
 	if (state == NULL || state->tic == NULL || size < sizeof(tic_ram) + sizeof(tic_core_state_data) || data == NULL) {
 		return false;
 	}
