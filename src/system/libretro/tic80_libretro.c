@@ -1246,6 +1246,9 @@ static void serialize_lua(tic_core* core) {
 	// Skips unserializable functions so they can be preserved during merge
 	const char* script =
 		"local type = __builtin_type "
+		"local next = next "
+		"local pairs = pairs "
+		"if type(pairs)~='function' then pairs = function(x) return next,x,nil end end " // Important for OddSocks (pairs is overwritten)
 		"local dbg = package.loaded.debug " // Important: use real debug lib
 		"local names = {} "
 		"local libs = {'math','table','string','coroutine','package','io','os','utf8','debug'} "
@@ -1577,6 +1580,9 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 							const char* merge_script = 
 								"local type = __builtin_type\n" // Important for Ghost (overwritten type function)
 								"_G.__builtin_type = nil\n"
+								"local next = next\n"
+								"local pairs = pairs\n"
+								"if type(pairs) ~= 'function' then pairs = function(t) return next, t, nil end end\n" // Important for OddSocks (pairs is overwritten)
 								"local dbg = package.loaded.debug\n" // Important for Bone Knight (access hidden debug lib)
 								"local S = ...\n"
 								"local g = S\n"
