@@ -1609,14 +1609,6 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 								"  __STDLIB_COROUTINE__ = coroutine, __STDLIB_PACKAGE__ = package, __STDLIB_IO__ = io,\n"
 								"  __STDLIB_OS__ = os, __STDLIB_UTF8__ = utf8, __STDLIB_DEBUG__ = debug\n"
 								"}\n"
-								"local function is_array(t)\n"
-								"    local i = 0\n"
-								"    for _ in pairs(t) do\n"
-								"        i = i + 1\n"
-								"        if t[i] == nil then return false end\n"
-								"    end\n"
-								"    return true\n"
-								"end\n"
 								"local function has_methods(t)\n"
 									 // Important for MadPhysicist: Check if table has function fields (methods)
 								"    if type(t) ~= 'table' then return false end\n"
@@ -1625,53 +1617,74 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 								"    end\n"
 								"    return false\n"
 								"end\n"
+								"local function is_array(t)\n"
+								"    if type(t) ~= 'table' then return false end\n"
+								"    local i = 0 for _ in pairs(t) do i = i + 1 end\n"
+								"    return #t == i\n"
+								"end\n"
 								"local function update(d, s)\n"
 								"    if seen[d] then return end\n"
 								"    seen[d] = true\n"
+								     // Pass 1: Copy/Merge from Save(s) to Dest(d)
 								"    for k,v in pairs(s) do\n"
 								"        if type(v) == 'string' and STDLIB[v] then\n"
 								"            d[k] = STDLIB[v]\n"
+								"        elseif is_array(v) then\n"
+								"            if type(d[k]) ~= 'table' then d[k] = {} end\n"
+								"            for i = #v + 1, #d[k] do d[k][i] = nil end\n"
+								"            for i = 1, #v do\n"
+								"                if type(v[i]) == 'table' then\n"
+								                     // Important for Balmung: Only update existing tables to avoid creating objects without methods (closures)
+								"                    if type(d[k][i]) == 'table' then\n"
+								"                        local mt = getmetatable(d[k][i])\n"
+								"                        update(d[k][i], v[i])\n"
+								"                        if mt then setmetatable(d[k][i], mt) end\n"
+								"                    end\n"
+								"                else\n"
+								                     // Important for MadPhysicist: Don't overwrite objects that have methods with nil/non-table values
+								"                    if not has_methods(d[k][i]) then\n"
+								"                        d[k][i] = v[i]\n"
+								"                    end\n"
+								"                end\n"
+								"            end\n"
 								"        elseif type(v) == 'table' then\n"
 								"            if type(d[k]) ~= 'table' then\n"
 								"                d[k] = {}\n"
+								                 // Restore metatable from save if present
+								"                local mt = getmetatable(v)\n"
+								"                if mt then setmetatable(d[k], mt) end\n"
 								"            end\n"
-											 // Important for Balmung: For arrays, preserve object metatables
-								"            if is_array(v) then\n"
-												 // Update array length
-								"                for i = #v + 1, #d[k] do d[k][i] = nil end\n"
-								"                for i = 1, #v do\n"
-								"                    if type(v[i]) == 'table' then\n"
-														 // Important for Balmung: Only update existing tables to avoid creating objects without methods (closures)
-								"                        if type(d[k][i]) == 'table' then\n"
-															 // Preserve metatable of existing object
-								"                            local mt = getmetatable(d[k][i])\n"
-								"                            update(d[k][i], v[i])\n"
-								"                            if mt then setmetatable(d[k][i], mt) end\n"
-								"                        end\n"
-								"                    else\n"
-														 // Important for MadPhysicist: Don't overwrite objects that have methods with nil/non-table values
-								"                        if not has_methods(d[k][i]) then\n"
-								"                            d[k][i] = v[i]\n"
-								"                        end\n"
-								"                    end\n"
-								"                end\n"
-								"            else\n"
-								"                local mt_s = getmetatable(v)\n"
-								"                if mt_s then setmetatable(d[k], mt_s) end\n"
-								"                update(d[k], v)\n"
-								"            end\n"
+								             // Recurse to preserve methods in d[k]
+								"            update(d[k], v)\n"
 								"        else\n"
-								"            d[k] = v\n"
+								             // Primitive value: overwrite unless d[k] is an object with methods
+								"            if not has_methods(d[k]) then\n"
+								"                d[k] = v\n"
+								"            end\n"
+								"        end\n"
+								"    end\n"
+								     // Pass 2: Cleanup Dest(d) - Remove keys not in Save(s)
+								     // Important for Robot Pilfer: Removes dead entities/flags
+								"    for k,v in pairs(d) do\n"
+								"        if s[k] == nil then\n"
+								             // Important for Searching for Pixel: Keep methods and system globals
+								             // Protect standard libraries (table, math, etc.) to prevent 'attempt to index nil' on next save
+								"            if type(v) ~= 'function' and k ~= '_G' and k ~= 'package' and\n"
+								"               k ~= 'table' and k ~= 'math' and k ~= 'string' and k ~= 'coroutine' and\n"
+								"               k ~= 'io' and k ~= 'os' and k ~= 'utf8' and k ~= 'debug' then\n"
+								"                d[k] = nil\n"
+								"            end\n"
 								"        end\n"
 								"    end\n"
 								"end\n"
+								"update(_G, g)\n"
 								// Important for Bone Knight: Restore upvalues (local variables)
 								"if u and dbg then\n"
 								"    for _,x in ipairs(u) do\n"
 								"        local f, i = resolve(x.p)\n"
 								"        if f then\n"
-										     // Important for Searching for Pixel: Preserve methods on local table objects by updating instead of replacing
 								"            local n, curr = dbg.getupvalue(f, i)\n"
+								             // Use update() for tables to preserve methods on locals (Searching for Pixel)
 								"            if type(curr) == 'table' and type(x.v) == 'table' then\n"
 								"                update(curr, x.v)\n"
 								"            else\n"
@@ -1687,8 +1700,7 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 								"        local f2, i2 = resolve(x.src)\n"
 								"        if f1 and f2 then dbg.upvaluejoin(f1, i1, f2, i2) end\n"
 								"    end\n"
-								"end\n"
-								"update(_G, g)\n";
+								"end\n";
 
 							if (luaL_loadstring(lua, merge_script) == LUA_OK) {
 								lua_pushvalue(lua, -2); // Push the table S (currently at -2)
