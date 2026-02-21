@@ -3770,6 +3770,9 @@ static void escape(Code* code)
         setCodeMode(code, TEXT_EDIT_MODE);
         break;
     default:
+		if(code->popup.prevPos == NULL)
+			return;
+		
         code->anim.movie = resetMovie(&code->anim.hide);
 
         code->cursor.position = code->popup.prevPos;
