@@ -1634,11 +1634,12 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 								"            for i = #v + 1, #d[k] do d[k][i] = nil end\n"
 								"            for i = 1, #v do\n"
 								"                if type(v[i]) == 'table' then\n"
-								                     // Important for Balmung: Only update existing tables to avoid creating objects without methods (closures)
-								"                    if type(d[k][i]) == 'table' then\n"
-								"                        local mt = getmetatable(d[k][i])\n"
+								                     // Important for 8bitpanda: Replace table if entity ID (eid) differs or target is not a table
+								                     // This prevents merging incompatible entity data and fixes the "nil comparison" crash
+								"                    if type(d[k][i]) == 'table' and d[k][i].eid == v[i].eid then\n"
 								"                        update(d[k][i], v[i])\n"
-								"                        if mt then setmetatable(d[k][i], mt) end\n"
+								"                    else\n"
+								"                        d[k][i] = v[i]\n"
 								"                    end\n"
 								"                else\n"
 								                     // Important for MadPhysicist: Don't overwrite objects that have methods with nil/non-table values
@@ -1648,14 +1649,12 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 								"                end\n"
 								"            end\n"
 								"        elseif type(v) == 'table' then\n"
-								"            if type(d[k]) ~= 'table' then\n"
-								"                d[k] = {}\n"
-								                 // Restore metatable from save if present
-								"                local mt = getmetatable(v)\n"
-								"                if mt then setmetatable(d[k], mt) end\n"
+								             // Important for 8bitpanda: Use identity check for global tables too
+								"            if type(d[k]) == 'table' and d[k].eid == v.eid then\n"
+								"                update(d[k], v)\n"
+								"            else\n"
+								"                d[k] = v\n"
 								"            end\n"
-								             // Recurse to preserve methods in d[k]
-								"            update(d[k], v)\n"
 								"        else\n"
 								             // Primitive value: overwrite unless d[k] is an object with methods
 								"            if not has_methods(d[k]) then\n"
