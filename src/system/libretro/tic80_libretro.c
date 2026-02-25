@@ -3,13 +3,18 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <math.h>
 #include "tic.h"
 #include "libretro-common/include/libretro.h"
 #include "retro_inline.h"
 #include "retro_endianness.h"
 #include "libretro_core_options.h"
 #include "api.h"
+#include "core/core.h"
+#include "script.h"
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+#include <stdlib.h>
 
 /**
  * system.h is used for:
@@ -78,6 +83,7 @@ struct tic80_state
 	int mouseHideTimerStart;
 	tic80* tic;
 	retro_usec_t frameTime;
+	retro_usec_t lastSerializedTick;
 };
 static struct tic80_state* state = NULL;
 
@@ -1197,12 +1203,227 @@ RETRO_API bool retro_load_game_special(unsigned type, const struct retro_game_in
 	return retro_load_game(info);
 }
 
+static char* SerializedLuaData = NULL;
+static size_t SerializedLuaSize = 0;
+
+// Helper to free the cached serialized Lua data
+static void free_serialized_lua() {
+	if (SerializedLuaData) {
+		free(SerializedLuaData);
+		SerializedLuaData = NULL;
+	}
+	SerializedLuaSize = 0;
+}
+
+static int internal_lua_type(lua_State* L) {
+   lua_pushstring(L, lua_typename(L, lua_type(L, 1)));
+   return 1;
+}
+
+// Helper to serialize Lua _G table into a string
+static void serialize_lua(tic_core* core) {
+	// Optimization: If we already serialized for this tick, reuse the cached data.
+	// This prevents triple-execution of the serialization script when the frontend calls
+	// retro_serialize_size multiple times before retro_serialize.
+	if (SerializedLuaData && state && state->lastSerializedTick == state->frameTime) {
+		return;
+	}
+
+	free_serialized_lua();
+
+	lua_State* lua = core->currentVM;
+	if (!lua) {
+		log_cb(RETRO_LOG_INFO, "Error, currentVM is NULL\n");
+		return;
+	}
+
+	// Important for Ghost game (1777). (overwritten type function)
+	lua_pushcfunction(lua, internal_lua_type);
+	lua_setglobal(lua, "__builtin_type");
+
+	// Lua script to serialize the _G table
+	// Properly handles standard library references by serializing them as special markers
+	// Skips unserializable functions so they can be preserved during merge
+	const char* script =
+		"local type = __builtin_type "
+		"local next = next "
+		"local pairs = pairs "
+		"if type(pairs)~='function' then pairs = function(x) return next,x,nil end end " // Important for OddSocks (pairs is overwritten)
+		"local dbg = package.loaded.debug " // Important: use real debug lib
+		"local names = {} "
+		"local libs = {'math','table','string','coroutine','package','io','os','utf8','debug'} "
+		"for _,n in ipairs(libs) do if _G[n] then names[_G[n]] = n end end "
+		"names[_G] = '_G' "
+		"local visited = {} "
+		"local function scan(t, path, d) "
+		"  if d>8 or visited[t] then return end "
+		"  visited[t] = true "
+		"  for k,v in pairs(t) do "
+		"    if type(k)=='string' and k:match('^[%a_][%w_]*$') then "
+		"      local sub = (path=='_G') and k or (path..'.'..k) "
+		"      if type(v)=='function' then "
+		"        names[v]=sub "
+		"      elseif type(v)=='table' then "
+		"        if k~='_G' and k~='package' then "
+		"          local is_class = false " // Important for Beyond The Underground (detects Vec, Mat, etc.)
+		"          if type(v.new)=='function' then is_class=true end "
+		"          if v.__index then is_class=true end "
+		"          if is_class and not names[v] then names[v] = sub end " // Only reference classes, serialize instances by value (Color Critters)
+		"          scan(v, sub, d+1) "
+		"        end "
+		"      end "
+		"    end "
+		"  end "
+		"end "
+		"scan(_G, '_G', 0) "
+		"local function getExpr(o) "
+		"  local n = names[o] if not n then return nil end "
+		"  local res = '_G' "
+		"  for part in n:gmatch('[^.]+') do res = res .. '[' .. string.format('%q', part) .. ']' end "
+		"  return res "
+		"end "
+		"local function ser(o,v,d,ref_tables) " // Added ref_tables param
+		"  d=d or 0 if d>30 then return nil end "
+		"  local t=type(o) "
+		"  if t=='number' then " // Important for Bouncelot (preserves float vs int)
+		"    if o~=o then return '(0/0)' end " // Important for Katzu: NaN check
+		"    if o==math.huge then return '(1/0)' end " // Positive infinity
+		"    if o==-math.huge then return '(-1/0)' end " // Negative infinity
+		"    local s=string.format('%.17g',o) " // Important for Buried Deep (preserves precision)
+		"    if math.type and math.type(o)=='float' and not s:find('[^%-0-9]') then s=s..'.0' end " // Safety check for math.type
+		"    return s "
+		"  end "
+		"  if t=='boolean' then return tostring(o) end "
+		"  if t=='string' then return string.format('%q',o) end "
+		"  if t=='function' then return getExpr(o) end "
+		"  if t=='table' then "
+		"    if ref_tables and names[o] then return getExpr(o) end " // Use references for Upvalues
+		"    if o==math then return '\"__STDLIB_MATH__\"' end "
+		"    if o==table then return '\"__STDLIB_TABLE__\"' end "
+		"    if o==string then return '\"__STDLIB_STRING__\"' end "
+		"    if o==coroutine then return '\"__STDLIB_COROUTINE__\"' end "
+		"    if o==package then return '\"__STDLIB_PACKAGE__\"' end "
+		"    if o==io then return '\"__STDLIB_IO__\"' end "
+		"    if o==os then return '\"__STDLIB_OS__\"' end "
+		"    if o==utf8 then return '\"__STDLIB_UTF8__\"' end "
+		"    if o==debug then return '\"__STDLIB_DEBUG__\"' end "
+		"    if v[o] then return nil end "
+		"    v[o]=true "
+		"    local mt = getmetatable(o) "
+		"    local mte = mt and getExpr(mt) "
+		"    local s = mte and 'setmetatable(' or '' "
+		"    s = s .. '{' "
+		"    for k,val in pairs(o) do "
+		"      if (type(k)=='string' or type(k)=='number') and k~='_G' and k~='package' and "
+		"         k~='coroutine' and k~='table' and k~='io' and k~='os' and k~='string' and "
+		"         k~='math' and k~='utf8' and k~='debug' then "
+		"        local ks=ser(k,v,d+1,ref_tables) local vs=ser(val,v,d+1,ref_tables) "
+		"        if ks and vs then s=s..'['..ks..']='..vs..',' end "
+		"      end "
+		"    end "
+		"    s = s .. '}' "
+		"    if mte then s = s .. ',' .. mte .. ')' end "
+		"    v[o]=nil "
+		"    return s "
+		"  end "
+		"  return nil "
+		"end "
+
+		// Important for Bone Knight: Scan upvalues to capture file-local state variables
+		// We use debug.upvalueid to detect shared locals (like 'player' used in multiple functions)
+		"local uvs={} "
+		"local joins={} "
+		"local u_ids={} "
+		"local q={} "
+		"local u_seen={} "
+		"if dbg then "
+		"  for k,v in pairs(_G) do if type(v)=='function' then table.insert(q,{v,{k}}); u_seen[v]=true end end "
+		"  local ptr=1 "
+		"  while ptr<=#q do "
+		"    local item=q[ptr]; ptr=ptr+1 "
+		"    local f=item[1]; local p=item[2] "
+		"    local i=1 "
+		"    while true do "
+		"      local n,v=dbg.getupvalue(f,i) "
+		"      if not n then break end "
+		"      if n~='_ENV' then "
+		"        local np={table.unpack(p)}; table.insert(np,i) "
+		"        local id=dbg.upvalueid(f,i) "
+		"        if u_ids[id] then "
+		"          table.insert(joins,{src=u_ids[id],dest=np}) "
+		"        else "
+		"          u_ids[id]=np "
+		"          if type(v)=='function' then "
+		"            if not u_seen[v] then u_seen[v]=true; table.insert(q,{v,np}) end "
+		"          elseif type(v)=='table' or type(v)=='number' or type(v)=='string' or type(v)=='boolean' then "
+		"            table.insert(uvs,{p=np,v=v}) "
+		"          end "
+		"        end "
+		"      end "
+		"      i=i+1 "
+		"    end "
+		"  end "
+		"end "
+
+		"local g_str=ser(_G,{},0,false) " // No refs for G (serialize by value)
+		"local u_str=ser(uvs,{},0,true) " // Refs for U (point to G tables if possible)
+		"local j_str=ser(joins,{},0,true) "
+		"return '{g='..(g_str or '{}')..',u='..(u_str or 'nil')..',j='..(j_str or 'nil')..'}' ";
+
+	if (luaL_dostring(lua, script) == LUA_OK) {
+		if (lua_isstring(lua, -1)) {
+			size_t len = 0;
+			const char* str = lua_tolstring(lua, -1, &len);
+			if (str) {
+				SerializedLuaData = malloc(len + 1);
+				if (SerializedLuaData) {
+					memcpy(SerializedLuaData, str, len);
+					SerializedLuaData[len] = '\0';
+					SerializedLuaSize = len;
+					if (state) state->lastSerializedTick = state->frameTime;
+				}
+			} else {
+				log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua serialization script returned nil\n");
+			}
+		} else {
+			const char* error_msg = lua_tostring(lua, -1);
+			if(!error_msg) {
+				log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua serialization script probably returned nil\n");
+			} else {
+				log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua serialization error: %s\n", error_msg);
+			}
+		}
+		lua_pop(lua, 1);
+	} else {
+		const char* error_msg = lua_tostring(lua, -1);
+		log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua serialization script compile error: %s\n", error_msg ? error_msg : "unknown error");
+		lua_pop(lua, 1);  // Remove error message from stack
+	}
+
+	lua_pushnil(lua);
+	lua_setglobal(lua, "__builtin_type");
+}
+
 /**
  * libretro callback; Retrieve the size of the serialized memory.
  */
 size_t retro_serialize_size(void)
 {
-	return TIC_PERSISTENT_SIZE * sizeof(u32);
+	size_t size = sizeof(tic_ram) + sizeof(tic_core_state_data);
+
+	if (state && state->tic) {
+		tic_core* core = (tic_core*)state->tic;
+		const tic_script* config = core->currentScript;
+		if (config == NULL) config = tic_get_script(&core->memory);
+
+		// Only support Lua for now
+		if (config && strcmp(config->name, "lua") == 0 && core->currentVM) {
+			serialize_lua(core); // Populate SerializedLuaData and SerializedLuaSize
+			size += sizeof(u32) + SerializedLuaSize; // Size header + data
+		}
+	}
+
+	return size + sizeof(retro_usec_t);
 }
 
 /**
@@ -1210,16 +1431,81 @@ size_t retro_serialize_size(void)
  */
 RETRO_API bool retro_serialize(void *data, size_t size)
 {
-	TIC_UNUSED(size);
 	if (state == NULL || state->tic == NULL || data == NULL) {
 		return false;
 	}
 
-	tic_mem* tic = (tic_mem*)state->tic;
-	u32* udata = (u32*)data;
-	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
-		udata[i] = tic->ram->persistent.data[i];
+	tic_core* core = (tic_core*)state->tic;
+
+	const tic_script* config = core->currentScript;
+	if (config == NULL) config = tic_get_script(&core->memory);
+
+	if (config == NULL || strcmp(config->name, "lua") != 0) {
+		if (environ_cb) {
+			const char *txt = "Savestate currently not supported in non-Lua TIC-80 cartridges";
+
+			/* Attempt to use the modern 'Widget' notification style */
+			struct retro_message_ext msg_ext = {
+				.msg      = txt,
+				.duration = 3000,                      /* 3 seconds (milliseconds) */
+				.priority = 3,                         /* High priority triggers the widget */
+				.level    = RETRO_LOG_INFO,            /* Also sends to logs */
+				.target   = RETRO_MESSAGE_TARGET_ALL,  /* Show on OSD and logs */
+				.type     = RETRO_MESSAGE_TYPE_NOTIFICATION
+			};
+
+			/* If the frontend doesn't support _EXT (returns false), use the old fallback */
+			if (!environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE_EXT, &msg_ext)) {
+				struct retro_message msg = { txt, 180 }; /* 180 frames (~3s at 60fps) */
+				environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &msg);
+			}
+		}
+		return false;
 	}
+
+	u8* dst = (u8*)data;
+
+	// Check if the provided buffer is large enough for the base state
+	if (size < sizeof(tic_ram) + sizeof(tic_core_state_data))
+		return false;
+
+	memcpy(dst, core->memory.ram, sizeof(tic_ram));
+	dst += sizeof(tic_ram);
+
+	memcpy(dst, &core->state, sizeof(tic_core_state_data));
+	dst += sizeof(tic_core_state_data);
+
+	// Append Lua state if available and fits
+	if (SerializedLuaSize > 0 && SerializedLuaData) {
+		if ((dst - (u8*)data) + sizeof(u32) + SerializedLuaSize <= size) {
+			*(u32*)dst = (u32)SerializedLuaSize;
+			dst += sizeof(u32);
+			memcpy(dst, SerializedLuaData, SerializedLuaSize);
+			dst += SerializedLuaSize;
+		} else {
+			// Not enough space for Lua data, but header might fit
+			if ((dst - (u8*)data) + sizeof(u32) <= size) {
+				*(u32*)dst = 0; // Indicate no Lua data saved
+				dst += sizeof(u32);
+			}
+		}
+	} else {
+		// If we allocated space for Lua in retro_serialize_size but no data was generated (e.g., not Lua core)
+		// or if serialization failed, write 0 size for Lua data.
+		// This ensures retro_unserialize can correctly skip.
+		if ((dst - (u8*)data) + sizeof(u32) <= size) {
+			*(u32*)dst = 0;
+			dst += sizeof(u32);
+		}
+	}
+
+	// Save frame time
+	if ((dst - (u8*)data) + sizeof(retro_usec_t) <= size) {
+		memcpy(dst, &state->frameTime, sizeof(retro_usec_t));
+	}
+
+	// Free the cached Lua data after serialization
+	free_serialized_lua();
 
 	return true;
 }
@@ -1229,14 +1515,220 @@ RETRO_API bool retro_serialize(void *data, size_t size)
  */
 RETRO_API bool retro_unserialize(const void *data, size_t size)
 {
-	if (state == NULL || state->tic == NULL || size != retro_serialize_size() || data == NULL) {
+	// Invalidate the cache when loading a state
+	free_serialized_lua();
+
+	if (state == NULL || state->tic == NULL || size < sizeof(tic_ram) + sizeof(tic_core_state_data) || data == NULL) {
 		return false;
 	}
 
-	tic_mem* tic = (tic_mem*)state->tic;
-	u32* uData = (u32*)data;
-	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
-		tic->ram->persistent.data[i] = uData[i];
+	tic_core* core = (tic_core*)state->tic;
+	const u8* src = (const u8*)data;
+
+	memcpy(core->memory.ram, src, sizeof(tic_ram));
+	src += sizeof(tic_ram);
+
+	memcpy(&core->state, src, sizeof(tic_core_state_data));
+	src += sizeof(tic_core_state_data);
+
+	// Fix pointers that were invalidated by the restore
+	for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
+	{
+		core->state.sfx.channels[i].pos = &core->memory.ram->sfxpos[i];
+		core->state.music.channels[i].pos = &core->state.music.sfxpos[i];
+		core->state.music.commands[i].delay.row = NULL;
+	}
+
+	const tic_script* config = core->currentScript;
+	if (config == NULL) config = tic_get_script(&core->memory);
+
+	if (config)
+	{
+		core->state.tick = config->tick;
+		core->state.callback = config->callback;
+
+		// Restore Lua state if present and correct VM
+		if (strcmp(config->name, "lua") == 0 && core->currentVM) {
+			u32 luaSize = 0;
+			// Check if there's enough space to read the Lua size header
+			if ((src - (const u8*)data) + sizeof(u32) <= size) {
+				luaSize = *(const u32*)src;
+				src += sizeof(u32);
+
+				// If Lua data exists and fits within the remaining buffer
+				if (luaSize > 0 && (src - (const u8*)data) + luaSize <= size) {
+					lua_State* lua = core->currentVM;
+
+					// Important for Ghost game (1777). (overwritten type function)
+					// Inject __builtin_type helper for the merge script
+					lua_pushcfunction(lua, internal_lua_type);
+					lua_setglobal(lua, "__builtin_type");
+
+					// Push "return " string
+					lua_pushstring(lua, "return ");
+					// Push the serialized Lua table string
+					lua_pushlstring(lua, (const char*)src, luaSize);
+					// Concatenate them: "return { ... }"
+					lua_concat(lua, 2);
+
+					// Load the concatenated string as a Lua chunk
+					if (luaL_loadstring(lua, lua_tostring(lua, -1)) == LUA_OK) {
+						// Execute the chunk, which should return the serialized table
+						if (lua_pcall(lua, 0, 1, 0) == LUA_OK) {
+							// S is at -1
+
+							const char* merge_script = 
+								"local type = __builtin_type\n" // Important for Ghost (overwritten type function)
+								"_G.__builtin_type = nil\n"
+								"local next = next\n"
+								"local pairs = pairs\n"
+								"if type(pairs) ~= 'function' then pairs = function(t) return next, t, nil end end\n" // Important for OddSocks (pairs is overwritten)
+								"local dbg = package.loaded.debug\n" // Important for Bone Knight (access hidden debug lib)
+								"local S = ...\n"
+								"local g = S\n"
+								"local u = nil\n"
+								"local j = nil\n"
+								"if type(S) == 'table' and S.g then\n"
+								"    g = S.g\n"
+								"    u = S.u\n"
+								"    j = S.j\n"
+								"end\n"
+								// Helper to resolve upvalue path
+								"local function resolve(path)\n"
+								"    local f = _G[path[1]]\n"
+								"    if not f then return nil end\n"
+								"    for i = 2, #path - 1 do\n"
+								"        local n, v = dbg.getupvalue(f, path[i])\n"
+								"        if type(v) == 'function' then f = v else return nil end\n"
+								"    end\n"
+								"    return f, path[#path]\n"
+								"end\n"
+								"local seen = {}\n"
+								"local STDLIB = {\n"
+								"  __STDLIB_MATH__ = math, __STDLIB_TABLE__ = table, __STDLIB_STRING__ = string,\n"
+								"  __STDLIB_COROUTINE__ = coroutine, __STDLIB_PACKAGE__ = package, __STDLIB_IO__ = io,\n"
+								"  __STDLIB_OS__ = os, __STDLIB_UTF8__ = utf8, __STDLIB_DEBUG__ = debug\n"
+								"}\n"
+								"local function has_methods(t)\n"
+									 // Important for MadPhysicist: Check if table has function fields (methods)
+								"    if type(t) ~= 'table' then return false end\n"
+								"    for k,v in pairs(t) do\n"
+								"        if type(v) == 'function' then return true end\n"
+								"    end\n"
+								"    return false\n"
+								"end\n"
+								"local function is_array(t)\n"
+								"    if type(t) ~= 'table' then return false end\n"
+								"    local i = 0 for _ in pairs(t) do i = i + 1 end\n"
+								"    return #t == i\n"
+								"end\n"
+								"local function update(d, s)\n"
+								"    if seen[d] then return end\n"
+								"    seen[d] = true\n"
+								     // Pass 1: Copy/Merge from Save(s) to Dest(d)
+								"    for k,v in pairs(s) do\n"
+								"        if type(v) == 'string' and STDLIB[v] then\n"
+								"            d[k] = STDLIB[v]\n"
+								"        elseif is_array(v) then\n"
+								"            if type(d[k]) ~= 'table' then d[k] = {} end\n"
+								"            for i = #v + 1, #d[k] do d[k][i] = nil end\n"
+								"            for i = 1, #v do\n"
+								"                if type(v[i]) == 'table' then\n"
+								                     // Important for 8bitpanda: Replace table if entity ID (eid) differs or target is not a table
+								                     // This prevents merging incompatible entity data and fixes the "nil comparison" crash
+								"                    if type(d[k][i]) == 'table' and d[k][i].eid == v[i].eid then\n"
+								"                        update(d[k][i], v[i])\n"
+								"                    else\n"
+								"                        d[k][i] = v[i]\n"
+								"                    end\n"
+								"                else\n"
+								                     // Important for MadPhysicist: Don't overwrite objects that have methods with nil/non-table values
+								"                    if not has_methods(d[k][i]) then\n"
+								"                        d[k][i] = v[i]\n"
+								"                    end\n"
+								"                end\n"
+								"            end\n"
+								"        elseif type(v) == 'table' then\n"
+								             // Important for 8bitpanda: Use identity check for global tables too
+								"            if type(d[k]) == 'table' and d[k].eid == v.eid then\n"
+								"                update(d[k], v)\n"
+								"            else\n"
+								"                d[k] = v\n"
+								"            end\n"
+								"        else\n"
+								             // Primitive value: overwrite unless d[k] is an object with methods
+								"            if not has_methods(d[k]) then\n"
+								"                d[k] = v\n"
+								"            end\n"
+								"        end\n"
+								"    end\n"
+								     // Pass 2: Cleanup Dest(d) - Remove keys not in Save(s)
+								     // Important for Robot Pilfer: Removes dead entities/flags
+								"    for k,v in pairs(d) do\n"
+								"        if s[k] == nil then\n"
+								             // Important for Searching for Pixel: Keep methods and system globals
+								             // Protect standard libraries (table, math, etc.) to prevent 'attempt to index nil' on next save
+								"            if type(v) ~= 'function' and k ~= '_G' and k ~= 'package' and\n"
+								"               k ~= 'table' and k ~= 'math' and k ~= 'string' and k ~= 'coroutine' and\n"
+								"               k ~= 'io' and k ~= 'os' and k ~= 'utf8' and k ~= 'debug' then\n"
+								"                d[k] = nil\n"
+								"            end\n"
+								"        end\n"
+								"    end\n"
+								"end\n"
+								"update(_G, g)\n"
+								// Important for Bone Knight: Restore upvalues (local variables)
+								"if u and dbg then\n"
+								"    for _,x in ipairs(u) do\n"
+								"        local f, i = resolve(x.p)\n"
+								"        if f then\n"
+								"            local n, curr = dbg.getupvalue(f, i)\n"
+								             // Use update() for tables to preserve methods on locals (Searching for Pixel)
+								"            if type(curr) == 'table' and type(x.v) == 'table' then\n"
+								"                update(curr, x.v)\n"
+								"            else\n"
+								"                dbg.setupvalue(f, i, x.v)\n"
+								"            end\n"
+								"        end\n"
+								"    end\n"
+								"end\n"
+								// Restore shared upvalues links
+								"if j and dbg then\n"
+								"    for _,x in ipairs(j) do\n"
+								"        local f1, i1 = resolve(x.dest)\n"
+								"        local f2, i2 = resolve(x.src)\n"
+								"        if f1 and f2 then dbg.upvaluejoin(f1, i1, f2, i2) end\n"
+								"    end\n"
+								"end\n";
+
+							if (luaL_loadstring(lua, merge_script) == LUA_OK) {
+								lua_pushvalue(lua, -2); // Push the table S (currently at -2)
+								if (lua_pcall(lua, 1, 0, 0) != LUA_OK) {
+									log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua merge script error: %s\n", lua_tostring(lua, -1));
+									lua_pop(lua, 1); // pop error
+								}
+							} else {
+								log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua merge compile error: %s\n", lua_tostring(lua, -1));
+								lua_pop(lua, 1); // pop error
+							}
+						} else {
+							log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua state unserialize error: %s\n", lua_tostring(lua, -1));
+						}
+					} else {
+						log_cb(RETRO_LOG_ERROR, "[TIC-80] Lua state loadstring error: %s\n", lua_tostring(lua, -1));
+					}
+					lua_pop(lua, 1); // Pop the result of the chunk (table S or error message)
+					lua_pop(lua, 1); // Pop the concatenated "return { ... }" string
+
+					src += luaSize; // Advance source pointer past Lua data
+				}
+			}
+		}
+	}
+
+	// Restore frame time
+	if ((src - (const u8*)data) + sizeof(retro_usec_t) <= size) {
+		memcpy(&state->frameTime, src, sizeof(retro_usec_t));
 	}
 
 	return true;
