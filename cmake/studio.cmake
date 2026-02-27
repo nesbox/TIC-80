@@ -16,17 +16,28 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/ext/png.c
 )
 
+if(BUILD_SURF)
+    set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
+        ${TIC80LIB_DIR}/studio/screens/surf.c
+        ${TIC80LIB_DIR}/studio/net.c
+    )
+
+    if(NOT BUILD_EDITORS)
+        set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
+            ${TIC80LIB_DIR}/studio/screens/console_minimal.c
+        )
+    endif()
+endif()
+
 if(BUILD_EDITORS)
     set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
         ${TIC80LIB_DIR}/studio/screens/console.c
-        ${TIC80LIB_DIR}/studio/screens/surf.c
         ${TIC80LIB_DIR}/studio/editors/code.c
         ${TIC80LIB_DIR}/studio/editors/sprite.c
         ${TIC80LIB_DIR}/studio/editors/map.c
         ${TIC80LIB_DIR}/studio/editors/world.c
         ${TIC80LIB_DIR}/studio/editors/sfx.c
         ${TIC80LIB_DIR}/studio/editors/music.c
-        ${TIC80LIB_DIR}/studio/net.c
         ${TIC80LIB_DIR}/ext/history.c
         ${TIC80LIB_DIR}/ext/gif.c
     )
@@ -46,6 +57,8 @@ add_library(tic80studio STATIC
 target_include_directories(tic80studio
     PRIVATE ${THIRDPARTY_DIR}/jsmn
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+    PUBLIC ${TIC80LIB_DIR}
+    PUBLIC ${TIC80LIB_DIR}/studio
 )
 
 target_link_libraries(tic80studio PUBLIC tic80core PRIVATE zip wave_writer argparse giflib png)
@@ -65,4 +78,8 @@ endif()
 
 if(BUILD_EDITORS)
     target_compile_definitions(tic80studio PUBLIC BUILD_EDITORS)
+endif()
+
+if(BUILD_SURF)
+    target_compile_definitions(tic80studio PUBLIC BUILD_SURF)
 endif()

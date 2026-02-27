@@ -433,7 +433,12 @@ static void showGameMenu(void* data, s32 pos)
 
 static inline s32 mainMenuOffset(StudioMainMenu* menu)
 {
-    return menu->count ? 0 : 1;
+    if (menu->count > 0) return 0;
+
+    if (!studio_is_cart_loaded(menu->studio))
+        return 3;
+
+    return 1;
 }
 
 static void onResumeGame(void* data, s32 pos)
@@ -461,6 +466,12 @@ static void onExitGame(void* data, s32 pos)
     exitGame(main->studio);
 }
 
+static void onSurf(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    setStudioMode(main->studio, TIC_SURF_MODE);
+}
+
 enum MainMenu
 {
     MainMenu_GameMenu,
@@ -468,6 +479,9 @@ enum MainMenu
     MainMenu_ResetGame,
 #if defined(BUILD_EDITORS)
     MainMenu_CloseGame,
+#endif
+#if defined(BUILD_SURF)
+    MainMenu_Surf,
 #endif
     MainMenu_Options,
     MainMenu_Separator,
@@ -482,6 +496,9 @@ static const MenuItem MainMenu[] =
 #if defined(BUILD_EDITORS)
     {"CLOSE GAME",  onExitGame, NULL, "Press F1 to switch to editor"},
 #endif
+#if defined(BUILD_SURF)
+    {"SURF",        onSurf},
+#endif
     {"OPTIONS",     showOptionsMenu},
     {""},
     {"QUIT TIC-80", onExitStudio},
@@ -493,8 +510,7 @@ static void showMainMenu(void* data, s32 pos)
     initGameMenu(main);
 
     s32 offset = mainMenuOffset(main);
-
-    studio_menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, onResumeGame, main);
+    studio_menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, studio_is_cart_loaded(main->studio) ? onResumeGame : NULL, main);
 }
 
 static void showOptionsMenuPos(void* data, s32 pos)

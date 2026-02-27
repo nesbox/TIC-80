@@ -22,24 +22,20 @@
 
 #include "studio.h"
 
-#if defined(BUILD_EDITORS)
-
 #if defined(_WIN32)
 #include <windows.h>
 #else
 #include <sys/time.h>
 #endif
 
+#if defined(BUILD_EDITORS)
 #include "editors/code.h"
 #include "editors/sprite.h"
 #include "editors/map.h"
 #include "editors/world.h"
 #include "editors/sfx.h"
 #include "editors/music.h"
-#include "screens/console.h"
-#include "screens/surf.h"
 #include "ext/history.h"
-#include "net.h"
 #include "wave_writer.h"
 #include "ext/gif.h"
 #define MSF_GIF_IMPL
@@ -47,7 +43,15 @@
 
 #include "../fftdata.h"
 #include "ext/fft.h"
+#endif
 
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+#include "screens/console.h"
+#endif
+
+#if defined(BUILD_SURF)
+#include "screens/surf.h"
+#include "net.h"
 #endif
 
 #include "ext/md5.h"
@@ -82,7 +86,7 @@
 #define TIC_EDITOR_BANKS 1
 #endif
 
-#ifdef BUILD_EDITORS
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 typedef struct
 {
     u8 data[MD5_HASHSIZE];
@@ -140,16 +144,20 @@ struct Studio
         MouseState state[3];
     } mouse;
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     EditorMode menuMode;
+#endif
+#if defined(BUILD_EDITORS)
     ViMode viMode;
-
+#endif
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     struct
     {
         CartHash hash;
         u64 mdate;
     }cart;
-
+#endif
+#if defined(BUILD_EDITORS)
     struct
     {
         bool show;
@@ -216,14 +224,17 @@ struct Studio
         Music*  music[TIC_EDITOR_BANKS];
     } banks;
 
-    Console*    console;
     World*      world;
-    Surf*       surf;
-
-    tic_net* net;
-
     Bytebattle bytebattle;
+#endif
 
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+    Console*    console;
+#endif
+
+#if defined(BUILD_SURF)
+    Surf*       surf;
+    tic_net* net;
 #endif
 
     Start*      start;
@@ -1208,7 +1219,7 @@ void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
 static void initRunMode(Studio* studio)
 {
     initRun(studio->run,
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
         studio->console,
 #else
         NULL,
@@ -1222,6 +1233,13 @@ static void initWorldMap(Studio* studio)
     initWorld(studio->world, studio, studio->banks.map[studio->bank.index.map]);
 }
 
+void gotoCode(Studio* studio)
+{
+    setStudioMode(studio, TIC_CODE_MODE);
+}
+#endif
+
+#if defined(BUILD_SURF)
 static void initSurfMode(Studio* studio)
 {
     initSurf(studio->surf, studio, studio->console);
@@ -1232,13 +1250,12 @@ void gotoSurf(Studio* studio)
     initSurfMode(studio);
     setStudioMode(studio, TIC_SURF_MODE);
 }
-
-void gotoCode(Studio* studio)
-{
-    setStudioMode(studio, TIC_CODE_MODE);
-}
-
 #endif
+
+bool studio_is_cart_loaded(Studio* studio)
+{
+    return strlen(studio->console->rom.name) > 0 || (studio->start && studio->start->embed);
+}
 
 void setStudioMode(Studio* studio, EditorMode mode)
 {
@@ -1261,31 +1278,46 @@ void setStudioMode(Studio* studio, EditorMode mode)
         default: studio->prevMode = prev; break;
         }
 
-#if defined(BUILD_EDITORS)
-        switch(mode)
-        {
-        case TIC_RUN_MODE: initRunMode(studio); break;
-        case TIC_CONSOLE_MODE:
-            if (prev == TIC_SURF_MODE)
-                studio->console->done(studio->console);
-            break;
-        case TIC_WORLD_MODE: initWorldMap(studio); break;
-        case TIC_SURF_MODE: studio->surf->resume(studio->surf); break;
-        default: break;
-        }
-
-        studio->mode = mode;
-#else
+#if !defined(BUILD_EDITORS)
         switch (mode)
         {
         case TIC_START_MODE:
         case TIC_MENU_MODE:
-            studio->mode = mode;
+#if defined(BUILD_SURF)
+        case TIC_SURF_MODE:
+#endif
+        case TIC_RUN_MODE:
             break;
         default:
-            studio->mode = TIC_RUN_MODE;
+            if (!studio_is_cart_loaded(studio))
+                mode = TIC_MENU_MODE;
+            else
+                mode = TIC_RUN_MODE;
+            break;
         }
 #endif
+
+        switch(mode)
+        {
+        case TIC_RUN_MODE:      initRunMode(studio); break;
+        case TIC_MENU_MODE:
+            studio_mainmenu_free(studio->mainmenu);
+            studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+            break;
+#if defined(BUILD_EDITORS)
+        case TIC_CONSOLE_MODE:
+            if (prev == TIC_SURF_MODE)
+                studio->console->done(studio->console);
+            break;
+        case TIC_WORLD_MODE:    initWorldMap(studio); break;
+#endif
+#if defined(BUILD_SURF)
+        case TIC_SURF_MODE:     studio->surf->resume(studio->surf); break;
+#endif
+        default: break;
+        }
+
+        studio->mode = mode;
     }
 
 #if defined(BUILD_EDITORS)
@@ -1400,7 +1432,7 @@ void setCursor(Studio* studio, tic_cursor id)
     }
 }
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 
 typedef struct
 {
@@ -1471,13 +1503,16 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
     }
 }
 
+#if defined(BUILD_EDITORS)
 static void resetBanks(Studio* studio)
 {
     memset(studio->bank.indexes, 0, sizeof studio->bank.indexes);
 }
+#endif
 
 static void initModules(Studio* studio)
 {
+#if defined(BUILD_EDITORS)
     tic_mem* tic = studio->tic;
 
     resetBanks(studio);
@@ -1493,6 +1528,7 @@ static void initModules(Studio* studio)
     }
 
     initWorldMap(studio);
+#endif
 }
 
 static void updateHash(Studio* studio)
@@ -1510,7 +1546,7 @@ static void updateTitle(Studio* studio)
 {
     char name[TICNAME_MAX] = TIC_TITLE;
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     if(strlen(studio->console->rom.name))
         snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, studio->console->rom.name);
 #endif
@@ -1518,7 +1554,7 @@ static void updateTitle(Studio* studio)
     tic_sys_title(name);
 }
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 
 bool project_ext(const char* name)
 {
@@ -1550,6 +1586,8 @@ void studioRomLoaded(Studio* studio)
 bool studioCartChanged(Studio* studio)
 {
     CartHash hash;
+    if (!studio_is_cart_loaded(studio)) return false;
+
     md5(&studio->tic->cart, sizeof(tic_cartridge), hash.data);
 
     return memcmp(hash.data, studio->cart.hash.data, sizeof(CartHash)) != 0;
@@ -1592,7 +1630,7 @@ void runGame(Studio* studio)
 
         setStudioMode(studio, TIC_RUN_MODE);
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_SURF)
         if(studio->mode == TIC_SURF_MODE)
             studio->prevMode = TIC_SURF_MODE;
 #endif
@@ -1985,7 +2023,11 @@ static void processShortcuts(Studio* studio)
             switch(studio->mode)
             {
             case TIC_MENU_MODE: studio_menu_back(studio->menu); break;
-            case TIC_RUN_MODE: gotoMenu(studio); break;
+            case TIC_RUN_MODE:
+#if defined(BUILD_SURF)
+            case TIC_SURF_MODE:
+#endif
+                gotoMenu(studio); break;
             default: break;
             }
         }
@@ -2188,6 +2230,8 @@ static void renderStudio(Studio* studio)
         break;
 
     case TIC_WORLD_MODE:    studio->world->tick(studio->world); break;
+#endif
+#if defined(BUILD_SURF)
     case TIC_SURF_MODE:     studio->surf->tick(studio->surf); break;
 #endif
     default: break;
@@ -2444,6 +2488,8 @@ void studio_tick(Studio* studio, tic80_input input)
 #if defined(BUILD_EDITORS)
     processAnim(studio->anim.movie, studio);
     checkChanges(studio);
+#endif
+#if defined(BUILD_SURF)
     tic_net_start(studio->net);
 #endif
 
@@ -2470,6 +2516,8 @@ void studio_tick(Studio* studio, tic80_input input)
             [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL, NULL, sprite},
             [TIC_MAP_MODE]      = {map->scanline,           NULL, NULL, map},
             [TIC_WORLD_MODE]    = {studio->world->scanline,    NULL, NULL, studio->world},
+#endif
+#if defined(BUILD_SURF)
             [TIC_SURF_MODE]     = {studio->surf->scanline,     NULL, NULL, studio->surf},
 #endif
         };
@@ -2494,8 +2542,10 @@ void studio_tick(Studio* studio, tic80_input input)
 #endif
     }
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_SURF)
     tic_net_end(studio->net);
+#endif
+#if defined(BUILD_EDITORS)
 
     {
         Bytebattle* bb = &(studio->bytebattle);
@@ -2545,15 +2595,17 @@ void studio_sound(Studio* studio)
     }
 }
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 static void onStudioLoadConfirmed(Studio* studio, bool yes, void* data)
 {
     if(yes)
     {
         const char* file = data;
+#if defined(BUILD_EDITORS)
         showPopupMessage(studio, studio->console->loadCart(studio->console, file)
             ? "cart successfully loaded :)"
             : "error: cart not loaded :(");
+#endif
     }
 }
 
@@ -2573,7 +2625,7 @@ void confirmLoadCart(Studio* studio, ConfirmCallback callback, void* data)
 
 void studio_load(Studio* studio, const char* file)
 {
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     studioCartChanged(studio)
         ? confirmLoadCart(studio, onStudioLoadConfirmed, (void*)file)
         : onStudioLoadConfirmed(studio, true, (void*)file);
@@ -2607,12 +2659,15 @@ void studio_delete(Studio* studio)
         freeCode    (studio->code);
         freeConsole (studio->console);
         freeWorld   (studio->world);
-        freeSurf    (studio->surf);
 
         FREE(studio->anim.show.items);
         FREE(studio->anim.hide.items);
 
 #endif
+#if defined(BUILD_SURF)
+        freeSurf    (studio->surf);
+#endif
+
 
         freeStart   (studio->start);
         freeRun     (studio->run);
@@ -2624,8 +2679,10 @@ void studio_delete(Studio* studio)
 
     tic_core_close(studio->tic);
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_SURF)
     tic_net_close(studio->net);
+#endif
+#if defined(BUILD_EDITORS)
     free(studio->video.buffer);
     if(studio->bytebattle.exp) free(studio->bytebattle.exp);
     if(studio->bytebattle.imp) free(studio->bytebattle.imp);
@@ -2776,6 +2833,10 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 
 #if defined(BUILD_EDITORS)
         .menuMode = TIC_CONSOLE_MODE,
+#elif defined(BUILD_SURF)
+        .menuMode = TIC_RUN_MODE,
+#endif
+#if defined(BUILD_EDITORS)
 
         .bank =
         {
@@ -2800,10 +2861,14 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         {
             .text = "\0",
         },
-
+#endif
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
         .samplerate = samplerate,
+#endif
+#if defined(BUILD_SURF)
         .net = tic_net_create(TIC_WEBSITE),
-
+#endif
+#if defined(BUILD_EDITORS)
         .bytebattle = {0},
 #endif
         .tic = tic_core_create(samplerate, format),
@@ -2815,7 +2880,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         if (fs_isdir(path))
         {
             studio->fs = tic_fs_create(path,
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_SURF)
                 studio->net
 #else
                 NULL
@@ -2841,9 +2906,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         }
 
         studio->code       = calloc(1, sizeof(Code));
-        studio->console    = calloc(1, sizeof(Console));
         studio->world      = calloc(1, sizeof(World));
-        studio->surf       = calloc(1, sizeof(Surf));
 
         studio->anim.show = (Movie)MOVIE_DEF(STUDIO_ANIM_TIME, setPopupWait,
         {
@@ -2857,6 +2920,14 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         });
 
         studio->anim.movie = resetMovie(&studio->anim.idle);
+#endif
+
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+        studio->console    = calloc(1, sizeof(Console));
+#endif
+
+#if defined(BUILD_SURF)
+        studio->surf       = calloc(1, sizeof(Surf));
 #endif
 
         studio->start      = calloc(1, sizeof(Start));
@@ -2879,9 +2950,13 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     initStart(studio->start, studio, args.cart);
     initRunMode(studio);
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     initConsole(studio->console, studio, studio->fs, studio->net, studio->config, args);
+#endif
+#if defined(BUILD_SURF)
     initSurfMode(studio);
+#endif
+#if defined(BUILD_EDITORS)
     initModules(studio);
 #endif
 
