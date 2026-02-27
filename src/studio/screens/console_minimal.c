@@ -13,19 +13,36 @@
 #include "retro_endianness.h"
 #include "start.h"
 
-static void load(Console* console, const char* path)
+static bool load(Console* console, const char* path)
 {
     s32 size = 0;
     void* data = tic_fs_load(console->fs, path, &size);
+
+    if(!data)
+        data = fs_read(path, &size);
 
     if(data) SCOPE(free(data))
     {
         tic_cart_load(&console->tic->cart, data, size);
         tic_api_reset(console->tic);
 
-        strcpy(console->rom.name, path);
+        {
+            const char* cartName = path;
+            {
+                const char* ptr = path + strlen(path);
+                while(ptr > path && *ptr != '/' && *ptr != '\\')--ptr;
+                if(*ptr == '/' || *ptr == '\\') cartName = ptr + 1;
+            }
+
+            strcpy(console->rom.name, cartName);
+        }
+
         studioRomLoaded(console->studio);
+
+        return true;
     }
+
+    return false;
 }
 
 typedef struct
@@ -74,7 +91,8 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
         .fs = fs,
         .net = net,
         .config = config,
-        .load = load,
+        .load = (void(*)(Console*, const char*))load,
+        .loadCart = load,
         .loadByHash = loadByHash,
         .done = empty,
         .tick = empty,
@@ -86,10 +104,17 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
 
     if (args.cart)
     {
-        load(console, args.cart);
-        struct Start* start = getStartScreen(studio);
-        if (start)
-            start->embed = true;
+        if (load(console, args.cart))
+        {
+            struct Start* start = getStartScreen(studio);
+            if (start)
+                start->embed = true;
+        }
+        else
+        {
+            fprintf(stderr, "error: cart `%s` not loaded\n", args.cart);
+            exit(1);
+        }
     }
 }
 
