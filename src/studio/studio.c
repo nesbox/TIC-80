@@ -1252,6 +1252,11 @@ void gotoSurf(Studio* studio)
 }
 #endif
 
+bool studio_is_cart_loaded(Studio* studio)
+{
+    return strlen(studio->console->rom.name) > 0 || (studio->start && studio->start->embed);
+}
+
 void setStudioMode(Studio* studio, EditorMode mode)
 {
     if(mode != studio->mode)
@@ -1284,7 +1289,10 @@ void setStudioMode(Studio* studio, EditorMode mode)
         case TIC_RUN_MODE:
             break;
         default:
-            mode = TIC_RUN_MODE;
+            if (!studio_is_cart_loaded(studio))
+                mode = TIC_MENU_MODE;
+            else
+                mode = TIC_RUN_MODE;
             break;
         }
 #endif
@@ -1292,6 +1300,10 @@ void setStudioMode(Studio* studio, EditorMode mode)
         switch(mode)
         {
         case TIC_RUN_MODE:      initRunMode(studio); break;
+        case TIC_MENU_MODE:
+            studio_mainmenu_free(studio->mainmenu);
+            studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+            break;
 #if defined(BUILD_EDITORS)
         case TIC_CONSOLE_MODE:
             if (prev == TIC_SURF_MODE)
@@ -1574,6 +1586,8 @@ void studioRomLoaded(Studio* studio)
 bool studioCartChanged(Studio* studio)
 {
     CartHash hash;
+    if (!studio_is_cart_loaded(studio)) return false;
+
     md5(&studio->tic->cart, sizeof(tic_cartridge), hash.data);
 
     return memcmp(hash.data, studio->cart.hash.data, sizeof(CartHash)) != 0;

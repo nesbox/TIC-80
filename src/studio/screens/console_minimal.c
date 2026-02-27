@@ -11,6 +11,7 @@
 #include "studio/config.h"
 #include "ext/json.h"
 #include "retro_endianness.h"
+#include "start.h"
 
 static void load(Console* console, const char* path)
 {
@@ -80,7 +81,16 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
         .updateProject = empty,
         .trace = emptyTrace,
         .error = emptyError,
+        .args = args,
     };
+
+    if (args.cart)
+    {
+        load(console, args.cart);
+        struct Start* start = getStartScreen(studio);
+        if (start)
+            start->embed = true;
+    }
 }
 
 void freeConsole(Console* console)
