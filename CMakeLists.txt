@@ -55,6 +55,9 @@ option(BUILD_WITH_ZLIB "Build with zlib linked" ON)
 option(TIC80_TARGET "Target binary suffix")
 option(PREFER_SYSTEM_LIBRARIES "Prefer link with system libraries" OFF)
 
+if(BUILD_EDITORS)
+    set(BUILD_SURF ON)
+endif()
 
 if(NOT TIC80_TARGET)
     set(TIC80_TARGET tic80)

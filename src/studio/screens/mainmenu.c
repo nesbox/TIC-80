@@ -461,6 +461,12 @@ static void onExitGame(void* data, s32 pos)
     exitGame(main->studio);
 }
 
+static void onSurf(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    setStudioMode(main->studio, TIC_SURF_MODE);
+}
+
 enum MainMenu
 {
     MainMenu_GameMenu,
@@ -468,6 +474,9 @@ enum MainMenu
     MainMenu_ResetGame,
 #if defined(BUILD_EDITORS)
     MainMenu_CloseGame,
+#endif
+#if defined(BUILD_SURF)
+    MainMenu_Surf,
 #endif
     MainMenu_Options,
     MainMenu_Separator,
@@ -481,6 +490,9 @@ static const MenuItem MainMenu[] =
     {"RESET GAME",  onResetGame},
 #if defined(BUILD_EDITORS)
     {"CLOSE GAME",  onExitGame, NULL, "Press F1 to switch to editor"},
+#endif
+#if defined(BUILD_SURF)
+    {"SURF",        onSurf},
 #endif
     {"OPTIONS",     showOptionsMenu},
     {""},
