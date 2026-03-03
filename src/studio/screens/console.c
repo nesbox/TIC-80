@@ -30,6 +30,7 @@
 #include "ext/json.h"
 #include "zip.h"
 #include "retro_endianness.h"
+#include "runtime_versions.h"
 
 #if defined(TIC80_PRO)
 #include "studio/project.h"
@@ -3642,6 +3643,37 @@ static void onHelp_ram(Console* console)
     printTable(console, buf);
 }
 
+static const struct LangRuntimeVersion
+{
+    const char* script;
+    const char* version;
+} LangRuntimeVersions[] =
+{
+    {"lua",      TIC_RUNTIME_VERSION_LUA},
+    {"ruby",     TIC_RUNTIME_VERSION_RUBY},
+    {"js",       TIC_RUNTIME_VERSION_JS},
+    {"moon",     TIC_RUNTIME_VERSION_MOON},
+    {"yue",      TIC_RUNTIME_VERSION_YUE},
+    {"fennel",   TIC_RUNTIME_VERSION_FENNEL},
+    {"scheme",   TIC_RUNTIME_VERSION_SCHEME},
+    {"squirrel", TIC_RUNTIME_VERSION_SQUIRREL},
+    {"wren",     TIC_RUNTIME_VERSION_WREN},
+    {"wasm",     TIC_RUNTIME_VERSION_WASM},
+    {"janet",    TIC_RUNTIME_VERSION_JANET},
+    {"python",   TIC_RUNTIME_VERSION_PYTHON},
+    {NULL, NULL},
+};
+
+static const char* getLangRuntimeVersion(const tic_script* script)
+{
+    if(script)
+        FOR(const struct LangRuntimeVersion*, it, LangRuntimeVersions)
+            if(it->script && strcmp(script->name, it->script) == 0)
+                return it->version;
+
+    return "unknown";
+}
+
 static void onHelp_vram(Console* console)
 {
     char buf[1024];
@@ -3665,7 +3697,16 @@ static void onHelp_buttons(Console* console)
 
 static void onHelp_version(Console* console)
 {
+    char buf[TICNAME_MAX];
+
     consolePrint(console, "\n"TIC_VERSION, CONSOLE_BACK_TEXT_COLOR);
+    printBack(console, "\nlanguage runtimes:\n");
+
+    FOREACH_LANG(script)
+    {
+        sprintf(buf, " %-8s %s\n", script->name, getLangRuntimeVersion(script));
+        printBack(console, buf);
+    }
 }
 
 static void onHelp_spec(Console* console)
