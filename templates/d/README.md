@@ -36,6 +36,8 @@ drwxr-xr-x  3 pierce pierce 4096 Apr 24 16:19 share/
 Define the environment variable WASI_SDK_PATH; e.g., if you installed WASI
 libc into ```$HOME/wasi-sdk/share/wasi-sysroot```, then ```export WASI_SDK_PATH=$HOME/wasi-sdk```.
 
+The default linker settings reserve TIC-80's first 96 KiB of linear memory by using a stack-first layout with `96 KiB + 8 KiB` of configured stack.
+
 Edit ```src/main.d``` to implement your game. You are of course free to
 organize your code in more than one D source file.
 

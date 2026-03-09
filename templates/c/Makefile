@@ -21,8 +21,10 @@ else
 endif
 
 # Linker flags
-LDFLAGS = -Wl,-zstack-size=8192,--no-entry,--import-memory -mexec-model=reactor \
-	-Wl,--initial-memory=262144,--max-memory=262144,--global-base=98304
+# TIC-80 reserves the first 96 KiB of linear memory, so reserve that space
+# inside the stack region and leave 8 KiB of actual stack above it.
+LDFLAGS = -Wl,-zstack-size=106496,--stack-first,--no-entry,--import-memory -mexec-model=reactor \
+	-Wl,--initial-memory=262144,--max-memory=262144
 ifeq ($(DEBUG), 1)
 	LDFLAGS += -Wl,--export-all,--no-gc-sections
 else
