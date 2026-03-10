@@ -1038,10 +1038,12 @@ static bool py_vbank(int argc, py_Ref argv)
 
 static bool py_fft(int argc, py_Ref argv)
 {
+    PY_CHECK_ARG_TYPE(0, tp_int);
     s32 startFreq = py_toint(py_arg(0));
     s32 endFreq = -1;
     if (!py_isnone(py_arg(1)))
     {
+        PY_CHECK_ARG_TYPE(1, tp_int);
         endFreq = py_toint(py_arg(1));
     }
     tic_core* core = get_core();
@@ -1052,10 +1054,12 @@ static bool py_fft(int argc, py_Ref argv)
 
 static bool py_ffts(int argc, py_Ref argv)
 {
+    PY_CHECK_ARG_TYPE(0, tp_int);
     s32 startFreq = py_toint(py_arg(0));
     s32 endFreq = -1;
     if (!py_isnone(py_arg(1)))
     {
+        PY_CHECK_ARG_TYPE(1, tp_int);
         endFreq = py_toint(py_arg(1));
     }
     tic_core* core = get_core();
