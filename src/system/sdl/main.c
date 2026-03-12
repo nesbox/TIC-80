@@ -1082,6 +1082,19 @@ static void handleKeydown(SDL_Keycode keycode, bool down, bool* state, bool* pre
 #endif
 }
 
+static void resetKeyboardStateOnFocusLoss()
+{
+    // Workaround for #2614: clear stuck keys when KEYUP is missed during window grab/focus loss.
+    ZEROMEM(platform.keyboard.state);
+    ZEROMEM(platform.keyboard.pressed);
+    platform.keyboard.text = '\0';
+    SDL_SetModState(KMOD_NONE);
+
+#if defined(TOUCH_INPUT_SUPPORT)
+    ZEROMEM(platform.keyboard.touch.state);
+#endif
+}
+
 tic_layout detect_keyboard_layout()
 {
     char q = SDL_GetKeyFromScancode(SDL_SCANCODE_Q);
@@ -1207,6 +1220,9 @@ static void pollEvents()
                     updateGamepadParts();
 #endif
                 }
+                break;
+            case SDL_WINDOWEVENT_FOCUS_LOST:
+                resetKeyboardStateOnFocusLoss();
                 break;
 #if defined(__LINUX__)
             case SDL_WINDOWEVENT_FOCUS_GAINED:
