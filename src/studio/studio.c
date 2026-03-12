@@ -2942,7 +2942,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     }
     studio->mainmenu = NULL;
     tic_fs_makedir(studio->fs, TIC_LOCAL);
-    tic_fs_makedir(studio->fs, TIC_LOCAL_VERSION);
 
     initConfig(studio->config, studio, studio->fs);
 
