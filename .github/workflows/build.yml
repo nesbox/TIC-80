@@ -2,17 +2,13 @@ name: Build
 
 on: [push, pull_request]
 
-# as recommended by: https://github.com/actions/checkout/issues/1590
-env:
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-
 jobs:
   # === Windows ===
   windows:
     runs-on: windows-2022
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -29,7 +25,7 @@ jobs:
           cmake --build . --config MinSizeRel --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-windows"
           path: |
@@ -61,7 +57,7 @@ jobs:
             git
             gcc
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -82,7 +78,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -105,7 +101,7 @@ jobs:
           cmake --build . --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-linux-gcc12"
           path: |
@@ -123,7 +119,7 @@ jobs:
     runs-on: ubuntu-22.04-arm
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -146,7 +142,7 @@ jobs:
           cmake --build . --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-linux-arm64-gcc12"
           path: |
@@ -164,7 +160,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -188,7 +184,7 @@ jobs:
           cmake --build . --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-linux-gcc14"
           path: |
@@ -207,7 +203,7 @@ jobs:
     container: miguelhrvs/baremetalapi-tic80:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -253,7 +249,7 @@ jobs:
           cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-rpi-baremetal"
           path: |
@@ -271,7 +267,7 @@ jobs:
     container: miguelhrvs/baremetalapi-tic80:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -317,7 +313,7 @@ jobs:
           cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-rpi4-baremetal"
           path: |
@@ -339,7 +335,7 @@ jobs:
     container: devkitpro/devkitarm:20250728
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -357,7 +353,7 @@ jobs:
           cmake --build build --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-nintendo-3ds"
           path: build/bin/tic80.3dsx
@@ -368,7 +364,7 @@ jobs:
     container: devkitpro/devkita64:20250728
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -386,7 +382,7 @@ jobs:
           cmake --build build --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-nintendo-switch"
           path: build/bin/tic80.nro
@@ -396,7 +392,7 @@ jobs:
     runs-on: macos-14
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -411,7 +407,7 @@ jobs:
           cmake --build . --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-macos-arm64"
           path: |
@@ -429,7 +425,7 @@ jobs:
     runs-on: macos-15-intel
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -444,7 +440,7 @@ jobs:
           cmake --build . --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-macos"
           path: |
@@ -462,7 +458,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -475,7 +471,7 @@ jobs:
           local-cache: true
 
       - name: set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -492,7 +488,7 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-android"
           path: build/android/tic80.apk
@@ -504,7 +500,7 @@ jobs:
     steps:
       - uses: mymindstorm/setup-emsdk@v14
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
           fetch-depth: 0
@@ -593,7 +589,7 @@ jobs:
           cp html/index.html bin/index.html
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: "tic80-html"
           path: |
