@@ -928,7 +928,8 @@ static s32 sym2dec(char sym)
 static s32 sym2hex(char sym)
 {
     s32 val = sym2dec(sym);
-    if (sym >= 'a' && sym <= 'f') val = sym - 'a' + 10;
+    sym = toupper((unsigned char)sym);
+    if(sym >= 'A' && sym <= 'F') val = sym - 'A' + 10;
 
     return val;
 }
