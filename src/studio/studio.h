@@ -47,7 +47,6 @@
 #else
 #define TIC_LOCAL ".local/"
 #endif
-#define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_HASH "/"
 #define TIC_CACHE TIC_LOCAL "cache/"
 
 #define TOOLBAR_SIZE 7
@@ -61,7 +60,7 @@
 #define TIC_COLOR_BG tic_color_black
 
 #define CONFIG_TIC "config.tic"
-#define CONFIG_TIC_PATH TIC_LOCAL_VERSION CONFIG_TIC
+#define CONFIG_TIC_PATH TIC_LOCAL CONFIG_TIC
 
 #define CART_EXT ".tic"
 #define PNG_EXT ".png"

@@ -764,7 +764,7 @@ static void loadCartSection(Console* console, const tic_cartridge* cart, const c
 
 static char* getDemoCartPath(char* path, const tic_script* script)
 {
-    strcpy(path, TIC_LOCAL_VERSION "default_");
+    strcpy(path, TIC_LOCAL "default_");
 
     if(script && script->name)
         strcat(path, script->name);
