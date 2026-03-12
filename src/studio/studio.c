@@ -2301,7 +2301,9 @@ static void processMouseStates(Studio* studio)
 
         state->dbl.ticks++;
     }
+#if !defined(__TIC_MACOSX__)
     tic->ram->input.mouse.scrollx *= -1;
+#endif
 }
 
 #if defined(BUILD_EDITORS)
