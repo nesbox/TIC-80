@@ -409,10 +409,15 @@ void sfx_stop(tic_mem* tic, s32 channel)
 
 char getKeyboardText(Studio* studio)
 {
+    tic_mem* tic = studio->tic;
+
+    // Ctrl-based shortcuts should not also inject printable characters.
+    if(tic_api_key(tic, tic_key_ctrl) && !tic_api_key(tic, tic_key_alt))
+        return '\0';
+
     char text;
     if(!tic_sys_keyboard_text(&text))
     {
-        tic_mem* tic = studio->tic;
         tic80_input* input = &tic->ram->input;
 
 #ifdef KEYBOARD_LAYOUT_ES
