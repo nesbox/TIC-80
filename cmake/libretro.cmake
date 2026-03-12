@@ -28,6 +28,7 @@ if(BUILD_LIBRETRO)
     target_include_directories(tic80_libretro PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}
         ${TIC80CORE_DIR}
+        ${THIRDPARTY_DIR}/lua
     )
 
     if(MINGW)
