@@ -441,15 +441,23 @@ static inline s32 mainMenuOffset(StudioMainMenu* menu)
     return 1;
 }
 
+static void saveConfig(StudioMainMenu* main)
+{
+    Config* config = studio_config_get(main->studio);
+    config->save(config);
+}
+
 static void onResumeGame(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
+    saveConfig(main);
     resumeGame(main->studio);
 }
 
 static void onResetGame(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
+    saveConfig(main);
     tic_api_reset(main->tic);
     setStudioMode(main->studio, TIC_RUN_MODE);
 }
@@ -457,18 +465,21 @@ static void onResetGame(void* data, s32 pos)
 static void onExitStudio(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
+    saveConfig(main);
     exitStudio(main->studio);
 }
 
 static void onExitGame(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
+    saveConfig(main);
     exitGame(main->studio);
 }
 
 static void onSurf(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
+    saveConfig(main);
     setStudioMode(main->studio, TIC_SURF_MODE);
 }
 

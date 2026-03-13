@@ -284,7 +284,9 @@ bool enterWasPressed(Studio* studio);
 bool anyKeyWasPressed(Studio* studio);
 bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period);
 
+typedef struct Config Config;
 const StudioConfig* getConfig(Studio* studio);
+Config* studio_config_get(Studio* studio);
 struct Start* getStartScreen(Studio* studio);
 struct Sprite* getSpriteEditor(Studio* studio);
 
