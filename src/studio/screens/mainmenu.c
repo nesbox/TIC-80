@@ -444,7 +444,7 @@ static inline s32 mainMenuOffset(StudioMainMenu* menu)
 static void saveConfig(StudioMainMenu* main)
 {
     Config* config = studio_config_get(main->studio);
-    config->save(config);
+    config->saveOptions(config);
 }
 
 static void onResumeGame(void* data, s32 pos)

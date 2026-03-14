@@ -140,7 +140,7 @@ static void reset(Config* config)
     saveConfig(config, true);
 }
 
-static void save(Config* config)
+static void saveConfigCart(Config* config)
 {
     *config->cart = config->tic->cart;
     readConfig(config);
@@ -199,7 +199,8 @@ void initConfig(Config* config, Studio* studio, tic_fs* fs)
         .studio = studio,
         .tic = getMemory(studio),
         .cart = realloc(config->cart, sizeof(tic_cartridge)),
-        .save = save,
+        .saveConfigCart = saveConfigCart,
+        .saveOptions = saveOptions,
         .reset = reset,
         .fs = fs,
     };
