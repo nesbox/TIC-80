@@ -35,7 +35,8 @@ struct Config
     StudioConfig data;
     tic_cartridge* cart;
 
-    void(*save)(Config*);
+    void(*saveConfigCart)(Config*);
+    void(*saveOptions)(Config*);
     void(*reset)(Config*);
 };
 

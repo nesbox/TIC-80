@@ -140,7 +140,7 @@ static void reset(Config* config)
     saveConfig(config, true);
 }
 
-static void save(Config* config)
+static void saveConfigCart(Config* config)
 {
     *config->cart = config->tic->cart;
     readConfig(config);
@@ -190,44 +190,6 @@ static void loadOptions(Config* config)
 #endif
         }
     }
-}
-
-void initConfig(Config* config, Studio* studio, tic_fs* fs)
-{
-    *config = (Config)
-    {
-        .studio = studio,
-        .tic = getMemory(studio),
-        .cart = realloc(config->cart, sizeof(tic_cartridge)),
-        .save = save,
-        .reset = reset,
-        .fs = fs,
-    };
-
-    setDefault(config);
-
-    // read config.tic
-    {
-        s32 size = 0;
-        u8* data = (u8*)tic_fs_loadroot(fs, CONFIG_TIC_PATH, &size);
-
-        if(data)
-        {
-            update(config, data, size);
-
-            free(data);
-        }
-        else saveConfig(config, false);
-    }
-
-    loadOptions(config);
-
-#if defined(__TIC_LINUX__)
-    // do not load fullscreen option on Linux
-    config->data.options.fullscreen = false;
-#endif
-
-    tic_api_reset(config->tic);
 }
 
 static string data2str(const void* data, s32 size)
@@ -285,6 +247,45 @@ static void saveOptions(Config* config)
         );
 
     tic_fs_saveroot(config->fs, OptionsJsonPath, buf.data, strlen(buf.data), true);
+}
+
+void initConfig(Config* config, Studio* studio, tic_fs* fs)
+{
+    *config = (Config)
+    {
+        .studio = studio,
+        .tic = getMemory(studio),
+        .cart = realloc(config->cart, sizeof(tic_cartridge)),
+        .saveConfigCart = saveConfigCart,
+        .saveOptions = saveOptions,
+        .reset = reset,
+        .fs = fs,
+    };
+
+    setDefault(config);
+
+    // read config.tic
+    {
+        s32 size = 0;
+        u8* data = (u8*)tic_fs_loadroot(fs, CONFIG_TIC_PATH, &size);
+
+        if(data)
+        {
+            update(config, data, size);
+
+            free(data);
+        }
+        else saveConfig(config, false);
+    }
+
+    loadOptions(config);
+
+#if defined(__TIC_LINUX__)
+    // do not load fullscreen option on Linux
+    config->data.options.fullscreen = false;
+#endif
+
+    tic_api_reset(config->tic);
 }
 
 void freeConfig(Config* config)

@@ -50,6 +50,7 @@ struct StudioMainMenu
     .count = COUNT_OF(((const char*[])__VA_ARGS__))
 
 static void showMainMenu(void* data, s32 pos);
+static void onBackFromOptionsMenu(void* data, s32 pos);
 
 StudioMainMenu* studio_mainmenu_init(Menu *menu, Config *config)
 {
@@ -330,7 +331,7 @@ static const MenuItem OptionMenu[] =
 #endif
     {"SETUP GAMEPAD",       showGamepadMenu},
     {""},
-    {"BACK",            showMainMenu, .back = true},
+    {"BACK",            onBackFromOptionsMenu, .back = true},
 };
 
 static void showOptionsMenu(void* data, s32 pos);
@@ -441,6 +442,15 @@ static inline s32 mainMenuOffset(StudioMainMenu* menu)
     return 1;
 }
 
+static void onBackFromOptionsMenu(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    Config* config = studio_config_get(main->studio);
+    config->saveOptions(config);
+
+    showMainMenu(data, pos);
+}
+
 static void onResumeGame(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
@@ -518,7 +528,7 @@ static void showOptionsMenuPos(void* data, s32 pos)
     StudioMainMenu* main = data;
 
     s32 offset = mainMenuOffset(main);
-    studio_menu_init(main->menu, OptionMenu, COUNT_OF(OptionMenu), pos, MainMenu_Options - offset, showMainMenu, main);
+    studio_menu_init(main->menu, OptionMenu, COUNT_OF(OptionMenu), pos, MainMenu_Options - offset, onBackFromOptionsMenu, main);
 }
 
 static void showOptionsMenu(void* data, s32 pos)
