@@ -242,6 +242,9 @@ jobs:
           cd baremetalpi
           make -j$(nproc)
           cd ../../vendor/circle-stdlib/libs/circle/boot/
+          sed -i \
+            -e 's|https://github.com/raspberrypi/firmware/blob/$(FIRMWARE)/boot|https://raw.githubusercontent.com/raspberrypi/firmware/$(FIRMWARE)/boot|' \
+            -e 's/?raw=true//' Makefile
           make -j$(nproc)
 
       - name: Pack
@@ -303,6 +306,9 @@ jobs:
           cd baremetalpi
           make -j$(nproc)
           cd ../../vendor/circle-stdlib/libs/circle/boot/
+          sed -i \
+            -e 's|https://github.com/raspberrypi/firmware/blob/$(FIRMWARE)/boot|https://raw.githubusercontent.com/raspberrypi/firmware/$(FIRMWARE)/boot|' \
+            -e 's/?raw=true//' Makefile
           make -j$(nproc)
 
       - name: Pack

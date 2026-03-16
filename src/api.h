@@ -324,6 +324,16 @@ enum
         "animated tiles or replace them completely.\n"                                                                  \
         "Some examples include changing sprites to open doorways, "                                                     \
         "hiding sprites used to spawn objects in your game and even to emit the objects themselves.\n"                  \
+        "Remap callback behavior is binding specific.\n"                                                                \
+        "Lua, Fennel, Moon and Yue call remap(tile,x,y) and expect tile,flip,rotate as return values.\n"               \
+        "JavaScript calls remap(tile,x,y) and accepts tile or [tile,flip,rotate].\n"                                   \
+        "Python (PocketPy) calls remap(x,y) and expects a tuple (tile,flip,rotate).\n"                                 \
+        "Ruby (mruby) calls remap(tile,x,y) and accepts tile or [tile,flip,rotate].\n"                                 \
+        "Janet calls remap(tile,x,y) and accepts tile or an indexed collection with tile,flip,rotate.\n"               \
+        "Scheme calls remap(tile,x,y) and expects a list with tile,flip,rotate.\n"                                     \
+        "Squirrel calls remap(tile,x,y) and reads tile,flip,rotate from an indexed return object.\n"                   \
+        "Wren calls remap(tile,x,y) and accepts tile or [tile,flip,rotate].\n"                                         \
+        "WASM uses a low-level callback that updates the RemapResult structure in place.\n"                             \
         "The tilemap is laid out sequentially in RAM - writing 1 to 0x08000 "                                           \
         "will cause tile(sprite) #1 to appear at top left when map() is called.\n"                                      \
         "To set the tile immediately below this we need to write to 0x08000 + 240, ie 0x080F0.",                        \

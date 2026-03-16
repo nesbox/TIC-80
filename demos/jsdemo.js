@@ -10,6 +10,8 @@ var t=0
 var x=96
 var y=24
 
+// map() remap callback in JavaScript receives (tile,x,y) and returns tile or [tile,flip,rotate].
+
 function TIC()
 {
 	if(btn(0))y--

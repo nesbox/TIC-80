@@ -23,6 +23,7 @@ message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
 message("VERSION_HASH: ${VERSION_HASH}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
+include(cmake/runtime_versions.cmake)
 
 if(ANDROID OR EMSCRIPTEN OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI)
     set(BUILD_STATIC_DEFAULT ON)
@@ -55,6 +56,9 @@ option(BUILD_WITH_ZLIB "Build with zlib linked" ON)
 option(TIC80_TARGET "Target binary suffix")
 option(PREFER_SYSTEM_LIBRARIES "Prefer link with system libraries" OFF)
 
+if(BUILD_EDITORS)
+    set(BUILD_SURF ON)
+endif()
 
 if(NOT TIC80_TARGET)
     set(TIC80_TARGET tic80)

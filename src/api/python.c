@@ -1036,6 +1036,38 @@ static bool py_vbank(int argc, py_Ref argv)
     return true;
 }
 
+static bool py_fft(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 startFreq = py_toint(py_arg(0));
+    s32 endFreq = -1;
+    if (!py_isnone(py_arg(1)))
+    {
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        endFreq = py_toint(py_arg(1));
+    }
+    tic_core* core = get_core();
+    double res = core->api.fft((tic_mem*)core, startFreq, endFreq);
+    py_newfloat(py_retval(), res);
+    return true;
+}
+
+static bool py_ffts(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 startFreq = py_toint(py_arg(0));
+    s32 endFreq = -1;
+    if (!py_isnone(py_arg(1)))
+    {
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        endFreq = py_toint(py_arg(1));
+    }
+    tic_core* core = get_core();
+    double res = core->api.ffts((tic_mem*)core, startFreq, endFreq);
+    py_newfloat(py_retval(), res);
+    return true;
+}
+
 /*************TIC-80 MISC BEGIN****************/
 
 static void bind_pkpy_v2()
@@ -1088,6 +1120,8 @@ static void bind_pkpy_v2()
     py_bind(mod, "trib(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)", py_trib);
     py_bind(mod, "tstamp() -> int", py_tstamp);
     py_bind(mod, "vbank(bank: int | None = None) -> int", py_vbank);
+    py_bind(mod, "fft(startFreq: int, endFreq=-1) -> float", py_fft);
+    py_bind(mod, "ffts(startFreq: int, endFreq=-1) -> float", py_ffts);
 }
 
 void close_pkpy_v2(tic_mem* tic)
