@@ -70,9 +70,16 @@ endif()
 
 if(NINTENDO_SWITCH)
     set(PREFER_SYSTEM_LIBRARIES ON)
+    if(NOT TIC_DATA_PATH)
+        set(TIC_DATA_PATH "/switch/tic80")
+    endif()
 endif()
 
 add_library(runtime INTERFACE)
+
+if(TIC_DATA_PATH)
+    target_compile_definitions(runtime INTERFACE TIC_DATA_PATH="${TIC_DATA_PATH}")
+endif()
 
 if(BUILD_STATIC)
     set(TIC_RUNTIME STATIC)
@@ -104,6 +111,18 @@ if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
         set(FREEBSD TRUE)
     endif()
 endif()
+
+if(LINUX AND CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm" AND CMAKE_CROSSCOMPILING)
+    set(USE_GLES2_DEFAULT ON)
+    set(USE_EGL_DEFAULT ON)
+else()
+    set(USE_GLES2_DEFAULT OFF)
+    set(USE_EGL_DEFAULT OFF)
+endif()
+
+option(PREFER_SYSTEM_SDL2 "Prefer system SDL2" ${PREFER_SYSTEM_LIBRARIES})
+option(USE_GLES2 "Use GLES2" ${USE_GLES2_DEFAULT})
+option(USE_EGL "Use EGL" ${USE_EGL_DEFAULT})
 
 if (BUILD_NO_OPTIMIZATION)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0")
