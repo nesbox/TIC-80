@@ -1,7 +1,7 @@
 ################################
 # SDL2
 ################################
-if(PREFER_SYSTEM_LIBRARIES)
+if(PREFER_SYSTEM_SDL2)
     find_package(SDL2)
     if(SDL2_FOUND)
         if(NINTENDO_SWITCH)
@@ -18,7 +18,7 @@ if(PREFER_SYSTEM_LIBRARIES)
 endif()
 
 
-if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_LIBRARIES)
+if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_SDL2)
 
     if(WIN32)
         set(HAVE_LIBC TRUE)
@@ -69,9 +69,12 @@ if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
         target_link_options(player-sdl PRIVATE -static)
     endif()
 
-    target_link_libraries(player-sdl PRIVATE tic80core SDL2main)
+    target_link_libraries(player-sdl PRIVATE tic80core)
+    if(NOT PREFER_SYSTEM_SDL2)
+        target_link_libraries(player-sdl PRIVATE SDL2main)
+    endif()
 
-    if(BUILD_STATIC)
+    if(BUILD_STATIC AND NOT USE_GLES2)
         target_link_libraries(player-sdl PRIVATE SDL2-static)
     else()
         target_link_libraries(player-sdl PRIVATE SDL2)
@@ -94,7 +97,7 @@ set(SDLGPU_SRC
     ${SDLGPU_DIR}/externals/stb_image_write/stb_image_write.c
 )
 
-if(NOT ANDROID AND NOT NINTENDO_SWITCH)
+if(NOT ANDROID AND NOT NINTENDO_SWITCH AND NOT USE_GLES2)
     list(APPEND SDLGPU_SRC
         ${SDLGPU_DIR}/renderer_GLES_1.c
         ${SDLGPU_DIR}/renderer_GLES_3.c
@@ -110,24 +113,41 @@ endif()
 
 add_library(sdlgpu STATIC ${SDLGPU_SRC})
 
-if(EMSCRIPTEN OR ANDROID OR NINTENDO_SWITCH)
+if(EMSCRIPTEN OR ANDROID OR NINTENDO_SWITCH OR USE_GLES2)
     target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3 SDL_GPU_DISABLE_OPENGL)
 else()
     target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
 endif()
 
 target_include_directories(sdlgpu PUBLIC ${THIRDPARTY_DIR}/sdl-gpu/include)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
 target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/glew)
 target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/glew/GL)
 target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image)
 target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image_write)
+
+if(USE_GLES2 OR USE_EGL)
+    target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl2/src/video/khronos)
+endif()
 
 if(WIN32)
     target_link_libraries(sdlgpu opengl32)
 endif()
 
 if(LINUX)
-    target_link_libraries(sdlgpu GL)
+    if(USE_GLES2)
+        target_link_libraries(sdlgpu GLESv2)
+    endif()
+
+    if(USE_EGL)
+        target_link_libraries(sdlgpu EGL)
+    endif()
+
+    if(NOT USE_GLES2 AND NOT USE_EGL)
+        target_link_libraries(sdlgpu GL)
+    endif()
+
+    target_link_libraries(sdlgpu SDL2)
 endif()
 
 if(APPLE)
@@ -153,7 +173,7 @@ if(NINTENDO_SWITCH)
 endif()
 
 if(NOT EMSCRIPTEN)
-    if(BUILD_STATIC)
+    if(BUILD_STATIC AND NOT USE_GLES2)
         target_link_libraries(sdlgpu SDL2-static)
     else()
         target_link_libraries(sdlgpu SDL2)
@@ -187,6 +207,8 @@ if(BUILD_SDL)
         add_executable(${TIC80_TARGET} ${TIC80_SRC})
     endif()
 
+    target_include_directories(${TIC80_TARGET} PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
+
     if(MINGW)
         target_link_libraries(${TIC80_TARGET} mingw32)
         target_link_options(${TIC80_TARGET} PRIVATE -static -mconsole)
@@ -200,7 +222,7 @@ if(BUILD_SDL)
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ASSERTIONS=1")
         endif()
 
-    elseif(NOT ANDROID)
+    elseif(NOT ANDROID AND NOT PREFER_SYSTEM_SDL2)
         target_link_libraries(${TIC80_TARGET} SDL2main)
     endif()
 
@@ -223,12 +245,15 @@ if(BUILD_SDL)
 
     if(BUILD_SDLGPU)
         target_link_libraries(${TIC80_TARGET} sdlgpu)
+        if(LINUX)
+            target_link_libraries(${TIC80_TARGET} pthread dl m)
+        endif()
     else()
         if(EMSCRIPTEN)
         elseif(RPI)
             target_link_libraries(${TIC80_TARGET} libSDL2.a bcm_host pthread)
         else()
-            if(BUILD_STATIC)
+            if(BUILD_STATIC AND NOT USE_GLES2)
                 target_link_libraries(${TIC80_TARGET} SDL2-static)
             else()
                 target_link_libraries(${TIC80_TARGET} SDL2)
