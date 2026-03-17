@@ -70,9 +70,16 @@ endif()
 
 if(NINTENDO_SWITCH)
     set(PREFER_SYSTEM_LIBRARIES ON)
+    if(NOT TIC_DATA_PATH)
+        set(TIC_DATA_PATH "/switch/tic80")
+    endif()
 endif()
 
 add_library(runtime INTERFACE)
+
+if(TIC_DATA_PATH)
+    target_compile_definitions(runtime INTERFACE TIC_DATA_PATH="${TIC_DATA_PATH}")
+endif()
 
 if(BUILD_STATIC)
     set(TIC_RUNTIME STATIC)
