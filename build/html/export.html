@@ -11,59 +11,153 @@
         #game-frame > div { font-size: 44px; font-family: monospace; font-weight: bold;}
 
         /* You can set custom dimensions here */
-        .game { width: 100vw; height: 100vh; }
+        .game { width: 100vw; height: 100vh; position: relative; background: #1a1c2c; }
 
-        /* Uncomment to remove the frame on top of the canvas and start the game directly */
-        /* #game-frame { display: none; } */
+        :root { --borderColor: #999; --activeColor: #777; }
+        div[hidden] { display: none; }
+        .touch-control { color: var(--borderColor); border: 1px solid var(--borderColor); display: flex; align-items: center; justify-content: center; font-family: sans-serif; font-weight: bold; pointer-events: auto; }
+        .touch-control.touch-button { border-radius: 50%; background: transparent; min-width: 60px; min-height: 60px;  }
+        .touch-control.active { background-color: var(--activeColor); }
+        .touch-control.active path { fill: var(--activeColor); }
+        .touch-button-grid {
+            position: absolute;
+            top: 50%;
+            right: 40px;
+            display: grid;
+            grid-template-areas:
+                ". y ."
+                "x . b"
+                ". a .";
+            gap: 0;
+            width: 150px;
+            height: 150px;
+        }
+        .touch-button { font-size: 16pt; }
+        .touch-button[data-button=y] { grid-area: y; }
+        .touch-button[data-button=x] { grid-area: x; }
+        .touch-button[data-button=b] { grid-area: b; }
+        .touch-button[data-button=a] { grid-area: a; }
+        .dpad { position: absolute; width: 180px; height: 180px; top: 50%; left: 10px; }
+        .dpad-button { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .dpad-square { fill: transparent; cursor: pointer; }
+        .dpad-triangle { fill: none; stroke: var(--borderColor); stroke-width: 1; }
+        .dpad-arrow { fill: none; stroke: var(--borderColor); stroke-width: 1; stroke-linejoin: round; }
+        .menu-grid { position: absolute; top: 10px; left: 10px; display: flex; }
+        .menu-grid .menu-button { min-width: 32px; min-height: 32px; margin-right: 2px; }
     </style>
 </head>
 <body style="margin:0; padding:0;">
 
-    <div class="game" style="margin: 0; position: relative; background: #1a1c2c;">
-
-        <div id="game-frame" style="cursor: pointer; position: absolute; margin: 0 auto; opacity: 1; background: #1a1c2c; width: 100%; height: 100%;">
+    <div class="game">
+        <div id="game-frame" style="cursor: pointer; position: absolute; margin: 0 auto; opacity: 1; background: #1a1c2c; width: 100%; height: 100%; z-index: 10;">
             <div style="text-align: center; color: white; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
                 <p style="margin: 0;">- CLICK TO PLAY -</p>
             </div>
-
         </div>
 
         <canvas style="width: 100%; height: 100%; margin: 0 auto; display: block; image-rendering: pixelated;" id="canvas" oncontextmenu="event.preventDefault()" onmousedown="window.focus()" tabindex="0"></canvas>
+
+        <div class="menu-grid" hidden>
+            <div class="touch-control menu-button" data-button="esc">☰</div>
+            <div class="touch-control menu-button" data-button="fullscreen">
+                <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32px" height="32px" viewBox="0 0 100 100">
+                <path d="M20 20L80 80M80 20L20 80M20 30L20 20 30 20M80 30L80 20 70 20M20 70L20 80 30 80M70 80L80 80 80 70" fill="none" stroke="#fff" stroke-width="2"/></svg>
+            </div>
+        </div>
+
+        <div class="dpad" hidden>
+            <svg class="dpad-button" viewBox="-2 -2 184 184">
+                <g class="touch-control" data-button="up">
+                    <path class="dpad-square" d="M 60 0 H 120 V 60 L 90 90 L 60 60 Z" />
+                    <path class="dpad-triangle" d="M 60 60 V 0 H 120 V 60" />
+                    <path class="dpad-arrow" d="M 78 27 L 90 12 L 102 27 Z" />
+                </g>
+            </svg>
+            <svg class="dpad-button" viewBox="-2 -2 184 184">
+                <g class="touch-control" data-button="right">
+                    <path class="dpad-square" d="M 180 60 V 120 H 120 L 90 90 L 120 60 Z" />
+                    <path class="dpad-triangle" d="M 120 60 H 180 V 120 H 120" />
+                    <path class="dpad-arrow" d="M 153 78 L 168 90 L 153 102 Z" />
+                </g>
+            </svg>
+            <svg class="dpad-button" viewBox="-2 -2 184 184">
+                <g class="touch-control" data-button="down">
+                    <path class="dpad-square" d="M 60 180 H 120 V 120 L 90 90 L 60 120 Z" />
+                    <path class="dpad-triangle" d="M 120 120 V 180 H 60 V 120" />
+                    <path class="dpad-arrow" d="M 78 153 L 90 168 L 102 153 Z" />
+                </g>
+            </svg>
+            <svg class="dpad-button" viewBox="-2 -2 184 184">
+                <g class="touch-control" data-button="left">
+                    <path class="dpad-square" d="M 0 60 V 120 H 60 L 90 90 L 60 60 Z" />
+                    <path class="dpad-triangle" d="M 60 120 H 0 V 60 H 60" />
+                    <path class="dpad-arrow" d="M 27 78 L 12 90 L 27 102 Z" />
+                </g>
+            </svg>
+        </div>
+
+        <div class="touch-button-grid" hidden>
+            <button class="touch-control touch-button" data-button="y">Y</button>
+            <button class="touch-control touch-button" data-button="x">X</button>
+            <button class="touch-control touch-button" data-button="b">B</button>
+            <button class="touch-control touch-button" data-button="a">A</button>
+        </div>
     </div>
 
     <script type="text/javascript">
-        var Module = {canvas: document.getElementById('canvas'), arguments:['cart.tic']};
+        var Module = {
+            canvas: document.getElementById('canvas'),
+            arguments:['cart.tic'],
+            touchControlsEnabled: true,
+            preRun: [function() {
+                const optionsDir = "/com.nesbox.tic/TIC-80/.local";
+                const optionsPath = optionsDir + "/options.json";
 
-        // Safari/WebKit-only: remap Arrow keys with location 3 (numpad) to location 0.
+                const forceIntegerScaleOff = () => {
+                    try {
+                        FS.mkdirTree(optionsDir);
+                        let options = {};
+                        try {
+                            options = JSON.parse(FS.readFile(optionsPath, { encoding: "utf8" }));
+                        } catch (e) {}
+                        options.integerScale = false;
+                        FS.writeFile(optionsPath, JSON.stringify(options));
+                    } catch (e) {
+                        console.warn("Could not set TIC-80 integerScale option:", e);
+                    }
+                };
+
+                const originalSyncfs = FS.syncfs.bind(FS);
+                FS.syncfs = function(populate, callback) {
+                    return originalSyncfs(populate, function(err) {
+                        forceIntegerScaleOff();
+                        if (callback) callback(err);
+                    });
+                };
+                forceIntegerScaleOff();
+            }]
+        };
+
+        // Safari Fixes
         (function(){
             const ua = navigator.userAgent || '';
             const isWebKit = /AppleWebKit/i.test(ua);
             if (!isWebKit) return;
-
             const synthesizeArrowWithLocation0 = (orig) => {
                 try {
                     const ev = new KeyboardEvent(orig.type, {
-                        key: orig.key,
-                        code: orig.code,
-                        location: 0,
-                        repeat: orig.repeat,
-                        ctrlKey: orig.ctrlKey,
-                        shiftKey: orig.shiftKey,
-                        altKey: orig.altKey,
-                        metaKey: orig.metaKey,
-                        bubbles: true,
-                        cancelable: true,
+                        key: orig.key, code: orig.code, location: 0, repeat: orig.repeat,
+                        ctrlKey: orig.ctrlKey, shiftKey: orig.shiftKey, altKey: orig.altKey, metaKey: orig.metaKey,
+                        bubbles: true, cancelable: true
                     });
                     Object.defineProperty(ev, 'which', { get: () => orig.which });
                     Object.defineProperty(ev, 'keyCode', { get: () => orig.keyCode });
                     return ev;
                 } catch { return null; }
             };
-
             const remapArrowLocationCapture = (e) => {
                 const isArrow = (e.key && e.key.startsWith('Arrow')) || (e.code && e.code.startsWith('Arrow'));
-                if (!isArrow) return;
-                if (e.location === 3) {
+                if (isArrow && e.location === 3) {
                     const syn = synthesizeArrowWithLocation0(e);
                     if (syn) {
                         e.stopImmediatePropagation();
@@ -72,45 +166,84 @@
                     }
                 }
             };
-
             ['keydown','keyup'].forEach(t => document.addEventListener(t, remapArrowLocationCapture, true));
         })();
 
-        // Prevent page scrolling while the game canvas is focused
+        // Scroll Prevention
         (function(){
             const canvasEl = document.getElementById('canvas');
             const preventArrowDefault = (e) => {
                 const key = e.key || e.code;
-                const kc = e.keyCode || e.which;
-                const isArrow = (key && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)) || (kc >= 37 && kc <= 40);
+                const isArrow = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key);
                 if (isArrow && document.activeElement === canvasEl) e.preventDefault();
             };
             document.addEventListener('keydown', preventArrowDefault, { passive: false });
-            canvasEl.addEventListener('keydown', preventArrowDefault, { passive: false });
         })();
 
-        const gameFrame = document.getElementById('game-frame')
+        const gameFrame = document.getElementById('game-frame');
         const displayStyle = window.getComputedStyle(gameFrame).display;
 
-        if (displayStyle === 'none') 
-        {
-            let scriptTag = document.createElement('script'), // create a script tag
-            firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
-            scriptTag.src = 'tic80.js'; // set the source of the script to your script
-            firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
-            // Focus canvas to ensure keyboard events are routed to the game
-            document.getElementById('canvas').focus()
-        } else {
-            gameFrame.addEventListener('click', function() {
-                let scriptTag = document.createElement('script'), // create a script tag
-                firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
-                scriptTag.src = 'tic80.js'; // set the source of the script to your script
-                firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
-                this.remove()
-                // Focus canvas to ensure keyboard events are routed to the game
-                document.getElementById('canvas').focus()
-            });
-        }
+        gameFrame.addEventListener('click', function() {
+            let scriptTag = document.createElement('script'),
+            firstScriptTag = document.getElementsByTagName('script')[0];
+            scriptTag.src = 'tic80.js';
+            firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag);
+            this.remove();
+            document.getElementById('canvas').focus();
+
+            if (navigator.maxTouchPoints > 0 && Module.touchControlsEnabled) {
+                try { document.body.requestFullscreen() } catch(e) {}
+                const elements = document.querySelectorAll('.dpad, .touch-button-grid, .menu-grid');
+                elements.forEach(element => element.removeAttribute("hidden"));
+
+                const keyMap = {
+                    up: { key: 'ArrowUp', code: 'ArrowUp', keyCode: 38 },
+                    down: { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40 },
+                    left: { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 },
+                    right: { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
+                    a: { key: 'z', code: 'KeyZ', keyCode: 90 },
+                    esc: { key: 'Escape', code: 'Escape', keyCode: 27 }
+                };
+
+                const sendInputToGame = (direction, isPressed) => {
+                    if (isPressed && direction == "fullscreen") {
+                        if (!document.fullscreenElement) document.body.requestFullscreen();
+                        else if (document.exitFullscreen) document.exitFullscreen();
+                        return;
+                    }
+                    const config = keyMap[direction];
+                    if (!config) return;
+                    const event = new KeyboardEvent(isPressed ? 'keydown' : 'keyup', { ...config, bubbles: true, cancelable: true });
+                    document.getElementById('canvas').dispatchEvent(event);
+                };
+
+                let currentActiveButton = null;
+                const handleTouchMove = (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                    const targetButton = el ? el.closest('.touch-control') : null;
+                    if (targetButton !== currentActiveButton) {
+                        if (currentActiveButton) sendInputToGame(currentActiveButton.getAttribute('data-button'), false);
+                        if (targetButton) {
+                            sendInputToGame(targetButton.getAttribute('data-button'), true);
+                            if (navigator.vibrate) navigator.vibrate(20);
+                        }
+                        currentActiveButton = targetButton;
+                    }
+                };
+                const handleTouchEnd = (e) => {
+                    if (currentActiveButton) {
+                        sendInputToGame(currentActiveButton.getAttribute('data-button'), false);
+                        currentActiveButton = null;
+                    }
+                };
+                const gameContainer = document.querySelector('.game');
+                gameContainer.addEventListener('touchstart', handleTouchMove, { passive: false });
+                gameContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+                gameContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
+            }
+        });
     </script>
 </body>
 </html>
