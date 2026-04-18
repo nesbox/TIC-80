@@ -398,7 +398,7 @@ You can find the compiled version ready download and install [on F-Droid](https:
 * CliffsDover — [Twitter @DancingBottle](https://twitter.com/DancingBottle)
 * Frantisek Jahoda — [GitHub @jahodfra](https://github.com/jahodfra)
 * Guilherme Medeiros — [GitHub @frenetic](https://github.com/frenetic)
-* Andrei Rudenko — [GitHub @RudenkoArts](https://github.com/RudenkoArts)
+* Andrei Rudenko — [GitHub @AndreiRudenko](https://github.com/AndreiRudenko)
 * Phil Hagelberg — [@technomancy](https://technomancy.us/colophon)
 * Rob Loach — [Twitter @RobLoach](https://twitter.com/RobLoach) [GitHub @RobLoach](https://github.com/RobLoach)
 * Wade Brainerd — [GitHub @wadetb](https://github.com/wadetb)
