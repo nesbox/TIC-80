@@ -20,7 +20,7 @@ endif()
 
 message("BUILD_WITH_LUA: ${BUILD_WITH_LUA}")
 
-set(LUAJIT_DIR ${THIRDPARTY_DIR}/LuaJIT)
+set(LUAJIT_DIR ${THIRDPARTY_DIR}/LuaJIT CACHE PATH "Path to LuaJIT")
 add_subdirectory(${THIRDPARTY_DIR}/luajit-cmake)
 
 add_library(luaapi STATIC
