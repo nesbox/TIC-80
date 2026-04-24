@@ -28,10 +28,6 @@
 #include <lualib.h>
 #include <ctype.h>
 
-#if LUA_VERSION_NUM < 502
-#define luaL_requiref(L, name, func, glb) (func(L), lua_setglobal(L, name))
-#endif
-
 #if LUA_VERSION_NUM < 503
 #define lua_isinteger(L, idx) (lua_type(L, (idx)) == LUA_TNUMBER && lua_isnumber(L, (idx)))
 #endif
@@ -1620,22 +1616,7 @@ static int lua_loadfile(lua_State *lua)
 
 void luaapi_open(lua_State *lua)
 {
-    static const luaL_Reg loadedlibs[] =
-    {
-        { "_G", luaopen_base },
-        { LUA_LOADLIBNAME, luaopen_package },
-        { LUA_TABLIBNAME, luaopen_table },
-        { LUA_STRLIBNAME, luaopen_string },
-        { LUA_MATHLIBNAME, luaopen_math },
-        { LUA_DBLIBNAME, luaopen_debug },
-        { NULL, NULL }
-    };
-
-    for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
-    {
-        luaL_requiref(lua, lib->name, lib->func, 1);
-        lua_pop(lua, 1);
-    }
+    luaL_openlibs(lua); // Open all standard libraries
 }
 
 void luaapi_init(tic_core* core)
