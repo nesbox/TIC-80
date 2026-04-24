@@ -28,6 +28,14 @@
 #include <lualib.h>
 #include <ctype.h>
 
+#if LUA_VERSION_NUM < 502
+#define luaL_requiref(L, name, func, glb) (func(L), lua_setglobal(L, name))
+#endif
+
+#if LUA_VERSION_NUM < 503
+#define lua_isinteger(L, idx) (lua_type(L, (idx)) == LUA_TNUMBER && lua_isnumber(L, (idx)))
+#endif
+
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 static inline s32 getLuaNumber(lua_State* lua, s32 index)
@@ -1051,7 +1059,8 @@ static s32 lua_sfx(lua_State* lua)
                             {
                                 for(s32 i = 0; i < COUNT_OF(volumes); i++)
                                 {
-                                    volumes[i] = lua_rawgeti(lua, 5, i + 1);
+                                    lua_rawgeti(lua, 5, i + 1);
+                                    volumes[i] = lua_tointeger(lua, -1);
                                     lua_pop(lua, 1);
                                 }
                             }
@@ -1615,7 +1624,6 @@ void luaapi_open(lua_State *lua)
     {
         { "_G", luaopen_base },
         { LUA_LOADLIBNAME, luaopen_package },
-        { LUA_COLIBNAME, luaopen_coroutine },
         { LUA_TABLIBNAME, luaopen_table },
         { LUA_STRLIBNAME, luaopen_string },
         { LUA_MATHLIBNAME, luaopen_math },

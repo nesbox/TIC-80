@@ -33,50 +33,6 @@
 extern tic_script EXPORT_SCRIPT(Lua);
 #endif
 
-#if defined(TIC_BUILD_WITH_RUBY)
-extern tic_script EXPORT_SCRIPT(Ruby);
-#endif
-
-#if defined(TIC_BUILD_WITH_JS)
-extern tic_script EXPORT_SCRIPT(Js);
-#endif
-
-#if defined(TIC_BUILD_WITH_MOON)
-extern tic_script EXPORT_SCRIPT(Moon);
-#endif
-
-#if defined(TIC_BUILD_WITH_YUE)
-extern tic_script EXPORT_SCRIPT(Yue);
-#endif
-
-#if defined(TIC_BUILD_WITH_FENNEL)
-extern tic_script EXPORT_SCRIPT(Fennel);
-#endif
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-extern tic_script EXPORT_SCRIPT(Squirrel);
-#endif
-
-#if defined(TIC_BUILD_WITH_SCHEME)
-extern tic_script EXPORT_SCRIPT(Scheme);
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-extern tic_script EXPORT_SCRIPT(Wren);
-#endif
-
-#if defined(TIC_BUILD_WITH_WASM)
-extern tic_script EXPORT_SCRIPT(Wasm);
-#endif
-
-#if defined(TIC_BUILD_WITH_JANET)
-extern tic_script EXPORT_SCRIPT(Janet);
-#endif
-
-#if defined(TIC_BUILD_WITH_PYTHON)
-extern tic_script EXPORT_SCRIPT(Python);
-#endif
-
 #endif
 
 static const tic_script *Scripts[MAX_SUPPORTED_LANGS + 1] =
@@ -85,51 +41,6 @@ static const tic_script *Scripts[MAX_SUPPORTED_LANGS + 1] =
     #if defined (TIC_BUILD_WITH_LUA)
     &EXPORT_SCRIPT(Lua),
     #endif
-
-    #if defined(TIC_BUILD_WITH_RUBY)
-    &EXPORT_SCRIPT(Ruby),
-    #endif
-
-    #if defined(TIC_BUILD_WITH_JS)
-    &EXPORT_SCRIPT(Js),
-    #endif
-
-    #if defined(TIC_BUILD_WITH_MOON)
-    &EXPORT_SCRIPT(Moon),
-    #endif
-
-    #if defined(TIC_BUILD_WITH_YUE)
-    &EXPORT_SCRIPT(Yue),
-    #endif
-
-    #if defined(TIC_BUILD_WITH_FENNEL)
-    &EXPORT_SCRIPT(Fennel),
-    #endif
-
-    #if defined(TIC_BUILD_WITH_SCHEME)
-    &EXPORT_SCRIPT(Scheme),
-    #endif
-
-    #if defined(TIC_BUILD_WITH_SQUIRREL)
-    &EXPORT_SCRIPT(Squirrel),
-    #endif
-
-    #if defined(TIC_BUILD_WITH_WREN)
-    &EXPORT_SCRIPT(Wren),
-    #endif
-
-    #if defined(TIC_BUILD_WITH_WASM)
-    &EXPORT_SCRIPT(Wasm),
-    #endif
-
-    #if defined(TIC_BUILD_WITH_JANET)
-    &EXPORT_SCRIPT(Janet),
-    #endif
-
-    #if defined(TIC_BUILD_WITH_PYTHON)
-    &EXPORT_SCRIPT(Python),
-    #endif
-
 #endif
 
     NULL,
