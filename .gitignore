@@ -194,3 +194,5 @@ build/*.map
 # 3ds files
 *.3dsx
 *.smdh
+.gemini
+build/runtime_versions.h

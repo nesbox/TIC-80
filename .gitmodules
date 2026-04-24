@@ -89,3 +89,9 @@
 [submodule "vendor/lpeg"]
 	path = vendor/lpeg
 	url = https://github.com/roberto-ieru/LPeg.git
+[submodule "vendor/luajit-cmake"]
+	path = vendor/luajit-cmake
+	url = https://github.com/zhaozg/luajit-cmake.git
+[submodule "vendor/LuaJIT"]
+	path = vendor/LuaJIT
+	url = https://github.com/LuaJIT/LuaJIT.git
