@@ -27,7 +27,6 @@ jobs:
           cd build
           cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --config MinSizeRel --parallel
-
       - name: Deploy
         uses: actions/upload-artifact@v4
         with:
@@ -63,11 +62,13 @@ jobs:
           path: |
             build/bin/tic80.exe
             build/bin/*.dll
+            include/redistributable_bin/win64/steam_api64.dll
+
       - name: Build Steam Export
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON -DBUILD_WITH_STEAM=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON ..
           cmake --build . --config MinSizeRel --parallel
       - name: Deploy Steam Export
         uses: actions/upload-artifact@v4
@@ -75,7 +76,9 @@ jobs:
           name: "tic80-windows-steam-export"
           path: |
             build/bin/tic80.exe
-            build/bin/*.dll¨
+            build/bin/*.dll
+            include/redistributable_bin/win64/steam_api64.dll
+
 
   # === Ubuntu ===
   linux-gcc12-glibc235:
@@ -121,7 +124,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=OFF -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=ON ..
+          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON ..
           cmake --build . --config MinSizeRel --parallel
       - name: Deploy Steam Export
         uses: actions/upload-artifact@v4
@@ -130,6 +133,8 @@ jobs:
           path: |
             build/bin/tic80
             build/bin/*.so
+            include/redistributable_bin/linux64/libsteam_api.so
+
   # === Ubuntu gcc14 ===
   linux-gcc14-glibc239:
     runs-on: ubuntu-24.04
@@ -242,7 +247,7 @@ jobs:
       - name: Build Steam Export
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_STEAM=On -DBUILD_EDITORS=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_WITH_STEAM=On -DBUILD_EDITORS=OFF -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       - name: Deploy Steam Export
@@ -252,3 +257,4 @@ jobs:
           path: |
             build/bin/tic80
             build/bin/*.dylib
+            include/redistributable_bin/osx/libsteam_api.dylib
