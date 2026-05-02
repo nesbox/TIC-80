@@ -130,7 +130,6 @@ jobs:
           cmake --build . --config MinSizeRel --parallel
 
       - name: Build Steam Export
-        shell: cmd
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON ..
