@@ -187,6 +187,8 @@ build/mruby_vendor-prefix/
 /*.lua
 /*.tic
 
-# Steamworks SDK
-include/steam/*
-include/redistributable_bin/*
+# steam lib
+!include/steam/lib
+# 3ds files
+*.3dsx
+*.smdh
