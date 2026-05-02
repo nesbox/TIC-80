@@ -55,6 +55,10 @@ jobs:
           cd build
           cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DBUILD_WITH_STEAM=ON ..
           cmake --build . --config MinSizeRel --parallel
+
+      - name: Prepare Steam Export
+        run: cp include/redistributable_bin/win64/steam_api64.dll build/bin/
+
       - name: Deploy Pro Steam
         uses: actions/upload-artifact@v4
         with:
@@ -62,7 +66,7 @@ jobs:
           path: |
             build/bin/tic80.exe
             build/bin/*.dll
-            include/redistributable_bin/win64/steam_api64.dll
+            build/bin/steam_api64.dll
 
       - name: Build Steam Export
         shell: cmd
@@ -70,6 +74,10 @@ jobs:
           cd build
           cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON ..
           cmake --build . --config MinSizeRel --parallel
+
+      - name: Prepare Steam Export
+        run: cp include/redistributable_bin/win64/steam_api64.dll build/bin/
+
       - name: Deploy Steam Export
         uses: actions/upload-artifact@v4
         with:
@@ -77,7 +85,7 @@ jobs:
           path: |
             build/bin/tic80.exe
             build/bin/*.dll
-            include/redistributable_bin/win64/steam_api64.dll
+            build/bin/steam_api64.dll
 
 
   # === Ubuntu ===
@@ -120,12 +128,17 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config MinSizeRel --parallel
+
       - name: Build Steam Export
         shell: cmd
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON ..
           cmake --build . --config MinSizeRel --parallel
+
+      - name: Prepare Steam Export
+        run: cp include/redistributable_bin/linux64/libsteam_api.so build/bin/
+
       - name: Deploy Steam Export
         uses: actions/upload-artifact@v4
         with:
@@ -133,7 +146,7 @@ jobs:
           path: |
             build/bin/tic80
             build/bin/*.so
-            include/redistributable_bin/linux64/libsteam_api.so
+            build/bin/libsteam_api.so
 
   # === Ubuntu gcc14 ===
   linux-gcc14-glibc239:
@@ -250,6 +263,9 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_WITH_STEAM=On -DBUILD_EDITORS=OFF -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
+      - name: Prepare Steam Export
+        run: cp include/redistributable_bin/osx/libsteam_api.dylib build/bin/
+
       - name: Deploy Steam Export
         uses: actions/upload-artifact@v4
         with:
@@ -257,4 +273,4 @@ jobs:
           path: |
             build/bin/tic80
             build/bin/*.dylib
-            include/redistributable_bin/osx/libsteam_api.dylib
+            build/bin/libsteam_api.dylib
