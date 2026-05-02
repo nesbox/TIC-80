@@ -42,13 +42,40 @@ jobs:
           cd build
           cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config MinSizeRel --parallel
+      - name: Deploy Pro
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-windows-pro"
+          path: |
+            build/bin/tic80.exe
+            build/bin/*.dll
 
       - name: Build Pro Steam
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DBUILD_WITH_STEAM=ON -DBUILD_STATIC=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DBUILD_WITH_STEAM=ON ..
           cmake --build . --config MinSizeRel --parallel
+      - name: Deploy Pro Steam
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-windows-pro-steam"
+          path: |
+            build/bin/tic80.exe
+            build/bin/*.dll
+      - name: Build Steam Export
+        shell: cmd
+        run: |
+          cd build
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON -DBUILD_WITH_STEAM=ON ..
+          cmake --build . --config MinSizeRel --parallel
+      - name: Deploy Steam Export
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-windows-steam-export"
+          path: |
+            build/bin/tic80.exe
+            build/bin/*.dll¨
 
   # === Ubuntu ===
   linux-gcc12-glibc235:
@@ -90,7 +117,19 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config MinSizeRel --parallel
-
+      - name: Build Steam Export
+        shell: cmd
+        run: |
+          cd build
+          cmake DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=OFF -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=ON ..
+          cmake --build . --config MinSizeRel --parallel
+      - name: Deploy Steam Export
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-linux-steam-export"
+          path: |
+            build/bin/tic80
+            build/bin/*.so
   # === Ubuntu gcc14 ===
   linux-gcc14-glibc239:
     runs-on: ubuntu-24.04
@@ -199,3 +238,17 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
+
+      - name: Build Steam Export
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_STEAM=On -DBUILD_EDITORS=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --parallel
+
+      - name: Deploy Steam Export
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-macos-steam-export"
+          path: |
+            build/bin/tic80
+            build/bin/*.dylib
