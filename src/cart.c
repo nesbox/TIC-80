@@ -68,8 +68,8 @@ typedef struct
     u32 type:5; // ChunkType
     u32 bank:TIC_BANK_BITS;
 #endif
-    u32 size:TIC_BANKSIZE_BITS; // max chunk size is 64K
-    u32 temp:8;
+    u32 size:TIC_BANKSIZE_BITS; // max chunk size is 128K
+    u32 temp:7;
 } Chunk;
 
 static_assert(sizeof(Chunk) == 4, "tic_chunk_size");
