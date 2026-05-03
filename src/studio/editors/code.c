@@ -35,9 +35,9 @@
 #define SIDEBAR_WIDTH (12 * TIC_FONT_WIDTH)
 
 #if defined(TIC80_PRO)
-#   define MAX_CODE sizeof(tic_code)
+#   define MAX_CODE sizeof(tic_code) * 8
 #else
-#   define MAX_CODE TIC_BANK_SIZE
+#   define MAX_CODE TIC_BANK_SIZE * 8 * 8
 #endif
 
 #define noop (void)0
