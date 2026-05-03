@@ -310,7 +310,7 @@ typedef struct
 
     struct
     {
-        tic_code code;
+        tic_code *code;
         char postag[32];
     } last;
 

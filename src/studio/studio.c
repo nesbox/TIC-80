@@ -2365,14 +2365,14 @@ static void doCodeExport(Studio* studio)
         sprintf(pos, "-- pos: %i,%i\n", x, y);
     }
 
-    if(strcmp(studio->bytebattle.last.postag, pos) || strcmp(studio->bytebattle.last.code.data, studio->code->src))
+    if(strcmp(studio->bytebattle.last.postag, pos) || strcmp(studio->bytebattle.last.code->data, studio->code->src))
     {
         FILE* file = fopen(studio->bytebattle.exp, "wb");
 
         if(file)
         {
             strcpy(studio->bytebattle.last.postag, pos);
-            strcpy(studio->bytebattle.last.code.data, studio->code->src);
+            strcpy(studio->bytebattle.last.code->data, studio->code->src);
 
             fwrite(pos, 1, strlen(pos), file);
             fwrite(studio->code->src, 1, strlen(studio->code->src), file);
