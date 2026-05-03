@@ -25,7 +25,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --config MinSizeRel --parallel
       - name: Deploy
         uses: actions/upload-artifact@v4
@@ -33,13 +33,12 @@ jobs:
           name: "tic80-windows"
           path: |
             build/bin/tic80.exe
-            build/bin/*.dll
 
       - name: Build Pro
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_LUA=ON ..
           cmake --build . --config MinSizeRel --parallel
       - name: Deploy Pro
         uses: actions/upload-artifact@v4
@@ -47,13 +46,12 @@ jobs:
           name: "tic80-windows-pro"
           path: |
             build/bin/tic80.exe
-            build/bin/*.dll
 
       - name: Build Pro Steam
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DBUILD_WITH_STEAM=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_LUA=ON -DBUILD_WITH_STEAM=ON ..
           cmake --build . --config MinSizeRel --parallel
 
       - name: Prepare Steam Export
@@ -65,14 +63,13 @@ jobs:
           name: "tic80-windows-pro-steam"
           path: |
             build/bin/tic80.exe
-            build/bin/*.dll
             build/bin/steam_api64.dll
 
       - name: Build Steam Export
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_LUA=ON ..
           cmake --build . --config MinSizeRel --parallel
 
       - name: Prepare Steam Export
@@ -84,7 +81,6 @@ jobs:
           name: "tic80-windows-steam-export"
           path: |
             build/bin/tic80.exe
-            build/bin/*.dll
             build/bin/steam_api64.dll
 
 
@@ -112,7 +108,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_LUA=ON ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -121,18 +117,17 @@ jobs:
           name: "tic80-linux-gcc12"
           path: |
             build/bin/tic80
-            build/bin/*.so
 
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_LUA=ON ..
           cmake --build . --config MinSizeRel --parallel
 
       - name: Build Steam Export
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_STEAM=ON -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=ON ..
           cmake --build . --config MinSizeRel --parallel
 
       - name: Prepare Steam Export
@@ -144,7 +139,6 @@ jobs:
           name: "tic80-linux-steam-export"
           path: |
             build/bin/tic80
-            build/bin/*.so
             build/bin/libsteam_api.so
 
   # === Ubuntu gcc14 ===
@@ -172,7 +166,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_LUA=ON ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -181,12 +175,11 @@ jobs:
           name: "tic80-linux-gcc14"
           path: |
             build/bin/tic80
-            build/bin/*.so
 
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_LUA=ON ..
           cmake --build . --config MinSizeRel --parallel
 
   # === MacOS 14 / arm64 ===
@@ -205,7 +198,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -214,12 +207,11 @@ jobs:
           name: "tic80-macos-arm64"
           path: |
             build/bin/tic80
-            build/bin/*.dylib
 
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_LUA=ON ..
           cmake --build . --parallel
 
   # === MacOS 15 / x86_64 ===
@@ -238,7 +230,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       - name: Deploy
@@ -247,18 +239,17 @@ jobs:
           name: "tic80-macos"
           path: |
             build/bin/tic80
-            build/bin/*.dylib
 
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       - name: Build Steam Export
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_WITH_STEAM=On -DBUILD_EDITORS=OFF -DBUILD_WITH_ALL=OFF -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_WITH_STEAM=On -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       - name: Prepare Steam Export
@@ -270,5 +261,4 @@ jobs:
           name: "tic80-macos-steam-export"
           path: |
             build/bin/tic80
-            build/bin/*.dylib
             build/bin/libsteam_api.dylib

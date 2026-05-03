@@ -3,14 +3,14 @@
     [
         {
             "name": "build",
-            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel .. && ninja",
+            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .. && ninja",
             "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
             "working_dir": "${file_path}",
             "variants":
             [
                 {
                     "name": "fresh",
-                    "shell_cmd": "cd ${project_path}/build && cmake -G Ninja .. --fresh"
+                    "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. --fresh"
                 },
                 {
                     "name": "BUILD_STATIC=ON",
