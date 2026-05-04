@@ -191,6 +191,8 @@ jobs:
             -DCMAKE_CXX_FLAGS_RELEASE="-Ofast -flto" \
             -DBUILD_SDL=ON \
             -DBUILD_SDLGPU=ON \
+            -DUSE_GLES2=ON \
+            -DUSE_EGL=ON \
             -DBUILD_EDITORS=OFF \
             -DBUILD_SURF=ON \
             -DPREFER_SYSTEM_SDL2=ON \
