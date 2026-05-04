@@ -909,10 +909,10 @@ static tic_color triTexTileShader(const ShaderAttr* a, s32 pixel)
     if(!shaderStart(a, &vars, pixel))
         return TRANSPARENT_COLOR;
 
-    enum { WMask = TIC_SPRITESHEET_SIZE - 1, HMask = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1 };
+    enum { HMask = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1 };
 
     return shaderEnd(a, &vars, pixel, data->mapping[tic_tilesheet_getpix(&data->sheet,
-                     (s32)floor(vars.x) & WMask, (s32)floor(vars.y) & HMask)]);
+                     (s32)floor(vars.x) & (TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1) , (s32)floor(vars.y) & HMask)]);
 }
 
 static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
