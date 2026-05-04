@@ -711,6 +711,11 @@ const StudioConfig* getConfig(Studio* studio)
     return studio_config(studio);
 }
 
+Config* studio_config_get(Studio* studio)
+{
+    return studio->config;
+}
+
 struct Start* getStartScreen(Studio* studio)
 {
     return studio->start;
@@ -2345,7 +2350,9 @@ static void processMouseStates(Studio* studio)
 
         state->dbl.ticks++;
     }
+#if !defined(__TIC_MACOSX__)
     tic->ram->input.mouse.scrollx *= -1;
+#endif
 }
 
 #if defined(BUILD_EDITORS)

@@ -2,6 +2,8 @@
 
 This is a ZIG / TIC-80 starter template. To build it, ensure you have the latest development release (`0.14.0-dev.1421+f87dd43c1` or newer), then run:
 
+The build reserves TIC-80's first 96 KiB of linear memory by folding that space into the configured stack size and leaving 8 KiB of actual stack above it.
+
 ```
 zig build --release=small
 ```

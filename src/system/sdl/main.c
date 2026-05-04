@@ -1878,10 +1878,14 @@ static void emsGpuTick()
 
     EM_ASM(
     {
-        if(FS.syncFSRequests == 0 && Module.syncFSRequests)
+        if(!Module.syncing && Module.syncFSRequests)
         {
+            Module.syncing = true;
             Module.syncFSRequests = 0;
-            FS.syncfs(false,function(){});
+            FS.syncfs(false, function()
+            {
+                Module.syncing = false;
+            });
         }
     });
 
@@ -2150,6 +2154,7 @@ s32 main(s32 argc, char **argv)
     (
         {
             Module.syncFSRequests = 0;
+            Module.syncing = false;
 
             var dir = UTF8ToString($0);
 
