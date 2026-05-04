@@ -200,12 +200,12 @@ jobs:
 
       - name: Pack
         run: |
-          mkdir -p share/applications
-          mkdir -p share/mime/packages
-          mkdir -p share/icons
-          cp build/linux/tic80.desktop share/applications/
-          cp build/linux/tic80.xml share/mime/packages/
-          cp build/linux/tic80.png share/icons/
+          mkdir -p build/linux/share/applications
+          mkdir -p build/linux/share/mime/packages
+          mkdir -p build/linux/share/icons
+          cp build/linux/tic80.desktop build/linux/share/applications/
+          cp build/linux/tic80.xml build/linux/share/mime/packages/
+          cp build/linux/tic80.png build/linux/share/icons/
 
       - name: Deploy
         uses: actions/upload-artifact@v6
