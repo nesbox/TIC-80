@@ -182,8 +182,8 @@ jobs:
 
       - name: Build
         run: |
-          mkdir build && cd build
-          cmake .. \
+          cd build/linux
+          cmake ../.. \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_PRO=OFF \
             -DBUILD_WITH_ALL=ON \
@@ -203,9 +203,9 @@ jobs:
         with:
           name: "tic80-linux-arm64-gles2"
           path: |
-            build/bin/tic80
-            build/bin/*.so
-            build/lib/*.so
+            build/linux/bin/tic80
+            build/linux/bin/*.so
+            build/linux/lib/*.so
 
   # === Ubuntu gcc14 ===
   linux-gcc14-glibc239:
