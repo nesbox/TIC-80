@@ -198,6 +198,12 @@ jobs:
             -DTIC_DATA_PATH="/userdata/roms/tic80/"
           cmake --build . --target tic80 --config Release --parallel
 
+      - name: Pack
+        run: |
+          cp build/linux/tic80.desktop share/applications/
+          cp build/linux/tic80.xml share/mime/packages/
+          cp build/linux/tic80.png share/icons/
+
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
@@ -206,6 +212,7 @@ jobs:
             build/linux/bin/tic80
             build/linux/bin/*.so
             build/linux/lib/*.so
+            build/linux/share/*
 
   # === Ubuntu gcc14 ===
   linux-gcc14-glibc239:
