@@ -177,7 +177,7 @@ jobs:
               echo "Generating stubs for $outname from $lib" && \
               nm -D $lib | grep " T " | awk '{print "void " $3 "(){}"}' > stubs.c && \
               sudo rm -f /usr/lib/aarch64-linux-gnu/$outname && \
-              sudo gcc -shared -o /usr/lib/aarch64-linux-gnu/$outname stubs.c; \
+              sudo gcc -shared -Wl,-soname,$outname -o /usr/lib/aarch64-linux-gnu/$outname stubs.c; \
           done
 
       - name: Build
