@@ -2493,7 +2493,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
         {
             if(strcmp(name, CONFIG_TIC_PATH) == 0)
             {
-                console->config->save(console->config);
+                console->config->saveConfigCart(console->config);
                 studioRomSaved(console->studio);
                 free(buffer);
                 return CART_SAVE_OK;
