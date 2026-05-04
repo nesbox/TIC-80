@@ -200,6 +200,9 @@ jobs:
 
       - name: Pack
         run: |
+          mkdir -p share/applications
+          mkdir -p share/mime/packages
+          mkdir -p share/icons
           cp build/linux/tic80.desktop share/applications/
           cp build/linux/tic80.xml share/mime/packages/
           cp build/linux/tic80.png share/icons/
