@@ -62,7 +62,7 @@ extern void gotoMenu(Studio* studio);
 #include <windows.h>
 #endif
 
-#if defined(__TIC_ANDROID__) || defined(__SWITCH__)
+#if defined(__TIC_ANDROID__) || defined(__SWITCH__) || defined(TIC_DATA_PATH)
 #include <sys/stat.h>
 #endif
 
@@ -1395,7 +1395,12 @@ static const char* getAppFolder()
 {
     static char appFolder[TICNAME_MAX];
 
-#if defined(__EMSCRIPTEN__)
+#if defined(TIC_DATA_PATH)
+
+        strcpy(appFolder, TIC_DATA_PATH);
+        mkdir(appFolder, 0777);
+
+#elif defined(__EMSCRIPTEN__)
 
         strcpy(appFolder, "/" TIC_PACKAGE "/" TIC_NAME "/");
 
@@ -1404,11 +1409,6 @@ static const char* getAppFolder()
         strcpy(appFolder, SDL_AndroidGetExternalStoragePath());
         const char AppFolder[] = "/" TIC_NAME "/";
         strcat(appFolder, AppFolder);
-        mkdir(appFolder, 0777);
-
-#elif defined(__SWITCH__)
-
-        strcpy(appFolder, "/switch/tic80");
         mkdir(appFolder, 0777);
 
 #else
