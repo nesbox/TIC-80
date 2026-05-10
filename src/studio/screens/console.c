@@ -4003,7 +4003,14 @@ static void processConsoleCommand(Console* console)
 
     if(commandSize)
     {
+#ifdef BAREMETALPI
         printf("%s", console->input.text);
+#else
+        if (!console->args.cli)
+            printf("\n");
+        else
+            printf("%s", console->input.text);
+#endif
         appendHistory(console, console->input.text);
         processCommand(console, console->input.text);
     }
@@ -4448,6 +4455,31 @@ static void tick(Console* console)
                 exitStudio(console->studio);
         }
     }
+
+#ifndef BAREMETALPI
+    if (!console->args.cli)
+    {
+        static char last_text[CONSOLE_BUFFER_SCREEN] = {0};
+        static s32 last_pos = -1;
+        if (strcmp(last_text, console->input.text) != 0 || last_pos != console->input.pos || console->tickCounter == 1)
+        {
+            strcpy(last_text, console->input.text);
+            last_pos = console->input.pos;
+
+            char dir[TICNAME_MAX];
+            tic_fs_dir(console->fs, dir);
+            printf("\r\033[K");
+            if(strlen(dir))
+                printf("%s", dir);
+            printf(">%s", console->input.text);
+
+            s32 tailLen = strlen(console->input.text) - console->input.pos;
+            if (tailLen > 0)
+                printf("\033[%dD", tailLen);
+            fflush(stdout);
+        }
+    }
+#endif
 
     console->tickCounter++;
 }

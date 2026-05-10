@@ -34,8 +34,13 @@
 extern void gotoMenu(Studio* studio);
 #endif
 
-#if defined(__TIC_LINUX__)
+#if defined(__TIC_WINDOWS__)
+#include <conio.h>
+#elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
 #include <signal.h>
+#include <unistd.h>
+#include <sys/select.h>
+#include <termios.h>
 #endif
 
 #if defined(CRT_SHADER_SUPPORT)
@@ -1263,6 +1268,80 @@ static void pollEvents()
         }
     }
 
+#if defined(__TIC_WINDOWS__)
+    while (_kbhit()) {
+        int c = _getch();
+        if (c == 0 || c == 224) {
+            c = _getch();
+            if (c == 72) platform.keyboard.pressed[tic_key_up] = true;
+            else if (c == 80) platform.keyboard.pressed[tic_key_down] = true;
+            else if (c == 77) platform.keyboard.pressed[tic_key_right] = true;
+            else if (c == 75) platform.keyboard.pressed[tic_key_left] = true;
+        }
+        else if (c == '\r' || c == '\n') platform.keyboard.pressed[tic_key_return] = true;
+        else if (c == '\b') platform.keyboard.pressed[tic_key_backspace] = true;
+        else if (c == '\t') platform.keyboard.pressed[tic_key_tab] = true;
+        else platform.keyboard.text = (char)c;
+    }
+#elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
+    {
+        fd_set readfds;
+        struct timeval tv;
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        tv.tv_sec = 0;
+        tv.tv_usec = 0;
+        if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv) > 0)
+        {
+            char c;
+            if (read(STDIN_FILENO, &c, 1) > 0)
+            {
+                if (c == '\033')
+                {
+                    char seq[2];
+                    FD_ZERO(&readfds);
+                    FD_SET(STDIN_FILENO, &readfds);
+                    tv.tv_sec = 0; tv.tv_usec = 10000;
+                    if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv) > 0)
+                    {
+                        if (read(STDIN_FILENO, &seq[0], 1) > 0 && seq[0] == '[')
+                        {
+                            FD_ZERO(&readfds);
+                            FD_SET(STDIN_FILENO, &readfds);
+                            if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv) > 0)
+                            {
+                                if (read(STDIN_FILENO, &seq[1], 1) > 0)
+                                {
+                                    if (seq[1] == 'A') platform.keyboard.pressed[tic_key_up] = true;
+                                    else if (seq[1] == 'B') platform.keyboard.pressed[tic_key_down] = true;
+                                    else if (seq[1] == 'C') platform.keyboard.pressed[tic_key_right] = true;
+                                    else if (seq[1] == 'D') platform.keyboard.pressed[tic_key_left] = true;
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (c == '\n' || c == '\r')
+                {
+                    platform.keyboard.pressed[tic_key_return] = true;
+                }
+                else if (c == '\b' || c == 0x7f)
+                {
+                    platform.keyboard.pressed[tic_key_backspace] = true;
+                }
+                else if (c == '\t')
+                {
+                    platform.keyboard.pressed[tic_key_tab] = true;
+                }
+                else
+                {
+                    platform.keyboard.text = c;
+                }
+            }
+        }
+    }
+#endif
+
     processMouse();
 
 #if defined(TOUCH_INPUT_SUPPORT)
@@ -2171,7 +2250,20 @@ s32 main(s32 argc, char **argv)
 
 #else
 
-    return start(argc, argv, folder);
+#if defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
+    struct termios oldt, newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+#endif
+
+    int ret = start(argc, argv, folder);
+
+#if defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+#endif
+    return ret;
 
 #endif
 }
