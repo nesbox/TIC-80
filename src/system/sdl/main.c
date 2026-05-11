@@ -416,7 +416,7 @@ static void drawKeyboardLabels(tic_mem* tic, s32 shift)
     }
 }
 
-static void map2ram(tic_mem* tic)
+static void map2ramLoc(tic_mem* tic)
 {
     memcpy(tic->ram->map.data, &studio_config(platform.studio)->cart->bank0.map, sizeof tic->ram->map);
     memcpy(tic->ram->tiles.data, &studio_config(platform.studio)->cart->bank0.tiles, sizeof tic->ram->tiles * TIC_SPRITE_BANKS);
@@ -456,7 +456,7 @@ static void initTouchKeyboard()
     {
         memcpy(tic->ram->vram.palette.data, studio_config(platform.studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
         tic_api_cls(tic, 0);
-        map2ram(tic);
+        map2ramLoc(tic);
 
         initTouchKeyboardState(tic, &platform.keyboard.touch.texture.up, &platform.keyboard.touch.texture.upPixels, false);
         initTouchKeyboardState(tic, &platform.keyboard.touch.texture.down, &platform.keyboard.touch.texture.downPixels, true);
