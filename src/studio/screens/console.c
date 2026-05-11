@@ -4456,31 +4456,6 @@ static void tick(Console* console)
         }
     }
 
-#ifndef BAREMETALPI
-    if (!console->args.cli)
-    {
-        static char last_text[CONSOLE_BUFFER_SCREEN] = {0};
-        static s32 last_pos = -1;
-        if (strcmp(last_text, console->input.text) != 0 || last_pos != console->input.pos || console->tickCounter == 1)
-        {
-            strcpy(last_text, console->input.text);
-            last_pos = console->input.pos;
-
-            char dir[TICNAME_MAX];
-            tic_fs_dir(console->fs, dir);
-            printf("\r\033[K");
-            if(strlen(dir))
-                printf("%s", dir);
-            printf(">%s", console->input.text);
-
-            s32 tailLen = strlen(console->input.text) - console->input.pos;
-            if (tailLen > 0)
-                printf("\033[%dD", tailLen);
-            fflush(stdout);
-        }
-    }
-#endif
-
     console->tickCounter++;
 }
 
@@ -4571,6 +4546,45 @@ static int cmdcmp(const void* a, const void* b)
 static int apicmp(const void* a, const void* b)
 {
     return strcmp(((const ApiItem*)a)->name, ((const ApiItem*)b)->name);
+}
+
+void console_terminal_input(Console* console, tic_key key, char text)
+{
+    if(key == tic_key_return)
+    {
+        processConsoleCommand(console);
+        while(console->commands.current < console->commands.count)
+        {
+             const char* command = console->commands.items[console->commands.current];
+             processCommand(console, command);
+             console->commands.current++;
+        }
+    }
+    else if(key == tic_key_backspace) processConsoleBackspace(console);
+    else if(key == tic_key_tab) processConsoleTab(console);
+    else if(key == tic_key_delete) processConsoleDel(console);
+    else if(key == tic_key_up) onHistoryUp(console);
+    else if(key == tic_key_down) onHistoryDown(console);
+    else if(key == tic_key_left) { if(console->input.pos > 0) console->input.pos--; }
+    else if(key == tic_key_right) { console->input.pos++; s32 len = (s32)strlen(console->input.text); if(console->input.pos > len) console->input.pos = (size_t)len; }
+    else if(text) insertInputText(console, (char[]){text, '\0'});
+
+#ifndef BAREMETALPI
+    if (!console->args.cli)
+    {
+        char dir[TICNAME_MAX];
+        tic_fs_dir(console->fs, dir);
+        printf("\r\033[K");
+        if(strlen(dir))
+            printf("%s", dir);
+        printf(">%s", console->input.text);
+
+        s32 tailLen = (s32)strlen(console->input.text) - (s32)console->input.pos;
+        if (tailLen > 0)
+            printf("\033[%dD", tailLen);
+        fflush(stdout);
+    }
+#endif
 }
 
 void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Config* config, StartArgs args)

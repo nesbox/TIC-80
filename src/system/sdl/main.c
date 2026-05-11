@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "studio/system.h"
+#include "studio/studio.h"
 #include "tools.h"
 
 #include "ext/fft.h"
@@ -344,7 +345,7 @@ static const u8* getSpritePtr(const tic_tile* tiles, s32 x, s32 y)
     return tiles[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * SheetCols].data;
 }
 
-static u8 getSpritePixel(const tic_tile* tiles, s32 x, s32 y)
+static u8 getSpritePixelLoc(const tic_tile* tiles, s32 x, s32 y)
 {
     return tic_tool_peek4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
 }
@@ -361,7 +362,7 @@ static void setWindowIcon()
         for(s32 j = 0, index = 0; j < Size; j++)
             for(s32 i = 0; i < Size; i++, index++)
             {
-                u8 color = getSpritePixel(studio_config(platform.studio)->cart->bank0.tiles.data, i/Scale, j/Scale);
+                u8 color = getSpritePixelLoc(studio_config(platform.studio)->cart->bank0.tiles.data, i/Scale, j/Scale);
                 pixels[index] = color == ColorKey ? 0 : pal.data[color];
             }
 
@@ -1273,15 +1274,15 @@ static void pollEvents()
         int c = _getch();
         if (c == 0 || c == 224) {
             c = _getch();
-            if (c == 72) platform.keyboard.pressed[tic_key_up] = true;
-            else if (c == 80) platform.keyboard.pressed[tic_key_down] = true;
-            else if (c == 77) platform.keyboard.pressed[tic_key_right] = true;
-            else if (c == 75) platform.keyboard.pressed[tic_key_left] = true;
+            if (c == 72) studio_terminal_input(platform.studio, tic_key_up, 0);
+            else if (c == 80) studio_terminal_input(platform.studio, tic_key_down, 0);
+            else if (c == 77) studio_terminal_input(platform.studio, tic_key_right, 0);
+            else if (c == 75) studio_terminal_input(platform.studio, tic_key_left, 0);
         }
-        else if (c == '\r' || c == '\n') platform.keyboard.pressed[tic_key_return] = true;
-        else if (c == '\b') platform.keyboard.pressed[tic_key_backspace] = true;
-        else if (c == '\t') platform.keyboard.pressed[tic_key_tab] = true;
-        else platform.keyboard.text = (char)c;
+        else if (c == '\r' || c == '\n') studio_terminal_input(platform.studio, tic_key_return, 0);
+        else if (c == '\b') studio_terminal_input(platform.studio, tic_key_backspace, 0);
+        else if (c == '\t') studio_terminal_input(platform.studio, tic_key_tab, 0);
+        else studio_terminal_input(platform.studio, tic_key_unknown, (char)c);
     }
 #elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
     {
@@ -1312,10 +1313,10 @@ static void pollEvents()
                             {
                                 if (read(STDIN_FILENO, &seq[1], 1) > 0)
                                 {
-                                    if (seq[1] == 'A') platform.keyboard.pressed[tic_key_up] = true;
-                                    else if (seq[1] == 'B') platform.keyboard.pressed[tic_key_down] = true;
-                                    else if (seq[1] == 'C') platform.keyboard.pressed[tic_key_right] = true;
-                                    else if (seq[1] == 'D') platform.keyboard.pressed[tic_key_left] = true;
+                                    if (seq[1] == 'A') studio_terminal_input(platform.studio, tic_key_up, 0);
+                                    else if (seq[1] == 'B') studio_terminal_input(platform.studio, tic_key_down, 0);
+                                    else if (seq[1] == 'C') studio_terminal_input(platform.studio, tic_key_right, 0);
+                                    else if (seq[1] == 'D') studio_terminal_input(platform.studio, tic_key_left, 0);
                                 }
                             }
                         }
@@ -1323,19 +1324,19 @@ static void pollEvents()
                 }
                 else if (c == '\n' || c == '\r')
                 {
-                    platform.keyboard.pressed[tic_key_return] = true;
+                    studio_terminal_input(platform.studio, tic_key_return, 0);
                 }
                 else if (c == '\b' || c == 0x7f)
                 {
-                    platform.keyboard.pressed[tic_key_backspace] = true;
+                    studio_terminal_input(platform.studio, tic_key_backspace, 0);
                 }
                 else if (c == '\t')
                 {
-                    platform.keyboard.pressed[tic_key_tab] = true;
+                    studio_terminal_input(platform.studio, tic_key_tab, 0);
                 }
                 else
                 {
-                    platform.keyboard.text = c;
+                    studio_terminal_input(platform.studio, tic_key_unknown, c);
                 }
             }
         }
