@@ -2260,6 +2260,16 @@ s32 main(s32 argc, char **argv)
 
         if (attached || GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE)
         {
+            if (!attached)
+            {
+                DWORD procList[2];
+                if (GetConsoleProcessList(procList, 2) == 1)
+                {
+                    FreeConsole();
+                    goto skip_console;
+                }
+            }
+
             // Use freopen as first choice
             if (freopen("CONIN$", "r", stdin) == NULL)
             {
@@ -2302,6 +2312,7 @@ s32 main(s32 argc, char **argv)
             if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
                 FreeConsole();
         }
+        skip_console:;
     }
 #elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
     // Configure terminal to Raw Mode to capture input immediately without OS buffering.
