@@ -4006,9 +4006,7 @@ static void processConsoleCommand(Console* console)
 #ifdef BAREMETALPI
         printf("%s", console->input.text);
 #else
-        if (!console->args.cli)
-            printf("\n");
-        else
+        if (console->args.cli)
             printf("%s", console->input.text);
 #endif
         appendHistory(console, console->input.text);
@@ -4548,6 +4546,8 @@ static int apicmp(const void* a, const void* b)
     return strcmp(((const ApiItem*)a)->name, ((const ApiItem*)b)->name);
 }
 
+// Handle terminal input events directly, bypassing the regular SDL event loop for some keys.
+// This allows commands to be entered and executed even when the console is in the background.
 void console_terminal_input(Console* console, tic_key key, char text)
 {
     if(key == tic_key_return)

@@ -1269,6 +1269,8 @@ static void pollEvents()
         }
     }
 
+    // Poll terminal stdin input independently of the SDL event loop.
+    // This allows background command processing even when the GUI is busy or focused elsewhere.
 #if defined(__TIC_WINDOWS__)
     while (_kbhit()) {
         int c = _getch();
@@ -1297,7 +1299,7 @@ static void pollEvents()
             char c;
             if (read(STDIN_FILENO, &c, 1) > 0)
             {
-                if (c == '\033')
+                if (c == '\033') // Handle ANSI escape sequences for arrow keys
                 {
                     char seq[2];
                     FD_ZERO(&readfds);
@@ -2218,11 +2220,32 @@ s32 main(s32 argc, char **argv)
 {
 #if defined(__TIC_WINDOWS__)
     {
-        CONSOLE_SCREEN_BUFFER_INFO info;
-        if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
-            FreeConsole();
+        // Try to attach to the parent process's console (e.g. if started from cmd or bash).
+        // This ensures stdout/stderr output and stdin input work correctly in the terminal.
+        if (AttachConsole(ATTACH_PARENT_PROCESS))
+        {
+            freopen("CONIN$", "r", stdin);
+            freopen("CONOUT$", "w", stdout);
+            freopen("CONOUT$", "w", stderr);
+            setvbuf(stdout, NULL, _IONBF, 0);
+            setvbuf(stderr, NULL, _IONBF, 0);
+        }
+        else
+        {
+            // If failed to attach, detect if we are starting in a fresh console and hide it if so.
+            CONSOLE_SCREEN_BUFFER_INFO info;
+            if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
+                FreeConsole();
+        }
     }
-#elif defined(__TIC_LINUX__)
+#elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
+    // Configure terminal to Raw Mode to capture input immediately without OS buffering.
+    struct termios oldt, newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
     signal(SIGPIPE, SIG_IGN);
 #endif
 
@@ -2250,15 +2273,7 @@ s32 main(s32 argc, char **argv)
     );
 
 #else
-
-#if defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
-    struct termios oldt, newt;
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-#endif
-
+    // Start TIC-80 and restore terminal mode on exit.
     int ret = start(argc, argv, folder);
 
 #if defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
