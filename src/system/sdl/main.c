@@ -1282,9 +1282,7 @@ static void pollEvents()
         bool hasInput = false;
 
         if (dwType == FILE_TYPE_CHAR) { // Console
-            DWORD numEvents = 0;
-            if (GetNumberOfConsoleInputEvents(hIn, &numEvents) && numEvents > 0)
-                hasInput = true;
+            if (_kbhit()) hasInput = true;
         } else if (dwType == FILE_TYPE_PIPE) { // Pipe (Wine/MSYS)
             DWORD totalBytes = 0;
             if (PeekNamedPipe(hIn, NULL, 0, NULL, &totalBytes, NULL) && totalBytes > 0)
@@ -1298,7 +1296,9 @@ static void pollEvents()
             c = _getch();
         } else {
             char buf[1];
-            if (read(0, buf, 1) > 0) c = (unsigned char)buf[0];
+            DWORD readBytes = 0;
+            if (ReadFile(hIn, buf, 1, &readBytes, NULL) && readBytes > 0)
+                c = (unsigned char)buf[0];
             else break;
         }
 
