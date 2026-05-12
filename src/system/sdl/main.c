@@ -2254,55 +2254,53 @@ s32 main(s32 argc, char **argv)
         typedef BOOL (WINAPI *AttachConsole_t)(DWORD);
         AttachConsole_t pAttachConsole = (AttachConsole_t)GetProcAddress(GetModuleHandleA("kernel32.dll"), "AttachConsole");
         
-        bool attached = pAttachConsole && pAttachConsole((DWORD)-1);
+        bool attached = false;
+        if (pAttachConsole && pAttachConsole((DWORD)-1)) // ATTACH_PARENT_PROCESS
+            attached = true;
 
-        if (!attached)
+        if (attached || GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE)
         {
-            HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-            if (hOut != NULL && hOut != INVALID_HANDLE_VALUE && GetFileType(hOut) == FILE_TYPE_CHAR)
+            // Use freopen as first choice
+            if (freopen("CONIN$", "r", stdin) == NULL)
             {
-                CONSOLE_SCREEN_BUFFER_INFO info;
-                if (GetConsoleScreenBufferInfo(hOut, &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
-                {
-                    FreeConsole();
-                }
-            }
-        }
-
-        if (attached || (GetStdHandle(STD_OUTPUT_HANDLE) != NULL && GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE))
-        {
-            if (freopen("CONIN$", "r", stdin)) setvbuf(stdin, NULL, _IONBF, 0);
-            else
-            {
+                // Fallback for redirected input if CONIN$ fails
                 HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
-                if (hIn != NULL && hIn != INVALID_HANDLE_VALUE)
+                if (hIn != INVALID_HANDLE_VALUE)
                 {
                     int fd = _open_osfhandle((intptr_t)hIn, _O_TEXT);
                     if (fd != -1) _dup2(fd, 0);
                 }
             }
 
-            if (freopen("CONOUT$", "w", stdout)) setvbuf(stdout, NULL, _IONBF, 0);
-            else
+            if (freopen("CONOUT$", "w", stdout) == NULL)
             {
+                // Fallback for redirected output
                 HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-                if (hOut != NULL && hOut != INVALID_HANDLE_VALUE)
+                if (hOut != INVALID_HANDLE_VALUE)
                 {
                     int fd = _open_osfhandle((intptr_t)hOut, _O_TEXT);
-                    if (fd != -1) { _dup2(fd, 1); setvbuf(stdout, NULL, _IONBF, 0); }
+                    if (fd != -1) _dup2(fd, 1);
                 }
             }
 
-            if (freopen("CONOUT$", "w", stderr)) setvbuf(stderr, NULL, _IONBF, 0);
-            else
+            if (freopen("CONOUT$", "w", stderr) == NULL)
             {
                 HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
-                if (hErr != NULL && hErr != INVALID_HANDLE_VALUE)
+                if (hErr != INVALID_HANDLE_VALUE)
                 {
                     int fd = _open_osfhandle((intptr_t)hErr, _O_TEXT);
-                    if (fd != -1) { _dup2(fd, 2); setvbuf(stderr, NULL, _IONBF, 0); }
+                    if (fd != -1) _dup2(fd, 2);
                 }
             }
+
+            setvbuf(stdout, NULL, _IONBF, 0);
+            setvbuf(stderr, NULL, _IONBF, 0);
+        }
+        else
+        {
+            CONSOLE_SCREEN_BUFFER_INFO info;
+            if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
+                FreeConsole();
         }
     }
 #elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
