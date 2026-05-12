@@ -37,6 +37,8 @@ extern void gotoMenu(Studio* studio);
 
 #if defined(__TIC_WINDOWS__)
 #include <conio.h>
+#include <io.h>
+#include <fcntl.h>
 #elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
 #include <signal.h>
 #include <unistd.h>
@@ -1272,19 +1274,48 @@ static void pollEvents()
     // Poll terminal stdin input independently of the SDL event loop.
     // This allows background command processing even when the GUI is busy or focused elsewhere.
 #if defined(__TIC_WINDOWS__)
-    while (_kbhit()) {
-        int c = _getch();
-        if (c == 0 || c == 224) {
+    while (true) {
+        HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+        if (hIn == INVALID_HANDLE_VALUE) break;
+
+        DWORD dwType = GetFileType(hIn);
+        bool hasInput = false;
+
+        if (dwType == FILE_TYPE_CHAR) { // Console
+            DWORD numEvents = 0;
+            if (GetNumberOfConsoleInputEvents(hIn, &numEvents) && numEvents > 0)
+                hasInput = true;
+        } else if (dwType == FILE_TYPE_PIPE) { // Pipe (Wine/MSYS)
+            DWORD totalBytes = 0;
+            if (PeekNamedPipe(hIn, NULL, 0, NULL, &totalBytes, NULL) && totalBytes > 0)
+                hasInput = true;
+        }
+
+        if (!hasInput) break;
+
+        int c;
+        if (dwType == FILE_TYPE_CHAR) {
             c = _getch();
-            if (c == 72) studio_terminal_input(platform.studio, tic_key_up, 0);
-            else if (c == 80) studio_terminal_input(platform.studio, tic_key_down, 0);
-            else if (c == 77) studio_terminal_input(platform.studio, tic_key_right, 0);
-            else if (c == 75) studio_terminal_input(platform.studio, tic_key_left, 0);
+        } else {
+            char buf[1];
+            if (read(0, buf, 1) > 0) c = (unsigned char)buf[0];
+            else break;
+        }
+
+        if (c == 0 || c == 0xE0) { // 224
+            if (dwType == FILE_TYPE_CHAR) {
+                c = _getch();
+                if (c == 0x48) studio_terminal_input(platform.studio, tic_key_up, 0); // 72
+                else if (c == 0x50) studio_terminal_input(platform.studio, tic_key_down, 0); // 80
+                else if (c == 0x4D) studio_terminal_input(platform.studio, tic_key_right, 0); // 77
+                else if (c == 0x4B) studio_terminal_input(platform.studio, tic_key_left, 0); // 75
+            }
         }
         else if (c == '\r' || c == '\n') studio_terminal_input(platform.studio, tic_key_return, 0);
         else if (c == '\b') studio_terminal_input(platform.studio, tic_key_backspace, 0);
+        else if (c == 0x7F) studio_terminal_input(platform.studio, tic_key_backspace, 0); // DEL as backspace
         else if (c == '\t') studio_terminal_input(platform.studio, tic_key_tab, 0);
-        else studio_terminal_input(platform.studio, tic_key_unknown, (char)c);
+        else if (c >= 32) studio_terminal_input(platform.studio, tic_key_unknown, (char)c);
     }
 #elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
     {
@@ -2220,19 +2251,53 @@ s32 main(s32 argc, char **argv)
 {
 #if defined(__TIC_WINDOWS__)
     {
-        // Try to attach to the parent process's console (e.g. if started from cmd or bash).
-        // This ensures stdout/stderr output and stdin input work correctly in the terminal.
-        if (AttachConsole(ATTACH_PARENT_PROCESS))
+        typedef BOOL (WINAPI *AttachConsole_t)(DWORD);
+        AttachConsole_t pAttachConsole = (AttachConsole_t)GetProcAddress(GetModuleHandleA("kernel32.dll"), "AttachConsole");
+        
+        bool attached = false;
+        if (pAttachConsole && pAttachConsole((DWORD)-1)) // ATTACH_PARENT_PROCESS
+            attached = true;
+
+        if (attached || GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE)
         {
-            freopen("CONIN$", "r", stdin);
-            freopen("CONOUT$", "w", stdout);
-            freopen("CONOUT$", "w", stderr);
+            // Use freopen as first choice
+            if (freopen("CONIN$", "r", stdin) == NULL)
+            {
+                // Fallback for redirected input if CONIN$ fails
+                HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+                if (hIn != INVALID_HANDLE_VALUE)
+                {
+                    int fd = _open_osfhandle((intptr_t)hIn, _O_TEXT);
+                    if (fd != -1) _dup2(fd, 0);
+                }
+            }
+
+            if (freopen("CONOUT$", "w", stdout) == NULL)
+            {
+                // Fallback for redirected output
+                HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+                if (hOut != INVALID_HANDLE_VALUE)
+                {
+                    int fd = _open_osfhandle((intptr_t)hOut, _O_TEXT);
+                    if (fd != -1) _dup2(fd, 1);
+                }
+            }
+
+            if (freopen("CONOUT$", "w", stderr) == NULL)
+            {
+                HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+                if (hErr != INVALID_HANDLE_VALUE)
+                {
+                    int fd = _open_osfhandle((intptr_t)hErr, _O_TEXT);
+                    if (fd != -1) _dup2(fd, 2);
+                }
+            }
+
             setvbuf(stdout, NULL, _IONBF, 0);
             setvbuf(stderr, NULL, _IONBF, 0);
         }
         else
         {
-            // If failed to attach, detect if we are starting in a fresh console and hide it if so.
             CONSOLE_SCREEN_BUFFER_INFO info;
             if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
                 FreeConsole();
