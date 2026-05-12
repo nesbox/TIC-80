@@ -175,7 +175,7 @@ if(BUILD_SDL)
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
 
-        add_executable(${TIC80_TARGET} ${SYSTEM_TYPE} ${TIC80_SRC})
+        add_executable(${TIC80_TARGET} WIN32 ${TIC80_SRC})
 
     elseif(ANDROID)
 
@@ -189,7 +189,7 @@ if(BUILD_SDL)
 
     if(MINGW)
         target_link_libraries(${TIC80_TARGET} mingw32)
-        target_link_options(${TIC80_TARGET} PRIVATE -static -mconsole)
+        target_link_options(${TIC80_TARGET} PRIVATE -static -mwindows)
     endif()
 
     if(EMSCRIPTEN)

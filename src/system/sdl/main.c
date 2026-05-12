@@ -2258,7 +2258,7 @@ s32 main(s32 argc, char **argv)
         if (pAttachConsole && pAttachConsole((DWORD)-1)) // ATTACH_PARENT_PROCESS
             attached = true;
 
-        if (attached || GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE)
+        if (attached || (GetStdHandle(STD_OUTPUT_HANDLE) != NULL && GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE))
         {
             // Use freopen as first choice
             if (freopen("CONIN$", "r", stdin) == NULL)
