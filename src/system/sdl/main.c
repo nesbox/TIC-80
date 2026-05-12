@@ -2260,7 +2260,7 @@ s32 main(s32 argc, char **argv)
 
         if (attached || GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE)
         {
-            if (!attached)
+            if (!attached && GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") == NULL)
             {
                 DWORD procList[2];
                 if (GetConsoleProcessList(procList, 2) == 1)
