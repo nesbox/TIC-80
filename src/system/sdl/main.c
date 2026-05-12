@@ -2254,45 +2254,53 @@ s32 main(s32 argc, char **argv)
         typedef BOOL (WINAPI *AttachConsole_t)(DWORD);
         AttachConsole_t pAttachConsole = (AttachConsole_t)GetProcAddress(GetModuleHandleA("kernel32.dll"), "AttachConsole");
         
-        bool attached = false;
-        if (pAttachConsole && pAttachConsole((DWORD)-1)) // ATTACH_PARENT_PROCESS
-            attached = true;
+        bool attached = pAttachConsole && pAttachConsole((DWORD)-1);
 
-        if (attached)
-        {
-            if (freopen("CONIN$", "r", stdin)) setvbuf(stdin, NULL, _IONBF, 0);
-            if (freopen("CONOUT$", "w", stdout)) setvbuf(stdout, NULL, _IONBF, 0);
-            if (freopen("CONOUT$", "w", stderr)) setvbuf(stderr, NULL, _IONBF, 0);
-        }
-        else
+        if (!attached)
         {
             HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-            if (hOut != NULL && hOut != INVALID_HANDLE_VALUE)
+            if (hOut != NULL && hOut != INVALID_HANDLE_VALUE && GetFileType(hOut) == FILE_TYPE_CHAR)
             {
-                if (GetFileType(hOut) == FILE_TYPE_CHAR)
+                CONSOLE_SCREEN_BUFFER_INFO info;
+                if (GetConsoleScreenBufferInfo(hOut, &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
                 {
-                    CONSOLE_SCREEN_BUFFER_INFO info;
-                    if (GetConsoleScreenBufferInfo(hOut, &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
-                        FreeConsole();
+                    FreeConsole();
                 }
-                else
+            }
+        }
+
+        if (attached || (GetStdHandle(STD_OUTPUT_HANDLE) != NULL && GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE))
+        {
+            if (freopen("CONIN$", "r", stdin)) setvbuf(stdin, NULL, _IONBF, 0);
+            else
+            {
+                HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+                if (hIn != NULL && hIn != INVALID_HANDLE_VALUE)
+                {
+                    int fd = _open_osfhandle((intptr_t)hIn, _O_TEXT);
+                    if (fd != -1) _dup2(fd, 0);
+                }
+            }
+
+            if (freopen("CONOUT$", "w", stdout)) setvbuf(stdout, NULL, _IONBF, 0);
+            else
+            {
+                HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+                if (hOut != NULL && hOut != INVALID_HANDLE_VALUE)
                 {
                     int fd = _open_osfhandle((intptr_t)hOut, _O_TEXT);
-                    if (fd != -1) _dup2(fd, 1);
+                    if (fd != -1) { _dup2(fd, 1); setvbuf(stdout, NULL, _IONBF, 0); }
+                }
+            }
 
-                    HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
-                    if (hErr != NULL && hErr != INVALID_HANDLE_VALUE)
-                    {
-                        int fde = _open_osfhandle((intptr_t)hErr, _O_TEXT);
-                        if (fde != -1) _dup2(fde, 2);
-                    }
-
-                    HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
-                    if (hIn != NULL && hIn != INVALID_HANDLE_VALUE)
-                    {
-                        int fdi = _open_osfhandle((intptr_t)hIn, _O_TEXT);
-                        if (fdi != -1) _dup2(fdi, 0);
-                    }
+            if (freopen("CONOUT$", "w", stderr)) setvbuf(stderr, NULL, _IONBF, 0);
+            else
+            {
+                HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+                if (hErr != NULL && hErr != INVALID_HANDLE_VALUE)
+                {
+                    int fd = _open_osfhandle((intptr_t)hErr, _O_TEXT);
+                    if (fd != -1) { _dup2(fd, 2); setvbuf(stderr, NULL, _IONBF, 0); }
                 }
             }
         }
