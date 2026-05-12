@@ -2260,13 +2260,30 @@ s32 main(s32 argc, char **argv)
 
         if (attached || GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE)
         {
-            if (!attached && GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") == NULL)
+            if (!attached)
             {
-                DWORD procList[2];
-                if (GetConsoleProcessList(procList, 2) == 1)
+                HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+                if (hOut != NULL && hOut != INVALID_HANDLE_VALUE && GetFileType(hOut) == FILE_TYPE_CHAR)
                 {
-                    FreeConsole();
-                    goto skip_console;
+                    CONSOLE_SCREEN_BUFFER_INFO info;
+                    if (GetConsoleScreenBufferInfo(hOut, &info))
+                    {
+                        bool isFreshWindow = !info.dwCursorPosition.X && !info.dwCursorPosition.Y;
+                        bool isOnlyProcess = false;
+
+                        if (!isFreshWindow && GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") == NULL)
+                        {
+                            DWORD procList[2];
+                            if (GetConsoleProcessList(procList, 2) == 1)
+                                isOnlyProcess = true;
+                        }
+
+                        if (isFreshWindow || isOnlyProcess)
+                        {
+                            FreeConsole();
+                            goto skip_console;
+                        }
+                    }
                 }
             }
 
