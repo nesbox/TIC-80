@@ -2258,49 +2258,43 @@ s32 main(s32 argc, char **argv)
         if (pAttachConsole && pAttachConsole((DWORD)-1)) // ATTACH_PARENT_PROCESS
             attached = true;
 
-        if (attached || (GetStdHandle(STD_OUTPUT_HANDLE) != NULL && GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE))
+        if (attached)
         {
-            // Use freopen as first choice
-            if (freopen("CONIN$", "r", stdin) == NULL)
-            {
-                // Fallback for redirected input if CONIN$ fails
-                HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
-                if (hIn != INVALID_HANDLE_VALUE)
-                {
-                    int fd = _open_osfhandle((intptr_t)hIn, _O_TEXT);
-                    if (fd != -1) _dup2(fd, 0);
-                }
-            }
-
-            if (freopen("CONOUT$", "w", stdout) == NULL)
-            {
-                // Fallback for redirected output
-                HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-                if (hOut != INVALID_HANDLE_VALUE)
-                {
-                    int fd = _open_osfhandle((intptr_t)hOut, _O_TEXT);
-                    if (fd != -1) _dup2(fd, 1);
-                }
-            }
-
-            if (freopen("CONOUT$", "w", stderr) == NULL)
-            {
-                HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
-                if (hErr != INVALID_HANDLE_VALUE)
-                {
-                    int fd = _open_osfhandle((intptr_t)hErr, _O_TEXT);
-                    if (fd != -1) _dup2(fd, 2);
-                }
-            }
-
-            setvbuf(stdout, NULL, _IONBF, 0);
-            setvbuf(stderr, NULL, _IONBF, 0);
+            if (freopen("CONIN$", "r", stdin)) setvbuf(stdin, NULL, _IONBF, 0);
+            if (freopen("CONOUT$", "w", stdout)) setvbuf(stdout, NULL, _IONBF, 0);
+            if (freopen("CONOUT$", "w", stderr)) setvbuf(stderr, NULL, _IONBF, 0);
         }
         else
         {
-            CONSOLE_SCREEN_BUFFER_INFO info;
-            if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
-                FreeConsole();
+            HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+            if (hOut != NULL && hOut != INVALID_HANDLE_VALUE)
+            {
+                if (GetFileType(hOut) == FILE_TYPE_CHAR)
+                {
+                    CONSOLE_SCREEN_BUFFER_INFO info;
+                    if (GetConsoleScreenBufferInfo(hOut, &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
+                        FreeConsole();
+                }
+                else
+                {
+                    int fd = _open_osfhandle((intptr_t)hOut, _O_TEXT);
+                    if (fd != -1) _dup2(fd, 1);
+
+                    HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+                    if (hErr != NULL && hErr != INVALID_HANDLE_VALUE)
+                    {
+                        int fde = _open_osfhandle((intptr_t)hErr, _O_TEXT);
+                        if (fde != -1) _dup2(fde, 2);
+                    }
+
+                    HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+                    if (hIn != NULL && hIn != INVALID_HANDLE_VALUE)
+                    {
+                        int fdi = _open_osfhandle((intptr_t)hIn, _O_TEXT);
+                        if (fdi != -1) _dup2(fdi, 0);
+                    }
+                }
+            }
         }
     }
 #elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
