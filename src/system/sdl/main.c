@@ -2258,37 +2258,71 @@ s32 main(s32 argc, char **argv)
         if (pAttachConsole && pAttachConsole((DWORD)-1)) // ATTACH_PARENT_PROCESS
             attached = true;
 
+        bool isWine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
+        char debug[2048] = {0};
+        char linkTarget[256] = "N/A";
+        char pathIn[MAX_PATH] = "N/A", pathOut[MAX_PATH] = "N/A";
+        DWORD modeIn = 0, modeOut = 0;
+        DWORD procList[8];
+        DWORD procCount = GetConsoleProcessList(procList, 8);
+        HWND consoleWnd = GetConsoleWindow();
+        CONSOLE_SCREEN_BUFFER_INFO info;
+        BOOL hasInfo = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info);
+        
+        GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &modeIn);
+        GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &modeOut);
+        
+        typedef DWORD (WINAPI *GetFinalPathNameByHandleA_t)(HANDLE, LPSTR, DWORD, DWORD);
+        GetFinalPathNameByHandleA_t pGetFinalPathNameByHandleA = (GetFinalPathNameByHandleA_t)GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetFinalPathNameByHandleA");
+        if (pGetFinalPathNameByHandleA)
+        {
+            pGetFinalPathNameByHandleA(GetStdHandle(STD_INPUT_HANDLE), pathIn, MAX_PATH, 0);
+            pGetFinalPathNameByHandleA(GetStdHandle(STD_OUTPUT_HANDLE), pathOut, MAX_PATH, 0);
+        }
+
+        if (isWine)
+        {
+            typedef long (*syscall_t)(long, ...);
+            syscall_t wine_syscall = (syscall_t)GetProcAddress(GetModuleHandleA("ntdll.dll"), "syscall");
+            if (wine_syscall)
+            {
+                long ret = wine_syscall(89, "/proc/self/fd/0", linkTarget, sizeof(linkTarget) - 1);
+                if (ret > 0) linkTarget[ret] = '\0';
+            }
+        }
+
+        sprintf(debug, 
+            "isWine: %d\n"
+            "Attached: %d\n"
+            "HWND: %p\n"
+            "procCount: %lu\n"
+            "isatty(0/1): %d / %d\n"
+            "Mode(In/Out): %lu / %lu\n"
+            "Cursor: %d, %d\n"
+            "PathIn: %s\n"
+            "PathOut: %s\n"
+            "Link0: %s",
+            isWine, attached, consoleWnd, procCount, _isatty(0), _isatty(1), modeIn, modeOut,
+            hasInfo ? info.dwCursorPosition.X : -1, hasInfo ? info.dwCursorPosition.Y : -1,
+            pathIn, pathOut, linkTarget);
+
+        MessageBoxA(NULL, debug, "TIC-80 ULTIMATE DEBUG", MB_OK);
+
         if (attached || GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE)
         {
             if (!attached)
             {
-                HWND consoleWnd = GetConsoleWindow();
                 if (consoleWnd != NULL)
                 {
-                    bool isWine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
                     bool shouldHide = false;
-
                     if (isWine)
                     {
-                        char buf[1024];
-                        DWORD procList[2] = {0};
-                        DWORD procCount = GetConsoleProcessList(procList, 2);
-                        sprintf(buf, "isWine: %d\n_isatty(0): %d\n_isatty(1): %d\nprocCount: %lu\nHWND: %p",
-                            isWine, _isatty(0), _isatty(1), procCount, consoleWnd);
-                        MessageBoxA(NULL, buf, "TIC-80 DEBUG", MB_OK);
-
-                        if (!_isatty(0)) shouldHide = true;
+                        if (strncmp(linkTarget, "/dev/null", 9) == 0) shouldHide = true;
                     }
                     else
                     {
-                        DWORD procList[2];
-                        if (GetConsoleProcessList(procList, 2) == 1) shouldHide = true;
-                        else
-                        {
-                            CONSOLE_SCREEN_BUFFER_INFO info;
-                            if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
-                                shouldHide = true;
-                        }
+                        if (procCount == 1) shouldHide = true;
+                        else if (hasInfo && !info.dwCursorPosition.X && !info.dwCursorPosition.Y) shouldHide = true;
                     }
 
                     if (shouldHide)
