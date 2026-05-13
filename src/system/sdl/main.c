@@ -2265,24 +2265,29 @@ s32 main(s32 argc, char **argv)
                 HWND consoleWnd = GetConsoleWindow();
                 if (consoleWnd != NULL)
                 {
-                    CONSOLE_SCREEN_BUFFER_INFO info;
-                    if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info))
+                    bool isWine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
+                    bool shouldHide = false;
+
+                    if (isWine)
                     {
-                        bool isFreshWindow = !info.dwCursorPosition.X && !info.dwCursorPosition.Y;
-                        bool isOnlyProcess = false;
-
-                        if (GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") == NULL)
+                        if (!_isatty(0)) shouldHide = true;
+                    }
+                    else
+                    {
+                        DWORD procList[2];
+                        if (GetConsoleProcessList(procList, 2) == 1) shouldHide = true;
+                        else
                         {
-                            DWORD procList[2];
-                            if (GetConsoleProcessList(procList, 2) == 1)
-                                isOnlyProcess = true;
+                            CONSOLE_SCREEN_BUFFER_INFO info;
+                            if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
+                                shouldHide = true;
                         }
+                    }
 
-                        if (isFreshWindow || isOnlyProcess)
-                        {
-                            FreeConsole();
-                            goto skip_console;
-                        }
+                    if (shouldHide)
+                    {
+                        FreeConsole();
+                        goto skip_console;
                     }
                 }
             }
