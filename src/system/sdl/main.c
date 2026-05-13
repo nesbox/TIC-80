@@ -2255,22 +2255,23 @@ s32 main(s32 argc, char **argv)
         AttachConsole_t pAttachConsole = (AttachConsole_t)GetProcAddress(GetModuleHandleA("kernel32.dll"), "AttachConsole");
         
         bool attached = false;
-        if (pAttachConsole && pAttachConsole((DWORD)-1)) // ATTACH_PARENT_PROCESS
-            attached = true;
-
         bool isWine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
         char debug[2048] = {0};
         char linkTarget[256] = "N/A";
         char pathIn[MAX_PATH] = "N/A", pathOut[MAX_PATH] = "N/A";
+        char title[1024] = "N/A";
         DWORD modeIn = 0, modeOut = 0;
         DWORD procList[8];
         DWORD procCount = GetConsoleProcessList(procList, 8);
         HWND consoleWnd = GetConsoleWindow();
         CONSOLE_SCREEN_BUFFER_INFO info;
         BOOL hasInfo = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info);
+        DWORD typeIn = GetFileType(GetStdHandle(STD_INPUT_HANDLE));
+        DWORD typeOut = GetFileType(GetStdHandle(STD_OUTPUT_HANDLE));
         
         GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &modeIn);
         GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &modeOut);
+        GetConsoleTitleA(title, sizeof(title));
         
         typedef DWORD (WINAPI *GetFinalPathNameByHandleA_t)(HANDLE, LPSTR, DWORD, DWORD);
         GetFinalPathNameByHandleA_t pGetFinalPathNameByHandleA = (GetFinalPathNameByHandleA_t)GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetFinalPathNameByHandleA");
@@ -2288,23 +2289,27 @@ s32 main(s32 argc, char **argv)
             {
                 long ret = wine_syscall(89, "/proc/self/fd/0", linkTarget, sizeof(linkTarget) - 1);
                 if (ret > 0) linkTarget[ret] = '\0';
+                else sprintf(linkTarget, "Error %ld", ret);
             }
+            else strcpy(linkTarget, "No syscall wrapper");
         }
+
+        HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 
         sprintf(debug, 
             "isWine: %d\n"
-            "Attached: %d\n"
-            "HWND: %p\n"
-            "procCount: %lu\n"
+            "HWND: %p Title: %s\n"
+            "hIn: %p hOut: %p (Inv: %p)\n"
+            "procCount: %lu In/OutType: %lu/%lu\n"
             "isatty(0/1): %d / %d\n"
             "Mode(In/Out): %lu / %lu\n"
             "Cursor: %d, %d\n"
             "PathIn: %s\n"
-            "PathOut: %s\n"
             "Link0: %s",
-            isWine, attached, consoleWnd, procCount, _isatty(0), _isatty(1), modeIn, modeOut,
+            isWine, consoleWnd, title, hIn, hOut, INVALID_HANDLE_VALUE, procCount, typeIn, typeOut, _isatty(0), _isatty(1), modeIn, modeOut,
             hasInfo ? info.dwCursorPosition.X : -1, hasInfo ? info.dwCursorPosition.Y : -1,
-            pathIn, pathOut, linkTarget);
+            pathIn, linkTarget);
 
         MessageBoxA(NULL, debug, "TIC-80 ULTIMATE DEBUG", MB_OK);
 
