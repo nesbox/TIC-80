@@ -4003,7 +4003,12 @@ static void processConsoleCommand(Console* console)
 
     if(commandSize)
     {
+#ifdef BAREMETALPI
         printf("%s", console->input.text);
+#else
+        if (console->args.cli)
+            printf("%s", console->input.text);
+#endif
         appendHistory(console, console->input.text);
         processCommand(console, console->input.text);
     }
@@ -4271,6 +4276,26 @@ static void backspaceWord(Console* console)
     console->input.pos = pos;
 }
 
+static void refreshTerminal(Console* console)
+{
+#ifndef BAREMETALPI
+    if (!console->args.cli)
+    {
+        char dir[TICNAME_MAX];
+        tic_fs_dir(console->fs, dir);
+        printf("\r\033[K");
+        if(strlen(dir))
+            printf("%s", dir);
+        printf(">%s", console->input.text);
+
+        s32 tailLen = (s32)strlen(console->input.text) - (s32)console->input.pos;
+        if (tailLen > 0)
+            printf("\033[%dD", tailLen);
+        fflush(stdout);
+    }
+#endif
+}
+
 static void processKeyboard(Console* console)
 {
     tic_mem* tic = console->tic;
@@ -4356,6 +4381,7 @@ static void processKeyboard(Console* console)
         console->cursor.delay = CONSOLE_CURSOR_DELAY;
     }
 
+    refreshTerminal(console);
 }
 
 static void processGamepad(Console* console)
@@ -4539,6 +4565,32 @@ static int cmdcmp(const void* a, const void* b)
 static int apicmp(const void* a, const void* b)
 {
     return strcmp(((const ApiItem*)a)->name, ((const ApiItem*)b)->name);
+}
+
+// Handle terminal input events directly, bypassing the regular SDL event loop for some keys.
+// This allows commands to be entered and executed even when the console is in the background.
+void console_terminal_input(Console* console, tic_key key, char text)
+{
+    if(key == tic_key_return)
+    {
+        processConsoleCommand(console);
+        while(console->commands.current < console->commands.count)
+        {
+             const char* command = console->commands.items[console->commands.current];
+             processCommand(console, command);
+             console->commands.current++;
+        }
+    }
+    else if(key == tic_key_backspace) processConsoleBackspace(console);
+    else if(key == tic_key_tab) processConsoleTab(console);
+    else if(key == tic_key_delete) processConsoleDel(console);
+    else if(key == tic_key_up) onHistoryUp(console);
+    else if(key == tic_key_down) onHistoryDown(console);
+    else if(key == tic_key_left) { if(console->input.pos > 0) console->input.pos--; }
+    else if(key == tic_key_right) { console->input.pos++; s32 len = (s32)strlen(console->input.text); if(console->input.pos > len) console->input.pos = (size_t)len; }
+    else if(text) insertInputText(console, (char[]){text, '\0'});
+
+    refreshTerminal(console);
 }
 
 void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Config* config, StartArgs args)

@@ -1385,6 +1385,11 @@ bool checkStudioViMode(Studio* studio, ViMode mode) {
 }
 #endif
 
+void studio_terminal_input(Studio* studio, tic_key key, char text)
+{
+    console_terminal_input(studio->console, key, text);
+}
+
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
 {
     return (pt->x >= rect->x)
