@@ -2294,22 +2294,46 @@ s32 main(s32 argc, char **argv)
             else strcpy(linkTarget, "No syscall wrapper");
         }
 
-        HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
-        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        char classBuf[256] = "N/A";
+        char linkProc[MAX_PATH] = "N/A";
+        COORD bufSize = {0, 0};
+        if (consoleWnd) GetClassNameA(consoleWnd, classBuf, sizeof(classBuf));
+        if (hasInfo) bufSize = info.dwSize;
+
+        if (isWine)
+        {
+            typedef long (*syscall_t)(long, ...);
+            syscall_t wine_syscall = (syscall_t)GetProcAddress(GetModuleHandleA("ntdll.dll"), "syscall");
+            if (wine_syscall)
+            {
+                long ret = wine_syscall(89, "/proc/self/fd/0", linkTarget, sizeof(linkTarget) - 1);
+                if (ret > 0) linkTarget[ret] = '\0';
+                else sprintf(linkTarget, "SYSCALL ERR %ld", ret);
+            }
+            else strcpy(linkTarget, "No syscall wrapper");
+
+            // Try the Z:\ bridge
+            HANDLE hProc = CreateFileA("Z:\\proc\\self\\fd\\0", 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+            if (hProc != INVALID_HANDLE_VALUE)
+            {
+                if (pGetFinalPathNameByHandleA) pGetFinalPathNameByHandleA(hProc, linkProc, MAX_PATH, 0);
+                CloseHandle(hProc);
+            }
+        }
 
         sprintf(debug, 
-            "isWine: %d\n"
-            "HWND: %p Title: %s\n"
-            "hIn: %p hOut: %p (Inv: %p)\n"
+            "isWine: %d HWND: %p\n"
+            "Class: %s\n"
+            "Title: %s\n"
+            "hIn: %p hOut: %p\n"
             "procCount: %lu In/OutType: %lu/%lu\n"
-            "isatty(0/1): %d / %d\n"
             "Mode(In/Out): %lu / %lu\n"
-            "Cursor: %d, %d\n"
-            "PathIn: %s\n"
-            "Link0: %s",
-            isWine, consoleWnd, title, hIn, hOut, INVALID_HANDLE_VALUE, procCount, typeIn, typeOut, _isatty(0), _isatty(1), modeIn, modeOut,
-            hasInfo ? info.dwCursorPosition.X : -1, hasInfo ? info.dwCursorPosition.Y : -1,
-            pathIn, linkTarget);
+            "BufSize: %d x %d Cursor: %d, %d\n"
+            "Link0: %s\n"
+            "LinkProc: %s",
+            isWine, consoleWnd, classBuf, title, hIn, hOut, procCount, typeIn, typeOut, modeIn, modeOut,
+            bufSize.X, bufSize.Y, hasInfo ? info.dwCursorPosition.X : -1, hasInfo ? info.dwCursorPosition.Y : -1,
+            linkTarget, linkProc);
 
         MessageBoxA(NULL, debug, "TIC-80 ULTIMATE DEBUG", MB_OK);
 
