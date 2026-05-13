@@ -2298,9 +2298,17 @@ s32 main(s32 argc, char **argv)
         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
         char classBuf[256] = "N/A";
         char linkProc[MAX_PATH] = "N/A";
+        char linkTargetResolved[MAX_PATH] = "N/A";
         COORD bufSize = {0, 0};
+        int winWidth = 0, winHeight = 0;
+        BOOL isVisible = IsWindowVisible(consoleWnd);
         if (consoleWnd) GetClassNameA(consoleWnd, classBuf, sizeof(classBuf));
-        if (hasInfo) bufSize = info.dwSize;
+        if (hasInfo)
+        {
+            bufSize = info.dwSize;
+            winWidth = info.srWindow.Right - info.srWindow.Left + 1;
+            winHeight = info.srWindow.Bottom - info.srWindow.Top + 1;
+        }
 
         if (isWine)
         {
@@ -2314,28 +2322,37 @@ s32 main(s32 argc, char **argv)
             }
             else strcpy(linkTarget, "No syscall wrapper");
 
-            // Try the Z:\ bridge
+            // Try the Z:\ bridge WITH backup semantics (to see symlink path)
             HANDLE hProc = CreateFileA("Z:\\proc\\self\\fd\\0", 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
             if (hProc != INVALID_HANDLE_VALUE)
             {
                 if (pGetFinalPathNameByHandleA) pGetFinalPathNameByHandleA(hProc, linkProc, MAX_PATH, 0);
                 CloseHandle(hProc);
             }
+
+            // Try the Z:\ bridge WITHOUT backup semantics (to see target path)
+            HANDLE hTarget = CreateFileA("Z:\\proc\\self\\fd\\0", 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+            if (hTarget != INVALID_HANDLE_VALUE)
+            {
+                if (pGetFinalPathNameByHandleA) pGetFinalPathNameByHandleA(hTarget, linkTargetResolved, MAX_PATH, 0);
+                CloseHandle(hTarget);
+            }
         }
 
         sprintf(debug, 
-            "isWine: %d HWND: %p\n"
-            "Class: %s\n"
-            "Title: %s\n"
-            "hIn: %p hOut: %p\n"
-            "procCount: %lu In/OutType: %lu/%lu\n"
-            "Mode(In/Out): %lu / %lu\n"
-            "BufSize: %d x %d Cursor: %d, %d\n"
+            "isWine: %d HWND: %p Vis: %d\n"
+            "Class: %s Title: %s\n"
+            "hIn: %p hOut: %p (procC: %lu)\n"
+            "In/OutType: %lu/%lu Mode: %lu/%lu\n"
+            "Buf: %dx%d Win: %dx%d\n"
             "Link0: %s\n"
-            "LinkProc: %s",
-            isWine, consoleWnd, classBuf, title, hIn, hOut, procCount, typeIn, typeOut, modeIn, modeOut,
-            bufSize.X, bufSize.Y, hasInfo ? info.dwCursorPosition.X : -1, hasInfo ? info.dwCursorPosition.Y : -1,
-            linkTarget, linkProc);
+            "LProc: %s\n"
+            "LRes: %s",
+            isWine, consoleWnd, isVisible,
+            classBuf, title, hIn, hOut, procCount,
+            typeIn, typeOut, modeIn, modeOut,
+            bufSize.X, bufSize.Y, winWidth, winHeight,
+            linkTarget, linkProc, linkTargetResolved);
 
         MessageBoxA(NULL, debug, "TIC-80 ULTIMATE DEBUG", MB_OK);
 
