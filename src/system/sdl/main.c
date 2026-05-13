@@ -2270,6 +2270,13 @@ s32 main(s32 argc, char **argv)
 
                     if (isWine)
                     {
+                        char buf[1024];
+                        DWORD procList[2] = {0};
+                        DWORD procCount = GetConsoleProcessList(procList, 2);
+                        sprintf(buf, "isWine: %d\n_isatty(0): %d\n_isatty(1): %d\nprocCount: %lu\nHWND: %p",
+                            isWine, _isatty(0), _isatty(1), procCount, consoleWnd);
+                        MessageBoxA(NULL, buf, "TIC-80 DEBUG", MB_OK);
+
                         if (!_isatty(0)) shouldHide = true;
                     }
                     else
