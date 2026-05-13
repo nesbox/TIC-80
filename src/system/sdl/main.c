@@ -2262,16 +2262,16 @@ s32 main(s32 argc, char **argv)
         {
             if (!attached)
             {
-                HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-                if (hOut != NULL && hOut != INVALID_HANDLE_VALUE && GetFileType(hOut) == FILE_TYPE_CHAR)
+                HWND consoleWnd = GetConsoleWindow();
+                if (consoleWnd != NULL)
                 {
                     CONSOLE_SCREEN_BUFFER_INFO info;
-                    if (GetConsoleScreenBufferInfo(hOut, &info))
+                    if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info))
                     {
                         bool isFreshWindow = !info.dwCursorPosition.X && !info.dwCursorPosition.Y;
                         bool isOnlyProcess = false;
 
-                        if (!isFreshWindow && GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") == NULL)
+                        if (GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") == NULL)
                         {
                             DWORD procList[2];
                             if (GetConsoleProcessList(procList, 2) == 1)
