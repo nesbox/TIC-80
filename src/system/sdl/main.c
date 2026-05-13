@@ -2294,6 +2294,8 @@ s32 main(s32 argc, char **argv)
             else strcpy(linkTarget, "No syscall wrapper");
         }
 
+        HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
         char classBuf[256] = "N/A";
         char linkProc[MAX_PATH] = "N/A";
         COORD bufSize = {0, 0};
