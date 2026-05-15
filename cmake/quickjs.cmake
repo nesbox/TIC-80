@@ -49,6 +49,10 @@ if(BUILD_WITH_JS)
         target_compile_definitions(quickjs PRIVATE DUMP_LEAKS)
     endif()
 
+    if(EMSCRIPTEN)
+        target_compile_definitions(quickjs PRIVATE EMSCRIPTEN)
+    endif()
+
     if(BAREMETALPI OR NINTENDO_3DS)
         target_compile_definitions(quickjs PRIVATE POOR_CLIB)
     endif()
