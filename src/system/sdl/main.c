@@ -2251,140 +2251,41 @@ s32 main(s32 argc, char **argv)
 {
 #if defined(__TIC_WINDOWS__)
     {
-        typedef BOOL (WINAPI *AttachConsole_t)(DWORD);
-        AttachConsole_t pAttachConsole = (AttachConsole_t)GetProcAddress(GetModuleHandleA("kernel32.dll"), "AttachConsole");
-        
-        bool attached = false;
         bool isWine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
-        char debug[2048] = {0};
-        char linkTarget[256] = "N/A";
-        char pathIn[MAX_PATH] = "N/A", pathOut[MAX_PATH] = "N/A";
-        char title[1024] = "N/A";
-        DWORD modeIn = 0, modeOut = 0;
-        DWORD procList[8];
-        DWORD procCount = GetConsoleProcessList(procList, 8);
         HWND consoleWnd = GetConsoleWindow();
-        CONSOLE_SCREEN_BUFFER_INFO info;
-        BOOL hasInfo = GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info);
-        DWORD typeIn = GetFileType(GetStdHandle(STD_INPUT_HANDLE));
-        DWORD typeOut = GetFileType(GetStdHandle(STD_OUTPUT_HANDLE));
-        
-        GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &modeIn);
-        GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &modeOut);
-        GetConsoleTitleA(title, sizeof(title));
-        
-        typedef DWORD (WINAPI *GetFinalPathNameByHandleA_t)(HANDLE, LPSTR, DWORD, DWORD);
-        GetFinalPathNameByHandleA_t pGetFinalPathNameByHandleA = (GetFinalPathNameByHandleA_t)GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetFinalPathNameByHandleA");
-        if (pGetFinalPathNameByHandleA)
+
+        if (GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE)
         {
-            pGetFinalPathNameByHandleA(GetStdHandle(STD_INPUT_HANDLE), pathIn, MAX_PATH, 0);
-            pGetFinalPathNameByHandleA(GetStdHandle(STD_OUTPUT_HANDLE), pathOut, MAX_PATH, 0);
-        }
-
-        if (isWine)
-        {
-            typedef long (*syscall_t)(long, ...);
-            syscall_t wine_syscall = (syscall_t)GetProcAddress(GetModuleHandleA("ntdll.dll"), "syscall");
-            if (wine_syscall)
+            if (consoleWnd != NULL)
             {
-                long ret = wine_syscall(89, "/proc/self/fd/0", linkTarget, sizeof(linkTarget) - 1);
-                if (ret > 0) linkTarget[ret] = '\0';
-                else sprintf(linkTarget, "Error %ld", ret);
-            }
-            else strcpy(linkTarget, "No syscall wrapper");
-        }
+                bool shouldHide = false;
 
-        HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
-        HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-        char classBuf[256] = "N/A";
-        char linkProc[MAX_PATH] = "N/A";
-        char linkTargetResolved[MAX_PATH] = "N/A";
-        COORD bufSize = {0, 0};
-        int winWidth = 0, winHeight = 0;
-        BOOL isVisible = IsWindowVisible(consoleWnd);
-        if (consoleWnd) GetClassNameA(consoleWnd, classBuf, sizeof(classBuf));
-        if (hasInfo)
-        {
-            bufSize = info.dwSize;
-            winWidth = info.srWindow.Right - info.srWindow.Left + 1;
-            winHeight = info.srWindow.Bottom - info.srWindow.Top + 1;
-        }
-
-        if (isWine)
-        {
-            typedef long (*syscall_t)(long, ...);
-            syscall_t wine_syscall = (syscall_t)GetProcAddress(GetModuleHandleA("ntdll.dll"), "syscall");
-            if (wine_syscall)
-            {
-                long ret = wine_syscall(89, "/proc/self/fd/0", linkTarget, sizeof(linkTarget) - 1);
-                if (ret > 0) linkTarget[ret] = '\0';
-                else sprintf(linkTarget, "SYSCALL ERR %ld", ret);
-            }
-            else strcpy(linkTarget, "No syscall wrapper");
-
-            // Try the Z:\ bridge WITH backup semantics (to see symlink path)
-            HANDLE hProc = CreateFileA("Z:\\proc\\self\\fd\\0", 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
-            if (hProc != INVALID_HANDLE_VALUE)
-            {
-                if (pGetFinalPathNameByHandleA) pGetFinalPathNameByHandleA(hProc, linkProc, MAX_PATH, 0);
-                CloseHandle(hProc);
-            }
-
-            // Try the Z:\ bridge WITHOUT backup semantics (to see target path)
-            HANDLE hTarget = CreateFileA("Z:\\proc\\self\\fd\\0", 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
-            if (hTarget != INVALID_HANDLE_VALUE)
-            {
-                if (pGetFinalPathNameByHandleA) pGetFinalPathNameByHandleA(hTarget, linkTargetResolved, MAX_PATH, 0);
-                CloseHandle(hTarget);
-            }
-        }
-
-        sprintf(debug, 
-            "isWine: %d HWND: %p Vis: %d\n"
-            "Class: %s Title: %s\n"
-            "hIn: %p hOut: %p (procC: %lu)\n"
-            "In/OutType: %lu/%lu Mode: %lu/%lu\n"
-            "Buf: %dx%d Win: %dx%d\n"
-            "Link0: %s\n"
-            "LProc: %s\n"
-            "LRes: %s",
-            isWine, consoleWnd, isVisible,
-            classBuf, title, hIn, hOut, procCount,
-            typeIn, typeOut, modeIn, modeOut,
-            bufSize.X, bufSize.Y, winWidth, winHeight,
-            linkTarget, linkProc, linkTargetResolved);
-
-        MessageBoxA(NULL, debug, "TIC-80 ULTIMATE DEBUG", MB_OK);
-
-        if (attached || GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE)
-        {
-            if (!attached)
-            {
-                if (consoleWnd != NULL)
+                if (isWine)
                 {
-                    bool shouldHide = false;
-                    if (isWine)
-                    {
-                        if (strncmp(linkTarget, "/dev/null", 9) == 0) shouldHide = true;
-                    }
-                    else
-                    {
-                        if (procCount == 1) shouldHide = true;
-                        else if (hasInfo && !info.dwCursorPosition.X && !info.dwCursorPosition.Y) shouldHide = true;
-                    }
+                    // On Wine, terminal launches don't have a visible console window (Vis: 0).
+                    // GUI launches (e.g. from KDE) create a visible virtual console (Vis: 1).
+                    if (IsWindowVisible(consoleWnd))
+                        shouldHide = true;
+                }
+                else
+                {
+                    // Native Windows: A fresh console window (GUI launch) is shared by only 1 process.
+                    // Terminal launches (CMD/PowerShell) share the console with the shell (2+ processes).
+                    DWORD procList[2];
+                    if (GetConsoleProcessList(procList, 2) == 1)
+                        shouldHide = true;
+                }
 
-                    if (shouldHide)
-                    {
-                        FreeConsole();
-                        goto skip_console;
-                    }
+                if (shouldHide)
+                {
+                    FreeConsole();
+                    goto skip_console;
                 }
             }
 
-            // Use freopen as first choice
+            // Standard stream redirection for attached consoles
             if (freopen("CONIN$", "r", stdin) == NULL)
             {
-                // Fallback for redirected input if CONIN$ fails
                 HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
                 if (hIn != INVALID_HANDLE_VALUE)
                 {
@@ -2395,7 +2296,6 @@ s32 main(s32 argc, char **argv)
 
             if (freopen("CONOUT$", "w", stdout) == NULL)
             {
-                // Fallback for redirected output
                 HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
                 if (hOut != INVALID_HANDLE_VALUE)
                 {
@@ -2419,9 +2319,13 @@ s32 main(s32 argc, char **argv)
         }
         else
         {
-            CONSOLE_SCREEN_BUFFER_INFO info;
-            if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
-                FreeConsole();
+            // Fallback for cases where no handles are available at all
+            if (consoleWnd != NULL && IsWindowVisible(consoleWnd))
+            {
+                CONSOLE_SCREEN_BUFFER_INFO info;
+                if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
+                    FreeConsole();
+            }
         }
         skip_console:;
     }
