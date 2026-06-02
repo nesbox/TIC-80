@@ -4005,9 +4005,6 @@ static void processConsoleCommand(Console* console)
     {
 #ifdef BAREMETALPI
         printf("%s", console->input.text);
-#else
-        if (console->args.cli)
-            printf("%s", console->input.text);
 #endif
         appendHistory(console, console->input.text);
         processCommand(console, console->input.text);
@@ -4402,7 +4399,6 @@ static void tick(Console* console)
     tic_mem* tic = console->tic;
 
     processMouse(console);
-    processKeyboard(console);
     processGamepad(console);
 
     Start* start = getStartScreen(console->studio);
@@ -4427,6 +4423,8 @@ static void tick(Console* console)
         }
         else printBack(console, "\n loading cart...");
     }
+
+    processKeyboard(console);
 
     tic_api_cls(tic, TIC_COLOR_BG);
     drawConsoleText(console);
