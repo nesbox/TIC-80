@@ -4398,6 +4398,9 @@ static void tick(Console* console)
             }
 
             commandDone(console);
+
+            if(getConfig(console->studio)->options.startupScreen == STARTUP_MENU)
+                setStudioMode(console->studio, TIC_MENU_MODE);
         }
         else printBack(console, "\n loading cart...");
     }
