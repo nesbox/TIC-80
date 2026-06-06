@@ -29,9 +29,9 @@ android {
             cmake {
                 arguments "-DBUILD_WITH_RUBY=OFF",
                             "-DBUILD_PRO=OFF",
-                            "-DBUILD_EDITORS=OFF",
                             "-DBUILD_SURF=ON",
                             "-DCMAKE_BUILD_TYPE=Release",
+                            "-DDEFAULT_STARTUP_SCREEN=MENU",
                             "-DBUILD_WITH_ALL=ON"
             }
         }

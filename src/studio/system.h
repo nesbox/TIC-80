@@ -90,6 +90,11 @@ enum TabMode {
     TAB_SPACE
 };
 
+enum StartupScreen {
+    STARTUP_CONSOLE,
+    STARTUP_MENU
+};
+
 typedef struct
 {
     struct
@@ -139,6 +144,7 @@ typedef struct
         bool autosave;
         tic_mapping mapping;
 #if defined(BUILD_EDITORS)
+        enum StartupScreen startupScreen;
         enum KeybindMode keybindMode;
         enum TabMode tabMode;
         s32 tabSize;

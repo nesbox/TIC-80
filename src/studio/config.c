@@ -37,6 +37,12 @@
 #define INTEGER_SCALE_DEFAULT true
 #endif
 
+#if defined(DEFAULT_STARTUP_SCREEN_MENU)
+#define DEFAULT_STARTUP_SCREEN STARTUP_MENU
+#else
+#define DEFAULT_STARTUP_SCREEN STARTUP_CONSOLE
+#endif
+
 static void readConfig(Config* config)
 {
     const char* json = config->cart->code.data;
@@ -96,6 +102,7 @@ static void setDefault(Config* config)
             .integerScale   = INTEGER_SCALE_DEFAULT,
             .autosave       = false,
 #if defined(BUILD_EDITORS)
+            .startupScreen  = DEFAULT_STARTUP_SCREEN,
             .keybindMode    = KEYBIND_STANDARD,
             .tabMode        = TAB_AUTO,
             .tabSize        = 1,
@@ -184,6 +191,7 @@ static void loadOptions(Config* config)
             tic_tool_str2buf(mapping.data, strlen(mapping.data), &options->mapping, false);
 
 #if defined(BUILD_EDITORS)
+            options->startupScreen = json_int("startupScreen", DEFAULT_STARTUP_SCREEN);
             options->keybindMode = json_int("keybindMode", 0);
             options->tabMode = json_int("tabMode", 0);
             options->tabSize = json_int("tabSize", 0);
@@ -222,6 +230,7 @@ static void saveOptions(Config* config)
             "\"mapping\":\"%s\""
 #if defined(BUILD_EDITORS)
             ", "
+            "\"startupScreen\":%i, "
             "\"keybindMode\":%i, "
             "\"tabMode\":%i, "
             "\"tabSize\":%i"
@@ -240,6 +249,7 @@ static void saveOptions(Config* config)
 
 #if defined(BUILD_EDITORS)
         ,
+        options->startupScreen,
         options->keybindMode,
         options->tabMode,
         options->tabSize

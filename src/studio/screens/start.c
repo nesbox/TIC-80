@@ -71,7 +71,11 @@ static void header(Start* start)
 static void start_console(Start* start)
 {
     drawHeader(start);
+#if defined(BUILD_EDITORS)
+    setStudioMode(start->studio, getConfig(start->studio)->options.startupScreen == STARTUP_MENU ? TIC_MENU_MODE : TIC_CONSOLE_MODE);
+#else
     setStudioMode(start->studio, TIC_CONSOLE_MODE);
+#endif
 }
 
 static void tick(Start* start)
