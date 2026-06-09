@@ -459,8 +459,8 @@ static inline s32 mainMenuOffset(StudioMainMenu* menu)
 
     if (!studio_is_cart_loaded(menu->studio))
 #if defined(BUILD_EDITORS)
-        // If startup screen is menu, we also skip CLOSE GAME
-        return menu->options->startupScreen == STARTUP_MENU ? 4 : 3;
+        // BUILD_EDITORS includes the extra entry: CLOSE GAME
+        return 4;
 #else
         return 3;
 #endif
