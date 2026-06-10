@@ -265,6 +265,7 @@ void playSystemSfx(Studio* studio, s32 id);
 bool studio_is_cart_loaded(Studio* studio);
 
 void gotoMenu(Studio* studio);
+void studio_gamepad_back(Studio* studio);
 void gotoCode(Studio* studio);
 void gotoSurf(Studio* studio);
 

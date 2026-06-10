@@ -1864,6 +1864,27 @@ void gotoMenu(Studio* studio)
     studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
 }
 
+// Called by the SDL backend.
+void studio_gamepad_back(Studio* studio)
+{
+    switch(studio->mode)
+    {
+    case TIC_MENU_MODE:
+        // When on a submenu, navigate back within the menu
+        if(studio_menu_back(studio->menu))
+            break;
+
+        // When on the main menu root, return to the game
+        if(!studio_is_cart_loaded(studio))
+            tic_api_reset(studio->tic);
+
+        setStudioMode(studio, TIC_RUN_MODE);
+        break;
+    default:
+        gotoMenu(studio);
+    }
+}
+
 static bool enterWasPressedOnce(Studio* studio)
 {
     return keyWasPressedOnce(studio, tic_key_return) ||

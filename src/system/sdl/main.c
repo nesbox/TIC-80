@@ -29,10 +29,10 @@
 #include <string.h>
 #include <time.h>
 
-#ifdef __SWITCH__
-// from studio/studio.h
+// from studio/studio.h — used in processGamepad()
 extern void gotoMenu(Studio* studio);
-#endif
+extern void studio_gamepad_back(Studio* studio);
+
 
 #if defined(__TIC_LINUX__)
 #include <signal.h>
@@ -952,6 +952,7 @@ static void processGamepad()
     {
         platform.gamepad.joystick.data = 0;
         s32 index = 0;
+        static bool backWasDown[TIC_GAMEPADS] = {false};
 
         for(s32 i = 0; i < COUNT_OF(platform.gamepad.ports); i++)
         {
@@ -1007,13 +1008,12 @@ static void processGamepad()
                     gamepad->x = getButton(controller, SDL_CONTROLLER_BUTTON_X);
                     gamepad->y = getButton(controller, SDL_CONTROLLER_BUTTON_Y);
 #endif
-                    // !TODO: We have to find a better way to handle gamepad MENU button
-                    // atm we show game menu for only Pause Menu button on XBox one controller
-                    // issue #1220
-                    if(getButton(controller, SDL_CONTROLLER_BUTTON_BACK))
+                    // Back button to navigate the game menu.
                     {
-                        tic80_input* input = &platform.input;
-                        input->keyboard.keys[0] = tic_key_escape;
+                        bool backDown = getButton(controller, SDL_CONTROLLER_BUTTON_BACK);
+                        if(backDown && !backWasDown[index])
+                            studio_gamepad_back(platform.studio);
+                        backWasDown[index] = backDown;
                     }
 
                     index++;
