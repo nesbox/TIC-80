@@ -1875,8 +1875,16 @@ void studio_gamepad_back(Studio* studio)
             break;
 
         // When on the main menu root, return to the game
-        if(!studio_is_cart_loaded(studio))
-            tic_api_reset(studio->tic);
+        if(!studio_is_cart_loaded(studio)){
+#if defined(BUILD_EDITORS)
+            if(studio->code)
+#else
+            if(strlen(studio->console->rom.name) > 0 || (studio->start && studio->start->embed))
+#endif
+                tic_api_reset(studio->tic);
+            else
+                break;
+        }
 
         setStudioMode(studio, TIC_RUN_MODE);
         break;
