@@ -68,6 +68,8 @@
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
         android:hardwareAccelerated="true" >
 
+        <meta-data android:name="android.app.category" android:value="game" />
+
         <meta-data android:name="SDL_ENV.SDL_ACCELEROMETER_AS_JOYSTICK" android:value="0"/>
 
         <activity android:name="TIC"
@@ -80,7 +82,7 @@
             >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.GAME" />
             </intent-filter>
 
             <!-- Let Android know that we can handle some USB devices and should receive this event -->
