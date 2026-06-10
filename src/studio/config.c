@@ -98,7 +98,11 @@ static void setDefault(Config* config)
 #endif
             .volume         = MAX_VOLUME,
             .vsync          = DEFAULT_VSYNC,
+#if defined(__TIC_ANDROID__)
+            .fullscreen     = true,
+#else
             .fullscreen     = false,
+#endif
             .integerScale   = INTEGER_SCALE_DEFAULT,
             .autosave       = false,
 #if defined(BUILD_EDITORS)
