@@ -180,7 +180,11 @@ static void loadOptions(Config* config)
 #if defined(CRT_SHADER_SUPPORT)
             options->crt = json_bool("crt", 0);
 #endif
+#if defined(__TIC_ANDROID__)
+            options->fullscreen = json_bool("fullscreen", 1);
+#else
             options->fullscreen = json_bool("fullscreen", 0);
+#endif
             options->vsync = json_bool("vsync", 0);
             options->integerScale = json_bool("integerScale", 0);
             options->volume = json_int("volume", 0);
