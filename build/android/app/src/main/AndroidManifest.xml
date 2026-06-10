@@ -66,6 +66,7 @@
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+        android:isGame="true"
         android:hardwareAccelerated="true" >
 
         <meta-data android:name="android.app.category" android:value="game" />
@@ -83,6 +84,7 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" /> <!-- Android TV -->
                 <category android:name="android.intent.category.GAME" />
             </intent-filter>
 
