@@ -110,6 +110,9 @@
                 <data android:mimeType="*/*" android:pathPattern=".*\\.tIC" />
                 <data android:mimeType="*/*" android:pathPattern=".*\\.tiC" />
                 <data android:mimeType="*/*" android:pathPattern=".*\\.TiC" />
+
+                <!-- Android 12+ -->
+                <data android:mimeType="*/*" android:pathSuffix=".tic" />
             </intent-filter>
 
             <!-- Handle .png files -->
