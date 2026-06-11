@@ -2228,30 +2228,40 @@ static bool tryExportNativeFromLocalTemplate(Console* console, const char* name,
     s32 appSize = 0;
     u8* app = fs_read(appPath, &appSize);
 
-    if(!app || appSize <= 0)
+    if(!app)
         return false;
 
-    if(app) SCOPE(free(app))
+    if(appSize <= 0)
+    {
+        free(app);
+        return false;
+    }
+
+    bool success = false;
+
+    SCOPE(free(app))
     {
         s32 size = appSize;
         void* buf = embedCart(console, app, &size);
 
-        printLine(console);
-        printBack(console, "\nusing local native template...");
+        if(buf) SCOPE(free(buf))
+        {
+            const char* path = tic_fs_path(console->fs, name);
 
-        const char* path = tic_fs_path(console->fs, name);
-        bool success = buf && fs_write(path, buf, size);
+            success = fs_write(path, buf, size);
 
-        if(success)
-            chmod(path, DEFAULT_CHMOD);
+            if(success)
+            {
+                chmod(path, DEFAULT_CHMOD);
 
-        onFileExported(console, name, success);
-
-        if(buf)
-            free(buf);
+                printLine(console);
+                printBack(console, "\nusing local native template...");
+                onFileExported(console, name, true);
+            }
+        }
     }
 
-    return true;
+    return success;
 }
 
 static inline void exportNativeGame(Console* console, const char* name, const char* system, ExportParams params)
@@ -2259,8 +2269,12 @@ static inline void exportNativeGame(Console* console, const char* name, const ch
     if(tryExportNativeFromLocalTemplate(console, name, system))
         return;
 
-    printLine(console);
-    printBack(console, "\nlocal native template unavailable, fallback to server template...");
+    if(canExportNativeFromLocalTemplate(system))
+    {
+        printLine(console);
+        printBack(console, "\nlocal native template failed, using server template...");
+    }
+
     exportGame(console, name, system, onNativeExportGet, params);
 }
 
