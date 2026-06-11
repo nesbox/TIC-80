@@ -119,7 +119,8 @@ static struct
 
     struct
     {
-        SDL_GameController* ports[TIC_GAMEPADS];
+        SDL_GameController* ports[16];
+        SDL_JoystickID mapping[TIC_GAMEPADS];
 
 #if defined(TOUCH_INPUT_SUPPORT)
         struct
@@ -947,11 +948,23 @@ static u8 getButton(SDL_GameController* controller, SDL_GameControllerButton but
         : 0;
 }
 
+static bool isControllerActive(SDL_GameController* controller)
+{
+    for(s32 i = 0; i < SDL_CONTROLLER_BUTTON_MAX; i++)
+        if(SDL_GameControllerGetButton(controller, i))
+            return true;
+
+    for(s32 i = 0; i < SDL_CONTROLLER_AXIS_MAX; i++)
+        if(abs(SDL_GameControllerGetAxis(controller, i)) > AXIS_THRESHOLD)
+            return true;
+
+    return false;
+}
+
 static void processGamepad()
 {
     {
         platform.gamepad.joystick.data = 0;
-        s32 index = 0;
 
         for(s32 i = 0; i < COUNT_OF(platform.gamepad.ports); i++)
         {
@@ -959,9 +972,45 @@ static void processGamepad()
 
             if(controller && SDL_GameControllerGetAttached(controller))
             {
+                SDL_JoystickID id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller));
+
+                bool mapped = false;
+                for(s32 j = 0; j < TIC_GAMEPADS; j++)
+                {
+                    if(platform.gamepad.mapping[j] == id)
+                    {
+                        mapped = true;
+                        break;
+                    }
+                }
+
+                if(!mapped && isControllerActive(controller))
+                {
+                    for(s32 j = 0; j < TIC_GAMEPADS; j++)
+                    {
+                        if(platform.gamepad.mapping[j] == -1)
+                        {
+                            platform.gamepad.mapping[j] = id;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        for(s32 i = 0; i < TIC_GAMEPADS; i++)
+        {
+            SDL_JoystickID id = platform.gamepad.mapping[i];
+
+            if(id == -1) continue;
+
+            SDL_GameController* controller = SDL_GameControllerFromInstanceID(id);
+
+            if(controller && SDL_GameControllerGetAttached(controller))
+            {
                 tic80_gamepad* gamepad = NULL;
 
-                switch(index)
+                switch(i)
                 {
                 case 0: gamepad = &platform.gamepad.joystick.first; break;
                 case 1: gamepad = &platform.gamepad.joystick.second; break;
@@ -1015,8 +1064,6 @@ static void processGamepad()
                         tic80_input* input = &platform.input;
                         input->keyboard.keys[0] = tic_key_escape;
                     }
-
-                    index++;
                 }
             }
         }
@@ -1173,12 +1220,13 @@ static void pollEvents()
 
                 if(SDL_IsGameController(id))
                 {
-                    if (id < TIC_GAMEPADS)
+                    for(s32 i = 0; i < COUNT_OF(platform.gamepad.ports); i++)
                     {
-                        if(platform.gamepad.ports[id])
-                            SDL_GameControllerClose(platform.gamepad.ports[id]);
-
-                        platform.gamepad.ports[id] = SDL_GameControllerOpen(id);
+                        if(platform.gamepad.ports[i] == NULL)
+                        {
+                            platform.gamepad.ports[i] = SDL_GameControllerOpen(id);
+                            break;
+                        }
                     }
                 }
             }
@@ -1187,10 +1235,27 @@ static void pollEvents()
             {
                 s32 id = event.cdevice.which;
 
-                if (id < TIC_GAMEPADS && platform.gamepad.ports[id])
+                for(s32 i = 0; i < COUNT_OF(platform.gamepad.ports); i++)
                 {
-                    SDL_GameControllerClose(platform.gamepad.ports[id]);
-                    platform.gamepad.ports[id] = NULL;
+                    if(platform.gamepad.ports[i])
+                    {
+                        SDL_Joystick* joystick = SDL_GameControllerGetJoystick(platform.gamepad.ports[i]);
+                        if(joystick && SDL_JoystickInstanceID(joystick) == id)
+                        {
+                            SDL_GameControllerClose(platform.gamepad.ports[i]);
+                            platform.gamepad.ports[i] = NULL;
+                            break;
+                        }
+                    }
+                }
+
+                for(s32 i = 0; i < COUNT_OF(platform.gamepad.mapping); i++)
+                {
+                    if(platform.gamepad.mapping[i] == id)
+                    {
+                        platform.gamepad.mapping[i] = -1;
+                        break;
+                    }
                 }
             }
             break;
@@ -1962,6 +2027,9 @@ static s32 start(s32 argc, char **argv, const char* folder)
     {
         SDL_Log("Unable to initialize SDL Game Controller: %i, %s\n", result, SDL_GetError());
     }
+
+    for(s32 i = 0; i < COUNT_OF(platform.gamepad.mapping); i++)
+        platform.gamepad.mapping[i] = -1;
 
     platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale(), detect_keyboard_layout());
 
