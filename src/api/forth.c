@@ -830,7 +830,7 @@ CFunc0 CustomFunctionTable[] =
     (CFunc0)tic_forth_pmem_set,     // 26  PMEM!
     (CFunc0)tic_forth_time,         // 27  TIME
     (CFunc0)tic_forth_tstamp,       // 28  TSTAMP
-    (CFunc0)tic_forth_exit,         // 29  EXIT
+    (CFunc0)tic_forth_exit,         // 29  EXITGAME (Forth word; C API is exit)
     (CFunc0)tic_forth_font,         // 30  FONT
     (CFunc0)tic_forth_mouse,        // 31  MOUSE
     (CFunc0)tic_forth_circ,         // 32  CIRC
@@ -847,7 +847,7 @@ CFunc0 CustomFunctionTable[] =
     (CFunc0)tic_forth_sync,         // 43  SYNC
     (CFunc0)tic_forth_vbank,        // 44  VBANK
     (CFunc0)tic_forth_reset,        // 45  RESET
-    (CFunc0)tic_forth_key,          // 46  KEY
+    (CFunc0)tic_forth_key,          // 46  KEYPRESSED (Forth word; C API is key)
     (CFunc0)tic_forth_keyp,         // 47  KEYP
     (CFunc0)tic_forth_fget,         // 48  FGET
     (CFunc0)tic_forth_fset,         // 49  FSET
@@ -891,7 +891,10 @@ Err CompileCustomFunctions(void)
     if (CreateGlueToC("PMEM!",  i++, C_RETURNS_VOID,  0) < 0) return -1;
     if (CreateGlueToC("TIME",   i++, C_RETURNS_VALUE, 0) < 0) return -1;
     if (CreateGlueToC("TSTAMP", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if (CreateGlueToC("EXIT",   i++, C_RETURNS_VOID,  0) < 0) return -1;
+    // Renamed from "EXIT": EXIT is a core Forth word (return from the current
+    // definition). Binding the TIC-80 quit-to-console API to that name shadowed
+    // it, so any "... IF ... EXIT THEN ..." early-return silently quit the cart.
+    if (CreateGlueToC("EXITGAME", i++, C_RETURNS_VOID,  0) < 0) return -1;
     if (CreateGlueToC("FONT",   i++, C_RETURNS_VALUE, 0) < 0) return -1;
     if (CreateGlueToC("MOUSE",  i++, C_RETURNS_VOID,  0) < 0) return -1;
     if (CreateGlueToC("CIRC",   i++, C_RETURNS_VOID,  0) < 0) return -1;
@@ -908,7 +911,9 @@ Err CompileCustomFunctions(void)
     if (CreateGlueToC("SYNC",   i++, C_RETURNS_VOID,  0) < 0) return -1;
     if (CreateGlueToC("VBANK",  i++, C_RETURNS_VALUE, 0) < 0) return -1;
     if (CreateGlueToC("RESET",  i++, C_RETURNS_VOID,  0) < 0) return -1;
-    if (CreateGlueToC("KEY",    i++, C_RETURNS_VALUE, 0) < 0) return -1;
+    // Renamed from "KEY": KEY is a standard Forth word (read one character of
+    // input). Use KEYPRESSED for TIC-80's "is this key down?" query.
+    if (CreateGlueToC("KEYPRESSED", i++, C_RETURNS_VALUE, 0) < 0) return -1;
     if (CreateGlueToC("KEYP",   i++, C_RETURNS_VALUE, 0) < 0) return -1;
     if (CreateGlueToC("FGET",   i++, C_RETURNS_VALUE, 0) < 0) return -1;
     if (CreateGlueToC("FSET",   i++, C_RETURNS_VOID,  0) < 0) return -1;
@@ -1197,11 +1202,11 @@ static const char* ForthAPIKeywords[] = {
     "CLS", "PRINT", "PIX", "PIX!", "LINE", "RECT", "RECTB",
     "SPR", "BTN", "BTNP", "SFX", "MAP", "MGET", "MSET",
     "PEEK", "POKE", "PEEK1", "POKE1", "PEEK2", "POKE2", "PEEK4", "POKE4",
-    "MEMCPY", "MEMSET", "TRACE", "PMEM", "PMEM!", "TIME", "TSTAMP", "EXIT",
+    "MEMCPY", "MEMSET", "TRACE", "PMEM", "PMEM!", "TIME", "TSTAMP", "EXITGAME",
     "FONT", "MOUSE", "CIRC", "CIRCB", "ELLI", "ELLIB", "PAINT",
     "TRI", "TRIB", "TTRI", "CLIP", "CLIP0",
     "MUSIC", "SYNC", "VBANK", "RESET",
-    "KEY", "KEYP", "FGET", "FSET", "FFT", "FFTS",
+    "KEYPRESSED", "KEYP", "FGET", "FSET", "FFT", "FFTS",
 };
 
 // =============================================================================
