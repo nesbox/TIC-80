@@ -20,6 +20,9 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - name: Install 32-bit build tools
+      run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+
     - name: Build
       run: |
         cd build

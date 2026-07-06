@@ -25,6 +25,7 @@ CFLAGS += -I "$(NEWLIBDIR)/include" -I $(STDDEF_INCPATH) -I $(CIRCLESTDLIB)/incl
 LIBS :=  \
     $(TIC80LIB)/libtic80studio.a \
     $(TIC80LIB)/libtic80core.a \
+    $(TIC80LIB)/libforth.a \
     $(TIC80LIB)/libgiflib.a \
     $(TIC80LIB)/liblpeg.a \
     $(TIC80LIB)/libluaapi.a \

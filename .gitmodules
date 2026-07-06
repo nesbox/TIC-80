@@ -89,3 +89,6 @@
 [submodule "vendor/lpeg"]
 	path = vendor/lpeg
 	url = https://github.com/roberto-ieru/LPeg.git
+[submodule "vendor/pforth"]
+	path = vendor/pforth
+	url = https://github.com/philburk/pforth.git

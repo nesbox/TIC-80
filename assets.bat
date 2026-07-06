@@ -20,12 +20,14 @@ build\bin\prj2cart demos\schemedemo.scm build\schemedemo.tic
 build\bin\prj2cart demos\sfx.lua build\sfx.tic
 build\bin\prj2cart demos\squirreldemo.nut build\squirreldemo.tic
 build\bin\prj2cart demos\tetris.lua build\tetris.tic
+build\bin\prj2cart demos\forthdemo.fth build\forthdemo.tic
 build\bin\prj2cart demos\wrendemo.wren build\wrendemo.tic
 build\bin\prj2cart demos\yuedemo.yue build\yuedemo.tic
 
 build\bin\wasmp2cart demos\wasm\wasmdemo.wasmp build\wasmdemo.tic --binary demos\wasm\wasmdemo.wasm
 build\bin\wasmp2cart demos\bunny\wasmmark\wasmmark.wasmp build\wasmmark.tic --binary demos\bunny\wasmmark\wasmmark.wasm
 
+build\bin\prj2cart demos\bunny\forthmark.fth build\forthmark.tic
 build\bin\prj2cart demos\bunny\janetmark.janet build\janetmark.tic
 build\bin\prj2cart demos\bunny\jsmark.js build\jsmark.tic
 build\bin\prj2cart demos\bunny\luamark.lua build\luamark.tic
@@ -59,7 +61,9 @@ build\bin\bin2txt build\schemedemo.tic build\assets\schemedemo.tic.dat -z
 build\bin\bin2txt build\sfx.tic build\assets\sfx.tic.dat -z
 build\bin\bin2txt build\squirreldemo.tic build\assets\squirreldemo.tic.dat -z
 build\bin\bin2txt build\tetris.tic build\assets\tetris.tic.dat -z
+build\bin\bin2txt build\forthdemo.tic build\assets\forthdemo.tic.dat -z
 build\bin\bin2txt build\wrendemo.tic build\assets\wrendemo.tic.dat -z
+build\bin\bin2txt build\forthmark.tic build\assets\forthmark.tic.dat -z
 build\bin\bin2txt build\janetmark.tic build\assets\janetmark.tic.dat -z
 build\bin\bin2txt build\jsmark.tic build\assets\jsmark.tic.dat -z
 build\bin\bin2txt build\luamark.tic build\assets\luamark.tic.dat -z

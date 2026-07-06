@@ -179,6 +179,7 @@ include(cmake/squirrel.cmake)
 include(cmake/pocketpy.cmake)
 include(cmake/quickjs.cmake)
 include(cmake/janet.cmake)
+include(cmake/forth.cmake)
 
 include(cmake/core.cmake)
 include(cmake/wave.cmake)

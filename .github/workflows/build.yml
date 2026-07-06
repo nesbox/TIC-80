@@ -211,7 +211,7 @@ jobs:
       - name: Install Host toolchain
         run: |
           apt-get update
-          apt-get install --assume-yes build-essential ruby-full
+          apt-get install --assume-yes build-essential gcc-multilib ruby-full
 
       - name: Prebuild
         run: |
@@ -275,7 +275,7 @@ jobs:
       - name: Install Host toolchain
         run: |
           apt-get update
-          apt-get install --assume-yes build-essential ruby-full
+          apt-get install --assume-yes build-essential gcc-multilib ruby-full
 
       - name: Prebuild
         run: |
@@ -343,7 +343,7 @@ jobs:
       - name: Install Host toolchain
         run: |
           apt-get update
-          apt-get install --assume-yes build-essential ruby-full
+          apt-get install --assume-yes build-essential gcc-multilib ruby-full
 
       - name: Build
         run: |
@@ -372,7 +372,7 @@ jobs:
       - name: Install Host toolchain
         run: |
           apt-get update
-          apt-get install --assume-yes build-essential ruby-full
+          apt-get install --assume-yes build-essential gcc-multilib ruby-full
 
       - name: Build
         run: |
@@ -404,7 +404,7 @@ jobs:
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
+          cmake --build . --parallel 3
 
       - name: Deploy
         uses: actions/upload-artifact@v6
@@ -418,7 +418,7 @@ jobs:
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
+          cmake --build . --parallel 3
 
   # === MacOS 15 / x86_64 ===
   macos:
@@ -477,6 +477,9 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: Install 32-bit build tools
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+
       - name: Build
         run: |
           cd build/android
@@ -508,6 +511,9 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: 2.6
+
+      - name: Install 32-bit build tools
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
 
       - name: Build lua
         run: |
@@ -579,6 +585,12 @@ jobs:
         run: |
           cd build
           emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_PYTHON=ON -DTIC80_TARGET=tic80python .. --fresh
+          cmake --build . --parallel
+
+      - name: Build forth
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_FORTH=ON -DTIC80_TARGET=tic80forth .. --fresh
           cmake --build . --parallel
 
       - name: Build all
