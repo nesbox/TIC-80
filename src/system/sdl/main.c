@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "studio/system.h"
+#include "studio/studio.h"
 #include "tools.h"
 
 #include "ext/fft.h"
@@ -34,8 +35,15 @@
 extern void gotoMenu(Studio* studio);
 #endif
 
-#if defined(__TIC_LINUX__)
+#if defined(__TIC_WINDOWS__)
+#include <conio.h>
+#include <io.h>
+#include <fcntl.h>
+#elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
 #include <signal.h>
+#include <unistd.h>
+#include <sys/select.h>
+#include <termios.h>
 #endif
 
 #if defined(CRT_SHADER_SUPPORT)
@@ -339,7 +347,7 @@ static const u8* getSpritePtr(const tic_tile* tiles, s32 x, s32 y)
     return tiles[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * SheetCols].data;
 }
 
-static u8 getSpritePixel(const tic_tile* tiles, s32 x, s32 y)
+static u8 getSpritePixelLoc(const tic_tile* tiles, s32 x, s32 y)
 {
     return tic_tool_peek4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
 }
@@ -356,7 +364,7 @@ static void setWindowIcon()
         for(s32 j = 0, index = 0; j < Size; j++)
             for(s32 i = 0; i < Size; i++, index++)
             {
-                u8 color = getSpritePixel(studio_config(platform.studio)->cart->bank0.tiles.data, i/Scale, j/Scale);
+                u8 color = getSpritePixelLoc(studio_config(platform.studio)->cart->bank0.tiles.data, i/Scale, j/Scale);
                 pixels[index] = color == ColorKey ? 0 : pal.data[color];
             }
 
@@ -410,7 +418,7 @@ static void drawKeyboardLabels(tic_mem* tic, s32 shift)
     }
 }
 
-static void map2ram(tic_mem* tic)
+static void map2ramLoc(tic_mem* tic)
 {
     memcpy(tic->ram->map.data, &studio_config(platform.studio)->cart->bank0.map, sizeof tic->ram->map);
     memcpy(tic->ram->tiles.data, &studio_config(platform.studio)->cart->bank0.tiles, sizeof tic->ram->tiles * TIC_SPRITE_BANKS);
@@ -450,7 +458,7 @@ static void initTouchKeyboard()
     {
         memcpy(tic->ram->vram.palette.data, studio_config(platform.studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
         tic_api_cls(tic, 0);
-        map2ram(tic);
+        map2ramLoc(tic);
 
         initTouchKeyboardState(tic, &platform.keyboard.touch.texture.up, &platform.keyboard.touch.texture.upPixels, false);
         initTouchKeyboardState(tic, &platform.keyboard.touch.texture.down, &platform.keyboard.touch.texture.downPixels, true);
@@ -1262,6 +1270,111 @@ static void pollEvents()
             break;
         }
     }
+
+    // Poll terminal stdin input independently of the SDL event loop.
+    // This allows background command processing even when the GUI is busy or focused elsewhere.
+#if defined(__TIC_WINDOWS__)
+    while (true) {
+        HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+        if (hIn == INVALID_HANDLE_VALUE) break;
+
+        DWORD dwType = GetFileType(hIn);
+        bool hasInput = false;
+
+        if (dwType == FILE_TYPE_CHAR) { // Console
+            if (_kbhit()) hasInput = true;
+        } else if (dwType == FILE_TYPE_PIPE) { // Pipe (Wine/MSYS)
+            DWORD totalBytes = 0;
+            if (PeekNamedPipe(hIn, NULL, 0, NULL, &totalBytes, NULL) && totalBytes > 0)
+                hasInput = true;
+        }
+
+        if (!hasInput) break;
+
+        int c;
+        if (dwType == FILE_TYPE_CHAR) {
+            c = _getch();
+        } else {
+            char buf[1];
+            DWORD readBytes = 0;
+            if (ReadFile(hIn, buf, 1, &readBytes, NULL) && readBytes > 0)
+                c = (unsigned char)buf[0];
+            else break;
+        }
+
+        if (c == 0 || c == 0xE0) { // 224
+            if (dwType == FILE_TYPE_CHAR) {
+                c = _getch();
+                if (c == 0x48) studio_terminal_input(platform.studio, tic_key_up, 0); // 72
+                else if (c == 0x50) studio_terminal_input(platform.studio, tic_key_down, 0); // 80
+                else if (c == 0x4D) studio_terminal_input(platform.studio, tic_key_right, 0); // 77
+                else if (c == 0x4B) studio_terminal_input(platform.studio, tic_key_left, 0); // 75
+            }
+        }
+        else if (c == '\r' || c == '\n') studio_terminal_input(platform.studio, tic_key_return, 0);
+        else if (c == '\b') studio_terminal_input(platform.studio, tic_key_backspace, 0);
+        else if (c == 0x7F) studio_terminal_input(platform.studio, tic_key_backspace, 0); // DEL as backspace
+        else if (c == '\t') studio_terminal_input(platform.studio, tic_key_tab, 0);
+        else if (c >= 32) studio_terminal_input(platform.studio, tic_key_unknown, (char)c);
+    }
+#elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
+    {
+        fd_set readfds;
+        struct timeval tv;
+        FD_ZERO(&readfds);
+        FD_SET(STDIN_FILENO, &readfds);
+        tv.tv_sec = 0;
+        tv.tv_usec = 0;
+        if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv) > 0)
+        {
+            char c;
+            if (read(STDIN_FILENO, &c, 1) > 0)
+            {
+                if (c == '\033') // Handle ANSI escape sequences for arrow keys
+                {
+                    char seq[2];
+                    FD_ZERO(&readfds);
+                    FD_SET(STDIN_FILENO, &readfds);
+                    tv.tv_sec = 0; tv.tv_usec = 10000;
+                    if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv) > 0)
+                    {
+                        if (read(STDIN_FILENO, &seq[0], 1) > 0 && seq[0] == '[')
+                        {
+                            FD_ZERO(&readfds);
+                            FD_SET(STDIN_FILENO, &readfds);
+                            if (select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv) > 0)
+                            {
+                                if (read(STDIN_FILENO, &seq[1], 1) > 0)
+                                {
+                                    if (seq[1] == 'A') studio_terminal_input(platform.studio, tic_key_up, 0);
+                                    else if (seq[1] == 'B') studio_terminal_input(platform.studio, tic_key_down, 0);
+                                    else if (seq[1] == 'C') studio_terminal_input(platform.studio, tic_key_right, 0);
+                                    else if (seq[1] == 'D') studio_terminal_input(platform.studio, tic_key_left, 0);
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (c == '\n' || c == '\r')
+                {
+                    studio_terminal_input(platform.studio, tic_key_return, 0);
+                }
+                else if (c == '\b' || c == 0x7f)
+                {
+                    studio_terminal_input(platform.studio, tic_key_backspace, 0);
+                }
+                else if (c == '\t')
+                {
+                    studio_terminal_input(platform.studio, tic_key_tab, 0);
+                }
+                else
+                {
+                    studio_terminal_input(platform.studio, tic_key_unknown, c);
+                }
+            }
+        }
+    }
+#endif
 
     processMouse();
 
@@ -2138,11 +2251,92 @@ s32 main(s32 argc, char **argv)
 {
 #if defined(__TIC_WINDOWS__)
     {
-        CONSOLE_SCREEN_BUFFER_INFO info;
-        if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
-            FreeConsole();
+        bool isWine = GetProcAddress(GetModuleHandleA("ntdll.dll"), "wine_get_version") != NULL;
+        HWND consoleWnd = GetConsoleWindow();
+
+        if (GetStdHandle(STD_OUTPUT_HANDLE) != INVALID_HANDLE_VALUE)
+        {
+            if (consoleWnd != NULL)
+            {
+                bool shouldHide = false;
+
+                if (isWine)
+                {
+                    // On Wine, terminal launches don't have a visible console window (Vis: 0).
+                    // GUI launches (e.g. from KDE) create a visible virtual console (Vis: 1).
+                    if (IsWindowVisible(consoleWnd))
+                        shouldHide = true;
+                }
+                else
+                {
+                    // Native Windows: A fresh console window (GUI launch) is shared by only 1 process.
+                    // Terminal launches (CMD/PowerShell) share the console with the shell (2+ processes).
+                    DWORD procList[2];
+                    if (GetConsoleProcessList(procList, 2) == 1)
+                        shouldHide = true;
+                }
+
+                if (shouldHide)
+                {
+                    FreeConsole();
+                    goto skip_console;
+                }
+            }
+
+            // Standard stream redirection for attached consoles
+            if (freopen("CONIN$", "r", stdin) == NULL)
+            {
+                HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);
+                if (hIn != INVALID_HANDLE_VALUE)
+                {
+                    int fd = _open_osfhandle((intptr_t)hIn, _O_TEXT);
+                    if (fd != -1) _dup2(fd, 0);
+                }
+            }
+
+            if (freopen("CONOUT$", "w", stdout) == NULL)
+            {
+                HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+                if (hOut != INVALID_HANDLE_VALUE)
+                {
+                    int fd = _open_osfhandle((intptr_t)hOut, _O_TEXT);
+                    if (fd != -1) _dup2(fd, 1);
+                }
+            }
+
+            if (freopen("CONOUT$", "w", stderr) == NULL)
+            {
+                HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+                if (hErr != INVALID_HANDLE_VALUE)
+                {
+                    int fd = _open_osfhandle((intptr_t)hErr, _O_TEXT);
+                    if (fd != -1) _dup2(fd, 2);
+                }
+            }
+
+            setvbuf(stdout, NULL, _IONBF, 0);
+            setvbuf(stderr, NULL, _IONBF, 0);
+        }
+        else
+        {
+            // Fallback for cases where no handles are available at all
+            if (consoleWnd != NULL && IsWindowVisible(consoleWnd))
+            {
+                CONSOLE_SCREEN_BUFFER_INFO info;
+                if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
+                    FreeConsole();
+            }
+        }
+        skip_console:;
     }
-#elif defined(__TIC_LINUX__)
+#elif defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
+    // Configure terminal to Raw Mode to capture input immediately without OS buffering.
+    struct termios oldt, newt;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
     signal(SIGPIPE, SIG_IGN);
 #endif
 
@@ -2170,8 +2364,13 @@ s32 main(s32 argc, char **argv)
     );
 
 #else
+    // Start TIC-80 and restore terminal mode on exit.
+    int ret = start(argc, argv, folder);
 
-    return start(argc, argv, folder);
+#if defined(__TIC_LINUX__) || defined(__APPLE__) || defined(__TIC_MACOSX__)
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+#endif
+    return ret;
 
 #endif
 }

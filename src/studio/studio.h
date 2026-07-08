@@ -227,6 +227,7 @@ void exitStudio(Studio* studio);
 void setStudioViMode(Studio* studio, ViMode mode);
 ViMode getStudioViMode(Studio* studio);
 bool checkStudioViMode(Studio* studio, ViMode mode);
+void studio_terminal_input(Studio* studio, tic_key key, char text);
 
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize);
