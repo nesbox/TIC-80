@@ -2200,8 +2200,81 @@ static void exportGame(Console* console, const char* name, const char* system, n
     tic_net_get(console->net, url, callback, MOVE(data));
 }
 
+static bool canExportNativeFromLocalTemplate(const char* system)
+{
+#if defined(__TIC_WINDOWS__)
+    return strcmp(system, "win") == 0;
+#elif defined(__TIC_LINUX__)
+    return strcmp(system, "linux") == 0;
+#elif defined(__TIC_MACOSX__)
+    return strcmp(system, "mac") == 0;
+#else
+    return false;
+#endif
+}
+
+// Same-platform native export prefers the local executable template.
+// If the local template is not applicable or unavailable, caller falls back to server export.
+static bool tryExportNativeFromLocalTemplate(Console* console, const char* name, const char* system)
+{
+    if(!canExportNativeFromLocalTemplate(system))
+        return false;
+
+    const char* appPath = fs_apppath();
+
+    if(!appPath)
+        return false;
+
+    s32 appSize = 0;
+    u8* app = fs_read(appPath, &appSize);
+
+    if(!app)
+        return false;
+
+    if(appSize <= 0)
+    {
+        free(app);
+        return false;
+    }
+
+    bool success = false;
+
+    SCOPE(free(app))
+    {
+        s32 size = appSize;
+        void* buf = embedCart(console, app, &size);
+
+        if(buf) SCOPE(free(buf))
+        {
+            const char* path = tic_fs_path(console->fs, name);
+
+            success = fs_write(path, buf, size);
+
+            if(success)
+            {
+                chmod(path, DEFAULT_CHMOD);
+
+                printLine(console);
+                printBack(console, "\nusing local native template...");
+                onFileExported(console, name, true);
+            }
+        }
+    }
+
+    return success;
+}
+
 static inline void exportNativeGame(Console* console, const char* name, const char* system, ExportParams params)
 {
+    if(tryExportNativeFromLocalTemplate(console, name, system))
+        return;
+
+    if(canExportNativeFromLocalTemplate(system))
+    {
+        printLine(console);
+        printBack(console, "\nlocal native template failed, using server template...");
+    }
+
     exportGame(console, name, system, onNativeExportGet, params);
 }
 
