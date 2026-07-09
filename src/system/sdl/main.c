@@ -181,6 +181,9 @@ static struct
     struct
     {
         bool focus;
+        bool moved;
+        float x;
+        float y;
     } mouse;
 
     struct
@@ -683,20 +686,27 @@ static void processMouse()
 
         if(platform.mouse.focus)
         {
-            SDL_Rect rect;
-            calcTextureRect(&rect);
-
-            if(rect.w && rect.h)
+            if(!platform.mouse.moved)
             {
-                tic_point m = {(pt.x - rect.x) * TIC80_FULLWIDTH / rect.w, (pt.y - rect.y) * TIC80_FULLHEIGHT / rect.h};
+                SDL_ShowCursor(SDL_DISABLE);
+            }
+            else
+            {
+                SDL_Rect rect;
+                calcTextureRect(&rect);
 
-                if(m.x < 0 || m.y < 0 || m.x >= TIC80_FULLWIDTH || m.y >= TIC80_FULLHEIGHT)
-                    SDL_ShowCursor(SDL_ENABLE);
-                else
+                if(rect.w && rect.h)
                 {
-                    SDL_ShowCursor(SDL_DISABLE);
-                    input->mouse.x = m.x;
-                    input->mouse.y = m.y;
+                    tic_point m = {(pt.x - rect.x) * TIC80_FULLWIDTH / rect.w, (pt.y - rect.y) * TIC80_FULLHEIGHT / rect.h};
+
+                    if(m.x < 0 || m.y < 0 || m.x >= TIC80_FULLWIDTH || m.y >= TIC80_FULLHEIGHT)
+                        SDL_ShowCursor(SDL_ENABLE);
+                    else
+                    {
+                        SDL_ShowCursor(SDL_DISABLE);
+                        input->mouse.x = m.x;
+                        input->mouse.y = m.y;
+                    }
                 }
             }
         }
@@ -972,20 +982,53 @@ static void processGamepad()
                 if(gamepad)
                 {
                     gamepad->up = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTY, -1)
-                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY, -1)
                         || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP);
 
                     gamepad->down = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTY, +1)
-                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY, +1)
                         || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
 
                     gamepad->left = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTX, -1)
-                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX, -1)
                         || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
 
                     gamepad->right = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTX, +1)
-                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX, +1)
                         || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+
+                    if (SDL_GameControllerHasAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX) && SDL_GameControllerHasAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY))
+                    {
+                        s16 rx = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+                        s16 ry = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+
+                        if (abs(rx) > AXIS_THRESHOLD || abs(ry) > AXIS_THRESHOLD)
+                        {
+                            s32 x_mag = 0;
+                            s32 y_mag = 0;
+
+                            if (abs(rx) > AXIS_THRESHOLD)
+                                x_mag = (abs(rx) - AXIS_THRESHOLD) * (rx < 0 ? -1 : 1);
+
+                            if (abs(ry) > AXIS_THRESHOLD)
+                                y_mag = (abs(ry) - AXIS_THRESHOLD) * (ry < 0 ? -1 : 1);
+
+                            platform.mouse.x += (float)x_mag / 1000.0f;
+                            platform.mouse.y += (float)y_mag / 1000.0f;
+
+                            s32 mx, my;
+                            SDL_GetMouseState(&mx, &my);
+
+                            if (abs((s32)platform.mouse.x) > 0 || abs((s32)platform.mouse.y) > 0)
+                            {
+                                SDL_WarpMouseInWindow(platform.window, mx + (s32)platform.mouse.x, my + (s32)platform.mouse.y);
+                                platform.mouse.x -= (s32)platform.mouse.x;
+                                platform.mouse.y -= (s32)platform.mouse.y;
+                                platform.mouse.moved = true;
+                            }
+                        }
+                        else
+                        {
+                            platform.mouse.x = 0;
+                            platform.mouse.y = 0;
+                        }
+                    }
 
 #ifdef __SWITCH__
                     // nintendo layout
@@ -1156,8 +1199,14 @@ static void pollEvents()
     {
         switch(event.type)
         {
+        case SDL_MOUSEMOTION:
+        case SDL_MOUSEBUTTONDOWN:
+        case SDL_MOUSEBUTTONUP:
+            platform.mouse.moved = true;
+            break;
         case SDL_MOUSEWHEEL:
             {
+                platform.mouse.moved = true;
                 input->mouse.scrollx = event.wheel.x;
                 input->mouse.scrolly = event.wheel.y;
             }
