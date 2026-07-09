@@ -348,7 +348,7 @@ jobs:
       - name: Build
         run: |
           cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake \
-            -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON \
+            -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DDEFAULT_STARTUP_SCREEN=MENU \
             -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF
           cmake --build build --parallel
 
@@ -378,7 +378,7 @@ jobs:
         run: |
           cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/Switch.cmake \
             -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DBUILD_SDLGPU=ON \
-            -DBUILD_WITH_YUE=OFF
+            -DDEFAULT_STARTUP_SCREEN=MENU -DBUILD_WITH_YUE=OFF
           cmake --build build --parallel
 
       - name: Deploy

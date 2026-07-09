@@ -55,6 +55,7 @@ option(BUILD_ASAN_DEBUG "Build with AddressSanitizer" OFF)
 option(BUILD_WITH_ZLIB "Build with zlib linked" ON)
 option(TIC80_TARGET "Target binary suffix")
 option(PREFER_SYSTEM_LIBRARIES "Prefer link with system libraries" OFF)
+set(DEFAULT_STARTUP_SCREEN "CONSOLE" CACHE STRING "Default startup screen: CONSOLE or MENU")
 
 if(BUILD_EDITORS)
     set(BUILD_SURF ON)

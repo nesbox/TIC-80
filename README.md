@@ -417,6 +417,7 @@ You can find the compiled version ready download and install [on F-Droid](https:
 * Kolten Pearson — [Github @koltenpearson](https://github.com/koltenpearson)
 * Cort Stratton — [Github @cdwfs](https://github.com/cdwfs)
 * Alice — [Github @aliceisjustplaying](https://github.com/aliceisjustplaying)
+* Arthur H Fragoso  — [Github @imsys](https://github.com/imsys)
 * Sven Knebel — [Github @sknebel](https://github.com/sknebel)
 * Graham Bates — [Github @grahambates](https://github.com/grahambates)
 * Kii — [Github @kiikrindar](https://github.com/kiikrindar)

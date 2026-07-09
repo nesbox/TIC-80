@@ -61,6 +61,7 @@
 #include "screens/run.h"
 #include "screens/menu.h"
 #include "screens/mainmenu.h"
+#include "core/core.h"
 
 #include "fs.h"
 
@@ -1264,7 +1265,7 @@ void gotoSurf(Studio* studio)
 
 bool studio_is_cart_loaded(Studio* studio)
 {
-    return strlen(studio->console->rom.name) > 0 || (studio->start && studio->start->embed);
+    return ((tic_core*)studio->tic)->data;
 }
 
 void setStudioMode(Studio* studio, EditorMode mode)
@@ -1863,6 +1864,35 @@ void gotoMenu(Studio* studio)
     studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
 }
 
+// Called by the SDL backend.
+void studio_gamepad_back(Studio* studio)
+{
+    switch(studio->mode)
+    {
+    case TIC_MENU_MODE:
+        // When on a submenu, navigate back within the menu
+        if(studio_menu_back(studio->menu))
+            break;
+
+        // When on the main menu root, return to the game
+        if(!studio_is_cart_loaded(studio)){
+#if defined(BUILD_EDITORS)
+            if(studio->code)
+#else
+            if(strlen(studio->console->rom.name) > 0 || (studio->start && studio->start->embed))
+#endif
+                tic_api_reset(studio->tic);
+            else
+                break;
+        }
+
+        setStudioMode(studio, TIC_RUN_MODE);
+        break;
+    default:
+        gotoMenu(studio);
+    }
+}
+
 static bool enterWasPressedOnce(Studio* studio)
 {
     return keyWasPressedOnce(studio, tic_key_return) ||
@@ -1979,11 +2009,11 @@ static void processShortcuts(Studio* studio)
             switch(studio->mode)
             {
             case TIC_MENU_MODE:
-                showGameMenu(studio)
-                    ? studio_menu_back(studio->menu)
-                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
-                        ? TIC_CONSOLE_MODE
-                        : studio->prevMode);
+                // When on a submenu, always return to the previous menu
+                if(studio_menu_back(studio->menu))
+                    break;
+                // When on the main menu, use the metadata "menu:" to decide the ESC behavior
+                setStudioMode(studio, showGameMenu(studio) ? TIC_RUN_MODE : TIC_CONSOLE_MODE);
                 break;
             case TIC_RUN_MODE:
                 showGameMenu(studio)

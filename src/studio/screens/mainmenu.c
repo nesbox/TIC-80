@@ -215,6 +215,25 @@ static MenuOption AutoSaveOption =
 };
 
 #if defined(BUILD_EDITORS)
+static s32 optionStartupScreenGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->startupScreen;
+}
+
+static void optionStartupScreenSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->startupScreen = (enum StartupScreen)pos;
+}
+
+static MenuOption StartupScreenOption =
+{
+    OPTION_VALUES({"CONSOLE", "MENU"}),
+    optionStartupScreenGet,
+    optionStartupScreenSet,
+};
+
 static s32 optionTabSizeGet(void* data)
 {
     StudioMainMenu* main = data;
@@ -309,6 +328,7 @@ enum
     OptionsMenu_IntegerScaleOption,
     OptionsMenu_VolumeOption,
 #if defined(BUILD_EDITORS)
+    OptionsMenu_StartupScreenOption,
     OptionsMenu_Editor,
 #endif
     OptionsMenu_Gamepad,
@@ -327,6 +347,7 @@ static const MenuItem OptionMenu[] =
     {"VOLUME",          NULL,   &VolumeOption},
     {"AUTOSAVE",        NULL,   &AutoSaveOption, "Keep carts loaded from the web"},
 #if defined(BUILD_EDITORS)
+    {"STARTUP SCREEN",  NULL,   &StartupScreenOption},
     {"EDITOR OPTIONS", showEditorMenu},
 #endif
     {"SETUP GAMEPAD",       showGamepadMenu},
@@ -437,7 +458,12 @@ static inline s32 mainMenuOffset(StudioMainMenu* menu)
     if (menu->count > 0) return 0;
 
     if (!studio_is_cart_loaded(menu->studio))
+#if defined(BUILD_EDITORS)
+        // BUILD_EDITORS includes the extra entry: CLOSE GAME
+        return 4;
+#else
         return 3;
+#endif
 
     return 1;
 }
