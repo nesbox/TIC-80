@@ -76,6 +76,10 @@ if(BUILD_WITH_LUA OR BUILD_WITH_MOON OR BUILD_WITH_YUE OR BUILD_WITH_FENNEL)
 
     target_compile_definitions(luaapi PRIVATE LUA_COMPAT_5_2)
 
+    if(IOS)
+        set_source_files_properties(${LUA_DIR}/loslib.c PROPERTIES COMPILE_FLAGS "-D__IOS_PROHIBITED=")
+    endif()
+
     target_include_directories(luaapi
         PUBLIC ${THIRDPARTY_DIR}/lua
             ${CMAKE_SOURCE_DIR}/include

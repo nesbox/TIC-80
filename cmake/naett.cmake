@@ -43,7 +43,12 @@ if(USE_NAETT)
         target_include_directories(naett PRIVATE ${CURL_INCLUDE_DIRS})
         target_link_libraries(naett ${CURL_LIBRARIES} pthread)
     elseif(APPLE)
-        target_link_libraries(naett
-            "-framework Cocoa")
+        if(IOS)
+            target_link_libraries(naett
+                "-framework Foundation")
+        else()
+            target_link_libraries(naett
+                "-framework Cocoa")
+        endif()
     endif()
 endif()
