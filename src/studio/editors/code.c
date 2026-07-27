@@ -305,13 +305,25 @@ static void drawCode(Code* code, bool withCursor)
 
     s32 xStart = rect.x - code->scroll.x * getFontWidth(code);
     s32 x = xStart;
-    s32 y = rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
+    s32 y = rect.y;
     const char* pointer = code->src;
 
     u8 selectColor = getConfig(code->studio)->theme.code.select;
 
     const u8* colors = (const u8*)&getConfig(code->studio)->theme.code;
     const CodeState* syntaxPointer = code->state;
+
+    // Skip lines above the viewport
+    s32 skippedLines = 0;
+    while (*pointer && skippedLines < code->scroll.y)
+    {
+        if (*pointer == '\n')
+        {
+            skippedLines++;
+        }
+        pointer++;
+        syntaxPointer++;
+    }
 
     struct { char* start; char* end; } selection =
     {
@@ -370,6 +382,11 @@ static void drawCode(Code* code, bool withCursor)
         {
             x = xStart;
             y += STUDIO_TEXT_HEIGHT;
+            if (y >= TIC80_HEIGHT)
+            {
+                // break early if we are below the visible screen viewport
+                break;
+            }
         }
         else x += x_offset;
 
