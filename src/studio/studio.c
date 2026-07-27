@@ -142,6 +142,11 @@ struct Studio
     struct
     {
         MouseState state[3];
+        struct
+        {
+            tic_cursor sprite;
+            bool system;
+        } cursor;
     } mouse;
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
@@ -1434,12 +1439,8 @@ bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 
 void setCursor(Studio* studio, tic_cursor id)
 {
-    tic_mem* tic = studio->tic;
-
-    VBANK(tic, 0)
-    {
-        tic->ram->vram.vars.cursor.sprite = id;
-    }
+    studio->mouse.cursor.sprite = id;
+    studio->mouse.cursor.system = true;
 }
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
@@ -2247,6 +2248,17 @@ static void renderStudio(Studio* studio)
     default: break;
     }
 
+    // Update cursor sprite in RAM only if it actually changed
+    if(tic->ram->vram.vars.cursor.sprite != studio->mouse.cursor.sprite ||
+       tic->ram->vram.vars.cursor.system != studio->mouse.cursor.system)
+    {
+        VBANK(tic, 0)
+        {
+            tic->ram->vram.vars.cursor.sprite = studio->mouse.cursor.sprite;
+            tic->ram->vram.vars.cursor.system = studio->mouse.cursor.system;
+        }
+    }
+
     tic_core_tick_end(tic);
 
     switch(studio->mode)
@@ -2323,8 +2335,8 @@ static void processMouseStates(Studio* studio)
 
     tic_mem* tic = studio->tic;
 
-    tic->ram->vram.vars.cursor.sprite = tic_cursor_arrow;
-    tic->ram->vram.vars.cursor.system = true;
+    studio->mouse.cursor.sprite = tic_cursor_arrow;
+    studio->mouse.cursor.system = true;
 
     for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
     {
