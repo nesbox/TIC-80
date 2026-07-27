@@ -165,12 +165,17 @@ typedef struct
         s32 l, t, r, b;
     } clip;
 
+    bool has_scn;
+    bool has_bdr;
     bool initialized;
 } tic_core_state_data;
+
+struct tic_draw_cache;
 
 typedef struct
 {
     tic_mem memory; // it should be first
+    struct tic_draw_cache* draw_cache;
     tic80_pixel_color_format screen_format;
 
     void* currentVM;

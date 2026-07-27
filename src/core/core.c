@@ -25,6 +25,7 @@
 
 #include "api.h"
 #include "core.h"
+#include "draw_cache.h"
 #include "tilesheet.h"
 
 #include <assert.h>
@@ -484,6 +485,18 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
             config->boot(tic);
             core->state.tick = config->tick;
             core->state.callback = config->callback;
+            
+            if (strlen(tic->cart.code.data) > 0)
+            {
+                core->state.has_scn = strstr(tic->cart.code.data, "SCN") != NULL;
+                core->state.has_bdr = strstr(tic->cart.code.data, "BDR") != NULL;
+            }
+            else
+            {
+                core->state.has_scn = true;
+                core->state.has_bdr = true;
+            }
+
             core->state.initialized = true;
         }
         else return;
@@ -541,12 +554,15 @@ void tic_core_close(tic_mem* memory)
     free(memory->product.screen);
 #endif
     free(memory->product.samples.buffer);
+    tic_core_draw_cache_free(core);
+
     free(core);
 }
 
 void tic_core_tick_start(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
+    tic_core_draw_cache_start(core);
     tic_core_sound_tick_start(memory);
     tic_core_tick_io(memory);
 
@@ -575,6 +591,7 @@ void tic_core_tick_end(tic_mem* memory)
     core->state.gamepads.previous.data = core->state.gamepads.now.data;
 
     tic_core_sound_tick_end(memory);
+    tic_core_draw_cache_end(core);
 }
 
 // copied from SDL2
@@ -643,9 +660,22 @@ static inline u32 blitpix(tic_mem* tic, s32 offset0, s32 offset1, const tic_blit
         : pal0->data[tic_tool_peek4(vbank0(core)->screen.data, offset0)];
 }
 
+static inline void scanline(tic_mem* memory, s32 row, void* data);
+static inline void border(tic_mem* memory, s32 row, void* data);
+
 void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
 {
     tic_core* core = (tic_core*)tic;
+
+    if (core->draw_cache && !tic_core_draw_cache_has_invalidated(core))
+    {
+        bool has_scanline = (clb.scanline == scanline) ? (core->state.initialized && core->state.has_scn) : (clb.scanline != NULL);
+        bool has_border   = (clb.border   == border)   ? (core->state.initialized && core->state.has_bdr) : (clb.border != NULL);
+        if (!has_scanline && !has_border)
+        {
+            return;
+        }
+    }
 
     tic_blitpal pal0, pal1;
     updpal(tic, &pal0, &pal1);
@@ -743,6 +773,8 @@ tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
     blip_set_rates(core->blip.left, CLOCKRATE, samplerate);
     blip_set_rates(core->blip.right, CLOCKRATE, samplerate);
 
+    tic_core_draw_cache_init(core);
+
     {
 #define API_FUNC_DEF(name, ...) core->api.name = tic_api_ ## name;
         TIC_API_LIST(API_FUNC_DEF)
@@ -752,6 +784,8 @@ tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
         void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count);
         core->api.textri = tic_api_textri;
 #endif
+
+        tic_core_draw_cache_hook_api(core);
     }
 
     tic_api_reset(&core->memory);

@@ -36,6 +36,27 @@
 #include "system.h"
 #include "anim.h"
 #include "ext/png.h"
+#include "core/core.h"
+
+// Redirect studio drawing calls through the core API pointers to benefit from the draw cache
+#define tic_api_cls(tic, ...) (((tic_core*)(tic))->api.cls(tic, __VA_ARGS__))
+#define tic_api_clip(tic, ...) (((tic_core*)(tic))->api.clip(tic, __VA_ARGS__))
+#define tic_api_print(tic, ...) (((tic_core*)(tic))->api.print(tic, __VA_ARGS__))
+#define tic_api_font(tic, ...) (((tic_core*)(tic))->api.font(tic, __VA_ARGS__))
+#define tic_api_pix(tic, ...) (((tic_core*)(tic))->api.pix(tic, __VA_ARGS__))
+#define tic_api_rect(tic, ...) (((tic_core*)(tic))->api.rect(tic, __VA_ARGS__))
+#define tic_api_rectb(tic, ...) (((tic_core*)(tic))->api.rectb(tic, __VA_ARGS__))
+#define tic_api_line(tic, ...) (((tic_core*)(tic))->api.line(tic, __VA_ARGS__))
+#define tic_api_circ(tic, ...) (((tic_core*)(tic))->api.circ(tic, __VA_ARGS__))
+#define tic_api_circb(tic, ...) (((tic_core*)(tic))->api.circb(tic, __VA_ARGS__))
+#define tic_api_elli(tic, ...) (((tic_core*)(tic))->api.elli(tic, __VA_ARGS__))
+#define tic_api_ellib(tic, ...) (((tic_core*)(tic))->api.ellib(tic, __VA_ARGS__))
+#define tic_api_paint(tic, ...) (((tic_core*)(tic))->api.paint(tic, __VA_ARGS__))
+#define tic_api_tri(tic, ...) (((tic_core*)(tic))->api.tri(tic, __VA_ARGS__))
+#define tic_api_trib(tic, ...) (((tic_core*)(tic))->api.trib(tic, __VA_ARGS__))
+#define tic_api_ttri(tic, ...) (((tic_core*)(tic))->api.ttri(tic, __VA_ARGS__))
+#define tic_api_spr(tic, ...) (((tic_core*)(tic))->api.spr(tic, __VA_ARGS__))
+#define tic_api_map(tic, ...) (((tic_core*)(tic))->api.map(tic, __VA_ARGS__))
 
 #define KEYBOARD_HOLD 20
 #define KEYBOARD_PERIOD 3
