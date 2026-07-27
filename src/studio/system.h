@@ -45,7 +45,18 @@
 #define TIC_WEBSITE TIC_WEBSITE_PROTOCOL TIC_HOST
 #define TIC_COPYRIGHT TIC_WEBSITE " (C) 2017-" TIC_VERSION_YEAR
 
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#endif
+
+// iOS Simulators and sandboxed iOS devices require longer filename buffers
+// (1024 instead of 256) because absolute paths inside the deeply nested
+// Application Support directories frequently exceed 256 characters.
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+#define TICNAME_MAX 1024
+#else
 #define TICNAME_MAX 256
+#endif
 
 #ifdef __cplusplus
 extern "C" {
