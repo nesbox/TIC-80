@@ -479,19 +479,19 @@ jobs:
 
       - name: Build
         run: |
-          cd build/android
+          cd build/
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease -PcmakeArgs="-DBUILD_PRO=On"
           cp app/build/outputs/apk/release/app-release.apk tic80.apk
 
         env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          _NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
-          name: "tic80-android"
-          path: build/android/tic80.apk
+          name: "tic80-"
+          path: build//tic80.apk
 
   # === HTML ===
   html:
