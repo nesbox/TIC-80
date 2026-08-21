@@ -234,6 +234,9 @@ struct Studio
 
 #if defined(BUILD_SURF)
     Surf*       surf;
+#endif
+
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     tic_net* net;
 #endif
 
