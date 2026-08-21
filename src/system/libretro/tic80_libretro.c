@@ -84,7 +84,7 @@ static struct tic80_state* state = NULL;
 /**
  * TIC-80 callback; Request counter.
  */
-static u64 tic80_libretro_counter()
+static u64 tic80_libretro_counter(void* data)
 {
 	if (state == NULL) {
 		return 0;
@@ -96,7 +96,7 @@ static u64 tic80_libretro_counter()
 /**
  * TIC-80 callback; Request frequency.
  */
-static u64 tic80_libretro_frequency()
+static u64 tic80_libretro_frequency(void* data)
 {
 	return TIC80_FREQUENCY;
 }
