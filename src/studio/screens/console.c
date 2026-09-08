@@ -104,6 +104,7 @@
     macro(winxp)                \
     macro(linux)                \
     macro(mac)                  \
+    macro(macintel)             \
     macro(html)                 \
     macro(binary)               \
     macro(tiles)                \
@@ -2283,7 +2284,13 @@ static void onExport_linux(Console* console, const char* param, const char* file
 
 static void onExport_mac(Console* console, const char* param, const char* filename, ExportParams params)
 {
-    exportNativeGame(console, filename, param, params);
+    // arm64 is the default mac target now; the legacy x64 build is macintel.
+    exportNativeGame(console, filename, "mac-arm64", params);
+}
+
+static void onExport_macintel(Console* console, const char* param, const char* filename, ExportParams params)
+{
+    exportNativeGame(console, filename, "mac", params);
 }
 
 static void onExport_html(Console* console, const char* param, const char* filename, ExportParams params)
@@ -3002,7 +3009,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("export",                                                                     \
         NULL,                                                                           \
         "Export cart to HTML,\n"                                                        \
-        "native build (win linux mac),\n"                                           \
+        "native build (win linux mac macintel),\n"                                           \
         "export sprites/map/... as a .png image "                                       \
         "or export sfx and music to .wav files.",                                       \
         "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "] "                            \
