@@ -77,9 +77,6 @@ if [ -d "$ART/tic80-linux-arm64-gcc12" ]; then
     zip_flat "$ART/tic80-linux-arm64-gcc12" "$OUT/tic80-v$SHORT-linux-arm64.zip"
     make_deb "$ART/tic80-linux-arm64-gcc12" "$OUT/tic80-v$SHORT-linux-arm64.deb" arm64
 fi
-if [ -d "$ART/tic80-linux-gcc14" ]; then
-    zip_flat "$ART/tic80-linux-gcc14" "$OUT/tic80-v$SHORT-linux-gcc14.zip"
-fi
 
 # --- macOS (binaries + dylibs; the .dmg is built separately on macOS) ---
 [ -d "$ART/tic80-macos-arm64" ] && zip_flat "$ART/tic80-macos-arm64" "$OUT/tic80-v$SHORT-mac-arm64.zip"
@@ -91,10 +88,6 @@ fi
 # --- Consoles ---
 [ -f "$ART/tic80-nintendo-3ds/tic80.3dsx" ] && zip_flat "$ART/tic80-nintendo-3ds" "$OUT/tic80-v$SHORT-3ds.zip"
 [ -f "$ART/tic80-nintendo-switch/tic80.nro" ] && zip_flat "$ART/tic80-nintendo-switch" "$OUT/tic80-v$SHORT-switch.zip"
-
-# --- Raspberry Pi baremetal (SD-card boot files) ---
-[ -d "$ART/tic80-rpi-baremetal" ] && zip_flat "$ART/tic80-rpi-baremetal" "$OUT/tic80-v$SHORT-rpi-baremetal.zip"
-[ -d "$ART/tic80-rpi4-baremetal" ] && zip_flat "$ART/tic80-rpi4-baremetal" "$OUT/tic80-v$SHORT-rpi4-baremetal.zip"
 
 # --- Web (emscripten builds for every language) ---
 [ -d "$ART/tic80-html" ] && zip_flat "$ART/tic80-html" "$OUT/tic80-v$SHORT-html.zip"

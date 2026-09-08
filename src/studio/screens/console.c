@@ -103,7 +103,6 @@
     macro(win)                  \
     macro(winxp)                \
     macro(linux)                \
-    macro(rpi)                  \
     macro(mac)                  \
     macro(html)                 \
     macro(binary)               \
@@ -2282,11 +2281,6 @@ static void onExport_linux(Console* console, const char* param, const char* file
     exportNativeGame(console, filename, param, params);
 }
 
-static void onExport_rpi(Console* console, const char* param, const char* filename, ExportParams params)
-{
-    exportNativeGame(console, filename, param, params);
-}
-
 static void onExport_mac(Console* console, const char* param, const char* filename, ExportParams params)
 {
     exportNativeGame(console, filename, param, params);
@@ -3008,7 +3002,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("export",                                                                     \
         NULL,                                                                           \
         "Export cart to HTML,\n"                                                        \
-        "native build (win linux rpi mac),\n"                                           \
+        "native build (win linux mac),\n"                                           \
         "export sprites/map/... as a .png image "                                       \
         "or export sfx and music to .wav files.",                                       \
         "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "] "                            \
