@@ -511,13 +511,14 @@ static SQInteger squirrel_ttri(HSQUIRRELVM vm)
         //  check for chroma
         if(OT_ARRAY == sq_gettype(vm, 15))
         {
-            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+            s32 arr_len = (s32)sq_getsize(vm, 15);
+            for(s32 i = 0; i < TIC_PALETTE_SIZE && i < arr_len; i++)
             {
                 sq_pushinteger(vm, (SQInteger)i);
                 sq_rawget(vm, 15);
                 if(sq_gettype(vm, -1) & (OT_FLOAT|OT_INTEGER))
                 {
-                    colors[i-1] = getSquirrelNumber(vm, -1);
+                    colors[i] = getSquirrelNumber(vm, -1);
                     count++;
                     sq_poptop(vm);
                 }
@@ -534,13 +535,13 @@ static SQInteger squirrel_ttri(HSQUIRRELVM vm)
             count = 1;
         }
 
-        float z[3];
+        float z[3] = {0, 0, 0};
         bool depth = false;
 
         if (top == 18)
         {
-            for (s32 i = 0; i < COUNT_OF(pt); i++)
-                pt[i] = getSquirrelFloat(vm, i + 16);
+            for (s32 i = 0; i < COUNT_OF(z); i++)
+                z[i] = getSquirrelFloat(vm, i + 16);
 
             depth = true;
         }
@@ -671,13 +672,14 @@ static SQInteger squirrel_spr(HSQUIRRELVM vm)
             {
                 if(OT_ARRAY == sq_gettype(vm, 5))
                 {
-                    for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+                    s32 arr_len = (s32)sq_getsize(vm, 5);
+                    for(s32 i = 0; i < TIC_PALETTE_SIZE && i < arr_len; i++)
                     {
                         sq_pushinteger(vm, (SQInteger)i);
                         sq_rawget(vm, 5);
                         if(sq_gettype(vm, -1) & (OT_FLOAT|OT_INTEGER))
                         {
-                            colors[i-1] = getSquirrelNumber(vm, -1);
+                            colors[i] = getSquirrelNumber(vm, -1);
                             count++;
                             sq_poptop(vm);
                         }
@@ -842,13 +844,14 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
                 {
                     if(OT_ARRAY == sq_gettype(vm, 8))
                     {
-                        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+                        s32 arr_len = (s32)sq_getsize(vm, 8);
+                        for(s32 i = 0; i < TIC_PALETTE_SIZE && i < arr_len; i++)
                         {
                             sq_pushinteger(vm, (SQInteger)i);
                             sq_rawget(vm, 8);
                             if(sq_gettype(vm, -1) & (OT_FLOAT|OT_INTEGER))
                             {
-                                colors[i-1] = getSquirrelNumber(vm, -1);
+                                colors[i] = getSquirrelNumber(vm, -1);
                                 count++;
                                 sq_poptop(vm);
                             }
@@ -1024,7 +1027,8 @@ static SQInteger squirrel_sfx(HSQUIRRELVM vm)
                         {
                             if(OT_ARRAY == sq_gettype(vm, 6))
                             {
-                                for(s32 i = 0; i < COUNT_OF(volumes); i++)
+                                s32 arr_len = (s32)sq_getsize(vm, 6);
+                                for(s32 i = 0; i < COUNT_OF(volumes) && i < arr_len; i++)
                                 {
                                     sq_pushinteger(vm, (SQInteger)i);
                                     sq_rawget(vm, 6);
