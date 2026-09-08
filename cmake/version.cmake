@@ -1,42 +1,65 @@
+# version.cmake — TIC-80 version, derived from git tags (semver).
+#
+# A build whose HEAD points exactly at a "vMAJOR.MINOR.PATCH" tag is a
+# release: it carries that version verbatim (empty VERSION_STATUS). Any
+# other build is a development snapshot — it keeps the last release's
+# major/minor and uses the commit count as the patch, suffixed "-dev", so
+# the version stays monotonic without needing a tag.
+
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 2)
 set(VERSION_REVISION 0)
 set(VERSION_STATUS "-dev")
+
 string(TIMESTAMP VERSION_YEAR "%Y")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(VERSION_BUILD ".dbg" )
+    set(VERSION_BUILD ".dbg")
 endif()
 
 find_package(Git)
 if(Git_FOUND)
+    # Release: HEAD is exactly a vX.Y.Z tag.
     execute_process(
-        COMMAND ${GIT_EXECUTABLE} status
+        COMMAND ${GIT_EXECUTABLE} describe --tags --exact-match HEAD
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        ERROR_VARIABLE RESULT_STRING
+        OUTPUT_VARIABLE GIT_DESCRIBE
+        ERROR_QUIET
         OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE GIT_DESCRIBE_RESULT
     )
 
-    string(LENGTH "${RESULT_STRING}" LENGTH_RESULT_STRING)
+    set(VERSION_IS_RELEASE FALSE)
+    if(GIT_DESCRIBE_RESULT EQUAL 0 AND GIT_DESCRIBE MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+        set(VERSION_MAJOR ${CMAKE_MATCH_1})
+        set(VERSION_MINOR ${CMAKE_MATCH_2})
+        set(VERSION_REVISION ${CMAKE_MATCH_3})
+        set(VERSION_STATUS "")
+        set(VERSION_IS_RELEASE TRUE)
+    endif()
 
-    if(${LENGTH_RESULT_STRING} EQUAL 0)
-
-        execute_process(
-            COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            OUTPUT_VARIABLE GIT_COMMIT_HASH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-
+    # Short commit hash for the status line (skip when the tree is not a
+    # git checkout, e.g. a release source archive built with git present).
+    execute_process(
+        COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        ERROR_QUIET
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE GIT_LOG_RESULT
+    )
+    if(GIT_LOG_RESULT EQUAL 0)
         string(SUBSTRING ${GIT_COMMIT_HASH} 0 7 GIT_COMMIT_HASH)
-        set(VERSION_HASH ${GIT_COMMIT_HASH} )
+        set(VERSION_HASH ${GIT_COMMIT_HASH})
+    endif()
 
+    # Dev snapshots keep a monotonic patch from the commit count.
+    if(NOT VERSION_IS_RELEASE)
         execute_process(
             COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             OUTPUT_VARIABLE VERSION_REVISION
             OUTPUT_STRIP_TRAILING_WHITESPACE
         )
-
     endif()
 endif()
