@@ -58,6 +58,7 @@ Priority: optional
 Architecture: $arch
 Maintainer: Nesbox <grigoruk@gmail.com>
 Homepage: https://tic80.com
+Depends: libcurl4 | libcurl4t64
 Description: Fantasy computer for making, playing and sharing tiny games.
 EOF
 
