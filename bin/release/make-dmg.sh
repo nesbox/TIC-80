@@ -39,8 +39,24 @@ if compgen -G "$ART"/*.dylib >/dev/null; then
     cp "$ART"/*.dylib "$APP/Contents/MacOS/"
 fi
 
-hdiutil create -volname TIC-80 -srcfolder "$APP" -ov -format UDZO \
-    "$OUT/tic80-v$SHORT-mac$NAME.dmg" >/dev/null
+# hdiutil intermittently fails with "Resource busy" on CI runners (xattrs /
+# Spotlight grabbing the .app). Clear xattrs and retry a couple of times.
+xattr -cr "$APP" 2>/dev/null || true
+
+ok=0
+for attempt in 1 2 3; do
+    if hdiutil create -volname TIC-80 -srcfolder "$APP" -ov -format UDZO \
+        "$OUT/tic80-v$SHORT-mac$NAME.dmg" >/dev/null 2>&1; then
+        ok=1
+        break
+    fi
+    sleep 3
+done
+
+if [ "$ok" != 1 ]; then
+    echo "hdiutil create failed after retries" >&2
+    exit 1
+fi
 
 rm -rf "$APP"
 ls -lh "$OUT"

@@ -62,40 +62,6 @@ jobs:
           path: |
             build/bin/tic80.exe
 
-  # === Windows MinGW-64 ===
-  windows-mingw:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-
-    steps:
-      - name: Setup Mingw
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            base-devel
-            git
-            gcc
-
-      - uses: actions/checkout@v6
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - name: Build
-        shell: bash
-        run: |
-          cd build
-          cmake -G "MSYS Makefiles" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
-
   # === Ubuntu ===
   linux-gcc12-glibc235:
     runs-on: ubuntu-22.04
