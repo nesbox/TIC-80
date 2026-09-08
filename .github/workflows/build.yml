@@ -6,6 +6,12 @@ on:
   pull_request:
   workflow_call:
 
+# A new push supersedes the previous run on the same ref: cancel it instead
+# of burning matrix runners on stale commits.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # === Windows ===
   windows:
