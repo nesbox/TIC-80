@@ -3,9 +3,10 @@
 # Runs on a macOS runner (hdiutil). The .app bundle is assembled from the
 # build/macosx template resources.
 #
-# Usage: make-dmg.sh <artifact-dir> <out-dir> <version> <name>
+# Usage: make-dmg.sh <artifact-dir> <out-dir> <version> <shortver> <name>
 #   version  full "1.2.0"
-#   name     file-name suffix without "mac", e.g. "" for Intel or "-arm64"
+#   shortver "1.2" (first two segments; the file-name version)
+#   name     suffix without "mac", e.g. "" for Intel or "-arm64"
 #            → out/tic80-v<shortver>-mac<name>.dmg
 
 set -euo pipefail
@@ -13,9 +14,8 @@ set -euo pipefail
 ART="${1:?artifact dir}"
 OUT="${2:?out dir}"
 VER="${3:?version}"
-NAME="${4:-}" # "" or "-arm64"
-
-SHORT="$(echo "$VER" | sed -E 's/\.[0-9]+$//')" # 1.2.0 -> 1.2
+SHORT="${4:?shortver}"
+NAME="${5:-}" # "" or "-arm64"
 
 mkdir -p "$OUT"
 APP="TIC-80.app"

@@ -58,8 +58,9 @@ jobs:
       - name: Build dmgs
         run: |
           VER="${GITHUB_REF_NAME#v}"
-          bash bin/release/make-dmg.sh artifacts/tic80-macos-arm64 out "$VER" "-arm64"
-          bash bin/release/make-dmg.sh artifacts/tic80-macos out "$VER" ""
+          SHORT="${VER%.*}"
+          bash bin/release/make-dmg.sh artifacts/tic80-macos-arm64 out "$VER" "$SHORT" "-arm64"
+          bash bin/release/make-dmg.sh artifacts/tic80-macos out "$VER" "$SHORT" ""
 
       - uses: actions/upload-artifact@v6
         with:
