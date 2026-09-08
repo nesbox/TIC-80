@@ -101,7 +101,6 @@
 
 #define EXPORT_CMD_LIST(macro)  \
     macro(win)                  \
-    macro(winxp)                \
     macro(linux)                \
     macro(mac)                  \
     macro(macintel)             \
@@ -2268,11 +2267,6 @@ static const char* getFilename(const char* filename, const char* ext)
 }
 
 static void onExport_win(Console* console, const char* param, const char* filename, ExportParams params)
-{
-    exportNativeGame(console, getFilename(filename, ".exe"), param, params);
-}
-
-static void onExport_winxp(Console* console, const char* param, const char* filename, ExportParams params)
 {
     exportNativeGame(console, getFilename(filename, ".exe"), param, params);
 }
