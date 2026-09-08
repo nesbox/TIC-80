@@ -1264,7 +1264,13 @@ void gotoSurf(Studio* studio)
 
 bool studio_is_cart_loaded(Studio* studio)
 {
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     return strlen(studio->console->rom.name) > 0 || (studio->start && studio->start->embed);
+#else
+    // Editorless builds (export stubs) have no console; only an embedded
+    // cartridge counts as loaded.
+    return studio->start && studio->start->embed;
+#endif
 }
 
 void setStudioMode(Studio* studio, EditorMode mode)
