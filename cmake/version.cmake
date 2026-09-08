@@ -53,13 +53,21 @@ if(Git_FOUND)
         set(VERSION_HASH ${GIT_COMMIT_HASH})
     endif()
 
-    # Dev snapshots keep a monotonic patch from the commit count.
+    # Dev snapshots keep a monotonic patch from the commit count. Guarded
+    # like the calls above: a container build may see a checked-out tree it
+    # cannot read as a repo (dubious ownership), in which case git fails and
+    # we keep the fallback 0 rather than leaving the patch empty.
     if(NOT VERSION_IS_RELEASE)
         execute_process(
             COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
             OUTPUT_VARIABLE VERSION_REVISION
+            ERROR_QUIET
             OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE GIT_REVLIST_RESULT
         )
+        if(NOT GIT_REVLIST_RESULT EQUAL 0)
+            set(VERSION_REVISION 0)
+        endif()
     endif()
 endif()
