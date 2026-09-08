@@ -25,7 +25,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --config MinSizeRel --parallel
 
       - name: Deploy
@@ -34,13 +34,12 @@ jobs:
           name: "tic80-windows"
           path: |
             build/bin/tic80.exe
-            build/bin/*.dll
 
       - name: Build Pro
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config MinSizeRel --parallel
 
       - name: Build Export Stub
@@ -56,7 +55,6 @@ jobs:
           name: "tic80-windows-export"
           path: |
             build/bin/tic80.exe
-            build/bin/*.dll
 
   # === Windows MinGW-64 ===
   windows-mingw:
@@ -125,7 +123,6 @@ jobs:
           name: "tic80-linux-gcc12"
           path: |
             build/bin/tic80
-            build/bin/*.so
 
       - name: Build Pro
         run: |
@@ -145,7 +142,6 @@ jobs:
           name: "tic80-linux-gcc12-export"
           path: |
             build/bin/tic80
-            build/bin/*.so
 
   # === Ubuntu-arm64 ===
   linux-arm64-gcc12-glibc235:
@@ -180,7 +176,6 @@ jobs:
           name: "tic80-linux-arm64-gcc12"
           path: |
             build/bin/tic80
-            build/bin/*.so
 
       - name: Build Pro
         run: |
@@ -200,7 +195,6 @@ jobs:
           name: "tic80-linux-arm64-gcc12-export"
           path: |
             build/bin/tic80
-            build/bin/*.so
 
   # === Nintendo 3DS build ===
   nintendo-3ds:
@@ -285,7 +279,6 @@ jobs:
           name: "tic80-macos-arm64"
           path: |
             build/bin/tic80
-            build/bin/*.dylib
 
       - name: Build Pro
         run: |
@@ -305,7 +298,6 @@ jobs:
           name: "tic80-macos-arm64-export"
           path: |
             build/bin/tic80
-            build/bin/*.dylib
 
   # === MacOS 15 / x86_64 ===
   macos:
@@ -332,7 +324,6 @@ jobs:
           name: "tic80-macos"
           path: |
             build/bin/tic80
-            build/bin/*.dylib
 
       - name: Build Pro
         run: |
@@ -352,7 +343,6 @@ jobs:
           name: "tic80-macos-export"
           path: |
             build/bin/tic80
-            build/bin/*.dylib
 
   # === Android ===
   android:
