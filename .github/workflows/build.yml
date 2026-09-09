@@ -89,6 +89,18 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
+      - name: Export help (learn.md)
+        run: |
+          cd build
+          ./bin/tic80 --cli --fs=. --cmd='export help learn.md'
+          mv learn.md ../learn.md
+
+      - name: Deploy learn.md
+        uses: actions/upload-artifact@v6
+        with:
+          name: "tic80-learn"
+          path: learn.md
+
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
