@@ -109,13 +109,14 @@ fi
 
 # --- export stubs bundle (native) for the server. Not a user download;
 # deploy-client.sh pulls it and unpacks into export/<shortver>/. The client
-# asks for /export/<shortver>/<platform> as a *file* (e.g. "linux"), so each
-# stub binary is renamed to its platform name, not kept in a subdir.
+# asks for /export/<shortver>/<command> as a *file*, so each stub binary is
+# renamed to its export-command name (matches the `export` command: win,
+# linux, linuxarm, mac=arm64, macintel=x64), not kept in a subdir.
 if [ -d "$ART" ]; then
     tmp="$OUT/.stubs"
     rm -rf "$tmp"
     mkdir -p "$tmp"
-    for spec in windows:win:tic80.exe linux-gcc12:linux:tic80 linux-arm64:linux-arm64:tic80 macos:mac:tic80 macos-arm64:mac-arm64:tic80; do
+    for spec in windows:win:tic80.exe linux-gcc12:linux:tic80 linux-arm64:linuxarm:tic80 macos:macintel:tic80 macos-arm64:mac:tic80; do
         art="${spec%%:*}"; rest="${spec#*:}"; dst="${rest%%:*}"; file="${rest#*:}"
         src="$ART/tic80-$art-export/$file"
         [ -f "$src" ] && cp "$src" "$tmp/$dst"

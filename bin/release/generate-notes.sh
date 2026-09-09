@@ -14,17 +14,28 @@ TAG="${1:?usage: generate-notes.sh <tag>}"
 KEY="${DEEPSEEK_API_KEY:?DEEPSEEK_API_KEY is not set}"
 REPO="nesbox/TIC-80"
 
-PREV="$(gh api "repos/$REPO/releases/latest" --jq '{tag: .tag_name, since: (.published_at | split("T")[0])}')"
-PREV_TAG="$(echo "$PREV" | jq -r .tag)"
-SINCE="$(echo "$PREV" | jq -r .since)"
+# The previous release is the parent git tag, not the latest *published*
+# GitHub release: the tag being released is still a draft at this point, and
+# git works even for the very first release. Falls back to the repo's root
+# commit so the stats window is always valid.
+PREV_REF="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")"
+if [ -n "$PREV_REF" ]; then
+    PREV_TAG="$PREV_REF"
+    SINCE="$(git log -1 --format=%cs "$PREV_REF" 2>/dev/null || echo 2000-01-01)"
+else
+    PREV_TAG="(first release)"
+    ROOT="$(git rev-list --max-parents=0 HEAD)"
+    PREV_REF="$ROOT"
+    SINCE="$(git log -1 --format=%cs "$ROOT" 2>/dev/null || echo 2000-01-01)"
+fi
 
 NPRS="$(gh pr list --repo "$REPO" --state merged --base main --limit 1000 \
     --search "merged:>=$SINCE" --json title --jq 'length')"
 PRS="$(gh pr list --repo "$REPO" --state merged --base main --limit 1000 \
     --search "merged:>=$SINCE" --json title --jq '.[].title')"
 
-COMMITS="$(git rev-list --count "$PREV_TAG"..HEAD 2>/dev/null || echo unknown)"
-CONTRIBS="$(git shortlog -sn "$PREV_TAG"..HEAD 2>/dev/null | wc -l | tr -d ' ')"
+COMMITS="$(git rev-list --count "$PREV_REF"..HEAD 2>/dev/null || echo unknown)"
+CONTRIBS="$(git shortlog -sn "$PREV_REF"..HEAD 2>/dev/null | wc -l | tr -d ' ')"
 
 PROMPT="Write release notes for TIC-80 $TAG (a fantasy computer for making, playing and sharing tiny games). The previous release was $PREV_TAG.
 

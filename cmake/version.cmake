@@ -58,6 +58,22 @@ if(Git_FOUND)
     # cannot read as a repo (dubious ownership), in which case git fails and
     # we keep the fallback 0 rather than leaving the patch empty.
     if(NOT VERSION_IS_RELEASE)
+        # Track the last release's major/minor so a post-release commit never
+        # reports an *older* version than the tag it follows (e.g. 1.2.<n>-dev
+        # right after v1.3.0). Falls back to the defaults when no tag exists.
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0 HEAD
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            OUTPUT_VARIABLE GIT_LAST_TAG
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE GIT_LAST_TAG_RESULT
+        )
+        if(GIT_LAST_TAG_RESULT EQUAL 0 AND GIT_LAST_TAG MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+            set(VERSION_MAJOR ${CMAKE_MATCH_1})
+            set(VERSION_MINOR ${CMAKE_MATCH_2})
+        endif()
+
         execute_process(
             COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}

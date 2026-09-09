@@ -95,5 +95,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
-          bash bin/release/generate-notes.sh "$GITHUB_REF_NAME" > notes.md
-          gh release edit "$GITHUB_REF_NAME" --repo nesbox/TIC-80 --notes-file notes.md
+          # Best-effort: an LLM outage or missing key must not wedge the
+          # release (the draft + assets already exist above and cannot be
+          # recreated cleanly). The release just ships with its default body.
+          if bash bin/release/generate-notes.sh "$GITHUB_REF_NAME" > notes.md; then
+            gh release edit "$GITHUB_REF_NAME" --repo nesbox/TIC-80 --notes-file notes.md
+          else
+            echo "note: release notes generation failed — leaving the default body"
+          fi

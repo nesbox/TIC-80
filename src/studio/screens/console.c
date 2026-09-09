@@ -2279,18 +2279,18 @@ static void onExport_linux(Console* console, const char* param, const char* file
 
 static void onExport_linuxarm(Console* console, const char* param, const char* filename, ExportParams params)
 {
-    exportNativeGame(console, filename, "linux-arm64", params);
+    exportNativeGame(console, filename, "linuxarm", params);
 }
 
 static void onExport_mac(Console* console, const char* param, const char* filename, ExportParams params)
 {
     // arm64 is the default mac target now; the legacy x64 build is macintel.
-    exportNativeGame(console, filename, "mac-arm64", params);
+    exportNativeGame(console, filename, "mac", params);
 }
 
 static void onExport_macintel(Console* console, const char* param, const char* filename, ExportParams params)
 {
-    exportNativeGame(console, filename, "mac", params);
+    exportNativeGame(console, filename, "macintel", params);
 }
 
 static void onExport_html(Console* console, const char* param, const char* filename, ExportParams params)

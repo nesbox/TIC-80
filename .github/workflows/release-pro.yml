@@ -75,6 +75,7 @@ jobs:
           VER="${GITHUB_REF_NAME#v}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip
+          chmod +x butler
           ./butler push build/bin nesbox/tic80:linux-pro --userversion "$VER"
 
   macos-arm64-pro:
@@ -94,15 +95,23 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
+      - name: Build dmg
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          bash bin/release/make-dmg.sh build/bin out "$VER" "$SHORT" "-arm64"
+
       - name: Push to itch.io
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
           if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
           VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-arm64/LATEST/archive/default
           unzip -q butler.zip
-          ./butler push build/bin nesbox/tic80:osx-arm64-pro --userversion "$VER"
+          chmod +x butler
+          ./butler push out/tic80-v$SHORT-mac-arm64.dmg nesbox/tic80:osx-arm64-pro --userversion "$VER"
 
   macos-intel-pro:
     runs-on: macos-15-intel
@@ -121,15 +130,23 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
+      - name: Build dmg
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          bash bin/release/make-dmg.sh build/bin out "$VER" "$SHORT" ""
+
       - name: Push to itch.io
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
           if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
           VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-amd64/LATEST/archive/default
           unzip -q butler.zip
-          ./butler push build/bin nesbox/tic80:osx-pro --userversion "$VER"
+          chmod +x butler
+          ./butler push out/tic80-v$SHORT-mac.dmg nesbox/tic80:osx-pro --userversion "$VER"
 
   android-pro:
     runs-on: ubuntu-latest
@@ -170,6 +187,7 @@ jobs:
           VER="${GITHUB_REF_NAME#v}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip
+          chmod +x butler
           ./butler push build/android/tic80.apk nesbox/tic80:android-pro --userversion "$VER"
 
   # Free builds are assembled by release.yml (into the draft release); once
