@@ -102,6 +102,7 @@
 #define EXPORT_CMD_LIST(macro)  \
     macro(win)                  \
     macro(linux)                \
+    macro(linuxarm)             \
     macro(mac)                  \
     macro(macintel)             \
     macro(html)                 \
@@ -2276,6 +2277,11 @@ static void onExport_linux(Console* console, const char* param, const char* file
     exportNativeGame(console, filename, param, params);
 }
 
+static void onExport_linuxarm(Console* console, const char* param, const char* filename, ExportParams params)
+{
+    exportNativeGame(console, filename, "linux-arm64", params);
+}
+
 static void onExport_mac(Console* console, const char* param, const char* filename, ExportParams params)
 {
     // arm64 is the default mac target now; the legacy x64 build is macintel.
@@ -3003,7 +3009,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("export",                                                                     \
         NULL,                                                                           \
         "Export cart to HTML,\n"                                                        \
-        "native build (win linux mac macintel),\n"                                           \
+        "native build (win linux linuxarm mac macintel),\n"                                           \
         "export sprites/map/... as a .png image "                                       \
         "or export sfx and music to .wav files.",                                       \
         "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "] "                            \

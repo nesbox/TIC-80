@@ -26,6 +26,7 @@ jobs:
           gh release download "${{ inputs.version }}" --repo nesbox/TIC-80 --dir flat \
             --pattern 'tic80-v*-win.zip' \
             --pattern 'tic80-v*-linux.deb' \
+            --pattern 'tic80-v*-linux-arm64.deb' \
             --pattern 'tic80-v*-mac.dmg' \
             --pattern 'tic80-v*-mac-arm64.dmg' \
             --pattern 'tic80-v*-android.apk' \
@@ -55,6 +56,7 @@ jobs:
           chmod +x butler/butler
           butler/butler push flat/tic80-v$SHORT-win.exe       nesbox/tic80-dev:windows    --userversion "$VER"
           butler/butler push flat/tic80-v$SHORT-linux.deb     nesbox/tic80-dev:linux      --userversion "$VER"
+          butler/butler push flat/tic80-v$SHORT-linux-arm64.deb nesbox/tic80-dev:linux-arm64 --userversion "$VER"
           butler/butler push flat/tic80-v$SHORT-mac.dmg       nesbox/tic80-dev:osx        --userversion "$VER"
           butler/butler push flat/tic80-v$SHORT-mac-arm64.dmg nesbox/tic80-dev:osx-arm64  --userversion "$VER"
           butler/butler push flat/tic80-v$SHORT-android.apk   nesbox/tic80-dev:android    --userversion "$VER"
