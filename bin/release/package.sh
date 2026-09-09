@@ -104,24 +104,19 @@ if [ -d "$ART/tic80-html" ]; then
     rm -rf "$tmp"
 fi
 
-# --- export stubs bundle (native + per-language wasm) for the server.
-# Not a user download; deploy-client.sh pulls it and unpacks into
-# export/<shortver>/<platform>/.
+# --- export stubs bundle (native) for the server. Not a user download;
+# deploy-client.sh pulls it and unpacks into export/<shortver>/. The client
+# asks for /export/<shortver>/<platform> as a *file* (e.g. "linux"), so each
+# stub binary is renamed to its platform name, not kept in a subdir.
 if [ -d "$ART" ]; then
     tmp="$OUT/.stubs"
     rm -rf "$tmp"
-    mkdir -p "$tmp/html"
-    for spec in windows:win linux-gcc12:linux linux-arm64:linux-arm64 macos:mac macos-arm64:mac-arm64; do
-        art="${spec%%:*}"; dst="${spec##*:}"
-        if [ -d "$ART/tic80-$art-export" ]; then
-            mkdir -p "$tmp/$dst"
-            cp "$ART/tic80-$art-export/"* "$tmp/$dst/" 2>/dev/null || true
-        fi
+    mkdir -p "$tmp"
+    for spec in windows:win:tic80.exe linux-gcc12:linux:tic80 linux-arm64:linux-arm64:tic80 macos:mac:tic80 macos-arm64:mac-arm64:tic80; do
+        art="${spec%%:*}"; rest="${spec#*:}"; dst="${rest%%:*}"; file="${rest#*:}"
+        src="$ART/tic80-$art-export/$file"
+        [ -f "$src" ] && cp "$src" "$tmp/$dst"
     done
-    if [ -d "$ART/tic80-html" ]; then
-        find "$ART/tic80-html" -maxdepth 1 -type f \( -name 'tic80*.js' -o -name 'tic80*.wasm' \) \
-            ! -name 'tic80.js' ! -name 'tic80.wasm' -exec cp {} "$tmp/html/" \;
-    fi
     (cd "$tmp" && tar czf "$OUT/tic80-v$SHORT-stubs.tar.gz" .)
     rm -rf "$tmp"
 fi
