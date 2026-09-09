@@ -3359,6 +3359,109 @@ static s32 createButtonsTable(char* buf)
     return strlen(buf);
 }
 
+static s32 createRamTableMd(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n### RAM layout (96KB)\n\n| ADDR | INFO | BYTES |\n|---|---|---|\n");
+
+    static const struct Row {s32 addr; const char* info;} Rows[] =
+    {
+        {0,                                         "<VRAM>"},
+        {offsetof(tic_ram, tiles),                  "TILES"},
+        {offsetof(tic_ram, sprites),                "SPRITES"},
+        {offsetof(tic_ram, map),                    "MAP"},
+        {offsetof(tic_ram, input.gamepads),         "GAMEPADS"},
+        {offsetof(tic_ram, input.mouse),            "MOUSE"},
+        {offsetof(tic_ram, input.keyboard),         "KEYBOARD"},
+        {offsetof(tic_ram, sfxpos),                 "SFX STATE"},
+        {offsetof(tic_ram, registers),              "SOUND REGISTERS"},
+        {offsetof(tic_ram, sfx.waveforms),          "WAVEFORMS"},
+        {offsetof(tic_ram, sfx.samples),            "SFX"},
+        {offsetof(tic_ram, music.patterns.data),    "MUSIC PATTERNS"},
+        {offsetof(tic_ram, music.tracks.data),      "MUSIC TRACKS"},
+        {offsetof(tic_ram, music_state),            "MUSIC STATE"},
+        {offsetof(tic_ram, stereo),                 "STEREO VOLUME"},
+        {offsetof(tic_ram, persistent),             "PERSISTENT MEMORY"},
+        {offsetof(tic_ram, flags),                  "SPRITE FLAGS"},
+        {offsetof(tic_ram, font.regular),           "FONT"},
+        {offsetof(tic_ram, font.regular.params),    "FONT PARAMS"},
+        {offsetof(tic_ram, font.alt),               "ALT FONT"},
+        {offsetof(tic_ram, font.alt.params),        "ALT FONT PARAMS"},
+        {offsetof(tic_ram, mapping),                "BUTTONS MAPPING"},
+        {offsetof(tic_ram, pcm),                    "PCM SAMPLES"},
+        {offsetof(tic_ram, free),                   "** RESERVED **"},
+        {TIC_RAM_SIZE,                              ""},
+    };
+
+    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
+        ptr += sprintf(ptr, "| %05X | %s | %i |\n", row->addr, row->info, (row + 1)->addr - row->addr);
+
+    return strlen(buf);
+}
+
+static s32 createVRamTableMd(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n### VRAM layout (16KB)\n\n| ADDR | INFO | BYTES |\n|---|---|---|\n");
+
+    static const struct Row {s32 addr; const char* info;} Rows[] =
+    {
+        {offsetof(tic_ram, vram.screen),        "SCREEN"},
+        {offsetof(tic_ram, vram.palette),       "PALETTE"},
+        {offsetof(tic_ram, vram.mapping),       "PALETTE MAP"},
+        {offsetof(tic_ram, vram.vars),          "BORDER COLOR"},
+        {offsetof(tic_ram, vram.vars.offset),   "SCREEN OFFSET"},
+        {offsetof(tic_ram, vram.vars.cursor),   "MOUSE CURSOR"},
+        {offsetof(tic_ram, vram.blit),          "BLIT SEGMENT"},
+        {offsetof(tic_ram, vram.reserved),      "... (reserved)"},
+        {TIC_VRAM_SIZE,                         ""},
+    };
+
+    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
+        ptr += sprintf(ptr, "| %05X | %s | %i |\n", row->addr, row->info, (row + 1)->addr - row->addr);
+
+    return strlen(buf);
+}
+
+static s32 createButtonsTableMd(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n| ACTION | P1 | P2 | P3 | P4 |\n|---|---|---|---|---|\n");
+
+    static const char* Actions[] = {"UP", "DOWN", "LEFT", "RIGHT", "A", "B", "X", "Y"};
+
+    int id = 0;
+    for(const char** it = Actions, **end = it + COUNT_OF(Actions); it < end; ++it, ++id)
+        ptr += sprintf(ptr, "| %s | %d | %d | %d | %d |\n", *it, id, id + 8, id + 16, id + 24);
+
+    return strlen(buf);
+}
+
+static s32 createKeysTableMd(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n| CODE | KEY | CODE | KEY |\n|---|---|---|---|\n");
+
+    static const struct Row {s32 code; const char* key;} Rows[] =
+    {
+        {1, "A"}, {2, "B"}, {3, "C"}, {4, "D"}, {5, "E"}, {6, "F"}, {7, "G"}, {8, "H"}, {9, "I"}, {10, "J"},
+        {11, "K"}, {12, "L"}, {13, "M"}, {14, "N"}, {15, "O"}, {16, "P"}, {17, "Q"}, {18, "R"}, {19, "S"}, {20, "T"},
+        {21, "U"}, {22, "V"}, {23, "W"}, {24, "X"}, {25, "Y"}, {26, "Z"}, {27, "0"}, {28, "1"}, {29, "2"}, {30, "3"},
+        {31, "4"}, {32, "5"}, {33, "6"}, {34, "7"}, {35, "8"}, {36, "9"}, {37, "MINUS"}, {38, "EQUALS"}, {39, "LEFTBRACKET"}, {40, "RIGHTBRACKT"},
+        {41, "BACKSLASH"}, {42, "SEMICOLON"}, {43, "APOSTROPHE"}, {44, "GRAVE"}, {45, "COMMA"}, {46, "PERIOD"}, {47, "SLASH"}, {48, "SPACE"}, {49, "TAB"}, {50, "RETURN"},
+        {51, "BACKSPACE"}, {52, "DELETE"}, {53, "INSERT"}, {54, "PAGEUP"}, {55, "PAGEDOWN"}, {56, "HOME"}, {57, "END"}, {58, "UP"}, {59, "DOWN"}, {60, "LEFT"},
+        {61, "RIGHT"}, {62, "CAPSLOCK"}, {63, "CTRL"}, {64, "SHIFT"}, {65, "ALT"}, {66, "ESC"}, {67, "F1"}, {68, "F2"}, {69, "F3"}, {70, "F4"},
+        {71, "F5"}, {72, "F6"}, {73, "F7"}, {74, "F8"}, {75, "F9"}, {76, "F10"}, {77, "F11"}, {78, "F12"}, {79, "NUM0"}, {80, "NUM1"},
+        {81, "NUM2"}, {82, "NUM3"}, {83, "NUM4"}, {84, "NUM5"}, {85, "NUM6"}, {86, "NUM7"}, {87, "NUM8"}, {88, "NUM9"}, {89, "NUMPLUS"}, {90, "NUMMINUS"},
+        {91, "NUMMULTIPLY"}, {92, "NUMDIVIDE"}, {93, "NUMENTER"}, {94, "NUMPERIOD"},
+    };
+
+    for(const struct Row *row = Rows, *alt = row + COUNT_OF(Rows) / 2, *end = alt; row != end; ++row, ++alt)
+        ptr += sprintf(ptr, "| %d | %s | %d | %s |\n", row->code, row->key, alt->code, alt->key);
+
+    return strlen(buf);
+}
+
 static void onExport_help(Console* console, const char* param, const char* name, ExportParams params)
 {
     const char* filename = getFilename(name, ".md");
@@ -3368,72 +3471,39 @@ static void onExport_help(Console* console, const char* param, const char* name,
     SCOPE(free(buf))
     {
         ptr += sprintf(ptr, "# " TIC_NAME_FULL "\n" TIC_VERSION"\n" TIC_COPYRIGHT"\n");
+
+        ptr += sprintf(ptr, "\n## Table of Contents\n\n");
+        ptr += sprintf(ptr, "- [Welcome](#welcome)\n- [Specification](#specification)\n- [Console commands](#console-commands)\n- [API functions](#api-functions)\n- [Button IDs](#button-ids)\n- [Key IDs](#key-ids)\n- [Startup options](#startup-options)\n- [Terms of Use](#terms-of-use)\n- [Privacy Policy](#privacy-policy)\n- [MIT License](#mit-license)\n");
+
         ptr += sprintf(ptr, "\n## Welcome\n%s\n", WelcomeText);
-        ptr += sprintf(ptr, "\n## Specification\n```\n");
 
+        ptr += sprintf(ptr, "\n## Specification\n\n| | |\n|---|---|\n");
         FOR(const struct SpecRow*, row, SpecText1)
-            ptr += sprintf(ptr, "%-10s%s\n", row->section, row->info);
+            ptr += sprintf(ptr, "| **%s** | %s |\n", row->section, row->info);
 
-        ptr += sprintf(ptr, "```\n```\n");
-        ptr += createRamTable(ptr);
-        ptr += sprintf(ptr, "```\n```");
-        ptr += createVRamTable(ptr);
-        ptr += sprintf(ptr, "```\n\n## Console commands\n");
+        ptr += createRamTableMd(ptr);
+        ptr += createVRamTableMd(ptr);
 
+        ptr += sprintf(ptr, "\n## Console commands\n\n| Command | Description | Usage |\n|---|---|---|\n");
         FOR(const Command*, cmd, Commands)
-            ptr += sprintf(ptr, "\n### %s\n%s\nusage: `%s`\n",
+            ptr += sprintf(ptr, "| `%s` | %s | `%s` |\n",
                 cmd->name, cmd->help, cmd->usage ? cmd->usage : cmd->name);
 
-        ptr += sprintf(ptr, "\n## API functions\n");
-
+        ptr += sprintf(ptr, "\n## API functions\n\n| Function | Description |\n|---|---|\n");
         FOR(const ApiItem*, api, Api)
-            ptr += sprintf(ptr, "\n### %s\n`%s`\n%s\n", api->name, api->def, api->help);
+            ptr += sprintf(ptr, "| `%s` | %s |\n", api->def, api->help);
 
         ptr += sprintf(ptr, "\n## Button IDs\n");
-        ptr += sprintf(ptr, "```");
-        ptr += createButtonsTable(ptr);
-        ptr += sprintf(ptr, "```\n");
+        ptr += createButtonsTableMd(ptr);
 
         ptr += sprintf(ptr, "\n## Key IDs\n");
-        ptr += sprintf(ptr, "```");
-        ptr += createKeysTable(ptr);
-        ptr += sprintf(ptr, "```\n");
+        ptr += createKeysTableMd(ptr);
 
-        ptr += sprintf(ptr, "\n## Startup options\n```\n");
+        ptr += sprintf(ptr, "\n## Startup options\n\n| Option | Description |\n|---|---|\n");
         FOR(const struct StartupOption*, opt, StartupOptions)
-            ptr += sprintf(ptr, "--%-14s %s\n", opt->name, opt->help);
+            ptr += sprintf(ptr, "| `--%s` | %s |\n", opt->name, opt->help);
 
-        ptr += sprintf(ptr, "```\n\n## Hotkeys\n");
-
-        ptr += sprintf(ptr, "\n### General:\n```\n");
-        FOR(const struct HotkeysRowGeneral*, row, HotkeysTextGeneral)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### Navigation:\n```\n");
-        FOR(const struct HotkeysRowNavigation*, row, HotkeysTextNavigation)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### Code Editor:\n```\n");
-        FOR(const struct HotkeysRowCodeEditor*, row, HotkeysTextCodeEditor)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### Sprite Editor:\n```\n");
-        FOR(const struct HotkeysRowSpriteEditor*, row, HotkeysTextSpriteEditor)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### Map Editor:\n```\n");
-        FOR(const struct HotkeysRowMapEditor*, row, HotkeysTextMapEditor)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### SFX Editor:\n```\n");
-        FOR(const struct HotkeysRowSFXEditor*, row, HotkeysTextSFXEditor)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### Music Editor:\n```\n");
-        FOR(const struct HotkeysRowMusicEditor*, row, HotkeysTextMusicEditor)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n%s\n\n%s", TermsText, LicenseText);
+        ptr += sprintf(ptr, "\n%s\n\n%s", TermsText, LicenseText);
 
         char* helpReplaced = replaceHelpTokens(buf);
 

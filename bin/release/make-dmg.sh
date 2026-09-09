@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Build an unsigned macOS .dmg from a raw mac artifact (tic80 + dylibs).
+# Build an ad-hoc signed macOS .dmg from a raw mac artifact (tic80 + dylibs).
 # Runs on a macOS runner (hdiutil). The .app bundle is assembled from the
-# build/macosx template resources.
+# build/macosx template resources, ad-hoc signed (no Developer ID), and staged
+# with an /Applications shortcut for drag-and-drop install.
 #
 # Usage: make-dmg.sh <artifact-dir> <out-dir> <version> <shortver> <name>
 #   version  full "1.2.0"
@@ -39,13 +40,24 @@ if compgen -G "$ART"/*.dylib >/dev/null; then
     cp "$ART"/*.dylib "$APP/Contents/MacOS/"
 fi
 
+# Ad-hoc sign so Gatekeeper reports "unidentified developer" (right-click →
+# Open) rather than "damaged". No Developer ID — that's notarization.
+codesign --force --deep -s - "$APP" >/dev/null 2>&1 || true
+
+# Stage the .app with an /Applications shortcut for drag-and-drop install.
+STAGE=".dmg-stage"
+rm -rf "$STAGE"
+mkdir -p "$STAGE"
+cp -R "$APP" "$STAGE/"
+ln -s /Applications "$STAGE/Applications"
+
 # hdiutil intermittently fails with "Resource busy" on CI runners (xattrs /
 # Spotlight grabbing the .app). Clear xattrs and retry a couple of times.
-xattr -cr "$APP" 2>/dev/null || true
+xattr -cr "$STAGE" 2>/dev/null || true
 
 ok=0
 for attempt in 1 2 3; do
-    if hdiutil create -volname TIC-80 -srcfolder "$APP" -ov -format UDZO \
+    if hdiutil create -volname TIC-80 -srcfolder "$STAGE" -ov -format UDZO \
         "$OUT/tic80-v$SHORT-mac$NAME.dmg" >/dev/null 2>&1; then
         ok=1
         break
@@ -58,5 +70,5 @@ if [ "$ok" != 1 ]; then
     exit 1
 fi
 
-rm -rf "$APP"
+rm -rf "$APP" "$STAGE"
 ls -lh "$OUT"
