@@ -3462,6 +3462,18 @@ static s32 createKeysTableMd(char* buf)
     return strlen(buf);
 }
 
+static void printMdCell(char** ptr, const char* str)
+{
+    // Write a markdown table cell: escape | and collapse newlines to spaces,
+    // since a cell can't span lines (a raw newline breaks the table).
+    for(const char* c = str; *c; ++c)
+    {
+        if(*c == '|') *(*ptr)++ = '\\', *(*ptr)++ = '|';
+        else if(*c == '\n') *(*ptr)++ = ' ';
+        else *(*ptr)++ = *c;
+    }
+}
+
 static void onExport_help(Console* console, const char* param, const char* name, ExportParams params)
 {
     const char* filename = getFilename(name, ".md");
@@ -3486,12 +3498,25 @@ static void onExport_help(Console* console, const char* param, const char* name,
 
         ptr += sprintf(ptr, "\n## Console commands\n\n| Command | Description | Usage |\n|---|---|---|\n");
         FOR(const Command*, cmd, Commands)
-            ptr += sprintf(ptr, "| `%s` | %s | `%s` |\n",
-                cmd->name, cmd->help, cmd->usage ? cmd->usage : cmd->name);
+        {
+            ptr += sprintf(ptr, "| `");
+            printMdCell(&ptr, cmd->name);
+            ptr += sprintf(ptr, "` | ");
+            printMdCell(&ptr, cmd->help);
+            ptr += sprintf(ptr, " | `");
+            printMdCell(&ptr, cmd->usage ? cmd->usage : cmd->name);
+            ptr += sprintf(ptr, "` |\n");
+        }
 
         ptr += sprintf(ptr, "\n## API functions\n\n| Function | Description |\n|---|---|\n");
         FOR(const ApiItem*, api, Api)
-            ptr += sprintf(ptr, "| `%s` | %s |\n", api->def, api->help);
+        {
+            ptr += sprintf(ptr, "| `");
+            printMdCell(&ptr, api->def);
+            ptr += sprintf(ptr, "` | ");
+            printMdCell(&ptr, api->help);
+            ptr += sprintf(ptr, " |\n");
+        }
 
         ptr += sprintf(ptr, "\n## Button IDs\n");
         ptr += createButtonsTableMd(ptr);
