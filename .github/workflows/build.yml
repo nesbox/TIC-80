@@ -80,7 +80,8 @@ jobs:
         run: |
           # the google-chrome apt repo flakes with "Hash Sum mismatch"; drop it
           # (TIC-80 doesn't need it) so apt-get update can't fail on it.
-          sudo rm -f /etc/apt/sources.list.d/google-chrome*.list
+          sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome* 2>/dev/null || true
+          sudo sed -i '/dl\.google\.com/d' /etc/apt/sources.list 2>/dev/null || true
           sudo apt-get update
           sudo apt-get install gcc-12 g++-12 libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
           sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
@@ -148,7 +149,8 @@ jobs:
         run: |
           # the google-chrome apt repo flakes with "Hash Sum mismatch"; drop it
           # (TIC-80 doesn't need it) so apt-get update can't fail on it.
-          sudo rm -f /etc/apt/sources.list.d/google-chrome*.list
+          sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome* 2>/dev/null || true
+          sudo sed -i '/dl\.google\.com/d' /etc/apt/sources.list 2>/dev/null || true
           sudo apt-get update
           sudo apt-get install gcc-12 g++-12 libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
           sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
