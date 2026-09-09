@@ -86,23 +86,3 @@ jobs:
           draft: true
           generate_release_notes: true
           files: flat/*
-
-      - name: Push to itch.io (butler)
-        env:
-          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
-        run: |
-          if [ -z "$BUTLER_API_KEY" ]; then
-            echo "BUTLER_API_KEY not set; skipping itch.io push"
-            exit 0
-          fi
-          VER="${GITHUB_REF_NAME#v}"
-          SHORT="${VER%.*}"
-          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
-          unzip -q butler.zip -d butler
-          chmod +x butler/butler
-          butler/butler push flat/tic80-v$SHORT-win.zip      nesbox/tic80:windows   --userversion "$VER"
-          butler/butler push flat/tic80-v$SHORT-linux.zip    nesbox/tic80:linux     --userversion "$VER"
-          butler/butler push flat/tic80-v$SHORT-mac.zip      nesbox/tic80:osx       --userversion "$VER"
-          butler/butler push flat/tic80-v$SHORT-mac-arm64.zip nesbox/tic80:osx-arm64 --userversion "$VER"
-          butler/butler push flat/tic80-v$SHORT-android.apk  nesbox/tic80:android   --userversion "$VER"
-          butler/butler push flat/tic80-v$SHORT-html.zip     nesbox/tic80:html      --userversion "$VER"
