@@ -90,8 +90,19 @@ fi
 [ -f "$ART/tic80-nintendo-3ds/tic80.3dsx" ] && zip_flat "$ART/tic80-nintendo-3ds" "$OUT/tic80-v$SHORT-3ds.zip"
 [ -f "$ART/tic80-nintendo-switch/tic80.nro" ] && zip_flat "$ART/tic80-nintendo-switch" "$OUT/tic80-v$SHORT-switch.zip"
 
-# --- Web (emscripten builds for every language) ---
-[ -d "$ART/tic80-html" ] && zip_flat "$ART/tic80-html" "$OUT/tic80-v$SHORT-html.zip"
+# --- Web: only the universal build (tic80.js + tic80.wasm + index.html).
+# The per-language wasm variants stay out of the release zip; they are
+# shipped to /export as web export stubs by the deploy script.
+if [ -d "$ART/tic80-html" ]; then
+    tmp="$OUT/.html"
+    rm -rf "$tmp"
+    mkdir -p "$tmp"
+    cp "$ART/tic80-html/tic80.js" "$tmp/" 2>/dev/null || true
+    cp "$ART/tic80-html/tic80.wasm" "$tmp/" 2>/dev/null || true
+    [ -f "$ART/tic80-html/index.html" ] && cp "$ART/tic80-html/index.html" "$tmp/"
+    zip_flat "$tmp" "$OUT/tic80-v$SHORT-html.zip"
+    rm -rf "$tmp"
+fi
 
 echo "packaged $(ls -1 "$OUT" | wc -l | tr -d ' ') assets into $OUT"
 ls -lh "$OUT"
