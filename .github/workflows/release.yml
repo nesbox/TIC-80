@@ -71,6 +71,10 @@ jobs:
     needs: [package, dmg]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v6
         with:
           name: release-assets
@@ -84,5 +88,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          generate_release_notes: true
           files: flat/*
+
+      - name: Generate release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          bash bin/release/generate-notes.sh "$GITHUB_REF_NAME" > notes.md
+          gh release edit "$GITHUB_REF_NAME" --repo nesbox/TIC-80 --notes-file notes.md
