@@ -117,6 +117,8 @@ if [ -d "$ART" ]; then
         src="$ART/tic80-$art-export/$file"
         [ -f "$src" ] && cp "$src" "$tmp/$dst"
     done
+    # html export stub = the universal web build, as a zip file named "html"
+    [ -f "$OUT/tic80-v$SHORT-html.zip" ] && cp "$OUT/tic80-v$SHORT-html.zip" "$tmp/html"
     (cd "$tmp" && tar czf "$OUT/tic80-v$SHORT-stubs.tar.gz" .)
     rm -rf "$tmp"
 fi
