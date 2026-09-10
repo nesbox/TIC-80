@@ -9,6 +9,7 @@ build\bin\prj2cart demos\font.lua build\font.tic
 build\bin\prj2cart demos\janetdemo.janet build\janetdemo.tic
 build\bin\prj2cart demos\jsdemo.js build\jsdemo.tic
 build\bin\prj2cart demos\luademo.lua build\luademo.tic
+build\bin\prj2cart demos\miniscriptdemo.ms build\miniscriptdemo.tic
 build\bin\prj2cart demos\moondemo.moon build\moondemo.tic
 build\bin\prj2cart demos\music.lua build\music.tic
 build\bin\prj2cart demos\p3d.lua build\p3d.tic
@@ -29,6 +30,7 @@ build\bin\wasmp2cart demos\bunny\wasmmark\wasmmark.wasmp build\wasmmark.tic --bi
 build\bin\prj2cart demos\bunny\janetmark.janet build\janetmark.tic
 build\bin\prj2cart demos\bunny\jsmark.js build\jsmark.tic
 build\bin\prj2cart demos\bunny\luamark.lua build\luamark.tic
+build\bin\prj2cart demos\bunny\miniscriptmark.ms build\miniscriptmark.tic
 build\bin\prj2cart demos\bunny\moonmark.moon build\moonmark.tic
 build\bin\prj2cart demos\bunny\pythonmark.py build\pythonmark.tic
 build\bin\prj2cart demos\bunny\rubymark.rb build\rubymark.tic
@@ -48,6 +50,7 @@ build\bin\bin2txt build\font.tic build\assets\font.tic.dat -z
 build\bin\bin2txt build\janetdemo.tic build\assets\janetdemo.tic.dat -z
 build\bin\bin2txt build\jsdemo.tic build\assets\jsdemo.tic.dat -z
 build\bin\bin2txt build\luademo.tic build\assets\luademo.tic.dat -z
+build\bin\bin2txt build\miniscriptdemo.tic build\assets\miniscriptdemo.tic.dat -z
 build\bin\bin2txt build\moondemo.tic build\assets\moondemo.tic.dat -z
 build\bin\bin2txt build\music.tic build\assets\music.tic.dat -z
 build\bin\bin2txt build\p3d.tic build\assets\p3d.tic.dat -z
@@ -63,6 +66,7 @@ build\bin\bin2txt build\wrendemo.tic build\assets\wrendemo.tic.dat -z
 build\bin\bin2txt build\janetmark.tic build\assets\janetmark.tic.dat -z
 build\bin\bin2txt build\jsmark.tic build\assets\jsmark.tic.dat -z
 build\bin\bin2txt build\luamark.tic build\assets\luamark.tic.dat -z
+build\bin\bin2txt build\miniscriptmark.tic build\assets\miniscriptmark.tic.dat -z
 build\bin\bin2txt build\moonmark.tic build\assets\moonmark.tic.dat -z
 build\bin\bin2txt build\pythonmark.tic build\assets\pythonmark.tic.dat -z
 build\bin\bin2txt build\rubymark.tic build\assets\rubymark.tic.dat -z
