@@ -384,8 +384,7 @@ static char* replaceHelpTokens(const char* text)
 {
     char langnames[TICNAME_MAX] = {0};
     char langextensions[TICNAME_MAX] = {0};
-
-    char langnamespipe[TICNAME_MAX] = {0};
+    char langnamesspaced[TICNAME_MAX] = {0};
 
     for(const tic_script **it = tic_scripts(); *it; ++it)
     {
@@ -399,14 +398,14 @@ static char* replaceHelpTokens(const char* text)
         strcat(langextensions, (*it)->fileExtension);
         strcat(langextensions, " ");
 
-        strcat(langnamespipe, (*it)->name);
+        strcat(langnamesspaced, (*it)->name);
         if (!isLast)
-            strcat(langnamespipe, "|");
+            strcat(langnamesspaced, " ");
     }
 
     char* replaced1 = str_replace(text, "$LANG_NAMES$", langnames);
     char* replaced2 = str_replace(replaced1, "$LANG_EXTENSIONS$", langextensions);
-    char* replaced3 = str_replace(replaced2, "$LANG_NAMES_PIPE$", langnamespipe);
+    char* replaced3 = str_replace(replaced2, "$LANG_NAMES_SPACED$", langnamesspaced);
     free(replaced2);
     free(replaced1);
     return replaced3;
@@ -2856,19 +2855,19 @@ static void onGetCommand(Console* console)
 static void tabCompleteHelp(TabCompleteData* data);
 
 static const char HelpUsage[] = "help [<text>"
-#define HELP_CMD_DEF(name) " | " #name
+#define HELP_CMD_DEF(name) " " #name
     HELP_CMD_LIST(HELP_CMD_DEF)
 #undef  HELP_CMD_DEF
     "]";
 
-// The alternatives below are joined with spaces around the "|" so a line
-// has somewhere to wrap: in the console, and in the markdown tables of
-// the /learn page, where one long run of names used to push the table
-// past the page container.
-#define SECTION_DEF(NAME, ...)  " | " #NAME
-#define EXPORT_CMD_DEF(name)    #name " | "
+// The alternatives below are separated by a space rather than glued with
+// "|": the line needs somewhere to wrap, in the console and in the
+// markdown tables of the /learn page, where one long run of names used to
+// push the table past the page container.
+#define SECTION_DEF(NAME, ...)  " " #NAME
+#define EXPORT_CMD_DEF(name)    #name " "
 #define EXPORT_KEYS_DEF(name)   #name "=0 "
-#define IMPORT_CMD_DEF(name)    #name " | "
+#define IMPORT_CMD_DEF(name)    #name " "
 #define IMPORT_KEYS_DEF(key)    #key"=0 "
 
 #if defined(CAN_ADDGET_FILE)
@@ -2922,7 +2921,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("new",                                                                        \
         NULL,                                                                           \
         "Creates a new `Hello World` cartridge.",                                       \
-        "new <$LANG_NAMES_PIPE$>",                                                      \
+        "new <$LANG_NAMES_SPACED$>",                                                    \
         onNewCommand,                                                                   \
         tabCompleteLanguages,                                                           \
         NULL)                                                                           \
@@ -3036,7 +3035,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("del",                                                                        \
         "rm",                                                                           \
         "Delete from the filesystem.",                                                  \
-        "del <file | folder>",                                                          \
+        "del <file folder>",                                                            \
         onDelCommand,                                                                   \
         tabCompleteFilesAndDirs,                                                        \
         NULL)                                                                           \
@@ -3062,7 +3061,7 @@ static const char HelpUsage[] = "help [<text>"
         "Edit system configuration cartridge.\n"                                        \
         "Use `reset` param to reset current configuration.\n"                           \
         "Use `default` to edit default cart template.",                                 \
-        "config [reset | default]",                                                     \
+        "config [reset default]",                                                       \
         onConfigCommand,                                                                \
         tabCompleteConfig,                                                              \
         NULL)                                                                           \
@@ -3468,14 +3467,22 @@ static s32 createKeysTableMd(char* buf)
 
 static void printMdCell(char** ptr, const char* str)
 {
-    // Write a markdown table cell: escape | and collapse newlines to spaces,
-    // since a cell can't span lines (a raw newline breaks the table).
-    for(const char* c = str; *c; ++c)
+    // Write a markdown table cell: substitute the $LANG_...$ tokens first,
+    // then escape | and collapse newlines to spaces (a cell can't span
+    // lines). The escaping has to see the real text and not the token: a
+    // value carrying a pipe, written after this loop, would split the row
+    // and drop everything past it.
+    char* replaced = strchr(str, '$') ? replaceHelpTokens(str) : NULL;
+    const char* text = replaced ? replaced : str;
+
+    for(const char* c = text; *c; ++c)
     {
         if(*c == '|') *(*ptr)++ = '\\', *(*ptr)++ = '|';
         else if(*c == '\n') *(*ptr)++ = ' ';
         else *(*ptr)++ = *c;
     }
+
+    free(replaced);
 }
 
 static void onExport_help(Console* console, const char* param, const char* name, ExportParams params)
@@ -3495,7 +3502,11 @@ static void onExport_help(Console* console, const char* param, const char* name,
 
         ptr += sprintf(ptr, "\n## Specification\n\n| | |\n|---|---|\n");
         FOR(const struct SpecRow*, row, SpecText1)
-            ptr += sprintf(ptr, "| **%s** | %s |\n", row->section, row->info);
+        {
+            ptr += sprintf(ptr, "| **%s** | ", row->section);
+            printMdCell(&ptr, row->info); // "64KB of $LANG_NAMES$." is a cell like any other
+            ptr += sprintf(ptr, " |\n");
+        }
 
         ptr += createRamTableMd(ptr);
         ptr += createVRamTableMd(ptr);
@@ -3530,10 +3541,18 @@ static void onExport_help(Console* console, const char* param, const char* name,
 
         ptr += sprintf(ptr, "\n## Startup options\n\n| Option | Description |\n|---|---|\n");
         FOR(const struct StartupOption*, opt, StartupOptions)
-            ptr += sprintf(ptr, "| `--%s` | %s |\n", opt->name, opt->help);
+        {
+            ptr += sprintf(ptr, "| `--%s` | ", opt->name);
+            printMdCell(&ptr, opt->help);
+            ptr += sprintf(ptr, " |\n");
+        }
 
         ptr += sprintf(ptr, "\n%s\n\n%s", TermsText, LicenseText);
 
+        // The cells that can carry a token go through printMdCell, which
+        // replaces it before escaping the text; this pass covers the prose
+        // sections and any cell still written raw. It is a no-op for the
+        // document as it stands.
         char* helpReplaced = replaceHelpTokens(buf);
 
         SCOPE(free(helpReplaced))
