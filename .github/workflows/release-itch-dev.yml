@@ -4,10 +4,11 @@ name: Release itch dev
 # (nesbox/tic80-dev) for testing. Runs manually; it never touches the public
 # nesbox/tic80 project.
 #
-# The uploads are the runnable layouts the itch app launches (see
+# The uploads are the layouts the itch app launches (see
 # bin/release/stage-itch.sh): the .exe and the .apk as they are, a folder
 # with the executable for Linux, an .app bundle for macOS, the web build's
-# folder. The .deb and the .dmg stay on the release page.
+# folder — the .deb and the .dmg ride along in the Linux and macOS uploads,
+# which is why the patterns below pull them too.
 
 on:
   workflow_dispatch:
@@ -29,9 +30,13 @@ jobs:
           gh release download "${{ inputs.version }}" --repo nesbox/TIC-80 --dir flat \
             --pattern 'tic80-v*-win.zip' \
             --pattern 'tic80-v*-linux.zip' \
+            --pattern 'tic80-v*-linux.deb' \
             --pattern 'tic80-v*-linux-arm64.zip' \
+            --pattern 'tic80-v*-linux-arm64.deb' \
             --pattern 'tic80-v*-mac.app.zip' \
+            --pattern 'tic80-v*-mac.dmg' \
             --pattern 'tic80-v*-mac-arm64.app.zip' \
+            --pattern 'tic80-v*-mac-arm64.dmg' \
             --pattern 'tic80-v*-android.apk' \
             --pattern 'tic80-v*-html.zip'
 
@@ -56,7 +61,7 @@ jobs:
           butler/butler push stage/tic80-v$SHORT-win.exe     nesbox/tic80-dev:windows    --userversion "$VER"
           butler/butler push stage/linux                     nesbox/tic80-dev:linux      --userversion "$VER"
           butler/butler push stage/linux-arm64               nesbox/tic80-dev:linux-arm64 --userversion "$VER"
-          butler/butler push stage/osx/TIC-80.app            nesbox/tic80-dev:osx        --userversion "$VER"
-          butler/butler push stage/osx-arm64/TIC-80.app      nesbox/tic80-dev:osx-arm64  --userversion "$VER"
+          butler/butler push stage/osx                       nesbox/tic80-dev:osx        --userversion "$VER"
+          butler/butler push stage/osx-arm64                 nesbox/tic80-dev:osx-arm64  --userversion "$VER"
           butler/butler push stage/tic80-v$SHORT-android.apk nesbox/tic80-dev:android    --userversion "$VER"
           butler/butler push stage/html                      nesbox/tic80-dev:html       --userversion "$VER"

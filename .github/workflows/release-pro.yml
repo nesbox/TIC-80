@@ -209,9 +209,13 @@ jobs:
           gh release download "$GITHUB_REF_NAME" --repo nesbox/TIC-80 --dir flat \
             --pattern 'tic80-v*-win.zip' \
             --pattern 'tic80-v*-linux.zip' \
+            --pattern 'tic80-v*-linux.deb' \
             --pattern 'tic80-v*-linux-arm64.zip' \
+            --pattern 'tic80-v*-linux-arm64.deb' \
             --pattern 'tic80-v*-mac.app.zip' \
+            --pattern 'tic80-v*-mac.dmg' \
             --pattern 'tic80-v*-mac-arm64.app.zip' \
+            --pattern 'tic80-v*-mac-arm64.dmg' \
             --pattern 'tic80-v*-android.apk' \
             --pattern 'tic80-v*-html.zip'
 
@@ -233,7 +237,7 @@ jobs:
           butler/butler push stage/tic80-v$SHORT-win.exe     nesbox/tic80:windows    --userversion "$VER"
           butler/butler push stage/linux                     nesbox/tic80:linux      --userversion "$VER"
           butler/butler push stage/linux-arm64               nesbox/tic80:linux-arm64 --userversion "$VER"
-          butler/butler push stage/osx/TIC-80.app            nesbox/tic80:osx        --userversion "$VER"
-          butler/butler push stage/osx-arm64/TIC-80.app      nesbox/tic80:osx-arm64  --userversion "$VER"
+          butler/butler push stage/osx                       nesbox/tic80:osx        --userversion "$VER"
+          butler/butler push stage/osx-arm64                 nesbox/tic80:osx-arm64  --userversion "$VER"
           butler/butler push stage/tic80-v$SHORT-android.apk nesbox/tic80:android    --userversion "$VER"
           butler/butler push stage/html                      nesbox/tic80:html       --userversion "$VER"

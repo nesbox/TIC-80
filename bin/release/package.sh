@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Package the raw build artifacts into the release asset names used on
 # github.com: tic80-v<shortver>-<platform>.<ext>. The itch.io jobs unpack an
-# asset like these and push what is inside it (stage-itch.sh) — the .deb and
-# the .dmg are release-page downloads only.
+# asset like these and push what is inside it (stage-itch.sh), the .deb and
+# the .dmg included.
 #
 # Every artifact is a flat directory named after the workflow job (e.g.
 # "tic80-windows") holding the raw binaries. This script turns each into the
