@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Package the raw build artifacts into the release asset names used on
 # github.com: tic80-v<shortver>-<platform>.<ext>. The itch.io jobs unpack an
-# asset like these and push what is inside it (stage-itch.sh), the .deb and
-# the .dmg included.
+# asset like these and push what is inside it (stage-itch.sh), the packages
+# into a channel of their own.
 #
 # Every artifact is a flat directory named after the workflow job (e.g.
 # "tic80-windows") holding the raw binaries. This script turns each into the
@@ -32,40 +32,10 @@ zip_flat() {
     (cd "$src" && zip -q -r -X "$dst" .)
 }
 
-# make_deb <src-dir> <out.deb> <arch> — a proper .deb with desktop integration.
+# make_deb <src-dir> <out.deb> <arch> — a proper .deb with desktop integration
+# (the builder itself lives in make-deb.sh, which the PRO linux job shares).
 make_deb() {
-    local src="$1" dst="$2" arch="$3"
-    local pkg
-    pkg=$(mktemp -d)
-    mkdir -p "$pkg/DEBIAN" "$pkg/usr/bin" "$pkg/usr/lib/tic80" \
-             "$pkg/usr/share/applications" \
-             "$pkg/usr/share/icons/hicolor/256x256/apps" \
-             "$pkg/usr/share/metainfo" "$pkg/usr/share/mime/packages"
-
-    install -m755 "$src/tic80" "$pkg/usr/bin/tic80"
-    if compgen -G "$src"/*.so >/dev/null; then
-        install -m644 "$src"/*.so "$pkg/usr/lib/tic80/"
-    fi
-
-    install -m644 build/linux/tic80.desktop.in "$pkg/usr/share/applications/tic80.desktop"
-    install -m644 build/linux/tic80.png "$pkg/usr/share/icons/hicolor/256x256/apps/tic80.png"
-    install -m644 build/linux/com.tic80.TIC_80.metainfo.xml "$pkg/usr/share/metainfo/"
-    install -m644 build/linux/tic80.xml "$pkg/usr/share/mime/packages/tic80.xml"
-
-    cat >"$pkg/DEBIAN/control" <<EOF
-Package: tic80
-Version: $VER
-Section: education
-Priority: optional
-Architecture: $arch
-Maintainer: Nesbox <grigoruk@gmail.com>
-Homepage: https://tic80.com
-Depends: libcurl4 | libcurl4t64
-Description: Fantasy computer for making, playing and sharing tiny games.
-EOF
-
-    dpkg-deb --build --root-owner-group "$pkg" "$dst" >/dev/null
-    rm -rf "$pkg"
+    bash bin/release/make-deb.sh "$1" "$2" "$3" "$VER"
 }
 
 # --- Windows (exe + dlls) ---

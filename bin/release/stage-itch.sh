@@ -4,9 +4,12 @@
 # The itch app launches what it finds in an upload, so every platform's
 # upload has to be runnable: Windows and Android take the .exe and the .apk
 # as they are, HTML takes the web build's folder, and Linux and macOS get a
-# folder with the executable and a .app bundle. The .deb and the .dmg ride
-# along in the same upload — they have nothing to launch, but the app
-# ignores them and the download page can still offer a package.
+# folder with the executable and a .app bundle.
+#
+# The .deb and the .dmg go to a channel of their own, not into those
+# uploads: they are downloads for the page, and butler cannot diff a
+# compressed package, so an app user would re-download the whole thing on
+# every release.
 #
 # Usage: stage-itch.sh <asset-dir> <stage-dir> <version>
 #   asset-dir  directory with the release assets (tic80-v<short>-*)
@@ -14,11 +17,11 @@
 #   version    full "1.2.0" (the file-name version is its first two segments)
 #
 #   → stage/tic80-v1.2-win.exe, tic80-v1.2-android.apk,
-#     stage/linux/{tic80, tic80-v1.2-linux.deb},
-#     stage/linux-arm64/{tic80, tic80-v1.2-linux-arm64.deb},
-#     stage/osx/{TIC-80.app, tic80-v1.2-mac.dmg},
-#     stage/osx-arm64/{TIC-80.app, tic80-v1.2-mac-arm64.dmg},
-#     stage/html/index.html
+#     stage/linux/tic80, stage/linux-arm64/tic80,
+#     stage/osx/TIC-80.app, stage/osx-arm64/TIC-80.app,
+#     stage/html/index.html,
+#     stage/packages/{tic80-v1.2-linux.deb, …-linux-arm64.deb,
+#                     …-mac.dmg, …-mac-arm64.dmg}
 
 set -euo pipefail
 
@@ -37,29 +40,27 @@ for asset in win.zip linux.zip linux.deb linux-arm64.zip linux-arm64.deb \
 done
 
 rm -rf "$OUT"
-mkdir -p "$OUT/linux" "$OUT/linux-arm64" "$OUT/osx" "$OUT/osx-arm64" "$OUT/html"
+mkdir -p "$OUT/linux" "$OUT/linux-arm64" "$OUT/osx" "$OUT/osx-arm64" "$OUT/html" "$OUT/packages"
 
 # Windows: the single .exe keeps its versioned name (butler would drop it
 # from an unpacked zip).
 unzip -qo "$FLAT/tic80-v$SHORT-win.zip" tic80.exe -d "$OUT"
 mv "$OUT/tic80.exe" "$OUT/tic80-v$SHORT-win.exe"
 
-# Linux: the static binary in a folder of its own, the package beside it.
-# The zips keep the exec bit, but the unzip is not the authority on it —
-# chmod is.
+# Linux: the static binary in a folder of its own. The zips keep the exec
+# bit, but the unzip is not the authority on it — chmod is.
 unzip -qo "$FLAT/tic80-v$SHORT-linux.zip" -d "$OUT/linux"
 chmod +x "$OUT/linux/tic80"
-cp "$FLAT/tic80-v$SHORT-linux.deb" "$OUT/linux/"
 unzip -qo "$FLAT/tic80-v$SHORT-linux-arm64.zip" -d "$OUT/linux-arm64"
 chmod +x "$OUT/linux-arm64/tic80"
-cp "$FLAT/tic80-v$SHORT-linux-arm64.deb" "$OUT/linux-arm64/"
 
-# macOS: the .app bundle (zipped by the release's dmg job, symlinks and all)
-# with the dmg beside it.
+# macOS: the .app bundle, zipped by the release's dmg job (symlinks and all).
 unzip -qo "$FLAT/tic80-v$SHORT-mac.app.zip" -d "$OUT/osx"
-cp "$FLAT/tic80-v$SHORT-mac.dmg" "$OUT/osx/"
 unzip -qo "$FLAT/tic80-v$SHORT-mac-arm64.app.zip" -d "$OUT/osx-arm64"
-cp "$FLAT/tic80-v$SHORT-mac-arm64.dmg" "$OUT/osx-arm64/"
+
+# The packages, side by side in their own channel.
+cp "$FLAT/tic80-v$SHORT-linux.deb" "$FLAT/tic80-v$SHORT-linux-arm64.deb" \
+    "$FLAT/tic80-v$SHORT-mac.dmg" "$FLAT/tic80-v$SHORT-mac-arm64.dmg" "$OUT/packages/"
 
 # Android and HTML go up as they came.
 cp "$FLAT/tic80-v$SHORT-android.apk" "$OUT/"

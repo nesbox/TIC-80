@@ -67,16 +67,29 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config MinSizeRel --parallel
 
+      - name: Build deb
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          bash bin/release/make-deb.sh build/bin out/tic80-v$SHORT-linux.deb amd64 "$VER"
+
       - name: Push to itch.io
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
           if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
           VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
-          ./butler push build/bin nesbox/tic80:linux-pro --userversion "$VER"
+          # The build with its package beside it: the app launches the binary
+          # and the page offers the .deb. Each PRO job pushes its own channel,
+          # so the package cannot live in a channel shared with another job.
+          mkdir -p stage
+          cp -R build/bin/. stage/
+          cp out/tic80-v$SHORT-linux.deb stage/
+          ./butler push stage nesbox/tic80:linux-pro --userversion "$VER"
 
   macos-arm64-pro:
     runs-on: macos-14
@@ -112,9 +125,12 @@ jobs:
           unzip -q butler.zip
           chmod +x butler
           # The .app bundle, not the dmg: the bundle is what the itch app
-          # launches. make-dmg.sh keeps only its zip, so unpack it.
-          unzip -qo out/tic80-v$SHORT-mac-arm64.app.zip -d app
-          ./butler push app/TIC-80.app nesbox/tic80:osx-arm64-pro --userversion "$VER"
+          # launches. make-dmg.sh keeps only a zip of it, so unpack that, and
+          # put the dmg beside it for the page.
+          mkdir -p stage
+          unzip -qo out/tic80-v$SHORT-mac-arm64.app.zip -d stage
+          cp out/tic80-v$SHORT-mac-arm64.dmg stage/
+          ./butler push stage nesbox/tic80:osx-arm64-pro --userversion "$VER"
 
   macos-intel-pro:
     runs-on: macos-15-intel
@@ -149,9 +165,11 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-amd64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
-          # The .app bundle, not the dmg (see the arm64 job above).
-          unzip -qo out/tic80-v$SHORT-mac.app.zip -d app
-          ./butler push app/TIC-80.app nesbox/tic80:osx-pro --userversion "$VER"
+          # The .app bundle with the dmg beside it (see the arm64 job above).
+          mkdir -p stage
+          unzip -qo out/tic80-v$SHORT-mac.app.zip -d stage
+          cp out/tic80-v$SHORT-mac.dmg stage/
+          ./butler push stage nesbox/tic80:osx-pro --userversion "$VER"
 
   android-pro:
     runs-on: ubuntu-latest
@@ -241,3 +259,4 @@ jobs:
           butler/butler push stage/osx-arm64                 nesbox/tic80:osx-arm64  --userversion "$VER"
           butler/butler push stage/tic80-v$SHORT-android.apk nesbox/tic80:android    --userversion "$VER"
           butler/butler push stage/html                      nesbox/tic80:html       --userversion "$VER"
+          butler/butler push stage/packages                  nesbox/tic80:packages   --userversion "$VER"

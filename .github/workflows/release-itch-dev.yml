@@ -7,8 +7,8 @@ name: Release itch dev
 # The uploads are the layouts the itch app launches (see
 # bin/release/stage-itch.sh): the .exe and the .apk as they are, a folder
 # with the executable for Linux, an .app bundle for macOS, the web build's
-# folder — the .deb and the .dmg ride along in the Linux and macOS uploads,
-# which is why the patterns below pull them too.
+# folder. The .deb and the .dmg go to a channel of their own (`packages`) —
+# which is why the patterns below pull them in.
 
 on:
   workflow_dispatch:
@@ -65,3 +65,4 @@ jobs:
           butler/butler push stage/osx-arm64                 nesbox/tic80-dev:osx-arm64  --userversion "$VER"
           butler/butler push stage/tic80-v$SHORT-android.apk nesbox/tic80-dev:android    --userversion "$VER"
           butler/butler push stage/html                      nesbox/tic80-dev:html       --userversion "$VER"
+          butler/butler push stage/packages                  nesbox/tic80-dev:packages   --userversion "$VER"
