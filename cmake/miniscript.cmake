@@ -36,6 +36,9 @@ if(BUILD_WITH_MINISCRIPT)
         CXX_STANDARD 14
         CXX_STANDARD_REQUIRED ON
     )
+    if(NINTENDO_3DS)
+        target_compile_options(libminiscript PRIVATE -ftls-model=initial-exec)
+    endif()
 
     add_library(miniscript ${TIC_RUNTIME} src/api/miniscript.cpp src/api/parse_note.c)
     target_link_libraries(miniscript PRIVATE libminiscript)
