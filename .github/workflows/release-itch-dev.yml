@@ -4,11 +4,10 @@ name: Release itch dev
 # (nesbox/tic80-dev) for testing. Runs manually; it never touches the public
 # nesbox/tic80 project.
 #
-# The uploads are the layouts the itch app launches (see
-# bin/release/stage-itch.sh): the .exe and the .apk as they are, a folder
-# with the executable for Linux, an .app bundle for macOS, the web build's
-# folder. The .deb and the .dmg go to a channel of their own (`packages`) —
-# which is why the patterns below pull them in.
+# The uploads are the layouts the itch app installs and launches (see
+# bin/release/stage-itch.sh): one folder per channel, holding the .exe, the
+# Linux binary, TIC-80.app, the .apk or the web build. The .deb and the .dmg
+# get channels of their own — which is why the patterns below pull them in.
 
 on:
   workflow_dispatch:
@@ -54,15 +53,17 @@ jobs:
         run: |
           if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
           VER="${VERSION#v}"
-          SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip -d butler
           chmod +x butler/butler
-          butler/butler push stage/tic80-v$SHORT-win.exe     nesbox/tic80-dev:windows    --userversion "$VER"
-          butler/butler push stage/linux                     nesbox/tic80-dev:linux      --userversion "$VER"
-          butler/butler push stage/linux-arm64               nesbox/tic80-dev:linux-arm64 --userversion "$VER"
-          butler/butler push stage/osx                       nesbox/tic80-dev:osx        --userversion "$VER"
-          butler/butler push stage/osx-arm64                 nesbox/tic80-dev:osx-arm64  --userversion "$VER"
-          butler/butler push stage/tic80-v$SHORT-android.apk nesbox/tic80-dev:android    --userversion "$VER"
-          butler/butler push stage/html                      nesbox/tic80-dev:html       --userversion "$VER"
-          butler/butler push stage/packages                  nesbox/tic80-dev:packages   --userversion "$VER"
+          butler/butler push stage/windows     nesbox/tic80-dev:windows     --userversion "$VER"
+          butler/butler push stage/linux       nesbox/tic80-dev:linux       --userversion "$VER"
+          butler/butler push stage/linux-arm64 nesbox/tic80-dev:linux-arm64 --userversion "$VER"
+          butler/butler push stage/osx         nesbox/tic80-dev:mac         --userversion "$VER"
+          butler/butler push stage/osx-arm64   nesbox/tic80-dev:mac-arm64   --userversion "$VER"
+          butler/butler push stage/android     nesbox/tic80-dev:android     --userversion "$VER"
+          butler/butler push stage/html        nesbox/tic80-dev:html        --userversion "$VER"
+          butler/butler push stage/deb-amd64   nesbox/tic80-dev:deb-amd64   --userversion "$VER"
+          butler/butler push stage/deb-arm64   nesbox/tic80-dev:deb-arm64   --userversion "$VER"
+          butler/butler push stage/dmg-intel   nesbox/tic80-dev:dmg-intel   --userversion "$VER"
+          butler/butler push stage/dmg-arm64   nesbox/tic80-dev:dmg-arm64   --userversion "$VER"

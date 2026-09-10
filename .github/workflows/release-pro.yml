@@ -40,7 +40,11 @@ jobs:
           VER="${GITHUB_REF_NAME#v}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/windows-amd64/LATEST/archive/default
           unzip -q butler.zip
-          ./butler push build/bin nesbox/tic80:windows-pro --userversion "$VER"
+          # The layouts itch needs, explained in bin/release/stage-itch.sh:
+          # one folder per channel, named without the version.
+          mkdir -p stage/windows-pro
+          cp build/bin/tic80.exe stage/windows-pro/tic80-win-pro.exe
+          ./butler push stage/windows-pro nesbox/tic80:windows-pro --userversion "$VER"
 
   linux-pro:
     runs-on: ubuntu-22.04
@@ -71,7 +75,7 @@ jobs:
         run: |
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
-          bash bin/release/make-deb.sh build/bin out/tic80-v$SHORT-linux.deb amd64 "$VER"
+          bash bin/release/make-deb.sh build/bin out/tic80-v$SHORT-linux-pro.deb amd64 "$VER"
 
       - name: Push to itch.io
         env:
@@ -83,13 +87,13 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
-          # The build with its package beside it: the app launches the binary
-          # and the page offers the .deb. Each PRO job pushes its own channel,
-          # so the package cannot live in a channel shared with another job.
-          mkdir -p stage
-          cp -R build/bin/. stage/
-          cp out/tic80-v$SHORT-linux.deb stage/
-          ./butler push stage nesbox/tic80:linux-pro --userversion "$VER"
+          # The layouts itch needs, explained in bin/release/stage-itch.sh:
+          # the binary in a folder of its own, the package in another.
+          mkdir -p stage/linux-pro stage/deb-amd64-pro
+          cp build/bin/tic80 stage/linux-pro/tic80-linux-pro
+          cp "out/tic80-v$SHORT-linux-pro.deb" stage/deb-amd64-pro/tic80-linux-pro.deb
+          ./butler push stage/linux-pro nesbox/tic80:linux-pro --userversion "$VER"
+          ./butler push stage/deb-amd64-pro nesbox/tic80:deb-amd64-pro --userversion "$VER"
 
   macos-arm64-pro:
     runs-on: macos-14
@@ -124,13 +128,13 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-arm64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
-          # The .app bundle, not the dmg: the bundle is what the itch app
-          # launches. make-dmg.sh keeps only a zip of it, so unpack that, and
-          # put the dmg beside it for the page.
-          mkdir -p stage
-          unzip -qo out/tic80-v$SHORT-mac-arm64.app.zip -d stage
-          cp out/tic80-v$SHORT-mac-arm64.dmg stage/
-          ./butler push stage nesbox/tic80:osx-arm64-pro --userversion "$VER"
+          # The layouts itch needs, explained in bin/release/stage-itch.sh:
+          # the bundle in a folder of its own, the package in another.
+          mkdir -p stage/osx-arm64-pro stage/dmg-arm64-pro
+          unzip -qo "out/tic80-v$SHORT-mac-arm64.app.zip" -d stage/osx-arm64-pro
+          cp "out/tic80-v$SHORT-mac-arm64.dmg" stage/dmg-arm64-pro/tic80-mac-arm64-pro.dmg
+          ./butler push stage/osx-arm64-pro nesbox/tic80:mac-arm64-pro --userversion "$VER"
+          ./butler push stage/dmg-arm64-pro nesbox/tic80:dmg-arm64-pro --userversion "$VER"
 
   macos-intel-pro:
     runs-on: macos-15-intel
@@ -165,11 +169,12 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-amd64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
-          # The .app bundle with the dmg beside it (see the arm64 job above).
-          mkdir -p stage
-          unzip -qo out/tic80-v$SHORT-mac.app.zip -d stage
-          cp out/tic80-v$SHORT-mac.dmg stage/
-          ./butler push stage nesbox/tic80:osx-pro --userversion "$VER"
+          # The layouts itch needs (see the arm64 job above).
+          mkdir -p stage/osx-pro stage/dmg-intel-pro
+          unzip -qo "out/tic80-v$SHORT-mac.app.zip" -d stage/osx-pro
+          cp "out/tic80-v$SHORT-mac.dmg" stage/dmg-intel-pro/tic80-mac-pro.dmg
+          ./butler push stage/osx-pro nesbox/tic80:mac-pro --userversion "$VER"
+          ./butler push stage/dmg-intel-pro nesbox/tic80:dmg-intel-pro --userversion "$VER"
 
   android-pro:
     runs-on: ubuntu-latest
@@ -211,7 +216,10 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
-          ./butler push build/android/tic80.apk nesbox/tic80:android-pro --userversion "$VER"
+          # The layouts itch needs (see the windows job above).
+          mkdir -p stage/android-pro
+          cp build/android/tic80.apk stage/android-pro/tic80-android-pro.apk
+          ./butler push stage/android-pro nesbox/tic80:android-pro --userversion "$VER"
 
   # Free builds are assembled by release.yml (into the draft release); once
   # the release is published, push those assets to itch.io's free channels.
@@ -252,11 +260,14 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip -d butler
           chmod +x butler/butler
-          butler/butler push stage/tic80-v$SHORT-win.exe     nesbox/tic80:windows    --userversion "$VER"
-          butler/butler push stage/linux                     nesbox/tic80:linux      --userversion "$VER"
-          butler/butler push stage/linux-arm64               nesbox/tic80:linux-arm64 --userversion "$VER"
-          butler/butler push stage/osx                       nesbox/tic80:osx        --userversion "$VER"
-          butler/butler push stage/osx-arm64                 nesbox/tic80:osx-arm64  --userversion "$VER"
-          butler/butler push stage/tic80-v$SHORT-android.apk nesbox/tic80:android    --userversion "$VER"
-          butler/butler push stage/html                      nesbox/tic80:html       --userversion "$VER"
-          butler/butler push stage/packages                  nesbox/tic80:packages   --userversion "$VER"
+          butler/butler push stage/windows     nesbox/tic80:windows     --userversion "$VER"
+          butler/butler push stage/linux       nesbox/tic80:linux       --userversion "$VER"
+          butler/butler push stage/linux-arm64 nesbox/tic80:linux-arm64 --userversion "$VER"
+          butler/butler push stage/osx         nesbox/tic80:mac         --userversion "$VER"
+          butler/butler push stage/osx-arm64   nesbox/tic80:mac-arm64   --userversion "$VER"
+          butler/butler push stage/android     nesbox/tic80:android     --userversion "$VER"
+          butler/butler push stage/html        nesbox/tic80:html        --userversion "$VER"
+          butler/butler push stage/deb-amd64   nesbox/tic80:deb-amd64   --userversion "$VER"
+          butler/butler push stage/deb-arm64   nesbox/tic80:deb-arm64   --userversion "$VER"
+          butler/butler push stage/dmg-intel   nesbox/tic80:dmg-intel   --userversion "$VER"
+          butler/butler push stage/dmg-arm64   nesbox/tic80:dmg-arm64   --userversion "$VER"

@@ -38,7 +38,7 @@ make_deb() {
     bash bin/release/make-deb.sh "$1" "$2" "$3" "$VER"
 }
 
-# --- Windows (exe + dlls) ---
+# --- Windows (the static build is a single .exe) ---
 [ -d "$ART/tic80-windows" ] && zip_flat "$ART/tic80-windows" "$OUT/tic80-v$SHORT-win.zip"
 
 # --- Linux ---
