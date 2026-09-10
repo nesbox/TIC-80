@@ -55,17 +55,21 @@ jobs:
           name: tic80-macos
           path: artifacts/tic80-macos
 
-      - name: Build dmgs
+      - name: Build dmgs and app bundles
         run: |
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
+          # make-dmg.sh writes both the dmg and the zipped .app bundle; the
+          # bundle is what the itch.io jobs push for macOS.
           bash bin/release/make-dmg.sh artifacts/tic80-macos-arm64 out "$VER" "$SHORT" "-arm64"
           bash bin/release/make-dmg.sh artifacts/tic80-macos out "$VER" "$SHORT" ""
 
       - uses: actions/upload-artifact@v6
         with:
-          name: tic80-mac-dmg
-          path: out/*.dmg
+          name: tic80-mac-pkg
+          path: |
+            out/*.dmg
+            out/*.app.zip
 
   publish:
     needs: [package, dmg]
@@ -81,7 +85,7 @@ jobs:
           path: flat
       - uses: actions/download-artifact@v6
         with:
-          name: tic80-mac-dmg
+          name: tic80-mac-pkg
           path: flat
 
       - name: Draft GitHub release

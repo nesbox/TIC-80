@@ -9,6 +9,8 @@
 #   shortver "1.2" (first two segments; the file-name version)
 #   name     suffix without "mac", e.g. "" for Intel or "-arm64"
 #            → out/tic80-v<shortver>-mac<name>.dmg
+#            → out/tic80-v<shortver>-mac<name>.app.zip (the same bundle, for
+#              itch.io, whose launcher takes an .app rather than a dmg)
 
 set -euo pipefail
 
@@ -69,6 +71,11 @@ if [ "$ok" != 1 ]; then
     echo "hdiutil create failed after retries" >&2
     exit 1
 fi
+
+# A zipped copy of the bundle, taken before the cleanup below: the itch.io
+# jobs unpack it and push the .app itself (its launcher runs a bundle, not a
+# dmg), and it rides along as a release asset.
+zip -qry "$OUT/tic80-v$SHORT-mac$NAME.app.zip" "$APP"
 
 rm -rf "$APP" "$STAGE"
 ls -lh "$OUT"

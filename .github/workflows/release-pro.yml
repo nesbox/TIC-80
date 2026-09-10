@@ -111,7 +111,10 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-arm64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
-          ./butler push out/tic80-v$SHORT-mac-arm64.dmg nesbox/tic80:osx-arm64-pro --userversion "$VER"
+          # The .app bundle, not the dmg: the bundle is what the itch app
+          # launches. make-dmg.sh keeps only its zip, so unpack it.
+          unzip -qo out/tic80-v$SHORT-mac-arm64.app.zip -d app
+          ./butler push app/TIC-80.app nesbox/tic80:osx-arm64-pro --userversion "$VER"
 
   macos-intel-pro:
     runs-on: macos-15-intel
@@ -146,7 +149,9 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-amd64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
-          ./butler push out/tic80-v$SHORT-mac.dmg nesbox/tic80:osx-pro --userversion "$VER"
+          # The .app bundle, not the dmg (see the arm64 job above).
+          unzip -qo out/tic80-v$SHORT-mac.app.zip -d app
+          ./butler push app/TIC-80.app nesbox/tic80:osx-pro --userversion "$VER"
 
   android-pro:
     runs-on: ubuntu-latest
@@ -195,27 +200,25 @@ jobs:
   itch-free:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+
       - name: Download release assets
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download "$GITHUB_REF_NAME" --repo nesbox/TIC-80 --dir flat \
             --pattern 'tic80-v*-win.zip' \
-            --pattern 'tic80-v*-linux.deb' \
-            --pattern 'tic80-v*-linux-arm64.deb' \
-            --pattern 'tic80-v*-mac.dmg' \
-            --pattern 'tic80-v*-mac-arm64.dmg' \
+            --pattern 'tic80-v*-linux.zip' \
+            --pattern 'tic80-v*-linux-arm64.zip' \
+            --pattern 'tic80-v*-mac.app.zip' \
+            --pattern 'tic80-v*-mac-arm64.app.zip' \
             --pattern 'tic80-v*-android.apk' \
             --pattern 'tic80-v*-html.zip'
 
-      - name: Stage single-file assets
+      - name: Stage the itch.io layouts
         run: |
           VER="${GITHUB_REF_NAME#v}"
-          SHORT="${VER%.*}"
-          unzip -qo flat/tic80-v$SHORT-win.zip tic80.exe -d flat
-          mv flat/tic80.exe flat/tic80-v$SHORT-win.exe
-          mkdir -p html
-          unzip -qo flat/tic80-v$SHORT-html.zip -d html
+          bash bin/release/stage-itch.sh flat stage "$VER"
 
       - name: Push free builds to itch.io
         env:
@@ -227,10 +230,10 @@ jobs:
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip -d butler
           chmod +x butler/butler
-          butler/butler push flat/tic80-v$SHORT-win.exe       nesbox/tic80:windows    --userversion "$VER"
-          butler/butler push flat/tic80-v$SHORT-linux.deb     nesbox/tic80:linux      --userversion "$VER"
-          butler/butler push flat/tic80-v$SHORT-linux-arm64.deb nesbox/tic80:linux-arm64 --userversion "$VER"
-          butler/butler push flat/tic80-v$SHORT-mac.dmg       nesbox/tic80:osx        --userversion "$VER"
-          butler/butler push flat/tic80-v$SHORT-mac-arm64.dmg nesbox/tic80:osx-arm64  --userversion "$VER"
-          butler/butler push flat/tic80-v$SHORT-android.apk   nesbox/tic80:android    --userversion "$VER"
-          butler/butler push html                             nesbox/tic80:html       --userversion "$VER"
+          butler/butler push stage/tic80-v$SHORT-win.exe     nesbox/tic80:windows    --userversion "$VER"
+          butler/butler push stage/linux                     nesbox/tic80:linux      --userversion "$VER"
+          butler/butler push stage/linux-arm64               nesbox/tic80:linux-arm64 --userversion "$VER"
+          butler/butler push stage/osx/TIC-80.app            nesbox/tic80:osx        --userversion "$VER"
+          butler/butler push stage/osx-arm64/TIC-80.app      nesbox/tic80:osx-arm64  --userversion "$VER"
+          butler/butler push stage/tic80-v$SHORT-android.apk nesbox/tic80:android    --userversion "$VER"
+          butler/butler push stage/html                      nesbox/tic80:html       --userversion "$VER"
