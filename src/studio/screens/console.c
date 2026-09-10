@@ -2856,15 +2856,19 @@ static void onGetCommand(Console* console)
 static void tabCompleteHelp(TabCompleteData* data);
 
 static const char HelpUsage[] = "help [<text>"
-#define HELP_CMD_DEF(name) "|" #name
+#define HELP_CMD_DEF(name) " | " #name
     HELP_CMD_LIST(HELP_CMD_DEF)
 #undef  HELP_CMD_DEF
     "]";
 
-#define SECTION_DEF(NAME, ...)  "|" #NAME
-#define EXPORT_CMD_DEF(name)    #name "|"
+// The alternatives below are joined with spaces around the "|" so a line
+// has somewhere to wrap: in the console, and in the markdown tables of
+// the /learn page, where one long run of names used to push the table
+// past the page container.
+#define SECTION_DEF(NAME, ...)  " | " #NAME
+#define EXPORT_CMD_DEF(name)    #name " | "
 #define EXPORT_KEYS_DEF(name)   #name "=0 "
-#define IMPORT_CMD_DEF(name)    #name "|"
+#define IMPORT_CMD_DEF(name)    #name " | "
 #define IMPORT_KEYS_DEF(key)    #key"=0 "
 
 #if defined(CAN_ADDGET_FILE)
@@ -3032,7 +3036,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("del",                                                                        \
         "rm",                                                                           \
         "Delete from the filesystem.",                                                  \
-        "del <file|folder>",                                                            \
+        "del <file | folder>",                                                          \
         onDelCommand,                                                                   \
         tabCompleteFilesAndDirs,                                                        \
         NULL)                                                                           \
@@ -3058,7 +3062,7 @@ static const char HelpUsage[] = "help [<text>"
         "Edit system configuration cartridge.\n"                                        \
         "Use `reset` param to reset current configuration.\n"                           \
         "Use `default` to edit default cart template.",                                 \
-        "config [reset|default]",                                                       \
+        "config [reset | default]",                                                     \
         onConfigCommand,                                                                \
         tabCompleteConfig,                                                              \
         NULL)                                                                           \
