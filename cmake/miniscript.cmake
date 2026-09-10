@@ -13,6 +13,8 @@ if(BUILD_WITH_MINISCRIPT)
     )
     list(FILTER MS2_CORE_SOURCES EXCLUDE REGEX "core/test_.*")
     list(FILTER MS2_CORE_SOURCES EXCLUDE REGEX "core/debug_.*")
+    list(FILTER MS2_CORE_SOURCES EXCLUDE REGEX "core/keyboard\\.cpp$")
+    list(APPEND MS2_CORE_SOURCES "${THIRDPARTY_DIR}/miniscript2_extras/keyboard.cpp")
 
     file(GLOB MS2_GEN_SOURCES CONFIGURE_DEPENDS
         ${MS2_DIR}/generated/*.g.cpp
@@ -48,12 +50,6 @@ if(BUILD_WITH_MINISCRIPT)
         CXX_STANDARD 20
         CXX_STANDARD_REQUIRED ON
     )
-    if (MSVC)
-        set_source_files_properties(src/api/miniscript.cpp PROPERTIES
-            
-        )
-    else()
-    endif()
     target_link_libraries(miniscript PRIVATE runtime)
 
     target_include_directories(libminiscript

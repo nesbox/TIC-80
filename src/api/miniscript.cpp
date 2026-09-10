@@ -457,7 +457,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
         // Handle remap
         Value remap = context.GetArg(8);
         if (remap.IsFuncRef()) {
-            RemapData data(context.GetInterpreter(), remap);
+            RemapData data{context.GetInterpreter(), remap};
             core->api.map(tic, x, y, w, h, sx, sy, colors, count, scale, remapCallback, static_cast<void*>(&data));
         } else if (remap.IsNull()) {
             core->api.map(tic, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
