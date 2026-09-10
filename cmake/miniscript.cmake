@@ -26,6 +26,7 @@ if(BUILD_WITH_MINISCRIPT)
     # these ones just kinda trip up the build
     list(FILTER MS2_GEN_SOURCES EXCLUDE REGEX "generated/VMVis\\.g\\.cpp$")
     list(FILTER MS2_GEN_SOURCES EXCLUDE REGEX "generated/UnitTests\\.g\\.cpp$")
+    list(FILTER MS2_GEN_SOURCES EXCLUDE REGEX "generated/Assembler\\.g\\.cpp$")
 
     # MiniScript 2 compiles as C++14, not C++20
     # but src/api/miniscript.cpp has to compile as C++20
