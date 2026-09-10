@@ -149,7 +149,11 @@ static void saveConfigCart(Config* config)
     studioConfigChanged(config->studio);
 }
 
-static const char OptionsJsonPath[] = TIC_LOCAL "options.json";
+// The options live next to the config of this build, not in the shared
+// .local: the path used to carry no version, so every TIC-80 build in the
+// same storage — the web player on itch, where all games share one origin —
+// read and overwrote the same options.json, keys and all.
+static const char OptionsJsonPath[] = TIC_LOCAL_VERSION "options.json";
 
 typedef struct
 {
@@ -170,23 +174,28 @@ static void loadOptions(Config* config)
         {
             struct StudioOptions* options = &config->data.options;
 
+            // Every key this file does not carry keeps the value the player
+            // already has — the one from the config above, or the default.
+            // Reading a missing key as 0 turned a file without a "volume"
+            // into a muted player, and leaving the options screen saved that
+            // zero back, so the silence was permanent.
 #if defined(CRT_SHADER_SUPPORT)
-            options->crt = json_bool("crt", 0);
+            options->crt = json_bool("crt", options->crt);
 #endif
-            options->fullscreen = json_bool("fullscreen", 0);
-            options->vsync = json_bool("vsync", 0);
-            options->integerScale = json_bool("integerScale", 0);
-            options->volume = json_int("volume", 0);
-            options->autosave = json_bool("autosave", 0);
+            options->fullscreen = json_bool("fullscreen", options->fullscreen);
+            options->vsync = json_bool("vsync", options->vsync);
+            options->integerScale = json_bool("integerScale", options->integerScale);
+            options->volume = json_int("volume", options->volume);
+            options->autosave = json_bool("autosave", options->autosave);
 
             string mapping;
             json_string("mapping", 0, mapping.data, sizeof mapping);
             tic_tool_str2buf(mapping.data, strlen(mapping.data), &options->mapping, false);
 
 #if defined(BUILD_EDITORS)
-            options->keybindMode = json_int("keybindMode", 0);
-            options->tabMode = json_int("tabMode", 0);
-            options->tabSize = json_int("tabSize", 0);
+            options->keybindMode = json_int("keybindMode", options->keybindMode);
+            options->tabMode = json_int("tabMode", options->tabMode);
+            options->tabSize = json_int("tabSize", options->tabSize);
 #endif
         }
     }
