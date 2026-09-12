@@ -2347,6 +2347,10 @@ static void onHtmlExportGet(const net_get_data* data)
             // dev build's own version (1.2.<commits>-dev) names no directory
             // the site ever deploys, while /export/<major>.<minor>/ is what
             // deploy-client.sh lays down for every build
+            // page.html, not index.html: the server serves it through
+            // http.ServeFile, which answers a request for .../index.html
+            // with a 301 to the directory. The zip this client builds still
+            // names the file index.html — that is what a host serves.
             char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/page.html";
             tic_net_get(console->net, url, onHtmlPageGet, exportData);
         }

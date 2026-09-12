@@ -150,10 +150,14 @@ if [ -d "$ART" ]; then
         echo "export stub missing: $hdir/{tic80.js,tic80.wasm}" >&2
         missing=1
     fi
-    # the page itself, beside the stubs rather than inside them: the client
-    # fetches /export/<major>.<minor>/page.html, rewrites it for the game and
-    # puts it in the zip. Under its own name so the stubs stay untouched by
-    # a page edit.
+    # The page itself, beside the stubs rather than inside them: the client
+    # fetches /export/<version>/page.html, rewrites it for the game and puts
+    # it in the zip as index.html — an exported game is a plain web page, and
+    # a host (itch, a user's own server) serves index.html or nothing.
+    # It cannot be called index.html here: Go's http.ServeFile answers a
+    # request for .../index.html with a 301 to ./ (the directory), so the
+    # served copy carries a name of its own while the zipped one keeps the
+    # name hosts require.
     if [ -f "$hdir/index.html" ]; then
         cp "$hdir/index.html" "$tmp/page.html"
     else
