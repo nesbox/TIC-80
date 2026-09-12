@@ -94,16 +94,19 @@ jobs:
           # Twelve distinct builds, so twelve distinct binaries: an identical
           # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
           # yields a runtime-less engine that still looks fine to `[ -f ]`).
-          declare -A stubhash=()
-          for f in "$GITHUB_WORKSPACE"/stubs/*; do
-            h=$(sha256sum "$f" | cut -d' ' -f1)
-            if [ -n "${stubhash[$h]:-}" ]; then
-              echo "duplicate stub: $(basename "$f") is $(basename "${stubhash[$h]}") — a language flag did not take" >&2
-              exit 1
-            fi
-            stubhash[$h]="$f"
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
           done
-          echo "checked $(ls "$GITHUB_WORKSPACE"/stubs | wc -l) stubs, all distinct"
+          echo "checked ${#files[@]} stubs, all distinct"
 
       - name: Deploy per-language export stubs
         if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
@@ -208,16 +211,19 @@ jobs:
           # Twelve distinct builds, so twelve distinct binaries: an identical
           # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
           # yields a runtime-less engine that still looks fine to `[ -f ]`).
-          declare -A stubhash=()
-          for f in "$GITHUB_WORKSPACE"/stubs/*; do
-            h=$(sha256sum "$f" | cut -d' ' -f1)
-            if [ -n "${stubhash[$h]:-}" ]; then
-              echo "duplicate stub: $(basename "$f") is $(basename "${stubhash[$h]}") — a language flag did not take" >&2
-              exit 1
-            fi
-            stubhash[$h]="$f"
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
           done
-          echo "checked $(ls "$GITHUB_WORKSPACE"/stubs | wc -l) stubs, all distinct"
+          echo "checked ${#files[@]} stubs, all distinct"
 
       - name: Deploy per-language export stubs
         if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
@@ -310,16 +316,19 @@ jobs:
           # Twelve distinct builds, so twelve distinct binaries: an identical
           # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
           # yields a runtime-less engine that still looks fine to `[ -f ]`).
-          declare -A stubhash=()
-          for f in "$GITHUB_WORKSPACE"/stubs/*; do
-            h=$(sha256sum "$f" | cut -d' ' -f1)
-            if [ -n "${stubhash[$h]:-}" ]; then
-              echo "duplicate stub: $(basename "$f") is $(basename "${stubhash[$h]}") — a language flag did not take" >&2
-              exit 1
-            fi
-            stubhash[$h]="$f"
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
           done
-          echo "checked $(ls "$GITHUB_WORKSPACE"/stubs | wc -l) stubs, all distinct"
+          echo "checked ${#files[@]} stubs, all distinct"
 
       - name: Deploy per-language export stubs
         if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
@@ -458,16 +467,19 @@ jobs:
           # Twelve distinct builds, so twelve distinct binaries: an identical
           # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
           # yields a runtime-less engine that still looks fine to `[ -f ]`).
-          declare -A stubhash=()
-          for f in "$GITHUB_WORKSPACE"/stubs/*; do
-            h=$(sha256sum "$f" | cut -d' ' -f1)
-            if [ -n "${stubhash[$h]:-}" ]; then
-              echo "duplicate stub: $(basename "$f") is $(basename "${stubhash[$h]}") — a language flag did not take" >&2
-              exit 1
-            fi
-            stubhash[$h]="$f"
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
           done
-          echo "checked $(ls "$GITHUB_WORKSPACE"/stubs | wc -l) stubs, all distinct"
+          echo "checked ${#files[@]} stubs, all distinct"
 
       - name: Deploy per-language export stubs
         if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
@@ -548,16 +560,19 @@ jobs:
           # Twelve distinct builds, so twelve distinct binaries: an identical
           # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
           # yields a runtime-less engine that still looks fine to `[ -f ]`).
-          declare -A stubhash=()
-          for f in "$GITHUB_WORKSPACE"/stubs/*; do
-            h=$(sha256sum "$f" | cut -d' ' -f1)
-            if [ -n "${stubhash[$h]:-}" ]; then
-              echo "duplicate stub: $(basename "$f") is $(basename "${stubhash[$h]}") — a language flag did not take" >&2
-              exit 1
-            fi
-            stubhash[$h]="$f"
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
           done
-          echo "checked $(ls "$GITHUB_WORKSPACE"/stubs | wc -l) stubs, all distinct"
+          echo "checked ${#files[@]} stubs, all distinct"
 
       - name: Deploy per-language export stubs
         if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
