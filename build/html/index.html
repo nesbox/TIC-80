@@ -22,8 +22,9 @@
 </head>
 <body style="margin:0; padding:0;">
 
-    <!-- Shares its head, the CLICK TO PLAY gate and the keyboard fixes
-         with export.html — edit one, check the other. -->
+    <!-- The one page: the site's player and, with the two markers below
+         rewritten by the client, the index.html of every exported game.
+         `arguments: []` is the marker; the title becomes the game's name. -->
 
     <div class="game" style="margin: 0; position: relative; background: #1a1c2c;">
 
@@ -46,7 +47,7 @@
     </div>
 
     <script type="text/javascript">
-        var Module = {canvas: document.getElementById('canvas')};
+        var Module = {canvas: document.getElementById('canvas'), arguments: []};
 
         // Safari/WebKit-only: remap Arrow keys with location 3 (numpad) to location 0.
         (function(){

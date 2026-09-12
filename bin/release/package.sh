@@ -122,21 +122,20 @@ if [ -d "$ART" ]; then
         done
     done
 
-    # html: the skeleton of an exported game as a zip named "html", and one
-    # zip per language. Two things matter here. The entry point is
-    # export.html — the page that preloads cart.tic — and not the player's
-    # index.html, which opens the picker instead: v1.1 shipped export.html
-    # under the name index.html for the same reason (branch review). And the
-    # loader inside a language zip is that language's tic80<lang>.js, which
-    # asks for tic80<lang>.wasm; index.html loads whatever the zip names
-    # tic80.js, so the file is renamed to match.
+    # html: a zip named "html" holding the loader and its wasm, and one zip
+    # per language. No page inside — the client fetches index.html from the
+    # site at export time, rewrites its title and its arguments marker, and
+    # adds it to the zip with the cartridge. That keeps one page in the tree
+    # instead of a copy drifting from the player's.
+    # A language zip's loader is that language's tic80<lang>.js renamed to
+    # tic80.js, because the page loads tic80.js; it asks for
+    # tic80<lang>.wasm, which the zip carries under that name.
     hdir="$ART/tic80-html"
-    html_stub() { # <name> <export.html source> <loader js> <wasm>
-        local name="$1" entry="$2" loader="$3" wasm="$4"
+    html_stub() { # <name> <loader js> <wasm>
+        local name="$1" loader="$2" wasm="$3"
         local stage="$OUT/.html-$name"
         rm -rf "$stage"
         mkdir -p "$stage"
-        cp "$entry" "$stage/index.html"
         cp "$loader" "$stage/tic80.js"
         cp "$wasm" "$stage/"
         # zip appends .zip to a name that lacks it; the client asks for
@@ -145,17 +144,17 @@ if [ -d "$ART" ]; then
         mv "$tmp/$name.zip" "$tmp/$name"
         rm -rf "$stage"
     }
-    if [ -f "$hdir/export.html" ] && [ -f "$hdir/tic80.js" ] && [ -f "$hdir/tic80.wasm" ]; then
-        html_stub html "$hdir/export.html" "$hdir/tic80.js" "$hdir/tic80.wasm"
+    if [ -f "$hdir/tic80.js" ] && [ -f "$hdir/tic80.wasm" ]; then
+        html_stub html "$hdir/tic80.js" "$hdir/tic80.wasm"
     else
-        echo "export stub missing: $hdir/{export.html,tic80.js,tic80.wasm}" >&2
+        echo "export stub missing: $hdir/{tic80.js,tic80.wasm}" >&2
         missing=1
     fi
     for lang in $STUB_LANGS; do
-        if [ -f "$hdir/tic80$lang.js" ] && [ -f "$hdir/tic80$lang.wasm" ] && [ -f "$hdir/export.html" ]; then
-            html_stub "html$lang" "$hdir/export.html" "$hdir/tic80$lang.js" "$hdir/tic80$lang.wasm"
+        if [ -f "$hdir/tic80$lang.js" ] && [ -f "$hdir/tic80$lang.wasm" ]; then
+            html_stub "html$lang" "$hdir/tic80$lang.js" "$hdir/tic80$lang.wasm"
         else
-            echo "export stub missing: $hdir/{export.html,tic80$lang.js,tic80$lang.wasm}" >&2
+            echo "export stub missing: $hdir/{tic80$lang.js,tic80$lang.wasm}" >&2
             missing=1
         fi
     done

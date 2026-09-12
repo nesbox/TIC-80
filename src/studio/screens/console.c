@@ -2116,6 +2116,8 @@ typedef struct
 {
     Console* console;
     char filename[TICNAME_MAX];
+    void* stub;     // the stub zip, held until the export page arrives
+    s32 stubSize;
 } GameExportData;
 
 static void onExportGet(const net_get_data* data)
@@ -2204,6 +2206,125 @@ static inline void exportNativeGame(Console* console, const char* name, const ch
     exportGame(console, name, system, onNativeExportGet, params);
 }
 
+// The export page is the site's own player page, fetched after the stub and
+// rewritten here: the title becomes the export's name, and the arguments
+// marker becomes the cartridge — that is what makes the loader preload it
+// (main.c emsStart reads argv[1]) instead of opening its file picker. One
+// page in the tree is the point: a second, export-only copy had already
+// drifted from the player's.
+static bool patchHtmlTitle(char* page, const char* title)
+{
+    char* open = strstr(page, "<title>");
+    char* close = open ? strstr(open, "</title>") : NULL;
+
+    if(!close) return false;
+
+    char* inner = open + strlen("<title>");
+    s32 len = (s32)strlen(title);
+
+    memmove(inner + len, close, strlen(close) + 1);
+    memcpy(inner, title, len);
+
+    return true;
+}
+
+static bool patchHtmlArgument(char* page)
+{
+    static const char find[] = "arguments: []";
+    static const char repl[] = "arguments: ['cart.tic']";
+
+    char* at = strstr(page, find);
+
+    if(!at) return false;
+
+    char* tail = at + strlen(find);
+
+    memmove(at + strlen(repl), tail, strlen(tail) + 1);
+    memcpy(at, repl, strlen(repl));
+
+    return true;
+}
+
+static void onHtmlPageGet(const net_get_data* data)
+{
+    GameExportData* exportData = (GameExportData*)data->calldata;
+    Console* console = exportData->console;
+
+    if(data->type != net_get_done)
+    {
+        onExportGet(data);
+
+        if(data->type == net_get_error)
+        {
+            free(exportData->stub);
+            free(exportData);
+        }
+
+        return;
+    }
+
+    tic_mem* tic = console->tic;
+
+    char filename[TICNAME_MAX];
+    strcpy(filename, exportData->filename);
+
+    char title[TICNAME_MAX];
+    strcpy(title, filename);
+
+    {
+        char* ext = strrchr(title, '.');
+        if(ext) *ext = '\0';
+    }
+
+    // the page plus the room the injected title and argument need
+    char* page = malloc(data->done.size + TICNAME_MAX + 64);
+    memcpy(page, data->done.data, data->done.size);
+    page[data->done.size] = '\0';
+
+    // a page that no longer carries the markers is not worth shipping: the
+    // export would open the picker instead of the game
+    bool errorOccurred = !patchHtmlTitle(page, title) || !patchHtmlArgument(page);
+
+    const char* zipPath = tic_fs_path(console->fs, filename);
+
+    if(!errorOccurred)
+        errorOccurred = !fs_write(zipPath, exportData->stub, exportData->stubSize);
+
+    if(!errorOccurred)
+    {
+        struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
+
+        if(zip) SCOPE(zip_close(zip))
+        {
+            zip_entry_open(zip, "index.html");
+            zip_entry_write(zip, page, strlen(page));
+            zip_entry_close(zip);
+
+            void* cart = newCart();
+
+            SCOPE(free(cart))
+            {
+                s32 cartSize = tic_cart_save(&tic->cart, cart);
+
+                if(cartSize)
+                {
+                    zip_entry_open(zip, "cart.tic");
+                    zip_entry_write(zip, cart, cartSize);
+                    zip_entry_close(zip);
+                }
+                else errorOccurred = true;
+            }
+        }
+        else errorOccurred = true;
+    }
+
+    free(page);
+    free(exportData->stub);
+    free(exportData);
+
+    onFileExported(console, filename, !errorOccurred);
+}
+
 static void onHtmlExportGet(const net_get_data* data)
 {
     switch(data->type)
@@ -2213,40 +2334,14 @@ static void onHtmlExportGet(const net_get_data* data)
             GameExportData* exportData = (GameExportData*)data->calldata;
             Console* console = exportData->console;
 
-            tic_mem* tic = console->tic;
+            // the stub zip is needed again once the page arrives, and the
+            // net layer frees its buffer as soon as this callback returns
+            exportData->stub = malloc(data->done.size);
+            memcpy(exportData->stub, data->done.data, data->done.size);
+            exportData->stubSize = data->done.size;
 
-            char filename[TICNAME_MAX];
-            strcpy(filename, exportData->filename);
-            free(exportData);
-
-            const char* zipPath = tic_fs_path(console->fs, filename);
-            bool errorOccurred = !fs_write(zipPath, data->done.data, data->done.size);
-
-            if(!errorOccurred)
-            {
-                struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
-
-                if(zip) SCOPE(zip_close(zip))
-                {
-                    void* cart = newCart();
-
-                    SCOPE(free(cart))
-                    {
-                        s32 cartSize = tic_cart_save(&tic->cart, cart);
-
-                        if(cartSize)
-                        {
-                            zip_entry_open(zip, "cart.tic");
-                            zip_entry_write(zip, cart, cartSize);
-                            zip_entry_close(zip);
-                        }
-                        else errorOccurred = true;
-                    }
-                }
-                else errorOccurred = true;
-            }
-
-            onFileExported(console, filename, !errorOccurred);
+            char url[TICNAME_MAX] = "/js/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) TIC_VERSION_STATUS "/index.html";
+            tic_net_get(console->net, url, onHtmlPageGet, exportData);
         }
         break;
     default:
