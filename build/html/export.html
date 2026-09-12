@@ -48,6 +48,11 @@
 </head>
 <body style="margin:0; padding:0;">
 
+    <!-- The export page: `arguments: ['cart.tic']` below is the one thing
+         index.html must not have — it makes the loader preload the cartridge
+         the stub carries (main.c emsStart reads argv[1]). Shares the rest
+         with index.html; edit one, check the other. -->
+
     <div class="game">
         <div id="game-frame" style="cursor: pointer; position: absolute; margin: 0 auto; opacity: 1; background: #1a1c2c; width: 100%; height: 100%; z-index: 10;">
             <div style="text-align: center; color: white; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
