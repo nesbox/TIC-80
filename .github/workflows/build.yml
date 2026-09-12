@@ -630,7 +630,14 @@ jobs:
           cd build
           emcmake cmake -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON .. --fresh
           cmake --build . --parallel
+          # both entry points: index.html is the player (the picker), and
+          # export.html is the skeleton of an exported game — it preloads
+          # cart.tic, which is what the /export stubs wrap. v1.1 shipped
+          # export.html as index.html for exactly that reason; copying only
+          # the player made every web export open an empty picker instead of
+          # the game (branch review).
           cp html/index.html bin/index.html
+          cp html/export.html bin/export.html
 
       - name: Deploy
         uses: actions/upload-artifact@v6

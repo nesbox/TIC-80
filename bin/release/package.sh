@@ -90,6 +90,10 @@ fi
 # whole release because this loop looked for "$ART/tic80-linux-arm64-export"
 # while the workflow uploads "tic80-linux-arm64-gcc12-export", and the miss
 # was a silent `[ -f ] &&`.
+# Keep in sync with the loops in .github/workflows/build.yml and with
+# scriptLanguages in the server's internal/httpapi/export.go: a language
+# added to the engine but missed here degrades to a universal-stub download
+# (a bigger binary, not an error), so nothing will tell you.
 STUB_LANGS="lua ruby js moon yue fennel scheme squirrel wren wasm janet python"
 
 if [ -d "$ART" ]; then
@@ -118,37 +122,49 @@ if [ -d "$ART" ]; then
         done
     done
 
-    # html: the universal web build as a zip named "html", and one zip per
-    # language. The html job already builds tic80<lang>.js/.wasm, so htmllua
-    # is those two files plus index.html — with the loader named tic80.js,
-    # which is what index.html loads.
-    if [ -f "$OUT/tic80-v$SHORT-html.zip" ]; then
-        cp "$OUT/tic80-v$SHORT-html.zip" "$tmp/html"
+    # html: the skeleton of an exported game as a zip named "html", and one
+    # zip per language. Two things matter here. The entry point is
+    # export.html — the page that preloads cart.tic — and not the player's
+    # index.html, which opens the picker instead: v1.1 shipped export.html
+    # under the name index.html for the same reason (branch review). And the
+    # loader inside a language zip is that language's tic80<lang>.js, which
+    # asks for tic80<lang>.wasm; index.html loads whatever the zip names
+    # tic80.js, so the file is renamed to match.
+    hdir="$ART/tic80-html"
+    html_stub() { # <name> <export.html source> <loader js> <wasm>
+        local name="$1" entry="$2" loader="$3" wasm="$4"
+        local stage="$OUT/.html-$name"
+        rm -rf "$stage"
+        mkdir -p "$stage"
+        cp "$entry" "$stage/index.html"
+        cp "$loader" "$stage/tic80.js"
+        cp "$wasm" "$stage/"
+        # zip appends .zip to a name that lacks it; the client asks for
+        # /export/<ver>/<system><lang> with no extension (console.c:2191)
+        (cd "$stage" && zip -q -r -X "$tmp/$name.zip" .)
+        mv "$tmp/$name.zip" "$tmp/$name"
+        rm -rf "$stage"
+    }
+    if [ -f "$hdir/export.html" ] && [ -f "$hdir/tic80.js" ] && [ -f "$hdir/tic80.wasm" ]; then
+        html_stub html "$hdir/export.html" "$hdir/tic80.js" "$hdir/tic80.wasm"
     else
-        echo "export stub missing: $OUT/tic80-v$SHORT-html.zip" >&2
+        echo "export stub missing: $hdir/{export.html,tic80.js,tic80.wasm}" >&2
         missing=1
     fi
     for lang in $STUB_LANGS; do
-        hdir="$ART/tic80-html"
-        if [ -f "$hdir/tic80$lang.js" ] && [ -f "$hdir/tic80$lang.wasm" ] && [ -f "$hdir/index.html" ]; then
-            htmp="$OUT/.html-$lang"
-            rm -rf "$htmp"
-            mkdir -p "$htmp"
-            cp "$hdir/index.html" "$htmp/"
-            cp "$hdir/tic80$lang.js" "$htmp/tic80.js"
-            cp "$hdir/tic80$lang.wasm" "$htmp/"
-            # zip appends .zip to a name that lacks it; the client asks for
-            # /export/<ver>/<system><lang> with no extension (console.c:2191)
-            (cd "$htmp" && zip -q -r -X "$tmp/html$lang.zip" .)
-            mv "$tmp/html$lang.zip" "$tmp/html$lang"
-            rm -rf "$htmp"
+        if [ -f "$hdir/tic80$lang.js" ] && [ -f "$hdir/tic80$lang.wasm" ] && [ -f "$hdir/export.html" ]; then
+            html_stub "html$lang" "$hdir/export.html" "$hdir/tic80$lang.js" "$hdir/tic80$lang.wasm"
         else
-            echo "export stub missing: $hdir/{index.html,tic80$lang.js,tic80$lang.wasm}" >&2
+            echo "export stub missing: $hdir/{export.html,tic80$lang.js,tic80$lang.wasm}" >&2
             missing=1
         fi
     done
 
     if [ "$missing" != 0 ]; then
+        # nothing half-written and no stale bundle from an earlier run: a
+        # caller that ignores the exit code must not find last time's tarball
+        rm -rf "$tmp"
+        rm -f "$OUT/tic80-v$SHORT-stubs.tar.gz"
         echo "export stubs incomplete — packaging stopped (see the lines above)" >&2
         exit 1
     fi
