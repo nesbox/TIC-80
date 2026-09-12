@@ -11,11 +11,23 @@ set(VERSION_MINOR 2)
 set(VERSION_REVISION 0)
 set(VERSION_STATUS "-dev")
 
+# The release tag, "v<major>.<minor>.<revision>", and the string every path
+# is built from — /js/<tag>/, /export/<tag>/. A dev build takes the tag of
+# the last release, so a snapshot asks for assets that exist instead of a
+# directory named after its own 1.2.<commits>-dev version.
+set(VERSION_TAG "v${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION}")
+
 string(TIMESTAMP VERSION_YEAR "%Y")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(VERSION_BUILD ".dbg")
 endif()
+
+# A build with no git at all — a source tarball, a distro recipe — cannot be
+# a snapshot of anything, and the fallback literals above are a release's, so
+# it is treated as one: TIC_HOST stays tic80.com instead of sending a shipped
+# build at the dev site. A git checkout overrides this below.
+set(VERSION_IS_RELEASE TRUE)
 
 find_package(Git)
 if(Git_FOUND)
@@ -36,6 +48,7 @@ if(Git_FOUND)
         set(VERSION_REVISION ${CMAKE_MATCH_3})
         set(VERSION_STATUS "")
         set(VERSION_IS_RELEASE TRUE)
+        set(VERSION_TAG "v${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION}")
     endif()
 
     # Short commit hash for the status line (skip when the tree is not a
@@ -72,6 +85,8 @@ if(Git_FOUND)
         if(GIT_LAST_TAG_RESULT EQUAL 0 AND GIT_LAST_TAG MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
             set(VERSION_MAJOR ${CMAKE_MATCH_1})
             set(VERSION_MINOR ${CMAKE_MATCH_2})
+            # the assets a snapshot talks to are the last release's
+            set(VERSION_TAG "${GIT_LAST_TAG}")
         endif()
 
         execute_process(
@@ -86,4 +101,12 @@ if(Git_FOUND)
             set(VERSION_REVISION 0)
         endif()
     endif()
+endif()
+
+# The C code branches on this: a dev snapshot talks to the dev site and asks
+# it for the release-style paths (see system.h TIC_HOST).
+if(VERSION_IS_RELEASE)
+    set(VERSION_IS_RELEASE_C 1)
+else()
+    set(VERSION_IS_RELEASE_C 0)
 endif()

@@ -4,6 +4,12 @@ on:
   push:
     branches: ['**']
   pull_request:
+  workflow_dispatch:
+    inputs:
+      stubs:
+        description: 'Build the per-language export stubs too (slow; the release matrix)'
+        type: boolean
+        default: false
   workflow_call:
 
 # A new push supersedes the previous run on the same ref: cancel it instead
@@ -61,6 +67,51 @@ jobs:
           name: "tic80-windows-export"
           path: |
             build/bin/tic80.exe
+
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          for lang in lua ruby js moon yue fennel scheme squirrel wren wasm janet python; do
+            flags=(-DBUILD_WITH_ALL=OFF)
+            if [ "$lang" != lua ]; then
+              flags+=(-DBUILD_WITH_LUA=OFF "-DBUILD_WITH_$(echo "$lang" | tr '[:lower:]' '[:upper:]')=ON")
+            fi
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" .. --fresh
+            cmake --build . --config MinSizeRel --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang.exe" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          declare -A stubhash=()
+          for f in "$GITHUB_WORKSPACE"/stubs/*; do
+            h=$(sha256sum "$f" | cut -d' ' -f1)
+            if [ -n "${stubhash[$h]:-}" ]; then
+              echo "duplicate stub: $(basename "$f") is $(basename "${stubhash[$h]}") — a language flag did not take" >&2
+              exit 1
+            fi
+            stubhash[$h]="$f"
+          done
+          echo "checked $(ls "$GITHUB_WORKSPACE"/stubs | wc -l) stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          name: "tic80-windows-export-langs"
+          path: |
+            stubs/*
 
   # === Ubuntu ===
   linux-gcc12-glibc235:
@@ -131,6 +182,51 @@ jobs:
           path: |
             build/bin/tic80
 
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          for lang in lua ruby js moon yue fennel scheme squirrel wren wasm janet python; do
+            flags=(-DBUILD_WITH_ALL=OFF)
+            if [ "$lang" != lua ]; then
+              flags+=(-DBUILD_WITH_LUA=OFF "-DBUILD_WITH_$(echo "$lang" | tr '[:lower:]' '[:upper:]')=ON")
+            fi
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" .. --fresh
+            cmake --build . --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          declare -A stubhash=()
+          for f in "$GITHUB_WORKSPACE"/stubs/*; do
+            h=$(sha256sum "$f" | cut -d' ' -f1)
+            if [ -n "${stubhash[$h]:-}" ]; then
+              echo "duplicate stub: $(basename "$f") is $(basename "${stubhash[$h]}") — a language flag did not take" >&2
+              exit 1
+            fi
+            stubhash[$h]="$f"
+          done
+          echo "checked $(ls "$GITHUB_WORKSPACE"/stubs | wc -l) stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          name: "tic80-linux-gcc12-export-langs"
+          path: |
+            stubs/*
+
   # === Ubuntu-arm64 ===
   linux-arm64-gcc12-glibc235:
     runs-on: ubuntu-22.04-arm
@@ -187,6 +283,51 @@ jobs:
           name: "tic80-linux-arm64-gcc12-export"
           path: |
             build/bin/tic80
+
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          for lang in lua ruby js moon yue fennel scheme squirrel wren wasm janet python; do
+            flags=(-DBUILD_WITH_ALL=OFF)
+            if [ "$lang" != lua ]; then
+              flags+=(-DBUILD_WITH_LUA=OFF "-DBUILD_WITH_$(echo "$lang" | tr '[:lower:]' '[:upper:]')=ON")
+            fi
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" .. --fresh
+            cmake --build . --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          declare -A stubhash=()
+          for f in "$GITHUB_WORKSPACE"/stubs/*; do
+            h=$(sha256sum "$f" | cut -d' ' -f1)
+            if [ -n "${stubhash[$h]:-}" ]; then
+              echo "duplicate stub: $(basename "$f") is $(basename "${stubhash[$h]}") — a language flag did not take" >&2
+              exit 1
+            fi
+            stubhash[$h]="$f"
+          done
+          echo "checked $(ls "$GITHUB_WORKSPACE"/stubs | wc -l) stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          name: "tic80-linux-arm64-gcc12-export-langs"
+          path: |
+            stubs/*
 
   # === Nintendo 3DS build ===
   nintendo-3ds:
@@ -291,6 +432,51 @@ jobs:
           path: |
             build/bin/tic80
 
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          for lang in lua ruby js moon yue fennel scheme squirrel wren wasm janet python; do
+            flags=(-DBUILD_WITH_ALL=OFF)
+            if [ "$lang" != lua ]; then
+              flags+=(-DBUILD_WITH_LUA=OFF "-DBUILD_WITH_$(echo "$lang" | tr '[:lower:]' '[:upper:]')=ON")
+            fi
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" .. --fresh
+            cmake --build . --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          declare -A stubhash=()
+          for f in "$GITHUB_WORKSPACE"/stubs/*; do
+            h=$(sha256sum "$f" | cut -d' ' -f1)
+            if [ -n "${stubhash[$h]:-}" ]; then
+              echo "duplicate stub: $(basename "$f") is $(basename "${stubhash[$h]}") — a language flag did not take" >&2
+              exit 1
+            fi
+            stubhash[$h]="$f"
+          done
+          echo "checked $(ls "$GITHUB_WORKSPACE"/stubs | wc -l) stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          name: "tic80-macos-arm64-export-langs"
+          path: |
+            stubs/*
+
   # === MacOS 15 / x86_64 ===
   macos:
     runs-on: macos-15-intel
@@ -335,6 +521,51 @@ jobs:
           name: "tic80-macos-export"
           path: |
             build/bin/tic80
+
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          for lang in lua ruby js moon yue fennel scheme squirrel wren wasm janet python; do
+            flags=(-DBUILD_WITH_ALL=OFF)
+            if [ "$lang" != lua ]; then
+              flags+=(-DBUILD_WITH_LUA=OFF "-DBUILD_WITH_$(echo "$lang" | tr '[:lower:]' '[:upper:]')=ON")
+            fi
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" .. --fresh
+            cmake --build . --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          declare -A stubhash=()
+          for f in "$GITHUB_WORKSPACE"/stubs/*; do
+            h=$(sha256sum "$f" | cut -d' ' -f1)
+            if [ -n "${stubhash[$h]:-}" ]; then
+              echo "duplicate stub: $(basename "$f") is $(basename "${stubhash[$h]}") — a language flag did not take" >&2
+              exit 1
+            fi
+            stubhash[$h]="$f"
+          done
+          echo "checked $(ls "$GITHUB_WORKSPACE"/stubs | wc -l) stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          name: "tic80-macos-export-langs"
+          path: |
+            stubs/*
 
   # === Android ===
   android:
@@ -469,6 +700,11 @@ jobs:
           cd build
           emcmake cmake -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON .. --fresh
           cmake --build . --parallel
+          # index.html is the only page: the site's player, and the page an
+          # exported game gets — the client fetches it, rewrites the title
+          # and the arguments marker, and adds it to the export zip with the
+          # cartridge (console.c onHtmlPageGet). A second, export-only page
+          # used to exist and drifted from this one.
           cp html/index.html bin/index.html
 
       - name: Deploy
