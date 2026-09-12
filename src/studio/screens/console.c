@@ -2190,10 +2190,11 @@ static void exportGame(Console* console, const char* name, const char* system, n
     GameExportData data = {console};
     strcpy(data.filename, name);
 
-    // major.minor, never the "-dev" suffix: the site deploys the release
-    // names, and asking for a -dev directory 404'd every export of a dev
-    // build (12.09: the same 404s showed up in the prod access log).
-    char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/";
+    // the release tag, the one name every path on the site uses: a dev
+    // build takes its version from the last release, while a directory
+    // named after its own 1.2.<commits>-dev was a 404 on every export
+    // (12.09: those 404s are in the prod access log).
+    char url[TICNAME_MAX] = "/export/" TIC_VERSION_TAG "/";
     strcat(url, system);
 
 #if defined(TIC80_PRO)
@@ -2347,11 +2348,10 @@ static void onHtmlExportGet(const net_get_data* data)
             // dev build's own version (1.2.<commits>-dev) names no directory
             // the site ever deploys, while /export/<major>.<minor>/ is what
             // deploy-client.sh lays down for every build
-            // page.html, not index.html: the server serves it through
-            // http.ServeFile, which answers a request for .../index.html
-            // with a 301 to the directory. The zip this client builds still
-            // names the file index.html — that is what a host serves.
-            char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/page.html";
+            // the site's own page, the one and only: fetched here, rewritten
+            // for the game, and written into the zip as index.html — which
+            // is the name a host serves.
+            char url[TICNAME_MAX] = "/js/" TIC_VERSION_TAG "/index.html";
             tic_net_get(console->net, url, onHtmlPageGet, exportData);
         }
         break;

@@ -150,29 +150,6 @@ if [ -d "$ART" ]; then
         echo "export stub missing: $hdir/{tic80.js,tic80.wasm}" >&2
         missing=1
     fi
-    # The page itself, beside the stubs rather than inside them: the client
-    # fetches /export/<version>/page.html, rewrites it for the game and puts
-    # it in the zip as index.html — an exported game is a plain web page, and
-    # a host (itch, a user's own server) serves index.html or nothing.
-    # It cannot be called index.html here: Go's http.ServeFile answers a
-    # request for .../index.html with a 301 to ./ (the directory), so the
-    # served copy carries a name of its own while the zipped one keeps the
-    # name hosts require.
-    if [ -f "$hdir/index.html" ]; then
-        cp "$hdir/index.html" "$tmp/page.html"
-    else
-        echo "export stub missing: $hdir/index.html (the export page)" >&2
-        missing=1
-    fi
-    for lang in $STUB_LANGS; do
-        if [ -f "$hdir/tic80$lang.js" ] && [ -f "$hdir/tic80$lang.wasm" ]; then
-            html_stub "html$lang" "$hdir/tic80$lang.js" "$hdir/tic80$lang.wasm"
-        else
-            echo "export stub missing: $hdir/{tic80$lang.js,tic80$lang.wasm}" >&2
-            missing=1
-        fi
-    done
-
     if [ "$missing" != 0 ]; then
         # nothing half-written and no stale bundle from an earlier run: a
         # caller that ignores the exit code must not find last time's tarball
