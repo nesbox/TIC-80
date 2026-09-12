@@ -2237,7 +2237,12 @@ static bool patchHtmlArgument(char* page)
     static const char find[] = "arguments: []";
     static const char repl[] = "arguments: ['cart.tic']";
 
-    char* at = strstr(page, find);
+    // anchored at the Module object, not the first match anywhere: a comment
+    // that happens to spell the marker out would otherwise take the patch,
+    // the real argument list would stay empty, and the export would open the
+    // player instead of the game with nothing reported as wrong.
+    char* module = strstr(page, "var Module");
+    char* at = strstr(module ? module : page, find);
 
     if(!at) return false;
 

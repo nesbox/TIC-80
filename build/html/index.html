@@ -22,9 +22,12 @@
 </head>
 <body style="margin:0; padding:0;">
 
-    <!-- The one page: the site's player and, with the two markers below
-         rewritten by the client, the index.html of every exported game.
-         `arguments: []` is the marker; the title becomes the game's name. -->
+    <!-- The one page: the site's player and, with two things rewritten by
+         the client, the index.html of every exported game — the title below
+         becomes the game's name, and the empty argument list of the Module
+         object becomes the cartridge it embeds. Do not write that empty
+         list anywhere else in this file: the client patches the first one
+         it finds, and a mention in a comment would take its place. -->
 
     <div class="game" style="margin: 0; position: relative; background: #1a1c2c;">
 
