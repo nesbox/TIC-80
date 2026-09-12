@@ -80,9 +80,10 @@ fi
 [ -f "$ART/tic80-learn/learn.md" ] && cp "$ART/tic80-learn/learn.md" "$OUT/tic80-v$SHORT-learn.md"
 
 # --- export stubs bundle for the server. Not a user download;
-# deploy-client.sh pulls it and unpacks into export/<shortver>/. The client
+# deploy-client.sh pulls it and unpacks into export/<tag>/ — the release tag,
+# v1.2.0 — on the box. The client
 # asks for /export/<shortver>/<command> for a free export, and for
-# /export/<shortver>/<command><lang> in PRO alone mode (console.c:2191), so
+# /export/<shortver>/<command><lang> in PRO alone mode (console.c exportGame), so
 # every system needs its universal stub plus one stub per language — each
 # carries only that runtime, about a third of the universal size.
 #
@@ -139,7 +140,7 @@ if [ -d "$ART" ]; then
         cp "$loader" "$stage/tic80.js"
         cp "$wasm" "$stage/"
         # zip appends .zip to a name that lacks it; the client asks for
-        # /export/<ver>/<system><lang> with no extension (console.c:2191)
+        # /export/<tag>/<system><lang> with no extension (console.c exportGame)
         (cd "$stage" && zip -q -r -X "$tmp/$name.zip" .)
         mv "$tmp/$name.zip" "$tmp/$name"
         rm -rf "$stage"
@@ -150,6 +151,17 @@ if [ -d "$ART" ]; then
         echo "export stub missing: $hdir/{tic80.js,tic80.wasm}" >&2
         missing=1
     fi
+    # one zip per language too: a PRO alone export asks for html<moon>, and
+    # without it every one of those falls back to the universal stub (nine
+    # megabytes of wasm where two would do) or 404s on a plain host
+    for lang in $STUB_LANGS; do
+        if [ -f "$hdir/tic80$lang.js" ] && [ -f "$hdir/tic80$lang.wasm" ]; then
+            html_stub "html$lang" "$hdir/tic80$lang.js" "$hdir/tic80$lang.wasm"
+        else
+            echo "export stub missing: $hdir/tic80$lang.js|.wasm" >&2
+            missing=1
+        fi
+    done
     if [ "$missing" != 0 ]; then
         # nothing half-written and no stale bundle from an earlier run: a
         # caller that ignores the exit code must not find last time's tarball

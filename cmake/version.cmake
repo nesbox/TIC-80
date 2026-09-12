@@ -23,6 +23,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(VERSION_BUILD ".dbg")
 endif()
 
+# A build with no git at all — a source tarball, a distro recipe — cannot be
+# a snapshot of anything, and the fallback literals above are a release's, so
+# it is treated as one: TIC_HOST stays tic80.com instead of sending a shipped
+# build at the dev site. A git checkout overrides this below.
+set(VERSION_IS_RELEASE TRUE)
+
 find_package(Git)
 if(Git_FOUND)
     # Release: HEAD is exactly a vX.Y.Z tag.

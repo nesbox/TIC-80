@@ -2215,10 +2215,35 @@ static inline void exportNativeGame(Console* console, const char* name, const ch
 // marker becomes the cartridge — that is what makes the loader preload it
 // (main.c emsStart reads argv[1]) instead of opening its file picker. One
 // page in the tree is the point: a second, export-only copy had already
-// drifted from the player's.
+// drifted from the player's, and mobile lost its touch controls in the
+// meantime.
+// The title comes from a file name, so the characters that would close the
+// element or open markup are escaped: a cart called `a<b>tic` is legal on
+// Linux and used to produce broken markup.
+static void htmlEscape(char* dst, s32 size, const char* src)
+{
+    s32 i = 0;
+
+    for(; *src && i < size - 6; src++)
+    {
+        switch(*src)
+        {
+        case '<': memcpy(dst + i, "&lt;", 4); i += 4; break;
+        case '>': memcpy(dst + i, "&gt;", 4); i += 4; break;
+        case '&': memcpy(dst + i, "&amp;", 5); i += 5; break;
+        default: dst[i++] = *src; break;
+        }
+    }
+
+    dst[i] = '\0';
+}
+
 static bool patchHtmlTitle(char* page, const char* title)
 {
-    char* open = strstr(page, "<title>");
+    // from <head>: the argument patch anchors at the Module object for the
+    // same reason — a comment above the real tag must not take the patch
+    char* head = strstr(page, "<head>");
+    char* open = strstr(head ? head : page, "<title>");
     char* close = open ? strstr(open, "</title>") : NULL;
 
     if(!close) return false;
@@ -2259,16 +2284,21 @@ static void onHtmlPageGet(const net_get_data* data)
     GameExportData* exportData = (GameExportData*)data->calldata;
     Console* console = exportData->console;
 
-    if(data->type != net_get_done)
+    // onExportGet frees exportData on its error branch, so the error is
+    // handled here: delegating and then freeing would free it twice and read
+    // the freed struct (a 404 on the page, or an offline run, is enough).
+    if(data->type == net_get_error)
+    {
+        printError(console, "file downloading error :(");
+        commandDone(console);
+        free(exportData->stub); // set by the stub stage; free(NULL) is fine
+        free(exportData);
+        return;
+    }
+
+    if(data->type == net_get_progress)
     {
         onExportGet(data);
-
-        if(data->type == net_get_error)
-        {
-            free(exportData->stub);
-            free(exportData);
-        }
-
         return;
     }
 
@@ -2285,14 +2315,18 @@ static void onHtmlPageGet(const net_get_data* data)
         if(ext) *ext = '\0';
     }
 
-    // the page plus the room the injected title and argument need
-    char* page = malloc(data->done.size + TICNAME_MAX + 64);
+    // the page plus the room the injected title and argument need: an
+    // escaped title is up to six bytes per character
+    char* page = malloc(data->done.size + TICNAME_MAX * 6 + 64);
     memcpy(page, data->done.data, data->done.size);
     page[data->done.size] = '\0';
 
     // a page that no longer carries the markers is not worth shipping: the
     // export would open the picker instead of the game
-    bool errorOccurred = !patchHtmlTitle(page, title) || !patchHtmlArgument(page);
+    char escaped[TICNAME_MAX * 6];
+    htmlEscape(escaped, sizeof escaped, title);
+
+    bool errorOccurred = !patchHtmlTitle(page, escaped) || !patchHtmlArgument(page);
 
     const char* zipPath = tic_fs_path(console->fs, filename);
 
@@ -2305,9 +2339,12 @@ static void onHtmlPageGet(const net_get_data* data)
 
         if(zip) SCOPE(zip_close(zip))
         {
-            zip_entry_open(zip, "index.html");
-            zip_entry_write(zip, page, strlen(page));
-            zip_entry_close(zip);
+            // every entry call is checked: an unchecked one reports a
+            // disk-full append to the member as a successful export
+            if(zip_entry_open(zip, "index.html") != 0
+               || zip_entry_write(zip, page, strlen(page)) != 0
+               || zip_entry_close(zip) != 0)
+                errorOccurred = true;
 
             void* cart = newCart();
 
@@ -2317,15 +2354,20 @@ static void onHtmlPageGet(const net_get_data* data)
 
                 if(cartSize)
                 {
-                    zip_entry_open(zip, "cart.tic");
-                    zip_entry_write(zip, cart, cartSize);
-                    zip_entry_close(zip);
+                    if(zip_entry_open(zip, "cart.tic") != 0
+                       || zip_entry_write(zip, cart, cartSize) != 0
+                       || zip_entry_close(zip) != 0)
+                        errorOccurred = true;
                 }
                 else errorOccurred = true;
             }
         }
         else errorOccurred = true;
     }
+
+    // a half-written zip is not a game: whoever picks it up would ship a page
+    // with no cartridge in it
+    if(errorOccurred) remove(zipPath);
 
     free(page);
     free(exportData->stub);
@@ -2353,9 +2395,10 @@ static void onHtmlExportGet(const net_get_data* data)
             // dev build's own version (1.2.<commits>-dev) names no directory
             // the site ever deploys, while /export/<major>.<minor>/ is what
             // deploy-client.sh lays down for every build
-            // the site's own page, the one and only: fetched here, rewritten
-            // for the game, and written into the zip as index.html — which
-            // is the name a host serves.
+            // the site's own page, the one and only: fetched from /js/<tag>/
+            // — the player's own directory, under the release tag — rewritten
+            // for the game, and written into the zip as index.html, which is
+            // the name a host serves.
             char url[TICNAME_MAX] = "/js/" TIC_VERSION_TAG "/index.html";
             tic_net_get(console->net, url, onHtmlPageGet, exportData);
         }
