@@ -2190,7 +2190,10 @@ static void exportGame(Console* console, const char* name, const char* system, n
     GameExportData data = {console};
     strcpy(data.filename, name);
 
-    char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) TIC_VERSION_STATUS "/";
+    // major.minor, never the "-dev" suffix: the site deploys the release
+    // names, and asking for a -dev directory 404'd every export of a dev
+    // build (12.09: the same 404s showed up in the prod access log).
+    char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/";
     strcat(url, system);
 
 #if defined(TIC80_PRO)
@@ -2340,7 +2343,11 @@ static void onHtmlExportGet(const net_get_data* data)
             memcpy(exportData->stub, data->done.data, data->done.size);
             exportData->stubSize = data->done.size;
 
-            char url[TICNAME_MAX] = "/js/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) TIC_VERSION_STATUS "/index.html";
+            // the page ships beside the stubs, under the release name: a
+            // dev build's own version (1.2.<commits>-dev) names no directory
+            // the site ever deploys, while /export/<major>.<minor>/ is what
+            // deploy-client.sh lays down for every build
+            char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/page.html";
             tic_net_get(console->net, url, onHtmlPageGet, exportData);
         }
         break;

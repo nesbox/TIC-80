@@ -150,6 +150,16 @@ if [ -d "$ART" ]; then
         echo "export stub missing: $hdir/{tic80.js,tic80.wasm}" >&2
         missing=1
     fi
+    # the page itself, beside the stubs rather than inside them: the client
+    # fetches /export/<major>.<minor>/page.html, rewrites it for the game and
+    # puts it in the zip. Under its own name so the stubs stay untouched by
+    # a page edit.
+    if [ -f "$hdir/index.html" ]; then
+        cp "$hdir/index.html" "$tmp/page.html"
+    else
+        echo "export stub missing: $hdir/index.html (the export page)" >&2
+        missing=1
+    fi
     for lang in $STUB_LANGS; do
         if [ -f "$hdir/tic80$lang.js" ] && [ -f "$hdir/tic80$lang.wasm" ]; then
             html_stub "html$lang" "$hdir/tic80$lang.js" "$hdir/tic80$lang.wasm"

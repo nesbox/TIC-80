@@ -87,3 +87,11 @@ if(Git_FOUND)
         endif()
     endif()
 endif()
+
+# The C code branches on this: a dev snapshot talks to the dev site and asks
+# it for the release-style paths (see system.h TIC_HOST).
+if(VERSION_IS_RELEASE)
+    set(VERSION_IS_RELEASE_C 1)
+else()
+    set(VERSION_IS_RELEASE_C 0)
+endif()
