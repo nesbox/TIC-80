@@ -113,34 +113,7 @@
         var Module = {
             canvas: document.getElementById('canvas'),
             arguments:['cart.tic'],
-            touchControlsEnabled: true,
-            preRun: [function() {
-                const optionsDir = "/com.nesbox.tic/TIC-80/.local";
-                const optionsPath = optionsDir + "/options.json";
-
-                const forceIntegerScaleOff = () => {
-                    try {
-                        FS.mkdirTree(optionsDir);
-                        let options = {};
-                        try {
-                            options = JSON.parse(FS.readFile(optionsPath, { encoding: "utf8" }));
-                        } catch (e) {}
-                        options.integerScale = false;
-                        FS.writeFile(optionsPath, JSON.stringify(options));
-                    } catch (e) {
-                        console.warn("Could not set TIC-80 integerScale option:", e);
-                    }
-                };
-
-                const originalSyncfs = FS.syncfs.bind(FS);
-                FS.syncfs = function(populate, callback) {
-                    return originalSyncfs(populate, function(err) {
-                        forceIntegerScaleOff();
-                        if (callback) callback(err);
-                    });
-                };
-                forceIntegerScaleOff();
-            }]
+            touchControlsEnabled: true
         };
 
         // Safari Fixes

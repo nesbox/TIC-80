@@ -31,7 +31,11 @@
 #define DEFAULT_VSYNC 1
 #endif
 
-#if defined(__TIC_ANDROID__)
+#if defined(__TIC_ANDROID__) || defined(__EMSCRIPTEN__)
+// Handhelds and the browser fill their viewport instead: integer scale there
+// leaves black borders, which is why the web export page used to force the
+// option off by writing options.json (and, being IDBFS, wrote it into a file
+// every TIC-80 page on the origin shares). The default does the job instead.
 #define INTEGER_SCALE_DEFAULT false
 #else
 #define INTEGER_SCALE_DEFAULT true
