@@ -1,0 +1,273 @@
+name: Release PRO
+
+# Build the paid PRO builds and push them straight to itch.io via butler.
+# PRO binaries are never uploaded as GitHub artifacts — in a public repo
+# artifacts are readable by anyone with the run id, which would leak the
+# paid build. Instead each job builds PRO and pushes it in the same step, so
+# the binary only ever lives on the ephemeral runner. Paid/free is set per
+# file on the itch.io dashboard; the channels below carry the -pro suffix.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  windows-pro:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Build PRO
+        shell: cmd
+        run: |
+          cd build
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        shell: bash
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          VER="${GITHUB_REF_NAME#v}"
+          curl -L -o butler.zip https://broth.itch.ovh/butler/windows-amd64/LATEST/archive/default
+          unzip -q butler.zip
+          # The layouts itch needs, explained in bin/release/stage-itch.sh:
+          # one folder per channel, named without the version.
+          mkdir -p stage/windows-pro
+          cp build/bin/tic80.exe stage/windows-pro/tic80-win-pro.exe
+          ./butler push stage/windows-pro nesbox/tic80:windows-pro --userversion "$VER"
+
+  linux-pro:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-12 g++-12 libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
+          sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
+          sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
+
+      - name: Build PRO
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build deb
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          bash bin/release/make-deb.sh build/bin out/tic80-v$SHORT-linux-pro.deb amd64 "$VER"
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip
+          chmod +x butler
+          # The layouts itch needs, explained in bin/release/stage-itch.sh:
+          # the binary in a folder of its own, the package in another.
+          mkdir -p stage/linux-pro stage/deb-amd64-pro
+          cp build/bin/tic80 stage/linux-pro/tic80-linux-pro
+          cp "out/tic80-v$SHORT-linux-pro.deb" stage/deb-amd64-pro/tic80-linux-pro.deb
+          ./butler push stage/linux-pro nesbox/tic80:linux-pro --userversion "$VER"
+          ./butler push stage/deb-amd64-pro nesbox/tic80:deb-amd64-pro --userversion "$VER"
+
+  macos-arm64-pro:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install
+        run: brew uninstall --ignore-dependencies libidn2
+
+      - name: Build PRO
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --parallel
+
+      - name: Build dmg
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          bash bin/release/make-dmg.sh build/bin out "$VER" "$SHORT" "-arm64"
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-arm64/LATEST/archive/default
+          unzip -q butler.zip
+          chmod +x butler
+          # The layouts itch needs, explained in bin/release/stage-itch.sh:
+          # the bundle in a folder of its own, the package in another.
+          mkdir -p stage/osx-arm64-pro stage/dmg-arm64-pro
+          unzip -qo "out/tic80-v$SHORT-mac-arm64.app.zip" -d stage/osx-arm64-pro
+          cp "out/tic80-v$SHORT-mac-arm64.dmg" stage/dmg-arm64-pro/tic80-mac-arm64-pro.dmg
+          ./butler push stage/osx-arm64-pro nesbox/tic80:mac-arm64-pro --userversion "$VER"
+          ./butler push stage/dmg-arm64-pro nesbox/tic80:dmg-arm64-pro --userversion "$VER"
+
+  macos-intel-pro:
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install
+        run: brew uninstall --ignore-dependencies libidn2
+
+      - name: Build PRO
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --parallel
+
+      - name: Build dmg
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          bash bin/release/make-dmg.sh build/bin out "$VER" "$SHORT" ""
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-amd64/LATEST/archive/default
+          unzip -q butler.zip
+          chmod +x butler
+          # The layouts itch needs (see the arm64 job above).
+          mkdir -p stage/osx-pro stage/dmg-intel-pro
+          unzip -qo "out/tic80-v$SHORT-mac.app.zip" -d stage/osx-pro
+          cp "out/tic80-v$SHORT-mac.dmg" stage/dmg-intel-pro/tic80-mac-pro.dmg
+          ./butler push stage/osx-pro nesbox/tic80:mac-pro --userversion "$VER"
+          ./butler push stage/dmg-intel-pro nesbox/tic80:dmg-intel-pro --userversion "$VER"
+
+  android-pro:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r23
+          add-to-path: false
+          local-cache: true
+
+      - name: set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Build PRO
+        run: |
+          cd build/android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk tic80.apk
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          VER="${GITHUB_REF_NAME#v}"
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip
+          chmod +x butler
+          # The layouts itch needs (see the windows job above).
+          mkdir -p stage/android-pro
+          cp build/android/tic80.apk stage/android-pro/tic80-android-pro.apk
+          ./butler push stage/android-pro nesbox/tic80:android-pro --userversion "$VER"
+
+  # Free builds are assembled by release.yml (into the draft release); once
+  # the release is published, push those assets to itch.io's free channels.
+  itch-free:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo nesbox/TIC-80 --dir flat \
+            --pattern 'tic80-v*-win.zip' \
+            --pattern 'tic80-v*-linux.zip' \
+            --pattern 'tic80-v*-linux.deb' \
+            --pattern 'tic80-v*-linux-arm64.zip' \
+            --pattern 'tic80-v*-linux-arm64.deb' \
+            --pattern 'tic80-v*-mac.app.zip' \
+            --pattern 'tic80-v*-mac.dmg' \
+            --pattern 'tic80-v*-mac-arm64.app.zip' \
+            --pattern 'tic80-v*-mac-arm64.dmg' \
+            --pattern 'tic80-v*-android.apk' \
+            --pattern 'tic80-v*-html.zip'
+
+      - name: Stage the itch.io layouts
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          bash bin/release/stage-itch.sh flat stage "$VER"
+
+      - name: Push free builds to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler
+          chmod +x butler/butler
+          butler/butler push stage/windows     nesbox/tic80:windows     --userversion "$VER"
+          butler/butler push stage/linux       nesbox/tic80:linux       --userversion "$VER"
+          butler/butler push stage/linux-arm64 nesbox/tic80:linux-arm64 --userversion "$VER"
+          butler/butler push stage/osx         nesbox/tic80:mac         --userversion "$VER"
+          butler/butler push stage/osx-arm64   nesbox/tic80:mac-arm64   --userversion "$VER"
+          butler/butler push stage/android     nesbox/tic80:android     --userversion "$VER"
+          butler/butler push stage/html        nesbox/tic80:html        --userversion "$VER"
+          butler/butler push stage/deb-amd64   nesbox/tic80:deb-amd64   --userversion "$VER"
+          butler/butler push stage/deb-arm64   nesbox/tic80:deb-arm64   --userversion "$VER"
+          butler/butler push stage/dmg-intel   nesbox/tic80:dmg-intel   --userversion "$VER"
+          butler/butler push stage/dmg-arm64   nesbox/tic80:dmg-arm64   --userversion "$VER"

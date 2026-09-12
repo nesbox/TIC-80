@@ -1,0 +1,109 @@
+name: Release
+
+# Cut a release from a semver tag (v1.2.0). Reuses the build workflow for the
+# raw binaries, packages them into the downloadable asset names, then creates a
+# *draft* GitHub release (watchers are not notified until it is published) and
+# pushes the free builds to itch.io via butler.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v6
+        with:
+          path: artifacts
+
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y zip
+
+      - name: Package assets
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          bash bin/release/package.sh artifacts out "$VER" "$SHORT"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: release-assets
+          path: out/*
+
+  dmg:
+    needs: build
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: tic80-macos-arm64
+          path: artifacts/tic80-macos-arm64
+      - uses: actions/download-artifact@v6
+        with:
+          name: tic80-macos
+          path: artifacts/tic80-macos
+
+      - name: Build dmgs and app bundles
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          # make-dmg.sh writes both the dmg and the zipped .app bundle; the
+          # bundle is what the itch.io jobs push for macOS.
+          bash bin/release/make-dmg.sh artifacts/tic80-macos-arm64 out "$VER" "$SHORT" "-arm64"
+          bash bin/release/make-dmg.sh artifacts/tic80-macos out "$VER" "$SHORT" ""
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: tic80-mac-pkg
+          path: |
+            out/*.dmg
+            out/*.app.zip
+
+  publish:
+    needs: [package, dmg]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: release-assets
+          path: flat
+      - uses: actions/download-artifact@v6
+        with:
+          name: tic80-mac-pkg
+          path: flat
+
+      - name: Draft GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: flat/*
+
+      - name: Generate release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          # Best-effort: an LLM outage or missing key must not wedge the
+          # release (the draft + assets already exist above and cannot be
+          # recreated cleanly). The release just ships with its default body.
+          if bash bin/release/generate-notes.sh "$GITHUB_REF_NAME" > notes.md; then
+            gh release edit "$GITHUB_REF_NAME" --repo nesbox/TIC-80 --notes-file notes.md
+          else
+            echo "note: release notes generation failed — leaving the default body"
+          fi

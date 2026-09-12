@@ -1,0 +1,69 @@
+name: Release itch dev
+
+# Push a draft release's free assets to the hidden itch.io dev project
+# (nesbox/tic80-dev) for testing. Runs manually; it never touches the public
+# nesbox/tic80 project.
+#
+# The uploads are the layouts the itch app installs and launches (see
+# bin/release/stage-itch.sh): one folder per channel, holding the .exe, the
+# Linux binary, TIC-80.app, the .apk or the web build. The .deb and the .dmg
+# get channels of their own — which is why the patterns below pull them in.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release tag (e.g. v1.2.0)'
+        required: true
+
+jobs:
+  itch-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.version }}" --repo nesbox/TIC-80 --dir flat \
+            --pattern 'tic80-v*-win.zip' \
+            --pattern 'tic80-v*-linux.zip' \
+            --pattern 'tic80-v*-linux.deb' \
+            --pattern 'tic80-v*-linux-arm64.zip' \
+            --pattern 'tic80-v*-linux-arm64.deb' \
+            --pattern 'tic80-v*-mac.app.zip' \
+            --pattern 'tic80-v*-mac.dmg' \
+            --pattern 'tic80-v*-mac-arm64.app.zip' \
+            --pattern 'tic80-v*-mac-arm64.dmg' \
+            --pattern 'tic80-v*-android.apk' \
+            --pattern 'tic80-v*-html.zip'
+
+      - name: Stage the itch.io layouts
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          VER="${VERSION#v}"
+          bash bin/release/stage-itch.sh flat stage "$VER"
+
+      - name: Push to itch.io dev project
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          VER="${VERSION#v}"
+          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler
+          chmod +x butler/butler
+          butler/butler push stage/windows     nesbox/tic80-dev:windows     --userversion "$VER"
+          butler/butler push stage/linux       nesbox/tic80-dev:linux       --userversion "$VER"
+          butler/butler push stage/linux-arm64 nesbox/tic80-dev:linux-arm64 --userversion "$VER"
+          butler/butler push stage/osx         nesbox/tic80-dev:mac         --userversion "$VER"
+          butler/butler push stage/osx-arm64   nesbox/tic80-dev:mac-arm64   --userversion "$VER"
+          butler/butler push stage/android     nesbox/tic80-dev:android     --userversion "$VER"
+          butler/butler push stage/html        nesbox/tic80-dev:html        --userversion "$VER"
+          butler/butler push stage/deb-amd64   nesbox/tic80-dev:deb-amd64   --userversion "$VER"
+          butler/butler push stage/deb-arm64   nesbox/tic80-dev:deb-arm64   --userversion "$VER"
+          butler/butler push stage/dmg-intel   nesbox/tic80-dev:dmg-intel   --userversion "$VER"
+          butler/butler push stage/dmg-arm64   nesbox/tic80-dev:dmg-arm64   --userversion "$VER"

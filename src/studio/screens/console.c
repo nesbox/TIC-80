@@ -101,10 +101,10 @@
 
 #define EXPORT_CMD_LIST(macro)  \
     macro(win)                  \
-    macro(winxp)                \
     macro(linux)                \
-    macro(rpi)                  \
+    macro(linuxarm)             \
     macro(mac)                  \
+    macro(macintel)             \
     macro(html)                 \
     macro(binary)               \
     macro(tiles)                \
@@ -384,8 +384,7 @@ static char* replaceHelpTokens(const char* text)
 {
     char langnames[TICNAME_MAX] = {0};
     char langextensions[TICNAME_MAX] = {0};
-
-    char langnamespipe[TICNAME_MAX] = {0};
+    char langnamesspaced[TICNAME_MAX] = {0};
 
     for(const tic_script **it = tic_scripts(); *it; ++it)
     {
@@ -399,14 +398,14 @@ static char* replaceHelpTokens(const char* text)
         strcat(langextensions, (*it)->fileExtension);
         strcat(langextensions, " ");
 
-        strcat(langnamespipe, (*it)->name);
+        strcat(langnamesspaced, (*it)->name);
         if (!isLast)
-            strcat(langnamespipe, "|");
+            strcat(langnamesspaced, " ");
     }
 
     char* replaced1 = str_replace(text, "$LANG_NAMES$", langnames);
     char* replaced2 = str_replace(replaced1, "$LANG_EXTENSIONS$", langextensions);
-    char* replaced3 = str_replace(replaced2, "$LANG_NAMES_PIPE$", langnamespipe);
+    char* replaced3 = str_replace(replaced2, "$LANG_NAMES_SPACED$", langnamesspaced);
     free(replaced2);
     free(replaced1);
     return replaced3;
@@ -2117,6 +2116,8 @@ typedef struct
 {
     Console* console;
     char filename[TICNAME_MAX];
+    void* stub;     // the stub zip, held until the export page arrives
+    s32 stubSize;
 } GameExportData;
 
 static void onExportGet(const net_get_data* data)
@@ -2189,7 +2190,11 @@ static void exportGame(Console* console, const char* name, const char* system, n
     GameExportData data = {console};
     strcpy(data.filename, name);
 
-    char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) TIC_VERSION_STATUS "/";
+    // the release tag, the one name every path on the site uses: a dev
+    // build takes its version from the last release, while a directory
+    // named after its own 1.2.<commits>-dev was a 404 on every export
+    // (12.09: those 404s are in the prod access log).
+    char url[TICNAME_MAX] = "/export/" TIC_VERSION_TAG "/";
     strcat(url, system);
 
 #if defined(TIC80_PRO)
@@ -2205,6 +2210,172 @@ static inline void exportNativeGame(Console* console, const char* name, const ch
     exportGame(console, name, system, onNativeExportGet, params);
 }
 
+// The export page is the site's own player page, fetched after the stub and
+// rewritten here: the title becomes the export's name, and the arguments
+// marker becomes the cartridge — that is what makes the loader preload it
+// (main.c emsStart reads argv[1]) instead of opening its file picker. One
+// page in the tree is the point: a second, export-only copy had already
+// drifted from the player's, and mobile lost its touch controls in the
+// meantime.
+// The title comes from a file name, so the characters that would close the
+// element or open markup are escaped: a cart called `a<b>tic` is legal on
+// Linux and used to produce broken markup.
+static void htmlEscape(char* dst, s32 size, const char* src)
+{
+    s32 i = 0;
+
+    for(; *src && i < size - 6; src++)
+    {
+        switch(*src)
+        {
+        case '<': memcpy(dst + i, "&lt;", 4); i += 4; break;
+        case '>': memcpy(dst + i, "&gt;", 4); i += 4; break;
+        case '&': memcpy(dst + i, "&amp;", 5); i += 5; break;
+        default: dst[i++] = *src; break;
+        }
+    }
+
+    dst[i] = '\0';
+}
+
+static bool patchHtmlTitle(char* page, const char* title)
+{
+    // from <head>: the argument patch anchors at the Module object for the
+    // same reason — a comment above the real tag must not take the patch
+    char* head = strstr(page, "<head>");
+    char* open = strstr(head ? head : page, "<title>");
+    char* close = open ? strstr(open, "</title>") : NULL;
+
+    if(!close) return false;
+
+    char* inner = open + strlen("<title>");
+    s32 len = (s32)strlen(title);
+
+    memmove(inner + len, close, strlen(close) + 1);
+    memcpy(inner, title, len);
+
+    return true;
+}
+
+static bool patchHtmlArgument(char* page)
+{
+    static const char find[] = "arguments: []";
+    static const char repl[] = "arguments: ['cart.tic']";
+
+    // anchored at the Module object, not the first match anywhere: a comment
+    // that happens to spell the marker out would otherwise take the patch,
+    // the real argument list would stay empty, and the export would open the
+    // player instead of the game with nothing reported as wrong.
+    char* module = strstr(page, "var Module");
+    char* at = strstr(module ? module : page, find);
+
+    if(!at) return false;
+
+    char* tail = at + strlen(find);
+
+    memmove(at + strlen(repl), tail, strlen(tail) + 1);
+    memcpy(at, repl, strlen(repl));
+
+    return true;
+}
+
+static void onHtmlPageGet(const net_get_data* data)
+{
+    GameExportData* exportData = (GameExportData*)data->calldata;
+    Console* console = exportData->console;
+
+    // onExportGet frees exportData on its error branch, so the error is
+    // handled here: delegating and then freeing would free it twice and read
+    // the freed struct (a 404 on the page, or an offline run, is enough).
+    if(data->type == net_get_error)
+    {
+        printError(console, "file downloading error :(");
+        commandDone(console);
+        free(exportData->stub); // set by the stub stage; free(NULL) is fine
+        free(exportData);
+        return;
+    }
+
+    if(data->type == net_get_progress)
+    {
+        onExportGet(data);
+        return;
+    }
+
+    tic_mem* tic = console->tic;
+
+    char filename[TICNAME_MAX];
+    strcpy(filename, exportData->filename);
+
+    char title[TICNAME_MAX];
+    strcpy(title, filename);
+
+    {
+        char* ext = strrchr(title, '.');
+        if(ext) *ext = '\0';
+    }
+
+    // the page plus the room the injected title and argument need: an
+    // escaped title is up to six bytes per character
+    char* page = malloc(data->done.size + TICNAME_MAX * 6 + 64);
+    memcpy(page, data->done.data, data->done.size);
+    page[data->done.size] = '\0';
+
+    // a page that no longer carries the markers is not worth shipping: the
+    // export would open the picker instead of the game
+    char escaped[TICNAME_MAX * 6];
+    htmlEscape(escaped, sizeof escaped, title);
+
+    bool errorOccurred = !patchHtmlTitle(page, escaped) || !patchHtmlArgument(page);
+
+    const char* zipPath = tic_fs_path(console->fs, filename);
+
+    if(!errorOccurred)
+        errorOccurred = !fs_write(zipPath, exportData->stub, exportData->stubSize);
+
+    if(!errorOccurred)
+    {
+        struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
+
+        if(zip) SCOPE(zip_close(zip))
+        {
+            // every entry call is checked: an unchecked one reports a
+            // disk-full append to the member as a successful export
+            if(zip_entry_open(zip, "index.html") != 0
+               || zip_entry_write(zip, page, strlen(page)) != 0
+               || zip_entry_close(zip) != 0)
+                errorOccurred = true;
+
+            void* cart = newCart();
+
+            SCOPE(free(cart))
+            {
+                s32 cartSize = tic_cart_save(&tic->cart, cart);
+
+                if(cartSize)
+                {
+                    if(zip_entry_open(zip, "cart.tic") != 0
+                       || zip_entry_write(zip, cart, cartSize) != 0
+                       || zip_entry_close(zip) != 0)
+                        errorOccurred = true;
+                }
+                else errorOccurred = true;
+            }
+        }
+        else errorOccurred = true;
+    }
+
+    // a half-written zip is not a game: whoever picks it up would ship a page
+    // with no cartridge in it
+    if(errorOccurred) remove(zipPath);
+
+    free(page);
+    free(exportData->stub);
+    free(exportData);
+
+    onFileExported(console, filename, !errorOccurred);
+}
+
 static void onHtmlExportGet(const net_get_data* data)
 {
     switch(data->type)
@@ -2214,40 +2385,22 @@ static void onHtmlExportGet(const net_get_data* data)
             GameExportData* exportData = (GameExportData*)data->calldata;
             Console* console = exportData->console;
 
-            tic_mem* tic = console->tic;
+            // the stub zip is needed again once the page arrives, and the
+            // net layer frees its buffer as soon as this callback returns
+            exportData->stub = malloc(data->done.size);
+            memcpy(exportData->stub, data->done.data, data->done.size);
+            exportData->stubSize = data->done.size;
 
-            char filename[TICNAME_MAX];
-            strcpy(filename, exportData->filename);
-            free(exportData);
-
-            const char* zipPath = tic_fs_path(console->fs, filename);
-            bool errorOccurred = !fs_write(zipPath, data->done.data, data->done.size);
-
-            if(!errorOccurred)
-            {
-                struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
-
-                if(zip) SCOPE(zip_close(zip))
-                {
-                    void* cart = newCart();
-
-                    SCOPE(free(cart))
-                    {
-                        s32 cartSize = tic_cart_save(&tic->cart, cart);
-
-                        if(cartSize)
-                        {
-                            zip_entry_open(zip, "cart.tic");
-                            zip_entry_write(zip, cart, cartSize);
-                            zip_entry_close(zip);
-                        }
-                        else errorOccurred = true;
-                    }
-                }
-                else errorOccurred = true;
-            }
-
-            onFileExported(console, filename, !errorOccurred);
+            // the page ships beside the stubs, under the release name: a
+            // dev build's own version (1.2.<commits>-dev) names no directory
+            // the site ever deploys, while /export/<major>.<minor>/ is what
+            // deploy-client.sh lays down for every build
+            // the site's own page, the one and only: fetched from /js/<tag>/
+            // — the player's own directory, under the release tag — rewritten
+            // for the game, and written into the zip as index.html, which is
+            // the name a host serves.
+            char url[TICNAME_MAX] = "/js/" TIC_VERSION_TAG "/index.html";
+            tic_net_get(console->net, url, onHtmlPageGet, exportData);
         }
         break;
     default:
@@ -2272,24 +2425,25 @@ static void onExport_win(Console* console, const char* param, const char* filena
     exportNativeGame(console, getFilename(filename, ".exe"), param, params);
 }
 
-static void onExport_winxp(Console* console, const char* param, const char* filename, ExportParams params)
-{
-    exportNativeGame(console, getFilename(filename, ".exe"), param, params);
-}
-
 static void onExport_linux(Console* console, const char* param, const char* filename, ExportParams params)
 {
     exportNativeGame(console, filename, param, params);
 }
 
-static void onExport_rpi(Console* console, const char* param, const char* filename, ExportParams params)
+static void onExport_linuxarm(Console* console, const char* param, const char* filename, ExportParams params)
 {
-    exportNativeGame(console, filename, param, params);
+    exportNativeGame(console, filename, "linuxarm", params);
 }
 
 static void onExport_mac(Console* console, const char* param, const char* filename, ExportParams params)
 {
-    exportNativeGame(console, filename, param, params);
+    // arm64 is the default mac target now; the legacy x64 build is macintel.
+    exportNativeGame(console, filename, "mac", params);
+}
+
+static void onExport_macintel(Console* console, const char* param, const char* filename, ExportParams params)
+{
+    exportNativeGame(console, filename, "macintel", params);
 }
 
 static void onExport_html(Console* console, const char* param, const char* filename, ExportParams params)
@@ -2855,15 +3009,19 @@ static void onGetCommand(Console* console)
 static void tabCompleteHelp(TabCompleteData* data);
 
 static const char HelpUsage[] = "help [<text>"
-#define HELP_CMD_DEF(name) "|" #name
+#define HELP_CMD_DEF(name) " " #name
     HELP_CMD_LIST(HELP_CMD_DEF)
 #undef  HELP_CMD_DEF
     "]";
 
-#define SECTION_DEF(NAME, ...)  "|" #NAME
-#define EXPORT_CMD_DEF(name)    #name "|"
+// The alternatives below are separated by a space rather than glued with
+// "|": the line needs somewhere to wrap, in the console and in the
+// markdown tables of the /learn page, where one long run of names used to
+// push the table past the page container.
+#define SECTION_DEF(NAME, ...)  " " #NAME
+#define EXPORT_CMD_DEF(name)    #name " "
 #define EXPORT_KEYS_DEF(name)   #name "=0 "
-#define IMPORT_CMD_DEF(name)    #name "|"
+#define IMPORT_CMD_DEF(name)    #name " "
 #define IMPORT_KEYS_DEF(key)    #key"=0 "
 
 #if defined(CAN_ADDGET_FILE)
@@ -2917,7 +3075,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("new",                                                                        \
         NULL,                                                                           \
         "Creates a new `Hello World` cartridge.",                                       \
-        "new <$LANG_NAMES_PIPE$>",                                                      \
+        "new <$LANG_NAMES_SPACED$>",                                                    \
         onNewCommand,                                                                   \
         tabCompleteLanguages,                                                           \
         NULL)                                                                           \
@@ -3008,7 +3166,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("export",                                                                     \
         NULL,                                                                           \
         "Export cart to HTML,\n"                                                        \
-        "native build (win linux rpi mac),\n"                                           \
+        "native build (win linux linuxarm mac macintel),\n"                                           \
         "export sprites/map/... as a .png image "                                       \
         "or export sfx and music to .wav files.",                                       \
         "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "] "                            \
@@ -3031,7 +3189,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("del",                                                                        \
         "rm",                                                                           \
         "Delete from the filesystem.",                                                  \
-        "del <file|folder>",                                                            \
+        "del <file folder>",                                                            \
         onDelCommand,                                                                   \
         tabCompleteFilesAndDirs,                                                        \
         NULL)                                                                           \
@@ -3057,7 +3215,7 @@ static const char HelpUsage[] = "help [<text>"
         "Edit system configuration cartridge.\n"                                        \
         "Use `reset` param to reset current configuration.\n"                           \
         "Use `default` to edit default cart template.",                                 \
-        "config [reset|default]",                                                       \
+        "config [reset default]",                                                       \
         onConfigCommand,                                                                \
         tabCompleteConfig,                                                              \
         NULL)                                                                           \
@@ -3358,6 +3516,129 @@ static s32 createButtonsTable(char* buf)
     return strlen(buf);
 }
 
+static s32 createRamTableMd(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n### RAM layout (96KB)\n\n| ADDR | INFO | BYTES |\n|---|---|---|\n");
+
+    static const struct Row {s32 addr; const char* info;} Rows[] =
+    {
+        {0,                                         "<VRAM>"},
+        {offsetof(tic_ram, tiles),                  "TILES"},
+        {offsetof(tic_ram, sprites),                "SPRITES"},
+        {offsetof(tic_ram, map),                    "MAP"},
+        {offsetof(tic_ram, input.gamepads),         "GAMEPADS"},
+        {offsetof(tic_ram, input.mouse),            "MOUSE"},
+        {offsetof(tic_ram, input.keyboard),         "KEYBOARD"},
+        {offsetof(tic_ram, sfxpos),                 "SFX STATE"},
+        {offsetof(tic_ram, registers),              "SOUND REGISTERS"},
+        {offsetof(tic_ram, sfx.waveforms),          "WAVEFORMS"},
+        {offsetof(tic_ram, sfx.samples),            "SFX"},
+        {offsetof(tic_ram, music.patterns.data),    "MUSIC PATTERNS"},
+        {offsetof(tic_ram, music.tracks.data),      "MUSIC TRACKS"},
+        {offsetof(tic_ram, music_state),            "MUSIC STATE"},
+        {offsetof(tic_ram, stereo),                 "STEREO VOLUME"},
+        {offsetof(tic_ram, persistent),             "PERSISTENT MEMORY"},
+        {offsetof(tic_ram, flags),                  "SPRITE FLAGS"},
+        {offsetof(tic_ram, font.regular),           "FONT"},
+        {offsetof(tic_ram, font.regular.params),    "FONT PARAMS"},
+        {offsetof(tic_ram, font.alt),               "ALT FONT"},
+        {offsetof(tic_ram, font.alt.params),        "ALT FONT PARAMS"},
+        {offsetof(tic_ram, mapping),                "BUTTONS MAPPING"},
+        {offsetof(tic_ram, pcm),                    "PCM SAMPLES"},
+        {offsetof(tic_ram, free),                   "** RESERVED **"},
+        {TIC_RAM_SIZE,                              ""},
+    };
+
+    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
+        ptr += sprintf(ptr, "| %05X | %s | %i |\n", row->addr, row->info, (row + 1)->addr - row->addr);
+
+    return strlen(buf);
+}
+
+static s32 createVRamTableMd(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n### VRAM layout (16KB)\n\n| ADDR | INFO | BYTES |\n|---|---|---|\n");
+
+    static const struct Row {s32 addr; const char* info;} Rows[] =
+    {
+        {offsetof(tic_ram, vram.screen),        "SCREEN"},
+        {offsetof(tic_ram, vram.palette),       "PALETTE"},
+        {offsetof(tic_ram, vram.mapping),       "PALETTE MAP"},
+        {offsetof(tic_ram, vram.vars),          "BORDER COLOR"},
+        {offsetof(tic_ram, vram.vars.offset),   "SCREEN OFFSET"},
+        {offsetof(tic_ram, vram.vars.cursor),   "MOUSE CURSOR"},
+        {offsetof(tic_ram, vram.blit),          "BLIT SEGMENT"},
+        {offsetof(tic_ram, vram.reserved),      "... (reserved)"},
+        {TIC_VRAM_SIZE,                         ""},
+    };
+
+    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
+        ptr += sprintf(ptr, "| %05X | %s | %i |\n", row->addr, row->info, (row + 1)->addr - row->addr);
+
+    return strlen(buf);
+}
+
+static s32 createButtonsTableMd(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n| ACTION | P1 | P2 | P3 | P4 |\n|---|---|---|---|---|\n");
+
+    static const char* Actions[] = {"UP", "DOWN", "LEFT", "RIGHT", "A", "B", "X", "Y"};
+
+    int id = 0;
+    for(const char** it = Actions, **end = it + COUNT_OF(Actions); it < end; ++it, ++id)
+        ptr += sprintf(ptr, "| %s | %d | %d | %d | %d |\n", *it, id, id + 8, id + 16, id + 24);
+
+    return strlen(buf);
+}
+
+static s32 createKeysTableMd(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n| CODE | KEY | CODE | KEY |\n|---|---|---|---|\n");
+
+    static const struct Row {s32 code; const char* key;} Rows[] =
+    {
+        {1, "A"}, {2, "B"}, {3, "C"}, {4, "D"}, {5, "E"}, {6, "F"}, {7, "G"}, {8, "H"}, {9, "I"}, {10, "J"},
+        {11, "K"}, {12, "L"}, {13, "M"}, {14, "N"}, {15, "O"}, {16, "P"}, {17, "Q"}, {18, "R"}, {19, "S"}, {20, "T"},
+        {21, "U"}, {22, "V"}, {23, "W"}, {24, "X"}, {25, "Y"}, {26, "Z"}, {27, "0"}, {28, "1"}, {29, "2"}, {30, "3"},
+        {31, "4"}, {32, "5"}, {33, "6"}, {34, "7"}, {35, "8"}, {36, "9"}, {37, "MINUS"}, {38, "EQUALS"}, {39, "LEFTBRACKET"}, {40, "RIGHTBRACKT"},
+        {41, "BACKSLASH"}, {42, "SEMICOLON"}, {43, "APOSTROPHE"}, {44, "GRAVE"}, {45, "COMMA"}, {46, "PERIOD"}, {47, "SLASH"}, {48, "SPACE"}, {49, "TAB"}, {50, "RETURN"},
+        {51, "BACKSPACE"}, {52, "DELETE"}, {53, "INSERT"}, {54, "PAGEUP"}, {55, "PAGEDOWN"}, {56, "HOME"}, {57, "END"}, {58, "UP"}, {59, "DOWN"}, {60, "LEFT"},
+        {61, "RIGHT"}, {62, "CAPSLOCK"}, {63, "CTRL"}, {64, "SHIFT"}, {65, "ALT"}, {66, "ESC"}, {67, "F1"}, {68, "F2"}, {69, "F3"}, {70, "F4"},
+        {71, "F5"}, {72, "F6"}, {73, "F7"}, {74, "F8"}, {75, "F9"}, {76, "F10"}, {77, "F11"}, {78, "F12"}, {79, "NUM0"}, {80, "NUM1"},
+        {81, "NUM2"}, {82, "NUM3"}, {83, "NUM4"}, {84, "NUM5"}, {85, "NUM6"}, {86, "NUM7"}, {87, "NUM8"}, {88, "NUM9"}, {89, "NUMPLUS"}, {90, "NUMMINUS"},
+        {91, "NUMMULTIPLY"}, {92, "NUMDIVIDE"}, {93, "NUMENTER"}, {94, "NUMPERIOD"},
+    };
+
+    for(const struct Row *row = Rows, *alt = row + COUNT_OF(Rows) / 2, *end = alt; row != end; ++row, ++alt)
+        ptr += sprintf(ptr, "| %d | %s | %d | %s |\n", row->code, row->key, alt->code, alt->key);
+
+    return strlen(buf);
+}
+
+static void printMdCell(char** ptr, const char* str)
+{
+    // Write a markdown table cell: substitute the $LANG_...$ tokens first,
+    // then escape | and collapse newlines to spaces (a cell can't span
+    // lines). The escaping has to see the real text and not the token: a
+    // value carrying a pipe, written after this loop, would split the row
+    // and drop everything past it.
+    char* replaced = strchr(str, '$') ? replaceHelpTokens(str) : NULL;
+    const char* text = replaced ? replaced : str;
+
+    for(const char* c = text; *c; ++c)
+    {
+        if(*c == '|') *(*ptr)++ = '\\', *(*ptr)++ = '|';
+        else if(*c == '\n') *(*ptr)++ = ' ';
+        else *(*ptr)++ = *c;
+    }
+
+    free(replaced);
+}
+
 static void onExport_help(Console* console, const char* param, const char* name, ExportParams params)
 {
     const char* filename = getFilename(name, ".md");
@@ -3367,73 +3648,65 @@ static void onExport_help(Console* console, const char* param, const char* name,
     SCOPE(free(buf))
     {
         ptr += sprintf(ptr, "# " TIC_NAME_FULL "\n" TIC_VERSION"\n" TIC_COPYRIGHT"\n");
+
+        ptr += sprintf(ptr, "\n## Table of Contents\n\n");
+        ptr += sprintf(ptr, "- [Welcome](#welcome)\n- [Specification](#specification)\n- [Console commands](#console-commands)\n- [API functions](#api-functions)\n- [Button IDs](#button-ids)\n- [Key IDs](#key-ids)\n- [Startup options](#startup-options)\n- [Terms of Use](#terms-of-use)\n- [Privacy Policy](#privacy-policy)\n- [MIT License](#mit-license)\n");
+
         ptr += sprintf(ptr, "\n## Welcome\n%s\n", WelcomeText);
-        ptr += sprintf(ptr, "\n## Specification\n```\n");
 
+        ptr += sprintf(ptr, "\n## Specification\n\n| | |\n|---|---|\n");
         FOR(const struct SpecRow*, row, SpecText1)
-            ptr += sprintf(ptr, "%-10s%s\n", row->section, row->info);
+        {
+            ptr += sprintf(ptr, "| **%s** | ", row->section);
+            printMdCell(&ptr, row->info); // "64KB of $LANG_NAMES$." is a cell like any other
+            ptr += sprintf(ptr, " |\n");
+        }
 
-        ptr += sprintf(ptr, "```\n```\n");
-        ptr += createRamTable(ptr);
-        ptr += sprintf(ptr, "```\n```");
-        ptr += createVRamTable(ptr);
-        ptr += sprintf(ptr, "```\n\n## Console commands\n");
+        ptr += createRamTableMd(ptr);
+        ptr += createVRamTableMd(ptr);
 
+        ptr += sprintf(ptr, "\n## Console commands\n\n| Command | Description | Usage |\n|---|---|---|\n");
         FOR(const Command*, cmd, Commands)
-            ptr += sprintf(ptr, "\n### %s\n%s\nusage: `%s`\n",
-                cmd->name, cmd->help, cmd->usage ? cmd->usage : cmd->name);
+        {
+            ptr += sprintf(ptr, "| `");
+            printMdCell(&ptr, cmd->name);
+            ptr += sprintf(ptr, "` | ");
+            printMdCell(&ptr, cmd->help);
+            ptr += sprintf(ptr, " | `");
+            printMdCell(&ptr, cmd->usage ? cmd->usage : cmd->name);
+            ptr += sprintf(ptr, "` |\n");
+        }
 
-        ptr += sprintf(ptr, "\n## API functions\n");
-
+        ptr += sprintf(ptr, "\n## API functions\n\n| Function | Description |\n|---|---|\n");
         FOR(const ApiItem*, api, Api)
-            ptr += sprintf(ptr, "\n### %s\n`%s`\n%s\n", api->name, api->def, api->help);
+        {
+            ptr += sprintf(ptr, "| `");
+            printMdCell(&ptr, api->def);
+            ptr += sprintf(ptr, "` | ");
+            printMdCell(&ptr, api->help);
+            ptr += sprintf(ptr, " |\n");
+        }
 
         ptr += sprintf(ptr, "\n## Button IDs\n");
-        ptr += sprintf(ptr, "```");
-        ptr += createButtonsTable(ptr);
-        ptr += sprintf(ptr, "```\n");
+        ptr += createButtonsTableMd(ptr);
 
         ptr += sprintf(ptr, "\n## Key IDs\n");
-        ptr += sprintf(ptr, "```");
-        ptr += createKeysTable(ptr);
-        ptr += sprintf(ptr, "```\n");
+        ptr += createKeysTableMd(ptr);
 
-        ptr += sprintf(ptr, "\n## Startup options\n```\n");
+        ptr += sprintf(ptr, "\n## Startup options\n\n| Option | Description |\n|---|---|\n");
         FOR(const struct StartupOption*, opt, StartupOptions)
-            ptr += sprintf(ptr, "--%-14s %s\n", opt->name, opt->help);
+        {
+            ptr += sprintf(ptr, "| `--%s` | ", opt->name);
+            printMdCell(&ptr, opt->help);
+            ptr += sprintf(ptr, " |\n");
+        }
 
-        ptr += sprintf(ptr, "```\n\n## Hotkeys\n");
+        ptr += sprintf(ptr, "\n%s\n\n%s", TermsText, LicenseText);
 
-        ptr += sprintf(ptr, "\n### General:\n```\n");
-        FOR(const struct HotkeysRowGeneral*, row, HotkeysTextGeneral)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### Navigation:\n```\n");
-        FOR(const struct HotkeysRowNavigation*, row, HotkeysTextNavigation)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### Code Editor:\n```\n");
-        FOR(const struct HotkeysRowCodeEditor*, row, HotkeysTextCodeEditor)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### Sprite Editor:\n```\n");
-        FOR(const struct HotkeysRowSpriteEditor*, row, HotkeysTextSpriteEditor)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### Map Editor:\n```\n");
-        FOR(const struct HotkeysRowMapEditor*, row, HotkeysTextMapEditor)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### SFX Editor:\n```\n");
-        FOR(const struct HotkeysRowSFXEditor*, row, HotkeysTextSFXEditor)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n### Music Editor:\n```\n");
-        FOR(const struct HotkeysRowMusicEditor*, row, HotkeysTextMusicEditor)
-            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
-
-        ptr += sprintf(ptr, "```\n\n%s\n\n%s", TermsText, LicenseText);
-
+        // The cells that can carry a token go through printMdCell, which
+        // replaces it before escaping the text; this pass covers the prose
+        // sections and any cell still written raw. It is a no-op for the
+        // document as it stands.
         char* helpReplaced = replaceHelpTokens(buf);
 
         SCOPE(free(helpReplaced))
