@@ -178,7 +178,7 @@ if [ -d "$ART" ]; then
         cp "$wasm" "$stage/"
         # zip appends .zip to a name that lacks it; the client asks for
         # /export/<tag>/<system><lang> with no extension (console.c exportGame)
-        (cd "$stage" && zip -q -r -X "$tmp/$name.zip" .)
+        zip_flat "$stage" "$tmp/$name.zip"
         mv "$tmp/$name.zip" "$tmp/$name"
         rm -rf "$stage"
     }
