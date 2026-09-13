@@ -360,6 +360,8 @@ static void gameMenuHandler(void* data, s32 pos)
 
 enum
 {
+    EditorMenu_TabSize,
+    EditorMenu_TabMode,
     EditorMenu_KeybindMode,
     EditorMenu_Separator,
     EditorMenu_Back,
@@ -373,6 +375,8 @@ static const MenuItem EditorMenu[] =
     {""},
     {"BACK",            showOptionsMenu, .back = true},
 };
+
+static_assert(COUNT_OF(EditorMenu) == EditorMenu_Back + 1, "EditorMenuCount");
 
 static void showEditorMenu(void* data, s32 pos)
 {
