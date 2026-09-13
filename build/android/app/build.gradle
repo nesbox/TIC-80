@@ -83,6 +83,13 @@ if (ticTag != null && ticTag ==~ /v\d{1,3}\.\d{1,3}\.\d{1,9}/) {
 def ticVersionCode = ticVersionMajor * 10000 + ticVersionMinor * 100 + ticVersionPatch
 def ticVersionName = "${ticVersionMajor}.${ticVersionMinor}.${ticVersionShownPatch}${ticVersionStatus}"
 
+// The PRO build asks for its features on the command line (release-pro.yml
+// passes -PPRO=ON); every other build — the free APK, the snapshots — stays
+// free. This gradle project is the only Android build path there is, so the
+// flag cannot be left to the caller's memory: with PRO hardcoded off, the
+// paid channel shipped a build without the features it pays for.
+def ticPro = project.findProperty('PRO') ?: 'OFF'
+
 android {
     namespace "com.nesbox.tic"
     compileSdkVersion 31
@@ -108,7 +115,7 @@ android {
             }
             cmake {
                 arguments "-DBUILD_WITH_RUBY=OFF",
-                            "-DBUILD_PRO=OFF",
+                            "-DBUILD_PRO=${ticPro}",
                             "-DCMAKE_BUILD_TYPE=Release",
                             "-DBUILD_WITH_ALL=ON"
             }
