@@ -31,28 +31,13 @@ set(VERSION_IS_RELEASE TRUE)
 
 find_package(Git)
 if(Git_FOUND)
-    # Release: HEAD is exactly a vX.Y.Z tag.
-    execute_process(
-        COMMAND ${GIT_EXECUTABLE} describe --tags --exact-match HEAD
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-        OUTPUT_VARIABLE GIT_DESCRIBE
-        ERROR_QUIET
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        RESULT_VARIABLE GIT_DESCRIBE_RESULT
-    )
-
-    set(VERSION_IS_RELEASE FALSE)
-    if(GIT_DESCRIBE_RESULT EQUAL 0 AND GIT_DESCRIBE MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
-        set(VERSION_MAJOR ${CMAKE_MATCH_1})
-        set(VERSION_MINOR ${CMAKE_MATCH_2})
-        set(VERSION_REVISION ${CMAKE_MATCH_3})
-        set(VERSION_STATUS "")
-        set(VERSION_IS_RELEASE TRUE)
-        set(VERSION_TAG "v${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION}")
-    endif()
-
-    # Short commit hash for the status line (skip when the tree is not a
-    # git checkout, e.g. a release source archive built with git present).
+    # Everything below asks git about the tree, so the first question is
+    # whether git can read it at all: in a source archive, and in a checkout
+    # git refuses (the dubious-ownership case), the binary exists but every
+    # command fails with an empty answer. Such a build is not a snapshot of
+    # anything and keeps the release fallback above — the demotion to a
+    # snapshot must not follow from `Git_FOUND` alone, or a shipped build from
+    # a tarball would point at the dev site.
     execute_process(
         COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -61,44 +46,67 @@ if(Git_FOUND)
         OUTPUT_STRIP_TRAILING_WHITESPACE
         RESULT_VARIABLE GIT_LOG_RESULT
     )
+
     if(GIT_LOG_RESULT EQUAL 0)
+        # Short commit hash for the status line.
         string(SUBSTRING ${GIT_COMMIT_HASH} 0 7 GIT_COMMIT_HASH)
         set(VERSION_HASH ${GIT_COMMIT_HASH})
-    endif()
 
-    # Dev snapshots keep a monotonic patch from the commit count. Guarded
-    # like the calls above: a container build may see a checked-out tree it
-    # cannot read as a repo (dubious ownership), in which case git fails and
-    # we keep the fallback 0 rather than leaving the patch empty.
-    if(NOT VERSION_IS_RELEASE)
-        # Track the last release's major/minor so a post-release commit never
-        # reports an *older* version than the tag it follows (e.g. 1.2.<n>-dev
-        # right after v1.3.0). Falls back to the defaults when no tag exists.
+        # Release: HEAD is exactly a vX.Y.Z tag.
         execute_process(
-            COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0 HEAD
+            COMMAND ${GIT_EXECUTABLE} describe --tags --exact-match HEAD
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            OUTPUT_VARIABLE GIT_LAST_TAG
+            OUTPUT_VARIABLE GIT_DESCRIBE
             ERROR_QUIET
             OUTPUT_STRIP_TRAILING_WHITESPACE
-            RESULT_VARIABLE GIT_LAST_TAG_RESULT
+            RESULT_VARIABLE GIT_DESCRIBE_RESULT
         )
-        if(GIT_LAST_TAG_RESULT EQUAL 0 AND GIT_LAST_TAG MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+
+        if(GIT_DESCRIBE_RESULT EQUAL 0 AND GIT_DESCRIBE MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
             set(VERSION_MAJOR ${CMAKE_MATCH_1})
             set(VERSION_MINOR ${CMAKE_MATCH_2})
-            # the assets a snapshot talks to are the last release's
-            set(VERSION_TAG "${GIT_LAST_TAG}")
-        endif()
+            set(VERSION_REVISION ${CMAKE_MATCH_3})
+            set(VERSION_STATUS "")
+            set(VERSION_IS_RELEASE TRUE)
+            set(VERSION_TAG "v${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION}")
+        else()
+            set(VERSION_IS_RELEASE FALSE)
 
-        execute_process(
-            COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            OUTPUT_VARIABLE VERSION_REVISION
-            ERROR_QUIET
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-            RESULT_VARIABLE GIT_REVLIST_RESULT
-        )
-        if(NOT GIT_REVLIST_RESULT EQUAL 0)
-            set(VERSION_REVISION 0)
+            # Dev snapshots keep a monotonic patch from the commit count.
+            # Guarded like the calls above: a repository may still fail these
+            # (a shallow or partial clone), in which case we keep the fallback
+            # 0 rather than leaving the patch empty.
+            #
+            # Track the last release's major/minor so a post-release commit
+            # never reports an *older* version than the tag it follows (e.g.
+            # 1.2.<n>-dev right after v1.3.0). Falls back to the defaults when
+            # no tag exists.
+            execute_process(
+                COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0 HEAD
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                OUTPUT_VARIABLE GIT_LAST_TAG
+                ERROR_QUIET
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                RESULT_VARIABLE GIT_LAST_TAG_RESULT
+            )
+            if(GIT_LAST_TAG_RESULT EQUAL 0 AND GIT_LAST_TAG MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+                set(VERSION_MAJOR ${CMAKE_MATCH_1})
+                set(VERSION_MINOR ${CMAKE_MATCH_2})
+                # the assets a snapshot talks to are the last release's
+                set(VERSION_TAG "${GIT_LAST_TAG}")
+            endif()
+
+            execute_process(
+                COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count
+                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                OUTPUT_VARIABLE VERSION_REVISION
+                ERROR_QUIET
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+                RESULT_VARIABLE GIT_REVLIST_RESULT
+            )
+            if(NOT GIT_REVLIST_RESULT EQUAL 0)
+                set(VERSION_REVISION 0)
+            endif()
         endif()
     endif()
 endif()
