@@ -2330,8 +2330,15 @@ static void onHtmlPageGet(const net_get_data* data)
 
     const char* zipPath = tic_fs_path(console->fs, filename);
 
+    // Only a file this run has written may be removed below. The zip is
+    // replaced in place, so the path can hold an earlier export of the same
+    // game: a run that fails before its first byte — the page no longer
+    // carrying the markers, or a write that cannot even start, which leaves
+    // the old file untouched — must not take that game away with it.
+    bool wrote = false;
+
     if(!errorOccurred)
-        errorOccurred = !fs_write(zipPath, exportData->stub, exportData->stubSize);
+        errorOccurred = !(wrote = fs_write(zipPath, exportData->stub, exportData->stubSize));
 
     if(!errorOccurred)
     {
@@ -2367,7 +2374,7 @@ static void onHtmlPageGet(const net_get_data* data)
 
     // a half-written zip is not a game: whoever picks it up would ship a page
     // with no cartridge in it
-    if(errorOccurred) remove(zipPath);
+    if(errorOccurred && wrote) remove(zipPath);
 
     free(page);
     free(exportData->stub);
