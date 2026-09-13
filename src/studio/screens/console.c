@@ -3650,7 +3650,7 @@ static void onExport_help(Console* console, const char* param, const char* name,
         ptr += sprintf(ptr, "# " TIC_NAME_FULL "\n" TIC_VERSION"\n" TIC_COPYRIGHT"\n");
 
         ptr += sprintf(ptr, "\n## Table of Contents\n\n");
-        ptr += sprintf(ptr, "- [Welcome](#welcome)\n- [Specification](#specification)\n- [Console commands](#console-commands)\n- [API functions](#api-functions)\n- [Button IDs](#button-ids)\n- [Key IDs](#key-ids)\n- [Startup options](#startup-options)\n- [Terms of Use](#terms-of-use)\n- [Privacy Policy](#privacy-policy)\n- [MIT License](#mit-license)\n");
+        ptr += sprintf(ptr, "- [Welcome](#welcome)\n- [Specification](#specification)\n- [Console commands](#console-commands)\n- [API functions](#api-functions)\n- [Button IDs](#button-ids)\n- [Key IDs](#key-ids)\n- [Startup options](#startup-options)\n- [Hotkeys](#hotkeys)\n- [Terms of Use](#terms-of-use)\n- [Privacy Policy](#privacy-policy)\n- [MIT License](#mit-license)\n");
 
         ptr += sprintf(ptr, "\n## Welcome\n%s\n", WelcomeText);
 
@@ -3700,6 +3700,30 @@ static void onExport_help(Console* console, const char* param, const char* name,
             printMdCell(&ptr, opt->help);
             ptr += sprintf(ptr, " |\n");
         }
+
+        // The hotkeys were fixed-width text in code blocks in the old export;
+        // the rewrite that turned the other lists into tables dropped them
+        // instead of converting them, which took the whole keyboard reference
+        // out of the document (and out of the released learn.md).
+        ptr += sprintf(ptr, "\n## Hotkeys\n");
+#define HOTKEYS_TABLE(title, rowtype, rows)                                            \
+        ptr += sprintf(ptr, "\n### " title "\n\n| Keys | Description |\n|---|---|\n"); \
+        FOR(const struct rowtype*, row, rows)                                          \
+        {                                                                              \
+            ptr += sprintf(ptr, "| `");                                                \
+            printMdCell(&ptr, row->section);                                           \
+            ptr += sprintf(ptr, "` | ");                                               \
+            printMdCell(&ptr, row->info);                                              \
+            ptr += sprintf(ptr, " |\n");                                               \
+        }
+        HOTKEYS_TABLE("General", HotkeysRowGeneral, HotkeysTextGeneral)
+        HOTKEYS_TABLE("Navigation", HotkeysRowNavigation, HotkeysTextNavigation)
+        HOTKEYS_TABLE("Code Editor", HotkeysRowCodeEditor, HotkeysTextCodeEditor)
+        HOTKEYS_TABLE("Sprite Editor", HotkeysRowSpriteEditor, HotkeysTextSpriteEditor)
+        HOTKEYS_TABLE("Map Editor", HotkeysRowMapEditor, HotkeysTextMapEditor)
+        HOTKEYS_TABLE("SFX Editor", HotkeysRowSFXEditor, HotkeysTextSFXEditor)
+        HOTKEYS_TABLE("Music Editor", HotkeysRowMusicEditor, HotkeysTextMusicEditor)
+#undef HOTKEYS_TABLE
 
         ptr += sprintf(ptr, "\n%s\n\n%s", TermsText, LicenseText);
 
