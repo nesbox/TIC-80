@@ -180,26 +180,45 @@ static void loadOptions(Config* config)
 
             // Every key this file does not carry keeps the value the player
             // already has — the one from the config above, or the default.
-            // Reading a missing key as 0 turned a file without a "volume"
-            // into a muted player, and leaving the options screen saved that
-            // zero back, so the silence was permanent.
+            // A reader answers zero/false when the key is not there, so each
+            // key is asked for first: reading a missing "volume" as 0 turned a
+            // file without it into a muted player, and leaving the options
+            // screen saved that zero back, so the silence was permanent. The
+            // second argument of a reader is the token its scan starts at, not
+            // a value to fall back to — passing the current volume there
+            // walked the scan past its own key and read the zero anyway.
 #if defined(CRT_SHADER_SUPPORT)
-            options->crt = json_bool("crt", options->crt);
+            if (json_has("crt", 0))
+                options->crt = json_bool("crt", 0);
 #endif
-            options->fullscreen = json_bool("fullscreen", options->fullscreen);
-            options->vsync = json_bool("vsync", options->vsync);
-            options->integerScale = json_bool("integerScale", options->integerScale);
-            options->volume = json_int("volume", options->volume);
-            options->autosave = json_bool("autosave", options->autosave);
+            if (json_has("fullscreen", 0))
+                options->fullscreen = json_bool("fullscreen", 0);
+
+            if (json_has("vsync", 0))
+                options->vsync = json_bool("vsync", 0);
+
+            if (json_has("integerScale", 0))
+                options->integerScale = json_bool("integerScale", 0);
+
+            if (json_has("volume", 0))
+                options->volume = json_int("volume", 0);
+
+            if (json_has("autosave", 0))
+                options->autosave = json_bool("autosave", 0);
 
             string mapping;
             json_string("mapping", 0, mapping.data, sizeof mapping);
             tic_tool_str2buf(mapping.data, strlen(mapping.data), &options->mapping, false);
 
 #if defined(BUILD_EDITORS)
-            options->keybindMode = json_int("keybindMode", options->keybindMode);
-            options->tabMode = json_int("tabMode", options->tabMode);
-            options->tabSize = json_int("tabSize", options->tabSize);
+            if (json_has("keybindMode", 0))
+                options->keybindMode = json_int("keybindMode", 0);
+
+            if (json_has("tabMode", 0))
+                options->tabMode = json_int("tabMode", 0);
+
+            if (json_has("tabSize", 0))
+                options->tabSize = json_int("tabSize", 0);
 #endif
         }
     }
