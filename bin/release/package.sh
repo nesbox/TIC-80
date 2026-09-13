@@ -135,6 +135,22 @@ pack_file "$ART/tic80-learn/learn.md" "$OUT/tic80-v$SHORT-learn.md"
 # (a bigger binary, not an error), so nothing will tell you.
 STUB_LANGS="lua ruby js moon yue fennel scheme squirrel wren wasm janet python"
 
+# A per-language stub is a game, not an IDE: the PRO alone export hands the
+# cartridge to someone who should only be able to play it. Every job builds
+# these with -DBUILD_EDITORS=OFF, and a flag that stops taking effect looks
+# exactly like one that took — so check the one thing that says it did: a
+# menu label only the editors carry. Only the per-language stubs are checked:
+# a universal stub keeps its editors — a free export hands out the player, as
+# it did in 1.1, and `alone` is the mode that strips the IDE.
+EDITOR_MARKER="SPRITE EDITOR"
+
+no_editors() { # <file> <name in the bundle>
+    if grep -qa "$EDITOR_MARKER" "$1"; then
+        echo "export stub carries the editors: $2 ($1) — BUILD_EDITORS=OFF did not take" >&2
+        missing=1
+    fi
+}
+
 if [ -d "$ART" ]; then
     tmp="$OUT/.stubs"
     rm -rf "$tmp"
@@ -153,6 +169,7 @@ if [ -d "$ART" ]; then
             [ -f "$lsrc" ] || lsrc="$lsrc.exe"
             if [ -f "$lsrc" ]; then
                 cp "$lsrc" "$tmp/$dst$lang"
+                no_editors "$tmp/$dst$lang" "$dst$lang"
             else
                 echo "export stub missing: $ART/tic80-$art-export-langs/tic80$lang[.exe]" >&2
                 missing=1
@@ -194,6 +211,7 @@ if [ -d "$ART" ]; then
     for lang in $STUB_LANGS; do
         if [ -f "$hdir/tic80$lang.js" ] && [ -f "$hdir/tic80$lang.wasm" ]; then
             html_stub "html$lang" "$hdir/tic80$lang.js" "$hdir/tic80$lang.wasm"
+            no_editors "$hdir/tic80$lang.wasm" "html$lang"
         else
             echo "export stub missing: $hdir/tic80$lang.js|.wasm" >&2
             missing=1

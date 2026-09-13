@@ -54,11 +54,15 @@ jobs:
           cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config MinSizeRel --parallel
 
+      # The universal stub: every free export asks for /export/<ver>/<system>,
+      # with no language suffix. It keeps its editors, as it did in 1.1 — a
+      # free export hands out the player, and it is `alone` (the per-language
+      # stubs below) that strips the IDE.
       - name: Build Export Stub
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. --fresh
+          cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. --fresh
           cmake --build . --config MinSizeRel --parallel
 
       - name: Deploy Export Stub
@@ -175,7 +179,7 @@ jobs:
       - name: Build Export Stub
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DBUILD_EDITORS=OFF .. --fresh
+          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON .. --fresh
           cmake --build . --parallel
 
       - name: Deploy Export Stub
@@ -280,7 +284,7 @@ jobs:
       - name: Build Export Stub
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DBUILD_EDITORS=OFF .. --fresh
+          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON .. --fresh
           cmake --build . --parallel
 
       - name: Deploy Export Stub
@@ -431,7 +435,7 @@ jobs:
       - name: Build Export Stub
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. --fresh
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. --fresh
           cmake --build . --parallel
 
       - name: Deploy Export Stub
@@ -524,7 +528,7 @@ jobs:
       - name: Build Export Stub
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. --fresh
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. --fresh
           cmake --build . --parallel
 
       - name: Deploy Export Stub
@@ -638,76 +642,82 @@ jobs:
         with:
           ruby-version: 2.6
 
+      # The per-language builds below are the PRO alone export stubs, so they
+      # carry no editors, the way the native per-language stubs don't: an
+      # exported game that opens the IDE on ESC is not the standalone the
+      # alone export promises. "Build all" is a different thing — it is the
+      # site's player, and the universal stub every free export downloads —
+      # so it keeps its editors.
       - name: Build lua
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=ON -DTIC80_TARGET=tic80lua .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=ON -DTIC80_TARGET=tic80lua .. --fresh
           cmake --build . --parallel
 
       - name: Build ruby
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_RUBY=ON -DTIC80_TARGET=tic80ruby .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_RUBY=ON -DTIC80_TARGET=tic80ruby .. --fresh
           cmake --build . --parallel
 
       - name: Build js
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_JS=ON -DTIC80_TARGET=tic80js .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_JS=ON -DTIC80_TARGET=tic80js .. --fresh
           cmake --build . --parallel
 
       - name: Build moon
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_MOON=ON -DTIC80_TARGET=tic80moon .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_MOON=ON -DTIC80_TARGET=tic80moon .. --fresh
           cmake --build . --parallel
       
       - name: Build yue
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_YUE=ON -DTIC80_TARGET=tic80yue .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_YUE=ON -DTIC80_TARGET=tic80yue .. --fresh
           cmake --build . --parallel
 
       - name: Build fennel
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_FENNEL=ON -DTIC80_TARGET=tic80fennel .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_FENNEL=ON -DTIC80_TARGET=tic80fennel .. --fresh
           cmake --build . --parallel
 
       - name: Build scheme
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_SCHEME=ON -DTIC80_TARGET=tic80scheme .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_SCHEME=ON -DTIC80_TARGET=tic80scheme .. --fresh
           cmake --build . --parallel
 
       - name: Build squirrel
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_SQUIRREL=ON -DTIC80_TARGET=tic80squirrel .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_SQUIRREL=ON -DTIC80_TARGET=tic80squirrel .. --fresh
           cmake --build . --parallel
 
       - name: Build wren
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_WREN=ON -DTIC80_TARGET=tic80wren .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_WREN=ON -DTIC80_TARGET=tic80wren .. --fresh
           cmake --build . --parallel
 
       - name: Build wasm
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_WASM=ON -DTIC80_TARGET=tic80wasm .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_WASM=ON -DTIC80_TARGET=tic80wasm .. --fresh
           cmake --build . --parallel
 
       - name: Build janet
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_JANET=ON -DTIC80_TARGET=tic80janet .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_JANET=ON -DTIC80_TARGET=tic80janet .. --fresh
           cmake --build . --parallel
 
       - name: Build python
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_PYTHON=ON -DTIC80_TARGET=tic80python .. --fresh
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_WITH_LUA=OFF -DBUILD_WITH_PYTHON=ON -DTIC80_TARGET=tic80python .. --fresh
           cmake --build . --parallel
 
       - name: Build all
