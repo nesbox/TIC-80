@@ -111,6 +111,15 @@ if(Git_FOUND)
     endif()
 endif()
 
+# The status line and the release flag have to agree: the code branches on
+# VERSION_IS_RELEASE to talk to production, and a build that does so must not
+# print itself as "-dev". A tree with no git at all kept the default status
+# while the flag stayed on, which is exactly the shipped build the fallback
+# above exists for.
+if(VERSION_IS_RELEASE)
+    set(VERSION_STATUS "")
+endif()
+
 # The C code branches on this: a dev snapshot talks to the dev site and asks
 # it for the release-style paths (see system.h TIC_HOST).
 if(VERSION_IS_RELEASE)
