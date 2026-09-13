@@ -29,10 +29,13 @@ else
     SINCE="$(git log -1 --format=%cs "$ROOT" 2>/dev/null || echo 2000-01-01)"
 fi
 
-NPRS="$(gh pr list --repo "$REPO" --state merged --base main --limit 1000 \
-    --search "merged:>=$SINCE" --json title --jq 'length')"
-PRS="$(gh pr list --repo "$REPO" --state merged --base main --limit 1000 \
-    --search "merged:>=$SINCE" --json title --jq '.[].title')"
+# The count and the titles come from one response: this is the largest query in
+# the script (a thousand pull requests), and asking twice let a pull request
+# merged in between be counted and not listed, or the other way round.
+PR_TITLES="$(gh pr list --repo "$REPO" --state merged --base main --limit 1000 \
+    --search "merged:>=$SINCE" --json title)"
+NPRS="$(jq 'length' <<<"$PR_TITLES")"
+PRS="$(jq -r '.[].title' <<<"$PR_TITLES")"
 
 COMMITS="$(git rev-list --count "$PREV_REF"..HEAD 2>/dev/null || echo unknown)"
 CONTRIBS="$(git shortlog -sn "$PREV_REF"..HEAD 2>/dev/null | wc -l | tr -d ' ')"
