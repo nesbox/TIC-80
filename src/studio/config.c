@@ -206,9 +206,19 @@ static void loadOptions(Config* config)
             if (json_has("autosave", 0))
                 options->autosave = json_bool("autosave", 0);
 
+            // Two bounds matter here: a file without "mapping" used to read
+            // the whole document (a missing key resolves to token 0, the root
+            // object), and the decoder writes one byte per two characters of
+            // its input without knowing how big the option is — so the length
+            // is capped at what the mapping can hold.
             string mapping;
-            json_string("mapping", 0, mapping.data, sizeof mapping);
-            tic_tool_str2buf(mapping.data, strlen(mapping.data), &options->mapping, false);
+            if (json_has("mapping", 0))
+            {
+                json_string("mapping", 0, mapping.data, sizeof mapping);
+                tic_tool_str2buf(mapping.data,
+                    MIN((s32)strlen(mapping.data), (s32)sizeof options->mapping * 2),
+                    &options->mapping, false);
+            }
 
 #if defined(BUILD_EDITORS)
             if (json_has("keybindMode", 0))
