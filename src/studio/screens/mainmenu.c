@@ -692,6 +692,8 @@ static void initGamepadMenu(StudioMainMenu* main)
         {"BACK",                showOptionsMenu, .back = true},
     };
 
+    static_assert(COUNT_OF(GamepadMenu) == GamepadMenu_Back + 1, "GamepadMenuCount");
+
     initGamepadButtons(main);
 
     studio_menu_init(main->menu, GamepadMenu, COUNT_OF(GamepadMenu),
