@@ -47,7 +47,7 @@ Write concise, readable Markdown release notes for players — not a raw PR list
 
 jq -n --arg model "deepseek-v4-flash" --arg content "$PROMPT" \
     '{model: $model, messages: [{role: "user", content: $content}], temperature: 0.3}' \
-    | curl -s https://api.deepseek.com/chat/completions \
+    | curl -sS -f https://api.deepseek.com/chat/completions \
         -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
         -d @- \
-    | jq -r '.choices[0].message.content'
+    | jq -er '.choices[0].message.content'
