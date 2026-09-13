@@ -23,6 +23,7 @@
 #include "studio/studio.h"
 #include "studio/config.h"
 #include "studio/screens/menu.h"
+#include "tic_assert.h"
 #include "mainmenu.h"
 
 typedef struct
@@ -195,6 +196,10 @@ static MenuOption VolumeOption =
     optionVolumeSet,
 };
 
+// Autosave belongs to the full client: it decides whether a cart SURF loaded
+// from the web is written to disk (surf.c), and the editors-less export stubs
+// are the builds without either, so the row toggled a setting nothing read.
+#if defined(BUILD_EDITORS)
 static s32 optionAutoSaveGet(void* data)
 {
     StudioMainMenu* main = data;
@@ -213,6 +218,7 @@ static MenuOption AutoSaveOption =
     optionAutoSaveGet,
     optionAutoSaveSet,
 };
+#endif
 
 #if defined(BUILD_EDITORS)
 static s32 optionTabSizeGet(void* data)
@@ -309,6 +315,7 @@ enum
     OptionsMenu_IntegerScaleOption,
     OptionsMenu_VolumeOption,
 #if defined(BUILD_EDITORS)
+    OptionsMenu_AutoSaveOption,
     OptionsMenu_Editor,
 #endif
     OptionsMenu_Gamepad,
@@ -325,14 +332,20 @@ static const MenuItem OptionMenu[] =
     {"FULLSCREEN",      NULL,   &FullscreenOption},
     {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
     {"VOLUME",          NULL,   &VolumeOption},
-    {"AUTOSAVE",        NULL,   &AutoSaveOption, "Keep carts loaded from the web"},
 #if defined(BUILD_EDITORS)
+    {"AUTOSAVE",        NULL,   &AutoSaveOption, "Keep carts loaded from the web"},
     {"EDITOR OPTIONS", showEditorMenu},
 #endif
     {"SETUP GAMEPAD",       showGamepadMenu},
     {""},
     {"BACK",            onBackFromOptionsMenu, .back = true},
 };
+
+// The menu cursor is an index into the table — a submenu returns to
+// OptionsMenu_<row> (menu.c backDone) — so an entry added to one and not to
+// the other silently points every later row one off. The autosave row did
+// exactly that; the assert is what catches the next one.
+static_assert(COUNT_OF(OptionMenu) == OptionsMenu_Back + 1, "OptionMenuCount");
 
 static void showOptionsMenu(void* data, s32 pos);
 static void gameMenuHandler(void* data, s32 pos)
@@ -514,6 +527,8 @@ static const MenuItem MainMenu[] =
     {""},
     {"QUIT TIC-80", onExitStudio},
 };
+
+static_assert(COUNT_OF(MainMenu) == MainMenu_Quit + 1, "MainMenuCount");
 
 static void showMainMenu(void* data, s32 pos)
 {
