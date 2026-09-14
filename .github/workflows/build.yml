@@ -413,11 +413,18 @@ jobs:
       - name: Install
         run: brew uninstall --ignore-dependencies libidn2
 
+      # `cmake --build . --parallel` with no value hands make a bare `-j`, which
+      # is no bound at all: on the macOS runners, whose per-user process limit
+      # is small, SDL2's three targets alone put hundreds of compilers in
+      # flight and clang starts failing to spawn with "Resource temporarily
+      # unavailable" (the flake that reran build/macos-arm64 on 13.09). The
+      # count below is what the runner may start at once. CMAKE_BUILD_PARALLEL_LEVEL
+      # does not help: an explicit --parallel without a value ignores it.
       - name: Build
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
+          cmake --build . --parallel 3
 
       - name: Deploy
         uses: actions/upload-artifact@v6
@@ -430,13 +437,13 @@ jobs:
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
+          cmake --build . --parallel 3
 
       - name: Build Export Stub
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. --fresh
-          cmake --build . --parallel
+          cmake --build . --parallel 3
 
       - name: Deploy Export Stub
         uses: actions/upload-artifact@v6
@@ -464,7 +471,7 @@ jobs:
             fi
             cd "$GITHUB_WORKSPACE/build"
             cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" .. --fresh
-            cmake --build . --parallel
+            cmake --build . --parallel 3
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
 
@@ -506,11 +513,18 @@ jobs:
       - name: Install
         run: brew uninstall --ignore-dependencies libidn2
 
+      # `cmake --build . --parallel` with no value hands make a bare `-j`, which
+      # is no bound at all: on the macOS runners, whose per-user process limit
+      # is small, SDL2's three targets alone put hundreds of compilers in
+      # flight and clang starts failing to spawn with "Resource temporarily
+      # unavailable" (the flake that reran build/macos-arm64 on 13.09). The
+      # count below is what the runner may start at once. CMAKE_BUILD_PARALLEL_LEVEL
+      # does not help: an explicit --parallel without a value ignores it.
       - name: Build
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
+          cmake --build . --parallel 3
 
       - name: Deploy
         uses: actions/upload-artifact@v6
@@ -523,13 +537,13 @@ jobs:
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
+          cmake --build . --parallel 3
 
       - name: Build Export Stub
         run: |
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. --fresh
-          cmake --build . --parallel
+          cmake --build . --parallel 3
 
       - name: Deploy Export Stub
         uses: actions/upload-artifact@v6
@@ -557,7 +571,7 @@ jobs:
             fi
             cd "$GITHUB_WORKSPACE/build"
             cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" .. --fresh
-            cmake --build . --parallel
+            cmake --build . --parallel 3
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
 
