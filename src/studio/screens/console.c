@@ -2831,7 +2831,7 @@ static void onRunCommand(Console* console)
 {
     commandDone(console);
 
-    runGame(console->studio);
+    runGame(console->studio, RUN_FROM_STUDIO);
 }
 
 static void onResumeCommand(Console* console)
@@ -4713,7 +4713,9 @@ static void tick(Console* console)
     {
         if(console->tickCounter >= (u32)(console->args.skip ? 1 : TIC80_FRAMERATE))
         {
-            runGame(console->studio);
+            // The cart came in as a file — a command line argument, a dropped
+            // file, the web player's cart — so this is the player's run.
+            runGame(console->studio, RUN_FROM_PLAYER);
 
             start->embed = false;
             studioRomLoaded(console->studio);

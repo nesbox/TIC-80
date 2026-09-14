@@ -473,6 +473,21 @@ static void onResumeGame(void* data, s32 pos)
     resumeGame(main->studio);
 }
 
+// The back of the top level menu (ESC or the gamepad's B): the menu sits over
+// a paused run and belongs to whoever started it — a player's run resumes
+// under it, while a dev run, and a menu opened in the studio, step out to the
+// editor. The same step ESC takes in RUN mode, so a run of a cart with a game
+// menu is left with ESC ESC instead of a walk to CLOSE GAME (#2937).
+static void onMenuBack(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+
+    if(studio_menu_over_player_run(main->studio))
+        onResumeGame(data, pos);
+    else
+        leaveRun(main->studio);
+}
+
 static void onResetGame(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
@@ -540,7 +555,7 @@ static void showMainMenu(void* data, s32 pos)
     initGameMenu(main);
 
     s32 offset = mainMenuOffset(main);
-    studio_menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, studio_is_cart_loaded(main->studio) ? onResumeGame : NULL, main);
+    studio_menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, studio_is_cart_loaded(main->studio) ? onMenuBack : NULL, main);
 }
 
 static void showOptionsMenuPos(void* data, s32 pos)
