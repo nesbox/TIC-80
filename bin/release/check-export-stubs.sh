@@ -22,7 +22,7 @@
 #      on a vX.Y.Z tag, so for a dev run build from a commit that is not on
 #      one — or put the tag on the commit before it while cmake configures,
 #      which is what the 1.2.0 check did:
-#          cmake -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_BUILD_TYPE=MinSizeRel <repo>
+#          cmake -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_BUILD_TYPE=Release <repo>
 #      then read the build's version.h: TIC_VERSION_IS_RELEASE must be 0, and
 #      TIC_VERSION_TAG the directory the site serves ("v1.2.0").
 #   2. Deploy the release whose stubs are being checked — the server repo's

@@ -30,7 +30,7 @@ param(
     [switch]$Warnings
 )
 
-$BUILD_TYPE = "MinSizeRel"
+$BUILD_TYPE = "Release"
 $SDLGPU_FLAG = "-DBUILD_SDLGPU=On"
 $PRO_VERSION_FLAG = ""
 $ARCH_FLAGS = "-A x64"
