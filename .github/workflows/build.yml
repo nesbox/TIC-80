@@ -824,6 +824,12 @@ jobs:
       # site's player, and the universal stub every free export downloads —
       # so it keeps its editors.
 
+      # The two builds are split by trigger, not by job: the stubs run on a
+      # tag or a dispatch like the native loops, the player always. Nothing
+      # but a release reads the per-language wasm out of this artifact —
+      # package.sh, which release.yml runs on a tag, is the only consumer,
+      # and the dev flow takes the player's three files.
+
       # The twelve per-language stubs the PRO alone export downloads — the same
       # work as the native jobs' loop, in one directory: no --fresh between the
       # builds, so SDL2 and whatever a language does not touch are compiled
@@ -831,7 +837,13 @@ jobs:
       # one below). Every language flag is spelled out on every pass, which is
       # what --fresh used to buy, and it also clears the BUILD_WITH_ALL the
       # "Build all" step leaves on when the order is reversed.
+      #
+      # About seven minutes of emscripten for artifacts only a release uses:
+      # every push used to pay that. The gate cannot change what a release
+      # builds — on a tag these steps run in the same order as before — it
+      # only keeps a branch or a pull request from paying for them.
       - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
         shell: bash
         run: |
           set -euo pipefail
