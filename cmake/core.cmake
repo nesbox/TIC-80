@@ -109,6 +109,10 @@ if(BUILD_STATIC)
         target_link_libraries(tic80core PRIVATE janet)
     endif()
 
+    if(BUILD_WITH_MINISCRIPT)
+        target_link_libraries(tic80core PRIVATE miniscript)
+    endif()
+
     if(BUILD_WITH_WASM)
         target_link_libraries(tic80core PRIVATE wasm)
     endif()

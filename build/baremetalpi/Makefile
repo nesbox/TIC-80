@@ -48,6 +48,7 @@ LIBS :=  \
     $(TIC80LIB)/libzlib.a \
     $(TIC80LIB)/libpng.a \
     $(TIC80LIB)/libruby.a \
+    $(TIC80LIB)/libminiscript.a \
     $(MRUBYDIR)/build/target/lib/libmruby.a \
     $(NEWLIBDIR)/lib/libc.a \
     $(NEWLIBDIR)/lib/libcirclenewlib.a \
