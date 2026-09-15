@@ -44,7 +44,12 @@ fi
 
 # Ad-hoc sign so Gatekeeper reports "unidentified developer" (right-click →
 # Open) rather than "damaged". No Developer ID — that's notarization.
-codesign --force --deep -s - "$APP" >/dev/null 2>&1 || true
+# A failure here is not cosmetic: an unsigned bundle is what produces the
+# "TIC-80.app is damaged and can't be opened" report, so let it stop the
+# release instead of shipping one (`--deep` is deprecated by Apple but is
+# still the documented ad-hoc form; if it ever stops being accepted, this
+# line now says so loudly).
+codesign --force --deep -s - "$APP" >/dev/null
 
 # Stage the .app with an /Applications shortcut for drag-and-drop install.
 STAGE=".dmg-stage"

@@ -36,7 +36,10 @@ jobs:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         shell: bash
         run: |
-          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
+            exit 1
+          fi
           VER="${GITHUB_REF_NAME#v}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/windows-amd64/LATEST/archive/default
           unzip -q butler.zip
@@ -81,7 +84,10 @@ jobs:
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
-          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
+            exit 1
+          fi
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
@@ -122,7 +128,10 @@ jobs:
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
-          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
+            exit 1
+          fi
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-arm64/LATEST/archive/default
@@ -163,7 +172,10 @@ jobs:
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
-          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
+            exit 1
+          fi
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-amd64/LATEST/archive/default
@@ -211,7 +223,10 @@ jobs:
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
-          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
+            exit 1
+          fi
           VER="${GITHUB_REF_NAME#v}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip
@@ -254,7 +269,10 @@ jobs:
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
         run: |
-          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
+            exit 1
+          fi
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default

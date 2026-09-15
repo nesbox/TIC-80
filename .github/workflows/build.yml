@@ -787,12 +787,21 @@ jobs:
       - name: Build
         run: |
           cd build/android
+          # The signing passwords are repository secrets — the keystore path
+          # and alias live in gradle.properties, the passwords never do. Fail
+          # here rather than inside the signer: without them the release build
+          # stops, and a step that produced no APK must not look like one that
+          # produced a good one.
+          : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
+          : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
           chmod +x gradlew
           ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk tic80.apk
 
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Deploy
         uses: actions/upload-artifact@v6

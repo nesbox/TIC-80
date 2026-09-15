@@ -66,6 +66,11 @@ jobs:
 
       - uses: actions/upload-artifact@v6
         with:
+          # every other upload in the pipeline fails on an empty glob; this
+          # one was the exception, so a glob that stopped matching would have
+          # published a draft without the macOS assets and only then broken
+          # stage-itch.sh, after the Windows and Linux channels were pushed
+          if-no-files-found: error
           name: tic80-mac-pkg
           path: |
             out/*.dmg

@@ -51,7 +51,10 @@ jobs:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
           VERSION: ${{ inputs.version }}
         run: |
-          if [ -z "$BUTLER_API_KEY" ]; then echo "BUTLER_API_KEY not set; skipping"; exit 0; fi
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
+            exit 1
+          fi
           VER="${VERSION#v}"
           curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip -d butler

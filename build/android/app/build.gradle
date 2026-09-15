@@ -7,6 +7,20 @@ else {
     apply plugin: 'com.android.library'
 }
 
+// The keystore passwords are secrets and are not in the repository: the
+// environment wins (the CI passes the repository secrets there), a gradle
+// property (-PRELEASE_STORE_PASSWORD=…) is the local fallback. A release
+// build without either fails here with the name of what is missing instead
+// of failing inside the signer with "keystore was tampered with"; a debug
+// build never asks.
+def signingSecret = { String name ->
+    def value = System.getenv(name) ?: project.findProperty(name)
+    if (!value && gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) {
+        throw new GradleException("${name} is not set — export it or pass -P${name}=… (see build/android/gradle.properties)")
+    }
+    return value
+}
+
 // The version the APK reports, from git tags with the same rule as
 // cmake/version.cmake: HEAD on a "vX.Y.Z" tag is that release, any other
 // commit is a snapshot that keeps the last tag's major/minor and takes the
@@ -126,9 +140,12 @@ android {
 
         release {
            storeFile file(RELEASE_STORE_FILE)
-           storePassword RELEASE_STORE_PASSWORD
+           // the passwords are secrets: the environment first (CI passes the
+           // repository secrets there), then a gradle property (-P…) for a
+           // local build. Neither is in the repository — see gradle.properties
+           storePassword signingSecret('RELEASE_STORE_PASSWORD')
            keyAlias RELEASE_KEY_ALIAS
-           keyPassword RELEASE_KEY_PASSWORD
+           keyPassword signingSecret('RELEASE_KEY_PASSWORD')
        }
     }
 

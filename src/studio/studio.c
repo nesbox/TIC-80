@@ -1656,11 +1656,18 @@ void runGame(Studio* studio, RunOrigin origin)
             return;
         }
 
-        studio->playerRun = origin == RUN_FROM_PLAYER;
+        // A run asked for from the pause menu is a restart of the run the
+        // menu sits over (menuOverRun): it keeps that run's origin, or the
+        // player's cart would become a studio run for the rest of the
+        // session — the pause menu would never come back and ESC would land
+        // in the editor. A menu opened in the studio is not that case: the
+        // run it starts is the studio's, like any other Ctrl+R.
+        if(studio->mode != TIC_MENU_MODE || !studio->menuOverRun)
+            studio->playerRun = origin == RUN_FROM_PLAYER;
 
-        // The pause menu is not a place to come back to: a run asked for from
-        // it (Ctrl+R over a paused game) keeps the origin of the run the menu
-        // sits over, or leaveRun would have nowhere to go.
+        // The pause menu is not a place to come back to either: runFrom keeps
+        // the origin of the run the menu sits over, or leaveRun would have
+        // nowhere to go (gotoMenu sets it for a menu opened in the studio).
         if(studio->mode != TIC_MENU_MODE)
             studio->runFrom = studio->mode;
 

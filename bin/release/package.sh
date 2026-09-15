@@ -139,14 +139,24 @@ STUB_LANGS="lua ruby js moon yue fennel scheme squirrel wren wasm janet python"
 # cartridge to someone who should only be able to play it. Every job builds
 # these with -DBUILD_EDITORS=OFF, and a flag that stops taking effect looks
 # exactly like one that took — so check the one thing that says it did: a
-# menu label only the editors carry. Only the per-language stubs are checked:
-# a universal stub keeps its editors — a free export hands out the player, as
-# it did in 1.1, and `alone` is the mode that strips the IDE.
+# menu label only the editors carry. A universal stub is the other way round:
+# it keeps its editors — a free export hands out the player, as it did in
+# 1.1, and `alone` is the mode that strips the IDE — so it is checked for the
+# marker rather than for its absence. That second check is what would catch a
+# free build quietly losing the editors (the Android build did exactly that
+# in #2889) before every free export ships without an IDE.
 EDITOR_MARKER="SPRITE EDITOR"
 
 no_editors() { # <file> <name in the bundle>
     if grep -qa "$EDITOR_MARKER" "$1"; then
         echo "export stub carries the editors: $2 ($1) — BUILD_EDITORS=OFF did not take" >&2
+        missing=1
+    fi
+}
+
+has_editors() { # <file> <name in the bundle>
+    if ! grep -qa "$EDITOR_MARKER" "$1"; then
+        echo "universal export stub lost its editors: $2 ($1) — a free build was made with BUILD_EDITORS=OFF" >&2
         missing=1
     fi
 }
@@ -160,6 +170,7 @@ if [ -d "$ART" ]; then
         src="$ART/tic80-$art-export/$file"
         if [ -f "$src" ]; then
             cp "$src" "$tmp/$dst"
+            has_editors "$tmp/$dst" "$dst"
         else
             echo "export stub missing: $src" >&2
             missing=1
@@ -201,6 +212,7 @@ if [ -d "$ART" ]; then
     }
     if [ -f "$hdir/tic80.js" ] && [ -f "$hdir/tic80.wasm" ]; then
         html_stub html "$hdir/tic80.js" "$hdir/tic80.wasm"
+        has_editors "$hdir/tic80.wasm" "html"
     else
         echo "export stub missing: $hdir/{tic80.js,tic80.wasm}" >&2
         missing=1
