@@ -7,6 +7,103 @@ else {
     apply plugin: 'com.android.library'
 }
 
+// The keystore passwords are secrets and are not in the repository: the
+// environment wins (the CI passes the repository secrets there), a gradle
+// property (-PRELEASE_STORE_PASSWORD=…) is the local fallback. A release
+// build without either fails here with the name of what is missing instead
+// of failing inside the signer with "keystore was tampered with"; a debug
+// build never asks.
+def signingSecret = { String name ->
+    def value = System.getenv(name) ?: project.findProperty(name)
+    if (!value && gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) {
+        throw new GradleException("${name} is not set — export it or pass -P${name}=… (see build/android/gradle.properties)")
+    }
+    return value
+}
+
+// The version the APK reports, from git tags with the same rule as
+// cmake/version.cmake: HEAD on a "vX.Y.Z" tag is that release, any other
+// commit is a snapshot that keeps the last tag's major/minor and takes the
+// commit count as its patch, suffixed "-dev". The tags have to be in the
+// checkout (the CI jobs fetch the full history); without them the defaults
+// version.cmake carries are used.
+def ticRepoRoot = rootProject.projectDir.parentFile.parentFile
+def ticGit = { List<String> args ->
+    // ProcessBuilder rather than Project.exec: exec was removed in Gradle 9,
+    // and this file is built by the wrapper's 9.0.0.
+    try {
+        def process = new ProcessBuilder(['git'] + args)
+                .directory(ticRepoRoot)
+                .redirectErrorStream(true)
+                .start()
+        def text = process.inputStream.getText('UTF-8')
+        process.waitFor()
+        process.exitValue() == 0 ? text.trim() : null
+    } catch (Exception ignored) {
+        null
+    }
+}
+// A tag or a number we cannot read leaves the fallback in place; a count
+// that overflows the versionCode layout would be a number of commits no
+// release ever has.
+def ticInt = { String text, int fallback ->
+    (text != null && text ==~ /\d{1,9}/) ? (text as int) : fallback
+}
+def ticVersionMajor = 1
+def ticVersionMinor = 2
+def ticVersionPatch = 0          // the release patch — the versionCode's low part
+def ticVersionShownPatch = 0     // what the name shows: the commit count for a snapshot
+def ticVersionStatus = '-dev'
+
+// Tags cut before the semver scheme carry the old commit counter as their
+// patch (v1.1.2837), which does not fit the versionCode layout: those keep
+// the major/minor slot alone, so a later release can still be installed
+// over them.
+def ticCodePatch = { int patch -> patch < 100 ? patch : 0 }
+
+def ticTag = ticGit(['describe', '--tags', '--exact-match', 'HEAD'])
+if (ticTag != null && ticTag ==~ /v\d{1,3}\.\d{1,3}\.\d{1,9}/) {
+    def parts = ticTag.substring(1).tokenize('.')
+    ticVersionMajor = parts[0] as int
+    ticVersionMinor = parts[1] as int
+    ticVersionShownPatch = parts[2] as int
+    ticVersionPatch = ticCodePatch(ticVersionShownPatch)
+    ticVersionStatus = ''
+} else {
+    def lastTag = ticGit(['describe', '--tags', '--abbrev=0', 'HEAD'])
+    if (lastTag != null && lastTag ==~ /v\d{1,3}\.\d{1,3}\.\d{1,9}/) {
+        def parts = lastTag.substring(1).tokenize('.')
+        ticVersionMajor = parts[0] as int
+        ticVersionMinor = parts[1] as int
+        // A snapshot has to be installable over the release it follows — the
+        // testers already have that APK — and the next release has to be
+        // installable over the snapshot: the code takes the patch it follows,
+        // plus one. Equal codes replace each other, lower ones are refused
+        // with INSTALL_FAILED_VERSION_DOWNGRADE, which is what a snapshot
+        // built after a patch release used to hit.
+        ticVersionPatch = ticCodePatch(parts[2] as int) + 1
+    }
+    // The commit count names the snapshot but cannot go in the code: it would
+    // outrank every release of the same major/minor.
+    def commitCount = ticGit(['rev-list', 'HEAD', '--count'])
+    if (commitCount == null) {
+        logger.warn("TIC-80: no git tags in ${ticRepoRoot}, the APK reports a snapshot version")
+    }
+    ticVersionShownPatch = ticInt(commitCount, 0)
+}
+// Android wants one integer that never goes backwards: the release numbers
+// land where the old hand-kept 10200 (1.02.00) did, and a snapshot shares
+// the code of the release it follows (minor and patch stay under 100).
+def ticVersionCode = ticVersionMajor * 10000 + ticVersionMinor * 100 + ticVersionPatch
+def ticVersionName = "${ticVersionMajor}.${ticVersionMinor}.${ticVersionShownPatch}${ticVersionStatus}"
+
+// The PRO build asks for its features on the command line (release-pro.yml
+// passes -PPRO=ON); every other build — the free APK, the snapshots — stays
+// free. This gradle project is the only Android build path there is, so the
+// flag cannot be left to the caller's memory: with PRO hardcoded off, the
+// paid channel shipped a build without the features it pays for.
+def ticPro = project.findProperty('PRO') ?: 'OFF'
+
 android {
     namespace "com.nesbox.tic"
     compileSdkVersion 31
@@ -17,10 +114,14 @@ android {
         }
         minSdkVersion 24 // Android 7.0 (Nougat)
         targetSdkVersion 31 // Android 12 (Snow Cone)
-        versionCode 10200
-        versionName "1.02.00"
+        // The manifest carries no version of its own: AGP writes these into
+        // the merged one (see AndroidManifest.xml).
+        versionCode ticVersionCode
+        versionName ticVersionName
         ndk {
-            abiFilters 'arm64-v8a', 'armeabi-v7a'
+            // arm64 only: the 32-bit ARM libs doubled the APK (22 MB against
+            // 13 MB) and only serve devices running a 32-bit Android.
+            abiFilters 'arm64-v8a'
         }
         externalNativeBuild {
             ndkBuild {
@@ -28,9 +129,7 @@ android {
             }
             cmake {
                 arguments "-DBUILD_WITH_RUBY=OFF",
-                            "-DBUILD_PRO=OFF",
-                            "-DBUILD_EDITORS=OFF",
-                            "-DBUILD_SURF=ON",
+                            "-DBUILD_PRO=${ticPro}",
                             "-DCMAKE_BUILD_TYPE=Release",
                             "-DBUILD_WITH_ALL=ON"
             }
@@ -41,9 +140,12 @@ android {
 
         release {
            storeFile file(RELEASE_STORE_FILE)
-           storePassword RELEASE_STORE_PASSWORD
+           // the passwords are secrets: the environment first (CI passes the
+           // repository secrets there), then a gradle property (-P…) for a
+           // local build. Neither is in the repository — see gradle.properties
+           storePassword signingSecret('RELEASE_STORE_PASSWORD')
            keyAlias RELEASE_KEY_ALIAS
-           keyPassword RELEASE_KEY_PASSWORD
+           keyPassword signingSecret('RELEASE_KEY_PASSWORD')
        }
     }
 

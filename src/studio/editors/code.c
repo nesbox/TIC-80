@@ -2821,7 +2821,7 @@ static void processViKeyboard(Code* code)
         else if (shift && keyWasPressed(code->studio, tic_key_w))
             saveProject(code->studio);
         else if (shift && keyWasPressed(code->studio, tic_key_r))
-            runGame(code->studio);
+            runGame(code->studio, RUN_FROM_STUDIO);
 
         else if (clear && keyWasPressed(code->studio, tic_key_c))
         {
@@ -3729,7 +3729,7 @@ static void drawRunButton(Code* code, s32 x, s32 y)
         over = true;
 
         if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-            runGame(code->studio);
+            runGame(code->studio, RUN_FROM_STUDIO);
     }
 
     drawBitIcon(code->studio, tic_icon_run, x, y, over ? tic_color_grey : tic_color_light_grey);

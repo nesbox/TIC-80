@@ -5,7 +5,7 @@ on:
     types: [published]
 
 env:
-  BUILD_TYPE: MinSizeRel
+  BUILD_TYPE: Release
 
 jobs:
   webapp:
