@@ -330,30 +330,70 @@ have OpenGL drivers enabled. Run `sudo raspi-config`, then select 7
 for "Advanced Options", followed by 6 for "GL Drivers", and enable "GL
 (Fake KMS) Desktop Driver". After changing this setting, reboot.
 
-## Mac
-install `Command Line Tools for Xcode` and `brew` package manager
+## macOS & iOS (Native Apple Backend)
 
-run the following commands in the Terminal
-```
-brew install git cmake
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_WITH_ALL=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-make -j4
+TIC-80 includes a native Apple backend built using **Metal**, **AVFoundation**, **GameController**, and **Swift**. It shares the rendering, audio, and gamepad code between macOS and iOS/iPadOS.
+
+### macOS (Native Apple App)
+
+To configure and compile the native macOS application:
+1. Ensure you have Xcode or Command Line Tools for Xcode installed.
+2. Install `cmake` and `ninja` (recommended) via Homebrew:
+   ```bash
+   brew install cmake ninja
+   ```
+3. Configure and build:
+   ```bash
+   cmake -G Ninja -B build -DBUILD_APPLE=ON
+   cmake --build build
+   ```
+   The compiled executable will be located at `build/bin/tic80`.
+
+### iOS / iPadOS (iOS Simulator)
+
+To compile the native iOS application and run it in the iOS Simulator:
+1. Configure and build for the `iphonesimulator` target:
+   ```bash
+   cmake -G Ninja -B build -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_Swift_COMPILER_TARGET=arm64-apple-ios15.0-simulator -DBUILD_APPLE=ON
+   cmake --build build
+   ```
+   This generates the iOS App Bundle: `build/bin/tic80.app`.
+2. Start the iOS Simulator app:
+   ```bash
+   open -a Simulator
+   ```
+3. Install the app onto the booted simulator:
+   ```bash
+   xcrun simctl install booted build/bin/tic80.app
+   ```
+4. Launch the app:
+   ```bash
+   xcrun simctl launch booted com.nesbox.tic
+   ```
+
+### SDL2-based macOS App (Legacy)
+
+Alternatively, you can build the legacy SDL2-based macOS version using the following commands:
+```bash
+brew install git cmake sdl2
+cmake -B build -DBUILD_WITH_ALL=On .
+cmake --build build
 ```
 
-to create application icon for development version
-```
+### Creating a macOS App Bundle with Icon
+
+For both native and legacy command-line builds, you can create a double-clickable macOS application bundle with an icon:
+```bash
 mkdir -p ~/Applications/tic80dev.app/Contents/{MacOS,Resources}
-cp -f macosx/tic80.plist ~/Applications/tic80dev.app/Contents/Info.plist
-cp -f macosx/tic80.icns ~/Applications/tic80dev.app/Contents/Resources
+cp -f build/macosx/tic80.plist ~/Applications/tic80dev.app/Contents/Info.plist
+cp -f build/macosx/tic80.icns ~/Applications/tic80dev.app/Contents/Resources
 cat > ~/Applications/tic80dev.app/Contents/MacOS/tic80 <<EOF
 #!/bin/sh
-exec /Users/nesbox/projects/TIC-80/build/bin/tic80 --skip >/dev/null
+exec $(pwd)/build/bin/tic80 --skip >/dev/null
 EOF
 chmod +x ~/Applications/tic80dev.app/Contents/MacOS/tic80
 ```
-Make sure to update the absolute path to the tic80 binary in the script, or
-update the launch arguments.
+*(Make sure to run this script from the project root directory, or update the path to the executable accordingly).*
 
 ## FreeBSD
 run the following commands in the Terminal
@@ -380,9 +420,7 @@ sudo ln -s /usr/local/lib/dri/swrast_dri.so /usr/local/lib/dri-devel/
 TIC-80 can now be run with `tic80` (if installed) or `./tic80` (with no installation).
 
 ## iOS / tvOS
-You can find iOS/tvOS version here
-- 0.60.3: https://github.com/brunophilipe/TIC-80
-- 0.45.0: https://github.com/CliffsDover/TIC-80
+TIC-80 now has native iOS/iPadOS support built directly into the repository using the Apple native backend (Metal/AVFoundation/Swift). See the [Build Instructions for iOS](#ios--ipados-ios-simulator) to build and run it on your device or simulator.
 
 ## Android
 You can find the compiled version ready download and install [on F-Droid](https://f-droid.org/packages/com.nesbox.tic/):  

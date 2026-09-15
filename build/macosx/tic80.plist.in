@@ -26,5 +26,14 @@
   <string>https://tic80.com © 2017-@VERSION_YEAR@</string>
   <key>NSHighResolutionCapable</key>
   <true/>
+  <key>UILaunchScreen</key>
+  <dict/>
+  <key>UIRequiresFullScreen</key>
+  <true/>
+  <key>UIDeviceFamily</key>
+  <array>
+    <integer>1</integer>
+    <integer>2</integer>
+  </array>
 </dict>
 </plist>
