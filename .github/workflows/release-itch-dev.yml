@@ -56,7 +56,7 @@ jobs:
             exit 1
           fi
           VER="${VERSION#v}"
-          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip -d butler
           chmod +x butler/butler
           butler/butler push stage/windows     nesbox/tic80-dev:windows     --userversion "$VER"

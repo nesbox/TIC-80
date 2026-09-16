@@ -41,7 +41,7 @@ jobs:
             exit 1
           fi
           VER="${GITHUB_REF_NAME#v}"
-          curl -L -o butler.zip https://broth.itch.ovh/butler/windows-amd64/LATEST/archive/default
+          curl -L -o butler.zip https://broth.itch.zone/butler/windows-amd64/LATEST/archive/default
           unzip -q butler.zip
           # The layouts itch needs, explained in bin/release/stage-itch.sh:
           # one folder per channel, named without the version.
@@ -90,7 +90,7 @@ jobs:
           fi
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
-          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
           # The layouts itch needs, explained in bin/release/stage-itch.sh:
@@ -134,7 +134,7 @@ jobs:
           fi
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
-          curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-arm64/LATEST/archive/default
+          curl -L -o butler.zip https://broth.itch.zone/butler/darwin-arm64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
           # The layouts itch needs, explained in bin/release/stage-itch.sh:
@@ -178,7 +178,7 @@ jobs:
           fi
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
-          curl -L -o butler.zip https://broth.itch.ovh/butler/darwin-amd64/LATEST/archive/default
+          curl -L -o butler.zip https://broth.itch.zone/butler/darwin-amd64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
           # The layouts itch needs (see the arm64 job above).
@@ -213,11 +213,21 @@ jobs:
       - name: Build PRO
         run: |
           cd build/android
+          # The signing passwords are repository secrets, and a release build
+          # without them stops inside signingSecret with the name of what is
+          # missing (build/android/app/build.gradle:17). This job signs the
+          # PRO APK exactly as build.yml signs the free one, and it was missed
+          # when the passwords left the tree on 15.09: the 1.2.0 publish
+          # carried the same bug in both android jobs.
+          : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
+          : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
           chmod +x gradlew
           ./gradlew assembleRelease -PPRO=ON
           cp app/build/outputs/apk/release/app-release.apk tic80.apk
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Push to itch.io
         env:
@@ -228,7 +238,7 @@ jobs:
             exit 1
           fi
           VER="${GITHUB_REF_NAME#v}"
-          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
           # The layouts itch needs (see the windows job above).
@@ -275,7 +285,7 @@ jobs:
           fi
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
-          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
+          curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip -d butler
           chmod +x butler/butler
           butler/butler push stage/windows     nesbox/tic80:windows     --userversion "$VER"
