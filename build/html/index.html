@@ -8,21 +8,16 @@
     <title>TIC-80 tiny computer</title>
 
     <style type="text/css">
-        .modal{display:none;position:fixed;z-index:1;padding-top:100px;left:0;top:0;width:100%;height:100%;overflow:auto;background-color:#000;background-color:rgba(0,0,0,.4)}
-        .modal-content{color: #333c57;position:relative;background-color:#fefefe;margin:auto;padding:2px 16px;border:1px solid #888;width:500px;box-shadow:0 4px 8px 0 rgba(0,0,0,.2),0 6px 20px 0 rgba(0,0,0,.19);-webkit-animation-name:animatetop;-webkit-animation-duration:.4s;animation-name:animatetop;animation-duration:.4s}@keyframes animatetop{from{top:-300px;opacity:0}to{top:0;opacity:1}}
-        .close{color:#000;float:right;font-size:28px;font-weight:700}
-        .close:focus,
-        .close:hover{color:#000;text-decoration:none;cursor:pointer}
-        
         #game-frame > div { font-size: 44px; font-family: monospace; font-weight: bold;}
 
         /* You can set custom dimensions here */
-        .game { width: 100vw; height: 100vh; }
+        .game { width: 100vw; height: 100vh; height: 100dvh; }
 
-        /* Touch controls: hidden until a game starts on a touch device, so
-           desktop rendering is untouched. Shared by the site's player and by
-           every exported game — one page, one copy. */
+        /* Uncomment to remove the frame on top of the canvas and start the game directly */
+        /* #game-frame { display: none; } */
+
         :root { --borderColor: #999; --activeColor: #777; }
+        .game { position: relative; }
         div[hidden] { display: none; }
         .touch-control { color: var(--borderColor); border: 1px solid var(--borderColor); display: flex; align-items: center; justify-content: center; font-family: sans-serif; font-weight: bold; pointer-events: auto; }
         .touch-control.touch-button { border-radius: 50%; background: transparent; min-width: 60px; min-height: 60px;  }
@@ -30,8 +25,8 @@
         .touch-control.active path { fill: var(--activeColor); }
         .touch-button-grid {
             position: absolute;
-            top: 50%;
             right: 40px;
+            top: 50%;
             display: grid;
             grid-template-areas:
                 ". y ."
@@ -47,6 +42,12 @@
         .touch-button[data-button=b] { grid-area: b; }
         .touch-button[data-button=a] { grid-area: a; }
         .dpad { position: absolute; width: 180px; height: 180px; top: 50%; left: 10px; }
+
+        @media (orientation: portrait) {
+            .dpad { top: 70%; }
+            .touch-button-grid { top: 70%; }
+        }
+
         .dpad-button { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         .dpad-square { fill: transparent; cursor: pointer; }
         .dpad-triangle { fill: none; stroke: var(--borderColor); stroke-width: 1; }
@@ -56,15 +57,10 @@
     </style>
 </head>
 <body style="margin:0; padding:0;">
+  
+    <div id="diy-console"></div>
 
-    <!-- The one page: the site's player and, with two things rewritten by
-         the client, the index.html of every exported game — the title below
-         becomes the game's name, and the empty argument list of the Module
-         object becomes the cartridge it embeds. Do not write that empty
-         list anywhere else in this file: the client patches the first one
-         it finds, and a mention in a comment would take its place. -->
-
-    <div class="game" style="margin: 0; position: relative; background: #1a1c2c;">
+    <div class="game" style="margin: 0; position: relative; background: black;">
 
         <div id="game-frame" style="cursor: pointer; position: absolute; margin: 0 auto; opacity: 1; background: #1a1c2c; width: 100%; height: 100%;">
             <div style="text-align: center; color: white; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
@@ -73,12 +69,12 @@
 
         </div>
 
-        <canvas style="width: 100%; height: 100%; margin: 0 auto; display: block; image-rendering: pixelated;" id="canvas" oncontextmenu="event.preventDefault()" onmousedown="window.focus()" tabindex="0"></canvas>
+        <canvas style="width: 100%; height: 100%; margin: 0 auto; display: block; image-rendering: pixelated;" id="canvas" oncontextmenu="event.preventDefault()" onmousedown="window.focus()"></canvas>
 
         <div class="menu-grid" hidden>
             <div class="touch-control menu-button" data-button="esc">☰</div>
-            <div class="touch-control menu-button" data-button="fullscreen">
-                <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32px" height="32px" viewBox="0 0 100 100">
+            <div id="fullscreen-button" class="touch-control menu-button" data-button="fullscreen">
+                <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32px" height="32px" viewBox="0 0 100 100">
                 <path d="M20 20L80 80M80 20L20 80M20 30L20 20 30 20M80 30L80 20 70 20M20 70L20 80 30 80M70 80L80 80 80 70" fill="none" stroke="#fff" stroke-width="2"/></svg>
             </div>
         </div>
@@ -91,6 +87,7 @@
                     <path class="dpad-arrow" d="M 78 27 L 90 12 L 102 27 Z" />
                 </g>
             </svg>
+
             <svg class="dpad-button" viewBox="-2 -2 184 184">
                 <g class="touch-control" data-button="right">
                     <path class="dpad-square" d="M 180 60 V 120 H 120 L 90 90 L 120 60 Z" />
@@ -98,6 +95,7 @@
                     <path class="dpad-arrow" d="M 153 78 L 168 90 L 153 102 Z" />
                 </g>
             </svg>
+
             <svg class="dpad-button" viewBox="-2 -2 184 184">
                 <g class="touch-control" data-button="down">
                     <path class="dpad-square" d="M 60 180 H 120 V 120 L 90 90 L 60 120 Z" />
@@ -105,6 +103,7 @@
                     <path class="dpad-arrow" d="M 78 153 L 90 168 L 102 153 Z" />
                 </g>
             </svg>
+
             <svg class="dpad-button" viewBox="-2 -2 184 184">
                 <g class="touch-control" data-button="left">
                     <path class="dpad-square" d="M 0 60 V 120 H 60 L 90 90 L 60 60 Z" />
@@ -122,139 +121,177 @@
         </div>
     </div>
 
-    <div id="add-modal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times</span>
-            <p>Select a file to add to the computer</p>
-            <p><input type="file" id="upload-input"></input></p>
-        </div>
-    </div>
-
     <script type="text/javascript">
-        var Module = {canvas: document.getElementById('canvas'), arguments: [], touchControlsEnabled: true};
+        if (window.matchMedia("(display-mode: fullscreen)").matches) document.getElementById("fullscreen-button").remove();
 
-        // Safari/WebKit-only: remap Arrow keys with location 3 (numpad) to location 0.
-        (function(){
-            const ua = navigator.userAgent || '';
-            const isWebKit = /AppleWebKit/i.test(ua);
-            if (!isWebKit) return;
+        var Module = {
+            canvas: document.getElementById('canvas'),
+            arguments:['cart.tic'],
+            touchControlsEnabled: true,
+            preRun: [function() {
+                const optionsDir = "/com.nesbox.tic/TIC-80/.local";
+                const optionsPath = optionsDir + "/options.json";
 
-            const synthesizeArrowWithLocation0 = (orig) => {
-                try {
-                    const ev = new KeyboardEvent(orig.type, {
-                        key: orig.key,
-                        code: orig.code,
-                        location: 0,
-                        repeat: orig.repeat,
-                        ctrlKey: orig.ctrlKey,
-                        shiftKey: orig.shiftKey,
-                        altKey: orig.altKey,
-                        metaKey: orig.metaKey,
-                        bubbles: true,
-                        cancelable: true,
-                    });
-                    Object.defineProperty(ev, 'which', { get: () => orig.which });
-                    Object.defineProperty(ev, 'keyCode', { get: () => orig.keyCode });
-                    return ev;
-                } catch { return null; }
-            };
+                const forceIntegerScaleOff = () => {
+                    try {
+                        FS.mkdirTree(optionsDir);
 
-            const remapArrowLocationCapture = (e) => {
-                const isArrow = (e.key && e.key.startsWith('Arrow')) || (e.code && e.code.startsWith('Arrow'));
-                if (!isArrow) return;
-                if (e.location === 3) {
-                    const syn = synthesizeArrowWithLocation0(e);
-                    if (syn) {
-                        e.stopImmediatePropagation();
-                        e.preventDefault();
-                        (e.target || document.getElementById('canvas')).dispatchEvent(syn);
+                        let options = {};
+                        try {
+                            options = JSON.parse(FS.readFile(optionsPath, { encoding: "utf8" }));
+                        } catch (e) {}
+
+                        options.integerScale = false;
+                        FS.writeFile(optionsPath, JSON.stringify(options));
+                    } catch (e) {
+                        console.warn("Could not set TIC-80 integerScale option:", e);
                     }
-                }
-            };
+                };
 
-            ['keydown','keyup'].forEach(t => document.addEventListener(t, remapArrowLocationCapture, true));
-        })();
+                // Patch syncfs so we force this setting before TIC-80 starts.
+                const originalSyncfs = FS.syncfs.bind(FS);
+                FS.syncfs = function(populate, callback) {
+                    return originalSyncfs(populate, function(err) {
+                        forceIntegerScaleOff();
+                        if (callback) callback(err);
+                    });
+                };
 
-        // Prevent page scrolling while the game canvas is focused
-        (function(){
-            const canvasEl = document.getElementById('canvas');
-            const preventArrowDefault = (e) => {
-                const key = e.key || e.code;
-                const kc = e.keyCode || e.which;
-                const isArrow = (key && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(key)) || (kc >= 37 && kc <= 40);
-                if (isArrow && document.activeElement === canvasEl) e.preventDefault();
-            };
-            document.addEventListener('keydown', preventArrowDefault, { passive: false });
-            canvasEl.addEventListener('keydown', preventArrowDefault, { passive: false });
-        })();
+                // Also set it immediately just in case.
+                forceIntegerScaleOff();
+            }]
+        }
 
         const gameFrame = document.getElementById('game-frame')
+        const displayStyle = window.getComputedStyle(gameFrame).display;
 
-        gameFrame.addEventListener('click', function() {
-            let scriptTag = document.createElement('script'), // create a script tag
-            firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
-            scriptTag.src = 'tic80.js'; // set the source of the script to your script
-            firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
-            this.remove()
-            // Focus canvas to ensure keyboard events are routed to the game
-            document.getElementById('canvas').focus()
-
+        function OnScreenButtons() {
             if (navigator.maxTouchPoints > 0 && Module.touchControlsEnabled) {
-                try { document.body.requestFullscreen() } catch(e) {}
+                try { document.body.requestFullscreen() } catch(e) { console.error(`Could not go fullscreen: ${e}`); }
                 const elements = document.querySelectorAll('.dpad, .touch-button-grid, .menu-grid');
                 elements.forEach(element => element.removeAttribute("hidden"));
 
                 const keyMap = {
-                    up: { key: 'ArrowUp', code: 'ArrowUp', keyCode: 38 },
-                    down: { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40 },
-                    left: { key: 'ArrowLeft', code: 'ArrowLeft', keyCode: 37 },
+                    up:    { key: 'ArrowUp',    code: 'ArrowUp',    keyCode: 38 },
+                    down:  { key: 'ArrowDown',  code: 'ArrowDown',  keyCode: 40 },
+                    left:  { key: 'ArrowLeft',  code: 'ArrowLeft',  keyCode: 37 },
                     right: { key: 'ArrowRight', code: 'ArrowRight', keyCode: 39 },
-                    a: { key: 'z', code: 'KeyZ', keyCode: 90 },
-                    b: { key: 'x', code: 'KeyX', keyCode: 88 },
-                    x: { key: 'a', code: 'KeyA', keyCode: 65 },
-                    y: { key: 's', code: 'KeyS', keyCode: 83 },
-                    esc: { key: 'Escape', code: 'Escape', keyCode: 27 }
+                    a:     { key: 'z',          code: 'KeyZ',       keyCode: 90 },
+                    b:     { key: 'x',          code: 'KeyX',       keyCode: 88 },
+                    x:     { key: 'a',          code: 'KeyA',       keyCode: 65 },
+                    y:     { key: 's',          code: 'KeyS',       keyCode: 83 },
+                    esc:   { key: 'Escape',     code: 'Escape',     keyCode: 27 }
                 };
 
                 const sendInputToGame = (direction, isPressed) => {
                     if (isPressed && direction == "fullscreen") {
-                        if (!document.fullscreenElement) document.body.requestFullscreen();
-                        else if (document.exitFullscreen) document.exitFullscreen();
-                        return;
+                        if (!document.fullscreenElement) {
+                        document.body.requestFullscreen();
+                        } else {
+                            if (document.exitFullscreen) {
+                                document.exitFullscreen();
+                            }
+                        }
+                        return
                     }
                     const config = keyMap[direction];
                     if (!config) return;
-                    const event = new KeyboardEvent(isPressed ? 'keydown' : 'keyup', { ...config, bubbles: true, cancelable: true });
-                    document.getElementById('canvas').dispatchEvent(event);
+
+                    const eventType = isPressed ? 'keydown' : 'keyup';
+                    const event = new KeyboardEvent(eventType, {
+                        ...config,
+                        bubbles: true,
+                        cancelable: true
+                    });
+
+                    canvas.dispatchEvent(event);
                 };
 
-                let currentActiveButton = null;
+                let currentActiveButtons = [];
+
                 const handleTouchMove = (e) => {
                     e.preventDefault();
-                    const touch = e.touches[0];
-                    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-                    const targetButton = el ? el.closest('.touch-control') : null;
-                    if (targetButton !== currentActiveButton) {
-                        if (currentActiveButton) sendInputToGame(currentActiveButton.getAttribute('data-button'), false);
-                        if (targetButton) {
-                            sendInputToGame(targetButton.getAttribute('data-button'), true);
-                            if (navigator.vibrate) navigator.vibrate(20);
+                    const touches = e.touches.length;
+
+                    for (let i = 0; i < touches; i++) {
+                        const touch = e.touches[i];
+                        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                        const identifier = touch.identifier;
+                        const currentActiveButton = currentActiveButtons[identifier];
+                        const targetButton = el ? el.closest('.touch-control') : null;
+
+                        if (targetButton !== currentActiveButton) {
+                            if (currentActiveButton) {
+                                const oldType = currentActiveButton.getAttribute('data-button');
+                                currentActiveButton.classList.remove('active');
+                                sendInputToGame(oldType, false);
+                            }
+
+                            if (targetButton) {
+                                const newType = targetButton.getAttribute('data-button');
+                                targetButton.classList.add('active');
+                                sendInputToGame(newType, true);
+                                if (navigator.vibrate) {
+                                    try {
+                                        const success = navigator.vibrate(20);
+                                    } catch (e) {
+                                        console.error("Could not vibrate: " + e);
+                                    }
+                                }
+                            }
+
+                            currentActiveButtons[identifier] = targetButton;
                         }
-                        currentActiveButton = targetButton;
                     }
                 };
+
                 const handleTouchEnd = (e) => {
-                    if (currentActiveButton) {
-                        sendInputToGame(currentActiveButton.getAttribute('data-button'), false);
-                        currentActiveButton = null;
+                    const touches = e.changedTouches.length
+
+                    for (let i = 0; i < touches; i++) {
+                        const touch = e.changedTouches[i]
+                        const identifier = touch.identifier
+                        const currentActiveButton = currentActiveButtons[identifier]
+
+                        if (currentActiveButton) {
+                            const type = currentActiveButton.getAttribute('data-button');
+                            currentActiveButton.classList.remove('active');
+                            sendInputToGame(type, false);
+                            currentActiveButtons[identifier] = null;
+                        }
                     }
                 };
+
                 const gameContainer = document.querySelector('.game');
                 gameContainer.addEventListener('touchstart', handleTouchMove, { passive: false });
                 gameContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
                 gameContainer.addEventListener('touchend', handleTouchEnd, { passive: false });
+                gameContainer.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+            } else {
+                const elements = document.querySelectorAll('.dpad, .touch-button-grid, .menu-grid');
+                elements.forEach(element => element.remove());
             }
-        });
+        }
+
+        if (displayStyle === 'none')
+        {
+            let scriptTag = document.createElement('script'), // create a script tag
+            firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
+            scriptTag.src = 'tic80.js'; // set the source of the script to your script
+            firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
+
+            OnScreenButtons();
+        } else {
+            gameFrame.addEventListener('click', function() {
+                let scriptTag = document.createElement('script'), // create a script tag
+                firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
+                scriptTag.src = 'tic80.js'; // set the source of the script to your script
+                firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
+                this.remove();
+
+                OnScreenButtons();
+            });
+        }
     </script>
 </body>
 </html>
