@@ -70,6 +70,15 @@ static s32 getJsonItem(const char *var, s32 parent, jsmntype_t type)
     return 0;
 }
 
+// A reader answers zero/false for a key the document does not carry — token 0
+// is the root object, so its "value" reads as 0 — which is why a caller that
+// must keep its own value for a missing key asks this first. The token the
+// scan starts at is the second argument; a document is searched from 0.
+bool json_has(const char *var, s32 parent)
+{
+    return getJsonItem(var, parent, JSMN_PRIMITIVE | JSMN_STRING | JSMN_ARRAY | JSMN_OBJECT) != 0;
+}
+
 bool json_bool(const char *var, s32 parent)
 {
     const jsmntok_t *t = &state.t[getJsonItem(var, parent, JSMN_PRIMITIVE)];

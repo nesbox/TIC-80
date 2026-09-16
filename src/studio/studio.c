@@ -139,6 +139,18 @@ struct Studio
     EditorMode prevMode;
     EditorMode toolbarMode;
 
+    // The run ESC acts on: a player's run gets the pause menu and keeps it
+    // under ESC, the studio's own leaves back to runFrom — the editor or the
+    // console the run was asked from (see RunOrigin in studio.h, #2937). A
+    // run belongs to the player until the studio asks for one: the editorless
+    // builds start their cart without runGame ever being called.
+    bool playerRun;
+    EditorMode runFrom;
+    // Whether the menu was opened over that run (ESC in a game) rather than in
+    // the studio (the `menu` command): only the first one has a game to go
+    // back to.
+    bool menuOverRun;
+
     struct
     {
         MouseState state[3];
@@ -1264,7 +1276,13 @@ void gotoSurf(Studio* studio)
 
 bool studio_is_cart_loaded(Studio* studio)
 {
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     return strlen(studio->console->rom.name) > 0 || (studio->start && studio->start->embed);
+#else
+    // Editorless builds (export stubs) have no console; only an embedded
+    // cartridge counts as loaded.
+    return studio->start && studio->start->embed;
+#endif
 }
 
 void setStudioMode(Studio* studio, EditorMode mode)
@@ -1604,7 +1622,7 @@ bool studioCartChanged(Studio* studio)
 }
 #endif
 
-void runGame(Studio* studio)
+void runGame(Studio* studio, RunOrigin origin)
 {
 #if defined(BUILD_EDITORS)
 
@@ -1638,12 +1656,22 @@ void runGame(Studio* studio)
             return;
         }
 
-        setStudioMode(studio, TIC_RUN_MODE);
+        // A run asked for from the pause menu is a restart of the run the
+        // menu sits over (menuOverRun): it keeps that run's origin, or the
+        // player's cart would become a studio run for the rest of the
+        // session — the pause menu would never come back and ESC would land
+        // in the editor. A menu opened in the studio is not that case: the
+        // run it starts is the studio's, like any other Ctrl+R.
+        if(studio->mode != TIC_MENU_MODE || !studio->menuOverRun)
+            studio->playerRun = origin == RUN_FROM_PLAYER;
 
-#if defined(BUILD_SURF)
-        if(studio->mode == TIC_SURF_MODE)
-            studio->prevMode = TIC_SURF_MODE;
-#endif
+        // The pause menu is not a place to come back to either: runFrom keeps
+        // the origin of the run the menu sits over, or leaveRun would have
+        // nowhere to go (gotoMenu sets it for a menu opened in the studio).
+        if(studio->mode != TIC_MENU_MODE)
+            studio->runFrom = studio->mode;
+
+        setStudioMode(studio, TIC_RUN_MODE);
     }
 }
 
@@ -1858,9 +1886,32 @@ static void switchBank(Studio* studio, s32 bank)
 
 void gotoMenu(Studio* studio)
 {
+    studio->menuOverRun = studio->mode == TIC_RUN_MODE;
+
+    // Opened in the studio, the menu's back is a step back to where it was
+    // opened; over a run, that run's own origin stands (set by runGame).
+    if(!studio->menuOverRun)
+        studio->runFrom = studio->mode;
+
     setStudioMode(studio, TIC_MENU_MODE);
     studio_mainmenu_free(studio->mainmenu);
     studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+}
+
+// Whether the menu's back resumes a game: it does when a player's run is
+// paused under the menu. A dev's run and a menu opened in the studio both
+// leave for the studio — the same step ESC takes in RUN mode (#2937).
+bool studio_menu_over_player_run(Studio* studio)
+{
+    return studio->playerRun && studio->menuOverRun;
+}
+
+// ESC in a dev run, and the back of the pause menu over one: the run was asked
+// for from the studio, so it is left the way it was entered — one press, and
+// no walk to CLOSE GAME (#2937).
+void leaveRun(Studio* studio)
+{
+    setStudioMode(studio, studio->runFrom);
 }
 
 static bool enterWasPressedOnce(Studio* studio)
@@ -1949,8 +2000,8 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(studio, tic_key_pageup)) changeStudioMode(studio, -1);
         else if(keyWasPressedOnce(studio, tic_key_pagedown)) changeStudioMode(studio, +1);
-        else if(enterWasPressedOnce(studio)) runGame(studio);
-        else if(keyWasPressedOnce(studio, tic_key_r)) runGame(studio);
+        else if(enterWasPressedOnce(studio)) runGame(studio, RUN_FROM_STUDIO);
+        else if(keyWasPressedOnce(studio, tic_key_r)) runGame(studio, RUN_FROM_STUDIO);
         else if(keyWasPressedOnce(studio, tic_key_s)) saveProject(studio);
 #endif
 
@@ -1979,18 +2030,23 @@ static void processShortcuts(Studio* studio)
             switch(studio->mode)
             {
             case TIC_MENU_MODE:
-                showGameMenu(studio)
-                    ? studio_menu_back(studio->menu)
-                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
+                // The back callback knows where a menu belongs — see the main
+                // menu's back. Without one there is no cart under the menu, and
+                // it is left to where the studio was.
+                if(!studio_menu_back(studio->menu))
+                    setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
                         ? TIC_CONSOLE_MODE
                         : studio->prevMode);
                 break;
             case TIC_RUN_MODE:
-                showGameMenu(studio)
-                    ? gotoMenu(studio)
-                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
-                        ? TIC_CONSOLE_MODE
-                        : studio->prevMode);
+                // A cart that declares a game menu asked to be played, and its
+                // author needs to see that menu while iterating; anyone else in
+                // RUN mode — a player's run, a dev's cart without a menu —
+                // steps out, a player to the menu, the dev to the editor.
+                if(studio->playerRun || showGameMenu(studio))
+                    gotoMenu(studio);
+                else
+                    leaveRun(studio);
                 break;
             case TIC_CONSOLE_MODE:
                 setStudioMode(studio, TIC_CODE_MODE);
@@ -2012,7 +2068,11 @@ static void processShortcuts(Studio* studio)
         else if(studio->mode == TIC_RUN_MODE && keyWasPressedOnce(studio, tic_key_f7))
             setCoverImage(studio);
 
-        if(!showGameMenu(studio) || studio->mode != TIC_RUN_MODE)
+        // A running game owns the function keys: a player's run always hands
+        // them over, and a cart that declares a game menu asks for them in a
+        // dev's run as well. Leaving a run is ESC's job (see leaveRun), so the
+        // studio has no use for them there.
+        if((!studio->playerRun && !showGameMenu(studio)) || studio->mode != TIC_RUN_MODE)
         {
 			if(keyWasPressedOnce(studio, tic_key_f1))
 			{
@@ -2420,7 +2480,7 @@ static void doCodeImport(Studio* studio)
                     if(x == 0 && y == 0)
                     {
                         if(studio->mode != TIC_RUN_MODE)
-                            runGame(studio);
+                            runGame(studio, RUN_FROM_STUDIO);
                     }
                     else
                     {
@@ -2842,6 +2902,8 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     {
         .mode = TIC_START_MODE,
         .prevMode = TIC_CODE_MODE,
+        .playerRun = true,
+        .runFrom = TIC_CODE_MODE,
 
 #if defined(BUILD_EDITORS)
         .menuMode = TIC_CONSOLE_MODE,
