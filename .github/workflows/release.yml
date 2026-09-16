@@ -104,9 +104,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
-          # Best-effort: an LLM outage or missing key must not wedge the
-          # release (the draft + assets already exist above and cannot be
-          # recreated cleanly). The release just ships with its default body.
+          # The body is our readable summary followed by the list GitHub
+          # generates for the same range (every pull request with its author,
+          # the first-time contributors, the compare link) — the script writes
+          # both, and one half failing never costs the other.
+          #
+          # Best-effort by design: an LLM outage, a missing key or a failed
+          # API call must not wedge the release (the draft + assets already
+          # exist above and cannot be recreated cleanly). The script exits
+          # non-zero only when both halves are empty, and the draft then keeps
+          # its default body.
           if bash bin/release/generate-notes.sh "$GITHUB_REF_NAME" > notes.md; then
             gh release edit "$GITHUB_REF_NAME" --repo nesbox/TIC-80 --notes-file notes.md
           else
