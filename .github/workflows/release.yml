@@ -15,6 +15,13 @@ permissions:
 jobs:
   build:
     uses: ./.github/workflows/build.yml
+    # The android job signs the APK with these, and a called workflow sees no
+    # repository secrets it is not handed. Without this line the tag path —
+    # the only path that goes through a call — builds every other platform
+    # and fails android, so the draft never gets packaged (16.09).
+    secrets:
+      RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+      RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
   package:
     needs: build

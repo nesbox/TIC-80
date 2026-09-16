@@ -11,6 +11,18 @@ on:
         type: boolean
         default: false
   workflow_call:
+    # The android job signs the release APK with these. A reusable workflow
+    # receives no repository secrets unless its caller names them, so
+    # release.yml has to pass them — and `required` makes a caller that does
+    # not fail at the start of the run instead of inside the signing step.
+    # Before 15.09 the passwords lived in the tree and reached every flavor
+    # of this workflow alike; moving them into secrets cut the tag path off,
+    # because that path is the only one that goes through a call.
+    secrets:
+      RELEASE_STORE_PASSWORD:
+        required: true
+      RELEASE_KEY_PASSWORD:
+        required: true
 
 # A new push supersedes the previous run on the same ref: cancel it instead
 # of burning matrix runners on stale commits.
