@@ -2,19 +2,23 @@
 #
 # A build whose HEAD points exactly at a "vMAJOR.MINOR.PATCH" tag is a
 # release: it carries that version verbatim (empty VERSION_STATUS). Any
-# other build is a development snapshot — it keeps the last release's
-# major/minor and uses the commit count as the patch, suffixed "-dev", so
-# the version stays monotonic without needing a tag.
+# other build is a development snapshot — it reports the line the repository
+# is on, below, with the commit count as the patch, suffixed "-dev". A
+# snapshot therefore says which line it belongs to without waiting for the
+# next release to be tagged, and stays monotonic while it does.
 
+# The line under development. A snapshot reports it, and a tree with no git
+# reports it verbatim — see the no-git note further down. Bump it in the
+# commit after a release: v1.2.0 shipped, so main is on the 1.3 line.
 set(VERSION_MAJOR 1)
-set(VERSION_MINOR 2)
+set(VERSION_MINOR 3)
 set(VERSION_REVISION 0)
 set(VERSION_STATUS "-dev")
 
 # The release tag, "v<major>.<minor>.<revision>", and the string every path
 # is built from — /js/<tag>/, /export/<tag>/. A dev build takes the tag of
 # the last release, so a snapshot asks for assets that exist instead of a
-# directory named after its own 1.2.<commits>-dev version.
+# directory named after its own 1.3.<commits>-dev version.
 set(VERSION_TAG "v${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION}")
 
 string(TIMESTAMP VERSION_YEAR "%Y")
@@ -23,10 +27,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(VERSION_BUILD ".dbg")
 endif()
 
-# A build with no git at all — a source tarball, a distro recipe — cannot be
-# a snapshot of anything, and the fallback literals above are a release's, so
-# it is treated as one: TIC_HOST stays tic80.com instead of sending a shipped
-# build at the dev site. A git checkout overrides this below.
+# A build with no git at all — a source archive, a distro recipe — cannot be
+# a snapshot of anything: it reports the literals above as they stand, as a
+# release, so TIC_HOST stays tic80.com instead of sending a shipped build at
+# the dev site. Its asset tag follows the same literals, so an archive of main
+# asks for /js/v1.3.0/ and /export/v1.3.0/ before that release exists — the
+# price of one number carrying both the line under development and this
+# fallback. An archive of a release tag carries that tag's literals and asks
+# for exactly its own. A git checkout overrides this below.
 set(VERSION_IS_RELEASE TRUE)
 
 find_package(Git)
@@ -77,10 +85,12 @@ if(Git_FOUND)
             # (a shallow or partial clone), in which case we keep the fallback
             # 0 rather than leaving the patch empty.
             #
-            # Track the last release's major/minor so a post-release commit
-            # never reports an *older* version than the tag it follows (e.g.
-            # 1.2.<n>-dev right after v1.3.0). Falls back to the defaults when
-            # no tag exists.
+            # The last release's tag is what a snapshot talks to for assets:
+            # it asks for paths that exist rather than a directory named after
+            # its own 1.3.<commits>-dev version. The number it reports stays
+            # the literals above — with the line under development bumped, the
+            # last tag is the release a snapshot follows, not the version it
+            # is.
             execute_process(
                 COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=0 HEAD
                 WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -89,9 +99,7 @@ if(Git_FOUND)
                 OUTPUT_STRIP_TRAILING_WHITESPACE
                 RESULT_VARIABLE GIT_LAST_TAG_RESULT
             )
-            if(GIT_LAST_TAG_RESULT EQUAL 0 AND GIT_LAST_TAG MATCHES "^v([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
-                set(VERSION_MAJOR ${CMAKE_MATCH_1})
-                set(VERSION_MINOR ${CMAKE_MATCH_2})
+            if(GIT_LAST_TAG_RESULT EQUAL 0 AND GIT_LAST_TAG MATCHES "^v[0-9]+\\.[0-9]+\\.[0-9]+$")
                 # the assets a snapshot talks to are the last release's
                 set(VERSION_TAG "${GIT_LAST_TAG}")
             endif()
