@@ -814,6 +814,51 @@ static s32 getLineSize(const char* line)
     return size;
 }
 
+static s32 getTabColumnWidth(Code* code, s32 column)
+{
+    s32 tabSize = getConfig(code->studio)->options.tabSize;
+    if(tabSize <= 0) tabSize = 1;
+
+    return tabSize - column % tabSize;
+}
+
+static char* getVisualPosByLine(Code* code, char* line, s32 column)
+{
+    if(column <= 0) return line;
+
+    s32 visual = 0;
+    char* ptr = line;
+
+    while(*ptr && *ptr != '\n')
+    {
+        if(*ptr == '\t')
+        {
+            s32 width = getTabColumnWidth(code, visual);
+
+            if(column < visual + width)
+            {
+                s32 left = column - visual;
+                s32 right = visual + width - column;
+
+                return right <= left ? ptr + 1 : ptr;
+            }
+
+            visual += width;
+            ptr++;
+
+            continue;
+        }
+
+        if(column == visual)
+            return ptr;
+
+        visual++;
+        ptr++;
+    }
+
+    return ptr;
+}
+
 static void updateColumn(Code* code)
 {
     code->cursor.column = (s32)(code->cursor.position - getLine(code));
@@ -824,6 +869,12 @@ static void updateCursorPosition(Code* code, char* position)
     code->cursor.position = position;
     updateColumn(code);
     updateEditor(code);
+}
+
+static void setCursorPositionVisual(Code* code, s32 cx, s32 cy)
+{
+    char* line = getPosByLine(code->src, cy);
+    updateCursorPosition(code, getVisualPosByLine(code, line, cx));
 }
 
 static void setCursorPosition(Code* code, s32 cx, s32 cy)
@@ -2770,7 +2821,7 @@ static void processViKeyboard(Code* code)
         else if (shift && keyWasPressed(code->studio, tic_key_w))
             saveProject(code->studio);
         else if (shift && keyWasPressed(code->studio, tic_key_r))
-            runGame(code->studio);
+            runGame(code->studio, RUN_FROM_STUDIO);
 
         else if (clear && keyWasPressed(code->studio, tic_key_c))
         {
@@ -3140,7 +3191,7 @@ static void processMouse(Code* code)
                     s32 y = (my - rect.y) / STUDIO_TEXT_HEIGHT;
 
                     char* position = code->cursor.position;
-                    setCursorPosition(code, x + code->scroll.x, y + code->scroll.y);
+                    setCursorPositionVisual(code, x + code->scroll.x, y + code->scroll.y);
 
                     if(tic_api_key(tic, tic_key_shift))
                     {
@@ -3678,7 +3729,7 @@ static void drawRunButton(Code* code, s32 x, s32 y)
         over = true;
 
         if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-            runGame(code->studio);
+            runGame(code->studio, RUN_FROM_STUDIO);
     }
 
     drawBitIcon(code->studio, tic_icon_run, x, y, over ? tic_color_grey : tic_color_light_grey);

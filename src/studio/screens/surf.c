@@ -35,6 +35,7 @@
 #include "cart.h"
 #endif
 
+#include <ctype.h>
 #include <string.h>
 
 #define MAIN_OFFSET 4
@@ -229,6 +230,20 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
     return true;
 }
 
+static s32 casecmp(const char *str1, const char *str2)
+{
+    while (*str1 && *str2)
+    {
+        if (tolower((u8) *str1) != tolower((u8) *str2))
+            break;
+
+        ++str1;
+        ++str2;
+    }
+
+    return (s32) ((u8) tolower(*str1) - (u8) tolower(*str2));
+}
+
 static int itemcmp(const void* a, const void* b)
 {
     const SurfItem* item1 = a;
@@ -236,10 +251,8 @@ static int itemcmp(const void* a, const void* b)
 
     if(item1->dir != item2->dir)
         return item1->dir ? -1 : 1;
-    else if(item1->dir && item2->dir)
-        return strcmp(item1->name, item2->name);
 
-    return 0;
+    return casecmp(item1->name, item2->name);
 }
 
 static void addMenuItemsDone(void* data)
@@ -567,7 +580,7 @@ static void onCartLoaded(void* data)
         autoSave(surf);
     }
 
-    runGame(surf->studio);
+    runGame(surf->studio, RUN_FROM_PLAYER);
 }
 
 static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
@@ -584,7 +597,7 @@ static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
         else
         {
             surf->console->load(surf->console, item->name);
-            runGame(surf->studio);
+            runGame(surf->studio, RUN_FROM_PLAYER);
         }
     }
 }

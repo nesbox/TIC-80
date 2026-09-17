@@ -99,7 +99,7 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
             {
                 char c = *ptr;
 
-                if(isalnum_(c) || c == ':');
+                if(isalnum_(c) || c == ':' || c == '.');
                 else if(c == '(')
                 {
                     end = ptr;

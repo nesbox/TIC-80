@@ -11,6 +11,10 @@
         "--strip-all",
         "--allow-undefined",
         "--stack-first",
+        "-zstack-size=106496",
+        "--import-memory",
+        "--initial-memory=262144",
+        "--max-memory=262144",
         "--no-entry"
       ]
     },
@@ -25,6 +29,10 @@
         "--strip-all",
         "--allow-undefined",
         "--stack-first",
+        "-zstack-size=106496",
+        "--import-memory",
+        "--initial-memory=262144",
+        "--max-memory=262144",
         "--no-entry",
         "$WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasi/libc.a"
       ]

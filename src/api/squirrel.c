@@ -1776,29 +1776,37 @@ static void callSquirrelIntCallback(tic_mem* tic, s32 value, void* data, const c
     tic_core* core = (tic_core*)tic;
     HSQUIRRELVM vm = core->currentVM;
 
-    if (vm)
+    if (!vm) return;
+
+    sq_pushroottable(vm);                  // [root]
+    sq_pushstring(vm, name, -1);           // [root, name]
+
+    if (SQ_FAILED(sq_get(vm, -2)))         // [root] (name not found)
     {
-        sq_pushroottable(vm);
-        sq_pushstring(vm, name, -1);
-        if (SQ_SUCCEEDED(sq_get(vm, -2)))
-        {
-            sq_pushroottable(vm);
-            sq_pushinteger(vm, value);
-
-            if(SQ_FAILED(sq_call(vm, 2, SQFalse, SQTrue)))
-            {
-                sq_getlasterror(vm);
-                sq_tostring(vm, -1);
-
-                const SQChar* errorString = "unknown error";
-                sq_getstring(vm, -1, &errorString);
-                if (core->data)
-                    core->data->error(core->data->data, errorString);
-                sq_pop(vm, 3); // error string, error and root table
-            }
-        }
-        else sq_poptop(vm);
+        sq_poptop(vm);                     // []
+        return;
     }
+                                           // [root, fn]
+    sq_pushroottable(vm);                  // [root, fn, root]
+    sq_pushinteger(vm, value);             // [root, fn, root, value]
+
+    if (SQ_FAILED(sq_call(vm, 2, SQFalse, SQTrue)))  // [root, fn]
+    {
+        sq_getlasterror(vm);               // [root, fn, err]
+        sq_tostring(vm, -1);               // [root, fn, err, str]
+
+        const SQChar* errorString = "unknown error";
+        sq_getstring(vm, -1, &errorString);
+        if (core->data)
+            core->data->error(core->data->data, errorString);
+        sq_pop(vm, 3);                     // [root]  (error string, error, function)
+    }
+    else
+    {
+        sq_poptop(vm);                     // [root]  (fn)
+    }
+
+    sq_poptop(vm);                         // []      (root)
 }
 
 static void callSquirrelScanline(tic_mem* tic, s32 row, void* data)

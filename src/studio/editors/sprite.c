@@ -59,7 +59,7 @@ static void clearCanvasSelection(Sprite* sprite)
 static void initTileSheet(Sprite* sprite)
 {
     sprite->blit.page %= sprite->blit.pages;
-    sprite->sheet = tic_tilesheet_get((( sprite->blit.pages + sprite->blit.page) << 1) + sprite->blit.bank, (u8*)sprite->src);
+    sprite->sheet = tic_tilesheet_get( tic_blit_calc_segment(&sprite->blit), (u8*)sprite->src);
 }
 
 static void updateIndex(Sprite* sprite)
@@ -102,12 +102,12 @@ static void rightViewport(Sprite* sprite)
 
 static s32 getIndexPosX(Sprite* sprite)
 {
-    return (sprite->x + sprite->blit.page * TIC_SPRITESHEET_COLS) * TIC_SPRITESIZE;
+    return sprite->x * TIC_SPRITESIZE;
 }
 
 static s32 getIndexPosY(Sprite* sprite)
 {
-    return (sprite->y + sprite->blit.bank * TIC_SPRITESHEET_COLS) * TIC_SPRITESIZE;
+    return sprite->y * TIC_SPRITESIZE;
 }
 
 static void drawSelection(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)

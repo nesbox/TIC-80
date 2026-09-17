@@ -3,6 +3,9 @@ target = "wasm32-unknown-unknown"
 
 [target.wasm32-unknown-unknown]
 rustflags = [
+    # TIC-80 reserves the first 96 KiB of linear memory, so reserve that space
+    # inside the stack region and leave 8 KiB of actual stack above it.
+    "-C", "link-arg=--stack-first",
     "-C", "link-arg=--import-memory",
     "-C", "link-arg=--initial-memory=262144",
     "-C", "link-arg=--max-memory=262144",

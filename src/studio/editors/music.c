@@ -497,7 +497,9 @@ static void playNote(Music* music, const tic_track_row* row)
 
     if(getMusicState(music) == tic_music_stop && row->note >= NoteStart)
     {
-        s32 channel = music->piano.col;
+        s32 channel = music->tab == MUSIC_TRACKER_TAB
+            ? music->tracker.edit.x / CHANNEL_COLS
+            : music->piano.col;
         sfx_stop(tic, channel);
         tic_api_sfx(tic, tic_tool_get_track_row_sfx(row), row->note - NoteStart, row->octave, TIC80_FRAMERATE / 4, channel, MAX_VOLUME, MAX_VOLUME, 0);
     }
@@ -928,7 +930,8 @@ static s32 sym2dec(char sym)
 static s32 sym2hex(char sym)
 {
     s32 val = sym2dec(sym);
-    if (sym >= 'a' && sym <= 'f') val = sym - 'a' + 10;
+    sym = toupper((unsigned char)sym);
+    if(sym >= 'A' && sym <= 'F') val = sym - 'A' + 10;
 
     return val;
 }

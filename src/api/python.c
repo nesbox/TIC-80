@@ -6,9 +6,9 @@
 #include "pocketpy.h"
 
 /*
-cmake -B build2 -A x64 -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=On -DBUILD_WITH_ALL=Off -DBUILD_WITH_PYTHON=On
-cmake -B build2 -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_STATIC=On -DBUILD_WITH_ALL=Off -DBUILD_WITH_PYTHON=On
-cmake --build build2 --parallel 8 --config MinSizeRel
+cmake -B build2 -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=On -DBUILD_WITH_ALL=Off -DBUILD_WITH_PYTHON=On
+cmake -B build2 -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=On -DBUILD_WITH_ALL=Off -DBUILD_WITH_PYTHON=On
+cmake --build build2 --parallel 8 --config Release
 */
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
@@ -824,7 +824,7 @@ static bool py_reset(int argc, py_Ref argv)
     return true;
 }
 
-// sfx(id: int, note=-1, duration=-1, channel=0, volume=15, speed=0)
+// sfx(id: int, note=-1, duration=-1, channel=0, volume=15, speed=-1)
 // void (*sfx)(tic_mem*, s32, s32, s32, s32, s32, s32, s32, s32)
 static bool py_sfx(int argc, py_Ref argv)
 {
@@ -839,7 +839,29 @@ static bool py_sfx(int argc, py_Ref argv)
     s32 volume = py_toint(py_arg(4));
     s32 speed = py_toint(py_arg(5));
 
-    s32 note, octave;
+    if (channel < 0 || channel >= TIC_SOUND_CHANNELS)
+    {
+        return ValueError("invalid channel");
+    }
+    if (id >= SFX_COUNT)
+    {
+        return ValueError("invalid sfx index");
+    }
+
+    tic_core* core = get_core();
+    tic_mem* tic = (tic_mem*)core;
+
+    s32 note = -1;
+    s32 octave = -1;
+
+    if (id >= 0)
+    {
+        tic_sample* effect = tic->ram->sfx.samples.data + id;
+        note = effect->note;
+        octave = effect->octave;
+        if (speed == -1) speed = effect->speed;
+    }
+
     if (py_isstr(py_arg(1)))
     {
         const char* str_note = py_tostr(py_arg(1));
@@ -852,21 +874,14 @@ static bool py_sfx(int argc, py_Ref argv)
     {
         PY_CHECK_ARG_TYPE(1, tp_int);
         s32 raw_note = py_toint(py_arg(1));
-        note = raw_note % NOTES;
-        octave = raw_note / NOTES;
+        if (raw_note != -1)
+        {
+            note = raw_note % NOTES;
+            octave = raw_note / NOTES;
+        }
     }
 
-    if (channel < 0 || channel >= TIC_SOUND_CHANNELS)
-    {
-        return ValueError("invalid channel");
-    }
-    if (id >= SFX_COUNT)
-    {
-        return ValueError("invalid sfx index");
-    }
-
-    tic_core* core = get_core();
-    core->api.sfx((tic_mem*)core, id, note, octave, duration, channel, volume & 0xf, volume & 0xf, speed);
+    core->api.sfx(tic, id, note, octave, duration, channel, volume & 0xf, volume & 0xf, speed);
     py_newnone(py_retval());
     return true;
 }
@@ -1036,6 +1051,38 @@ static bool py_vbank(int argc, py_Ref argv)
     return true;
 }
 
+static bool py_fft(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 startFreq = py_toint(py_arg(0));
+    s32 endFreq = -1;
+    if (!py_isnone(py_arg(1)))
+    {
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        endFreq = py_toint(py_arg(1));
+    }
+    tic_core* core = get_core();
+    double res = core->api.fft((tic_mem*)core, startFreq, endFreq);
+    py_newfloat(py_retval(), res);
+    return true;
+}
+
+static bool py_ffts(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 startFreq = py_toint(py_arg(0));
+    s32 endFreq = -1;
+    if (!py_isnone(py_arg(1)))
+    {
+        PY_CHECK_ARG_TYPE(1, tp_int);
+        endFreq = py_toint(py_arg(1));
+    }
+    tic_core* core = get_core();
+    double res = core->api.ffts((tic_mem*)core, startFreq, endFreq);
+    py_newfloat(py_retval(), res);
+    return true;
+}
+
 /*************TIC-80 MISC BEGIN****************/
 
 static void bind_pkpy_v2()
@@ -1079,7 +1126,7 @@ static void bind_pkpy_v2()
     py_bind(mod, "rect(x: int, y: int, w: int, h: int, color: int)", py_rect);
     py_bind(mod, "rectb(x: int, y: int, w: int, h: int, color: int)", py_rectb);
     py_bind(mod, "reset()", py_reset);
-    py_bind(mod, "sfx(id: int, note=-1, duration=-1, channel=0, volume=15, speed=0)", py_sfx);
+    py_bind(mod, "sfx(id: int, note=-1, duration=-1, channel=0, volume=15, speed=-1)", py_sfx);
     py_bind(mod, "sync(mask=0, bank=0, tocart=False)", py_sync);
     py_bind(mod, "ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc=0, chromakey=-1, z1=0.0, z2=0.0, z3=0.0)", py_ttri);
     py_bind(mod, "time() -> float", py_time);
@@ -1088,6 +1135,8 @@ static void bind_pkpy_v2()
     py_bind(mod, "trib(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)", py_trib);
     py_bind(mod, "tstamp() -> int", py_tstamp);
     py_bind(mod, "vbank(bank: int | None = None) -> int", py_vbank);
+    py_bind(mod, "fft(startFreq: int, endFreq=-1) -> float", py_fft);
+    py_bind(mod, "ffts(startFreq: int, endFreq=-1) -> float", py_ffts);
 }
 
 void close_pkpy_v2(tic_mem* tic)

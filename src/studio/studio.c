@@ -22,24 +22,20 @@
 
 #include "studio.h"
 
-#if defined(BUILD_EDITORS)
-
 #if defined(_WIN32)
 #include <windows.h>
 #else
 #include <sys/time.h>
 #endif
 
+#if defined(BUILD_EDITORS)
 #include "editors/code.h"
 #include "editors/sprite.h"
 #include "editors/map.h"
 #include "editors/world.h"
 #include "editors/sfx.h"
 #include "editors/music.h"
-#include "screens/console.h"
-#include "screens/surf.h"
 #include "ext/history.h"
-#include "net.h"
 #include "wave_writer.h"
 #include "ext/gif.h"
 #define MSF_GIF_IMPL
@@ -47,7 +43,15 @@
 
 #include "../fftdata.h"
 #include "ext/fft.h"
+#endif
 
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+#include "screens/console.h"
+#endif
+
+#if defined(BUILD_SURF)
+#include "screens/surf.h"
+#include "net.h"
 #endif
 
 #include "ext/md5.h"
@@ -82,7 +86,7 @@
 #define TIC_EDITOR_BANKS 1
 #endif
 
-#ifdef BUILD_EDITORS
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 typedef struct
 {
     u8 data[MD5_HASHSIZE];
@@ -135,21 +139,37 @@ struct Studio
     EditorMode prevMode;
     EditorMode toolbarMode;
 
+    // The run ESC acts on: a player's run gets the pause menu and keeps it
+    // under ESC, the studio's own leaves back to runFrom — the editor or the
+    // console the run was asked from (see RunOrigin in studio.h, #2937). A
+    // run belongs to the player until the studio asks for one: the editorless
+    // builds start their cart without runGame ever being called.
+    bool playerRun;
+    EditorMode runFrom;
+    // Whether the menu was opened over that run (ESC in a game) rather than in
+    // the studio (the `menu` command): only the first one has a game to go
+    // back to.
+    bool menuOverRun;
+
     struct
     {
         MouseState state[3];
     } mouse;
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     EditorMode menuMode;
+#endif
+#if defined(BUILD_EDITORS)
     ViMode viMode;
-
+#endif
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     struct
     {
         CartHash hash;
         u64 mdate;
     }cart;
-
+#endif
+#if defined(BUILD_EDITORS)
     struct
     {
         bool show;
@@ -216,14 +236,20 @@ struct Studio
         Music*  music[TIC_EDITOR_BANKS];
     } banks;
 
-    Console*    console;
     World*      world;
-    Surf*       surf;
-
-    tic_net* net;
-
     Bytebattle bytebattle;
+#endif
 
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+    Console*    console;
+#endif
+
+#if defined(BUILD_SURF)
+    Surf*       surf;
+#endif
+
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+    tic_net* net;
 #endif
 
     Start*      start;
@@ -409,17 +435,22 @@ void sfx_stop(tic_mem* tic, s32 channel)
 
 char getKeyboardText(Studio* studio)
 {
+    tic_mem* tic = studio->tic;
+
+    // Ctrl-based shortcuts should not also inject printable characters.
+    if(tic_api_key(tic, tic_key_ctrl) && !tic_api_key(tic, tic_key_alt))
+        return '\0';
+
     char text;
     if(!tic_sys_keyboard_text(&text))
     {
-        tic_mem* tic = studio->tic;
         tic80_input* input = &tic->ram->input;
 
 #ifdef KEYBOARD_LAYOUT_ES
-        // US KEYS:                     " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./< ";
-        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789'!`+cn'o,.-< ";
-        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ=!\" $%&/()??^*CN\"a;:_> ";
-        static const char Alt[] =       "                            |@#        []} {\\     ";
+        // US KEYS:                     " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
+        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789'!`+cn'o,.- ";
+        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ=!\" $%&/()??^*CN\"a;:_ ";
+        static const char Alt[] =       "                            |@#        []} {\\    ";
 #else
         static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
         static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
@@ -693,6 +724,11 @@ const StudioConfig* studio_config(Studio* studio)
 const StudioConfig* getConfig(Studio* studio)
 {
     return studio_config(studio);
+}
+
+Config* studio_config_get(Studio* studio)
+{
+    return studio->config;
 }
 
 struct Start* getStartScreen(Studio* studio)
@@ -1208,7 +1244,7 @@ void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
 static void initRunMode(Studio* studio)
 {
     initRun(studio->run,
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
         studio->console,
 #else
         NULL,
@@ -1222,6 +1258,13 @@ static void initWorldMap(Studio* studio)
     initWorld(studio->world, studio, studio->banks.map[studio->bank.index.map]);
 }
 
+void gotoCode(Studio* studio)
+{
+    setStudioMode(studio, TIC_CODE_MODE);
+}
+#endif
+
+#if defined(BUILD_SURF)
 static void initSurfMode(Studio* studio)
 {
     initSurf(studio->surf, studio, studio->console);
@@ -1232,13 +1275,18 @@ void gotoSurf(Studio* studio)
     initSurfMode(studio);
     setStudioMode(studio, TIC_SURF_MODE);
 }
-
-void gotoCode(Studio* studio)
-{
-    setStudioMode(studio, TIC_CODE_MODE);
-}
-
 #endif
+
+bool studio_is_cart_loaded(Studio* studio)
+{
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+    return strlen(studio->console->rom.name) > 0 || (studio->start && studio->start->embed);
+#else
+    // Editorless builds (export stubs) have no console; only an embedded
+    // cartridge counts as loaded.
+    return studio->start && studio->start->embed;
+#endif
+}
 
 void setStudioMode(Studio* studio, EditorMode mode)
 {
@@ -1261,31 +1309,46 @@ void setStudioMode(Studio* studio, EditorMode mode)
         default: studio->prevMode = prev; break;
         }
 
-#if defined(BUILD_EDITORS)
-        switch(mode)
-        {
-        case TIC_RUN_MODE: initRunMode(studio); break;
-        case TIC_CONSOLE_MODE:
-            if (prev == TIC_SURF_MODE)
-                studio->console->done(studio->console);
-            break;
-        case TIC_WORLD_MODE: initWorldMap(studio); break;
-        case TIC_SURF_MODE: studio->surf->resume(studio->surf); break;
-        default: break;
-        }
-
-        studio->mode = mode;
-#else
+#if !defined(BUILD_EDITORS)
         switch (mode)
         {
         case TIC_START_MODE:
         case TIC_MENU_MODE:
-            studio->mode = mode;
+#if defined(BUILD_SURF)
+        case TIC_SURF_MODE:
+#endif
+        case TIC_RUN_MODE:
             break;
         default:
-            studio->mode = TIC_RUN_MODE;
+            if (!studio_is_cart_loaded(studio))
+                mode = TIC_MENU_MODE;
+            else
+                mode = TIC_RUN_MODE;
+            break;
         }
 #endif
+
+        switch(mode)
+        {
+        case TIC_RUN_MODE:      initRunMode(studio); break;
+        case TIC_MENU_MODE:
+            studio_mainmenu_free(studio->mainmenu);
+            studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+            break;
+#if defined(BUILD_EDITORS)
+        case TIC_CONSOLE_MODE:
+            if (prev == TIC_SURF_MODE)
+                studio->console->done(studio->console);
+            break;
+        case TIC_WORLD_MODE:    initWorldMap(studio); break;
+#endif
+#if defined(BUILD_SURF)
+        case TIC_SURF_MODE:     studio->surf->resume(studio->surf); break;
+#endif
+        default: break;
+        }
+
+        studio->mode = mode;
     }
 
 #if defined(BUILD_EDITORS)
@@ -1400,7 +1463,7 @@ void setCursor(Studio* studio, tic_cursor id)
     }
 }
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 
 typedef struct
 {
@@ -1471,13 +1534,16 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
     }
 }
 
+#if defined(BUILD_EDITORS)
 static void resetBanks(Studio* studio)
 {
     memset(studio->bank.indexes, 0, sizeof studio->bank.indexes);
 }
+#endif
 
 static void initModules(Studio* studio)
 {
+#if defined(BUILD_EDITORS)
     tic_mem* tic = studio->tic;
 
     resetBanks(studio);
@@ -1493,6 +1559,7 @@ static void initModules(Studio* studio)
     }
 
     initWorldMap(studio);
+#endif
 }
 
 static void updateHash(Studio* studio)
@@ -1510,7 +1577,7 @@ static void updateTitle(Studio* studio)
 {
     char name[TICNAME_MAX] = TIC_TITLE;
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     if(strlen(studio->console->rom.name))
         snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, studio->console->rom.name);
 #endif
@@ -1518,7 +1585,7 @@ static void updateTitle(Studio* studio)
     tic_sys_title(name);
 }
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 
 bool project_ext(const char* name)
 {
@@ -1550,13 +1617,15 @@ void studioRomLoaded(Studio* studio)
 bool studioCartChanged(Studio* studio)
 {
     CartHash hash;
+    if (!studio_is_cart_loaded(studio)) return false;
+
     md5(&studio->tic->cart, sizeof(tic_cartridge), hash.data);
 
     return memcmp(hash.data, studio->cart.hash.data, sizeof(CartHash)) != 0;
 }
 #endif
 
-void runGame(Studio* studio)
+void runGame(Studio* studio, RunOrigin origin)
 {
 #if defined(BUILD_EDITORS)
 
@@ -1590,12 +1659,22 @@ void runGame(Studio* studio)
             return;
         }
 
-        setStudioMode(studio, TIC_RUN_MODE);
+        // A run asked for from the pause menu is a restart of the run the
+        // menu sits over (menuOverRun): it keeps that run's origin, or the
+        // player's cart would become a studio run for the rest of the
+        // session — the pause menu would never come back and ESC would land
+        // in the editor. A menu opened in the studio is not that case: the
+        // run it starts is the studio's, like any other Ctrl+R.
+        if(studio->mode != TIC_MENU_MODE || !studio->menuOverRun)
+            studio->playerRun = origin == RUN_FROM_PLAYER;
 
-#if defined(BUILD_EDITORS)
-        if(studio->mode == TIC_SURF_MODE)
-            studio->prevMode = TIC_SURF_MODE;
-#endif
+        // The pause menu is not a place to come back to either: runFrom keeps
+        // the origin of the run the menu sits over, or leaveRun would have
+        // nowhere to go (gotoMenu sets it for a menu opened in the studio).
+        if(studio->mode != TIC_MENU_MODE)
+            studio->runFrom = studio->mode;
+
+        setStudioMode(studio, TIC_RUN_MODE);
     }
 }
 
@@ -1810,9 +1889,32 @@ static void switchBank(Studio* studio, s32 bank)
 
 void gotoMenu(Studio* studio)
 {
+    studio->menuOverRun = studio->mode == TIC_RUN_MODE;
+
+    // Opened in the studio, the menu's back is a step back to where it was
+    // opened; over a run, that run's own origin stands (set by runGame).
+    if(!studio->menuOverRun)
+        studio->runFrom = studio->mode;
+
     setStudioMode(studio, TIC_MENU_MODE);
     studio_mainmenu_free(studio->mainmenu);
     studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+}
+
+// Whether the menu's back resumes a game: it does when a player's run is
+// paused under the menu. A dev's run and a menu opened in the studio both
+// leave for the studio — the same step ESC takes in RUN mode (#2937).
+bool studio_menu_over_player_run(Studio* studio)
+{
+    return studio->playerRun && studio->menuOverRun;
+}
+
+// ESC in a dev run, and the back of the pause menu over one: the run was asked
+// for from the studio, so it is left the way it was entered — one press, and
+// no walk to CLOSE GAME (#2937).
+void leaveRun(Studio* studio)
+{
+    setStudioMode(studio, studio->runFrom);
 }
 
 static bool enterWasPressedOnce(Studio* studio)
@@ -1901,8 +2003,8 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(studio, tic_key_pageup)) changeStudioMode(studio, -1);
         else if(keyWasPressedOnce(studio, tic_key_pagedown)) changeStudioMode(studio, +1);
-        else if(enterWasPressedOnce(studio)) runGame(studio);
-        else if(keyWasPressedOnce(studio, tic_key_r)) runGame(studio);
+        else if(enterWasPressedOnce(studio)) runGame(studio, RUN_FROM_STUDIO);
+        else if(keyWasPressedOnce(studio, tic_key_r)) runGame(studio, RUN_FROM_STUDIO);
         else if(keyWasPressedOnce(studio, tic_key_s)) saveProject(studio);
 #endif
 
@@ -1931,18 +2033,23 @@ static void processShortcuts(Studio* studio)
             switch(studio->mode)
             {
             case TIC_MENU_MODE:
-                showGameMenu(studio)
-                    ? studio_menu_back(studio->menu)
-                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
+                // The back callback knows where a menu belongs — see the main
+                // menu's back. Without one there is no cart under the menu, and
+                // it is left to where the studio was.
+                if(!studio_menu_back(studio->menu))
+                    setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
                         ? TIC_CONSOLE_MODE
                         : studio->prevMode);
                 break;
             case TIC_RUN_MODE:
-                showGameMenu(studio)
-                    ? gotoMenu(studio)
-                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
-                        ? TIC_CONSOLE_MODE
-                        : studio->prevMode);
+                // A cart that declares a game menu asked to be played, and its
+                // author needs to see that menu while iterating; anyone else in
+                // RUN mode — a player's run, a dev's cart without a menu —
+                // steps out, a player to the menu, the dev to the editor.
+                if(studio->playerRun || showGameMenu(studio))
+                    gotoMenu(studio);
+                else
+                    leaveRun(studio);
                 break;
             case TIC_CONSOLE_MODE:
                 setStudioMode(studio, TIC_CODE_MODE);
@@ -1964,7 +2071,11 @@ static void processShortcuts(Studio* studio)
         else if(studio->mode == TIC_RUN_MODE && keyWasPressedOnce(studio, tic_key_f7))
             setCoverImage(studio);
 
-        if(!showGameMenu(studio) || studio->mode != TIC_RUN_MODE)
+        // A running game owns the function keys: a player's run always hands
+        // them over, and a cart that declares a game menu asks for them in a
+        // dev's run as well. Leaving a run is ESC's job (see leaveRun), so the
+        // studio has no use for them there.
+        if((!studio->playerRun && !showGameMenu(studio)) || studio->mode != TIC_RUN_MODE)
         {
 			if(keyWasPressedOnce(studio, tic_key_f1))
 			{
@@ -1985,7 +2096,11 @@ static void processShortcuts(Studio* studio)
             switch(studio->mode)
             {
             case TIC_MENU_MODE: studio_menu_back(studio->menu); break;
-            case TIC_RUN_MODE: gotoMenu(studio); break;
+            case TIC_RUN_MODE:
+#if defined(BUILD_SURF)
+            case TIC_SURF_MODE:
+#endif
+                gotoMenu(studio); break;
             default: break;
             }
         }
@@ -2188,6 +2303,8 @@ static void renderStudio(Studio* studio)
         break;
 
     case TIC_WORLD_MODE:    studio->world->tick(studio->world); break;
+#endif
+#if defined(BUILD_SURF)
     case TIC_SURF_MODE:     studio->surf->tick(studio->surf); break;
 #endif
     default: break;
@@ -2296,7 +2413,9 @@ static void processMouseStates(Studio* studio)
 
         state->dbl.ticks++;
     }
+#if !defined(__TIC_MACOSX__)
     tic->ram->input.mouse.scrollx *= -1;
+#endif
 }
 
 #if defined(BUILD_EDITORS)
@@ -2364,7 +2483,7 @@ static void doCodeImport(Studio* studio)
                     if(x == 0 && y == 0)
                     {
                         if(studio->mode != TIC_RUN_MODE)
-                            runGame(studio);
+                            runGame(studio, RUN_FROM_STUDIO);
                     }
                     else
                     {
@@ -2444,6 +2563,8 @@ void studio_tick(Studio* studio, tic80_input input)
 #if defined(BUILD_EDITORS)
     processAnim(studio->anim.movie, studio);
     checkChanges(studio);
+#endif
+#if defined(BUILD_SURF)
     tic_net_start(studio->net);
 #endif
 
@@ -2470,6 +2591,8 @@ void studio_tick(Studio* studio, tic80_input input)
             [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL, NULL, sprite},
             [TIC_MAP_MODE]      = {map->scanline,           NULL, NULL, map},
             [TIC_WORLD_MODE]    = {studio->world->scanline,    NULL, NULL, studio->world},
+#endif
+#if defined(BUILD_SURF)
             [TIC_SURF_MODE]     = {studio->surf->scanline,     NULL, NULL, studio->surf},
 #endif
         };
@@ -2494,8 +2617,10 @@ void studio_tick(Studio* studio, tic80_input input)
 #endif
     }
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_SURF)
     tic_net_end(studio->net);
+#endif
+#if defined(BUILD_EDITORS)
 
     {
         Bytebattle* bb = &(studio->bytebattle);
@@ -2545,15 +2670,17 @@ void studio_sound(Studio* studio)
     }
 }
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 static void onStudioLoadConfirmed(Studio* studio, bool yes, void* data)
 {
     if(yes)
     {
         const char* file = data;
+#if defined(BUILD_EDITORS)
         showPopupMessage(studio, studio->console->loadCart(studio->console, file)
             ? "cart successfully loaded :)"
             : "error: cart not loaded :(");
+#endif
     }
 }
 
@@ -2573,7 +2700,7 @@ void confirmLoadCart(Studio* studio, ConfirmCallback callback, void* data)
 
 void studio_load(Studio* studio, const char* file)
 {
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     studioCartChanged(studio)
         ? confirmLoadCart(studio, onStudioLoadConfirmed, (void*)file)
         : onStudioLoadConfirmed(studio, true, (void*)file);
@@ -2607,12 +2734,15 @@ void studio_delete(Studio* studio)
         freeCode    (studio->code);
         freeConsole (studio->console);
         freeWorld   (studio->world);
-        freeSurf    (studio->surf);
 
         FREE(studio->anim.show.items);
         FREE(studio->anim.hide.items);
 
 #endif
+#if defined(BUILD_SURF)
+        freeSurf    (studio->surf);
+#endif
+
 
         freeStart   (studio->start);
         freeRun     (studio->run);
@@ -2624,8 +2754,10 @@ void studio_delete(Studio* studio)
 
     tic_core_close(studio->tic);
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_SURF)
     tic_net_close(studio->net);
+#endif
+#if defined(BUILD_EDITORS)
     free(studio->video.buffer);
     if(studio->bytebattle.exp) free(studio->bytebattle.exp);
     if(studio->bytebattle.imp) free(studio->bytebattle.imp);
@@ -2773,9 +2905,15 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     {
         .mode = TIC_START_MODE,
         .prevMode = TIC_CODE_MODE,
+        .playerRun = true,
+        .runFrom = TIC_CODE_MODE,
 
 #if defined(BUILD_EDITORS)
         .menuMode = TIC_CONSOLE_MODE,
+#elif defined(BUILD_SURF)
+        .menuMode = TIC_RUN_MODE,
+#endif
+#if defined(BUILD_EDITORS)
 
         .bank =
         {
@@ -2800,10 +2938,14 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         {
             .text = "\0",
         },
-
+#endif
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
         .samplerate = samplerate,
+#endif
+#if defined(BUILD_SURF)
         .net = tic_net_create(TIC_WEBSITE),
-
+#endif
+#if defined(BUILD_EDITORS)
         .bytebattle = {0},
 #endif
         .tic = tic_core_create(samplerate, format),
@@ -2815,7 +2957,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         if (fs_isdir(path))
         {
             studio->fs = tic_fs_create(path,
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_SURF)
                 studio->net
 #else
                 NULL
@@ -2841,9 +2983,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         }
 
         studio->code       = calloc(1, sizeof(Code));
-        studio->console    = calloc(1, sizeof(Console));
         studio->world      = calloc(1, sizeof(World));
-        studio->surf       = calloc(1, sizeof(Surf));
 
         studio->anim.show = (Movie)MOVIE_DEF(STUDIO_ANIM_TIME, setPopupWait,
         {
@@ -2857,6 +2997,14 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         });
 
         studio->anim.movie = resetMovie(&studio->anim.idle);
+#endif
+
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+        studio->console    = calloc(1, sizeof(Console));
+#endif
+
+#if defined(BUILD_SURF)
+        studio->surf       = calloc(1, sizeof(Surf));
 #endif
 
         studio->start      = calloc(1, sizeof(Start));
@@ -2879,9 +3027,13 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     initStart(studio->start, studio, args.cart);
     initRunMode(studio);
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     initConsole(studio->console, studio, studio->fs, studio->net, studio->config, args);
+#endif
+#if defined(BUILD_SURF)
     initSurfMode(studio);
+#endif
+#if defined(BUILD_EDITORS)
     initModules(studio);
 #endif
 

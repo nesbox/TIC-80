@@ -102,6 +102,13 @@ public class SDLControllerManager
         }
         int sources = device.getSources();
 
+        // Some external keyboards report DPAD source for arrow keys.
+        // Keep alphabetic keyboards in the keyboard path to avoid swallowing arrows as pad input.
+        if ((sources & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD &&
+            device.getKeyboardType() == InputDevice.KEYBOARD_TYPE_ALPHABETIC) {
+            return false;
+        }
+
         /* This is called for every button press, so let's not spam the logs */
         /*
         if ((sources & InputDevice.SOURCE_CLASS_JOYSTICK) != 0) {

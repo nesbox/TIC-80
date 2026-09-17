@@ -23,6 +23,7 @@ message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
 message("VERSION_HASH: ${VERSION_HASH}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
+include(cmake/runtime_versions.cmake)
 
 if(ANDROID OR EMSCRIPTEN OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI)
     set(BUILD_STATIC_DEFAULT ON)
@@ -46,6 +47,7 @@ option(BUILD_SDLGPU "SDL GPU Enabled" OFF)
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
 option(BUILD_TOOLS "bin2txt prj2cart" OFF)
 option(BUILD_EDITORS "Build cart editors" ON)
+option(BUILD_SURF "Build the SURF game browser" OFF)
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 option(BUILD_TOUCH_INPUT "Build with touch input support" ${BUILD_TOUCH_INPUT_DEFAULT})
@@ -55,6 +57,11 @@ option(BUILD_WITH_ZLIB "Build with zlib linked" ON)
 option(TIC80_TARGET "Target binary suffix")
 option(PREFER_SYSTEM_LIBRARIES "Prefer link with system libraries" OFF)
 
+# BUILD_SURF is its own option, off by default: the SURF entry of the main
+# menu belongs to the builds that ask for it (handhelds, TVs), while the
+# browser itself comes with the editors — the console's `surf` command runs
+# on it — as it always has. Forcing it on with BUILD_EDITORS is what put the
+# entry in every build's menu (#2889).
 
 if(NOT TIC80_TARGET)
     set(TIC80_TARGET tic80)
@@ -64,7 +71,7 @@ if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
 
-if(NINTENDO_SWITCH)
+if(NINTENDO_SWITCH AND NOT LIBRETRO_STATIC)
     set(PREFER_SYSTEM_LIBRARIES ON)
 endif()
 

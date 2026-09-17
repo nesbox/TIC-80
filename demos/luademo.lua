@@ -10,6 +10,8 @@ t=0
 x=96
 y=24
 
+-- map() remap callback in Lua receives (tile,x,y) and returns tile,flip,rotate.
+
 function TIC()
 
 	if btn(0) then y=y-1 end

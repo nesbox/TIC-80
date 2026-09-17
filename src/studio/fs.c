@@ -405,7 +405,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
         return;
     }
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_SURF)
     if(isPublic(fs))
     {
         char request[TICNAME_MAX];
@@ -807,7 +807,7 @@ void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_cal
         }
     }
 
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_SURF)
     char path[TICNAME_MAX];
     snprintf(path, sizeof path, "/cart/%s/%s", hash, name);
 

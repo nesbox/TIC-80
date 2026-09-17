@@ -52,7 +52,7 @@ Build `tic80studio` for arm with baremetal customizations:
 
 ```
 cd build
-cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
 make tic80studio
 ```
 
