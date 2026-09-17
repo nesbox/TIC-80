@@ -78,6 +78,8 @@ struct tic80_state
 	int mouseHideTimerStart;
 	tic80* tic;
 	retro_usec_t frameTime;
+	bool hasFrameTimeCallback;
+	bool shutdownRequested;
 };
 static struct tic80_state* state = NULL;
 
@@ -1061,15 +1063,29 @@ RETRO_API void retro_run(void)
 		return;
 	}
 
-	// Update the TIC-80 environment.
-	tic80_libretro_update(state->tic);
-
-	// Check if the game requested to quit.
+	// Check if the game requested to quit. Tearing down here would free the
+	// memory that retro_get_memory_data() handed to the frontend, so only ask
+	// the frontend to shut down and leave the cleanup to retro_unload_game().
 	if (state->quit) {
-		retro_deinit();
-		environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
+		if (!state->shutdownRequested) {
+			state->shutdownRequested = true;
+			if (!environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL)) {
+				log_cb(RETRO_LOG_WARN, "[TIC-80] Frontend ignored the shutdown request.\n");
+			}
+		}
+
+		// Send a duplicate frame while waiting for the frontend to shut down.
+		video_cb(NULL, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
 		return;
 	}
+
+	// Advance the clock manually when the frontend doesn't drive it.
+	if (!state->hasFrameTimeCallback) {
+		tic80_libretro_frame_time(TIC80_FREQUENCY / TIC80_FRAMERATE);
+	}
+
+	// Update the TIC-80 environment.
+	tic80_libretro_update(state->tic);
 
 	// Render the screen.
 	tic80_libretro_draw(state->tic);
@@ -1121,9 +1137,12 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 		.callback = tic80_libretro_frame_time,
 		.reference = TIC80_FREQUENCY / TIC80_FRAMERATE,
 	};
-	if (!environ_cb(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time)) {
-		log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to set frame time callback.\n");
-		return false;
+
+	// The frame time callback is optional, so fall back to a fixed timestep
+	// when the frontend doesn't provide one.
+	state->hasFrameTimeCallback = environ_cb(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time);
+	if (!state->hasFrameTimeCallback) {
+		log_cb(RETRO_LOG_WARN, "[TIC-80] No frame time callback, so using a fixed timestep.\n");
 	}
 
 	// Set up the TIC-80 environment.
@@ -1144,6 +1163,7 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 
 	// Initialize some of the game state.
 	state->quit = false;
+	state->shutdownRequested = false;
 	state->input.mouse.x = 0;
 	state->input.mouse.y = 0;
 
