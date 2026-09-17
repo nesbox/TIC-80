@@ -3537,7 +3537,7 @@ static void drawSidebarBar(Code* code, s32 x, s32 y)
 		{
 			// find the first non-space character
 			const char* trimmed = ptr->pos;
-			while (*trimmed && isspace(*trimmed))
+			while (*trimmed && *trimmed != '\n' && *trimmed != '\r' && isspace(*trimmed))
 				trimmed++;
 
 			// calculate the new size after trimming
