@@ -254,20 +254,23 @@ static inline void drawChar(tic_mem* tic, char symbol, s32 x, s32 y, u8 color, b
     tic_api_print(tic, (char[]){symbol, '\0'}, x, y, color, true, 1, alt);
 }
 
-static int drawTab(Code* code, s32 x, s32 y, u8 color)
+static s32 getTabColumnWidth(Code* code, s32 column)
+{
+    s32 tabSize = getConfig(code->studio)->options.tabSize;
+    if(tabSize <= 0) tabSize = 1;
+
+    return tabSize - column % tabSize;
+}
+
+static void drawTab(Code* code, s32 x, s32 y, s32 width, u8 color)
 {
     tic_mem* tic = code->tic;
-    s32 tab_size = getConfig(code->studio)->options.tabSize;
 
-    s32 count = 0;
-    while (count < tab_size) {
+    for(s32 offset = 0; offset < width; offset += getFontWidth(code))
+    {
         drawChar(tic, '\t', x, y, color, code->altFont);
-        count++;
-        if (x / getFontWidth(code) % tab_size == 0)
-            break;
         x += getFontWidth(code);
     }
-    return getFontWidth(code) * count;
 }
 
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
@@ -326,6 +329,10 @@ static void drawCode(Code* code, bool withCursor)
     {
         char symbol = *pointer;
         s32 x_offset = getFontWidth(code);
+        s32 column = (x - xStart) / getFontWidth(code);
+
+        if(symbol == '\t')
+            x_offset *= getTabColumnWidth(code, column);
 
         if(x >= -getFontWidth(code) && x < TIC80_WIDTH && y >= -TIC_FONT_HEIGHT && y < TIC80_HEIGHT )
         {
@@ -338,7 +345,7 @@ static void drawCode(Code* code, bool withCursor)
                     //NOTE: this logic assumes that the tab character is blank
                     //is someone made a custom character for tab it won't show up
                     //in the selection
-                    x_offset = drawTab(code, x, y, tic_color_dark_grey);
+                    drawTab(code, x, y, x_offset, tic_color_dark_grey);
                     tic_api_rect(code->tic, x-1, y-1, x_offset, TIC_FONT_HEIGHT+1, selectColor);
                 } else {
                     tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, selectColor);
@@ -351,7 +358,7 @@ static void drawCode(Code* code, bool withCursor)
                     drawChar(code->tic, symbol, x+1, y+1, 0, code->altFont);
 
                 if (symbol == '\t')
-                    x_offset = drawTab(code, x, y, colors[syntaxPointer->syntax]);
+                    drawTab(code, x, y, x_offset, colors[syntaxPointer->syntax]);
                 else
                     drawChar(code->tic, symbol, x, y, colors[syntaxPointer->syntax], code->altFont);
             }
@@ -812,14 +819,6 @@ static s32 getLineSize(const char* line)
     while(*line != '\n' && *line++) size++;
 
     return size;
-}
-
-static s32 getTabColumnWidth(Code* code, s32 column)
-{
-    s32 tabSize = getConfig(code->studio)->options.tabSize;
-    if(tabSize <= 0) tabSize = 1;
-
-    return tabSize - column % tabSize;
 }
 
 static char* getVisualPosByLine(Code* code, char* line, s32 column)
