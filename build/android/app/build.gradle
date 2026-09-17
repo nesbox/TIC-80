@@ -13,9 +13,19 @@ else {
 // build without either fails here with the name of what is missing instead
 // of failing inside the signer with "keystore was tampered with"; a debug
 // build never asks.
+//
+// -PUNSIGNED=1 is the one exception, and it exists for the pull requests
+// GitHub hands no secrets to at all: a PR from a fork. The release variant is
+// then built with no signingConfig and gradle writes app-release-unsigned.apk
+// — the check that the android build compiles still runs, and a file that
+// carries no signature at all cannot be mistaken for a shipable APK the way a
+// debug-signed one could. Every other event, the tag call included, signs as
+// before and still fails here by name when a password is missing.
+def unsignedBuild = project.hasProperty('UNSIGNED')
+
 def signingSecret = { String name ->
     def value = System.getenv(name) ?: project.findProperty(name)
-    if (!value && gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) {
+    if (!value && !unsignedBuild && gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }) {
         throw new GradleException("${name} is not set — export it or pass -P${name}=… (see build/android/gradle.properties)")
     }
     return value
@@ -153,7 +163,14 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            // Left unset rather than set to null under -PUNSIGNED=1: the DSL
+            // cannot dispatch a bare null (the overloads overlap), and an
+            // unset signingConfig is the supported shape — gradle then names
+            // the output app-release-unsigned.apk, so what the build produced
+            // says for itself that it is not signed (see unsignedBuild above).
+            if (!unsignedBuild) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {

@@ -799,16 +799,29 @@ jobs:
       - name: Build
         run: |
           cd build/android
+          chmod +x gradlew
           # The signing passwords are repository secrets — the keystore path
           # and alias live in gradle.properties, the passwords never do. Fail
           # here rather than inside the signer: without them the release build
           # stops, and a step that produced no APK must not look like one that
           # produced a good one.
-          : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
-          : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
-          chmod +x gradlew
-          ./gradlew assembleRelease
-          cp app/build/outputs/apk/release/app-release.apk tic80.apk
+          #
+          # A pull request from a fork is handed no secrets at all, so the two
+          # checks below would fail it for a reason that has nothing to do with
+          # the change (17.09). Such a run builds the release variant unsigned
+          # instead: the android job still proves the code compiles, the APK
+          # cannot be mistaken for a shipable one, and every other event — a
+          # push, the tag call — signs exactly as before.
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+              ./gradlew assembleRelease -PUNSIGNED=1
+              cp app/build/outputs/apk/release/app-release-unsigned.apk tic80.apk
+              echo "fork pull request: no repository secrets, the APK is unsigned"
+          else
+              : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
+              : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
+              ./gradlew assembleRelease
+              cp app/build/outputs/apk/release/app-release.apk tic80.apk
+          fi
 
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
