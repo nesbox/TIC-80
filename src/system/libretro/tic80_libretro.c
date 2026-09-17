@@ -88,6 +88,8 @@ static struct tic80_state* state = NULL;
  */
 static u64 tic80_libretro_counter(void* data)
 {
+	TIC_UNUSED(data);
+
 	if (state == NULL) {
 		return 0;
 	}
@@ -100,6 +102,8 @@ static u64 tic80_libretro_counter(void* data)
  */
 static u64 tic80_libretro_frequency(void* data)
 {
+	TIC_UNUSED(data);
+
 	return TIC80_FREQUENCY;
 }
 
