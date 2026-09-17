@@ -1529,6 +1529,166 @@ static SQInteger squirrel_fset(HSQUIRRELVM vm)
     return 0;
 }
 
+static SQInteger squirrel_vqt(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if (top >= 2)
+    {
+        double bin = getSquirrelNumber(vm, 2);
+
+        sq_pushfloat(vm, (SQFloat)(core->api.vqt(tic, bin)));
+        return 1;
+    }
+
+    sq_throwerror(vm, "invalid params, vqt(bin)\n");
+
+    return 0;
+}
+
+static SQInteger squirrel_vqts(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if (top >= 2)
+    {
+        double bin = getSquirrelNumber(vm, 2);
+
+        sq_pushfloat(vm, (SQFloat)(core->api.vqts(tic, bin)));
+        return 1;
+    }
+
+    sq_throwerror(vm, "invalid params, vqts(bin)\n");
+
+    return 0;
+}
+
+static SQInteger squirrel_vqtr(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if (top >= 2)
+    {
+        double bin = getSquirrelNumber(vm, 2);
+
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtr(tic, bin)));
+        return 1;
+    }
+
+    sq_throwerror(vm, "invalid params, vqtr(bin)\n");
+
+    return 0;
+}
+
+static SQInteger squirrel_vqtrs(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if (top >= 2)
+    {
+        double bin = getSquirrelNumber(vm, 2);
+
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtrs(tic, bin)));
+        return 1;
+    }
+
+    sq_throwerror(vm, "invalid params, vqtrs(bin)\n");
+
+    return 0;
+}
+
+static SQInteger squirrel_vqtw(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if (top >= 2)
+    {
+        double bin = getSquirrelNumber(vm, 2);
+
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtw(tic, bin)));
+        return 1;
+    }
+
+    sq_throwerror(vm, "invalid params, vqtw(bin)\n");
+
+    return 0;
+}
+
+static SQInteger squirrel_vqtsw(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if (top >= 2)
+    {
+        double bin = getSquirrelNumber(vm, 2);
+
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtsw(tic, bin)));
+        return 1;
+    }
+
+    sq_throwerror(vm, "invalid params, vqtsw(bin)\n");
+
+    return 0;
+}
+
+static SQInteger squirrel_vqtrw(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if (top >= 2)
+    {
+        double bin = getSquirrelNumber(vm, 2);
+
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtrw(tic, bin)));
+        return 1;
+    }
+
+    sq_throwerror(vm, "invalid params, vqtrw(bin)\n");
+
+    return 0;
+}
+
+static SQInteger squirrel_vqtrsw(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if (top >= 2)
+    {
+        double bin = getSquirrelNumber(vm, 2);
+
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtrsw(tic, bin)));
+        return 1;
+    }
+
+    sq_throwerror(vm, "invalid params, vqtrsw(bin)\n");
+
+    return 0;
+}
+
 static SQInteger squirrel_fft(HSQUIRRELVM vm)
 {
     tic_core* core = getSquirrelCore(vm);

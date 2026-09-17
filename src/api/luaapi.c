@@ -1545,6 +1545,146 @@ static s32 lua_fset(lua_State* lua)
     return 0;
 }
 
+static s32 lua_vqt(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 bin = getLuaNumber(lua, 1);
+
+        lua_pushnumber(lua, core->api.vqt(tic, bin));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, vqt(bin)\n");
+    return 0;
+}
+
+static s32 lua_vqts(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 bin = getLuaNumber(lua, 1);
+
+        lua_pushnumber(lua, core->api.vqts(tic, bin));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, vqts(bin)\n");
+    return 0;
+}
+
+static s32 lua_vqtr(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 bin = getLuaNumber(lua, 1);
+
+        lua_pushnumber(lua, core->api.vqtr(tic, bin));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, vqtr(bin)\n");
+    return 0;
+}
+
+static s32 lua_vqtrs(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 bin = getLuaNumber(lua, 1);
+
+        lua_pushnumber(lua, core->api.vqtrs(tic, bin));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, vqtrs(bin)\n");
+    return 0;
+}
+
+static s32 lua_vqtw(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 bin = getLuaNumber(lua, 1);
+        lua_pushnumber(lua, core->api.vqtw(tic, bin));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, vqtw(bin)\n");
+    return 0;
+}
+
+static s32 lua_vqtsw(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 bin = getLuaNumber(lua, 1);
+        lua_pushnumber(lua, core->api.vqtsw(tic, bin));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, vqtsw(bin)\n");
+    return 0;
+}
+
+static s32 lua_vqtrw(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 bin = getLuaNumber(lua, 1);
+        lua_pushnumber(lua, core->api.vqtrw(tic, bin));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, vqtrw(bin)\n");
+    return 0;
+}
+
+static s32 lua_vqtrsw(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 bin = getLuaNumber(lua, 1);
+        lua_pushnumber(lua, core->api.vqtrsw(tic, bin));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, vqtrsw(bin)\n");
+    return 0;
+}
+
 static s32 lua_fft(lua_State* lua)
 {
     tic_core* core = getLuaCore(lua);

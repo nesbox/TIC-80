@@ -1036,6 +1036,78 @@ static bool py_vbank(int argc, py_Ref argv)
     return true;
 }
 
+static bool py_vqt(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 bin = py_toint(py_arg(0));
+    tic_core* core = get_core();
+    py_newfloat(py_retval(), core->api.vqt((tic_mem*)core, bin));
+    return true;
+}
+
+static bool py_vqts(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 bin = py_toint(py_arg(0));
+    tic_core* core = get_core();
+    py_newfloat(py_retval(), core->api.vqts((tic_mem*)core, bin));
+    return true;
+}
+
+static bool py_vqtr(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 bin = py_toint(py_arg(0));
+    tic_core* core = get_core();
+    py_newfloat(py_retval(), core->api.vqtr((tic_mem*)core, bin));
+    return true;
+}
+
+static bool py_vqtrs(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 bin = py_toint(py_arg(0));
+    tic_core* core = get_core();
+    py_newfloat(py_retval(), core->api.vqtrs((tic_mem*)core, bin));
+    return true;
+}
+
+static bool py_vqtw(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 bin = py_toint(py_arg(0));
+    tic_core* core = get_core();
+    py_newfloat(py_retval(), core->api.vqtw((tic_mem*)core, bin));
+    return true;
+}
+
+static bool py_vqtsw(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 bin = py_toint(py_arg(0));
+    tic_core* core = get_core();
+    py_newfloat(py_retval(), core->api.vqtsw((tic_mem*)core, bin));
+    return true;
+}
+
+static bool py_vqtrw(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 bin = py_toint(py_arg(0));
+    tic_core* core = get_core();
+    py_newfloat(py_retval(), core->api.vqtrw((tic_mem*)core, bin));
+    return true;
+}
+
+static bool py_vqtrsw(int argc, py_Ref argv)
+{
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 bin = py_toint(py_arg(0));
+    tic_core* core = get_core();
+    py_newfloat(py_retval(), core->api.vqtrsw((tic_mem*)core, bin));
+    return true;
+}
+
 static bool py_fft(int argc, py_Ref argv)
 {
     PY_CHECK_ARG_TYPE(0, tp_int);
@@ -1121,6 +1193,14 @@ static void bind_pkpy_v2()
     py_bind(mod, "tstamp() -> int", py_tstamp);
     py_bind(mod, "vbank(bank: int | None = None) -> int", py_vbank);
     py_bind(mod, "fft(startFreq: int, endFreq=-1) -> float", py_fft);
+    py_bind(mod, "vqt(bin: int) -> float", py_vqt);
+    py_bind(mod, "vqts(bin: int) -> float", py_vqts);
+    py_bind(mod, "vqtr(bin: int) -> float", py_vqtr);
+    py_bind(mod, "vqtrs(bin: int) -> float", py_vqtrs);
+    py_bind(mod, "vqtw(bin: int) -> float", py_vqtw);
+    py_bind(mod, "vqtsw(bin: int) -> float", py_vqtsw);
+    py_bind(mod, "vqtrw(bin: int) -> float", py_vqtrw);
+    py_bind(mod, "vqtrsw(bin: int) -> float", py_vqtrsw);
     py_bind(mod, "ffts(startFreq: int, endFreq=-1) -> float", py_ffts);
 }
 
