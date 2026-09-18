@@ -125,6 +125,9 @@ void initWorld(World* world, Studio* studio, Map* map)
     memset(world->preview, 0, PREVIEW_SIZE);
     s32 colors[TIC_PALETTE_SIZE];
 
+    u8 segment = tic_blit_calc_segment(&map->sheet.blit);
+    tic_tilesheet sheet = tic_tilesheet_get(segment, (u8*)getBankTiles(world->studio));
+
     for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
     {
         u8 index = getBankMap(world->studio)->data[i];
@@ -133,15 +136,16 @@ void initWorld(World* world, Studio* studio, Map* map)
         {
             memset(colors, 0, sizeof colors);
 
-            tic_tile* tile = &getBankTiles(world->studio)->data[index];
+            tic_tileptr tileptr = tic_tilesheet_gettile(&sheet, index, true);
 
-            for(s32 p = 0; p < TIC_SPRITESIZE * TIC_SPRITESIZE; p++)
-            {
-                u8 color = tic_tool_peek4(tile, p);
+            for(s32 y = 0; y < TIC_SPRITESIZE; y++)
+                for(s32 x = 0; x < TIC_SPRITESIZE; x++)
+                {
+                    u8 color = tic_tilesheet_gettilepix(&tileptr, x, y);
 
-                if(color)
-                    colors[color]++;
-            }
+                    if(color)
+                        colors[color]++;
+                }
 
             s32 max = 0;
 

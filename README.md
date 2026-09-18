@@ -130,7 +130,7 @@ The build process has been tested on Windows 11 64-bit (x64); all this should ru
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
 copy /y .\build\janet\janetconf.h .\vendor\janet\src\conf\janetconf.h
-cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=On ..
+cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On ..
 cmake --build . --parallel
 ```
 
@@ -162,7 +162,7 @@ winget install Git.Git Kitware.CMake Microsoft.VisualStudio.2019.BuildTools Ruby
 
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
-cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
+cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
 cmake --build . --parallel
 ```
 
@@ -188,7 +188,7 @@ winget install Git.Git Kitware.CMake RubyInstallerTeam.RubyWithDevKit.2.7
 
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
-cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
+cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
 $numCPUs = [Environment]::ProcessorCount
 mingw32-make "-j$numCPUs"
 ```

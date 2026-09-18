@@ -29,6 +29,29 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_SDL2)
         set(SDL_STATIC_PIC ON CACHE BOOL "" FORCE)
     endif()
 
+    # SDL2 builds its own test helper and, by default, a shared library beside
+    # the static one — three passes over the same six hundred sources. TIC-80
+    # links neither the helper nor, in a static build, the shared library, and
+    # the extra targets are what put the macOS runners past their per-user
+    # process limit (see the parallel cap in build.yml). A non-static build
+    # links SDL2::SDL2, so the shared library stays in that one.
+    set(SDL_TEST OFF CACHE BOOL "" FORCE)
+    if(BUILD_STATIC)
+        set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    endif()
+
+    # Subsystems the engine never calls: haptic, sensor and power feedback
+    # (no SDL_Haptic/SDL_Sensor/SDL_GetPowerInfo anywhere in src/). SDL then
+    # skips their platform backends and compiles the stubs in their place, so
+    # the saving is small — the joystick subsystem stays, which is the one the
+    # studio's pad support uses. Haptic is the exception on Android: SDL's JNI
+    # glue there calls Android_AddHaptic and Android_RemoveHaptic whatever
+    # SDL_HAPTIC says, and the link fails without them.
+    set(SDL_SENSOR OFF CACHE BOOL "" FORCE)
+    set(SDL_POWER  OFF CACHE BOOL "" FORCE)
+    if(NOT ANDROID)
+        set(SDL_HAPTIC OFF CACHE BOOL "" FORCE)
+    endif()
 
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
 
@@ -37,11 +60,18 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_SDL2)
         # This allows linking libraries to targets not built in the current directory.
         cmake_policy(SET CMP0079 NEW)
 
-        target_link_libraries(SDL2 PRIVATE
-            libcmt.lib
-            libvcruntime.lib
-            libucrt.lib
-        )
+        # SDL2 here is the shared library, which a static build does not create
+        # (SDL_SHARED=OFF above) — and it was never the target TIC-80 links:
+        # the static one carries its own CRT settings, and giving it these would
+        # mix runtimes with whatever SDL chose. So the static CRT goes to the
+        # shared library when there is one, and nowhere when there is not.
+        if(TARGET SDL2)
+            target_link_libraries(SDL2 PRIVATE
+                libcmt.lib
+                libvcruntime.lib
+                libucrt.lib
+            )
+        endif()
     endif()
 
 endif()
@@ -215,7 +245,15 @@ if(BUILD_SDL)
     endif()
 
     if(EMSCRIPTEN)
-        set_target_properties(${TIC80_TARGET} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
+        # Emscripten gives the stack 64K by default, and a wasm build has no
+        # guard page below it: a cart that recurses deeper than that overwrites
+        # whatever follows, silently in a release build (a debug build asserts
+        # instead). The native builds get the OS default of 8M, so a cart that
+        # runs there must not corrupt the heap here: ask for 4M.
+        # Carcassonne (#1948) is the cart that found this: its Wren source
+        # compiles deep enough to pass 64K, and the damage surfaced later as an
+        # unrelated crash in SDL's mouse handling.
+        set_target_properties(${TIC80_TARGET} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -s STACK_SIZE=4194304 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
 
         if(CMAKE_BUILD_TYPE STREQUAL "Debug")
