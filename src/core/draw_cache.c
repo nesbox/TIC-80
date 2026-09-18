@@ -451,17 +451,8 @@ void tic_core_draw_cache_end(tic_core* core)
 
 static bool handle_draw_call(tic_core* core, const void* data, s32 size)
 {
-    if (!core->draw_cache) return true;
-    
-    if (core->draw_cache->is_executing)
-    {
-        return true;
-    }
-    
-    if (!core->draw_cache->is_recording)
-    {
-        return true;
-    }
+    if (!core->draw_cache || !core->draw_cache->enabled || !core->draw_cache->curr_calls_buf) return true;
+    if (core->draw_cache->is_executing || !core->draw_cache->is_recording) return true;
     
     if (core->draw_cache->curr_calls_pos + size > DRAW_CACHE_MAX_SIZE)
     {
@@ -833,12 +824,10 @@ static void cache_api_map(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, s32
 
 static s32 cache_api_print(tic_mem* tic, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt)
 {
+    if (!text) return 0;
     tic_core* core = (tic_core*)tic;
-    if (core->draw_cache->is_executing)
-    {
-        return tic_api_print(tic, text, x, y, color, fixed, scale, alt);
-    }
-    if (!core->draw_cache->is_recording)
+    if (!core->draw_cache || !core->draw_cache->enabled || !core->draw_cache->curr_calls_buf ||
+        core->draw_cache->is_executing || !core->draw_cache->is_recording)
     {
         return tic_api_print(tic, text, x, y, color, fixed, scale, alt);
     }
@@ -888,12 +877,10 @@ static s32 cache_api_print(tic_mem* tic, const char* text, s32 x, s32 y, u8 colo
 
 static s32 cache_api_font(tic_mem* tic, const char* text, s32 x, s32 y, u8* trans_colors, u8 trans_count, s32 w, s32 h, bool fixed, s32 scale, bool alt)
 {
+    if (!text) return 0;
     tic_core* core = (tic_core*)tic;
-    if (core->draw_cache->is_executing)
-    {
-        return tic_api_font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt);
-    }
-    if (!core->draw_cache->is_recording)
+    if (!core->draw_cache || !core->draw_cache->enabled || !core->draw_cache->curr_calls_buf ||
+        core->draw_cache->is_executing || !core->draw_cache->is_recording)
     {
         return tic_api_font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt);
     }
@@ -1006,9 +993,14 @@ void tic_core_draw_cache_set_enabled(tic_mem* memory, bool enabled)
     if (core->draw_cache->enabled == enabled) return;
 
     core->draw_cache->enabled = enabled;
+    tic_core_draw_cache_invalidate(core);
+    core->draw_cache->is_recording = false;
+    core->draw_cache->curr_calls_pos = 0;
+    core->draw_cache->play_pos = 0;
+    core->draw_cache->prev_calls_size = 0;
+
     if (!enabled)
     {
-        tic_core_draw_cache_invalidate(core);
         if (core->draw_cache->curr_calls_buf) { free(core->draw_cache->curr_calls_buf); core->draw_cache->curr_calls_buf = NULL; }
         if (core->draw_cache->prev_calls_buf) { free(core->draw_cache->prev_calls_buf); core->draw_cache->prev_calls_buf = NULL; }
         if (core->draw_cache->saved_ram_a) { free(core->draw_cache->saved_ram_a); core->draw_cache->saved_ram_a = NULL; }
