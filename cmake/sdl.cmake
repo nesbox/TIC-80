@@ -223,7 +223,15 @@ if(BUILD_SDL)
     endif()
 
     if(EMSCRIPTEN)
-        set_target_properties(${TIC80_TARGET} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
+        # Emscripten gives the stack 64K by default, and a wasm build has no
+        # guard page below it: a cart that recurses deeper than that overwrites
+        # whatever follows, silently in a release build (a debug build asserts
+        # instead). The native builds get the OS default of 8M, so a cart that
+        # runs there must not corrupt the heap here: ask for 4M.
+        # Carcassonne (#1948) is the cart that found this: its Wren source
+        # compiles deep enough to pass 64K, and the damage surfaced later as an
+        # unrelated crash in SDL's mouse handling.
+        set_target_properties(${TIC80_TARGET} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -s STACK_SIZE=4194304 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
 
         if(CMAKE_BUILD_TYPE STREQUAL "Debug")
