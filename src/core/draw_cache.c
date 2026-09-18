@@ -14,6 +14,7 @@
 #define RAM_B_SIZE          (offsetof(tic_ram, pcm) - offsetof(tic_ram, flags))
 
 struct tic_draw_cache {
+    bool enabled;
     bool is_recording;
     bool is_executing;
     bool has_invalidated;
@@ -385,8 +386,11 @@ void tic_core_draw_cache_invalidate(tic_core* core)
 
 void tic_core_draw_cache_start(tic_core* core)
 {
-    if (!core->draw_cache) return;
+    if (!core->draw_cache || !core->draw_cache->enabled) return;
     
+    if (!core->draw_cache->curr_calls_buf) core->draw_cache->curr_calls_buf = (u8*)malloc(DRAW_CACHE_MAX_SIZE);
+    if (!core->draw_cache->prev_calls_buf) core->draw_cache->prev_calls_buf = (u8*)malloc(DRAW_CACHE_MAX_SIZE);
+
     core->draw_cache->is_recording = true;
     core->draw_cache->curr_calls_pos = 0;
     core->draw_cache->play_pos = 0;
@@ -415,7 +419,7 @@ void tic_core_draw_cache_start(tic_core* core)
 
 void tic_core_draw_cache_end(tic_core* core)
 {
-    if (!core->draw_cache) return;
+    if (!core->draw_cache || !core->draw_cache->enabled) return;
     
     core->draw_cache->is_recording = false;
 
@@ -945,8 +949,9 @@ void tic_core_draw_cache_init(tic_core* core)
 {
     core->draw_cache = malloc(sizeof(struct tic_draw_cache));
     memset(core->draw_cache, 0, sizeof(struct tic_draw_cache));
-    core->draw_cache->curr_calls_buf = (u8*)malloc(DRAW_CACHE_MAX_SIZE);
-    core->draw_cache->prev_calls_buf = (u8*)malloc(DRAW_CACHE_MAX_SIZE);
+    core->draw_cache->enabled = true;
+    core->draw_cache->curr_calls_buf = NULL;
+    core->draw_cache->prev_calls_buf = NULL;
     core->draw_cache->prev_calls_size = 0;
     core->draw_cache->saved_ram_a = NULL;
     core->draw_cache->saved_ram_b = NULL;
@@ -991,5 +996,27 @@ void tic_core_draw_cache_hook_api(tic_core* core)
 
 bool tic_core_draw_cache_has_invalidated(tic_core* core)
 {
-    return !core->draw_cache || core->draw_cache->has_invalidated;
+    return !core->draw_cache || !core->draw_cache->enabled || core->draw_cache->has_invalidated;
+}
+
+void tic_core_draw_cache_set_enabled(tic_core* core, bool enabled)
+{
+    if (!core->draw_cache) return;
+    if (core->draw_cache->enabled == enabled) return;
+
+    core->draw_cache->enabled = enabled;
+    if (!enabled)
+    {
+        tic_core_draw_cache_invalidate(core);
+        if (core->draw_cache->curr_calls_buf) { free(core->draw_cache->curr_calls_buf); core->draw_cache->curr_calls_buf = NULL; }
+        if (core->draw_cache->prev_calls_buf) { free(core->draw_cache->prev_calls_buf); core->draw_cache->prev_calls_buf = NULL; }
+        if (core->draw_cache->saved_ram_a) { free(core->draw_cache->saved_ram_a); core->draw_cache->saved_ram_a = NULL; }
+        if (core->draw_cache->saved_ram_b) { free(core->draw_cache->saved_ram_b); core->draw_cache->saved_ram_b = NULL; }
+        if (core->draw_cache->saved_vbank1) { free(core->draw_cache->saved_vbank1); core->draw_cache->saved_vbank1 = NULL; }
+    }
+}
+
+bool tic_core_draw_cache_is_enabled(tic_core* core)
+{
+    return core->draw_cache && core->draw_cache->enabled;
 }
