@@ -129,6 +129,26 @@ static MenuOption IntegerScaleOption =
     optionIntegerScaleSet,
 };
 
+static s32 optionDrawCacheGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->drawCache ? 1 : 0;
+}
+
+static void optionDrawCacheSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->drawCache = (pos == 1);
+    tic_core_draw_cache_set_enabled(main->tic, main->options->drawCache);
+}
+
+static MenuOption DrawCacheOption =
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionDrawCacheGet,
+    optionDrawCacheSet,
+};
+
 #if defined(CRT_SHADER_SUPPORT)
 static s32 optionCrtMonitorGet(void* data)
 {
@@ -307,6 +327,7 @@ enum
     OptionsMenu_VSyncOption,
     OptionsMenu_FullscreenOption,
     OptionsMenu_IntegerScaleOption,
+    OptionsMenu_DrawCacheOption,
     OptionsMenu_VolumeOption,
 #if defined(BUILD_EDITORS)
     OptionsMenu_Editor,
@@ -324,6 +345,7 @@ static const MenuItem OptionMenu[] =
     {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN",      NULL,   &FullscreenOption},
     {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
+    {"DRAW CACHE",      NULL,   &DrawCacheOption, "Cache draw calls for CPU saving"},
     {"VOLUME",          NULL,   &VolumeOption},
     {"AUTOSAVE",        NULL,   &AutoSaveOption, "Keep carts loaded from the web"},
 #if defined(BUILD_EDITORS)

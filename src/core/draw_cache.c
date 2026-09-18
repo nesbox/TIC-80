@@ -999,8 +999,9 @@ bool tic_core_draw_cache_has_invalidated(tic_core* core)
     return !core->draw_cache || !core->draw_cache->enabled || core->draw_cache->has_invalidated;
 }
 
-void tic_core_draw_cache_set_enabled(tic_core* core, bool enabled)
+void tic_core_draw_cache_set_enabled(tic_mem* memory, bool enabled)
 {
+    tic_core* core = (tic_core*)memory;
     if (!core->draw_cache) return;
     if (core->draw_cache->enabled == enabled) return;
 
@@ -1016,7 +1017,8 @@ void tic_core_draw_cache_set_enabled(tic_core* core, bool enabled)
     }
 }
 
-bool tic_core_draw_cache_is_enabled(tic_core* core)
+bool tic_core_draw_cache_is_enabled(tic_mem* memory)
 {
+    tic_core* core = (tic_core*)memory;
     return core->draw_cache && core->draw_cache->enabled;
 }

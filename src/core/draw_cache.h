@@ -14,7 +14,7 @@ void tic_core_draw_cache_end(tic_core* core);
 void tic_core_draw_cache_invalidate(tic_core* core);
 void tic_core_draw_cache_hook_api(tic_core* core);
 bool tic_core_draw_cache_has_invalidated(tic_core* core);
-void tic_core_draw_cache_set_enabled(tic_core* core, bool enabled);
-bool tic_core_draw_cache_is_enabled(tic_core* core);
+void tic_core_draw_cache_set_enabled(tic_mem* memory, bool enabled);
+bool tic_core_draw_cache_is_enabled(tic_mem* memory);
 
 

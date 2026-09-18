@@ -2332,6 +2332,7 @@ void studioConfigChanged(Studio* studio)
 #endif
 
     updateSystemFont(studio);
+    tic_core_draw_cache_set_enabled(studio->tic, studio->config->data.options.drawCache);
     tic_sys_update_config();
 }
 

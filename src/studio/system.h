@@ -135,6 +135,7 @@ typedef struct
         bool fullscreen;
         bool vsync;
         bool integerScale;
+        bool drawCache;
         s32 volume;
         bool autosave;
         tic_mapping mapping;
