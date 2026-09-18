@@ -1637,6 +1637,8 @@ void runGame(Studio* studio, RunOrigin origin)
         fAmplification = 1.0f;
         memset(fftData, 0, sizeof(fftData[0]) * FFT_SIZE);
         memset(fftSmoothingData, 0, sizeof(fftSmoothingData[0]) * FFT_SIZE);
+        memset(fftRawData, 0, sizeof fftRawData);
+        memset(fftRawSmoothingData, 0, sizeof fftRawSmoothingData);
         memset(fftNormalizedData, 0, sizeof(fftNormalizedData[0]) * FFT_SIZE);
         memset(fftNormalizedMaxData, 0, sizeof(fftNormalizedMaxData[0]) * FFT_SIZE);
     }
