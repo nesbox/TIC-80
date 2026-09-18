@@ -120,6 +120,11 @@ if(BUILD_STATIC)
         target_link_libraries(tic80core PRIVATE wasm)
     endif()
 
+    if(BUILD_WITH_FORTH)
+        target_link_libraries(tic80core PRIVATE forth)
+    endif()
+
+    target_link_libraries(tic80core PRIVATE runtime)
     target_link_libraries(tic80core PUBLIC runtime)
 
 endif()

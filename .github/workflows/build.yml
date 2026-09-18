@@ -570,7 +570,7 @@ jobs:
       - name: Install Host toolchain
         run: |
           apt-get update
-          apt-get install --assume-yes build-essential ruby-full
+          apt-get install --assume-yes build-essential gcc-multilib ruby-full
 
       - name: Build
         run: |
@@ -600,7 +600,7 @@ jobs:
       - name: Install Host toolchain
         run: |
           apt-get update
-          apt-get install --assume-yes build-essential ruby-full
+          apt-get install --assume-yes build-essential gcc-multilib ruby-full
 
       - name: Build
         run: |
@@ -656,7 +656,7 @@ jobs:
         run: |
           cd build
           cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
+          cmake --build . --parallel 3
           # The universal export stub is this same binary (console.c appends the
           # cart to it), so keep it before Build Pro overwrites it below. It goes
           # into a directory of its own: upload-artifact names the file in the
@@ -677,7 +677,7 @@ jobs:
         run: |
           cd build
           cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --parallel
+          cmake --build . --parallel 3
 
       # No build here: the universal stub is the binary the Build step kept
       # aside — the same configuration, and building it again was a full engine
@@ -912,6 +912,9 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: Install 32-bit build tools
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+
       - name: Build
         run: |
           cd build/android
@@ -966,6 +969,9 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: 2.6
+
+      - name: Install 32-bit build tools
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
 
       # The per-language builds below are the PRO alone export stubs, so they
       # carry no editors, the way the native per-language stubs don't: an
