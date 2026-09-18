@@ -140,6 +140,7 @@ Makefile
 !build/baremetalpi/boot/Makefile
 !build/baremetalpi/toolchain.cmake
 !templates/c/Makefile
+!templates/go/Makefile
 build/android/.gradle/
 build/android/app/.externalNativeBuild/
 build/android/app/build/
