@@ -1710,6 +1710,56 @@ static s32 lua_fft(lua_State* lua)
     return 0;
 }
 
+static s32 lua_fftr(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 start_freq = getLuaNumber(lua, 1);
+        s32 end_freq = -1;
+
+        if (top >= 2)
+        {
+            end_freq = getLuaNumber(lua, 2);
+        }
+
+        lua_pushnumber(lua, core->api.fftr(tic, start_freq, end_freq));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, fftr(start_freq, end_freq=-1)\n");
+    return 0;
+}
+
+static s32 lua_fftrs(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 start_freq = getLuaNumber(lua, 1);
+        s32 end_freq = -1;
+
+        if (top >= 2)
+        {
+            end_freq = getLuaNumber(lua, 2);
+        }
+
+        lua_pushnumber(lua, core->api.fftrs(tic, start_freq, end_freq));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, fftrs(start_freq, end_freq=-1)\n");
+    return 0;
+}
+
 static s32 lua_ffts(lua_State* lua)
 {
     tic_core* core = getLuaCore(lua);

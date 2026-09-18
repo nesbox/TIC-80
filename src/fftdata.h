@@ -12,6 +12,9 @@ extern float fftSmoothingData[FFT_SIZE];
 extern float fftNormalizedData[FFT_SIZE];
 extern float fftNormalizedMaxData[FFT_SIZE];
 
+extern float fftRawData[FFT_SIZE];
+extern float fftRawSmoothingData[FFT_SIZE];
+
 extern bool fftEnabled;
 
 typedef enum

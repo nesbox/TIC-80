@@ -348,6 +348,7 @@ void FFT_GetFFT(float* _samples)
     {
         float val = 2.0f * sqrtf(out[i].r * out[i].r + out[i].i * out[i].i);
         if (val > peakValue) peakValue = val;
+        fftRawData[i] = val;
         _samples[i] = val * fAmplification;
     }
     if (peakValue > fPeakSmoothValue)
@@ -363,6 +364,7 @@ void FFT_GetFFT(float* _samples)
     float fFFTSmoothingFactor = 0.6f;
     for (int i = 0; i < FFT_SIZE; i++)
     {
+        fftRawSmoothingData[i] = fftRawSmoothingData[i] * fFFTSmoothingFactor + (1 - fFFTSmoothingFactor) * fftRawData[i];
         fftSmoothingData[i] = fftSmoothingData[i] * fFFTSmoothingFactor + (1 - fFFTSmoothingFactor) * _samples[i];
     }
 
@@ -372,7 +374,7 @@ void FFT_GetFFT(float* _samples)
 
 //////////////////////////////////////////////////////////////////////////
 
-double fft(s32 startFreq, s32 endFreq, bool smoothing)
+static double fft(s32 startFreq, s32 endFreq, bool smoothing, bool raw)
 {
 #ifdef TIC80_FFT_UNSUPPORTED
     return 0.0;
@@ -383,6 +385,10 @@ double fft(s32 startFreq, s32 endFreq, bool smoothing)
         return 0.0;
     }
 
+    const float* data = raw
+        ? (smoothing ? fftRawSmoothingData : fftRawData)
+        : (smoothing ? fftSmoothingData : fftData);
+
     if (endFreq == -1)
     {
         if (startFreq < 0 || startFreq >= FFT_SIZE)
@@ -390,7 +396,7 @@ double fft(s32 startFreq, s32 endFreq, bool smoothing)
             FFT_DebugLog(FFT_LOG_TRACE, "FFT: freq out of bounds at %d\n", startFreq);
             return 0.0;
         }
-        return smoothing ? fftSmoothingData[startFreq] : fftData[startFreq];
+        return data[startFreq];
     }
     else
     {
@@ -427,7 +433,7 @@ double fft(s32 startFreq, s32 endFreq, bool smoothing)
         double sum = 0.0;
         for (int i = startFreq; i <= endFreq; i++)
         {
-            sum += smoothing ? fftSmoothingData[i] : fftData[i];
+            sum += data[i];
         }
         return sum;
     }
@@ -439,7 +445,7 @@ double tic_api_fft(tic_mem* memory, s32 startFreq, s32 endFreq)
 #ifdef TIC80_FFT_UNSUPPORTED
     return 0.0;
 #else
-    return fft(startFreq, endFreq, false);
+    return fft(startFreq, endFreq, false, false);
 #endif
 }
 
@@ -448,7 +454,7 @@ double tic_api_ffts(tic_mem* memory, s32 startFreq, s32 endFreq)
 #ifdef TIC80_FFT_UNSUPPORTED
     return 0.0;
 #else
-    return fft(startFreq, endFreq, true);
+    return fft(startFreq, endFreq, true, false);
 #endif
 }
 
@@ -460,4 +466,14 @@ void FFT_CopyAudio(float* samples, int count)
     memcpy(samples, sampleBuf + AUDIO_BUFFER_SIZE - count, count * sizeof(float));
     ma_spinlock_unlock(&sampleLock);
 #endif
+}
+
+double tic_api_fftr(tic_mem* memory, s32 startFreq, s32 endFreq)
+{
+    return fft(startFreq, endFreq, false, true);
+}
+
+double tic_api_fftrs(tic_mem* memory, s32 startFreq, s32 endFreq)
+{
+    return fft(startFreq, endFreq, true, true);
 }
