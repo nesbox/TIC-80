@@ -127,15 +127,15 @@ jobs:
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang.exe" "$GITHUB_WORKSPACE/stubs/"
           done
 
-          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # One build per language, so one binary per language: an identical
           # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
           # yields a runtime-less engine that still looks fine to `[ -f ]`).
           # pairwise cmp, not an associative array: the macOS runners still
           # have bash 3.2, where `declare -A` is an invalid option and fails
           # the step (which is how the first version of this guard behaved)
           files=("$GITHUB_WORKSPACE"/stubs/*)
-          if [ ${#files[@]} -ne 12 ]; then
-            echo "expected 12 stubs, found ${#files[@]}" >&2
+          if [ ${#files[@]} -ne ${#langs[@]} ]; then
+            echo "expected ${#langs[@]} stubs, found ${#files[@]}" >&2
             exit 1
           fi
           for ((i = 0; i < ${#files[@]}; i++)); do
@@ -278,15 +278,15 @@ jobs:
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
 
-          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # One build per language, so one binary per language: an identical
           # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
           # yields a runtime-less engine that still looks fine to `[ -f ]`).
           # pairwise cmp, not an associative array: the macOS runners still
           # have bash 3.2, where `declare -A` is an invalid option and fails
           # the step (which is how the first version of this guard behaved)
           files=("$GITHUB_WORKSPACE"/stubs/*)
-          if [ ${#files[@]} -ne 12 ]; then
-            echo "expected 12 stubs, found ${#files[@]}" >&2
+          if [ ${#files[@]} -ne ${#langs[@]} ]; then
+            echo "expected ${#langs[@]} stubs, found ${#files[@]}" >&2
             exit 1
           fi
           for ((i = 0; i < ${#files[@]}; i++)); do
@@ -460,15 +460,15 @@ jobs:
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
 
-          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # One build per language, so one binary per language: an identical
           # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
           # yields a runtime-less engine that still looks fine to `[ -f ]`).
           # pairwise cmp, not an associative array: the macOS runners still
           # have bash 3.2, where `declare -A` is an invalid option and fails
           # the step (which is how the first version of this guard behaved)
           files=("$GITHUB_WORKSPACE"/stubs/*)
-          if [ ${#files[@]} -ne 12 ]; then
-            echo "expected 12 stubs, found ${#files[@]}" >&2
+          if [ ${#files[@]} -ne ${#langs[@]} ]; then
+            echo "expected ${#langs[@]} stubs, found ${#files[@]}" >&2
             exit 1
           fi
           for ((i = 0; i < ${#files[@]}; i++)); do
@@ -722,15 +722,15 @@ jobs:
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
 
-          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # One build per language, so one binary per language: an identical
           # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
           # yields a runtime-less engine that still looks fine to `[ -f ]`).
           # pairwise cmp, not an associative array: the macOS runners still
           # have bash 3.2, where `declare -A` is an invalid option and fails
           # the step (which is how the first version of this guard behaved)
           files=("$GITHUB_WORKSPACE"/stubs/*)
-          if [ ${#files[@]} -ne 12 ]; then
-            echo "expected 12 stubs, found ${#files[@]}" >&2
+          if [ ${#files[@]} -ne ${#langs[@]} ]; then
+            echo "expected ${#langs[@]} stubs, found ${#files[@]}" >&2
             exit 1
           fi
           for ((i = 0; i < ${#files[@]}; i++)); do
@@ -858,15 +858,15 @@ jobs:
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
 
-          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # One build per language, so one binary per language: an identical
           # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
           # yields a runtime-less engine that still looks fine to `[ -f ]`).
           # pairwise cmp, not an associative array: the macOS runners still
           # have bash 3.2, where `declare -A` is an invalid option and fails
           # the step (which is how the first version of this guard behaved)
           files=("$GITHUB_WORKSPACE"/stubs/*)
-          if [ ${#files[@]} -ne 12 ]; then
-            echo "expected 12 stubs, found ${#files[@]}" >&2
+          if [ ${#files[@]} -ne ${#langs[@]} ]; then
+            echo "expected ${#langs[@]} stubs, found ${#files[@]}" >&2
             exit 1
           fi
           for ((i = 0; i < ${#files[@]}; i++)); do
