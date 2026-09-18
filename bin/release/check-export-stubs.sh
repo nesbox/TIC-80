@@ -66,7 +66,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-LANGS="lua js moon yue fennel scheme squirrel wren wasm janet python ruby"
+LANGS="lua js moon yue fennel scheme squirrel wren wasm janet python ruby miniscript forth"
 
 [ -x "$CLIENT" ] || { echo "no client at $CLIENT (--client, or TIC80_CLIENT)" >&2; exit 2; }
 

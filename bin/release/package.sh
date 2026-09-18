@@ -133,7 +133,7 @@ pack_file "$ART/tic80-learn/learn.md" "$OUT/tic80-v$SHORT-learn.md"
 # scriptLanguages in the server's internal/httpapi/export.go: a language
 # added to the engine but missed here degrades to a universal-stub download
 # (a bigger binary, not an error), so nothing will tell you.
-STUB_LANGS="lua ruby js moon yue fennel scheme squirrel wren wasm janet python"
+STUB_LANGS="lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth"
 
 # A per-language stub is a game, not an IDE: the PRO alone export hands the
 # cartridge to someone who should only be able to play it. Every job builds
