@@ -10,6 +10,8 @@ set(TIC_RT_WREN "unknown")
 set(TIC_RT_WASM "unknown")
 set(TIC_RT_JANET "unknown")
 set(TIC_RT_PYTHON "unknown")
+set(TIC_RT_MINISCRIPT "unknown")
+set(TIC_RT_FORTH "unknown")
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/lua/lua.h")
     file(STRINGS "${CMAKE_SOURCE_DIR}/vendor/lua/lua.h" LUA_VERSION_MAJOR_LINE REGEX "^#define LUA_VERSION_MAJOR[ \t]+\"[^\"]+\"")
@@ -121,6 +123,25 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/pocketpy/include/pocketpy/config.h")
     if(PYTHON_VERSION_LINE)
         string(REGEX REPLACE ".*\"([^\"]+)\".*" "\\1" PYTHON_VERSION "${PYTHON_VERSION_LINE}")
         set(TIC_RT_PYTHON "pocketpy ${PYTHON_VERSION}")
+    endif()
+endif()
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/miniscript2/generated/CoreIntrinsics.g.cpp")
+    # MiniScript keeps its own version in the map its `version` intrinsic
+    # returns; hostVersion beside it belongs to whatever application embeds
+    # the runtime, so it is not this one.
+    file(STRINGS "${CMAKE_SOURCE_DIR}/vendor/miniscript2/generated/CoreIntrinsics.g.cpp" MINISCRIPT_VERSION_LINE REGEX "MapSet\\(\"miniscript\", \"[^\"]+\"\\)")
+    if(MINISCRIPT_VERSION_LINE)
+        string(REGEX REPLACE ".*MapSet\\(\"miniscript\", \"([^\"]+)\"\\).*" "\\1" MINISCRIPT_VERSION "${MINISCRIPT_VERSION_LINE}")
+        set(TIC_RT_MINISCRIPT "MiniScript ${MINISCRIPT_VERSION}")
+    endif()
+endif()
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/pforth/csrc/pf_guts.h")
+    file(STRINGS "${CMAKE_SOURCE_DIR}/vendor/pforth/csrc/pf_guts.h" PFORTH_VERSION_LINE REGEX "^#define PFORTH_VERSION_NAME \"[^\"]+\"")
+    if(PFORTH_VERSION_LINE)
+        string(REGEX REPLACE ".*\"([^\"]+)\".*" "\\1" PFORTH_VERSION "${PFORTH_VERSION_LINE}")
+        set(TIC_RT_FORTH "pForth ${PFORTH_VERSION}")
     endif()
 endif()
 
