@@ -48,12 +48,12 @@ static void onExit()
     state.quit = true;
 }
 
-static u64 tic_sys_counter_get()
+static u64 tic_sys_counter_get(void* data)
 {
     return SDL_GetPerformanceCounter();
 }
 
-static u64 tic_sys_freq_get()
+static u64 tic_sys_freq_get(void* data)
 {
     return SDL_GetPerformanceFrequency();
 }

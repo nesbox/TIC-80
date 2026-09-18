@@ -62,7 +62,7 @@ extern void gotoMenu(Studio* studio);
 #include <windows.h>
 #endif
 
-#if defined(__TIC_ANDROID__) || defined(__SWITCH__)
+#if defined(__TIC_ANDROID__) || defined(__SWITCH__) || defined(TIC_DATA_PATH)
 #include <sys/stat.h>
 #endif
 
@@ -119,7 +119,8 @@ static struct
 
     struct
     {
-        SDL_GameController* ports[TIC_GAMEPADS];
+        SDL_GameController* ports[16];
+        SDL_JoystickID mapping[TIC_GAMEPADS];
 
 #if defined(TOUCH_INPUT_SUPPORT)
         struct
@@ -181,6 +182,9 @@ static struct
     struct
     {
         bool focus;
+        bool moved;
+        float x;
+        float y;
     } mouse;
 
     struct
@@ -683,20 +687,27 @@ static void processMouse()
 
         if(platform.mouse.focus)
         {
-            SDL_Rect rect;
-            calcTextureRect(&rect);
-
-            if(rect.w && rect.h)
+            if(!platform.mouse.moved)
             {
-                tic_point m = {(pt.x - rect.x) * TIC80_FULLWIDTH / rect.w, (pt.y - rect.y) * TIC80_FULLHEIGHT / rect.h};
+                SDL_ShowCursor(SDL_DISABLE);
+            }
+            else
+            {
+                SDL_Rect rect;
+                calcTextureRect(&rect);
 
-                if(m.x < 0 || m.y < 0 || m.x >= TIC80_FULLWIDTH || m.y >= TIC80_FULLHEIGHT)
-                    SDL_ShowCursor(SDL_ENABLE);
-                else
+                if(rect.w && rect.h)
                 {
-                    SDL_ShowCursor(SDL_DISABLE);
-                    input->mouse.x = m.x;
-                    input->mouse.y = m.y;
+                    tic_point m = {(pt.x - rect.x) * TIC80_FULLWIDTH / rect.w, (pt.y - rect.y) * TIC80_FULLHEIGHT / rect.h};
+
+                    if(m.x < 0 || m.y < 0 || m.x >= TIC80_FULLWIDTH || m.y >= TIC80_FULLHEIGHT)
+                        SDL_ShowCursor(SDL_ENABLE);
+                    else
+                    {
+                        SDL_ShowCursor(SDL_DISABLE);
+                        input->mouse.x = m.x;
+                        input->mouse.y = m.y;
+                    }
                 }
             }
         }
@@ -947,11 +958,23 @@ static u8 getButton(SDL_GameController* controller, SDL_GameControllerButton but
         : 0;
 }
 
+static bool isControllerActive(SDL_GameController* controller)
+{
+    for(s32 i = 0; i < SDL_CONTROLLER_BUTTON_MAX; i++)
+        if(SDL_GameControllerGetButton(controller, i))
+            return true;
+
+    for(s32 i = 0; i < SDL_CONTROLLER_AXIS_MAX; i++)
+        if(abs(SDL_GameControllerGetAxis(controller, i)) > AXIS_THRESHOLD)
+            return true;
+
+    return false;
+}
+
 static void processGamepad()
 {
     {
         platform.gamepad.joystick.data = 0;
-        s32 index = 0;
 
         for(s32 i = 0; i < COUNT_OF(platform.gamepad.ports); i++)
         {
@@ -959,9 +982,45 @@ static void processGamepad()
 
             if(controller && SDL_GameControllerGetAttached(controller))
             {
+                SDL_JoystickID id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller));
+
+                bool mapped = false;
+                for(s32 j = 0; j < TIC_GAMEPADS; j++)
+                {
+                    if(platform.gamepad.mapping[j] == id)
+                    {
+                        mapped = true;
+                        break;
+                    }
+                }
+
+                if(!mapped && isControllerActive(controller))
+                {
+                    for(s32 j = 0; j < TIC_GAMEPADS; j++)
+                    {
+                        if(platform.gamepad.mapping[j] == -1)
+                        {
+                            platform.gamepad.mapping[j] = id;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        for(s32 i = 0; i < TIC_GAMEPADS; i++)
+        {
+            SDL_JoystickID id = platform.gamepad.mapping[i];
+
+            if(id == -1) continue;
+
+            SDL_GameController* controller = SDL_GameControllerFromInstanceID(id);
+
+            if(controller && SDL_GameControllerGetAttached(controller))
+            {
                 tic80_gamepad* gamepad = NULL;
 
-                switch(index)
+                switch(i)
                 {
                 case 0: gamepad = &platform.gamepad.joystick.first; break;
                 case 1: gamepad = &platform.gamepad.joystick.second; break;
@@ -972,20 +1031,53 @@ static void processGamepad()
                 if(gamepad)
                 {
                     gamepad->up = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTY, -1)
-                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY, -1)
                         || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP);
 
                     gamepad->down = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTY, +1)
-                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY, +1)
                         || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
 
                     gamepad->left = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTX, -1)
-                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX, -1)
                         || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
 
                     gamepad->right = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTX, +1)
-                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX, +1)
                         || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+
+                    if (SDL_GameControllerHasAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX) && SDL_GameControllerHasAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY))
+                    {
+                        s16 rx = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+                        s16 ry = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+
+                        if (abs(rx) > AXIS_THRESHOLD || abs(ry) > AXIS_THRESHOLD)
+                        {
+                            s32 x_mag = 0;
+                            s32 y_mag = 0;
+
+                            if (abs(rx) > AXIS_THRESHOLD)
+                                x_mag = (abs(rx) - AXIS_THRESHOLD) * (rx < 0 ? -1 : 1);
+
+                            if (abs(ry) > AXIS_THRESHOLD)
+                                y_mag = (abs(ry) - AXIS_THRESHOLD) * (ry < 0 ? -1 : 1);
+
+                            platform.mouse.x += (float)x_mag / 1000.0f;
+                            platform.mouse.y += (float)y_mag / 1000.0f;
+
+                            s32 mx, my;
+                            SDL_GetMouseState(&mx, &my);
+
+                            if (abs((s32)platform.mouse.x) > 0 || abs((s32)platform.mouse.y) > 0)
+                            {
+                                SDL_WarpMouseInWindow(platform.window, mx + (s32)platform.mouse.x, my + (s32)platform.mouse.y);
+                                platform.mouse.x -= (s32)platform.mouse.x;
+                                platform.mouse.y -= (s32)platform.mouse.y;
+                                platform.mouse.moved = true;
+                            }
+                        }
+                        else
+                        {
+                            platform.mouse.x = 0;
+                            platform.mouse.y = 0;
+                        }
+                    }
 
 #ifdef __SWITCH__
                     // nintendo layout
@@ -1015,8 +1107,6 @@ static void processGamepad()
                         tic80_input* input = &platform.input;
                         input->keyboard.keys[0] = tic_key_escape;
                     }
-
-                    index++;
                 }
             }
         }
@@ -1156,8 +1246,14 @@ static void pollEvents()
     {
         switch(event.type)
         {
+        case SDL_MOUSEMOTION:
+        case SDL_MOUSEBUTTONDOWN:
+        case SDL_MOUSEBUTTONUP:
+            platform.mouse.moved = true;
+            break;
         case SDL_MOUSEWHEEL:
             {
+                platform.mouse.moved = true;
                 input->mouse.scrollx = event.wheel.x;
                 input->mouse.scrolly = event.wheel.y;
             }
@@ -1173,12 +1269,13 @@ static void pollEvents()
 
                 if(SDL_IsGameController(id))
                 {
-                    if (id < TIC_GAMEPADS)
+                    for(s32 i = 0; i < COUNT_OF(platform.gamepad.ports); i++)
                     {
-                        if(platform.gamepad.ports[id])
-                            SDL_GameControllerClose(platform.gamepad.ports[id]);
-
-                        platform.gamepad.ports[id] = SDL_GameControllerOpen(id);
+                        if(platform.gamepad.ports[i] == NULL)
+                        {
+                            platform.gamepad.ports[i] = SDL_GameControllerOpen(id);
+                            break;
+                        }
                     }
                 }
             }
@@ -1187,10 +1284,27 @@ static void pollEvents()
             {
                 s32 id = event.cdevice.which;
 
-                if (id < TIC_GAMEPADS && platform.gamepad.ports[id])
+                for(s32 i = 0; i < COUNT_OF(platform.gamepad.ports); i++)
                 {
-                    SDL_GameControllerClose(platform.gamepad.ports[id]);
-                    platform.gamepad.ports[id] = NULL;
+                    if(platform.gamepad.ports[i])
+                    {
+                        SDL_Joystick* joystick = SDL_GameControllerGetJoystick(platform.gamepad.ports[i]);
+                        if(joystick && SDL_JoystickInstanceID(joystick) == id)
+                        {
+                            SDL_GameControllerClose(platform.gamepad.ports[i]);
+                            platform.gamepad.ports[i] = NULL;
+                            break;
+                        }
+                    }
+                }
+
+                for(s32 i = 0; i < COUNT_OF(platform.gamepad.mapping); i++)
+                {
+                    if(platform.gamepad.mapping[i] == id)
+                    {
+                        platform.gamepad.mapping[i] = -1;
+                        break;
+                    }
                 }
             }
             break;
@@ -1395,7 +1509,12 @@ static const char* getAppFolder()
 {
     static char appFolder[TICNAME_MAX];
 
-#if defined(__EMSCRIPTEN__)
+#if defined(TIC_DATA_PATH)
+
+        strcpy(appFolder, TIC_DATA_PATH);
+        mkdir(appFolder, 0777);
+
+#elif defined(__EMSCRIPTEN__)
 
         strcpy(appFolder, "/" TIC_PACKAGE "/" TIC_NAME "/");
 
@@ -1404,11 +1523,6 @@ static const char* getAppFolder()
         strcpy(appFolder, SDL_AndroidGetExternalStoragePath());
         const char AppFolder[] = "/" TIC_NAME "/";
         strcat(appFolder, AppFolder);
-        mkdir(appFolder, 0777);
-
-#elif defined(__SWITCH__)
-
-        strcpy(appFolder, "/switch/tic80");
         mkdir(appFolder, 0777);
 
 #else
@@ -1962,6 +2076,9 @@ static s32 start(s32 argc, char **argv, const char* folder)
     {
         SDL_Log("Unable to initialize SDL Game Controller: %i, %s\n", result, SDL_GetError());
     }
+
+    for(s32 i = 0; i < COUNT_OF(platform.gamepad.mapping); i++)
+        platform.gamepad.mapping[i] = -1;
 
     platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale(), detect_keyboard_layout());
 

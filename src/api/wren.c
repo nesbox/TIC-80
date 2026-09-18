@@ -579,8 +579,13 @@ static void wren_spr(WrenVM* vm)
                     s32 list_count = wrenGetListCount(vm, 4);
                     for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
                     {
+                        if(i >= list_count)
+                        {
+                            break;
+                        }
+
                         wrenGetListElement(vm, 4, i, top);
-                        if(i < list_count && isNumber(vm, top))
+                        if(isNumber(vm, top))
                         {
                             colors[i] = getWrenNumber(vm, top);
                             count++;
@@ -643,8 +648,13 @@ static void wren_spr_internal(WrenVM* vm)
         s32 list_count = wrenGetListCount(vm, 4);
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
+            if(i >= list_count)
+            {
+                break;
+            }
+
             wrenGetListElement(vm, 4, i, top);
-            if(i < list_count && isNumber(vm, top))
+            if(isNumber(vm, top))
             {
                 colors[i] = getWrenNumber(vm, top);
                 count++;
@@ -707,8 +717,13 @@ static void wren_map(WrenVM* vm)
                         s32 list_count = wrenGetListCount(vm, 7);
                         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
                         {
+                            if(i >= list_count)
+                            {
+                                break;
+                            }
+
                             wrenGetListElement(vm, 7, i, top);
-                            if(i < list_count && isNumber(vm, top))
+                            if(isNumber(vm, top))
                             {
                                 colors[i] = getWrenNumber(vm, top);
                                 count++;
@@ -805,28 +820,36 @@ static void wren_ttri(WrenVM* vm)
     }
 
     //  check for chroma
-    if(isList(vm, 14))
+    if (top > 14)
     {
-        wrenEnsureSlots(vm, top+1);
-        s32 list_count = wrenGetListCount(vm, 14);
-        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+        if(isList(vm, 14))
         {
-            wrenGetListElement(vm, 14, i, top);
-            if(i < list_count && isNumber(vm, top))
+            wrenEnsureSlots(vm, top+1);
+            s32 list_count = wrenGetListCount(vm, 14);
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
             {
-                colors[i] = getWrenNumber(vm, top);
-                count++;
-            }
-            else
-            {
-                break;
+                if(i >= list_count)
+                {
+                    break;
+                }
+
+                wrenGetListElement(vm, 14, i, top);
+                if(isNumber(vm, top))
+                {
+                    colors[i] = getWrenNumber(vm, top);
+                    count++;
+                }
+                else
+                {
+                    break;
+                }
             }
         }
-    }
-    else
-    {
-        colors[0] = getWrenNumber(vm, 14);
-        count = 1;
+        else
+        {
+            colors[0] = getWrenNumber(vm, 14);
+            count = 1;
+        }
     }
 
     core->api.ttri(tic,
@@ -867,28 +890,36 @@ static void wren_textri(WrenVM* vm)
     }
 
     //  check for chroma
-    if(isList(vm, 14))
+    if (top > 14)
     {
-        wrenEnsureSlots(vm, top+1);
-        s32 list_count = wrenGetListCount(vm, 14);
-        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+        if(isList(vm, 14))
         {
-            wrenGetListElement(vm, 14, i, top);
-            if(i < list_count && isNumber(vm, top))
+            wrenEnsureSlots(vm, top+1);
+            s32 list_count = wrenGetListCount(vm, 14);
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
             {
-                colors[i] = getWrenNumber(vm, top);
-                count++;
-            }
-            else
-            {
-                break;
+                if(i >= list_count)
+                {
+                    break;
+                }
+
+                wrenGetListElement(vm, 14, i, top);
+                if(isNumber(vm, top))
+                {
+                    colors[i] = getWrenNumber(vm, top);
+                    count++;
+                }
+                else
+                {
+                    break;
+                }
             }
         }
-    }
-    else
-    {
-        colors[0] = getWrenNumber(vm, 14);
-        count = 1;
+        else
+        {
+            colors[0] = getWrenNumber(vm, 14);
+            count = 1;
+        }
     }
 
     core->api.textri(tic,

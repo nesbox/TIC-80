@@ -1,8 +1,14 @@
 name: Build
 
 on:
+  # main and pull requests, not every branch: pushing a branch and then opening
+  # a pull request for it built the same commit twice, and the two runs do not
+  # share a concurrency group (a push ref and a pull request ref are different),
+  # so neither cancelled the other — 18 checks on one commit, for nine jobs.
+  # A branch with no pull request yet still builds on demand, through the
+  # dispatch below, and the release path comes in through `workflow_call`.
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -303,6 +309,50 @@ jobs:
             stubs/*
 
   # === Ubuntu-arm64 ===
+
+  linux-gcc14-glibc239:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install
+        run: |
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
+          sudo apt update
+          sudo apt-get install gcc-14 g++-14 libxext-dev libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
+          sudo ln -s -f /usr/bin/gcc-14 /usr/bin/gcc
+          sudo ln -s -f /usr/bin/g++-14 /usr/bin/g++
+          
+      - name: Build
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          name: "tic80-linux-gcc14"
+          path: |
+            build/bin/tic80
+            build/bin/*.so
+
+      - name: Build Pro
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake --build . --config MinSizeRel --parallel
+
+  # === Raspberry PI 1-4 Bare Metal ===
+
   linux-arm64-gcc12-glibc235:
     runs-on: ubuntu-22.04-arm
     env:
@@ -441,6 +491,72 @@ jobs:
             stubs/*
 
   # === Nintendo 3DS build ===
+
+  linux-arm64-gles2:
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Toolchain and Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ xz-utils wget python3 rake pkg-config binutils libsdl2-dev libgles2-mesa-dev libegl1-mesa-dev
+
+      - name: Generate Stubs
+        run: |
+          for lib in /usr/lib/aarch64-linux-gnu/libSDL2-2.0.so.0 /usr/lib/aarch64-linux-gnu/libGLESv2.so.2 /usr/lib/aarch64-linux-gnu/libEGL.so.1; do \
+              outname=$(basename $lib | sed 's/-2.0//; s/\.so\..*/.so/') && \
+              echo "Generating stubs for $outname from $lib" && \
+              nm -D $lib | grep " T " | awk '{print "void " $3 "(){}"}' > stubs.c && \
+              sudo rm -f /usr/lib/aarch64-linux-gnu/$outname && \
+              sudo gcc -shared -Wl,-soname,$outname -o /usr/lib/aarch64-linux-gnu/$outname stubs.c; \
+          done
+
+      - name: Build
+        run: |
+          cd build/linux
+          cmake ../.. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_PRO=OFF \
+            -DBUILD_WITH_ALL=ON \
+            -DCMAKE_C_FLAGS_RELEASE="-Ofast -flto" \
+            -DCMAKE_CXX_FLAGS_RELEASE="-Ofast -flto" \
+            -DBUILD_SDL=ON \
+            -DBUILD_SDLGPU=ON \
+            -DUSE_GLES2=ON \
+            -DUSE_EGL=ON \
+            -DBUILD_EDITORS=OFF \
+            -DBUILD_SURF=ON \
+            -DPREFER_SYSTEM_SDL2=ON \
+            -DBUILD_STATIC=ON \
+            -DTIC_DATA_PATH="/userdata/roms/tic80/"
+          cmake --build . --target tic80 --config Release --parallel
+
+      - name: Pack
+        run: |
+          mkdir -p build/linux/share/applications
+          mkdir -p build/linux/share/mime/packages
+          mkdir -p build/linux/share/icons
+          cp build/linux/tic80.desktop build/linux/share/applications/
+          cp build/linux/tic80.xml build/linux/share/mime/packages/
+          cp build/linux/tic80.png build/linux/share/icons/
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          name: "tic80-linux-arm64-gles2"
+          path: |
+            build/linux/bin/tic80
+            build/linux/bin/*.so
+            build/linux/lib/*.so
+            build/linux/share/*
+
+  # === Ubuntu gcc14 ===
+
   nintendo-3ds:
     runs-on: ubuntu-latest
     container: devkitpro/devkitarm:20250728
@@ -799,16 +915,29 @@ jobs:
       - name: Build
         run: |
           cd build/android
+          chmod +x gradlew
           # The signing passwords are repository secrets — the keystore path
           # and alias live in gradle.properties, the passwords never do. Fail
           # here rather than inside the signer: without them the release build
           # stops, and a step that produced no APK must not look like one that
           # produced a good one.
-          : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
-          : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
-          chmod +x gradlew
-          ./gradlew assembleRelease
-          cp app/build/outputs/apk/release/app-release.apk tic80.apk
+          #
+          # A pull request from a fork is handed no secrets at all, so the two
+          # checks below would fail it for a reason that has nothing to do with
+          # the change (17.09). Such a run builds the release variant unsigned
+          # instead: the android job still proves the code compiles, the APK
+          # cannot be mistaken for a shipable one, and every other event — a
+          # push, the tag call — signs exactly as before.
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+              ./gradlew assembleRelease -PUNSIGNED=1
+              cp app/build/outputs/apk/release/app-release-unsigned.apk tic80.apk
+              echo "fork pull request: no repository secrets, the APK is unsigned"
+          else
+              : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
+              : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
+              ./gradlew assembleRelease
+              cp app/build/outputs/apk/release/app-release.apk tic80.apk
+          fi
 
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
