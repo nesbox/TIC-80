@@ -832,6 +832,33 @@ enum
         1,                                                                                                              \
         0,                                                                                                              \
         double,                                                                                                         \
+        tic_mem*, s32 startFreq, s32 endFreq)                                                                           \
+                                                                                                                        \
+    macro(fftr,                                                                                                         \
+        "fftr(start_freq end_freq=-1)",                                                                                 \
+                                                                                                                        \
+        "Retrieves a value from 1024 buckets that map to a region of audible frequencies.\n"                            \
+        "Returns raw magnitudes before amplification and peak normalization.\n"                                         \
+        "If end_freq is not provided, a single value is returned for the start_freq.\n"                                 \
+        "If end_freq is provided, a sum of all values in the range is returned.",                                       \
+        2,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 startFreq, s32 endFreq)                                                                           \
+                                                                                                                        \
+                                                                                                                        \
+    macro(fftrs,                                                                                                        \
+        "fftrs(start_freq end_freq=-1)",                                                                                \
+                                                                                                                        \
+        "Retrieves a value from 1024 buckets that map to a region of audible frequencies.\n"                            \
+        "Returns smoothed raw magnitudes before amplification and peak normalization.\n"                                \
+        "If end_freq is not provided, a single value is returned for the start_freq.\n"                                 \
+        "If end_freq is provided, a sum of all values in the range is returned.",                                       \
+        2,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
         tic_mem*, s32 startFreq, s32 endFreq)
 
 #define TIC_API_DEF(name, _, __, ___, ____, _____, ret, ...) ret tic_api_##name(__VA_ARGS__);

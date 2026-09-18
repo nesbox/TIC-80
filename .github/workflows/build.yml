@@ -1,6 +1,40 @@
 name: Build
 
-on: [push, pull_request]
+on:
+  # main and pull requests, not every branch: pushing a branch and then opening
+  # a pull request for it built the same commit twice, and the two runs do not
+  # share a concurrency group (a push ref and a pull request ref are different),
+  # so neither cancelled the other — 18 checks on one commit, for nine jobs.
+  # A branch with no pull request yet still builds on demand, through the
+  # dispatch below, and the release path comes in through `workflow_call`.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      stubs:
+        description: 'Build the per-language export stubs too (slow; the release matrix)'
+        type: boolean
+        default: false
+  workflow_call:
+    # The android job signs the release APK with these. A reusable workflow
+    # receives no repository secrets unless its caller names them, so
+    # release.yml has to pass them — and `required` makes a caller that does
+    # not fail at the start of the run instead of inside the signing step.
+    # Before 15.09 the passwords lived in the tree and reached every flavor
+    # of this workflow alike; moving them into secrets cut the tag path off,
+    # because that path is the only one that goes through a call.
+    secrets:
+      RELEASE_STORE_PASSWORD:
+        required: true
+      RELEASE_KEY_PASSWORD:
+        required: true
+
+# A new push supersedes the previous run on the same ref: cancel it instead
+# of burning matrix runners on stale commits.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # === Windows ===
@@ -21,61 +55,114 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-          cmake --build . --config MinSizeRel --parallel
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --config Release --parallel || exit /b 1
+          rem The universal export stub is this same binary (console.c appends
+          rem the cart to it), so keep it before Build Pro overwrites it below.
+          rem It goes into a directory of its own: upload-artifact names the file
+          rem in the artifact by its basename, and package.sh looks for tic80.exe
+          rem in there — a file called tic80-export.exe would fail packaging.
+          if not exist "%GITHUB_WORKSPACE%\stub" mkdir "%GITHUB_WORKSPACE%\stub"
+          copy /Y bin\tic80.exe "%GITHUB_WORKSPACE%\stub\tic80.exe" || exit /b 1
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
+          if-no-files-found: error
           name: "tic80-windows"
           path: |
             build/bin/tic80.exe
-            build/bin/*.dll
 
       - name: Build Pro
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake --build . --config Release --parallel
 
-  # === Windows MinGW-64 ===
-  windows-mingw:
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: msys2 {0}
-
-    steps:
-      - name: Setup Mingw
-        uses: msys2/setup-msys2@v2
+      # The universal stub: every free export asks for /export/<ver>/<system>,
+      # with no language suffix. It keeps its editors, as it did in 1.1 — a
+      # free export hands out the player, and it is `alone` (the per-language
+      # stubs below) that strips the IDE.
+      # No build here: the universal stub is the binary the Build step kept
+      # aside — the same configuration, and building it again was a full engine
+      # build for a byte-identical result.
+      - name: Deploy Export Stub
+        uses: actions/upload-artifact@v6
         with:
-          msystem: UCRT64
-          update: true
-          install: >-
-            base-devel
-            git
-            gcc
+          if-no-files-found: error
+          name: "tic80-windows-export"
+          path: |
+            stub/tic80.exe
 
-      - uses: actions/checkout@v6
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - name: Build
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
         shell: bash
         run: |
-          cd build
-          cmake -G "MSYS Makefiles" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python)
+          for lang in "${langs[@]}"; do
+            # Every language flag on every pass, so nothing can stick in the
+            # cache from the previous one — which is what the --fresh here used
+            # to buy, at the price of throwing SDL2 and the whole engine away
+            # twelve times over. Without it a pass rebuilds only what its
+            # language actually changed (measured on this tree: 44 build steps
+            # against 390 for a full one). BUILD_PRO is spelled out because the
+            # Build Pro step above leaves it on in this same build directory.
+            flags=(-DBUILD_WITH_ALL=OFF -DBUILD_PRO=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --config Release --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang.exe" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          if [ ${#files[@]} -ne 12 ]; then
+            echo "expected 12 stubs, found ${#files[@]}" >&2
+            exit 1
+          fi
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-windows-export-langs"
+          path: |
+            stubs/*
 
   # === Ubuntu ===
   linux-gcc12-glibc235:
     runs-on: ubuntu-22.04
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
 
     steps:
       - uses: actions/checkout@v6
@@ -89,73 +176,140 @@ jobs:
 
       - name: Install
         run: |
+          # the google-chrome apt repo flakes with "Hash Sum mismatch"; drop it
+          # (TIC-80 doesn't need it) so apt-get update can't fail on it.
+          sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome* 2>/dev/null || true
+          sudo sed -i '/dl\.google\.com/d' /etc/apt/sources.list 2>/dev/null || true
           sudo apt-get update
           sudo apt-get install gcc-12 g++-12 libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
           sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
           sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
+          # the generator the builds use; the image carries it already
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+          command -v ccache >/dev/null || sudo apt-get install -y ccache
           
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
+          # The universal export stub is this same binary (console.c appends the
+          # cart to it), so keep it before Build Pro overwrites it below. It goes
+          # into a directory of its own: upload-artifact names the file in the
+          # artifact by its basename, and package.sh looks for a file called
+          # tic80 in there — one called tic80-export would fail packaging.
+          mkdir -p "$GITHUB_WORKSPACE/stub"
+          cp bin/tic80 "$GITHUB_WORKSPACE/stub/tic80"
+
+      - name: Export help (learn.md)
+        run: |
+          cd build
+          ./bin/tic80 --cli --fs=. --cmd='export help learn.md'
+          mv learn.md ../learn.md
+
+      - name: Deploy learn.md
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-learn"
+          path: learn.md
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
+          if-no-files-found: error
           name: "tic80-linux-gcc12"
           path: |
             build/bin/tic80
-            build/bin/*.so
 
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
-
-  # === Ubuntu-arm64 ===
-  linux-arm64-gcc12-glibc235:
-    runs-on: ubuntu-22.04-arm
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - name: Install
-        run: |
-          sudo apt-get update
-          sudo apt-get install gcc-12 g++-12 libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
-          sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
-          sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
-          
-      - name: Build
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
-      - name: Deploy
+      # No build here: the universal stub is the binary the Build step kept
+      # aside — the same configuration, and building it again was a full engine
+      # build for a byte-identical result.
+      - name: Deploy Export Stub
         uses: actions/upload-artifact@v6
         with:
-          name: "tic80-linux-arm64-gcc12"
+          if-no-files-found: error
+          name: "tic80-linux-gcc12-export"
           path: |
-            build/bin/tic80
-            build/bin/*.so
+            stub/tic80
 
-      - name: Build Pro
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
         run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python)
+          for lang in "${langs[@]}"; do
+            # Every language flag on every pass, so nothing can stick in the
+            # cache from the previous one — which is what the --fresh here used
+            # to buy, at the price of throwing SDL2 and the whole engine away
+            # twelve times over. Without it a pass rebuilds only what its
+            # language actually changed (measured on this tree: 44 build steps
+            # against 390 for a full one). BUILD_PRO is spelled out because the
+            # Build Pro step above leaves it on in this same build directory.
+            flags=(-DBUILD_WITH_ALL=OFF -DBUILD_PRO=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
+          done
 
-  # === Ubuntu gcc14 ===
+          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          if [ ${#files[@]} -ne 12 ]; then
+            echo "expected 12 stubs, found ${#files[@]}" >&2
+            exit 1
+          fi
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-linux-gcc12-export-langs"
+          path: |
+            stubs/*
+
+  # === Ubuntu-arm64 ===
+
   linux-gcc14-glibc239:
     runs-on: ubuntu-24.04
 
@@ -198,9 +352,12 @@ jobs:
           cmake --build . --config MinSizeRel --parallel
 
   # === Raspberry PI 1-4 Bare Metal ===
-  rpi-baremetal:
-    runs-on: ubuntu-latest
-    container: miguelhrvs/baremetalapi-tic80:latest
+
+  linux-arm64-gcc12-glibc235:
+    runs-on: ubuntu-22.04-arm
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
 
     steps:
       - uses: actions/checkout@v6
@@ -208,128 +365,198 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Install Host toolchain
-        run: |
-          apt-get update
-          apt-get install --assume-yes build-essential ruby-full
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
 
-      - name: Prebuild
+      - name: Install
         run: |
-          cd vendor
-          git clone --recursive https://github.com/smuehlst/circle-stdlib
-          cd circle-stdlib
-          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
-          git submodule update --recursive
-          ./configure -r 3
-          make -j$(nproc)
-          cd libs/circle/addon/vc4/sound/
-          make -j$(nproc)
-          cd ../vchiq
-          make -j$(nproc)
-          cd ../../linux
-          make -j$(nproc)
+          # the google-chrome apt repo flakes with "Hash Sum mismatch"; drop it
+          # (TIC-80 doesn't need it) so apt-get update can't fail on it.
+          sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome* 2>/dev/null || true
+          sudo sed -i '/dl\.google\.com/d' /etc/apt/sources.list 2>/dev/null || true
+          sudo apt-get update
+          sudo apt-get install gcc-12 g++-12 libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
+          sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
+          sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
+          # the generator the builds use; the image carries it already
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+          command -v ccache >/dev/null || sudo apt-get install -y ccache
+          
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
 
       - name: Build
         run: |
-          git apply build/baremetalpi/circle.patch
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
-          make tic80studio -j$(nproc)
-          cd baremetalpi
-          make -j$(nproc)
-          cd ../../vendor/circle-stdlib/libs/circle/boot/
-          sed -i \
-            -e 's|https://github.com/raspberrypi/firmware/blob/$(FIRMWARE)/boot|https://raw.githubusercontent.com/raspberrypi/firmware/$(FIRMWARE)/boot|' \
-            -e 's/?raw=true//' Makefile
-          make -j$(nproc)
-
-      - name: Pack
-        run: |
-          cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel.img
-          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
+          # The universal export stub is this same binary (console.c appends the
+          # cart to it), so keep it before Build Pro overwrites it below. It goes
+          # into a directory of its own: upload-artifact names the file in the
+          # artifact by its basename, and package.sh looks for a file called
+          # tic80 in there — one called tic80-export would fail packaging.
+          mkdir -p "$GITHUB_WORKSPACE/stub"
+          cp bin/tic80 "$GITHUB_WORKSPACE/stub/tic80"
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
-          name: "tic80-rpi-baremetal"
+          if-no-files-found: error
+          name: "tic80-linux-arm64-gcc12"
           path: |
-            vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
-            vendor/circle-stdlib/libs/circle/boot/config.txt
-            vendor/circle-stdlib/libs/circle/boot/kernel.img
-            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
-            vendor/circle-stdlib/libs/circle/boot/start.elf
-            vendor/circle-stdlib/libs/circle/boot/fixup.dat
-            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+            build/bin/tic80
 
-  # === Raspberry PI 4-5 Bare Metal ===
-  rpi4-baremetal:
-    runs-on: ubuntu-latest
-    container: miguelhrvs/baremetalapi-tic80:latest
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Install Host toolchain
+      - name: Build Pro
         run: |
-          apt-get update
-          apt-get install --assume-yes build-essential ruby-full
-
-      - name: Prebuild
-        run: |
-          cd vendor
-          git clone --recursive https://github.com/smuehlst/circle-stdlib
-          cd circle-stdlib
-          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
-          git submodule update --recursive
-          ./configure -r 4
-          make -j$(nproc)
-          cd libs/circle/addon/vc4/sound/
-          make -j$(nproc)
-          cd ../vchiq
-          make -j$(nproc)
-          cd ../../linux
-          make -j$(nproc)
-
-      - name: Build
-        run: |
-          git apply build/baremetalpi/circle.patch
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
-          make tic80studio -j$(nproc)
-          cd baremetalpi
-          make -j$(nproc)
-          cd ../../vendor/circle-stdlib/libs/circle/boot/
-          sed -i \
-            -e 's|https://github.com/raspberrypi/firmware/blob/$(FIRMWARE)/boot|https://raw.githubusercontent.com/raspberrypi/firmware/$(FIRMWARE)/boot|' \
-            -e 's/?raw=true//' Makefile
-          make -j$(nproc)
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
 
-      - name: Pack
-        run: |
-          cp build/baremetalpi/kernel7l.img vendor/circle-stdlib/libs/circle/boot/kernel.img
-          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
-
-      - name: Deploy
+      # No build here: the universal stub is the binary the Build step kept
+      # aside — the same configuration, and building it again was a full engine
+      # build for a byte-identical result.
+      - name: Deploy Export Stub
         uses: actions/upload-artifact@v6
         with:
-          name: "tic80-rpi4-baremetal"
+          if-no-files-found: error
+          name: "tic80-linux-arm64-gcc12-export"
           path: |
-            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb
-            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb
-            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb
-            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-5-b.dtb
-            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
-            vendor/circle-stdlib/libs/circle/boot/config.txt
-            vendor/circle-stdlib/libs/circle/boot/COPYING.linux
-            vendor/circle-stdlib/libs/circle/boot/fixup4.dat
-            vendor/circle-stdlib/libs/circle/boot/kernel.img
-            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
-            vendor/circle-stdlib/libs/circle/boot/start4.elf
+            stub/tic80
+
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python)
+          for lang in "${langs[@]}"; do
+            # Every language flag on every pass, so nothing can stick in the
+            # cache from the previous one — which is what the --fresh here used
+            # to buy, at the price of throwing SDL2 and the whole engine away
+            # twelve times over. Without it a pass rebuilds only what its
+            # language actually changed (measured on this tree: 44 build steps
+            # against 390 for a full one). BUILD_PRO is spelled out because the
+            # Build Pro step above leaves it on in this same build directory.
+            flags=(-DBUILD_WITH_ALL=OFF -DBUILD_PRO=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          if [ ${#files[@]} -ne 12 ]; then
+            echo "expected 12 stubs, found ${#files[@]}" >&2
+            exit 1
+          fi
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-linux-arm64-gcc12-export-langs"
+          path: |
+            stubs/*
 
   # === Nintendo 3DS build ===
+
+  linux-arm64-gles2:
+    runs-on: ubuntu-22.04-arm
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Toolchain and Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ xz-utils wget python3 rake pkg-config binutils libsdl2-dev libgles2-mesa-dev libegl1-mesa-dev
+
+      - name: Generate Stubs
+        run: |
+          for lib in /usr/lib/aarch64-linux-gnu/libSDL2-2.0.so.0 /usr/lib/aarch64-linux-gnu/libGLESv2.so.2 /usr/lib/aarch64-linux-gnu/libEGL.so.1; do \
+              outname=$(basename $lib | sed 's/-2.0//; s/\.so\..*/.so/') && \
+              echo "Generating stubs for $outname from $lib" && \
+              nm -D $lib | grep " T " | awk '{print "void " $3 "(){}"}' > stubs.c && \
+              sudo rm -f /usr/lib/aarch64-linux-gnu/$outname && \
+              sudo gcc -shared -Wl,-soname,$outname -o /usr/lib/aarch64-linux-gnu/$outname stubs.c; \
+          done
+
+      - name: Build
+        run: |
+          cd build/linux
+          cmake ../.. \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_PRO=OFF \
+            -DBUILD_WITH_ALL=ON \
+            -DCMAKE_C_FLAGS_RELEASE="-Ofast -flto" \
+            -DCMAKE_CXX_FLAGS_RELEASE="-Ofast -flto" \
+            -DBUILD_SDL=ON \
+            -DBUILD_SDLGPU=ON \
+            -DUSE_GLES2=ON \
+            -DUSE_EGL=ON \
+            -DBUILD_EDITORS=OFF \
+            -DBUILD_SURF=ON \
+            -DPREFER_SYSTEM_SDL2=ON \
+            -DBUILD_STATIC=ON \
+            -DTIC_DATA_PATH="/userdata/roms/tic80/"
+          cmake --build . --target tic80 --config Release --parallel
+
+      - name: Pack
+        run: |
+          mkdir -p build/linux/share/applications
+          mkdir -p build/linux/share/mime/packages
+          mkdir -p build/linux/share/icons
+          cp build/linux/tic80.desktop build/linux/share/applications/
+          cp build/linux/tic80.xml build/linux/share/mime/packages/
+          cp build/linux/tic80.png build/linux/share/icons/
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          name: "tic80-linux-arm64-gles2"
+          path: |
+            build/linux/bin/tic80
+            build/linux/bin/*.so
+            build/linux/lib/*.so
+            build/linux/share/*
+
+  # === Ubuntu gcc14 ===
+
   nintendo-3ds:
     runs-on: ubuntu-latest
     container: devkitpro/devkitarm:20250728
@@ -348,13 +575,14 @@ jobs:
       - name: Build
         run: |
           cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake \
-            -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON \
             -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF
           cmake --build build --parallel
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
+          if-no-files-found: error
           name: "tic80-nintendo-3ds"
           path: build/bin/tic80.3dsx
 
@@ -377,19 +605,23 @@ jobs:
       - name: Build
         run: |
           cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/Switch.cmake \
-            -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON -DBUILD_SDLGPU=ON \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DBUILD_SDLGPU=ON \
             -DBUILD_WITH_YUE=OFF
           cmake --build build --parallel
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
+          if-no-files-found: error
           name: "tic80-nintendo-switch"
           path: build/bin/tic80.nro
 
   # === MacOS 14 / arm64 ===
   macos-arm64:
     runs-on: macos-14
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
 
     steps:
       - uses: actions/checkout@v6
@@ -398,31 +630,134 @@ jobs:
           fetch-depth: 0
 
       - name: Install
-        run: brew uninstall --ignore-dependencies libidn2
+        run: |
+          brew uninstall --ignore-dependencies libidn2
+          # the generator the builds use; the image usually carries it already
+          command -v ninja >/dev/null || brew install ninja
+          command -v ccache >/dev/null || brew install ccache
+
+      # These builds run under ninja, whose parallelism is bounded by itself
+      # (cores + 2 — a bare `--parallel` passes no -j at all). That is what
+      # closed the 13.09 flake: `make -j` with no bound put hundreds of
+      # compilers in flight against the runner's small per-user process limit
+      # and clang began failing to spawn with "Resource temporarily
+      # unavailable". SDL2's test helper and shared library left these builds
+      # in the same pass. If a mac job ever flakes that way again,
+      # --parallel <n> is the first lever; CMAKE_BUILD_PARALLEL_LEVEL is not
+      # one, an explicit --parallel without a value ignores it.
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
 
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
+          # The universal export stub is this same binary (console.c appends the
+          # cart to it), so keep it before Build Pro overwrites it below. It goes
+          # into a directory of its own: upload-artifact names the file in the
+          # artifact by its basename, and package.sh looks for a file called
+          # tic80 in there — one called tic80-export would fail packaging.
+          mkdir -p "$GITHUB_WORKSPACE/stub"
+          cp bin/tic80 "$GITHUB_WORKSPACE/stub/tic80"
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
+          if-no-files-found: error
           name: "tic80-macos-arm64"
           path: |
             build/bin/tic80
-            build/bin/*.dylib
 
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
+
+      # No build here: the universal stub is the binary the Build step kept
+      # aside — the same configuration, and building it again was a full engine
+      # build for a byte-identical result.
+      - name: Deploy Export Stub
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-arm64-export"
+          path: |
+            stub/tic80
+
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python)
+          for lang in "${langs[@]}"; do
+            # Every language flag on every pass, so nothing can stick in the
+            # cache from the previous one — which is what the --fresh here used
+            # to buy, at the price of throwing SDL2 and the whole engine away
+            # twelve times over. Without it a pass rebuilds only what its
+            # language actually changed (measured on this tree: 44 build steps
+            # against 390 for a full one). BUILD_PRO is spelled out because the
+            # Build Pro step above leaves it on in this same build directory.
+            flags=(-DBUILD_WITH_ALL=OFF -DBUILD_PRO=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          if [ ${#files[@]} -ne 12 ]; then
+            echo "expected 12 stubs, found ${#files[@]}" >&2
+            exit 1
+          fi
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-arm64-export-langs"
+          path: |
+            stubs/*
 
   # === MacOS 15 / x86_64 ===
   macos:
     runs-on: macos-15-intel
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
 
     steps:
       - uses: actions/checkout@v6
@@ -431,27 +766,127 @@ jobs:
           fetch-depth: 0
 
       - name: Install
-        run: brew uninstall --ignore-dependencies libidn2
+        run: |
+          brew uninstall --ignore-dependencies libidn2
+          # the generator the builds use; the image usually carries it already
+          command -v ninja >/dev/null || brew install ninja
+          command -v ccache >/dev/null || brew install ccache
+
+      # These builds run under ninja, whose parallelism is bounded by itself
+      # (cores + 2 — a bare `--parallel` passes no -j at all). That is what
+      # closed the 13.09 flake: `make -j` with no bound put hundreds of
+      # compilers in flight against the runner's small per-user process limit
+      # and clang began failing to spawn with "Resource temporarily
+      # unavailable". SDL2's test helper and shared library left these builds
+      # in the same pass. If a mac job ever flakes that way again,
+      # --parallel <n> is the first lever; CMAKE_BUILD_PARALLEL_LEVEL is not
+      # one, an explicit --parallel without a value ignores it.
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
 
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
+          # The universal export stub is this same binary (console.c appends the
+          # cart to it), so keep it before Build Pro overwrites it below. It goes
+          # into a directory of its own: upload-artifact names the file in the
+          # artifact by its basename, and package.sh looks for a file called
+          # tic80 in there — one called tic80-export would fail packaging.
+          mkdir -p "$GITHUB_WORKSPACE/stub"
+          cp bin/tic80 "$GITHUB_WORKSPACE/stub/tic80"
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
+          if-no-files-found: error
           name: "tic80-macos"
           path: |
             build/bin/tic80
-            build/bin/*.dylib
 
       - name: Build Pro
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
+
+      # No build here: the universal stub is the binary the Build step kept
+      # aside — the same configuration, and building it again was a full engine
+      # build for a byte-identical result.
+      - name: Deploy Export Stub
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-export"
+          path: |
+            stub/tic80
+
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python)
+          for lang in "${langs[@]}"; do
+            # Every language flag on every pass, so nothing can stick in the
+            # cache from the previous one — which is what the --fresh here used
+            # to buy, at the price of throwing SDL2 and the whole engine away
+            # twelve times over. Without it a pass rebuilds only what its
+            # language actually changed (measured on this tree: 44 build steps
+            # against 390 for a full one). BUILD_PRO is spelled out because the
+            # Build Pro step above leaves it on in this same build directory.
+            flags=(-DBUILD_WITH_ALL=OFF -DBUILD_PRO=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # Twelve distinct builds, so twelve distinct binaries: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          if [ ${#files[@]} -ne 12 ]; then
+            echo "expected 12 stubs, found ${#files[@]}" >&2
+            exit 1
+          fi
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-export-langs"
+          path: |
+            stubs/*
 
   # === Android ===
   android:
@@ -481,15 +916,38 @@ jobs:
         run: |
           cd build/android
           chmod +x gradlew
-          ./gradlew assembleRelease
-          cp app/build/outputs/apk/release/app-release.apk tic80.apk
+          # The signing passwords are repository secrets — the keystore path
+          # and alias live in gradle.properties, the passwords never do. Fail
+          # here rather than inside the signer: without them the release build
+          # stops, and a step that produced no APK must not look like one that
+          # produced a good one.
+          #
+          # A pull request from a fork is handed no secrets at all, so the two
+          # checks below would fail it for a reason that has nothing to do with
+          # the change (17.09). Such a run builds the release variant unsigned
+          # instead: the android job still proves the code compiles, the APK
+          # cannot be mistaken for a shipable one, and every other event — a
+          # push, the tag call — signs exactly as before.
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+              ./gradlew assembleRelease -PUNSIGNED=1
+              cp app/build/outputs/apk/release/app-release-unsigned.apk tic80.apk
+              echo "fork pull request: no repository secrets, the APK is unsigned"
+          else
+              : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
+              : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
+              ./gradlew assembleRelease
+              cp app/build/outputs/apk/release/app-release.apk tic80.apk
+          fi
 
         env:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
+          if-no-files-found: error
           name: "tic80-android"
           path: build/android/tic80.apk
 
@@ -509,88 +967,81 @@ jobs:
         with:
           ruby-version: 2.6
 
-      - name: Build lua
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=ON -DTIC80_TARGET=tic80lua .. --fresh
-          cmake --build . --parallel
+      # The per-language builds below are the PRO alone export stubs, so they
+      # carry no editors, the way the native per-language stubs don't: an
+      # exported game that opens the IDE on ESC is not the standalone the
+      # alone export promises. "Build all" is a different thing — it is the
+      # site's player, and the universal stub every free export downloads —
+      # so it keeps its editors.
 
-      - name: Build ruby
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_RUBY=ON -DTIC80_TARGET=tic80ruby .. --fresh
-          cmake --build . --parallel
+      # The two builds are split by trigger, not by job: the stubs run on a
+      # tag or a dispatch like the native loops, the player always. Nothing
+      # but a release reads the per-language wasm out of this artifact —
+      # package.sh, which release.yml runs on a tag, is the only consumer,
+      # and the dev flow takes the player's three files.
 
-      - name: Build js
+      # The twelve per-language stubs the PRO alone export downloads — the same
+      # work as the native jobs' loop, in one directory: no --fresh between the
+      # builds, so SDL2 and whatever a language does not touch are compiled
+      # once (thirteen full builds used to run here, one per language plus the
+      # one below). Every language flag is spelled out on every pass, which is
+      # what --fresh used to buy, and it also clears the BUILD_WITH_ALL the
+      # "Build all" step leaves on when the order is reversed.
+      #
+      # About seven minutes of emscripten for artifacts only a release uses:
+      # every push used to pay that. The gate cannot change what a release
+      # builds — on a tag these steps run in the same order as before — it
+      # only keeps a branch or a pull request from paying for them.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
         run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_JS=ON -DTIC80_TARGET=tic80js .. --fresh
-          cmake --build . --parallel
+          set -euo pipefail
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python)
+          for lang in "${langs[@]}"; do
+            flags=(-DBUILD_WITH_ALL=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            emcmake cmake -G Ninja -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+          done
 
-      - name: Build moon
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_MOON=ON -DTIC80_TARGET=tic80moon .. --fresh
-          cmake --build . --parallel
-      
-      - name: Build yue
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_YUE=ON -DTIC80_TARGET=tic80yue .. --fresh
-          cmake --build . --parallel
-
-      - name: Build fennel
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_FENNEL=ON -DTIC80_TARGET=tic80fennel .. --fresh
-          cmake --build . --parallel
-
-      - name: Build scheme
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_SCHEME=ON -DTIC80_TARGET=tic80scheme .. --fresh
-          cmake --build . --parallel
-
-      - name: Build squirrel
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_SQUIRREL=ON -DTIC80_TARGET=tic80squirrel .. --fresh
-          cmake --build . --parallel
-
-      - name: Build wren
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_WREN=ON -DTIC80_TARGET=tic80wren .. --fresh
-          cmake --build . --parallel
-
-      - name: Build wasm
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_WASM=ON -DTIC80_TARGET=tic80wasm .. --fresh
-          cmake --build . --parallel
-
-      - name: Build janet
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_JANET=ON -DTIC80_TARGET=tic80janet .. --fresh
-          cmake --build . --parallel
-
-      - name: Build python
-        run: |
-          cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_LUA=OFF -DBUILD_WITH_PYTHON=ON -DTIC80_TARGET=tic80python .. --fresh
-          cmake --build . --parallel
+          # An identical pair means a language flag did not take, the same guard
+          # the native jobs run on their binaries: a wasm stub carries one
+          # runtime, so twelve of them cannot be alike.
+          files=("$GITHUB_WORKSPACE"/build/bin/tic80{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python}.wasm)
+          for f in "${files[@]}"; do
+            if [ ! -f "$f" ]; then echo "missing stub: $f" >&2; exit 1; fi
+          done
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} wasm stubs, all distinct"
 
       - name: Build all
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON .. --fresh
+          emcmake cmake -G Ninja -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON .. --fresh
           cmake --build . --parallel
+          # index.html is the only page: the site's player, and the page an
+          # exported game gets — the client fetches it, rewrites the title
+          # and the arguments marker, and adds it to the export zip with the
+          # cartridge (console.c onHtmlPageGet). A second, export-only page
+          # used to exist and drifted from this one.
           cp html/index.html bin/index.html
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
+          if-no-files-found: error
           name: "tic80-html"
           path: |
             build/bin/*
