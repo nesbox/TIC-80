@@ -89,3 +89,6 @@
 [submodule "vendor/lpeg"]
 	path = vendor/lpeg
 	url = https://github.com/roberto-ieru/LPeg.git
+[submodule "vendor/miniscript2"]
+	path = vendor/miniscript2
+	url = https://github.com/JoeStrout/miniscript2
