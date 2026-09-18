@@ -4036,6 +4036,8 @@ static const struct LangRuntimeVersion
     {"wasm",     TIC_RUNTIME_VERSION_WASM},
     {"janet",    TIC_RUNTIME_VERSION_JANET},
     {"python",   TIC_RUNTIME_VERSION_PYTHON},
+    {"miniscript", TIC_RUNTIME_VERSION_MINISCRIPT},
+    {"forth",    TIC_RUNTIME_VERSION_FORTH},
     {NULL, NULL},
 };
 
@@ -4079,7 +4081,9 @@ static void onHelp_version(Console* console)
 
     FOREACH_LANG(script)
     {
-        sprintf(buf, " %-8s %s\n", script->name, getLangRuntimeVersion(script));
+        // %-10s: the widest name is "miniscript"; a narrower field pushes
+        // its version out of the column the others line up in
+        sprintf(buf, " %-10s %s\n", script->name, getLangRuntimeVersion(script));
         printBack(console, buf);
     }
 }
