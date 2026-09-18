@@ -36,7 +36,14 @@
 #define TIC_NAME "TIC-80"
 #define TIC_NAME_FULL TIC_NAME " tiny computer"
 #define TIC_TITLE TIC_NAME_FULL " " TIC_VERSION
-#define TIC_HOST "tic80.com"
+// A dev snapshot talks to the dev site — it runs the same code from the
+// same branch, its data is disposable, and testing there cannot touch the
+// real catalogue. A release talks to production.
+#if TIC_VERSION_IS_RELEASE
+    #define TIC_HOST "tic80.com"
+#else
+    #define TIC_HOST "dev.tic80.com"
+#endif
 #if defined(__TIC_WIN7__)
     #define TIC_WEBSITE_PROTOCOL "http://"
 #else

@@ -26,6 +26,7 @@
 
 bool json_parse(const char *json, s32 size);
 
+bool json_has(const char *var, s32 parent);
 s32 json_int(const char *var, s32 parent);
 bool json_bool(const char *var, s32 parent);
 bool json_string(const char *var, s32 parent, char* value, s32 size);

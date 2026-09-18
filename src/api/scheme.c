@@ -934,7 +934,7 @@ static const char* const SchemeKeywords [] =
 {
     "define", "lambda", "begin", "set!", "=", "<", "<=", ">", ">=", "+", "*",
     "/", "'", "`", "`@", "define-macro", "let", "let*", "letrec", "defstruct",
-    "if", "cond", "floor", "ceiling", "sin", "cos", "log", "sqrt", "abs"
+    "if", "cond", "floor", "ceiling", "sin", "cos", "log", "sqrt", "abs",
     "logand", "logior", "logxor", "lognot", "logbit?", "sinh", "cosh", "tanh",
     "asinh", "acosh", "atanh", "nan?", "infinite?", "nan",
     "exp", "expt", "tan", "acos", "asin", "atan", "truncate", "round",
