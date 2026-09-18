@@ -887,6 +887,9 @@ static void callSchemeBoot(tic_mem* tic)
     tic_core* core = (tic_core*)tic;
     s7_scheme* sc = core->currentVM;
 
+    core->state.has_scn = s7_is_defined(sc, "SCN") || s7_is_defined(sc, "scanline");
+    core->state.has_bdr = s7_is_defined(sc, "BDR");
+
     static const char* bootFnName = "BOOT";
     const bool isBootDefined = s7_is_defined(sc, bootFnName);
     if (isBootDefined) {

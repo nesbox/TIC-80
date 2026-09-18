@@ -362,6 +362,9 @@ void tic_api_reset(tic_mem* memory)
     memory->ram->vram.vars.cursor.system = true;
     memory->ram->input.mouse.relative = 0;
 
+    core->saved_vram.valid = false;
+    core->screen_dirty = true;
+
     soundClear(memory);
     updateSaveid(memory);
     font2ram(memory);
@@ -643,9 +646,32 @@ static inline u32 blitpix(tic_mem* tic, s32 offset0, s32 offset1, const tic_blit
         : pal0->data[tic_tool_peek4(vbank0(core)->screen.data, offset0)];
 }
 
+static inline void scanline(tic_mem* memory, s32 row, void* data);
+static inline void border(tic_mem* memory, s32 row, void* data);
+
 void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
 {
     tic_core* core = (tic_core*)tic;
+
+    bool has_scanline = (clb.scanline == scanline) ? (core->state.initialized && core->state.has_scn) : (clb.scanline != NULL);
+    bool has_border   = (clb.border   == border)   ? (core->state.initialized && core->state.has_bdr) : (clb.border != NULL);
+
+    if (!has_scanline && !has_border && core->saved_vram.valid)
+    {
+        if (core->saved_vram.format == core->screen_format &&
+            memcmp(&core->saved_vram.vbank0, vbank0(core), sizeof(tic_vram)) == 0 &&
+            memcmp(&core->saved_vram.vbank1, vbank1(core), sizeof(tic_vram)) == 0)
+        {
+            core->screen_dirty = false;
+            return;
+        }
+    }
+
+    core->screen_dirty = true;
+    memcpy(&core->saved_vram.vbank0, vbank0(core), sizeof(tic_vram));
+    memcpy(&core->saved_vram.vbank1, vbank1(core), sizeof(tic_vram));
+    core->saved_vram.format = core->screen_format;
+    core->saved_vram.valid = true;
 
     tic_blitpal pal0, pal1;
     updpal(tic, &pal0, &pal1);
@@ -711,6 +737,19 @@ static inline void border(tic_mem* memory, s32 row, void* data)
 void tic_core_blit(tic_mem* tic)
 {
     tic_core_blit_ex(tic, (tic_blit_callback){scanline, border, NULL});
+}
+
+bool tic_core_is_dirty(tic_mem* memory)
+{
+    tic_core* core = (tic_core*)memory;
+    return core->screen_dirty;
+}
+
+void tic_core_invalidate(tic_mem* memory)
+{
+    tic_core* core = (tic_core*)memory;
+    core->saved_vram.valid = false;
+    core->screen_dirty = true;
 }
 
 tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)

@@ -165,6 +165,8 @@ typedef struct
         s32 l, t, r, b;
     } clip;
 
+    bool has_scn;
+    bool has_bdr;
     bool initialized;
 } tic_core_state_data;
 
@@ -185,6 +187,16 @@ typedef struct
     s32 samplerate;
     tic_tick_data* data;
     tic_core_state_data state;
+
+    struct
+    {
+        tic_vram vbank0;
+        tic_vram vbank1;
+        tic80_pixel_color_format format;
+        bool valid;
+    } saved_vram;
+
+    bool screen_dirty;
 
     struct
     {
@@ -211,6 +223,9 @@ typedef struct
     } api;
 
 } tic_core;
+
+bool tic_core_is_dirty(tic_mem* memory);
+void tic_core_invalidate(tic_mem* memory);
 
 void tic_core_tick_io(tic_mem* memory);
 void tic_core_sound_tick_start(tic_mem* memory);

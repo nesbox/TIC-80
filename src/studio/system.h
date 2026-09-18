@@ -171,6 +171,7 @@ void studio_delete(Studio* studio);
 const StudioConfig* studio_config(Studio* studio);
 
 Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, tic_layout keyboardLayout);
+bool studio_is_dirty(Studio* studio);
 
 #ifdef __cplusplus
 }

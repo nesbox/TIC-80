@@ -1199,6 +1199,14 @@ static void callJanetBoot(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
+    Janet scn_fn, bdr_fn, old_scn;
+    bool has_scn = (janet_resolve(core->currentVM, janet_csymbol(SCN_FN), &scn_fn) && janet_type(scn_fn) == JANET_FUNCTION) ||
+                   (janet_resolve(core->currentVM, janet_csymbol("scanline"), &old_scn) && janet_type(old_scn) == JANET_FUNCTION);
+    bool has_bdr = janet_resolve(core->currentVM, janet_csymbol(BDR_FN), &bdr_fn) && janet_type(bdr_fn) == JANET_FUNCTION;
+
+    core->state.has_scn = has_scn;
+    core->state.has_bdr = has_bdr;
+
     Janet pre_fn;
     (void)janet_resolve(core->currentVM, janet_csymbol(BOOT_FN), &pre_fn);
 

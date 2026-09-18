@@ -147,6 +147,13 @@ struct Studio
             tic_cursor sprite;
             bool system;
         } cursor;
+        struct
+        {
+            s32 x, y;
+            tic_cursor sprite;
+            bool system;
+            bool visible;
+        } prev;
     } mouse;
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
@@ -2552,6 +2559,24 @@ void studio_tick(Studio* studio, tic80_input input)
             tic->ram->font = studio->systemFont;
         }
 
+        tic80_mouse* m = &tic->ram->input.mouse;
+        bool mouse_visible = (tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT && m->x >= 0 && m->y >= 0);
+        if (mouse_visible || studio->mouse.prev.visible)
+        {
+            if (m->x != studio->mouse.prev.x || m->y != studio->mouse.prev.y ||
+                studio->mouse.cursor.sprite != studio->mouse.prev.sprite ||
+                studio->mouse.cursor.system != studio->mouse.prev.system ||
+                mouse_visible != studio->mouse.prev.visible)
+            {
+                tic_core_invalidate(tic);
+                studio->mouse.prev.x = m->x;
+                studio->mouse.prev.y = m->y;
+                studio->mouse.prev.sprite = studio->mouse.cursor.sprite;
+                studio->mouse.prev.system = studio->mouse.cursor.system;
+                studio->mouse.prev.visible = mouse_visible;
+            }
+        }
+
         callback[studio->mode].data
             ? tic_core_blit_ex(tic, callback[studio->mode])
             : tic_core_blit(tic);
@@ -2714,6 +2739,11 @@ void studio_delete(Studio* studio)
 
     free(studio->fs);
     free(studio);
+}
+
+bool studio_is_dirty(Studio* studio)
+{
+    return tic_core_is_dirty(studio->tic);
 }
 
 #if defined(BUILD_EDITORS)
