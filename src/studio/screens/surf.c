@@ -580,7 +580,7 @@ static void onCartLoaded(void* data)
         autoSave(surf);
     }
 
-    runGame(surf->studio);
+    runGame(surf->studio, RUN_FROM_PLAYER);
 }
 
 static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
@@ -597,7 +597,7 @@ static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
         else
         {
             surf->console->load(surf->console, item->name);
-            runGame(surf->studio);
+            runGame(surf->studio, RUN_FROM_PLAYER);
         }
     }
 }

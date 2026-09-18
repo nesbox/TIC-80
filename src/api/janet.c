@@ -152,7 +152,7 @@ static const JanetReg janet_c_functions[] =
 static const char* const JanetKeywords[] =
 {
     "defmacro", "with-syms", "macex1", "macex",
-    "do", "values", "break"
+    "do", "values", "break",
     "if", "when", "cond", "match",
     "each", "for", "loop", "while",
     "fn", "defn", "partial",

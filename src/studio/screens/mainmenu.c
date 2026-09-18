@@ -23,6 +23,7 @@
 #include "studio/studio.h"
 #include "studio/config.h"
 #include "studio/screens/menu.h"
+#include "tic_assert.h"
 #include "mainmenu.h"
 
 typedef struct
@@ -195,6 +196,10 @@ static MenuOption VolumeOption =
     optionVolumeSet,
 };
 
+// Autosave belongs to the full client: it decides whether a cart SURF loaded
+// from the web is written to disk (surf.c), and the editors-less export stubs
+// are the builds without either, so the row toggled a setting nothing read.
+#if defined(BUILD_EDITORS)
 static s32 optionAutoSaveGet(void* data)
 {
     StudioMainMenu* main = data;
@@ -213,6 +218,7 @@ static MenuOption AutoSaveOption =
     optionAutoSaveGet,
     optionAutoSaveSet,
 };
+#endif
 
 #if defined(BUILD_EDITORS)
 static s32 optionTabSizeGet(void* data)
@@ -309,6 +315,7 @@ enum
     OptionsMenu_IntegerScaleOption,
     OptionsMenu_VolumeOption,
 #if defined(BUILD_EDITORS)
+    OptionsMenu_AutoSaveOption,
     OptionsMenu_Editor,
 #endif
     OptionsMenu_Gamepad,
@@ -325,14 +332,20 @@ static const MenuItem OptionMenu[] =
     {"FULLSCREEN",      NULL,   &FullscreenOption},
     {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
     {"VOLUME",          NULL,   &VolumeOption},
-    {"AUTOSAVE",        NULL,   &AutoSaveOption, "Keep carts loaded from the web"},
 #if defined(BUILD_EDITORS)
+    {"AUTOSAVE",        NULL,   &AutoSaveOption, "Keep carts loaded from the web"},
     {"EDITOR OPTIONS", showEditorMenu},
 #endif
     {"SETUP GAMEPAD",       showGamepadMenu},
     {""},
     {"BACK",            onBackFromOptionsMenu, .back = true},
 };
+
+// The menu cursor is an index into the table — a submenu returns to
+// OptionsMenu_<row> (menu.c backDone) — so an entry added to one and not to
+// the other silently points every later row one off. The autosave row did
+// exactly that; the assert is what catches the next one.
+static_assert(COUNT_OF(OptionMenu) == OptionsMenu_Back + 1, "OptionMenuCount");
 
 static void showOptionsMenu(void* data, s32 pos);
 static void gameMenuHandler(void* data, s32 pos)
@@ -347,6 +360,8 @@ static void gameMenuHandler(void* data, s32 pos)
 
 enum
 {
+    EditorMenu_TabSize,
+    EditorMenu_TabMode,
     EditorMenu_KeybindMode,
     EditorMenu_Separator,
     EditorMenu_Back,
@@ -360,6 +375,8 @@ static const MenuItem EditorMenu[] =
     {""},
     {"BACK",            showOptionsMenu, .back = true},
 };
+
+static_assert(COUNT_OF(EditorMenu) == EditorMenu_Back + 1, "EditorMenuCount");
 
 static void showEditorMenu(void* data, s32 pos)
 {
@@ -434,12 +451,11 @@ static void showGameMenu(void* data, s32 pos)
 
 static inline s32 mainMenuOffset(StudioMainMenu* menu)
 {
-    if (menu->count > 0) return 0;
-
-    if (!studio_is_cart_loaded(menu->studio))
-        return 3;
-
-    return 1;
+    // Only the game menu of the loaded cart can be missing, so the entry
+    // point is the item right after it. Skipping further (#2889) hid RESUME
+    // GAME and RESET GAME whenever no cart was loaded, which put a lone
+    // CLOSE GAME on top of the menu.
+    return menu->count ? 0 : 1;
 }
 
 static void onBackFromOptionsMenu(void* data, s32 pos)
@@ -455,6 +471,21 @@ static void onResumeGame(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     resumeGame(main->studio);
+}
+
+// The back of the top level menu (ESC or the gamepad's B): the menu sits over
+// a paused run and belongs to whoever started it — a player's run resumes
+// under it, while a dev run, and a menu opened in the studio, step out to the
+// editor. The same step ESC takes in RUN mode, so a run of a cart with a game
+// menu is left with ESC ESC instead of a walk to CLOSE GAME (#2937).
+static void onMenuBack(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+
+    if(studio_menu_over_player_run(main->studio))
+        onResumeGame(data, pos);
+    else
+        leaveRun(main->studio);
 }
 
 static void onResetGame(void* data, s32 pos)
@@ -476,11 +507,13 @@ static void onExitGame(void* data, s32 pos)
     exitGame(main->studio);
 }
 
+#if defined(SURF_MENU)
 static void onSurf(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     setStudioMode(main->studio, TIC_SURF_MODE);
 }
+#endif
 
 enum MainMenu
 {
@@ -490,7 +523,7 @@ enum MainMenu
 #if defined(BUILD_EDITORS)
     MainMenu_CloseGame,
 #endif
-#if defined(BUILD_SURF)
+#if defined(SURF_MENU)
     MainMenu_Surf,
 #endif
     MainMenu_Options,
@@ -506,7 +539,7 @@ static const MenuItem MainMenu[] =
 #if defined(BUILD_EDITORS)
     {"CLOSE GAME",  onExitGame, NULL, "Press F1 to switch to editor"},
 #endif
-#if defined(BUILD_SURF)
+#if defined(SURF_MENU)
     {"SURF",        onSurf},
 #endif
     {"OPTIONS",     showOptionsMenu},
@@ -514,13 +547,15 @@ static const MenuItem MainMenu[] =
     {"QUIT TIC-80", onExitStudio},
 };
 
+static_assert(COUNT_OF(MainMenu) == MainMenu_Quit + 1, "MainMenuCount");
+
 static void showMainMenu(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     initGameMenu(main);
 
     s32 offset = mainMenuOffset(main);
-    studio_menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, studio_is_cart_loaded(main->studio) ? onResumeGame : NULL, main);
+    studio_menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, studio_is_cart_loaded(main->studio) ? onMenuBack : NULL, main);
 }
 
 static void showOptionsMenuPos(void* data, s32 pos)
@@ -671,6 +706,8 @@ static void initGamepadMenu(StudioMainMenu* main)
         {"RESET TO DEFAULTS",   resetGamepadMenu},
         {"BACK",                showOptionsMenu, .back = true},
     };
+
+    static_assert(COUNT_OF(GamepadMenu) == GamepadMenu_Back + 1, "GamepadMenuCount");
 
     initGamepadButtons(main);
 
