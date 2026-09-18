@@ -5,15 +5,19 @@
 # stubs it verifies only exist once they are laid out on a box, and the client
 # has to be a PRO one for the alone paths.
 #
-#   check-export-stubs.sh [--client <path>] [--site <url>] [--tag <vX.Y.Z>] [--keep]
+#   check-export-stubs.sh [--client <path>] [--site <url>] [--dir <name>] [--keep]
 #
 #   client  the PRO client to drive; defaults to $TIC80_CLIENT, then to
 #           build/bin/tic80 in this checkout
 #   site    https://dev.tic80.com by default
-#   tag     the directory the site serves stubs from, /export/<tag>/; the last
-#           release tag in this checkout by default (a snapshot client asks for
-#           that one too — the client's TIC_VERSION_TAG). A 1.x client against
-#           the older site layout needs it spelled out (--tag 1.1).
+#   dir     the directory the site serves stubs from, /export/<dir>/; read from
+#           the client being checked by default — its own version.h carries it
+#           as TIC_VERSION_DIR, so the check asks what that client asks. A
+#           release build's is its tag (v1.2.0), a snapshot's the line (1.3).
+#           Pass it for a layout with no version.h two levels above the binary
+#           (an installed client, a .app bundle, an unpacked CI artifact) and
+#           for a client older than that rule, against the older site layout
+#           (--dir 1.1).
 #
 # Step by step (dev):
 #
@@ -24,23 +28,28 @@
 #      which is what the 1.2.0 check did:
 #          cmake -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_BUILD_TYPE=Release <repo>
 #      then read the build's version.h: TIC_VERSION_IS_RELEASE must be 0, and
-#      TIC_VERSION_TAG the directory the site serves ("v1.2.0").
-#   2. Deploy the release whose stubs are being checked — the server repo's
-#      scripts/deploy-client.sh <version> dev — because the client downloads
-#      what the site serves: the check is only as new as the last deploy.
+#      TIC_VERSION_DIR the line the site lays out for it ("1.3").
+#   2. Deploy what the client will download, and mind which directory that is:
+#      a snapshot asks for its line, so on dev it is
+#          /srv/tic80-dev/deploy-dev-build.sh <version> <run-id>
+#          /srv/tic80-dev/deploy-dev-stubs.sh <run-id> 1.3 <langs…> --universal --create
+#      while a *release* client on either site asks its tag, which is what
+#      scripts/deploy-client.sh <version> dev lays. The check is only as new
+#      as the last deploy either way.
 #   3. ./bin/release/check-export-stubs.sh --client <build>/bin/tic80
 #      One line per path, then "passed N, failed 0". A stub that came back
 #      with its editors, one that differs from the served file, a missing page
 #      or cartridge: each prints FAIL with the reason. --keep leaves the
 #      downloaded stubs and the client logs in the work dir.
-#   4. Against production: --site https://tic80.com, and the tag that client
-#      asks for (the 1.1 client's layout is /export/1.1/, so --tag 1.1).
+#   4. Against production: --site https://tic80.com with a release client,
+#      which asks for its own tag; an older client asks for its line (the 1.1
+#      client's layout is /export/1.1/, so --dir 1.1).
 #
 # What it checks, per path (console.c exportGame builds the URL, so these are
 # the names the shipped client really asks for):
 #
-#   alone=1 (PRO)  /export/<tag>/<system><lang>  per-language stub: no editors
-#   no alone       /export/<tag>/<system>        universal stub: editors stay
+#   alone=1 (PRO)  /export/<dir>/<system><lang>  per-language stub: no editors
+#   no alone       /export/<dir>/<system>        universal stub: editors stay
 #
 # Every stub the client received is also compared with what the site serves
 # directly, so a pass says the export ended in the deployed file, not a copy,
@@ -52,14 +61,14 @@ REPO="$(cd "$SELF_DIR/../.." && pwd)"
 
 SITE="https://dev.tic80.com"
 CLIENT="${TIC80_CLIENT:-$REPO/build/bin/tic80}"
-TAG=""
+DIR=""
 KEEP=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --client) CLIENT="$2"; shift 2 ;;
         --site)   SITE="$2";   shift 2 ;;
-        --tag)    TAG="$2";    shift 2 ;;
+        --dir)    DIR="$2";    shift 2 ;;
         --keep)   KEEP=1;      shift ;;
         -h|--help) sed -n '2,45p' "$0"; exit 0 ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
@@ -70,12 +79,19 @@ LANGS="lua js moon yue fennel scheme squirrel wren wasm janet python ruby minisc
 
 [ -x "$CLIENT" ] || { echo "no client at $CLIENT (--client, or TIC80_CLIENT)" >&2; exit 2; }
 
-if [ -z "$TAG" ]; then
-    TAG="$(git -C "$REPO" describe --tags --abbrev=0 2>/dev/null)"
-    [ -n "$TAG" ] || { echo "no release tag in $REPO; pass --tag" >&2; exit 2; }
+# The directory comes from the client itself: version.h sits beside its binary,
+# and a check that reads it cannot disagree with the client it is driving. Two
+# builds of the same source ask for different directories by design — a
+# release its tag, a snapshot its line — so guessing here would be guessing
+# against the thing under test.
+if [ -z "$DIR" ]; then
+    VH="$(dirname "$(dirname "$CLIENT")")/version.h"
+    [ -f "$VH" ] || { echo "no version.h beside $CLIENT; pass --dir" >&2; exit 2; }
+    DIR="$(sed -n 's/^#define TIC_VERSION_DIR *"\([^"]*\)"/\1/p' "$VH" | head -1)"
+    [ -n "$DIR" ] || { echo "$VH carries no TIC_VERSION_DIR; pass --dir" >&2; exit 2; }
 fi
 
-EXPORT="$SITE/export/$TAG"
+EXPORT="$SITE/export/$DIR"
 W="${TMPDIR:-/tmp}/tic80-export-check.$$"
 mkdir -p "$W"
 [ "$KEEP" = 1 ] && echo "work dir: $W"
