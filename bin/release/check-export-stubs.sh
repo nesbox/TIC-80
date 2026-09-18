@@ -13,8 +13,11 @@
 #   dir     the directory the site serves stubs from, /export/<dir>/; read from
 #           the client being checked by default — its own version.h carries it
 #           as TIC_VERSION_DIR, so the check asks what that client asks. A
-#           release build's is its tag (v1.2.0), a snapshot's the line (1.3),
-#           and a client older than that rule needs it spelled out (--dir 1.1).
+#           release build's is its tag (v1.2.0), a snapshot's the line (1.3).
+#           Pass it for a layout with no version.h two levels above the binary
+#           (an installed client, a .app bundle, an unpacked CI artifact) and
+#           for a client older than that rule, against the older site layout
+#           (--dir 1.1).
 #
 # Step by step (dev):
 #
@@ -26,9 +29,13 @@
 #          cmake -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_BUILD_TYPE=Release <repo>
 #      then read the build's version.h: TIC_VERSION_IS_RELEASE must be 0, and
 #      TIC_VERSION_DIR the line the site lays out for it ("1.3").
-#   2. Deploy the release whose stubs are being checked — the server repo's
-#      scripts/deploy-client.sh <version> dev — because the client downloads
-#      what the site serves: the check is only as new as the last deploy.
+#   2. Deploy what the client will download, and mind which directory that is:
+#      a snapshot asks for its line, so on dev it is
+#          /srv/tic80-dev/deploy-dev-build.sh <version> <run-id>
+#          /srv/tic80-dev/deploy-dev-stubs.sh <run-id> 1.3 <langs…> --universal --create
+#      while a *release* client on either site asks its tag, which is what
+#      scripts/deploy-client.sh <version> dev lays. The check is only as new
+#      as the last deploy either way.
 #   3. ./bin/release/check-export-stubs.sh --client <build>/bin/tic80
 #      One line per path, then "passed N, failed 0". A stub that came back
 #      with its editors, one that differs from the served file, a missing page
