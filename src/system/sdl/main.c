@@ -1789,7 +1789,10 @@ static void gpuTick()
     }
 
     renderClear(platform.screen.renderer);
-    updateTextureBytes(platform.screen.texture, tic->product.screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
+    if(studio_is_dirty(platform.studio))
+    {
+        updateTextureBytes(platform.screen.texture, tic->product.screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
+    }
 
     SDL_Rect rect;
     calcTextureRect(&rect);

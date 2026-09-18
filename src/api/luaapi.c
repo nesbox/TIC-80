@@ -1793,5 +1793,24 @@ void luaapi_boot(tic_mem* tic)
                 core->data->error(core->data->data, lua_tostring(lua, -1));
         }
         else lua_pop(lua, 1);
+
+        lua_getglobal(lua, SCN_FN);
+        bool has_scn = lua_isfunction(lua, -1);
+        lua_pop(lua, 1);
+
+        if (!has_scn)
+        {
+            lua_getglobal(lua, "scanline");
+            has_scn = lua_isfunction(lua, -1);
+            lua_pop(lua, 1);
+        }
+
+        lua_getglobal(lua, BDR_FN);
+        bool has_bdr = lua_isfunction(lua, -1);
+        lua_pop(lua, 1);
+
+        core->state.has_scn = has_scn;
+        core->state.has_bdr = has_bdr;
     }
 }
+

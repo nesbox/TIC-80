@@ -363,6 +363,9 @@ void tic_api_reset(tic_mem* memory)
     memory->ram->vram.vars.cursor.system = true;
     memory->ram->input.mouse.relative = 0;
 
+    core->saved_vram.valid = false;
+    core->screen_dirty = true;
+
     soundClear(memory);
     updateSaveid(memory);
     font2ram(memory);
@@ -485,18 +488,6 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
             config->boot(tic);
             core->state.tick = config->tick;
             core->state.callback = config->callback;
-            
-            if (strlen(tic->cart.code.data) > 0)
-            {
-                core->state.has_scn = strstr(tic->cart.code.data, "SCN") != NULL;
-                core->state.has_bdr = strstr(tic->cart.code.data, "BDR") != NULL;
-            }
-            else
-            {
-                core->state.has_scn = true;
-                core->state.has_bdr = true;
-            }
-
             core->state.initialized = true;
         }
         else return;
@@ -667,15 +658,32 @@ void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
 {
     tic_core* core = (tic_core*)tic;
 
-    if (core->draw_cache && !tic_core_draw_cache_has_invalidated(core))
+    bool has_scanline = (clb.scanline == scanline) ? (core->state.initialized && core->state.has_scn) : (clb.scanline != NULL);
+    bool has_border   = (clb.border   == border)   ? (core->state.initialized && core->state.has_bdr) : (clb.border != NULL);
+
+    if (!has_scanline && !has_border)
     {
-        bool has_scanline = (clb.scanline == scanline) ? (core->state.initialized && core->state.has_scn) : (clb.scanline != NULL);
-        bool has_border   = (clb.border   == border)   ? (core->state.initialized && core->state.has_bdr) : (clb.border != NULL);
-        if (!has_scanline && !has_border)
+        if (core->draw_cache && !tic_core_draw_cache_has_invalidated(core))
         {
+            core->screen_dirty = false;
+            return;
+        }
+
+        if (core->saved_vram.valid &&
+            core->saved_vram.format == core->screen_format &&
+            memcmp(&core->saved_vram.vbank0, vbank0(core), sizeof(tic_vram)) == 0 &&
+            memcmp(&core->saved_vram.vbank1, vbank1(core), sizeof(tic_vram)) == 0)
+        {
+            core->screen_dirty = false;
             return;
         }
     }
+
+    core->screen_dirty = true;
+    memcpy(&core->saved_vram.vbank0, vbank0(core), sizeof(tic_vram));
+    memcpy(&core->saved_vram.vbank1, vbank1(core), sizeof(tic_vram));
+    core->saved_vram.format = core->screen_format;
+    core->saved_vram.valid = true;
 
     tic_blitpal pal0, pal1;
     updpal(tic, &pal0, &pal1);
@@ -741,6 +749,19 @@ static inline void border(tic_mem* memory, s32 row, void* data)
 void tic_core_blit(tic_mem* tic)
 {
     tic_core_blit_ex(tic, (tic_blit_callback){scanline, border, NULL});
+}
+
+bool tic_core_is_dirty(tic_mem* memory)
+{
+    tic_core* core = (tic_core*)memory;
+    return core->screen_dirty;
+}
+
+void tic_core_invalidate(tic_mem* memory)
+{
+    tic_core* core = (tic_core*)memory;
+    core->saved_vram.valid = false;
+    core->screen_dirty = true;
 }
 
 tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)

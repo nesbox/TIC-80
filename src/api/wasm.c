@@ -1217,6 +1217,9 @@ static void callWasmBoot(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
+    core->state.has_scn = (SCN_function != NULL);
+    core->state.has_bdr = (BDR_function != NULL);
+
     IM3Runtime runtime = core->currentVM;
 
     if(!runtime) { return; }

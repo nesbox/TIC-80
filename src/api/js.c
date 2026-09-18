@@ -1205,7 +1205,26 @@ static void callJavascriptBoot(tic_mem* tic)
     }
 
     JS_FreeValue(ctx, func);
+
+    JSValue scn_func = JS_GetPropertyStr(ctx, global, SCN_FN);
+    bool has_scn = JS_IsFunction(ctx, scn_func);
+    JS_FreeValue(ctx, scn_func);
+
+    if(!has_scn)
+    {
+        JSValue scanline_func = JS_GetPropertyStr(ctx, global, "scanline");
+        has_scn = JS_IsFunction(ctx, scanline_func);
+        JS_FreeValue(ctx, scanline_func);
+    }
+
+    JSValue bdr_func = JS_GetPropertyStr(ctx, global, BDR_FN);
+    bool has_bdr = JS_IsFunction(ctx, bdr_func);
+    JS_FreeValue(ctx, bdr_func);
+
     JS_FreeValue(ctx, global);
+
+    core->state.has_scn = has_scn;
+    core->state.has_bdr = has_bdr;
 }
 
 static const char* const JsKeywords [] =
