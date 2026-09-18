@@ -1,0 +1,4 @@
+build/
+.local/
+game.tic
+*.tic

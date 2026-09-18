@@ -8,6 +8,7 @@
 #include "miniaudio.h"
 #include "../fftdata.h"
 #include "fft.h"
+#include "vqt.h"
 #endif
 #include <memory.h>
 #include <stdio.h>
@@ -19,7 +20,8 @@
 kiss_fftr_cfg fftcfg;
 ma_context context;
 ma_device captureDevice;
-float sampleBuf[FFT_SIZE * 2];
+float sampleBuf[AUDIO_BUFFER_SIZE];
+static ma_spinlock sampleLock = 0;
 
 void miniaudioLogCallback(void* userData, ma_uint32 level, const char* message)
 {
@@ -47,19 +49,25 @@ void miniaudioLogCallback(void* userData, ma_uint32 level, const char* message)
 
 void OnReceiveFrames(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
-    frameCount = frameCount < FFT_SIZE * 2 ? frameCount : FFT_SIZE * 2;
+    const float* samples = (const float*)pInput;
+    if (frameCount > AUDIO_BUFFER_SIZE)
+    {
+        if (samples) samples += (frameCount - AUDIO_BUFFER_SIZE) * 2;
+        frameCount = AUDIO_BUFFER_SIZE;
+    }
+    ma_spinlock_lock(&sampleLock);
 
     // Just rotate the buffer; copy existing, append new
-    const float* samples = (const float*)pInput;
     float* p = sampleBuf;
-    for (int i = 0; i < FFT_SIZE * 2 - frameCount; i++)
+    for (int i = 0; i < AUDIO_BUFFER_SIZE - frameCount; i++)
     {
         *(p++) = sampleBuf[i + frameCount];
     }
     for (int i = 0; i < frameCount; i++)
     {
-        *(p++) = (samples[i * 2] + samples[i * 2 + 1]) / 2.0f;
+        *(p++) = samples ? (samples[i * 2] + samples[i * 2 + 1]) / 2.0f : 0.0f;
     }
+    ma_spinlock_unlock(&sampleLock);
 }
 
 void print_device_id(ma_device_id id, ma_backend backend)
@@ -184,7 +192,7 @@ bool FFT_Open(bool CapturePlaybackDevices, const char* CaptureDeviceSearchString
     return true;
 #else
 
-    memset(sampleBuf, 0, sizeof(float) * FFT_SIZE * 2);
+    memset(sampleBuf, 0, sizeof sampleBuf);
 
     fftcfg = kiss_fftr_alloc(FFT_SIZE * 2, false, NULL, NULL);
 
@@ -301,6 +309,8 @@ bool FFT_Open(bool CapturePlaybackDevices, const char* CaptureDeviceSearchString
     FFT_DebugLog(FFT_LOG_INFO, "Capturing %s\n", captureDevice.capture.name);
 
     fftEnabled = true;
+    if (!VQT_Open())
+        FFT_DebugLog(FFT_LOG_WARNING, "VQT initialization failed; FFT remains available\n");
     return true;
 #endif
 }
@@ -311,6 +321,7 @@ void FFT_Close()
     return;
 #else
 
+    VQT_Close();
     ma_device_stop(&captureDevice);
     ma_device_uninit(&captureDevice);
     ma_context_uninit(&context);
@@ -328,13 +339,16 @@ void FFT_GetFFT(float* _samples)
 #else
 
     kiss_fft_cpx out[FFT_SIZE + 1];
-    kiss_fftr(fftcfg, sampleBuf, out);
+    float samples[FFT_SIZE * 2];
+    FFT_CopyAudio(samples, FFT_SIZE * 2);
+    kiss_fftr(fftcfg, samples, out);
 
     float peakValue = fPeakMinValue;
     for (int i = 0; i < FFT_SIZE; i++)
     {
         float val = 2.0f * sqrtf(out[i].r * out[i].r + out[i].i * out[i].i);
         if (val > peakValue) peakValue = val;
+        fftRawData[i] = val;
         _samples[i] = val * fAmplification;
     }
     if (peakValue > fPeakSmoothValue)
@@ -350,6 +364,7 @@ void FFT_GetFFT(float* _samples)
     float fFFTSmoothingFactor = 0.6f;
     for (int i = 0; i < FFT_SIZE; i++)
     {
+        fftRawSmoothingData[i] = fftRawSmoothingData[i] * fFFTSmoothingFactor + (1 - fFFTSmoothingFactor) * fftRawData[i];
         fftSmoothingData[i] = fftSmoothingData[i] * fFFTSmoothingFactor + (1 - fFFTSmoothingFactor) * _samples[i];
     }
 
@@ -359,7 +374,7 @@ void FFT_GetFFT(float* _samples)
 
 //////////////////////////////////////////////////////////////////////////
 
-double fft(s32 startFreq, s32 endFreq, bool smoothing)
+static double fft(s32 startFreq, s32 endFreq, bool smoothing, bool raw)
 {
 #ifdef TIC80_FFT_UNSUPPORTED
     return 0.0;
@@ -370,6 +385,10 @@ double fft(s32 startFreq, s32 endFreq, bool smoothing)
         return 0.0;
     }
 
+    const float* data = raw
+        ? (smoothing ? fftRawSmoothingData : fftRawData)
+        : (smoothing ? fftSmoothingData : fftData);
+
     if (endFreq == -1)
     {
         if (startFreq < 0 || startFreq >= FFT_SIZE)
@@ -377,7 +396,7 @@ double fft(s32 startFreq, s32 endFreq, bool smoothing)
             FFT_DebugLog(FFT_LOG_TRACE, "FFT: freq out of bounds at %d\n", startFreq);
             return 0.0;
         }
-        return smoothing ? fftSmoothingData[startFreq] : fftData[startFreq];
+        return data[startFreq];
     }
     else
     {
@@ -414,7 +433,7 @@ double fft(s32 startFreq, s32 endFreq, bool smoothing)
         double sum = 0.0;
         for (int i = startFreq; i <= endFreq; i++)
         {
-            sum += smoothing ? fftSmoothingData[i] : fftData[i];
+            sum += data[i];
         }
         return sum;
     }
@@ -426,7 +445,7 @@ double tic_api_fft(tic_mem* memory, s32 startFreq, s32 endFreq)
 #ifdef TIC80_FFT_UNSUPPORTED
     return 0.0;
 #else
-    return fft(startFreq, endFreq, false);
+    return fft(startFreq, endFreq, false, false);
 #endif
 }
 
@@ -435,6 +454,26 @@ double tic_api_ffts(tic_mem* memory, s32 startFreq, s32 endFreq)
 #ifdef TIC80_FFT_UNSUPPORTED
     return 0.0;
 #else
-    return fft(startFreq, endFreq, true);
+    return fft(startFreq, endFreq, true, false);
 #endif
+}
+
+void FFT_CopyAudio(float* samples, int count)
+{
+#ifndef TIC80_FFT_UNSUPPORTED
+    if (count <= 0 || count > AUDIO_BUFFER_SIZE) return;
+    ma_spinlock_lock(&sampleLock);
+    memcpy(samples, sampleBuf + AUDIO_BUFFER_SIZE - count, count * sizeof(float));
+    ma_spinlock_unlock(&sampleLock);
+#endif
+}
+
+double tic_api_fftr(tic_mem* memory, s32 startFreq, s32 endFreq)
+{
+    return fft(startFreq, endFreq, false, true);
+}
+
+double tic_api_fftrs(tic_mem* memory, s32 startFreq, s32 endFreq)
+{
+    return fft(startFreq, endFreq, true, true);
 }

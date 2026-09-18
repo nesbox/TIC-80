@@ -79,6 +79,8 @@ extern tic_script EXPORT_SCRIPT(Python);
 
 #if defined(TIC_BUILD_WITH_FORTH)
 extern tic_script EXPORT_SCRIPT(Forth);
+#if defined(TIC_BUILD_WITH_MINISCRIPT)
+extern tic_script EXPORT_SCRIPT(MiniScript);
 #endif
 
 #endif
@@ -136,6 +138,8 @@ static const tic_script *Scripts[MAX_SUPPORTED_LANGS + 1] =
 
     #if defined(TIC_BUILD_WITH_FORTH)
     &EXPORT_SCRIPT(Forth),
+    #if defined(TIC_BUILD_WITH_MINISCRIPT)
+    &EXPORT_SCRIPT(MiniScript),
     #endif
 
 #endif

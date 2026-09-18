@@ -4,16 +4,16 @@ This directory contains starter projects (and libs) for the compiled languages w
 
 - Zig (low-level)
 - D (low-level)
+- Go (via TinyGo)
+- C
+- Rust
+- Nim
 
 We could easily support these as well, with contributor help:
 
-- C
 - C++
-- Go
 - Nelua
-- Nim
 - Odin
-- Rust
 - Wat
 
 What is needed?  Pull over the example build/template scripts from the [WASM-4](https://wasm4.org) project [templates](https://github.com/aduros/wasm4/tree/main/cli/assets/templates).  These are typically well done and well maintained so they are a great starting point.

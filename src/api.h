@@ -832,6 +832,129 @@ enum
         1,                                                                                                              \
         0,                                                                                                              \
         double,                                                                                                         \
+        tic_mem*, s32 startFreq, s32 endFreq)                                                                           \
+                                                                                                                        \
+    macro(vqt,                                                                                                          \
+        "vqt(bin)",                                                                                                     \
+                                                                                                                        \
+        "Get Variable-Q Transform magnitude for a specific frequency bin.\n"                                            \
+        "VQT provides 120 bins (0-119) with logarithmic frequency spacing for musical analysis.\n"                      \
+        "Bin frequency is 19.445 * 2^(bin/12) Hz; bin 0 is D#0/Eb0.\n"                                                  \
+        "Returns a value roughly 0..1 based on the intensity at that frequency.",                                       \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 bin)                                                                                              \
+                                                                                                                        \
+    macro(vqts,                                                                                                         \
+        "vqts(bin)",                                                                                                    \
+                                                                                                                        \
+        "Get smoothed Variable-Q Transform magnitude for a specific frequency bin.\n"                                   \
+        "VQT provides 120 bins (0-119) with logarithmic frequency spacing for musical analysis.\n"                      \
+        "Bin frequency is 19.445 * 2^(bin/12) Hz; bin 0 is D#0/Eb0.\n"                                                  \
+        "Returns a smoothed value roughly 0..1 based on the intensity at that frequency.",                              \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 bin)                                                                                              \
+                                                                                                                        \
+    macro(vqtr,                                                                                                         \
+        "vqtr(bin)",                                                                                                    \
+                                                                                                                        \
+        "Get raw (non-normalized) Variable-Q Transform magnitude for a specific frequency bin.\n"                       \
+        "VQT provides 120 bins (0-119) with logarithmic frequency spacing for musical analysis.\n"                      \
+        "Bin frequency is 19.445 * 2^(bin/12) Hz; bin 0 is D#0/Eb0.\n"                                                  \
+        "Returns raw magnitude without peak normalization.",                                                            \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 bin)                                                                                              \
+                                                                                                                        \
+    macro(vqtrs,                                                                                                        \
+        "vqtrs(bin)",                                                                                                   \
+                                                                                                                        \
+        "Get raw smoothed Variable-Q Transform magnitude for a specific frequency bin.\n"                               \
+        "VQT provides 120 bins (0-119) with logarithmic frequency spacing for musical analysis.\n"                      \
+        "Bin frequency is 19.445 * 2^(bin/12) Hz; bin 0 is D#0/Eb0.\n"                                                  \
+        "Returns raw smoothed magnitude without peak normalization.",                                                   \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 bin)                                                                                              \
+                                                                                                                        \
+    macro(vqtw,                                                                                                         \
+        "vqtw(bin)",                                                                                                    \
+                                                                                                                       \
+        "Get peak-normalized whitened VQT magnitude for a bin.\n"                                                       \
+        "Whitening evens out the spectral envelope so notes stand out.\n"                                          \
+        "Bin mapping: 0-119 (10 octaves × 12 notes).",                                                                 \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 bin)                                                                                              \
+                                                                                                                        \
+    macro(vqtsw,                                                                                                        \
+        "vqtsw(bin)",                                                                                                   \
+                                                                                                                       \
+        "Get smoothed, peak-normalized whitened VQT magnitude for a bin.\n"                                           \
+        "Useful for visuals with stable dynamics.",                                                                    \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 bin)                                                                                              \
+                                                                                                                        \
+    macro(vqtrw,                                                                                                        \
+        "vqtrw(bin)",                                                                                                   \
+                                                                                                                       \
+        "Get raw (non-normalized) whitened VQT magnitude for a bin.\n"                                               \
+        "Whitened but without peak auto-gain control.",                                                                \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 bin)                                                                                              \
+                                                                                                                        \
+    macro(vqtrsw,                                                                                                       \
+        "vqtrsw(bin)",                                                                                                  \
+                                                                                                                       \
+        "Get raw smoothed whitened VQT magnitude for a bin.\n"                                                        \
+        "Smoothed, without peak auto-gain control.",                                                                    \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 bin)                                                                                                              \
+    macro(fftr,                                                                                                         \
+        "fftr(start_freq end_freq=-1)",                                                                                 \
+                                                                                                                        \
+        "Retrieves a value from 1024 buckets that map to a region of audible frequencies.\n"                            \
+        "Returns raw magnitudes before amplification and peak normalization.\n"                                         \
+        "If end_freq is not provided, a single value is returned for the start_freq.\n"                                 \
+        "If end_freq is provided, a sum of all values in the range is returned.",                                       \
+        2,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 startFreq, s32 endFreq)                                                                           \
+                                                                                                                        \
+                                                                                                                        \
+    macro(fftrs,                                                                                                        \
+        "fftrs(start_freq end_freq=-1)",                                                                                \
+                                                                                                                        \
+        "Retrieves a value from 1024 buckets that map to a region of audible frequencies.\n"                            \
+        "Returns smoothed raw magnitudes before amplification and peak normalization.\n"                                \
+        "If end_freq is not provided, a single value is returned for the start_freq.\n"                                 \
+        "If end_freq is provided, a sum of all values in the range is returned.",                                       \
+        2,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
         tic_mem*, s32 startFreq, s32 endFreq)
 
 #define TIC_API_DEF(name, _, __, ___, ____, _____, ret, ...) ret tic_api_##name(__VA_ARGS__);

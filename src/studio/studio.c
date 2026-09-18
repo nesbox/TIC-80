@@ -246,6 +246,9 @@ struct Studio
 
 #if defined(BUILD_SURF)
     Surf*       surf;
+#endif
+
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     tic_net* net;
 #endif
 
@@ -444,10 +447,10 @@ char getKeyboardText(Studio* studio)
         tic80_input* input = &tic->ram->input;
 
 #ifdef KEYBOARD_LAYOUT_ES
-        // US KEYS:                     " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./< ";
-        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789'!`+cn'o,.-< ";
-        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ=!\" $%&/()??^*CN\"a;:_> ";
-        static const char Alt[] =       "                            |@#        []} {\\     ";
+        // US KEYS:                     " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
+        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789'!`+cn'o,.- ";
+        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ=!\" $%&/()??^*CN\"a;:_ ";
+        static const char Alt[] =       "                            |@#        []} {\\    ";
 #else
         static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
         static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
@@ -1634,6 +1637,8 @@ void runGame(Studio* studio, RunOrigin origin)
         fAmplification = 1.0f;
         memset(fftData, 0, sizeof(fftData[0]) * FFT_SIZE);
         memset(fftSmoothingData, 0, sizeof(fftSmoothingData[0]) * FFT_SIZE);
+        memset(fftRawData, 0, sizeof fftRawData);
+        memset(fftRawSmoothingData, 0, sizeof fftRawSmoothingData);
         memset(fftNormalizedData, 0, sizeof(fftNormalizedData[0]) * FFT_SIZE);
         memset(fftNormalizedMaxData, 0, sizeof(fftNormalizedMaxData[0]) * FFT_SIZE);
     }

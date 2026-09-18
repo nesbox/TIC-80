@@ -92,3 +92,6 @@
 [submodule "vendor/pforth"]
 	path = vendor/pforth
 	url = https://github.com/philburk/pforth.git
+[submodule "vendor/miniscript2"]
+	path = vendor/miniscript2
+	url = https://github.com/JoeStrout/miniscript2

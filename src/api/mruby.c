@@ -530,6 +530,158 @@ static mrb_value mrb_fset(mrb_state* mrb, mrb_value self)
     return mrb_nil_value();
 }
 
+static mrb_value mrb_vqt(mrb_state* mrb, mrb_value self)
+{
+    mrb_int bin;
+    mrb_int argc = mrb_get_args(mrb, "i", &bin);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, vqt(bin)\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.vqt(tic, bin));
+    }
+}
+
+static mrb_value mrb_vqts(mrb_state* mrb, mrb_value self)
+{
+    mrb_int bin;
+    mrb_int argc = mrb_get_args(mrb, "i", &bin);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, vqts(bin)\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.vqts(tic, bin));
+    }
+}
+
+static mrb_value mrb_vqtr(mrb_state* mrb, mrb_value self)
+{
+    mrb_int bin;
+    mrb_int argc = mrb_get_args(mrb, "i", &bin);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, vqtr(bin)\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.vqtr(tic, bin));
+    }
+}
+
+static mrb_value mrb_vqtrs(mrb_state* mrb, mrb_value self)
+{
+    mrb_int bin;
+    mrb_int argc = mrb_get_args(mrb, "i", &bin);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, vqtrs(bin)\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.vqtrs(tic, bin));
+    }
+}
+
+static mrb_value mrb_vqtw(mrb_state* mrb, mrb_value self)
+{
+    mrb_int bin;
+    mrb_int argc = mrb_get_args(mrb, "i", &bin);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, vqtw(bin)\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.vqtw(tic, bin));
+    }
+}
+
+static mrb_value mrb_vqtsw(mrb_state* mrb, mrb_value self)
+{
+    mrb_int bin;
+    mrb_int argc = mrb_get_args(mrb, "i", &bin);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, vqtsw(bin)\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.vqtsw(tic, bin));
+    }
+}
+
+static mrb_value mrb_vqtrw(mrb_state* mrb, mrb_value self)
+{
+    mrb_int bin;
+    mrb_int argc = mrb_get_args(mrb, "i", &bin);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, vqtrw(bin)\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.vqtrw(tic, bin));
+    }
+}
+
+static mrb_value mrb_vqtrsw(mrb_state* mrb, mrb_value self)
+{
+    mrb_int bin;
+    mrb_int argc = mrb_get_args(mrb, "i", &bin);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, vqtrsw(bin)\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.vqtrsw(tic, bin));
+    }
+}
+
 static mrb_value mrb_fft(mrb_state* mrb, mrb_value self)
 {
     mrb_int start_freq, end_freq = -1;
@@ -546,6 +698,44 @@ static mrb_value mrb_fft(mrb_state* mrb, mrb_value self)
     else
     {
         return mrb_float_value(mrb, core->api.fft(tic, start_freq, end_freq));
+    }
+}
+
+static mrb_value mrb_fftr(mrb_state* mrb, mrb_value self)
+{
+    mrb_int start_freq, end_freq = -1;
+    mrb_int argc = mrb_get_args(mrb, "i|i", &start_freq, &end_freq);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, fftr [ start_freq end_freq ]\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.fftr(tic, start_freq, end_freq));
+    }
+}
+
+static mrb_value mrb_fftrs(mrb_state* mrb, mrb_value self)
+{
+    mrb_int start_freq, end_freq = -1;
+    mrb_int argc = mrb_get_args(mrb, "i|i", &start_freq, &end_freq);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, fftrs [ start_freq end_freq ]\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.fftrs(tic, start_freq, end_freq));
     }
 }
 

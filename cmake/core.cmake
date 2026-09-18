@@ -16,6 +16,7 @@ set(BUILD_DEPRECATED TRUE)
 set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/fftdata.c
+    ${TIC80CORE_DIR}/vqtdata.c
     ${TIC80CORE_DIR}/core/core.c
     ${TIC80CORE_DIR}/core/draw.c
     ${TIC80CORE_DIR}/core/io.c
@@ -27,6 +28,8 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/tilesheet.c
     ${TIC80CORE_DIR}/script.c
     ${TIC80CORE_DIR}/ext/fft.c
+    ${TIC80CORE_DIR}/ext/vqt.c
+    ${TIC80CORE_DIR}/ext/vqt_kernel.c
     ${TIC80CORE_DIR}/ext/kiss_fft.c
     ${TIC80CORE_DIR}/ext/kiss_fftr.c
     ${TIC80CORE_DIR}/ext/png.c
@@ -109,6 +112,10 @@ if(BUILD_STATIC)
         target_link_libraries(tic80core PRIVATE janet)
     endif()
 
+    if(BUILD_WITH_MINISCRIPT)
+        target_link_libraries(tic80core PRIVATE miniscript)
+    endif()
+
     if(BUILD_WITH_WASM)
         target_link_libraries(tic80core PRIVATE wasm)
     endif()
@@ -118,6 +125,7 @@ if(BUILD_STATIC)
     endif()
 
     target_link_libraries(tic80core PRIVATE runtime)
+    target_link_libraries(tic80core PUBLIC runtime)
 
 endif()
 

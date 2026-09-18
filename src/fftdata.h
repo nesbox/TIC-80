@@ -1,6 +1,8 @@
 #pragma once
 #include <stdbool.h>
 #define FFT_SIZE 1024
+#include "vqtdata.h"
+#define AUDIO_BUFFER_SIZE (VQT_FFT_SIZE > FFT_SIZE * 2 ? VQT_FFT_SIZE : FFT_SIZE * 2)
 extern float fPeakMinValue;
 extern float fPeakSmoothing;
 extern float fPeakSmoothValue;
@@ -9,6 +11,9 @@ extern float fftData[FFT_SIZE];
 extern float fftSmoothingData[FFT_SIZE];
 extern float fftNormalizedData[FFT_SIZE];
 extern float fftNormalizedMaxData[FFT_SIZE];
+
+extern float fftRawData[FFT_SIZE];
+extern float fftRawSmoothingData[FFT_SIZE];
 
 extern bool fftEnabled;
 
