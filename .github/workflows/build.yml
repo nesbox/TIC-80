@@ -1,8 +1,14 @@
 name: Build
 
 on:
+  # main and pull requests, not every branch: pushing a branch and then opening
+  # a pull request for it built the same commit twice, and the two runs do not
+  # share a concurrency group (a push ref and a pull request ref are different),
+  # so neither cancelled the other — 18 checks on one commit, for nine jobs.
+  # A branch with no pull request yet still builds on demand, through the
+  # dispatch below, and the release path comes in through `workflow_call`.
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
   workflow_dispatch:
     inputs:
