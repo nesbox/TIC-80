@@ -16,8 +16,10 @@
         
         #game-frame > div { font-size: 44px; font-family: monospace; font-weight: bold;}
 
-        /* You can set custom dimensions here */
-        .game { width: 100vw; height: 100vh; }
+        /* You can set custom dimensions here.
+           dvh, where it exists, keeps the canvas inside the visible area on a
+           phone whose browser hides and shows its own bars. */
+        .game { width: 100vw; height: 100vh; height: 100dvh; }
 
         /* Touch controls: hidden until a game starts on a touch device, so
            desktop rendering is untouched. Shared by the site's player and by
@@ -47,6 +49,13 @@
         .touch-button[data-button=b] { grid-area: b; }
         .touch-button[data-button=a] { grid-area: a; }
         .dpad { position: absolute; width: 180px; height: 180px; top: 50%; left: 10px; }
+
+        /* On a phone held upright the controls sit lower, where the thumbs are:
+           the top of a portrait screen belongs to the game. */
+        @media (orientation: portrait) {
+            .dpad { top: 70%; }
+            .touch-button-grid { top: 70%; }
+        }
         .dpad-button { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         .dpad-square { fill: transparent; cursor: pointer; }
         .dpad-triangle { fill: none; stroke: var(--borderColor); stroke-width: 1; }
