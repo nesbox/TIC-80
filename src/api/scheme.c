@@ -747,6 +747,94 @@ s7_pointer scheme_fset(s7_scheme* sc, s7_pointer args)
     return s7_nil(sc);
 }
 
+s7_pointer scheme_vqt(s7_scheme* sc, s7_pointer args)
+{
+    // vqt(int bin) -> float_value
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = s7_list_length(sc, args);
+    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+
+    return s7_make_real(sc, core->api.vqt(tic, bin));
+}
+
+s7_pointer scheme_vqts(s7_scheme* sc, s7_pointer args)
+{
+    // vqts(int bin) -> float_value
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = s7_list_length(sc, args);
+    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+
+    return s7_make_real(sc, core->api.vqts(tic, bin));
+}
+
+s7_pointer scheme_vqtr(s7_scheme* sc, s7_pointer args)
+{
+    // vqtr(int bin) -> float_value
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = s7_list_length(sc, args);
+    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+
+    return s7_make_real(sc, core->api.vqtr(tic, bin));
+}
+
+s7_pointer scheme_vqtrs(s7_scheme* sc, s7_pointer args)
+{
+    // vqtrs(int bin) -> float_value
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = s7_list_length(sc, args);
+    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+
+    return s7_make_real(sc, core->api.vqtrs(tic, bin));
+}
+
+s7_pointer scheme_vqtw(s7_scheme* sc, s7_pointer args)
+{
+    // vqtw(int bin) -> float_value
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = s7_list_length(sc, args);
+    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+
+    return s7_make_real(sc, core->api.vqtw(tic, bin));
+}
+
+s7_pointer scheme_vqtsw(s7_scheme* sc, s7_pointer args)
+{
+    // vqtsw(int bin) -> float_value
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = s7_list_length(sc, args);
+    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+
+    return s7_make_real(sc, core->api.vqtsw(tic, bin));
+}
+
+s7_pointer scheme_vqtrw(s7_scheme* sc, s7_pointer args)
+{
+    // vqtrw(int bin) -> float_value
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = s7_list_length(sc, args);
+    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+
+    return s7_make_real(sc, core->api.vqtrw(tic, bin));
+}
+
+s7_pointer scheme_vqtrsw(s7_scheme* sc, s7_pointer args)
+{
+    // vqtrsw(int bin) -> float_value
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = s7_list_length(sc, args);
+    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+
+    return s7_make_real(sc, core->api.vqtrsw(tic, bin));
+}
+
 s7_pointer scheme_fft(s7_scheme* sc, s7_pointer args)
 {
     // fft(int start_freq, int end_freq=-1) -> float_value

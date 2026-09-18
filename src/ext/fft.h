@@ -8,4 +8,7 @@ void FFT_EnumerateDevices();
 void FFT_GetFFT(float* _samples);
 void FFT_Close();
 
+// Copy the latest mono capture samples for spectral analysis.
+void FFT_CopyAudio(float* samples, int count);
+
 //////////////////////////////////////////////////////////////////////////

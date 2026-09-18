@@ -22,6 +22,7 @@
 
 #include "fftdata.h"
 #include "../ext/fft.h"
+#include "../ext/vqt.h"
 
 #include "api.h"
 #include "core.h"
@@ -441,10 +442,13 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
 
     core->data = data;
 
+#ifndef TIC80_FFT_UNSUPPORTED
     if (fftEnabled)
     {
         FFT_GetFFT(fftData);
+        VQT_ProcessAudio();
     }
+#endif
     if (!core->state.initialized)
     {
         const char* code = tic->cart.code.data;
