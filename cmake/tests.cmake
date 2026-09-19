@@ -6,9 +6,9 @@
 # exactly what they configured before. On, it adds the tests/ targets and the
 # ctest wiring: `cmake --build <dir> --target studio_machine_editors` builds
 # one of them, `ctest` in the build directory runs them all.
-option(BUILD_TESTS "Build the unit tests" OFF)
+option(TIC80_BUILD_TESTS "Build the unit tests" OFF)
 
-if(BUILD_TESTS)
+if(TIC80_BUILD_TESTS)
     enable_testing()
     add_subdirectory(${CMAKE_SOURCE_DIR}/tests ${CMAKE_BINARY_DIR}/tests)
 endif()

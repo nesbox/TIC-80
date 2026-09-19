@@ -185,10 +185,10 @@ typedef struct
 } SmEvent;
 
 // What the studio has to do about a transition. An ordered list rather than a
-// bitmask: three of these are order-sensitive (the core is paused before it is
-// reset, the core is reset before a run is initialised, surf is initialised
-// before the switch's own effects) and one is emitted twice in a row by design
-// (the main menu is built by the switch and again by gotoMenu).
+// bitmask: two of these are order-sensitive (the core is paused before it is
+// reset, surf is initialised before the switch's own effects) and one has to
+// arrive last (the dialog's callback runs once the screen it answers to is
+// back, and that rebuild replaces what the dialog was raised with).
 typedef enum
 {
     SM_EFF_PAUSE_CORE,       // tic_core_pause: leaving RUN snapshots the core
@@ -229,7 +229,8 @@ typedef struct
 } SmResult;
 
 // The per-frame policy of a mode — the four switches over studio->mode that
-// used to live in studio_tick, as data. Pure, so the tests cover all eleven.
+// used to live in studio_tick, as data. Pure, and every field is asserted by
+// the tests for all eleven modes.
 typedef enum
 {
     SM_SOUND_RAM,           // the running cart's own sfx/music

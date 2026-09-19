@@ -125,6 +125,18 @@ typedef struct
 
 } MouseState;
 
+// A dialog on screen: who raised it, what to call when it is answered, and the
+// data that callback wants. Declared up here because the studio keeps the one
+// it is showing (Studio.dialogData), and it is the answer path that frees it.
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+typedef struct
+{
+    Studio* studio;
+    ConfirmCallback callback;
+    void* data;
+} ConfirmData;
+#endif
+
 struct Studio
 {
     tic_mem* tic;
@@ -152,6 +164,13 @@ struct Studio
         CartHash hash;
         u64 mdate;
     }cart;
+
+    // The dialog on screen, if any, and what to call when it is answered. The
+    // menu widget holds the same pointer for its own handlers, but an answer
+    // raised in the menu rebuilds those rows on its way out and the widget's
+    // data goes with them — so the executor keeps its own pointer, and the
+    // callback outlives the menu it was raised in.
+    ConfirmData* dialogData;
 #endif
 #if defined(BUILD_EDITORS)
     struct
@@ -1250,6 +1269,9 @@ static void initWorldMap(Studio* studio)
 // through studioSend.
 static void studioSend(Studio* studio, const SmEvent* event);
 static void rebuildMainMenu(Studio* studio);
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+static void answerDialog(Studio* studio, bool yes);
+#endif
 #if defined(BUILD_EDITORS)
 static bool showGameMenu(Studio* studio);
 #endif
@@ -1288,15 +1310,6 @@ bool studio_is_cart_loaded(Studio* studio)
     return studio->start && studio->start->embed;
 #endif
 }
-
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-typedef struct
-{
-    Studio* studio;
-    ConfirmCallback callback;
-    void* data;
-} ConfirmData;
-#endif
 
 // Who owns ESC this frame. The machine cannot look inside the code editor, so
 // the executor answers the question and the machine decides what it means.
@@ -1357,17 +1370,7 @@ static void runEffect(Studio* studio, const SmResult* result, SmEffect effect)
 
     case SM_EFF_DIALOG_CALLBACK:
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-        {
-            // The widget holds what the dialog was raised with — the callback
-            // and its data — and this hands it the answer. Freeing it here is
-            // what confirmHandler used to do on its way out.
-            ConfirmData* dialog = studio_menu_data(studio->menu);
-
-            if(dialog)
-                dialog->callback(studio, result->yes, dialog->data);
-
-            FREE(dialog);
-        }
+        answerDialog(studio, result->yes);
 #endif
         break;
 
@@ -1583,6 +1586,22 @@ static void rebuildMainMenu(Studio* studio)
 
 // A dialog's rows answer it: the machine decides where an answer goes and what
 // else it means, and the callback rides along as an effect.
+// The answer, handed to whoever raised the dialog. Ran as an effect, after the
+// screen it goes back to is back, because that is where the callback expects to
+// be told — the same order confirmHandler called it in.
+static void answerDialog(Studio* studio, bool yes)
+{
+    ConfirmData* dialog = studio->dialogData;
+
+    studio->dialogData = NULL;
+
+    if(dialog)
+    {
+        dialog->callback(studio, yes, dialog->data);
+        free(dialog);
+    }
+}
+
 static void confirmNo(void* data, s32 pos)
 {
     ConfirmData* dialog = data;
@@ -1623,13 +1642,15 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
 
         memcpy(items + rows, Answers, sizeof Answers);
 
+        studio->dialogData = MOVE((ConfirmData){studio, callback, data});
+
         // The dialog's back is its own answer "no": ESC (and the gamepad's B)
         // means the same thing as picking it. Passing NULL here left ESC to
         // the fallback in processShortcuts, which asks prevMode where to go —
         // for a dialog raised over a run that is RUN, remapped to CONSOLE, so
         // ESC abandoned the run and never reached the callback at all.
         studio_menu_init(studio->menu, items, count, count - 2, 0,
-            confirmNo, MOVE((ConfirmData){studio, callback, data}));
+            confirmNo, studio->dialogData);
 
         playSystemSfx(studio, 0);
     }
@@ -1728,6 +1749,8 @@ bool studioCartChanged(Studio* studio)
 
 void runGame(Studio* studio, RunOrigin origin)
 {
+    bool replay = false;
+
 #if defined(BUILD_EDITORS)
 
     if (studio->config->data.fft) {
@@ -1744,30 +1767,30 @@ void runGame(Studio* studio, RunOrigin origin)
         memset(fftNormalizedMaxData, 0, sizeof(fftNormalizedMaxData[0]) * FFT_SIZE);
     }
 
-    if(studio->console->args.keepcmd
+    // --keepcmd with the queue exhausted: no run at all, the commands are
+    // replayed and the console comes back. The machine reads the queue to
+    // decide that (env.keepcmd_replay), so it is asked *before* the rewind
+    // below — rewinding first would hide the replay from it.
+    replay = studio->console->args.keepcmd
         && studio->console->commands.count
-        && studio->console->commands.current >= studio->console->commands.count)
-    {
-        // --keepcmd with commands still queued: no run at all. The machine is
-        // told the same thing through env.keepcmd_replay and answers with the
-        // console; the queue is the console's own, and rewinding it is not a
-        // mode question.
-        studio->console->commands.current = 0;
-    }
-    else
+        && studio->console->commands.current >= studio->console->commands.count;
 #endif
-    {
-        // A fresh cart for a fresh run: the machine resets the core on the way
-        // into RUN, but a cart asked for from the pause menu is a restart of
-        // the same run and the reset has to happen first either way — this is
-        // the call the old code made before the switch, kept where it was.
+
+    // One reset per run, done here because that is where it has always been:
+    // a cart asked for from the pause menu is a restart of the same run, and
+    // the switch into RUN never reset anything.
+    if(!replay)
         tic_api_reset(studio->tic);
-    }
 
     // The machine owns every rule the rest of this function used to spell out:
     // the origin, the owner, the restart of the run the menu sits over.
     SmEvent event = { .kind = SM_EV_RUN_GAME, .origin = origin };
     studioSend(studio, &event);
+
+#if defined(BUILD_EDITORS)
+    if(replay)
+        studio->console->commands.current = 0;
+#endif
 }
 
 #if defined(BUILD_EDITORS)
@@ -2427,8 +2450,9 @@ static void renderStudio(Studio* studio)
     // tamper with the keyboard input.
     processShortcuts(studio);
 
-    // clear screen for all the modes except the Run mode
-    if(getStudioMode(studio) != TIC_RUN_MODE)
+    // The studio draws into vbank 1 and wipes it first — every screen but the
+    // game, whose frame is the cart's own.
+    if(sm_mode_policy(getStudioMode(studio)).clear_vbank1)
     {
         VBANK(tic, 1)
         {

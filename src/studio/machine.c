@@ -407,8 +407,10 @@ SmResult sm_dispatch(SmState* state, const SmEnv* env, const SmEvent* event)
             break;
         }
 
-        pushEffect(&result.effects, SM_EFF_RESET_CORE);
-
+        // No reset here: runGame resets the core itself, before it asks, and
+        // the switch into RUN never reset anything — setStudioMode resets only
+        // when the target is not RUN. A reset here would keep the same rule in
+        // two places and run every path through it twice.
         if(state->mode == TIC_RUN_MODE)
         {
             // Asking for the run that is already on is a restart: the cart is
@@ -532,11 +534,11 @@ SmModePolicy sm_mode_policy(EditorMode mode)
             .config_palette = false,
         };
 
-    case TIC_START_MODE:
     case TIC_MENU_MODE:
     case TIC_SURF_MODE:
-        // Screens that are the studio's own and are not editors: the sound
-        // comes from the config cart the menu plays its sfx with.
+        // The menu and the browser are the studio's own screens and play with
+        // the config cart's sound. They keep the gamepad: the same buttons
+        // drive them, and the cart under them is not the one being played.
         return (SmModePolicy)
         {
             .sound = SM_SOUND_CONFIG,
@@ -545,6 +547,7 @@ SmModePolicy sm_mode_policy(EditorMode mode)
             .config_palette = true,
         };
 
+    case TIC_START_MODE:
     case TIC_CONSOLE_MODE:
     case TIC_CODE_MODE:
     case TIC_SPRITE_MODE:

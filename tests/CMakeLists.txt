@@ -3,7 +3,7 @@
 # second — but each is built once per shipped configuration, because the build
 # variants are exactly what the machinery has to get right (cmake/studio.cmake).
 #
-# Wired through the root project with -DBUILD_TESTS=ON. This file also works on
+# Wired through the root project with -DTIC80_BUILD_TESTS=ON. This file also works on
 # its own, for a loop that does not pay for the rest of the tree:
 #   cmake -S tests -B build-tests && cmake --build build-tests && ctest --test-dir build-tests --output-on-failure
 cmake_minimum_required(VERSION 3.14)

@@ -1,6 +1,6 @@
 /* The studio mode machine — unit tests.
  *
- * Built by cmake with -DBUILD_TESTS=ON, once per shipped configuration
+ * Built by cmake with -DTIC80_BUILD_TESTS=ON, once per shipped configuration
  * (cmake/studio.cmake):
  *
  *   studio_machine_editors   BUILD_EDITORS BUILD_SURF SURF_MENU
@@ -509,8 +509,12 @@ static void test_resume_game(void)
 static void test_run_game(void)
 {
     SmFeatures features = variant();
-    static const SmEffect ResetInit[] = { SM_EFF_RESET_CORE, SM_EFF_INIT_RUN, SM_EFF_VI_MODE_RESET };
-    static const SmEffect ResetInitRun[] = { SM_EFF_RESET_CORE, SM_EFF_INIT_RUN };
+    // runGame resets the core itself before it asks — one reset per run, as
+    // the old code had it — so the machine answers with the run alone.
+    static const SmEffect StartRun[] = { SM_EFF_INIT_RUN, SM_EFF_VI_MODE_RESET };
+    // Asking for the run that is already on is a restart in place: nothing
+    // else moves, the vi mode included.
+    static const SmEffect RestartRun[] = { SM_EFF_INIT_RUN };
     SmEnv env = DefaultEnv;
 
     if(features.has_editors)
@@ -518,7 +522,7 @@ static void test_run_game(void)
         SmState state = stateIn(features, TIC_CODE_MODE);
         SmEvent event = { .kind = SM_EV_RUN_GAME, .origin = RUN_FROM_STUDIO };
 
-        expect("run from the editor", &state, &env, &event, TIC_RUN_MODE, ResetInit, COUNT_OF(ResetInit));
+        expect("run from the editor", &state, &env, &event, TIC_RUN_MODE, StartRun, COUNT_OF(StartRun));
         check(state.run_from == TIC_CODE_MODE, "the run remembers the editor");
         check(!state.player_run, "a run the studio asked for is not the player's");
     }
@@ -528,7 +532,7 @@ static void test_run_game(void)
         SmState state = stateIn(features, TIC_SURF_MODE);
         SmEvent event = { .kind = SM_EV_RUN_GAME, .origin = RUN_FROM_PLAYER };
 
-        expect("run from the browser", &state, &env, &event, TIC_RUN_MODE, ResetInit, COUNT_OF(ResetInit));
+        expect("run from the browser", &state, &env, &event, TIC_RUN_MODE, StartRun, COUNT_OF(StartRun));
         check(state.run_from == TIC_SURF_MODE, "the run remembers the browser");
         check(state.player_run, "a run from the browser is the player's");
     }
@@ -541,7 +545,7 @@ static void test_run_game(void)
         state.player_run = true;
         state.prev_mode = TIC_CODE_MODE;
 
-        expect("run while running", &state, &env, &event, TIC_RUN_MODE, ResetInitRun, COUNT_OF(ResetInitRun));
+        expect("run while running", &state, &env, &event, TIC_RUN_MODE, RestartRun, COUNT_OF(RestartRun));
         check(state.run_from == TIC_SURF_MODE, "a restart keeps where the run came from");
         check(state.player_run, "a restart keeps who owns the run");
         check(state.prev_mode == TIC_CODE_MODE, "a restart moves no history");
@@ -556,7 +560,7 @@ static void test_run_game(void)
         state.player_run = true;
         state.menu_over_run = true;
 
-        expect("restart from the pause menu", &state, &env, &event, TIC_RUN_MODE, ResetInit, COUNT_OF(ResetInit));
+        expect("restart from the pause menu", &state, &env, &event, TIC_RUN_MODE, StartRun, COUNT_OF(StartRun));
         check(state.run_from == TIC_SURF_MODE, "the pause menu's restart keeps the origin");
         check(state.player_run, "the pause menu's restart keeps the owner");
     }
@@ -569,7 +573,7 @@ static void test_run_game(void)
         state.menu_over_run = false;
 
         expect("run from a menu opened in the studio", &state, &env, &event,
-            TIC_RUN_MODE, ResetInit, COUNT_OF(ResetInit));
+            TIC_RUN_MODE, StartRun, COUNT_OF(StartRun));
         check(state.run_from == TIC_CODE_MODE, "the menu is not an origin to remember");
         check(!state.player_run, "and the run belongs to the studio");
     }
