@@ -65,6 +65,7 @@
 #include "fs.h"
 
 #include "argparse.h"
+#include "tic_assert.h"
 
 #include <ctype.h>
 
@@ -92,14 +93,9 @@ typedef struct
     u8 data[MD5_HASHSIZE];
 } CartHash;
 
-static const EditorMode Modes[] =
-{
-    TIC_CODE_MODE,
-    TIC_SPRITE_MODE,
-    TIC_MAP_MODE,
-    TIC_SFX_MODE,
-    TIC_MUSIC_MODE,
-};
+// The editor tabs are the machine's ring now (sm_editor_ring) — the studio
+// only draws them and walks them; SM_EDITOR_RING_COUNT is what the layout
+// arithmetic below counts with.
 
 static const EditorMode BankModes[] =
 {
@@ -129,36 +125,39 @@ typedef struct
 
 } MouseState;
 
+// A dialog on screen: who raised it, what to call when it is answered, and the
+// data that callback wants. Declared up here because the studio keeps the one
+// it is showing (Studio.dialogData), and it is the answer path that frees it.
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+typedef struct
+{
+    Studio* studio;
+    ConfirmCallback callback;
+    void* data;
+} ConfirmData;
+#endif
+
 struct Studio
 {
     tic_mem* tic;
 
-    bool alive;
+    // Set when the studio has been told to quit (the exit dialog, a window
+    // close, the console's `exit`); every platform loop reads it.
+    bool quit_requested;
 
-    EditorMode mode;
-    EditorMode prevMode;
-    EditorMode toolbarMode;
-
-    // The run ESC acts on: a player's run gets the pause menu and keeps it
-    // under ESC, the studio's own leaves back to runFrom — the editor or the
-    // console the run was asked from (see RunOrigin in studio.h, #2937). A
-    // run belongs to the player until the studio asks for one: the editorless
-    // builds start their cart without runGame ever being called.
-    bool playerRun;
-    EditorMode runFrom;
-    // Whether the menu was opened over that run (ESC in a game) rather than in
-    // the studio (the `menu` command): only the first one has a game to go
-    // back to.
-    bool menuOverRun;
+    // Every mode question — which screen is on, where a run came from, who
+    // asked for it, where a menu goes back to — is this one state, and the
+    // machine is the only thing that decides it (see studioSend). Two fields
+    // are written from outside on purpose: the toolbar's click and the code
+    // editor's focus flag are the executor's own bookkeeping, and both are
+    // consumed by the next dispatch.
+    SmState machine;
 
     struct
     {
         MouseState state[3];
     } mouse;
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-    EditorMode menuMode;
-#endif
 #if defined(BUILD_EDITORS)
     ViMode viMode;
 #endif
@@ -168,6 +167,13 @@ struct Studio
         CartHash hash;
         u64 mdate;
     }cart;
+
+    // The dialog on screen, if any, and what to call when it is answered. The
+    // menu widget holds the same pointer for its own handlers, but an answer
+    // raised in the menu rebuilds those rows on its way out and the widget's
+    // data goes with them — so the executor keeps its own pointer, and the
+    // callback outlives the menu it was raised in.
+    ConfirmData* dialogData;
 #endif
 #if defined(BUILD_EDITORS)
     struct
@@ -664,7 +670,7 @@ static void drawExtrabar(Studio* studio, tic_mem* tic)
 {
     enum {Size = 7};
 
-    s32 x = (COUNT_OF(Modes) + 1) * Size + 17 * TIC_FONT_WIDTH;
+    s32 x = (SM_EDITOR_RING_COUNT + 1) * Size + 17 * TIC_FONT_WIDTH;
     s32 y = 0;
 
     static struct Icon {u8 id; StudioEvent event; const char* tip;} Icons[] =
@@ -748,7 +754,7 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
     EditorMode mode = 0;
 
     for(s32 i = 0; i < COUNT_OF(BankModes); i++)
-        if(BankModes[i] == studio->mode)
+        if(BankModes[i] == getStudioMode(studio))
         {
             mode = i;
             break;
@@ -1060,7 +1066,9 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
 
     s32 mode = -1;
 
-    for(s32 i = 0; i < COUNT_OF(Modes); i++)
+    const EditorMode* modes = sm_editor_ring();
+
+    for(s32 i = 0; i < SM_EDITOR_RING_COUNT; i++)
     {
         tic_rect rect = {i * Size, 0, Size, Size};
 
@@ -1075,10 +1083,10 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
             showTooltip(studio, Tips[i]);
 
             if(checkMouseClick(studio, &rect, tic_mouse_left))
-                studio->toolbarMode = Modes[i];
+                studio->machine.pending_mode = modes[i];
         }
 
-        if(getStudioMode(studio) == Modes[i]) mode = i;
+        if(getStudioMode(studio) == modes[i]) mode = i;
 
         if (mode == i)
         {
@@ -1101,11 +1109,11 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
     };
 
 #if defined (TIC80_PRO) && defined(BUILD_EDITORS)
-    enum {TextOffset = (COUNT_OF(Modes) + 2) * Size - 2};
+    enum {TextOffset = (SM_EDITOR_RING_COUNT + 2) * Size - 2};
     if(mode >= 1)
-        drawBankIcon(studio, COUNT_OF(Modes) * Size + 2, 0);
+        drawBankIcon(studio, SM_EDITOR_RING_COUNT * Size + 2, 0);
 #else
-    enum {TextOffset = (COUNT_OF(Modes) + 1) * Size};
+    enum {TextOffset = (SM_EDITOR_RING_COUNT + 1) * Size};
 #endif
 
     if(mode == 0 || (mode >= 1 && !studio->bank.show))
@@ -1123,7 +1131,7 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
 
 void setStudioEvent(Studio* studio, StudioEvent event)
 {
-    switch(studio->mode)
+    switch(getStudioMode(studio))
     {
     case TIC_CODE_MODE:
         {
@@ -1195,13 +1203,13 @@ static void showPopupMessage(Studio* studio, const char* text)
 
 static void exitConfirm(Studio* studio, bool yes, void* data)
 {
-    studio->alive = yes;
+    studio->quit_requested = yes;
 }
 
 void studio_exit(Studio* studio)
 {
 #if defined(BUILD_EDITORS)
-    if(studio->mode != TIC_START_MODE && studioCartChanged(studio))
+    if(getStudioMode(studio) != TIC_START_MODE && studioCartChanged(studio))
     {
         static const char* Rows[] =
         {
@@ -1257,6 +1265,21 @@ static void initWorldMap(Studio* studio)
 {
     initWorld(studio->world, studio, studio->banks.map[studio->bank.index.map]);
 }
+#endif
+
+// Forward declarations: the executor reaches for two helpers that are defined
+// further down the file, and the mutators between here and it drive the machine
+// through studioSend.
+static void studioSend(Studio* studio, const SmEvent* event);
+static void rebuildMainMenu(Studio* studio);
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+static void answerDialog(Studio* studio, bool yes);
+#endif
+#if defined(BUILD_EDITORS)
+static bool showGameMenu(Studio* studio);
+#endif
+
+#if defined(BUILD_EDITORS)
 
 void gotoCode(Studio* studio)
 {
@@ -1272,8 +1295,11 @@ static void initSurfMode(Studio* studio)
 
 void gotoSurf(Studio* studio)
 {
-    initSurfMode(studio);
-    setStudioMode(studio, TIC_SURF_MODE);
+    // The browser is built by the effect, not by this function: which screens
+    // need waking up when a mode is entered is the machine's answer (it is the
+    // same one the switch to SURF used to carry).
+    SmEvent event = { .kind = SM_EV_OPEN_SURF };
+    studioSend(studio, &event);
 }
 #endif
 
@@ -1288,105 +1314,186 @@ bool studio_is_cart_loaded(Studio* studio)
 #endif
 }
 
+// Who owns ESC this frame. The machine cannot look inside the code editor, so
+// the executor answers the question and the machine decides what it means.
+static SmEscapeGate studioEscapeGate(Studio* studio)
+{
+#if defined(BUILD_EDITORS)
+    if(getConfig(studio)->options.keybindMode == KEYBIND_VI
+        && getStudioViMode(studio) != VI_NORMAL)
+        return SM_ESC_GATE_VI;
+
+    if(getStudioMode(studio) == TIC_CODE_MODE && studio->code->mode != TEXT_EDIT_MODE)
+        return SM_ESC_GATE_CODE;
+#endif
+
+    return SM_ESC_GATE_OPEN;
+}
+
+// The world the machine reads, gathered once per dispatch. Every field is a
+// question the studio already knows how to answer; a build without the editors
+// simply has fewer of them to answer.
+static SmEnv studioEnv(Studio* studio)
+{
+    SmEnv env =
+    {
+        .cart_loaded = studio_is_cart_loaded(studio),
+        .has_game_menu = false,
+        .menu_has_back = studio_menu_has_back(studio->menu),
+        .keepcmd_replay = false,
+        .escape_gate = studioEscapeGate(studio),
+    };
+
+#if defined(BUILD_EDITORS)
+    env.has_game_menu = showGameMenu(studio);
+
+    env.keepcmd_replay = studio->console->args.keepcmd
+        && studio->console->commands.count
+        && studio->console->commands.current >= studio->console->commands.count;
+#endif
+
+    return env;
+}
+
+// The effects. Everything here used to sit inside setStudioMode's switch or in
+// a caller that poked the fields itself; now the machine decides and this is
+// the only place that touches the screens.
+static void runEffect(Studio* studio, const SmResult* result, SmEffect effect)
+{
+    switch(effect)
+    {
+    case SM_EFF_PAUSE_CORE:  tic_core_pause(studio->tic); break;
+    case SM_EFF_RESET_CORE:  tic_api_reset(studio->tic); break;
+    case SM_EFF_RESUME_CORE: tic_core_resume(studio->tic); break;
+    case SM_EFF_INIT_RUN:    initRunMode(studio); break;
+
+    case SM_EFF_REBUILD_MAINMENU: rebuildMainMenu(studio); break;
+
+    case SM_EFF_MENU_BACK_ANIM: studio_menu_back(studio->menu); break;
+
+    case SM_EFF_DIALOG_CALLBACK:
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+        answerDialog(studio, result->yes);
+#endif
+        break;
+
+    case SM_EFF_EXIT_STUDIO: studio_exit(studio); break;
+
+    case SM_EFF_INIT_SURF:
+#if defined(BUILD_SURF)
+        initSurfMode(studio);
+#endif
+        break;
+
+    case SM_EFF_SURF_RESUME:
+#if defined(BUILD_SURF)
+        studio->surf->resume(studio->surf);
+#endif
+        break;
+
+    case SM_EFF_CONSOLE_DONE:
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+        studio->console->done(studio->console);
+#endif
+        break;
+
+    case SM_EFF_INIT_WORLD:
+#if defined(BUILD_EDITORS)
+        initWorldMap(studio);
+#endif
+        break;
+
+    case SM_EFF_MUSIC_NEXT_TAB:
+#if defined(BUILD_EDITORS)
+        {
+            Music* music = studio->banks.music[studio->bank.index.music];
+            music->tab = (music->tab + 1) % MUSIC_TAB_COUNT;
+        }
+#endif
+        break;
+
+    case SM_EFF_VI_MODE_RESET:
+        // Asked for in every build; a build without the editors has no vi mode
+        // for it to mean anything to.
+#if defined(BUILD_EDITORS)
+        studio->viMode = 0;
+#endif
+        break;
+
+    case SM_EFF_EDITOR_ESCAPE:
+#if defined(BUILD_EDITORS)
+        studio->code->escape(studio->code);
+#endif
+        break;
+
+    case SM_EFF_COUNT:
+        break;
+    }
+}
+
+// Every transition there is goes through here: read the world, ask the machine
+// what to do, do it. TIC80_TRACE_MODES=1 prints each one, which is what makes a
+// before and after of this rewrite comparable.
+static void traceTransition(const SmResult* result)
+{
+    static int enabled = -1;
+
+    if(enabled < 0)
+        enabled = getenv("TIC80_TRACE_MODES") != NULL;
+
+    if(!enabled)
+        return;
+
+    // A frame that decided nothing is not a transition: the empty per-frame
+    // event would otherwise print one line per frame of the session.
+    if(!result->moved && !result->effects.count)
+        return;
+
+    printf("[mode] %s -> %s", sm_mode_name(result->from), sm_mode_name(result->to));
+
+    for(u8 i = 0; i < result->effects.count; ++i)
+        printf(" %s", sm_effect_name(result->effects.items[i]));
+
+    // The trace is read from a pipe as often as from a terminal, and stdout is
+    // block-buffered there: a session that ends abruptly would lose its tail.
+    printf("\n");
+    fflush(stdout);
+}
+
+static void studioSend(Studio* studio, const SmEvent* event)
+{
+    SmEnv env = studioEnv(studio);
+    SmResult result = sm_dispatch(&studio->machine, &env, event);
+
+    for(u8 i = 0; i < result.effects.count; ++i)
+        runEffect(studio, &result, result.effects.items[i]);
+
+    traceTransition(&result);
+}
+
 void setStudioMode(Studio* studio, EditorMode mode)
 {
-    if(mode != studio->mode)
-    {
-        EditorMode prev = studio->mode;
-
-        if(prev == TIC_RUN_MODE)
-            tic_core_pause(studio->tic);
-
-        if(mode != TIC_RUN_MODE)
-            tic_api_reset(studio->tic);
-
-        switch (prev)
-        {
-        case TIC_START_MODE:
-        case TIC_CONSOLE_MODE:
-        case TIC_MENU_MODE:
-            break;
-        default: studio->prevMode = prev; break;
-        }
-
-#if !defined(BUILD_EDITORS)
-        switch (mode)
-        {
-        case TIC_START_MODE:
-        case TIC_MENU_MODE:
-#if defined(BUILD_SURF)
-        case TIC_SURF_MODE:
-#endif
-        case TIC_RUN_MODE:
-            break;
-        default:
-            if (!studio_is_cart_loaded(studio))
-                mode = TIC_MENU_MODE;
-            else
-                mode = TIC_RUN_MODE;
-            break;
-        }
-#endif
-
-        switch(mode)
-        {
-        case TIC_RUN_MODE:      initRunMode(studio); break;
-        case TIC_MENU_MODE:
-            studio_mainmenu_free(studio->mainmenu);
-            studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
-            break;
-#if defined(BUILD_EDITORS)
-        case TIC_CONSOLE_MODE:
-            if (prev == TIC_SURF_MODE)
-                studio->console->done(studio->console);
-            break;
-        case TIC_WORLD_MODE:    initWorldMap(studio); break;
-#endif
-#if defined(BUILD_SURF)
-        case TIC_SURF_MODE:     studio->surf->resume(studio->surf); break;
-#endif
-        default: break;
-        }
-
-        studio->mode = mode;
-    }
-
-#if defined(BUILD_EDITORS)
-    else if(mode == TIC_MUSIC_MODE)
-    {
-        Music* music = studio->banks.music[studio->bank.index.music];
-        music->tab = (music->tab + 1) % MUSIC_TAB_COUNT;
-    }
-#endif
-
-#if defined(BUILD_EDITORS)
-    studio->viMode = 0;
-#endif
+    SmEvent event = { .kind = SM_EV_REQUEST_MODE, .mode = mode };
+    studioSend(studio, &event);
 }
 
 EditorMode getStudioMode(Studio* studio)
 {
-    return studio->mode;
+    return studio->machine.mode;
 }
 
 #if defined(BUILD_EDITORS)
 static void changeStudioMode(Studio* studio, s32 dir)
 {
-    for(size_t i = 0; i < COUNT_OF(Modes); i++)
-    {
-        if(studio->mode == Modes[i])
-        {
-            setStudioMode(studio, Modes[(i+dir+ COUNT_OF(Modes)) % COUNT_OF(Modes)]);
-            return;
-        }
-    }
+    SmEvent event = { .kind = SM_EV_CYCLE_EDITOR, .dir = dir };
+    studioSend(studio, &event);
 }
 #endif
 
 void resumeGame(Studio* studio)
 {
-    tic_core_resume(studio->tic);
-    studio->mode = TIC_RUN_MODE;
+    SmEvent event = { .kind = SM_EV_RESUME_GAME };
+    studioSend(studio, &event);
 }
 
 #if defined(BUILD_EDITORS)
@@ -1463,50 +1570,55 @@ void setCursor(Studio* studio, tic_cursor id)
     }
 }
 
+// The main menu's rows belong to the menu widget, so whoever puts them back —
+// the switch into MENU, and a dialog that was raised in the menu and is now
+// answered — rebuilds them here.
+static void rebuildMainMenu(Studio* studio)
+{
+    studio_mainmenu_free(studio->mainmenu);
+    studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+}
+
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 
-typedef struct
+// A dialog's rows answer it: the machine decides where an answer goes and what
+// else it means, and the callback rides along as an effect.
+// The answer, handed to whoever raised the dialog. Ran as an effect, after the
+// screen it goes back to is back, because that is where the callback expects to
+// be told — the same order confirmHandler called it in.
+static void answerDialog(Studio* studio, bool yes)
 {
-    Studio* studio;
-    ConfirmCallback callback;
-    void* data;
-} ConfirmData;
+    ConfirmData* dialog = studio->dialogData;
 
-static void confirmHandler(bool yes, void* data)
-{
-    ConfirmData* confirmData = data;
-    SCOPE(free(confirmData))
+    studio->dialogData = NULL;
+
+    if(dialog)
     {
-        Studio* studio = confirmData->studio;
-
-        if(studio->menuMode == TIC_RUN_MODE)
-        {
-            resumeGame(studio);
-        }
-        else setStudioMode(studio, studio->menuMode);
-
-        confirmData->callback(studio, yes, confirmData->data);
+        dialog->callback(studio, yes, dialog->data);
+        free(dialog);
     }
 }
 
 static void confirmNo(void* data, s32 pos)
 {
-    confirmHandler(false, data);
+    ConfirmData* dialog = data;
+    SmEvent event = { .kind = SM_EV_CONFIRM_ANSWERED, .yes = false };
+    studioSend(dialog->studio, &event);
 }
 
 static void confirmYes(void* data, s32 pos)
 {
-    confirmHandler(true, data);
+    ConfirmData* dialog = data;
+    SmEvent event = { .kind = SM_EV_CONFIRM_ANSWERED, .yes = true };
+    studioSend(dialog->studio, &event);
 }
 
 void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback callback, void* data)
 {
-    if(studio->mode != TIC_MENU_MODE)
-    {
-        studio->menuMode = studio->mode;
-    }
-
-    setStudioMode(studio, TIC_MENU_MODE);
+    // The machine records where the answer goes back to — see the same rule in
+    // machine.c, which is where it lives now.
+    SmEvent event = { .kind = SM_EV_CONFIRM_OPENED };
+    studioSend(studio, &event);
 
     static MenuItem Answers[] =
     {
@@ -1527,8 +1639,15 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
 
         memcpy(items + rows, Answers, sizeof Answers);
 
+        studio->dialogData = MOVE((ConfirmData){studio, callback, data});
+
+        // The dialog's back is its own answer "no": ESC (and the gamepad's B)
+        // means the same thing as picking it. It used to be NULL, and ESC then
+        // took the "this menu has nowhere to go" fallback — for a dialog raised
+        // over a run that was the console, so ESC abandoned the run and never
+        // reached the callback at all.
         studio_menu_init(studio->menu, items, count, count - 2, 0,
-            NULL, MOVE((ConfirmData){studio, callback, data}));
+            confirmNo, studio->dialogData);
 
         playSystemSfx(studio, 0);
     }
@@ -1627,6 +1746,8 @@ bool studioCartChanged(Studio* studio)
 
 void runGame(Studio* studio, RunOrigin origin)
 {
+    bool replay = false;
+
 #if defined(BUILD_EDITORS)
 
     if (studio->config->data.fft) {
@@ -1643,41 +1764,30 @@ void runGame(Studio* studio, RunOrigin origin)
         memset(fftNormalizedMaxData, 0, sizeof(fftNormalizedMaxData[0]) * FFT_SIZE);
     }
 
-    if(studio->console->args.keepcmd
+    // --keepcmd with the queue exhausted: no run at all, the commands are
+    // replayed and the console comes back. The machine reads the queue to
+    // decide that (env.keepcmd_replay), so it is asked *before* the rewind
+    // below — rewinding first would hide the replay from it.
+    replay = studio->console->args.keepcmd
         && studio->console->commands.count
-        && studio->console->commands.current >= studio->console->commands.count)
-    {
-        studio->console->commands.current = 0;
-        setStudioMode(studio, TIC_CONSOLE_MODE);
-    }
-    else
+        && studio->console->commands.current >= studio->console->commands.count;
 #endif
-    {
+
+    // One reset per run, done here because that is where it has always been:
+    // a cart asked for from the pause menu is a restart of the same run, and
+    // the switch into RUN never reset anything.
+    if(!replay)
         tic_api_reset(studio->tic);
 
-        if(studio->mode == TIC_RUN_MODE)
-        {
-            initRunMode(studio);
-            return;
-        }
+    // The machine owns every rule the rest of this function used to spell out:
+    // the origin, the owner, the restart of the run the menu sits over.
+    SmEvent event = { .kind = SM_EV_RUN_GAME, .origin = origin };
+    studioSend(studio, &event);
 
-        // A run asked for from the pause menu is a restart of the run the
-        // menu sits over (menuOverRun): it keeps that run's origin, or the
-        // player's cart would become a studio run for the rest of the
-        // session — the pause menu would never come back and ESC would land
-        // in the editor. A menu opened in the studio is not that case: the
-        // run it starts is the studio's, like any other Ctrl+R.
-        if(studio->mode != TIC_MENU_MODE || !studio->menuOverRun)
-            studio->playerRun = origin == RUN_FROM_PLAYER;
-
-        // The pause menu is not a place to come back to either: runFrom keeps
-        // the origin of the run the menu sits over, or leaveRun would have
-        // nowhere to go (gotoMenu sets it for a menu opened in the studio).
-        if(studio->mode != TIC_MENU_MODE)
-            studio->runFrom = studio->mode;
-
-        setStudioMode(studio, TIC_RUN_MODE);
-    }
+#if defined(BUILD_EDITORS)
+    if(replay)
+        studio->console->commands.current = 0;
+#endif
 }
 
 #if defined(BUILD_EDITORS)
@@ -1715,7 +1825,7 @@ static void setCoverImage(Studio* studio)
 {
     tic_mem* tic = studio->tic;
 
-    if(studio->mode == TIC_RUN_MODE)
+    if(getStudioMode(studio) == TIC_RUN_MODE)
     {
         tic_api_sync(tic, tic_sync_screen, 0, true);
         showPopupMessage(studio, "cover image saved :)");
@@ -1878,7 +1988,7 @@ static void startBattle(Studio* studio)
 static void switchBank(Studio* studio, s32 bank)
 {
     for(s32 i = 0; i < COUNT_OF(BankModes); i++)
-        if(BankModes[i] == studio->mode)
+        if(BankModes[i] == getStudioMode(studio))
         {
             if(studio->bank.chained)
                 memset(studio->bank.indexes, bank, sizeof studio->bank.indexes);
@@ -1891,24 +2001,8 @@ static void switchBank(Studio* studio, s32 bank)
 
 void gotoMenu(Studio* studio)
 {
-    studio->menuOverRun = studio->mode == TIC_RUN_MODE;
-
-    // Opened in the studio, the menu's back is a step back to where it was
-    // opened; over a run, that run's own origin stands (set by runGame).
-    if(!studio->menuOverRun)
-        studio->runFrom = studio->mode;
-
-    setStudioMode(studio, TIC_MENU_MODE);
-    studio_mainmenu_free(studio->mainmenu);
-    studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
-}
-
-// Whether the menu's back resumes a game: it does when a player's run is
-// paused under the menu. A dev's run and a menu opened in the studio both
-// leave for the studio — the same step ESC takes in RUN mode (#2937).
-bool studio_menu_over_player_run(Studio* studio)
-{
-    return studio->playerRun && studio->menuOverRun;
+    SmEvent event = { .kind = SM_EV_OPEN_MENU };
+    studioSend(studio, &event);
 }
 
 // ESC in a dev run, and the back of the pause menu over one: the run was asked
@@ -1916,7 +2010,26 @@ bool studio_menu_over_player_run(Studio* studio)
 // no walk to CLOSE GAME (#2937).
 void leaveRun(Studio* studio)
 {
-    setStudioMode(studio, studio->runFrom);
+    SmEvent event = { .kind = SM_EV_LEAVE_RUN };
+    studioSend(studio, &event);
+}
+
+void studioMenuBack(Studio* studio)
+{
+    SmEvent event = { .kind = SM_EV_MENU_BACK };
+    studioSend(studio, &event);
+}
+
+void studioRunExited(Studio* studio)
+{
+    SmEvent event = { .kind = SM_EV_RUN_EXITED };
+    studioSend(studio, &event);
+}
+
+void studioRunErrored(Studio* studio)
+{
+    SmEvent event = { .kind = SM_EV_RUN_ERRORED };
+    studioSend(studio, &event);
 }
 
 static bool enterWasPressedOnce(Studio* studio)
@@ -1928,17 +2041,14 @@ static bool enterWasPressedOnce(Studio* studio)
 #if defined(BUILD_EDITORS)
 // These three are to fix the f1 hotkey conflict
 
-// Add a static variable in studio.c to track the mode switch
-static bool justSwitchedToCodeMode = false;
-
 void setJustSwitchedToCodeMode(Studio* studio, bool value)
 {
-    justSwitchedToCodeMode = value;
+    studio->machine.code_focus = value;
 }
 
 bool hasJustSwitchedToCodeMode(Studio* studio)
 {
-    return justSwitchedToCodeMode;
+    return studio->machine.code_focus;
 }
 #endif
 
@@ -1960,7 +2070,7 @@ static void processShortcuts(Studio* studio)
 {
     tic_mem* tic = studio->tic;
 
-    if(studio->mode == TIC_START_MODE) return;
+    if(getStudioMode(studio) == TIC_START_MODE) return;
 
 #if defined(BUILD_EDITORS)
     if(!studio->console->active) return;
@@ -1979,17 +2089,14 @@ static void processShortcuts(Studio* studio)
     {
         if (enterWasPressedOnce(studio)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
-        else if(studio->mode != TIC_RUN_MODE && studio->config->data.keyboardLayout != tic_layout_azerty)
+        else if(getStudioMode(studio) != TIC_RUN_MODE && studio->config->data.keyboardLayout != tic_layout_azerty)
         {
 #ifndef KEYBOARD_LAYOUT_ES
             if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_1))
             {
-                if(studio->mode != TIC_CODE_MODE)
-                {
-                    setStudioMode(studio, TIC_CODE_MODE);
-                    setJustSwitchedToCodeMode(studio, true);
-                }
+                SmEvent event = { .kind = SM_EV_REQUEST_CODE_FOCUS };
+                studioSend(studio, &event);
             }
             else if(keyWasPressedOnce(studio, tic_key_2)) setStudioMode(studio, TIC_SPRITE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_3)) setStudioMode(studio, TIC_MAP_MODE);
@@ -2026,67 +2133,39 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(studio, tic_key_escape))
         {
-            if(
-                getConfig(studio)->options.keybindMode == KEYBIND_VI
-                && getStudioViMode(studio) != VI_NORMAL
-            )
-                return;
+            SmEvent escape = { .kind = SM_EV_ESCAPE };
 
-            switch(studio->mode)
+            // A vi mode out of normal, or a popup inside the code editor, owns
+            // ESC — and both ended the frame here before: ask the machine for
+            // whatever that case has to say, and stop.
+            if(studioEscapeGate(studio) != SM_ESC_GATE_OPEN)
             {
-            case TIC_MENU_MODE:
-                // The back callback knows where a menu belongs — see the main
-                // menu's back. Without one there is no cart under the menu, and
-                // it is left to where the studio was.
-                if(!studio_menu_back(studio->menu))
-                    setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
-                        ? TIC_CONSOLE_MODE
-                        : studio->prevMode);
-                break;
-            case TIC_RUN_MODE:
-                // A cart that declares a game menu asked to be played, and its
-                // author needs to see that menu while iterating; anyone else in
-                // RUN mode — a player's run, a dev's cart without a menu —
-                // steps out, a player to the menu, the dev to the editor.
-                if(studio->playerRun || showGameMenu(studio))
-                    gotoMenu(studio);
-                else
-                    leaveRun(studio);
-                break;
-            case TIC_CONSOLE_MODE:
-                setStudioMode(studio, TIC_CODE_MODE);
-                break;
-            case TIC_CODE_MODE:
-                if(studio->code->mode != TEXT_EDIT_MODE)
-                {
-                    studio->code->escape(studio->code);
-                    return;
-                }
-            default:
-                setStudioMode(studio, TIC_CONSOLE_MODE);
+                studioSend(studio, &escape);
+                return;
             }
+
+            // Everything else — the menu's back, a run's owner, the editor each
+            // screen falls back to — is the machine's ladder now.
+            studioSend(studio, &escape);
         }
         else if(keyWasPressedOnce(studio, tic_key_f8)) takeScreenshot(studio);
         else if(keyWasPressedOnce(studio, tic_key_f9)) startVideoRecord(studio);
         else if(keyWasPressedOnce(studio, tic_key_f10)) hideBattleTime(studio);
         else if(keyWasPressedOnce(studio, tic_key_f12)) startBattle(studio);
-        else if(studio->mode == TIC_RUN_MODE && keyWasPressedOnce(studio, tic_key_f7))
+        else if(getStudioMode(studio) == TIC_RUN_MODE && keyWasPressedOnce(studio, tic_key_f7))
             setCoverImage(studio);
 
         // A running game owns the function keys: a player's run always hands
         // them over, and a cart that declares a game menu asks for them in a
         // dev's run as well. Leaving a run is ESC's job (see leaveRun), so the
         // studio has no use for them there.
-        if((!studio->playerRun && !showGameMenu(studio)) || studio->mode != TIC_RUN_MODE)
+        if((!studio->machine.player_run && !showGameMenu(studio)) || getStudioMode(studio) != TIC_RUN_MODE)
         {
-			if(keyWasPressedOnce(studio, tic_key_f1))
-			{
-				if(studio->mode != TIC_CODE_MODE)
-				{
-					setStudioMode(studio, TIC_CODE_MODE);
-					setJustSwitchedToCodeMode(studio, true);
-				}
-			}
+            if(keyWasPressedOnce(studio, tic_key_f1))
+            {
+                SmEvent event = { .kind = SM_EV_REQUEST_CODE_FOCUS };
+                studioSend(studio, &event);
+            }
             else if(keyWasPressedOnce(studio, tic_key_f2)) setStudioMode(studio, TIC_SPRITE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_f3)) setStudioMode(studio, TIC_MAP_MODE);
             else if(keyWasPressedOnce(studio, tic_key_f4)) setStudioMode(studio, TIC_SFX_MODE);
@@ -2095,16 +2174,8 @@ static void processShortcuts(Studio* studio)
 #else
         else if(keyWasPressedOnce(studio, tic_key_escape))
         {
-            switch(studio->mode)
-            {
-            case TIC_MENU_MODE: studio_menu_back(studio->menu); break;
-            case TIC_RUN_MODE:
-#if defined(BUILD_SURF)
-            case TIC_SURF_MODE:
-#endif
-                gotoMenu(studio); break;
-            default: break;
-            }
+            SmEvent escape = { .kind = SM_EV_ESCAPE };
+            studioSend(studio, &escape);
         }
 #endif
     }
@@ -2121,7 +2192,7 @@ static void reloadConfirm(Studio* studio, bool yes, void* data)
 
 static void checkChanges(Studio* studio)
 {
-    switch(studio->mode)
+    switch(getStudioMode(studio))
     {
     case TIC_START_MODE:
         break;
@@ -2133,7 +2204,7 @@ static void checkChanges(Studio* studio)
 
             if(studio->cart.mdate && date > studio->cart.mdate)
             {
-                if(studioCartChanged(studio) && studio->mode != TIC_MENU_MODE)
+                if(studioCartChanged(studio) && getStudioMode(studio) != TIC_MENU_MODE)
                 {
                     static const char* Rows[] =
                     {
@@ -2210,6 +2281,122 @@ static void recordFrame(Studio* studio, u32* pixels)
 
 #endif
 
+// What only the studio can supply per mode: the tick itself, and the scanline
+// callback the frame is composited with. Everything else a mode means — its
+// sound source, how it treats input, the vbank wipe, the palette — is data in
+// machine.c (sm_mode_policy), which is what lets the tests cover all eleven.
+static void tickStart(Studio* studio)   { studio->start->tick(studio->start); }
+static void tickRun(Studio* studio)     { studio->run->tick(studio->run); }
+static void tickMenu(Studio* studio)    { studio_menu_tick(studio->menu); }
+
+#if defined(BUILD_EDITORS)
+static void tickConsole(Studio* studio) { studio->console->tick(studio->console); }
+static void tickCode(Studio* studio)    { studio->code->tick(studio->code); }
+static void tickWorld(Studio* studio)   { studio->world->tick(studio->world); }
+
+static void tickSprite(Studio* studio)
+{
+    Sprite* sprite = studio->banks.sprite[studio->bank.index.sprites];
+    sprite->tick(sprite);
+}
+
+static void tickMap(Studio* studio)
+{
+    Map* map = studio->banks.map[studio->bank.index.map];
+    map->tick(map);
+}
+
+static void tickSfx(Studio* studio)
+{
+    Sfx* sfx = studio->banks.sfx[studio->bank.index.sfx];
+    sfx->tick(sfx);
+}
+
+static void tickMusic(Studio* studio)
+{
+    Music* music = studio->banks.music[studio->bank.index.music];
+    music->tick(music);
+}
+#endif
+
+#if defined(BUILD_SURF)
+static void tickSurf(Studio* studio)    { studio->surf->tick(studio->surf); }
+#endif
+
+static void (*const Dispatch[TIC_MODES_COUNT])(Studio*) =
+{
+    [TIC_START_MODE]    = tickStart,
+    [TIC_RUN_MODE]      = tickRun,
+    [TIC_MENU_MODE]     = tickMenu,
+#if defined(BUILD_EDITORS)
+    [TIC_CONSOLE_MODE]  = tickConsole,
+    [TIC_CODE_MODE]     = tickCode,
+    [TIC_SPRITE_MODE]   = tickSprite,
+    [TIC_MAP_MODE]      = tickMap,
+    [TIC_WORLD_MODE]    = tickWorld,
+    [TIC_SFX_MODE]      = tickSfx,
+    [TIC_MUSIC_MODE]    = tickMusic,
+#endif
+#if defined(BUILD_SURF)
+    [TIC_SURF_MODE]     = tickSurf,
+#endif
+};
+
+// The screens that draw themselves into vbank 1 with a per-row callback hand
+// one over here; the rest are composited with a plain blit.
+static tic_blit_callback studioScanline(Studio* studio)
+{
+    switch(getStudioMode(studio))
+    {
+    case TIC_MENU_MODE:
+        return (tic_blit_callback){studio_menu_anim_scanline, NULL, NULL, studio->menu};
+
+#if defined(BUILD_EDITORS)
+    case TIC_SPRITE_MODE:
+        {
+            Sprite* sprite = studio->banks.sprite[studio->bank.index.sprites];
+            return (tic_blit_callback){sprite->scanline, NULL, NULL, sprite};
+        }
+    case TIC_MAP_MODE:
+        {
+            Map* map = studio->banks.map[studio->bank.index.map];
+            return (tic_blit_callback){map->scanline, NULL, NULL, map};
+        }
+    case TIC_WORLD_MODE:
+        return (tic_blit_callback){studio->world->scanline, NULL, NULL, studio->world};
+#endif
+#if defined(BUILD_SURF)
+    case TIC_SURF_MODE:
+        return (tic_blit_callback){studio->surf->scanline, NULL, NULL, studio->surf};
+#endif
+    case TIC_START_MODE:
+    case TIC_RUN_MODE:
+#if defined(BUILD_EDITORS)
+    case TIC_CONSOLE_MODE:
+    case TIC_CODE_MODE:
+    case TIC_SFX_MODE:
+    case TIC_MUSIC_MODE:
+#else
+    // Screens an editorless build cannot be in, named so the list stays
+    // complete whichever way the build goes.
+    case TIC_CONSOLE_MODE:
+    case TIC_CODE_MODE:
+    case TIC_SPRITE_MODE:
+    case TIC_MAP_MODE:
+    case TIC_WORLD_MODE:
+    case TIC_SFX_MODE:
+    case TIC_MUSIC_MODE:
+#if !defined(BUILD_SURF)
+    case TIC_SURF_MODE:                         // no browser in this build
+#endif
+#endif
+    case TIC_MODES_COUNT:
+        break;                                  // drawn with a plain blit
+    }
+
+    return (tic_blit_callback){ 0 };
+}
+
 static void renderStudio(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -2222,22 +2409,26 @@ static void renderStudio(Studio* studio)
         const tic_sfx* sfx = NULL;
         const tic_music* music = NULL;
 
-        switch(studio->mode)
+        switch(sm_mode_policy(getStudioMode(studio)).sound)
         {
-        case TIC_RUN_MODE:
+        case SM_SOUND_RAM:
             sfx = &studio->tic->ram->sfx;
             music = &studio->tic->ram->music;
             break;
-        case TIC_START_MODE:
-        case TIC_MENU_MODE:
-        case TIC_SURF_MODE:
+
+        case SM_SOUND_CONFIG:
             sfx = &studio->config->cart->bank0.sfx;
             music = &studio->config->cart->bank0.music;
             break;
-        default:
+
+        case SM_SOUND_BANKS:
 #if defined(BUILD_EDITORS)
             sfx = getSfxSrc(studio);
             music = getMusicSrc(studio);
+#else
+            // An editorless build has no banks and no mode that plays from
+            // them: the two cases above cover every screen it has.
+            assert(false);
 #endif
             break;
         }
@@ -2256,8 +2447,9 @@ static void renderStudio(Studio* studio)
     // tamper with the keyboard input.
     processShortcuts(studio);
 
-    // clear screen for all the modes except the Run mode
-    if(studio->mode != TIC_RUN_MODE)
+    // The studio draws into vbank 1 and wipes it first — every screen but the
+    // game, whose frame is the cart's own.
+    if(sm_mode_policy(getStudioMode(studio)).clear_vbank1)
     {
         VBANK(tic, 1)
         {
@@ -2265,65 +2457,24 @@ static void renderStudio(Studio* studio)
         }
     }
 
-    switch(studio->mode)
-    {
-    case TIC_START_MODE:    studio->start->tick(studio->start); break;
-    case TIC_RUN_MODE:      studio->run->tick(studio->run); break;
-    case TIC_MENU_MODE:     studio_menu_tick(studio->menu); break;
-
-#if defined(BUILD_EDITORS)
-    case TIC_CONSOLE_MODE:  studio->console->tick(studio->console); break;
-    case TIC_CODE_MODE:
-        {
-            Code* code = studio->code;
-            code->tick(code);
-        }
-        break;
-    case TIC_SPRITE_MODE:
-        {
-            Sprite* sprite = studio->banks.sprite[studio->bank.index.sprites];
-            sprite->tick(sprite);
-        }
-        break;
-    case TIC_MAP_MODE:
-        {
-            Map* map = studio->banks.map[studio->bank.index.map];
-            map->tick(map);
-        }
-        break;
-    case TIC_SFX_MODE:
-        {
-            Sfx* sfx = studio->banks.sfx[studio->bank.index.sfx];
-            sfx->tick(sfx);
-        }
-        break;
-    case TIC_MUSIC_MODE:
-        {
-            Music* music = studio->banks.music[studio->bank.index.music];
-            music->tick(music);
-        }
-        break;
-
-    case TIC_WORLD_MODE:    studio->world->tick(studio->world); break;
-#endif
-#if defined(BUILD_SURF)
-    case TIC_SURF_MODE:     studio->surf->tick(studio->surf); break;
-#endif
-    default: break;
-    }
+    assert(Dispatch[getStudioMode(studio)]);
+    Dispatch[getStudioMode(studio)](studio);
 
     tic_core_tick_end(tic);
 
-    switch(studio->mode)
+    switch(sm_mode_policy(getStudioMode(studio)).input)
     {
-    case TIC_RUN_MODE: break;
-    case TIC_SURF_MODE:
-    case TIC_MENU_MODE:
+    case SM_INPUT_KEEP:
+        break;                                  // the cart owns its input
+
+    case SM_INPUT_CLEAR:
         tic->input.data = -1;
         break;
-    default:
+
+    case SM_INPUT_CLEAR_PAD:
         tic->input.data = -1;
         tic->input.gamepad = 0;
+        break;
     }
 }
 
@@ -2428,7 +2579,7 @@ static void doCodeExport(Studio* studio)
     {
         s32 x = 0, y = 0;
 
-        if(studio->mode != TIC_RUN_MODE)
+        if(getStudioMode(studio) != TIC_RUN_MODE)
         {
             codeGetPos(studio->code, &x, &y);
             x++; y++;
@@ -2484,7 +2635,7 @@ static void doCodeImport(Studio* studio)
 
                     if(x == 0 && y == 0)
                     {
-                        if(studio->mode != TIC_RUN_MODE)
+                        if(getStudioMode(studio) != TIC_RUN_MODE)
                             runGame(studio, RUN_FROM_STUDIO);
                     }
                     else
@@ -2493,7 +2644,7 @@ static void doCodeImport(Studio* studio)
                         memcpy(studio->code->src, code.data + offset, sizeof(tic_code) - offset);
                         codeSetPos(studio->code, x - 1, y - 1);
 
-                        if(studio->mode == TIC_RUN_MODE)
+                        if(getStudioMode(studio) == TIC_RUN_MODE)
                             setStudioMode(studio, TIC_CODE_MODE);
                     }
                 }
@@ -2570,10 +2721,10 @@ void studio_tick(Studio* studio, tic80_input input)
     tic_net_start(studio->net);
 #endif
 
-    if(studio->toolbarMode)
     {
-        setStudioMode(studio, studio->toolbarMode);
-        studio->toolbarMode = 0;
+        // The toolbar's click lands here, one frame after the click itself.
+        SmEvent event = { .kind = SM_EV_FRAME };
+        studioSend(studio, &event);
     }
 
     processMouseStates(studio);
@@ -2585,29 +2736,19 @@ void studio_tick(Studio* studio, tic80_input input)
         Map* map = studio->banks.map[studio->bank.index.map];
 #endif
 
-        tic_blit_callback callback[TIC_MODES_COUNT] =
-        {
-            [TIC_MENU_MODE]     = {studio_menu_anim_scanline, NULL, NULL, studio->menu},
-
-#if defined(BUILD_EDITORS)
-            [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL, NULL, sprite},
-            [TIC_MAP_MODE]      = {map->scanline,           NULL, NULL, map},
-            [TIC_WORLD_MODE]    = {studio->world->scanline,    NULL, NULL, studio->world},
-#endif
-#if defined(BUILD_SURF)
-            [TIC_SURF_MODE]     = {studio->surf->scanline,     NULL, NULL, studio->surf},
-#endif
-        };
-
-        if(studio->mode != TIC_RUN_MODE)
+        if(sm_mode_policy(getStudioMode(studio)).config_palette)
         {
             memcpy(tic->ram->vram.palette.data, getConfig(studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
             tic->ram->font = studio->systemFont;
         }
 
-        callback[studio->mode].data
-            ? tic_core_blit_ex(tic, callback[studio->mode])
-            : tic_core_blit(tic);
+        {
+            tic_blit_callback callback = studioScanline(studio);
+
+            callback.data
+                ? tic_core_blit_ex(tic, callback)
+                : tic_core_blit(tic);
+        }
 
         blitCursor(studio);
 
@@ -2716,14 +2857,8 @@ void studio_load(Studio* studio, const char* file)
 // forgotten SURF by the time the menu is answered (#3015).
 void exitGame(Studio* studio)
 {
-    if(studio->runFrom == TIC_SURF_MODE)
-    {
-        setStudioMode(studio, TIC_SURF_MODE);
-    }
-    else
-    {
-        setStudioMode(studio, TIC_CONSOLE_MODE);
-    }
+    SmEvent event = { .kind = SM_EV_CLOSE_GAME };
+    studioSend(studio, &event);
 }
 
 void studio_delete(Studio* studio)
@@ -2859,9 +2994,9 @@ void studio_keymapchanged(Studio* studio, tic_layout keyboardLayout)
     studio->config->data.keyboardLayout = keyboardLayout;
 }
 
-bool studio_alive(Studio* studio)
+bool studio_quit_requested(Studio* studio)
 {
-    return studio->alive;
+    return studio->quit_requested;
 }
 
 #if defined(TIC_MODULE_EXT)
@@ -2910,16 +3045,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     Studio* studio = NEW(Studio);
     *studio = (Studio)
     {
-        .mode = TIC_START_MODE,
-        .prevMode = TIC_CODE_MODE,
-        .playerRun = true,
-        .runFrom = TIC_CODE_MODE,
-
-#if defined(BUILD_EDITORS)
-        .menuMode = TIC_CONSOLE_MODE,
-#elif defined(BUILD_SURF)
-        .menuMode = TIC_RUN_MODE,
-#endif
 #if defined(BUILD_EDITORS)
 
         .bank =
@@ -3086,6 +3211,10 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->config->data.fftdevice = args.fftdevice;
     studio->config->data.keyboardLayout = keyboardLayout;
 #endif
+
+    // The mode machinery starts where a session has always started: the start
+    // screen, with the code editor behind it and the player owning the run.
+    sm_init(&studio->machine, sm_build_features());
 
     studioConfigChanged(studio);
 

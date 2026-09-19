@@ -154,6 +154,8 @@ build/bin/sdl-renderer
 build/bin/tic80
 out/
 build/bin/
+build/tests/
+build/Testing/
 build/vendor/curl/libcurl.pc
 build/vendor/curl/curl-config
 build/vendor/curl/DartConfiguration.tcl

@@ -855,6 +855,14 @@ void initSurf(Surf* surf, Studio* studio, struct Console* console)
 {
     freeAnim(surf);
 
+    // The assignment below zeroes the struct, and the item list is a pointer
+    // the struct owns: re-initialising surf (the `surf` command, the gamepad
+    // button) without this would drop the previous directory listing — the
+    // array and every name, hash, cover, label and palette in it — since the
+    // resetMenu that would have freed it runs later, in initItemsAsync, on an
+    // already-NULL pointer.
+    resetMenu(surf);
+
     *surf = (Surf)
     {
         .studio = studio,

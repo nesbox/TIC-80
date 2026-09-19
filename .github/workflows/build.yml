@@ -1007,3 +1007,23 @@ jobs:
           name: "tic80-html"
           path: |
             build/bin/*
+
+  # === Unit tests ===
+
+  # The one job here that fails on a logic error rather than a build error. The
+  # mode machine (src/studio/machine.c) is a pure module — no SDL, no core, no
+  # vendor — so this builds three two-file binaries, one per shipped
+  # configuration, and runs them. It is part of the matrix the release path
+  # calls, so a red test blocks packaging rather than shipping.
+  unit:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Build and run
+        run: |
+          cmake -S . -B build-tests -G Ninja -DCMAKE_BUILD_TYPE=Release -DTIC80_BUILD_TESTS=ON
+          cmake --build build-tests --target studio_machine_editors studio_machine_surf studio_machine_plain
+          cd build-tests && ctest --output-on-failure

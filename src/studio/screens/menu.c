@@ -507,6 +507,11 @@ void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 
     menu->anim.movie = resetMovie(&menu->anim.start);
 }
 
+bool studio_menu_has_back(Menu* menu)
+{
+    return menu->back != NULL;
+}
+
 bool studio_menu_back(Menu* menu)
 {
     if(menu->back)
