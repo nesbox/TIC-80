@@ -2709,9 +2709,14 @@ void studio_load(Studio* studio, const char* file)
 #endif
 }
 
+// Where a run was entered from decides where CLOSE GAME goes: a cart played in
+// SURF returns to the browser it was opened in, any other run lands in the
+// console as it always has. That origin is runFrom, not prevMode — opening the
+// pause menu over the run makes RUN the previous mode, so prevMode has already
+// forgotten SURF by the time the menu is answered (#3015).
 void exitGame(Studio* studio)
 {
-    if(studio->prevMode == TIC_SURF_MODE)
+    if(studio->runFrom == TIC_SURF_MODE)
     {
         setStudioMode(studio, TIC_SURF_MODE);
     }
