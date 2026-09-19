@@ -1438,12 +1438,20 @@ static void traceTransition(const SmResult* result)
     if(!enabled)
         return;
 
+    // A frame that decided nothing is not a transition: the empty per-frame
+    // event would otherwise print one line per frame of the session.
+    if(!result->moved && !result->effects.count)
+        return;
+
     printf("[mode] %s -> %s", sm_mode_name(result->from), sm_mode_name(result->to));
 
     for(u8 i = 0; i < result->effects.count; ++i)
         printf(" %s", sm_effect_name(result->effects.items[i]));
 
+    // The trace is read from a pipe as often as from a terminal, and stdout is
+    // block-buffered there: a session that ends abruptly would lose its tail.
     printf("\n");
+    fflush(stdout);
 }
 
 static void studioSend(Studio* studio, const SmEvent* event)
