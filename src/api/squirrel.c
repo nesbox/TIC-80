@@ -1984,6 +1984,28 @@ static void callSquirrelBoot(tic_mem* tic)
                 return;
             }
         }
+
+#if defined(BUILD_RENDER_CACHE)
+        sq_pushroottable(vm);
+        sq_pushstring(vm, SCN_FN, -1);
+        bool has_scn = SQ_SUCCEEDED(sq_get(vm, -2));
+        if (has_scn) sq_pop(vm, 1);
+        if (!has_scn)
+        {
+            sq_pushstring(vm, "scanline", -1);
+            has_scn = SQ_SUCCEEDED(sq_get(vm, -2));
+            if (has_scn) sq_pop(vm, 1);
+        }
+
+        sq_pushstring(vm, BDR_FN, -1);
+        bool has_bdr = SQ_SUCCEEDED(sq_get(vm, -2));
+        if (has_bdr) sq_pop(vm, 1);
+
+        sq_pop(vm, 1); // pop root table
+
+        core->state.has_scn = has_scn;
+        core->state.has_bdr = has_bdr;
+#endif
     }
 }
 

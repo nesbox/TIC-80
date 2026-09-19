@@ -35,11 +35,19 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/ext/png.c
 )
 
+if(BUILD_RENDER_CACHE)
+    set(TIC80CORE_SRC ${TIC80CORE_SRC} ${TIC80CORE_DIR}/core/draw_cache.c)
+endif()
+
 if(BUILD_DEPRECATED)
     set(TIC80CORE_SRC ${TIC80CORE_SRC} ${TIC80CORE_DIR}/ext/gif.c)
 endif()
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
+
+if(APPLE)
+    set_source_files_properties(${TIC80CORE_DIR}/ext/fft.c PROPERTIES LANGUAGE OBJC)
+endif()
 
 if (FREEBSD)
     target_include_directories(tic80core PRIVATE ${SYSROOT_PATH}/usr/local/include)

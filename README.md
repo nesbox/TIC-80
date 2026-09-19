@@ -333,12 +333,22 @@ for "Advanced Options", followed by 6 for "GL Drivers", and enable "GL
 ## Mac
 install `Command Line Tools for Xcode` and `brew` package manager
 
+### Standard SDL2 Build
 run the following commands in the Terminal
 ```
 brew install git cmake
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake -DBUILD_WITH_ALL=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
 make -j4
+```
+
+### Native Apple Backend (Metal / AppKit / Swift)
+TIC-80 also includes an optional native Apple backend built with Metal, AppKit, AVFoundation, GameController, and Swift:
+```
+brew install git cmake
+git clone --recursive https://github.com/nesbox/TIC-80
+cmake -G Xcode -B build -DBUILD_APPLE=ON -DBUILD_SDLGPU=OFF -DBUILD_WITH_ALL=ON
+cmake --build build --config Release
 ```
 
 to create application icon for development version
@@ -352,8 +362,6 @@ exec /Users/nesbox/projects/TIC-80/build/bin/tic80 --skip >/dev/null
 EOF
 chmod +x ~/Applications/tic80dev.app/Contents/MacOS/tic80
 ```
-Make sure to update the absolute path to the tic80 binary in the script, or
-update the launch arguments.
 
 ## FreeBSD
 run the following commands in the Terminal

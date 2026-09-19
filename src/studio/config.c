@@ -98,6 +98,9 @@ static void setDefault(Config* config)
             .vsync          = DEFAULT_VSYNC,
             .fullscreen     = false,
             .integerScale   = INTEGER_SCALE_DEFAULT,
+#if defined(BUILD_RENDER_CACHE)
+            .drawCache      = true,
+#endif
             .autosave       = false,
 #if defined(BUILD_EDITORS)
             .keybindMode    = KEYBIND_STANDARD,
@@ -200,6 +203,11 @@ static void loadOptions(Config* config)
             if (json_has("integerScale", 0))
                 options->integerScale = json_bool("integerScale", 0);
 
+#if defined(BUILD_RENDER_CACHE)
+            if (json_has("drawCache", 0))
+                options->drawCache = json_bool("drawCache", 0);
+#endif
+
             if (json_has("volume", 0))
                 options->volume = json_int("volume", 0);
 
@@ -259,6 +267,9 @@ static void saveOptions(Config* config)
             "\"fullscreen\":%s, "
             "\"vsync\":%s, "
             "\"integerScale\":%s, "
+#if defined(BUILD_RENDER_CACHE)
+            "\"drawCache\":%s, "
+#endif
             "\"volume\":%i, "
             "\"autosave\":%s, "
             "\"mapping\":\"%s\""
@@ -276,6 +287,9 @@ static void saveOptions(Config* config)
         bool2str(options->fullscreen),
         bool2str(options->vsync),
         bool2str(options->integerScale),
+#if defined(BUILD_RENDER_CACHE)
+        bool2str(options->drawCache),
+#endif
         options->volume,
         bool2str(options->autosave),
         data2str(&options->mapping, sizeof options->mapping).data

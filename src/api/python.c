@@ -1351,6 +1351,11 @@ void boot_pkpy_v2(tic_mem* tic)
     tic_core* core = (tic_core*)tic;
     if (!core->currentVM) return; //no vm
 
+#if defined(BUILD_RENDER_CACHE)
+    core->state.has_scn = (py_getglobal(N.SCN) != NULL);
+    core->state.has_bdr = (py_getglobal(N.BDR) != NULL);
+#endif
+
     py_GlobalRef py_boot = py_getglobal(N.BOOT);
     if (!py_boot) return;
 

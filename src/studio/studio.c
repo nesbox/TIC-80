@@ -154,6 +154,18 @@ struct Studio
     struct
     {
         MouseState state[3];
+        struct
+        {
+            tic_cursor sprite;
+            bool system;
+        } cursor;
+        struct
+        {
+            s32 x, y;
+            tic_cursor sprite;
+            bool system;
+            bool visible;
+        } prev;
     } mouse;
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
@@ -1455,12 +1467,8 @@ bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 
 void setCursor(Studio* studio, tic_cursor id)
 {
-    tic_mem* tic = studio->tic;
-
-    VBANK(tic, 0)
-    {
-        tic->ram->vram.vars.cursor.sprite = id;
-    }
+    studio->mouse.cursor.sprite = id;
+    studio->mouse.cursor.system = true;
 }
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
@@ -2312,6 +2320,17 @@ static void renderStudio(Studio* studio)
     default: break;
     }
 
+    // Update cursor sprite in RAM only if it actually changed
+    if(tic->ram->vram.vars.cursor.sprite != studio->mouse.cursor.sprite ||
+       tic->ram->vram.vars.cursor.system != studio->mouse.cursor.system)
+    {
+        VBANK(tic, 0)
+        {
+            tic->ram->vram.vars.cursor.sprite = studio->mouse.cursor.sprite;
+            tic->ram->vram.vars.cursor.system = studio->mouse.cursor.system;
+        }
+    }
+
     tic_core_tick_end(tic);
 
     switch(studio->mode)
@@ -2378,6 +2397,9 @@ void studioConfigChanged(Studio* studio)
 #endif
 
     updateSystemFont(studio);
+#if defined(BUILD_RENDER_CACHE)
+    tic_core_draw_cache_set_enabled(studio->tic, studio->config->data.options.drawCache);
+#endif
     tic_sys_update_config();
 }
 
@@ -2388,8 +2410,8 @@ static void processMouseStates(Studio* studio)
 
     tic_mem* tic = studio->tic;
 
-    tic->ram->vram.vars.cursor.sprite = tic_cursor_arrow;
-    tic->ram->vram.vars.cursor.system = true;
+    studio->mouse.cursor.sprite = tic_cursor_arrow;
+    studio->mouse.cursor.system = true;
 
     for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
     {
@@ -2605,6 +2627,26 @@ void studio_tick(Studio* studio, tic80_input input)
             tic->ram->font = studio->systemFont;
         }
 
+#if defined(BUILD_RENDER_CACHE)
+        tic80_mouse* m = &tic->ram->input.mouse;
+        bool mouse_visible = (tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT && m->x >= 0 && m->y >= 0);
+        if (mouse_visible || studio->mouse.prev.visible)
+        {
+            if (m->x != studio->mouse.prev.x || m->y != studio->mouse.prev.y ||
+                studio->mouse.cursor.sprite != studio->mouse.prev.sprite ||
+                studio->mouse.cursor.system != studio->mouse.prev.system ||
+                mouse_visible != studio->mouse.prev.visible)
+            {
+                tic_core_invalidate(tic);
+                studio->mouse.prev.x = m->x;
+                studio->mouse.prev.y = m->y;
+                studio->mouse.prev.sprite = studio->mouse.cursor.sprite;
+                studio->mouse.prev.system = studio->mouse.cursor.system;
+                studio->mouse.prev.visible = mouse_visible;
+            }
+        }
+#endif
+
         callback[studio->mode].data
             ? tic_core_blit_ex(tic, callback[studio->mode])
             : tic_core_blit(tic);
@@ -2767,6 +2809,11 @@ void studio_delete(Studio* studio)
 
     free(studio->fs);
     free(studio);
+}
+
+bool studio_is_dirty(Studio* studio)
+{
+    return tic_core_is_dirty(studio->tic);
 }
 
 #if defined(BUILD_EDITORS)

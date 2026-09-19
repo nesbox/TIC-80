@@ -709,6 +709,13 @@ jobs:
           path: |
             stubs/*
 
+      - name: Build Apple Backend
+        run: |
+          mkdir -p build_apple
+          cd build_apple
+          cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DBUILD_APPLE=ON -DBUILD_SDLGPU=OFF -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --config Release --parallel 3
+
   # === MacOS 15 / x86_64 ===
   macos:
     runs-on: macos-15-intel
