@@ -194,7 +194,6 @@ include(cmake/blipbuf.cmake)
 include(cmake/zlib.cmake)
 include(cmake/zip.cmake)
 include(cmake/png.cmake)
-include(cmake/tools.cmake)
 
 include(cmake/lua.cmake)
 include(cmake/moon.cmake)
@@ -210,6 +209,9 @@ include(cmake/quickjs.cmake)
 include(cmake/janet.cmake)
 include(cmake/forth.cmake)
 include(cmake/miniscript.cmake)
+
+# After the languages: the tools check what those options came out as.
+include(cmake/tools.cmake)
 
 include(cmake/core.cmake)
 include(cmake/wave.cmake)
