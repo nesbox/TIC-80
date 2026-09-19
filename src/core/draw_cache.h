@@ -17,16 +17,6 @@ void tic_core_draw_cache_invalidate(tic_core* core);
 void tic_core_draw_cache_hook_api(tic_core* core);
 bool tic_core_draw_cache_has_invalidated(tic_core* core);
 
-#else
-
-static inline void tic_core_draw_cache_init(tic_core* core) {}
-static inline void tic_core_draw_cache_free(tic_core* core) {}
-static inline void tic_core_draw_cache_start(tic_core* core) {}
-static inline void tic_core_draw_cache_end(tic_core* core) {}
-static inline void tic_core_draw_cache_invalidate(tic_core* core) {}
-static inline void tic_core_draw_cache_hook_api(tic_core* core) {}
-static inline bool tic_core_draw_cache_has_invalidated(tic_core* core) { return true; }
-
 #endif
 
 

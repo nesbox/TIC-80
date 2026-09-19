@@ -713,7 +713,7 @@ jobs:
         run: |
           mkdir -p build_apple
           cd build_apple
-          cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DBUILD_APPLE=ON -DBUILD_SDLGPU=OFF -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DBUILD_APPLE=ON -DBUILD_STATIC=ON -DBUILD_RENDER_CACHE=ON -DBUILD_SDLGPU=OFF -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --config Release --parallel 3
 
   # === MacOS 15 / x86_64 ===

@@ -1076,6 +1076,12 @@ static bool initForth(tic_mem* tic, const char* code)
         return false;
     }
 
+#if defined(BUILD_RENDER_CACHE)
+    ExecToken xt;
+    core->state.has_scn = (ffFindC(SCN_FN, &xt) != 0) || (ffFindC("scanline", &xt) != 0);
+    core->state.has_bdr = (ffFindC(BDR_FN, &xt) != 0) || (ffFindC("border", &xt) != 0);
+#endif
+
     return true;
 }
 

@@ -347,7 +347,7 @@ TIC-80 also includes an optional native Apple backend built with Metal, AppKit, 
 ```
 brew install git cmake
 git clone --recursive https://github.com/nesbox/TIC-80
-cmake -G Xcode -B build -DBUILD_APPLE=ON -DBUILD_SDLGPU=OFF -DBUILD_WITH_ALL=ON
+cmake -G Xcode -B build -DBUILD_APPLE=ON -DBUILD_STATIC=ON -DBUILD_RENDER_CACHE=ON -DBUILD_SDLGPU=OFF -DBUILD_WITH_ALL=ON
 cmake --build build --config Release
 ```
 

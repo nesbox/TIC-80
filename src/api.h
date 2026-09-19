@@ -1007,11 +1007,6 @@ bool tic_core_is_dirty(tic_mem* memory);
 void tic_core_invalidate(tic_mem* memory);
 void tic_core_draw_cache_set_enabled(tic_mem* memory, bool enabled);
 bool tic_core_draw_cache_is_enabled(tic_mem* memory);
-#else
-static inline bool tic_core_is_dirty(tic_mem* memory) { return true; }
-static inline void tic_core_invalidate(tic_mem* memory) {}
-static inline void tic_core_draw_cache_set_enabled(tic_mem* memory, bool enabled) {}
-static inline bool tic_core_draw_cache_is_enabled(tic_mem* memory) { return false; }
 #endif
 
 #define VBANK(tic, bank)                                \

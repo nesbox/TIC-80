@@ -42,4 +42,12 @@ if(BUILD_APPLE)
         "-framework AVFoundation"
         "-framework GameController"
     )
+
+    if(BUILD_RENDER_CACHE)
+        target_compile_definitions(${TIC80_TARGET} PRIVATE BUILD_RENDER_CACHE=1)
+        target_compile_options(${TIC80_TARGET} PRIVATE
+            $<$<COMPILE_LANGUAGE:Swift>:-Xcc>
+            $<$<COMPILE_LANGUAGE:Swift>:-DBUILD_RENDER_CACHE=1>
+        )
+    endif()
 endif()

@@ -154,11 +154,7 @@ struct Studio
     struct
     {
         MouseState state[3];
-        struct
-        {
-            tic_cursor sprite;
-            bool system;
-        } cursor;
+#if defined(BUILD_RENDER_CACHE)
         struct
         {
             s32 x, y;
@@ -166,6 +162,7 @@ struct Studio
             bool system;
             bool visible;
         } prev;
+#endif
     } mouse;
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
@@ -1467,8 +1464,12 @@ bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 
 void setCursor(Studio* studio, tic_cursor id)
 {
-    studio->mouse.cursor.sprite = id;
-    studio->mouse.cursor.system = true;
+    tic_mem* tic = studio->tic;
+
+    VBANK(tic, 0)
+    {
+        tic->ram->vram.vars.cursor.sprite = id;
+    }
 }
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
@@ -2320,17 +2321,6 @@ static void renderStudio(Studio* studio)
     default: break;
     }
 
-    // Update cursor sprite in RAM only if it actually changed
-    if(tic->ram->vram.vars.cursor.sprite != studio->mouse.cursor.sprite ||
-       tic->ram->vram.vars.cursor.system != studio->mouse.cursor.system)
-    {
-        VBANK(tic, 0)
-        {
-            tic->ram->vram.vars.cursor.sprite = studio->mouse.cursor.sprite;
-            tic->ram->vram.vars.cursor.system = studio->mouse.cursor.system;
-        }
-    }
-
     tic_core_tick_end(tic);
 
     switch(studio->mode)
@@ -2410,8 +2400,8 @@ static void processMouseStates(Studio* studio)
 
     tic_mem* tic = studio->tic;
 
-    studio->mouse.cursor.sprite = tic_cursor_arrow;
-    studio->mouse.cursor.system = true;
+    tic->ram->vram.vars.cursor.sprite = tic_cursor_arrow;
+    tic->ram->vram.vars.cursor.system = true;
 
     for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
     {
@@ -2633,15 +2623,15 @@ void studio_tick(Studio* studio, tic80_input input)
         if (mouse_visible || studio->mouse.prev.visible)
         {
             if (m->x != studio->mouse.prev.x || m->y != studio->mouse.prev.y ||
-                studio->mouse.cursor.sprite != studio->mouse.prev.sprite ||
-                studio->mouse.cursor.system != studio->mouse.prev.system ||
+                tic->ram->vram.vars.cursor.sprite != studio->mouse.prev.sprite ||
+                tic->ram->vram.vars.cursor.system != studio->mouse.prev.system ||
                 mouse_visible != studio->mouse.prev.visible)
             {
                 tic_core_invalidate(tic);
                 studio->mouse.prev.x = m->x;
                 studio->mouse.prev.y = m->y;
-                studio->mouse.prev.sprite = studio->mouse.cursor.sprite;
-                studio->mouse.prev.system = studio->mouse.cursor.system;
+                studio->mouse.prev.sprite = tic->ram->vram.vars.cursor.sprite;
+                studio->mouse.prev.system = tic->ram->vram.vars.cursor.system;
                 studio->mouse.prev.visible = mouse_visible;
             }
         }
@@ -2811,10 +2801,12 @@ void studio_delete(Studio* studio)
     free(studio);
 }
 
+#if defined(BUILD_RENDER_CACHE)
 bool studio_is_dirty(Studio* studio)
 {
     return tic_core_is_dirty(studio->tic);
 }
+#endif
 
 #if defined(BUILD_EDITORS)
 Bytebattle* getBytebattle(Studio* studio)

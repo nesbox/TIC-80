@@ -26,7 +26,9 @@
 
 #include "api.h"
 #include "core.h"
+#if defined(BUILD_RENDER_CACHE)
 #include "draw_cache.h"
+#endif
 #include "tilesheet.h"
 
 #include <assert.h>
@@ -551,7 +553,9 @@ void tic_core_close(tic_mem* memory)
     free(memory->product.screen);
 #endif
     free(memory->product.samples.buffer);
+#if defined(BUILD_RENDER_CACHE)
     tic_core_draw_cache_free(core);
+#endif
 
     free(core);
 }
@@ -559,7 +563,9 @@ void tic_core_close(tic_mem* memory)
 void tic_core_tick_start(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
+#if defined(BUILD_RENDER_CACHE)
     tic_core_draw_cache_start(core);
+#endif
     tic_core_sound_tick_start(memory);
     tic_core_tick_io(memory);
 
@@ -588,7 +594,9 @@ void tic_core_tick_end(tic_mem* memory)
     core->state.gamepads.previous.data = core->state.gamepads.now.data;
 
     tic_core_sound_tick_end(memory);
+#if defined(BUILD_RENDER_CACHE)
     tic_core_draw_cache_end(core);
+#endif
 }
 
 // copied from SDL2
@@ -670,12 +678,6 @@ void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
 
     if (!has_scanline && !has_border)
     {
-        if (core->draw_cache && !tic_core_draw_cache_has_invalidated(core))
-        {
-            core->screen_dirty = false;
-            return;
-        }
-
         if (core->saved_vram.valid &&
             core->saved_vram.format == core->screen_format &&
             memcmp(&core->saved_vram.vbank0, vbank0(core), sizeof(tic_vram)) == 0 &&
@@ -804,7 +806,9 @@ tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
     blip_set_rates(core->blip.left, CLOCKRATE, samplerate);
     blip_set_rates(core->blip.right, CLOCKRATE, samplerate);
 
+#if defined(BUILD_RENDER_CACHE)
     tic_core_draw_cache_init(core);
+#endif
 
     {
 #define API_FUNC_DEF(name, ...) core->api.name = tic_api_ ## name;
@@ -816,7 +820,9 @@ tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
         core->api.textri = tic_api_textri;
 #endif
 
+#if defined(BUILD_RENDER_CACHE)
         tic_core_draw_cache_hook_api(core);
+#endif
     }
 
     tic_api_reset(&core->memory);

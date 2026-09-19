@@ -339,21 +339,27 @@ static void execute_draw_call(tic_core* core, u8 type, const u8* data)
         }
         case DRAW_CALL_PRINT: {
             const DrawCallPrint* c = (const DrawCallPrint*)data;
-            char text_temp[512];
-            u32 len = c->len < 511 ? c->len : 511;
-            memcpy(text_temp, data + sizeof(DrawCallPrint), len);
-            text_temp[len] = '\0';
-            tic_api_print(&core->memory, text_temp, c->x, c->y, c->color, c->fixed, c->scale, c->alt);
+            char* text_temp = (char*)malloc(c->len + 1);
+            if (text_temp)
+            {
+                memcpy(text_temp, data + sizeof(DrawCallPrint), c->len);
+                text_temp[c->len] = '\0';
+                tic_api_print(&core->memory, text_temp, c->x, c->y, c->color, c->fixed, c->scale, c->alt);
+                free(text_temp);
+            }
             break;
         }
         case DRAW_CALL_FONT: {
             const DrawCallFont* c = (const DrawCallFont*)data;
-            char text_temp[512];
-            u32 len = c->len < 511 ? c->len : 511;
-            memcpy(text_temp, data + sizeof(DrawCallFont), len);
-            text_temp[len] = '\0';
-            tic_api_font(&core->memory, text_temp, c->x, c->y, (u8*)c->trans_colors, c->trans_count,
-                         c->w, c->h, c->fixed, c->scale, c->alt);
+            char* text_temp = (char*)malloc(c->len + 1);
+            if (text_temp)
+            {
+                memcpy(text_temp, data + sizeof(DrawCallFont), c->len);
+                text_temp[c->len] = '\0';
+                tic_api_font(&core->memory, text_temp, c->x, c->y, (u8*)c->trans_colors, c->trans_count,
+                             c->w, c->h, c->fixed, c->scale, c->alt);
+                free(text_temp);
+            }
             break;
         }
     }
@@ -422,6 +428,20 @@ void tic_core_draw_cache_end(tic_core* core)
     if (!core->draw_cache || !core->draw_cache->enabled) return;
     
     core->draw_cache->is_recording = false;
+
+    if (core->draw_cache->saved_ram_a && core->draw_cache->saved_ram_b && core->draw_cache->saved_vbank1)
+    {
+        bool match_a = memcmp(core->memory.ram, core->draw_cache->saved_ram_a, RAM_A_SIZE) == 0;
+        bool match_b = memcmp(core->memory.ram->data + RAM_B_OFFSET, core->draw_cache->saved_ram_b, RAM_B_SIZE) == 0;
+        
+        tic_vram* v1 = core->state.vbank.id ? &core->memory.ram->vram : &core->state.vbank.mem;
+        bool match_v1 = memcmp(v1, core->draw_cache->saved_vbank1, sizeof(tic_vram)) == 0;
+
+        if (!match_a || !match_b || !match_v1)
+        {
+            tic_core_draw_cache_invalidate(core);
+        }
+    }
 
     if (!core->draw_cache->saved_ram_a) core->draw_cache->saved_ram_a = malloc(RAM_A_SIZE);
     memcpy(core->draw_cache->saved_ram_a, core->memory.ram, RAM_A_SIZE);
@@ -526,7 +546,7 @@ static u8 cache_api_pix(tic_mem* tic, s32 x, s32 y, u8 color, bool get)
     {
         return tic_api_pix(tic, x, y, color, get);
     }
-    return 0;
+    return get ? tic_api_pix(tic, x, y, color, true) : 0;
 }
 
 static void cache_api_rect(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u8 color)
@@ -711,6 +731,7 @@ typedef struct {
     void* original_data;
     RemapResult* record_buf;
     s32 record_pos;
+    s32 max_count;
 } RemapInterceptorContext;
 
 static void remapInterceptor(void* data, s32 x, s32 y, RemapResult* result)
@@ -729,14 +750,15 @@ static void remapInterceptor(void* data, s32 x, s32 y, RemapResult* result)
     result->flip = user_result.flip;
     result->rotate = user_result.rotate;
     
-    ctx->record_buf[ctx->record_pos] = user_result;
-    ctx->record_pos++;
+    if (ctx->record_buf && ctx->record_pos < ctx->max_count)
+    {
+        ctx->record_buf[ctx->record_pos++] = user_result;
+    }
 }
 
 static void cache_api_map(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* trans_colors, u8 trans_count, s32 scale, RemapFunc remap, void* data)
 {
     tic_core* core = (tic_core*)tic;
-    s32 tiles_count = width * height;
     
     if (remap != NULL)
     {
@@ -746,10 +768,26 @@ static void cache_api_map(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, s32
             return;
         }
         
+        s64 total_tiles = (s64)width * (s64)height;
+        if (width <= 0 || height <= 0 || total_tiles <= 0 || total_tiles > (TIC_MAP_WIDTH * TIC_MAP_HEIGHT) ||
+            sizeof(DrawCallMap) + (size_t)total_tiles * sizeof(RemapResult) > DRAW_CACHE_MAX_SIZE)
+        {
+            tic_core_draw_cache_invalidate(core);
+            tic_api_map(tic, x, y, width, height, sx, sy, trans_colors, trans_count, scale, remap, data);
+            return;
+        }
+        
+        s32 tiles_count = (s32)total_tiles;
         RemapResult* remapped_tiles = malloc(tiles_count * sizeof(RemapResult));
+        if (!remapped_tiles)
+        {
+            tic_core_draw_cache_invalidate(core);
+            tic_api_map(tic, x, y, width, height, sx, sy, trans_colors, trans_count, scale, remap, data);
+            return;
+        }
         memset(remapped_tiles, 0, tiles_count * sizeof(RemapResult));
         
-        RemapInterceptorContext ctx = { remap, data, remapped_tiles, 0 };
+        RemapInterceptorContext ctx = { remap, data, remapped_tiles, 0, tiles_count };
         
         tic_api_map(tic, x, y, width, height, sx, sy, trans_colors, trans_count, scale, remapInterceptor, &ctx);
         

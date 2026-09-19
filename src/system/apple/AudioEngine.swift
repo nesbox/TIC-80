@@ -33,15 +33,16 @@ public final class AudioEngine: NSObject {
             guard let leftChannel = ablPointer[0].mData?.assumingMemoryBound(to: Float.self) else { return noErr }
             let rightChannel = ablPointer.count > 1 ? ablPointer[1].mData?.assumingMemoryBound(to: Float.self) : nil
             
+            audioLock.lock()
+            defer { audioLock.unlock() }
+
             let tic = studio_mem(self.studio)
             guard let tic = tic else { return noErr }
             
             var writeIdx = 0
             while writeIdx < frames {
                 if self.bufferRemaining <= 0 {
-                    audioLock.lock()
                     studio_sound(self.studio)
-                    audioLock.unlock()
                     self.bufferRemaining = Int(tic.pointee.product.samples.count) / 2
                     self.bufferReadIdx = 0
                 }

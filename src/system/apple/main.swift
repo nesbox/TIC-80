@@ -124,8 +124,8 @@ public final class TICMetalView: MTKView {
         
         if let renderer = renderer {
             if let mapped = renderer.mapMouseToFullCoords(pixelLocation: backingLoc, viewWidth: Double(drawableSize.width), viewHeight: Double(drawableSize.height)) {
-                mouseX = Int32(mapped.x) - Int32(TIC80_MARGIN_LEFT)
-                mouseY = Int32(mapped.y) - Int32(TIC80_MARGIN_TOP)
+                mouseX = Int32(mapped.x)
+                mouseY = Int32(mapped.y)
             }
         }
         

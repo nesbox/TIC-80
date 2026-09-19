@@ -203,12 +203,14 @@ public final class MetalRenderer: NSObject, MTKViewDelegate {
         let fullWidth = Int(TIC80_FULLWIDTH)
         let fullHeight = Int(TIC80_FULLHEIGHT)
         
+#if BUILD_RENDER_CACHE
         let isDirty = studio_is_dirty(studio)
         let viewportChanged = (prevViewportRect == nil || rect != prevViewportRect)
         
         guard isDirty || viewportChanged else {
             return
         }
+#endif
         
         prevViewportRect = rect
         

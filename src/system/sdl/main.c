@@ -557,9 +557,6 @@ static void initTouchGamepad()
 
 static void initGPU()
 {
-#if defined(__APPLE__)
-    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "metal");
-#endif
 
     platform.screen.force_redraw = true;
     ZEROMEM(platform.screen.prev_rect);
