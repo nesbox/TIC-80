@@ -310,49 +310,6 @@ jobs:
 
   # === Ubuntu-arm64 ===
 
-  linux-gcc14-glibc239:
-    runs-on: ubuntu-24.04
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 2.6
-
-      - name: Install
-        run: |
-          sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
-          sudo apt update
-          sudo apt-get install gcc-14 g++-14 libxext-dev libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
-          sudo ln -s -f /usr/bin/gcc-14 /usr/bin/gcc
-          sudo ln -s -f /usr/bin/g++-14 /usr/bin/g++
-          
-      - name: Build
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
-          cmake --build . --parallel
-
-      - name: Deploy
-        uses: actions/upload-artifact@v6
-        with:
-          name: "tic80-linux-gcc14"
-          path: |
-            build/bin/tic80
-            build/bin/*.so
-
-      - name: Build Pro
-        run: |
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
-          cmake --build . --config MinSizeRel --parallel
-
-  # === Raspberry PI 1-4 Bare Metal ===
-
   linux-arm64-gcc12-glibc235:
     runs-on: ubuntu-22.04-arm
     env:
@@ -490,7 +447,7 @@ jobs:
           path: |
             stubs/*
 
-  # === Nintendo 3DS build ===
+  # === Raspberry PI 1-4 Bare Metal ===
 
   linux-arm64-gles2:
     runs-on: ubuntu-22.04-arm
@@ -555,7 +512,7 @@ jobs:
             build/linux/lib/*.so
             build/linux/share/*
 
-  # === Ubuntu gcc14 ===
+  # === Nintendo 3DS build ===
 
   nintendo-3ds:
     runs-on: ubuntu-latest

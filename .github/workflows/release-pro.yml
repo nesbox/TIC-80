@@ -101,6 +101,72 @@ jobs:
           ./butler push stage/linux-pro nesbox/tic80:linux-pro --userversion "$VER"
           ./butler push stage/deb-amd64-pro nesbox/tic80:deb-amd64-pro --userversion "$VER"
 
+  # The free pipeline has built linux-arm64 since 1.2.0 (job
+  # linux-arm64-gcc12-glibc235 in build.yml), and the paid half never did:
+  # `linux-pro` above is amd64-only, so the PRO arm64 pair was never built
+  # rather than left unpushed (#3007). The runner and the toolchain mirror
+  # that free job, because that combination is the one proven on arm64.
+  linux-arm64-pro:
+    runs-on: ubuntu-22.04-arm
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install
+        run: |
+          # the google-chrome apt repo flakes with "Hash Sum mismatch"; drop it
+          # (TIC-80 doesn't need it) so apt-get update can't fail on it.
+          sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome* 2>/dev/null || true
+          sudo sed -i '/dl\.google\.com/d' /etc/apt/sources.list 2>/dev/null || true
+          sudo apt-get update
+          sudo apt-get install -y gcc-12 g++-12 libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
+          sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
+          sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
+          # the generator the arm64 builds use; the image carries it already
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+
+      - name: Build PRO
+        run: |
+          cd build
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake --build . --parallel
+
+      - name: Build deb
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          bash bin/release/make-deb.sh build/bin out/tic80-v$SHORT-linux-arm64-pro.deb arm64 "$VER"
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
+            exit 1
+          fi
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          # butler for the runner's own architecture: the paid build never
+          # leaves the runner (see the header), so the push happens here, and
+          # the linux-amd64 butler the other jobs use cannot run on this image.
+          curl -L -o butler.zip https://broth.itch.zone/butler/linux-arm64/LATEST/archive/default
+          unzip -q butler.zip
+          chmod +x butler
+          # The layouts itch needs, explained in bin/release/stage-itch.sh:
+          # the binary in a folder of its own, the package in another.
+          mkdir -p stage/linux-arm64-pro stage/deb-arm64-pro
+          cp build/bin/tic80 stage/linux-arm64-pro/tic80-linux-arm64-pro
+          cp "out/tic80-v$SHORT-linux-arm64-pro.deb" stage/deb-arm64-pro/tic80-linux-arm64-pro.deb
+          ./butler push stage/linux-arm64-pro nesbox/tic80:linux-arm64-pro --userversion "$VER"
+          ./butler push stage/deb-arm64-pro nesbox/tic80:deb-arm64-pro --userversion "$VER"
+
   macos-arm64-pro:
     runs-on: macos-14
     steps:
