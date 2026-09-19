@@ -487,7 +487,6 @@ jobs:
             -DUSE_GLES2=ON \
             -DUSE_EGL=ON \
             -DBUILD_EDITORS=OFF \
-            -DBUILD_SURF=ON \
             -DPREFER_SYSTEM_SDL2=ON \
             -DBUILD_STATIC=ON \
             -DTIC_DATA_PATH="/userdata/roms/tic80/"
