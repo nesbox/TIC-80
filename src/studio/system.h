@@ -172,7 +172,7 @@ void studio_tick(Studio* studio, tic80_input input);
 void studio_sound(Studio* studio);
 void studio_load(Studio* studio, const char* file);
 void studio_keymapchanged(Studio *studio, tic_layout keyboardLayout);
-bool studio_alive(Studio* studio);
+bool studio_quit_requested(Studio* studio);
 void studio_exit(Studio* studio);
 void studio_delete(Studio* studio);
 const StudioConfig* studio_config(Studio* studio);

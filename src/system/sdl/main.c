@@ -1889,7 +1889,7 @@ static void gpuTick()
 
     pollEvents();
 
-    if(studio_alive(platform.studio))
+    if(studio_quit_requested(platform.studio))
     {
 #if defined __EMSCRIPTEN__
         emscripten_cancel_main_loop();
@@ -2086,7 +2086,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
     {
         if (studio_config(platform.studio)->cli)
         {
-            while (!studio_alive(platform.studio))
+            while (!studio_quit_requested(platform.studio))
                 studio_tick(platform.studio, platform.input);
         }
         else
@@ -2133,7 +2133,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
                 const u64 Delta = SDL_GetPerformanceFrequency() / TIC80_FRAMERATE;
                 u64 nextTick = SDL_GetPerformanceCounter();
 
-                while (!studio_alive(platform.studio))
+                while (!studio_quit_requested(platform.studio))
                 {
                     gpuTick();
 

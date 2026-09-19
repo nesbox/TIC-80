@@ -129,7 +129,9 @@ struct Studio
 {
     tic_mem* tic;
 
-    bool alive;
+    // Set when the studio has been told to quit (the exit dialog, a window
+    // close, the console's `exit`); every platform loop reads it.
+    bool quit_requested;
 
     // Every mode question — which screen is on, where a run came from, who
     // asked for it, where a menu goes back to — is this one state, and
@@ -1179,7 +1181,7 @@ static void showPopupMessage(Studio* studio, const char* text)
 
 static void exitConfirm(Studio* studio, bool yes, void* data)
 {
-    studio->alive = yes;
+    studio->quit_requested = yes;
 }
 
 void studio_exit(Studio* studio)
@@ -2957,9 +2959,9 @@ void studio_keymapchanged(Studio* studio, tic_layout keyboardLayout)
     studio->config->data.keyboardLayout = keyboardLayout;
 }
 
-bool studio_alive(Studio* studio)
+bool studio_quit_requested(Studio* studio)
 {
-    return studio->alive;
+    return studio->quit_requested;
 }
 
 #if defined(TIC_MODULE_EXT)
