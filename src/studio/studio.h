@@ -35,6 +35,7 @@
 #include "tools.h"
 #include "system.h"
 #include "anim.h"
+#include "machine.h"
 #include "ext/png.h"
 
 #define KEYBOARD_HOLD 20
@@ -116,34 +117,6 @@ typedef struct
     const char *fftdevice;
 #endif
 } StartArgs;
-
-typedef enum
-{
-    TIC_START_MODE,
-    TIC_CONSOLE_MODE,
-    TIC_RUN_MODE,
-    TIC_CODE_MODE,
-    TIC_SPRITE_MODE,
-    TIC_MAP_MODE,
-    TIC_WORLD_MODE,
-    TIC_SFX_MODE,
-    TIC_MUSIC_MODE,
-    TIC_MENU_MODE,
-    TIC_SURF_MODE,
-
-    TIC_MODES_COUNT
-} EditorMode;
-
-// Who asked for the run decides what ESC does in it (#2937): the studio's own
-// runs — Ctrl+R, the console's `run` — step back out to the editor, a cart
-// opened to play — a file argument, a dropped file, SURF, the web player —
-// gets the pause menu. What the cart declares (a `menu:` tag) is content, not
-// a role: it adds the game's own items to that menu, nothing more.
-typedef enum
-{
-    RUN_FROM_STUDIO,
-    RUN_FROM_PLAYER,
-} RunOrigin;
 
 typedef enum
 {

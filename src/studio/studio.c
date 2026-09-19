@@ -92,14 +92,9 @@ typedef struct
     u8 data[MD5_HASHSIZE];
 } CartHash;
 
-static const EditorMode Modes[] =
-{
-    TIC_CODE_MODE,
-    TIC_SPRITE_MODE,
-    TIC_MAP_MODE,
-    TIC_SFX_MODE,
-    TIC_MUSIC_MODE,
-};
+// The editor tabs are the machine's ring now (sm_editor_ring) — the studio
+// only draws them and walks them; SM_EDITOR_RING_COUNT is what the layout
+// arithmetic below counts with.
 
 static const EditorMode BankModes[] =
 {
@@ -664,7 +659,7 @@ static void drawExtrabar(Studio* studio, tic_mem* tic)
 {
     enum {Size = 7};
 
-    s32 x = (COUNT_OF(Modes) + 1) * Size + 17 * TIC_FONT_WIDTH;
+    s32 x = (SM_EDITOR_RING_COUNT + 1) * Size + 17 * TIC_FONT_WIDTH;
     s32 y = 0;
 
     static struct Icon {u8 id; StudioEvent event; const char* tip;} Icons[] =
@@ -1060,7 +1055,9 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
 
     s32 mode = -1;
 
-    for(s32 i = 0; i < COUNT_OF(Modes); i++)
+    const EditorMode* modes = sm_editor_ring();
+
+    for(s32 i = 0; i < SM_EDITOR_RING_COUNT; i++)
     {
         tic_rect rect = {i * Size, 0, Size, Size};
 
@@ -1075,10 +1072,10 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
             showTooltip(studio, Tips[i]);
 
             if(checkMouseClick(studio, &rect, tic_mouse_left))
-                studio->toolbarMode = Modes[i];
+                studio->toolbarMode = modes[i];
         }
 
-        if(getStudioMode(studio) == Modes[i]) mode = i;
+        if(getStudioMode(studio) == modes[i]) mode = i;
 
         if (mode == i)
         {
@@ -1101,11 +1098,11 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
     };
 
 #if defined (TIC80_PRO) && defined(BUILD_EDITORS)
-    enum {TextOffset = (COUNT_OF(Modes) + 2) * Size - 2};
+    enum {TextOffset = (SM_EDITOR_RING_COUNT + 2) * Size - 2};
     if(mode >= 1)
-        drawBankIcon(studio, COUNT_OF(Modes) * Size + 2, 0);
+        drawBankIcon(studio, SM_EDITOR_RING_COUNT * Size + 2, 0);
 #else
-    enum {TextOffset = (COUNT_OF(Modes) + 1) * Size};
+    enum {TextOffset = (SM_EDITOR_RING_COUNT + 1) * Size};
 #endif
 
     if(mode == 0 || (mode >= 1 && !studio->bank.show))
@@ -1372,11 +1369,13 @@ EditorMode getStudioMode(Studio* studio)
 #if defined(BUILD_EDITORS)
 static void changeStudioMode(Studio* studio, s32 dir)
 {
-    for(size_t i = 0; i < COUNT_OF(Modes); i++)
+    const EditorMode* modes = sm_editor_ring();
+
+    for(size_t i = 0; i < SM_EDITOR_RING_COUNT; i++)
     {
-        if(studio->mode == Modes[i])
+        if(studio->mode == modes[i])
         {
-            setStudioMode(studio, Modes[(i+dir+ COUNT_OF(Modes)) % COUNT_OF(Modes)]);
+            setStudioMode(studio, modes[(i + dir + SM_EDITOR_RING_COUNT) % SM_EDITOR_RING_COUNT]);
             return;
         }
     }

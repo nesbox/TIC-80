@@ -208,6 +208,7 @@ include(cmake/wave.cmake)
 include(cmake/argparse.cmake)
 include(cmake/naett.cmake)
 include(cmake/studio.cmake)
+include(cmake/tests.cmake)
 
 include(cmake/sdl.cmake)
 include(cmake/libretro.cmake)
