@@ -38,7 +38,10 @@ static void onError(void* data, const char* info)
 {
 #if defined(BUILD_EDITORS)
     Run* run = (Run*)data;
-    setStudioMode(run->studio, TIC_CONSOLE_MODE);
+
+    // The console is where the error is printed; that a run ending there is
+    // the machine's answer, not this callback's.
+    studioRunErrored(run->studio);
     run->console->error(run->console, info);
 #endif
 }
@@ -114,11 +117,7 @@ static void tick(Run* run)
     }
 
     if(run->exit)
-#if defined(BUILD_EDITORS)
-        setStudioMode(run->studio, TIC_CONSOLE_MODE);
-#else
-        studio_exit(run->studio);
-#endif
+        studioRunExited(run->studio);
 }
 
 static u64 getFreq(void* data)

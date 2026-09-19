@@ -61,6 +61,13 @@ typedef struct
 
 void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, MenuItemHandler handler, void* data);
 bool studio_menu_back(Menu* menu);
+
+// What the menu was raised with: whether it has anywhere to go back to, and
+// the data its handlers are called with. The mode machinery asks the first to
+// decide what ESC means here; the executor hands the second back to a dialog's
+// callback when the answer comes.
+bool studio_menu_has_back(Menu* menu);
+void* studio_menu_data(Menu* menu);
 void studio_menu_free(Menu* menu);
 
 void studio_menu_anim(struct tic_mem* tic, s32 ticks);

@@ -257,8 +257,14 @@ void exitGame(Studio* studio);
 void resumeGame(Studio* studio);
 void saveProject(Studio* studio);
 
-bool studio_menu_over_player_run(Studio* studio);
 void leaveRun(Studio* studio);
+
+// The transitions the screens ask for by name: the main menu's back, and a run
+// that ended itself. Both are rules the machine owns — which is why the menu
+// no longer decides where its back goes.
+void studioMenuBack(Studio* studio);
+void studioRunExited(Studio* studio);
+void studioRunErrored(Studio* studio);
 
 tic_tiles* getBankTiles(Studio* studio);
 tic_palette* getBankPalette(Studio* studio, bool bank);

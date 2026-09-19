@@ -482,10 +482,9 @@ static void onMenuBack(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
 
-    if(studio_menu_over_player_run(main->studio))
-        onResumeGame(data, pos);
-    else
-        leaveRun(main->studio);
+    // Whether the back resumes the run under the menu or steps out to where
+    // the menu was opened from is the machine's rule, not the menu's.
+    studioMenuBack(main->studio);
 }
 
 static void onResetGame(void* data, s32 pos)
