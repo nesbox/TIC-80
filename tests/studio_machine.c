@@ -595,19 +595,24 @@ static void test_run_game(void)
 
 // --- the menu -------------------------------------------------------------
 
-// gotoMenu builds the main menu, and so does the switch it goes through:
-// two builds per open, which is today's behaviour until the callers change.
+// Opening the menu: the switch builds it on the way in, and an open asked for
+// while the menu is already up builds it here.
 static void test_open_menu(void)
 {
     SmFeatures features = variant();
     static const SmEffect PauseResetMenuBuild[] =
     {
-        SM_EFF_PAUSE_CORE, SM_EFF_RESET_CORE, SM_EFF_REBUILD_MAINMENU, SM_EFF_VI_MODE_RESET,
-        SM_EFF_REBUILD_MAINMENU
+        SM_EFF_PAUSE_CORE, SM_EFF_RESET_CORE, SM_EFF_REBUILD_MAINMENU, SM_EFF_VI_MODE_RESET
     };
     static const SmEffect ResetMenuBuild[] =
     {
-        SM_EFF_RESET_CORE, SM_EFF_REBUILD_MAINMENU, SM_EFF_VI_MODE_RESET, SM_EFF_REBUILD_MAINMENU
+        SM_EFF_RESET_CORE, SM_EFF_REBUILD_MAINMENU, SM_EFF_VI_MODE_RESET
+    };
+    // Already in MENU: no mode change, so no reset either — the switch has
+    // nothing to do, and the rebuild is the whole point of the open.
+    static const SmEffect MenuRebuild[] =
+    {
+        SM_EFF_VI_MODE_RESET, SM_EFF_REBUILD_MAINMENU
     };
     SmEvent event = eventOf(SM_EV_OPEN_MENU);
 
@@ -619,6 +624,15 @@ static void test_open_menu(void)
             PauseResetMenuBuild, COUNT_OF(PauseResetMenuBuild));
         check(state.menu_over_run, "the menu knows it sits over a run");
         check(state.run_from == TIC_SURF_MODE, "and it leaves the run's origin alone");
+    }
+
+    // Asked for while the menu is already up — the Switch's "+" again — the
+    // switch does not build it, so the open does.
+    {
+        SmState state = stateIn(features, TIC_MENU_MODE);
+
+        expect("the menu asked for again", &state, &DefaultEnv, &event, TIC_MENU_MODE,
+            MenuRebuild, COUNT_OF(MenuRebuild));
     }
 
     {
@@ -861,8 +875,7 @@ static void test_escape(void)
         state.run_from = TIC_CODE_MODE;
         static const SmEffect Want[] =
         {
-            SM_EFF_PAUSE_CORE, SM_EFF_RESET_CORE, SM_EFF_REBUILD_MAINMENU, SM_EFF_VI_MODE_RESET,
-            SM_EFF_REBUILD_MAINMENU
+            SM_EFF_PAUSE_CORE, SM_EFF_RESET_CORE, SM_EFF_REBUILD_MAINMENU, SM_EFF_VI_MODE_RESET
         };
 
         expect("ESC in a player's run", &state, &env, &event, TIC_MENU_MODE, Want, COUNT_OF(Want));
@@ -910,8 +923,7 @@ static void test_escape(void)
         state.run_from = TIC_CODE_MODE;
         static const SmEffect Want[] =
         {
-            SM_EFF_PAUSE_CORE, SM_EFF_RESET_CORE, SM_EFF_REBUILD_MAINMENU, SM_EFF_VI_MODE_RESET,
-            SM_EFF_REBUILD_MAINMENU
+            SM_EFF_PAUSE_CORE, SM_EFF_RESET_CORE, SM_EFF_REBUILD_MAINMENU, SM_EFF_VI_MODE_RESET
         };
 
         expect("ESC in a run with a game menu", &state, &withMenu, &event,

@@ -219,6 +219,8 @@ static void req(SmState* state, SmFeatures features, const SmEnv* env, SmResult*
 // opened from instead.
 static void openMenu(SmState* state, SmFeatures features, const SmEnv* env, SmResult* result)
 {
+    EditorMode before = state->mode;
+
     state->menu_over_run = state->mode == TIC_RUN_MODE;
 
     if(!state->menu_over_run)
@@ -226,10 +228,13 @@ static void openMenu(SmState* state, SmFeatures features, const SmEnv* env, SmRe
 
     req(state, features, env, result, TIC_MENU_MODE);
 
-    // gotoMenu builds the menu itself as well, and the switch above has just
-    // built it: two builds per open, which is today's behaviour and stays
-    // until the callers are migrated.
-    pushEffect(&result->effects, SM_EFF_REBUILD_MAINMENU);
+    // Entering MENU builds the menu as part of the switch. Asking for the menu
+    // while it is already up does not, and that is the case the rebuild here
+    // is for: the Switch's "+" button, pressed again on a menu already
+    // showing, puts the top level back. The old code built it in both cases,
+    // which is why every open built it twice.
+    if(before == TIC_MENU_MODE)
+        pushEffect(&result->effects, SM_EFF_REBUILD_MAINMENU);
 }
 
 // resumeGame: the core was paused by the run that the menu is sitting over, and
