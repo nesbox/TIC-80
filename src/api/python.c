@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "pocketpy.h"
 
 /*
@@ -1445,6 +1446,76 @@ static void eval_pkpy_v2(tic_mem* tic, const char* code)
         log_and_clearexc(p0);
 }
 
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
+static const tic_outline_item* getPythonOutline(const char* code, s32* size)
+{
+    enum{Size = sizeof(tic_outline_item)};
+
+    *size = 0;
+
+    static tic_outline_item* items = NULL;
+
+    if(items)
+    {
+        free(items);
+        items = NULL;
+    }
+
+    // Both keywords introduce a name worth listing. A def's name ends at its
+    // parameter list; a class's ends at its bases or, since those are
+    // optional, at the colon. The two passes leave the items grouped rather
+    // than in source order, which the editor does not mind -- it sorts them.
+    static const char* const Keywords[] = {"def ", "class "};
+
+    for(s32 k = 0; k < sizeof Keywords / sizeof *Keywords; k++)
+    {
+        const char* keyword = Keywords[k];
+        const s32 keywordSize = (s32)strlen(keyword);
+        const char* ptr = code;
+
+        while((ptr = strstr(ptr, keyword)))
+        {
+            // A keyword, not the tail of an identifier: "undef x" and
+            // "subclass X" define nothing.
+            bool standalone = ptr == code || !isalnum_(ptr[-1]);
+
+            ptr += keywordSize;
+
+            if(!standalone) continue;
+
+            while(*ptr == ' ') ptr++;
+
+            const char* start = ptr;
+            const char* end = start;
+
+            while(*ptr)
+            {
+                char c = *ptr;
+
+                if(isalnum_(c)) ptr++;
+                else
+                {
+                    if(c == '(' || c == ':') end = ptr;
+                    break;
+                }
+            }
+
+            if(end > start)
+            {
+                items = realloc(items, (*size + 1) * Size);
+
+                items[*size].pos = start;
+                items[*size].size = (s32)(end - start);
+
+                (*size)++;
+            }
+        }
+    }
+
+    return items;
+}
+
 static const u8 DemoRom[] =
     {
 #include "../build/assets/pythondemo.tic.dat"
@@ -1473,7 +1544,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Python) =
                 .menu = callback_menu,
             },
 
-        .getOutline = NULL,
+        .getOutline = getPythonOutline,
         .eval = eval_pkpy_v2,
         //above is a must need
         .blockCommentStart = NULL,
