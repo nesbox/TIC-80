@@ -996,6 +996,7 @@ tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format);
 void tic_core_close(tic_mem* memory);
 void tic_core_pause(tic_mem* memory);
 void tic_core_resume(tic_mem* memory);
+bool tic_core_script_ready(tic_mem* memory);
 void tic_core_tick_start(tic_mem* memory);
 void tic_core_tick(tic_mem* memory, tic_tick_data* data);
 void tic_core_tick_end(tic_mem* memory);
