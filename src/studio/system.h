@@ -142,6 +142,9 @@ typedef struct
         bool fullscreen;
         bool vsync;
         bool integerScale;
+#if defined(BUILD_RENDER_CACHE)
+        bool drawCache;
+#endif
         s32 volume;
         bool autosave;
         tic_mapping mapping;
@@ -178,6 +181,9 @@ void studio_delete(Studio* studio);
 const StudioConfig* studio_config(Studio* studio);
 
 Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, tic_layout keyboardLayout);
+#if defined(BUILD_RENDER_CACHE)
+bool studio_is_dirty(Studio* studio);
+#endif
 
 #ifdef __cplusplus
 }

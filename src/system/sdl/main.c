@@ -115,6 +115,8 @@ static struct
         u32 shader;
         GPU_ShaderBlock block;
 #endif
+        SDL_Rect prev_rect;
+        bool force_redraw;
     } screen;
 
     struct
@@ -555,6 +557,10 @@ static void initTouchGamepad()
 
 static void initGPU()
 {
+
+    platform.screen.force_redraw = true;
+    ZEROMEM(platform.screen.prev_rect);
+
     bool vsync = studio_config(platform.studio)->options.vsync;
     bool soft = studio_config(platform.studio)->soft;
 
@@ -1311,6 +1317,12 @@ static void pollEvents()
         case SDL_WINDOWEVENT:
             switch(event.window.event)
             {
+            case SDL_WINDOWEVENT_SHOWN:
+            case SDL_WINDOWEVENT_EXPOSED:
+            case SDL_WINDOWEVENT_RESTORED:
+            case SDL_WINDOWEVENT_RESIZED:
+                platform.screen.force_redraw = true;
+                break;
             case SDL_WINDOWEVENT_ENTER:
                 platform.mouse.focus = true;
                 break;
@@ -1319,6 +1331,7 @@ static void pollEvents()
                 break;
             case SDL_WINDOWEVENT_SIZE_CHANGED:
                 {
+                    platform.screen.force_redraw = true;
 
 #if defined(CRT_SHADER_SUPPORT)
                     if(!studio_config(platform.studio)->soft)
@@ -1902,11 +1915,31 @@ static void gpuTick()
         studio_tick(platform.studio, platform.input);
     }
 
-    renderClear(platform.screen.renderer);
-    updateTextureBytes(platform.screen.texture, tic->product.screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
-
     SDL_Rect rect;
     calcTextureRect(&rect);
+
+#if defined(BUILD_RENDER_CACHE)
+    bool is_dirty = studio_is_dirty(platform.studio);
+    bool viewport_changed = memcmp(&rect, &platform.screen.prev_rect, sizeof(rect)) != 0;
+
+    if (!is_dirty && !viewport_changed && !platform.screen.force_redraw)
+    {
+        platform.keyboard.text = '\0';
+        return;
+    }
+
+    platform.screen.prev_rect = rect;
+    platform.screen.force_redraw = false;
+
+    renderClear(platform.screen.renderer);
+    if(is_dirty)
+    {
+        updateTextureBytes(platform.screen.texture, tic->product.screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
+    }
+#else
+    renderClear(platform.screen.renderer);
+    updateTextureBytes(platform.screen.texture, tic->product.screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
+#endif
 
 #if defined(CRT_SHADER_SUPPORT)
 

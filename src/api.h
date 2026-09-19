@@ -1002,6 +1002,12 @@ void tic_core_tick_end(tic_mem* memory);
 void tic_core_synth_sound(tic_mem* tic);
 void tic_core_blit(tic_mem* tic);
 void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb);
+#if defined(BUILD_RENDER_CACHE)
+bool tic_core_is_dirty(tic_mem* memory);
+void tic_core_invalidate(tic_mem* memory);
+void tic_core_draw_cache_set_enabled(tic_mem* memory, bool enabled);
+bool tic_core_draw_cache_is_enabled(tic_mem* memory);
+#endif
 
 #define VBANK(tic, bank)                                \
     bool MACROVAR(_bank_) = tic_api_vbank(tic, bank);   \

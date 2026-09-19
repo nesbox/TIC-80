@@ -35,6 +35,10 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/ext/png.c
 )
 
+if(BUILD_RENDER_CACHE)
+    set(TIC80CORE_SRC ${TIC80CORE_SRC} ${TIC80CORE_DIR}/core/draw_cache.c)
+endif()
+
 if(BUILD_DEPRECATED)
     set(TIC80CORE_SRC ${TIC80CORE_SRC} ${TIC80CORE_DIR}/ext/gif.c)
 endif()

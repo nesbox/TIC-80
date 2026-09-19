@@ -1346,6 +1346,12 @@ static void callMRubyBoot(tic_mem* tic)
 
     if(mrb)
     {
+#if defined(BUILD_RENDER_CACHE)
+        core->state.has_scn = mrb_respond_to(mrb, mrb_top_self(mrb), mrb_intern_cstr(mrb, SCN_FN)) ||
+                              mrb_respond_to(mrb, mrb_top_self(mrb), mrb_intern_cstr(mrb, "scanline"));
+        core->state.has_bdr = mrb_respond_to(mrb, mrb_top_self(mrb), mrb_intern_cstr(mrb, BDR_FN));
+#endif
+
         if (mrb_respond_to(mrb, mrb_top_self(mrb), mrb_intern_cstr(mrb, BootFunc)))
         {
             int ai = mrb_gc_arena_save(mrb);

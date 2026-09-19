@@ -165,12 +165,23 @@ typedef struct
         s32 l, t, r, b;
     } clip;
 
+#if defined(BUILD_RENDER_CACHE)
+    bool has_scn;
+    bool has_bdr;
+#endif
     bool initialized;
 } tic_core_state_data;
+
+#if defined(BUILD_RENDER_CACHE)
+struct tic_draw_cache;
+#endif
 
 typedef struct
 {
     tic_mem memory; // it should be first
+#if defined(BUILD_RENDER_CACHE)
+    struct tic_draw_cache* draw_cache;
+#endif
     tic80_pixel_color_format screen_format;
 
     void* currentVM;
@@ -185,6 +196,18 @@ typedef struct
     s32 samplerate;
     tic_tick_data* data;
     tic_core_state_data state;
+
+#if defined(BUILD_RENDER_CACHE)
+    struct
+    {
+        tic_vram vbank0;
+        tic_vram vbank1;
+        tic80_pixel_color_format format;
+        bool valid;
+    } saved_vram;
+
+    bool screen_dirty;
+#endif
 
     struct
     {

@@ -1972,6 +1972,11 @@ static bool initWren(tic_mem* tic, const char* code)
         return false;
     }
 
+#if defined(BUILD_RENDER_CACHE)
+    core->state.has_scn = (strstr(code, SCN_FN) != NULL) || (strstr(code, "scanline") != NULL);
+    core->state.has_bdr = (strstr(code, BDR_FN) != NULL) || (strstr(code, "border") != NULL);
+#endif
+
     return true;
 }
 

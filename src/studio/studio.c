@@ -154,6 +154,15 @@ struct Studio
     struct
     {
         MouseState state[3];
+#if defined(BUILD_RENDER_CACHE)
+        struct
+        {
+            s32 x, y;
+            tic_cursor sprite;
+            bool system;
+            bool visible;
+        } prev;
+#endif
     } mouse;
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
@@ -2378,6 +2387,9 @@ void studioConfigChanged(Studio* studio)
 #endif
 
     updateSystemFont(studio);
+#if defined(BUILD_RENDER_CACHE)
+    tic_core_draw_cache_set_enabled(studio->tic, studio->config->data.options.drawCache);
+#endif
     tic_sys_update_config();
 }
 
@@ -2605,6 +2617,26 @@ void studio_tick(Studio* studio, tic80_input input)
             tic->ram->font = studio->systemFont;
         }
 
+#if defined(BUILD_RENDER_CACHE)
+        tic80_mouse* m = &tic->ram->input.mouse;
+        bool mouse_visible = (tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT && m->x >= 0 && m->y >= 0);
+        if (mouse_visible || studio->mouse.prev.visible)
+        {
+            if (m->x != studio->mouse.prev.x || m->y != studio->mouse.prev.y ||
+                tic->ram->vram.vars.cursor.sprite != studio->mouse.prev.sprite ||
+                tic->ram->vram.vars.cursor.system != studio->mouse.prev.system ||
+                mouse_visible != studio->mouse.prev.visible)
+            {
+                tic_core_invalidate(tic);
+                studio->mouse.prev.x = m->x;
+                studio->mouse.prev.y = m->y;
+                studio->mouse.prev.sprite = tic->ram->vram.vars.cursor.sprite;
+                studio->mouse.prev.system = tic->ram->vram.vars.cursor.system;
+                studio->mouse.prev.visible = mouse_visible;
+            }
+        }
+#endif
+
         callback[studio->mode].data
             ? tic_core_blit_ex(tic, callback[studio->mode])
             : tic_core_blit(tic);
@@ -2773,6 +2805,13 @@ void studio_delete(Studio* studio)
     free(studio->fs);
     free(studio);
 }
+
+#if defined(BUILD_RENDER_CACHE)
+bool studio_is_dirty(Studio* studio)
+{
+    return tic_core_is_dirty(studio->tic);
+}
+#endif
 
 #if defined(BUILD_EDITORS)
 Bytebattle* getBytebattle(Studio* studio)

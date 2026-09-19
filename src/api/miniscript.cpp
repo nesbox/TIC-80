@@ -1167,6 +1167,11 @@ static bool initMiniScript(tic_mem *tic, const char *code) {
         return false;
     }
 
+#if defined(BUILD_RENDER_CACHE)
+    core->state.has_scn = (strstr(code, "SCN") != NULL) || (strstr(code, "scanline") != NULL);
+    core->state.has_bdr = (strstr(code, "BDR") != NULL) || (strstr(code, "border") != NULL);
+#endif
+
     return true;
 }
 
@@ -1193,6 +1198,22 @@ static void callMiniScriptTick(tic_mem *tic) {
 
     // Run code for max 0.1 seconds (means the worst the user can end up with is 10FPS)
     vm->interpreter.RunUntilDone(0.1, true);
+
+#if defined(BUILD_RENDER_CACHE)
+    {
+        auto globals = vm->interpreter.vm().GetGlobals();
+        static Value scnName = Value::make_string("SCN");
+        static Value bdrName = Value::make_string("BDR");
+        static Value scanlineName = Value::make_string("scanline");
+        static Value borderName = Value::make_string("border");
+        auto scnSlot = globals.Find(scnName);
+        if (scnSlot == -1) scnSlot = globals.Find(scanlineName);
+        auto bdrSlot = globals.Find(bdrName);
+        if (bdrSlot == -1) bdrSlot = globals.Find(borderName);
+        core->state.has_scn = (scnSlot != -1 && !globals.ValueAtSlot(scnSlot).IsUnassigned() && globals.ValueAtSlot(scnSlot).IsFuncRef());
+        core->state.has_bdr = (bdrSlot != -1 && !globals.ValueAtSlot(bdrSlot).IsUnassigned() && globals.ValueAtSlot(bdrSlot).IsFuncRef());
+    }
+#endif
 
     // If the user's code errored, display the error.
     if (vm->error) {
