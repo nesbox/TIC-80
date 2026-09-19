@@ -1556,8 +1556,13 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
 
         memcpy(items + rows, Answers, sizeof Answers);
 
+        // The dialog's back is its own answer "no": ESC (and the gamepad's B)
+        // means the same thing as picking it. Passing NULL here left ESC to
+        // the fallback in processShortcuts, which asks prevMode where to go —
+        // for a dialog raised over a run that is RUN, remapped to CONSOLE, so
+        // ESC abandoned the run and never reached the callback at all.
         studio_menu_init(studio->menu, items, count, count - 2, 0,
-            NULL, MOVE((ConfirmData){studio, callback, data}));
+            confirmNo, MOVE((ConfirmData){studio, callback, data}));
 
         playSystemSfx(studio, 0);
     }
