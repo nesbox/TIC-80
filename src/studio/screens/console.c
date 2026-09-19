@@ -3373,6 +3373,164 @@ static void tabCompleteHelp(TabCompleteData* data)
 }
 
 
+// The RAM/VRAM maps and the button/key tables, each defined ONCE. `help ram`
+// and its siblings draw them as ASCII tables for the console, and `export
+// help` writes the same rows as markdown for the website; the two outputs
+// have to agree row for row, so a copy per output is a copy that drifts.
+// Until 19.09 they were exactly that, and one pair had already drifted: the
+// VRAM table's reserved row kept a trailing space on the console side only,
+// which the markdown copy had lost.
+//
+// The address tables end in a sentinel holding the region's end address: a
+// row's size is the distance to the next one, so the writers stop short of
+// the last entry.
+
+typedef struct {s32 addr; const char* info;} RamRow;
+typedef struct {s32 code; const char* key;} KeyRow;
+
+static const RamRow RamRows[] =
+{
+    {0,                                         "VRAM"},
+    {offsetof(tic_ram, tiles),                  "TILES"},
+    {offsetof(tic_ram, sprites),                "SPRITES"},
+    {offsetof(tic_ram, map),                    "MAP"},
+    {offsetof(tic_ram, input.gamepads),         "GAMEPADS"},
+    {offsetof(tic_ram, input.mouse),            "MOUSE"},
+    {offsetof(tic_ram, input.keyboard),         "KEYBOARD"},
+    {offsetof(tic_ram, sfxpos),                 "SFX STATE"},
+    {offsetof(tic_ram, registers),              "SOUND REGISTERS"},
+    {offsetof(tic_ram, sfx.waveforms),          "WAVEFORMS"},
+    {offsetof(tic_ram, sfx.samples),            "SFX"},
+    {offsetof(tic_ram, music.patterns.data),    "MUSIC PATTERNS"},
+    {offsetof(tic_ram, music.tracks.data),      "MUSIC TRACKS"},
+    {offsetof(tic_ram, music_state),            "MUSIC STATE"},
+    {offsetof(tic_ram, stereo),                 "STEREO VOLUME"},
+    {offsetof(tic_ram, persistent),             "PERSISTENT MEMORY"},
+    {offsetof(tic_ram, flags),                  "SPRITE FLAGS"},
+    {offsetof(tic_ram, font.regular),           "FONT"},
+    {offsetof(tic_ram, font.regular.params),    "FONT PARAMS"},
+    {offsetof(tic_ram, font.alt),               "ALT FONT"},
+    {offsetof(tic_ram, font.alt.params),        "ALT FONT PARAMS"},
+    {offsetof(tic_ram, mapping),                "BUTTONS MAPPING"},
+    {offsetof(tic_ram, pcm),                    "PCM SAMPLES"},
+    {offsetof(tic_ram, free),                   "** RESERVED **"},
+    {TIC_RAM_SIZE,                              ""},
+};
+
+static const RamRow VRamRows[] =
+{
+    {offsetof(tic_ram, vram.screen),        "SCREEN"},
+    {offsetof(tic_ram, vram.palette),       "PALETTE"},
+    {offsetof(tic_ram, vram.mapping),       "PALETTE MAP"},
+    {offsetof(tic_ram, vram.vars),          "BORDER COLOR"},
+    {offsetof(tic_ram, vram.vars.offset),   "SCREEN OFFSET"},
+    {offsetof(tic_ram, vram.vars.cursor),   "MOUSE CURSOR"},
+    {offsetof(tic_ram, vram.blit),          "BLIT SEGMENT"},
+    {offsetof(tic_ram, vram.reserved),      "... (reserved)"},
+    {TIC_VRAM_SIZE,                         ""},
+};
+
+// One entry per action, in P1 order; players 2-4 follow at +8 per player.
+static const char* ButtonActions[] = {"UP", "DOWN", "LEFT", "RIGHT", "A", "B", "X", "Y"};
+
+static const KeyRow KeyRows[] =
+{
+    {1,  "A"},
+    {2,  "B"},
+    {3,  "C"},
+    {4,  "D"},
+    {5,  "E"},
+    {6,  "F"},
+    {7,  "G"},
+    {8,  "H"},
+    {9,  "I"},
+    {10, "J"},
+    {11, "K"},
+    {12, "L"},
+    {13, "M"},
+    {14, "N"},
+    {15, "O"},
+    {16, "P"},
+    {17, "Q"},
+    {18, "R"},
+    {19, "S"},
+    {20, "T"},
+    {21, "U"},
+    {22, "V"},
+    {23, "W"},
+    {24, "X"},
+    {25, "Y"},
+    {26, "Z"},
+    {27, "0"},
+    {28, "1"},
+    {29, "2"},
+    {30, "3"},
+    {31, "4"},
+    {32, "5"},
+    {33, "6"},
+    {34, "7"},
+    {35, "8"},
+    {36, "9"},
+    {37, "MINUS"},
+    {38, "EQUALS"},
+    {39, "LEFTBRACKET"},
+    {40, "RIGHTBRACKT"},
+    {41, "BACKSLASH"},
+    {42, "SEMICOLON"},
+    {43, "APOSTROPHE"},
+    {44, "GRAVE"},
+    {45, "COMMA"},
+    {46, "PERIOD"},
+    {47, "SLASH"},
+    {48, "SPACE"},
+    {49, "TAB"},
+    {50, "RETURN"},
+    {51, "BACKSPACE"},
+    {52, "DELETE"},
+    {53, "INSERT"},
+    {54, "PAGEUP"},
+    {55, "PAGEDOWN"},
+    {56, "HOME"},
+    {57, "END"},
+    {58, "UP"},
+    {59, "DOWN"},
+    {60, "LEFT"},
+    {61, "RIGHT"},
+    {62, "CAPSLOCK"},
+    {63, "CTRL"},
+    {64, "SHIFT"},
+    {65, "ALT"},
+    {66, "ESC"},
+    {67, "F1"},
+    {68, "F2"},
+    {69, "F3"},
+    {70, "F4"},
+    {71, "F5"},
+    {72, "F6"},
+    {73, "F7"},
+    {74, "F8"},
+    {75, "F9"},
+    {76, "F10"},
+    {77, "F11"},
+    {78, "F12"},
+    {79, "NUM0"},
+    {80, "NUM1"},
+    {81, "NUM2"},
+    {82, "NUM3"},
+    {83, "NUM4"},
+    {84, "NUM5"},
+    {85, "NUM6"},
+    {86, "NUM7"},
+    {87, "NUM8"},
+    {88, "NUM9"},
+    {89, "NUMPLUS"},
+    {90, "NUMMINUS"},
+    {91, "NUMMULTIPLY"},
+    {92, "NUMDIVIDE"},
+    {93, "NUMENTER"},
+    {94, "NUMPERIOD"},
+};
+
 static s32 createRamTable(char* buf)
 {
     char* ptr = buf;
@@ -3382,36 +3540,7 @@ static s32 createRamTable(char* buf)
                         "\n| ADDR  | INFO              | BYTES |"
                         "\n+-------+-------------------+-------+");
 
-    static const struct Row {s32 addr; const char* info;} Rows[] =
-    {
-        {0,                                         "<VRAM>"},
-        {offsetof(tic_ram, tiles),                  "TILES"},
-        {offsetof(tic_ram, sprites),                "SPRITES"},
-        {offsetof(tic_ram, map),                    "MAP"},
-        {offsetof(tic_ram, input.gamepads),         "GAMEPADS"},
-        {offsetof(tic_ram, input.mouse),            "MOUSE"},
-        {offsetof(tic_ram, input.keyboard),         "KEYBOARD"},
-        {offsetof(tic_ram, sfxpos),                 "SFX STATE"},
-        {offsetof(tic_ram, registers),              "SOUND REGISTERS"},
-        {offsetof(tic_ram, sfx.waveforms),          "WAVEFORMS"},
-        {offsetof(tic_ram, sfx.samples),            "SFX"},
-        {offsetof(tic_ram, music.patterns.data),    "MUSIC PATTERNS"},
-        {offsetof(tic_ram, music.tracks.data),      "MUSIC TRACKS"},
-        {offsetof(tic_ram, music_state),            "MUSIC STATE"},
-        {offsetof(tic_ram, stereo),                 "STEREO VOLUME"},
-        {offsetof(tic_ram, persistent),             "PERSISTENT MEMORY"},
-        {offsetof(tic_ram, flags),                  "SPRITE FLAGS"},
-        {offsetof(tic_ram, font.regular),           "FONT"},
-        {offsetof(tic_ram, font.regular.params),    "FONT PARAMS"},
-        {offsetof(tic_ram, font.alt),               "ALT FONT"},
-        {offsetof(tic_ram, font.alt.params),        "ALT FONT PARAMS"},
-        {offsetof(tic_ram, mapping),                "BUTTONS MAPPING"},
-        {offsetof(tic_ram, pcm),                    "PCM SAMPLES"},
-        {offsetof(tic_ram, free),                   "** RESERVED **"},
-        {TIC_RAM_SIZE,                              ""},
-    };
-
-    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
+    for(const RamRow* row = RamRows, *end = row + COUNT_OF(RamRows) - 1; row < end; row++)
         ptr += sprintf(ptr, "\n| %05X | %-17s | %-5i |", row->addr, row->info, (row + 1)->addr - row->addr);
 
     ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
@@ -3428,20 +3557,7 @@ static s32 createVRamTable(char* buf)
                         "\n| ADDR  | INFO              | BYTES |"
                         "\n+-------+-------------------+-------+");
 
-    static const struct Row {s32 addr; const char* info;} Rows[] =
-    {
-        {offsetof(tic_ram, vram.screen),        "SCREEN"},
-        {offsetof(tic_ram, vram.palette),       "PALETTE"},
-        {offsetof(tic_ram, vram.mapping),       "PALETTE MAP"},
-        {offsetof(tic_ram, vram.vars),          "BORDER COLOR"},
-        {offsetof(tic_ram, vram.vars.offset),   "SCREEN OFFSET"},
-        {offsetof(tic_ram, vram.vars.cursor),   "MOUSE CURSOR"},
-        {offsetof(tic_ram, vram.blit),          "BLIT SEGMENT"},
-        {offsetof(tic_ram, vram.reserved),      "... (reserved) "},
-        {TIC_VRAM_SIZE,                         ""},
-    };
-
-    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
+    for(const RamRow* row = VRamRows, *end = row + COUNT_OF(VRamRows) - 1; row < end; row++)
         ptr += sprintf(ptr, "\n| %05X | %-17s | %-5i |", row->addr, row->info, (row + 1)->addr - row->addr);
 
     ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
@@ -3456,105 +3572,7 @@ static s32 createKeysTable(char* buf)
                         "\n|CODE|    KEY     | |CODE|    KEY     |"
                         "\n+----+------------+ +----+------------+");
 
-    static const struct Row {s32 code; const char* key;} Rows[] =
-    {
-        {1,  "A"},
-        {2,  "B"},
-        {3,  "C"},
-        {4,  "D"},
-        {5,  "E"},
-        {6,  "F"},
-        {7,  "G"},
-        {8,  "H"},
-        {9,  "I"},
-        {10, "J"},
-        {11, "K"},
-        {12, "L"},
-        {13, "M"},
-        {14, "N"},
-        {15, "O"},
-        {16, "P"},
-        {17, "Q"},
-        {18, "R"},
-        {19, "S"},
-        {20, "T"},
-        {21, "U"},
-        {22, "V"},
-        {23, "W"},
-        {24, "X"},
-        {25, "Y"},
-        {26, "Z"},
-        {27, "0"},
-        {28, "1"},
-        {29, "2"},
-        {30, "3"},
-        {31, "4"},
-        {32, "5"},
-        {33, "6"},
-        {34, "7"},
-        {35, "8"},
-        {36, "9"},
-        {37, "MINUS"},
-        {38, "EQUALS"},
-        {39, "LEFTBRACKET"},
-        {40, "RIGHTBRACKT"},
-        {41, "BACKSLASH"},
-        {42, "SEMICOLON"},
-        {43, "APOSTROPHE"},
-        {44, "GRAVE"},
-        {45, "COMMA"},
-        {46, "PERIOD"},
-        {47, "SLASH"},
-        {48, "SPACE"},
-        {49, "TAB"},
-        {50, "RETURN"},
-        {51, "BACKSPACE"},
-        {52, "DELETE"},
-        {53, "INSERT"},
-        {54, "PAGEUP"},
-        {55, "PAGEDOWN"},
-        {56, "HOME"},
-        {57, "END"},
-        {58, "UP"},
-        {59, "DOWN"},
-        {60, "LEFT"},
-        {61, "RIGHT"},
-        {62, "CAPSLOCK"},
-        {63, "CTRL"},
-        {64, "SHIFT"},
-        {65, "ALT"},
-        {66, "ESC"},
-        {67, "F1"},
-        {68, "F2"},
-        {69, "F3"},
-        {70, "F4"},
-        {71, "F5"},
-        {72, "F6"},
-        {73, "F7"},
-        {74, "F8"},
-        {75, "F9"},
-        {76, "F10"},
-        {77, "F11"},
-        {78, "F12"},
-        {79, "NUM0"},
-        {80, "NUM1"},
-        {81, "NUM2"},
-        {82, "NUM3"},
-        {83, "NUM4"},
-        {84, "NUM5"},
-        {85, "NUM6"},
-        {86, "NUM7"},
-        {87, "NUM8"},
-        {88, "NUM9"},
-        {89, "NUMPLUS"},
-        {90, "NUMMINUS"},
-        {91, "NUMMULTIPLY"},
-        {92, "NUMDIVIDE"},
-        {93, "NUMENTER"},
-        {94, "NUMPERIOD"},
-    };
-
-    for(const struct Row *row = Rows, *alt = row + COUNT_OF(Rows) / 2, *end = alt; row != end; ++row, ++alt)
+    for(const KeyRow *row = KeyRows, *alt = row + COUNT_OF(KeyRows) / 2, *end = alt; row != end; ++row, ++alt)
     {
         ptr += sprintf(ptr, "\n| %2d | %-11s| | %2d | %-11s|", row->code, row->key, alt->code, alt->key);
     }
@@ -3571,23 +3589,9 @@ static s32 createButtonsTable(char* buf)
                         "\n| ACTION | P1 | P2 | P3 | P4 |"
                         "\n+--------+----+----+----+----+");
 
-    static const struct Row {const char* action;} Rows[] =
-    {
-        {"UP"},
-        {"DOWN"},
-        {"LEFT"},
-        {"RIGHT"},
-        {"A"},
-        {"B"},
-        {"X"},
-        {"Y"},
-    };
-
     int id = 0;
-    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows); row < end; row++) {
-        ptr += sprintf(ptr, "\n| %6s | %2d | %2d | %2d | %2d |", row->action, id, id + 8, id + 16, id + 24);
-        id++;
-    }
+    for(const char** it = ButtonActions, **end = it + COUNT_OF(ButtonActions); it < end; ++it, ++id)
+        ptr += sprintf(ptr, "\n| %6s | %2d | %2d | %2d | %2d |", *it, id, id + 8, id + 16, id + 24);
 
     ptr += sprintf(ptr, "\n+--------+----+----+----+----+\n");
 
@@ -3599,36 +3603,7 @@ static s32 createRamTableMd(char* buf)
     char* ptr = buf;
     ptr += sprintf(ptr, "\n### RAM layout (96KB)\n\n| ADDR | INFO | BYTES |\n|---|---|---|\n");
 
-    static const struct Row {s32 addr; const char* info;} Rows[] =
-    {
-        {0,                                         "<VRAM>"},
-        {offsetof(tic_ram, tiles),                  "TILES"},
-        {offsetof(tic_ram, sprites),                "SPRITES"},
-        {offsetof(tic_ram, map),                    "MAP"},
-        {offsetof(tic_ram, input.gamepads),         "GAMEPADS"},
-        {offsetof(tic_ram, input.mouse),            "MOUSE"},
-        {offsetof(tic_ram, input.keyboard),         "KEYBOARD"},
-        {offsetof(tic_ram, sfxpos),                 "SFX STATE"},
-        {offsetof(tic_ram, registers),              "SOUND REGISTERS"},
-        {offsetof(tic_ram, sfx.waveforms),          "WAVEFORMS"},
-        {offsetof(tic_ram, sfx.samples),            "SFX"},
-        {offsetof(tic_ram, music.patterns.data),    "MUSIC PATTERNS"},
-        {offsetof(tic_ram, music.tracks.data),      "MUSIC TRACKS"},
-        {offsetof(tic_ram, music_state),            "MUSIC STATE"},
-        {offsetof(tic_ram, stereo),                 "STEREO VOLUME"},
-        {offsetof(tic_ram, persistent),             "PERSISTENT MEMORY"},
-        {offsetof(tic_ram, flags),                  "SPRITE FLAGS"},
-        {offsetof(tic_ram, font.regular),           "FONT"},
-        {offsetof(tic_ram, font.regular.params),    "FONT PARAMS"},
-        {offsetof(tic_ram, font.alt),               "ALT FONT"},
-        {offsetof(tic_ram, font.alt.params),        "ALT FONT PARAMS"},
-        {offsetof(tic_ram, mapping),                "BUTTONS MAPPING"},
-        {offsetof(tic_ram, pcm),                    "PCM SAMPLES"},
-        {offsetof(tic_ram, free),                   "** RESERVED **"},
-        {TIC_RAM_SIZE,                              ""},
-    };
-
-    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
+    for(const RamRow* row = RamRows, *end = row + COUNT_OF(RamRows) - 1; row < end; row++)
         ptr += sprintf(ptr, "| %05X | %s | %i |\n", row->addr, row->info, (row + 1)->addr - row->addr);
 
     return strlen(buf);
@@ -3639,20 +3614,7 @@ static s32 createVRamTableMd(char* buf)
     char* ptr = buf;
     ptr += sprintf(ptr, "\n### VRAM layout (16KB)\n\n| ADDR | INFO | BYTES |\n|---|---|---|\n");
 
-    static const struct Row {s32 addr; const char* info;} Rows[] =
-    {
-        {offsetof(tic_ram, vram.screen),        "SCREEN"},
-        {offsetof(tic_ram, vram.palette),       "PALETTE"},
-        {offsetof(tic_ram, vram.mapping),       "PALETTE MAP"},
-        {offsetof(tic_ram, vram.vars),          "BORDER COLOR"},
-        {offsetof(tic_ram, vram.vars.offset),   "SCREEN OFFSET"},
-        {offsetof(tic_ram, vram.vars.cursor),   "MOUSE CURSOR"},
-        {offsetof(tic_ram, vram.blit),          "BLIT SEGMENT"},
-        {offsetof(tic_ram, vram.reserved),      "... (reserved)"},
-        {TIC_VRAM_SIZE,                         ""},
-    };
-
-    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
+    for(const RamRow* row = VRamRows, *end = row + COUNT_OF(VRamRows) - 1; row < end; row++)
         ptr += sprintf(ptr, "| %05X | %s | %i |\n", row->addr, row->info, (row + 1)->addr - row->addr);
 
     return strlen(buf);
@@ -3663,10 +3625,8 @@ static s32 createButtonsTableMd(char* buf)
     char* ptr = buf;
     ptr += sprintf(ptr, "\n| ACTION | P1 | P2 | P3 | P4 |\n|---|---|---|---|---|\n");
 
-    static const char* Actions[] = {"UP", "DOWN", "LEFT", "RIGHT", "A", "B", "X", "Y"};
-
     int id = 0;
-    for(const char** it = Actions, **end = it + COUNT_OF(Actions); it < end; ++it, ++id)
+    for(const char** it = ButtonActions, **end = it + COUNT_OF(ButtonActions); it < end; ++it, ++id)
         ptr += sprintf(ptr, "| %s | %d | %d | %d | %d |\n", *it, id, id + 8, id + 16, id + 24);
 
     return strlen(buf);
@@ -3677,21 +3637,7 @@ static s32 createKeysTableMd(char* buf)
     char* ptr = buf;
     ptr += sprintf(ptr, "\n| CODE | KEY | CODE | KEY |\n|---|---|---|---|\n");
 
-    static const struct Row {s32 code; const char* key;} Rows[] =
-    {
-        {1, "A"}, {2, "B"}, {3, "C"}, {4, "D"}, {5, "E"}, {6, "F"}, {7, "G"}, {8, "H"}, {9, "I"}, {10, "J"},
-        {11, "K"}, {12, "L"}, {13, "M"}, {14, "N"}, {15, "O"}, {16, "P"}, {17, "Q"}, {18, "R"}, {19, "S"}, {20, "T"},
-        {21, "U"}, {22, "V"}, {23, "W"}, {24, "X"}, {25, "Y"}, {26, "Z"}, {27, "0"}, {28, "1"}, {29, "2"}, {30, "3"},
-        {31, "4"}, {32, "5"}, {33, "6"}, {34, "7"}, {35, "8"}, {36, "9"}, {37, "MINUS"}, {38, "EQUALS"}, {39, "LEFTBRACKET"}, {40, "RIGHTBRACKT"},
-        {41, "BACKSLASH"}, {42, "SEMICOLON"}, {43, "APOSTROPHE"}, {44, "GRAVE"}, {45, "COMMA"}, {46, "PERIOD"}, {47, "SLASH"}, {48, "SPACE"}, {49, "TAB"}, {50, "RETURN"},
-        {51, "BACKSPACE"}, {52, "DELETE"}, {53, "INSERT"}, {54, "PAGEUP"}, {55, "PAGEDOWN"}, {56, "HOME"}, {57, "END"}, {58, "UP"}, {59, "DOWN"}, {60, "LEFT"},
-        {61, "RIGHT"}, {62, "CAPSLOCK"}, {63, "CTRL"}, {64, "SHIFT"}, {65, "ALT"}, {66, "ESC"}, {67, "F1"}, {68, "F2"}, {69, "F3"}, {70, "F4"},
-        {71, "F5"}, {72, "F6"}, {73, "F7"}, {74, "F8"}, {75, "F9"}, {76, "F10"}, {77, "F11"}, {78, "F12"}, {79, "NUM0"}, {80, "NUM1"},
-        {81, "NUM2"}, {82, "NUM3"}, {83, "NUM4"}, {84, "NUM5"}, {85, "NUM6"}, {86, "NUM7"}, {87, "NUM8"}, {88, "NUM9"}, {89, "NUMPLUS"}, {90, "NUMMINUS"},
-        {91, "NUMMULTIPLY"}, {92, "NUMDIVIDE"}, {93, "NUMENTER"}, {94, "NUMPERIOD"},
-    };
-
-    for(const struct Row *row = Rows, *alt = row + COUNT_OF(Rows) / 2, *end = alt; row != end; ++row, ++alt)
+    for(const KeyRow *row = KeyRows, *alt = row + COUNT_OF(KeyRows) / 2, *end = alt; row != end; ++row, ++alt)
         ptr += sprintf(ptr, "| %d | %s | %d | %s |\n", row->code, row->key, alt->code, alt->key);
 
     return strlen(buf);
