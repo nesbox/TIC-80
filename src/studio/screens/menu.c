@@ -512,11 +512,6 @@ bool studio_menu_has_back(Menu* menu)
     return menu->back != NULL;
 }
 
-void* studio_menu_data(Menu* menu)
-{
-    return menu->data;
-}
-
 bool studio_menu_back(Menu* menu)
 {
     if(menu->back)

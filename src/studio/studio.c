@@ -146,8 +146,11 @@ struct Studio
     bool quit_requested;
 
     // Every mode question — which screen is on, where a run came from, who
-    // asked for it, where a menu goes back to — is this one state, and
-    // machine.c is the only thing that changes it (see studioSend).
+    // asked for it, where a menu goes back to — is this one state, and the
+    // machine is the only thing that decides it (see studioSend). Two fields
+    // are written from outside on purpose: the toolbar's click and the code
+    // editor's focus flag are the executor's own bookkeeping, and both are
+    // consumed by the next dispatch.
     SmState machine;
 
     struct
@@ -1417,12 +1420,6 @@ static void runEffect(Studio* studio, const SmResult* result, SmEffect effect)
 #endif
         break;
 
-    case SM_EFF_CODE_FOCUS:
-#if defined(BUILD_EDITORS)
-        studio->machine.code_focus = true;
-#endif
-        break;
-
     case SM_EFF_EDITOR_ESCAPE:
 #if defined(BUILD_EDITORS)
         studio->code->escape(studio->code);
@@ -1574,8 +1571,8 @@ void setCursor(Studio* studio, tic_cursor id)
 }
 
 // The main menu's rows belong to the menu widget, so whoever puts them back —
-// gotoMenu, and a dialog that was raised in the menu and is now answered —
-// rebuilds them here.
+// the switch into MENU, and a dialog that was raised in the menu and is now
+// answered — rebuilds them here.
 static void rebuildMainMenu(Studio* studio)
 {
     studio_mainmenu_free(studio->mainmenu);
@@ -1645,10 +1642,10 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
         studio->dialogData = MOVE((ConfirmData){studio, callback, data});
 
         // The dialog's back is its own answer "no": ESC (and the gamepad's B)
-        // means the same thing as picking it. Passing NULL here left ESC to
-        // the fallback in processShortcuts, which asks prevMode where to go —
-        // for a dialog raised over a run that is RUN, remapped to CONSOLE, so
-        // ESC abandoned the run and never reached the callback at all.
+        // means the same thing as picking it. It used to be NULL, and ESC then
+        // took the "this menu has nowhere to go" fallback — for a dialog raised
+        // over a run that was the console, so ESC abandoned the run and never
+        // reached the callback at all.
         studio_menu_init(studio->menu, items, count, count - 2, 0,
             confirmNo, studio->dialogData);
 

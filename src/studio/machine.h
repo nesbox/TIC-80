@@ -158,7 +158,7 @@ typedef enum
     SM_EV_LEAVE_RUN,        // leaveRun: a studio run steps back out
     SM_EV_CLOSE_GAME,       // exitGame: the CLOSE GAME row
     SM_EV_RESUME_GAME,      // resumeGame: un-pause, do not re-initialise
-    SM_EV_RUN_GAME,         // runGame                                    .origin
+    SM_EV_RUN_GAME,         // runGame, which resets the core itself       .origin
     SM_EV_RUN_EXITED,       // the cart called exit()
     SM_EV_RUN_ERRORED,      // the cart's script raised
     SM_EV_CONFIRM_OPENED,   // confirmDialog
@@ -202,7 +202,6 @@ typedef enum
     SM_EFF_CONSOLE_DONE,     // console->done, only when CONSOLE follows SURF
     SM_EFF_MUSIC_NEXT_TAB,   // MUSIC asked for while already in MUSIC
     SM_EFF_VI_MODE_RESET,    // studio->viMode = 0, emitted even when nothing moved
-    SM_EFF_CODE_FOCUS,       // the code editor was asked for, not just entered
     SM_EFF_EDITOR_ESCAPE,    // code->escape: the editor's own popup consumes ESC
     SM_EFF_MENU_BACK_ANIM,   // a menu that has a back: play it
     SM_EFF_DIALOG_CALLBACK,  // call the stored confirm callback with `yes`

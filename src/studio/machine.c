@@ -351,8 +351,10 @@ SmResult sm_dispatch(SmState* state, const SmEnv* env, const SmEvent* event)
         if(state->mode != TIC_CODE_MODE)
         {
             req(state, features, env, &result, TIC_CODE_MODE);
+
+            // The flag is the machine's; the executor only reads it, through
+            // the accessors the code editor calls.
             state->code_focus = true;
-            pushEffect(&result.effects, SM_EFF_CODE_FOCUS);
         }
         break;
 
@@ -548,6 +550,17 @@ SmModePolicy sm_mode_policy(EditorMode mode)
         };
 
     case TIC_START_MODE:
+        // The splash plays the config cart's chime and wipes the gamepad, like
+        // every screen but the menu and the browser — and unlike them it is not
+        // a screen that a cart is loaded under.
+        return (SmModePolicy)
+        {
+            .sound = SM_SOUND_CONFIG,
+            .input = SM_INPUT_CLEAR_PAD,
+            .clear_vbank1 = true,
+            .config_palette = true,
+        };
+
     case TIC_CONSOLE_MODE:
     case TIC_CODE_MODE:
     case TIC_SPRITE_MODE:
@@ -614,7 +627,6 @@ const char* sm_effect_name(SmEffect effect)
     case SM_EFF_CONSOLE_DONE:     return "CONSOLE_DONE";
     case SM_EFF_MUSIC_NEXT_TAB:   return "MUSIC_NEXT_TAB";
     case SM_EFF_VI_MODE_RESET:    return "VI_MODE_RESET";
-    case SM_EFF_CODE_FOCUS:       return "CODE_FOCUS";
     case SM_EFF_EDITOR_ESCAPE:    return "EDITOR_ESCAPE";
     case SM_EFF_MENU_BACK_ANIM:   return "MENU_BACK_ANIM";
     case SM_EFF_DIALOG_CALLBACK:  return "DIALOG_CALLBACK";

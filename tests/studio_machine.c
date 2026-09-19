@@ -353,7 +353,7 @@ static void test_same_mode_requests(void)
     {
         SmState state = stateIn(features, TIC_SPRITE_MODE);
         SmEvent event = eventOf(SM_EV_REQUEST_CODE_FOCUS);
-        static const SmEffect Want[] = { SM_EFF_RESET_CORE, SM_EFF_VI_MODE_RESET, SM_EFF_CODE_FOCUS };
+        static const SmEffect Want[] = { SM_EFF_RESET_CORE, SM_EFF_VI_MODE_RESET };
 
         expect("code focus from the sprite editor", &state, &DefaultEnv, &event,
             TIC_CODE_MODE, Want, COUNT_OF(Want));
@@ -1069,6 +1069,55 @@ static void test_editorless_remap(void)
     }
 }
 
+// The per-frame policy of all eleven modes: what the four switches over the
+// mode used to decide, as data the studio reads. The start screen is the one
+// that is not obvious — it plays the studio's own config cart, as it always
+// has, and clears the gamepad like every screen but the menu and the browser.
+static void test_mode_policy(void)
+{
+    static const struct
+    {
+        EditorMode mode;
+        SmSoundSource sound;
+        SmInputPolicy input;
+        bool clear_vbank1;
+        bool config_palette;
+    } Want[] =
+    {
+        { TIC_START_MODE,   SM_SOUND_CONFIG, SM_INPUT_CLEAR_PAD, true,  true  },
+        { TIC_CONSOLE_MODE, SM_SOUND_BANKS,  SM_INPUT_CLEAR_PAD, true,  true  },
+        { TIC_RUN_MODE,     SM_SOUND_RAM,    SM_INPUT_KEEP,      false, false },
+        { TIC_CODE_MODE,    SM_SOUND_BANKS,  SM_INPUT_CLEAR_PAD, true,  true  },
+        { TIC_SPRITE_MODE,  SM_SOUND_BANKS,  SM_INPUT_CLEAR_PAD, true,  true  },
+        { TIC_MAP_MODE,     SM_SOUND_BANKS,  SM_INPUT_CLEAR_PAD, true,  true  },
+        { TIC_WORLD_MODE,   SM_SOUND_BANKS,  SM_INPUT_CLEAR_PAD, true,  true  },
+        { TIC_SFX_MODE,     SM_SOUND_BANKS,  SM_INPUT_CLEAR_PAD, true,  true  },
+        { TIC_MUSIC_MODE,   SM_SOUND_BANKS,  SM_INPUT_CLEAR_PAD, true,  true  },
+        { TIC_MENU_MODE,    SM_SOUND_CONFIG, SM_INPUT_CLEAR,     true,  true  },
+        { TIC_SURF_MODE,    SM_SOUND_CONFIG, SM_INPUT_CLEAR,     true,  true  },
+    };
+
+    for(size_t i = 0; i < COUNT_OF(Want); ++i)
+    {
+        SmModePolicy got = sm_mode_policy(Want[i].mode);
+
+        ++checks;
+
+        if(got.sound != Want[i].sound || got.input != Want[i].input
+            || got.clear_vbank1 != Want[i].clear_vbank1
+            || got.config_palette != Want[i].config_palette)
+        {
+            ++failed;
+            printf("FAIL policy: %s got {sound %d, input %d, vbank %d, palette %d},"
+                   " want {sound %d, input %d, vbank %d, palette %d}\n",
+                sm_mode_name(Want[i].mode), (int)got.sound, (int)got.input,
+                got.clear_vbank1, got.config_palette,
+                (int)Want[i].sound, (int)Want[i].input,
+                Want[i].clear_vbank1, Want[i].config_palette);
+        }
+    }
+}
+
 static void test_sweep(void)
 {
     SmFeatures features = variant();
@@ -1152,6 +1201,7 @@ int main(void)
     test_open_surf();
     test_startup();
     test_editorless_remap();
+    test_mode_policy();
     test_sweep();
 
     printf("%s: %d checks, %d failed\n", failed ? "FAILED" : "ok", checks, failed);
