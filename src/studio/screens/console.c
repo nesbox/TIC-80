@@ -3038,7 +3038,7 @@ static void onAddCommand(Console* console)
                 stringToUTF8(filename, filePtr, filename.length + 1);
 
                 var dataPtr = _malloc(rom.length);
-                writeArrayToMemory(rom, dataPtr);
+                HEAPU8.set(rom, dataPtr);
 
                 dynCall('viiii', $0, [$1, filePtr, dataPtr, rom.length]);
 
