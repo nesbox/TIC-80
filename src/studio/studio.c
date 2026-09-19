@@ -146,6 +146,12 @@ struct Studio
     // back to.
     bool menuOverRun;
 
+    // Whether the MENU on screen is a confirm dialog rather than a menu the
+    // player navigates. A dialog raised in the menu names the menu as its
+    // return target, a dialog raised over another dialog keeps the target of
+    // the one underneath, and this is what tells those two apart.
+    bool menuDialog;
+
     struct
     {
         MouseState state[3];
@@ -1471,6 +1477,17 @@ typedef struct
     void* data;
 } ConfirmData;
 
+// The main menu's rows belong to the menu widget, so whoever puts them back —
+// gotoMenu, and a dialog that was raised in the menu and is now answered —
+// rebuilds them here. The dialog flag goes with them: there is no dialog on
+// screen once the menu is showing.
+static void rebuildMainMenu(Studio* studio)
+{
+    studio_mainmenu_free(studio->mainmenu);
+    studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+    studio->menuDialog = false;
+}
+
 static void confirmHandler(bool yes, void* data)
 {
     ConfirmData* confirmData = data;
@@ -1478,11 +1495,16 @@ static void confirmHandler(bool yes, void* data)
     {
         Studio* studio = confirmData->studio;
 
-        if(studio->menuMode == TIC_RUN_MODE)
+        // Where the answer goes back to. RUN means the dialog was raised over
+        // a run, and a mode switch cannot un-pause the core — only resumeGame
+        // can. MENU means it was raised in the menu: the dialog replaced the
+        // menu's rows, so they come back rather than the mode changing.
+        switch(studio->menuMode)
         {
-            resumeGame(studio);
+        case TIC_RUN_MODE:  resumeGame(studio); break;
+        case TIC_MENU_MODE: rebuildMainMenu(studio); break;
+        default:            setStudioMode(studio, studio->menuMode); break;
         }
-        else setStudioMode(studio, studio->menuMode);
 
         confirmData->callback(studio, yes, confirmData->data);
     }
@@ -1500,10 +1522,18 @@ static void confirmYes(void* data, s32 pos)
 
 void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback callback, void* data)
 {
-    if(studio->mode != TIC_MENU_MODE)
+    // Where the answer goes back to: the screen the dialog was raised from. A
+    // dialog raised in the menu names the menu — the answer puts its rows back
+    // (rebuildMainMenu) — while one raised over another dialog keeps the outer
+    // target. Leaving it alone there is what the old code did in every MENU
+    // case, so answering the quit dialog cancelled into whatever screen the
+    // last dialog had named, console or editor, with the menu still behind it.
+    if(studio->mode != TIC_MENU_MODE || !studio->menuDialog)
     {
         studio->menuMode = studio->mode;
     }
+
+    studio->menuDialog = true;
 
     setStudioMode(studio, TIC_MENU_MODE);
 
@@ -1898,8 +1928,7 @@ void gotoMenu(Studio* studio)
         studio->runFrom = studio->mode;
 
     setStudioMode(studio, TIC_MENU_MODE);
-    studio_mainmenu_free(studio->mainmenu);
-    studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+    rebuildMainMenu(studio);
 }
 
 // Whether the menu's back resumes a game: it does when a player's run is
