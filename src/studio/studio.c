@@ -1243,6 +1243,18 @@ static void initWorldMap(Studio* studio)
 {
     initWorld(studio->world, studio, studio->banks.map[studio->bank.index.map]);
 }
+#endif
+
+// Forward declarations: the executor reaches for two helpers that are defined
+// further down the file, and the mutators between here and it drive the machine
+// through studioSend.
+static void studioSend(Studio* studio, const SmEvent* event);
+static void rebuildMainMenu(Studio* studio);
+#if defined(BUILD_EDITORS)
+static bool showGameMenu(Studio* studio);
+#endif
+
+#if defined(BUILD_EDITORS)
 
 void gotoCode(Studio* studio)
 {
@@ -1258,8 +1270,11 @@ static void initSurfMode(Studio* studio)
 
 void gotoSurf(Studio* studio)
 {
-    initSurfMode(studio);
-    setStudioMode(studio, TIC_SURF_MODE);
+    // The browser is built by the effect, not by this function: which screens
+    // need waking up when a mode is entered is the machine's answer (it is the
+    // same one the switch to SURF used to carry).
+    SmEvent event = { .kind = SM_EV_OPEN_SURF };
+    studioSend(studio, &event);
 }
 #endif
 
@@ -1281,15 +1296,6 @@ typedef struct
     ConfirmCallback callback;
     void* data;
 } ConfirmData;
-#endif
-
-// Forward declarations: the executor reaches for two helpers that are defined
-// further down the file, and the mutators below drive the machine through
-// studioSend.
-static void studioSend(Studio* studio, const SmEvent* event);
-static void rebuildMainMenu(Studio* studio);
-#if defined(BUILD_EDITORS)
-static bool showGameMenu(Studio* studio);
 #endif
 
 // Who owns ESC this frame. The machine cannot look inside the code editor, so
