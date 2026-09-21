@@ -112,7 +112,7 @@ jobs:
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
             # to buy, at the price of throwing SDL2 and the whole engine away
-            # twelve times over. Without it a pass rebuilds only what its
+            # fourteen times over. Without it a pass rebuilds only what its
             # language actually changed (measured on this tree: 44 build steps
             # against 390 for a full one). BUILD_PRO is spelled out because the
             # Build Pro step above leaves it on in this same build directory.
@@ -263,7 +263,7 @@ jobs:
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
             # to buy, at the price of throwing SDL2 and the whole engine away
-            # twelve times over. Without it a pass rebuilds only what its
+            # fourteen times over. Without it a pass rebuilds only what its
             # language actually changed (measured on this tree: 44 build steps
             # against 390 for a full one). BUILD_PRO is spelled out because the
             # Build Pro step above leaves it on in this same build directory.
@@ -402,7 +402,7 @@ jobs:
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
             # to buy, at the price of throwing SDL2 and the whole engine away
-            # twelve times over. Without it a pass rebuilds only what its
+            # fourteen times over. Without it a pass rebuilds only what its
             # language actually changed (measured on this tree: 44 build steps
             # against 390 for a full one). BUILD_PRO is spelled out because the
             # Build Pro step above leaves it on in this same build directory.
@@ -663,7 +663,7 @@ jobs:
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
             # to buy, at the price of throwing SDL2 and the whole engine away
-            # twelve times over. Without it a pass rebuilds only what its
+            # fourteen times over. Without it a pass rebuilds only what its
             # language actually changed (measured on this tree: 44 build steps
             # against 390 for a full one). BUILD_PRO is spelled out because the
             # Build Pro step above leaves it on in this same build directory.
@@ -806,7 +806,7 @@ jobs:
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
             # to buy, at the price of throwing SDL2 and the whole engine away
-            # twelve times over. Without it a pass rebuilds only what its
+            # fourteen times over. Without it a pass rebuilds only what its
             # language actually changed (measured on this tree: 44 build steps
             # against 390 for a full one). BUILD_PRO is spelled out because the
             # Build Pro step above leaves it on in this same build directory.
@@ -943,26 +943,32 @@ jobs:
       # site's player, and the universal stub every free export downloads —
       # so it keeps its editors.
 
-      # The two builds are split by trigger, not by job: the stubs run on a
-      # tag or a dispatch like the native loops, the player always. Nothing
-      # but a release reads the per-language wasm out of this artifact —
-      # package.sh, which release.yml runs on a tag, is the only consumer,
-      # and the dev flow takes the player's three files.
+      # The two builds are split by trigger, not by job: the player always,
+      # the stubs on a tag, on a main push, or on a dispatch. The per-language
+      # wasm in this artifact has two consumers: a release, whose package.sh
+      # turns a pair into that language's export stub, and the site, which
+      # lays a pair out under /js/<dir>/<lang>/ so that a game page loads the
+      # player of the cartridge's language instead of the universal one. A tag
+      # feeds production's tree and a main push the dev instance's (it serves
+      # a line, 1.3, not a release), so both have to carry the pairs; a pull
+      # request feeds neither and stays gated.
 
-      # The twelve per-language stubs the PRO alone export downloads — the same
-      # work as the native jobs' loop, in one directory: no --fresh between the
-      # builds, so SDL2 and whatever a language does not touch are compiled
-      # once (thirteen full builds used to run here, one per language plus the
-      # one below). Every language flag is spelled out on every pass, which is
-      # what --fresh used to buy, and it also clears the BUILD_WITH_ALL the
-      # "Build all" step leaves on when the order is reversed.
+      # The fourteen per-language stubs the PRO alone export downloads — the
+      # same work as the native jobs' loop, in one directory: no --fresh
+      # between the builds, so SDL2 and whatever a language does not touch are
+      # compiled once (fifteen full builds used to run here, one per language
+      # plus the one below). Every language flag is spelled out on every pass,
+      # which is what --fresh used to buy, and it also clears the
+      # BUILD_WITH_ALL the "Build all" step leaves on when the order is
+      # reversed.
       #
-      # About seven minutes of emscripten for artifacts only a release uses:
-      # every push used to pay that. The gate cannot change what a release
-      # builds — on a tag these steps run in the same order as before — it
-      # only keeps a branch or a pull request from paying for them.
+      # About seven minutes of emscripten: a tag pays it for a release, a main
+      # push pays it so the dev instance can carry every language the line has
+      # (a snapshot has no release to take them from), a pull request pays
+      # nothing. The gate cannot change what a release builds — on a tag these
+      # steps run in the same order as before.
       - name: Build per-language export stubs
-        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || inputs.stubs
         shell: bash
         run: |
           set -euo pipefail
@@ -980,7 +986,7 @@ jobs:
 
           # An identical pair means a language flag did not take, the same guard
           # the native jobs run on their binaries: a wasm stub carries one
-          # runtime, so twelve of them cannot be alike.
+          # runtime, so fourteen of them cannot be alike.
           files=("$GITHUB_WORKSPACE"/build/bin/tic80{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,forth}.wasm)
           for f in "${files[@]}"; do
             if [ ! -f "$f" ]; then echo "missing stub: $f" >&2; exit 1; fi
