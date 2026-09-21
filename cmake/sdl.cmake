@@ -307,7 +307,7 @@ if(BUILD_SDL)
 
         SET(TIC80_DESKTOP_DIR     "share/applications/")
         SET(TIC80_MIME_DIR        "share/mime/packages/")
-        SET(TIC80_PIXMAPS_DIR     "share/icons/")
+        SET(TIC80_PIXMAPS_DIR     "share/icons/hicolor/256x256/apps")
 
         install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop DESTINATION ${TIC80_DESKTOP_DIR})
         install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_MIME_DIR})
