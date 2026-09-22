@@ -150,14 +150,24 @@ EDITOR_MARKER="SPRITE EDITOR"
 no_editors() { # <file> <name in the bundle>
     if grep -qa "$EDITOR_MARKER" "$1"; then
         echo "export stub carries the editors: $2 ($1) — BUILD_EDITORS=OFF did not take" >&2
-        missing=1
+        smissing=1
     fi
 }
 
 has_editors() { # <file> <name in the bundle>
     if ! grep -qa "$EDITOR_MARKER" "$1"; then
         echo "universal export stub lost its editors: $2 ($1) — a free build was made with BUILD_EDITORS=OFF" >&2
-        missing=1
+        smissing=1
+    fi
+}
+
+# the site's players are the other way round from the stubs and the same way as
+# the universal one: editors kept. Its own flag, `pmissing`, so that a player
+# that lost them is not reported as a missing native asset.
+player_has_editors() { # <file> <language>
+    if ! grep -qa "$EDITOR_MARKER" "$1"; then
+        echo "player lost its editors: $2 ($1) — BUILD_EDITORS=ON did not take" >&2
+        pmissing=1
     fi
 }
 
@@ -165,6 +175,10 @@ if [ -d "$ART" ]; then
     tmp="$OUT/.stubs"
     rm -rf "$tmp"
     mkdir -p "$tmp"
+    # its own flag, like the players bundle below: `missing` may be set by a
+    # native asset above, and a section that stops the run on someone else's
+    # finding is what hides the rest of them
+    smissing=0
     for spec in windows:win:tic80.exe linux-gcc12:linux:tic80 linux-arm64-gcc12:linuxarm:tic80 macos:macintel:tic80 macos-arm64:mac:tic80; do
         art="${spec%%:*}"; rest="${spec#*:}"; dst="${rest%%:*}"; file="${rest#*:}"
         src="$ART/tic80-$art-export/$file"
@@ -173,7 +187,7 @@ if [ -d "$ART" ]; then
             has_editors "$tmp/$dst" "$dst"
         else
             echo "export stub missing: $src" >&2
-            missing=1
+            smissing=1
         fi
         for lang in $STUB_LANGS; do
             lsrc="$ART/tic80-$art-export-langs/tic80$lang"
@@ -183,7 +197,7 @@ if [ -d "$ART" ]; then
                 no_editors "$tmp/$dst$lang" "$dst$lang"
             else
                 echo "export stub missing: $ART/tic80-$art-export-langs/tic80$lang[.exe]" >&2
-                missing=1
+                smissing=1
             fi
         done
     done
@@ -215,7 +229,7 @@ if [ -d "$ART" ]; then
         has_editors "$hdir/tic80.wasm" "html"
     else
         echo "export stub missing: $hdir/{tic80.js,tic80.wasm}" >&2
-        missing=1
+        smissing=1
     fi
     # one zip per language too: a PRO alone export asks for html<moon>, and
     # without it every one of those falls back to the universal stub (nine
@@ -226,19 +240,72 @@ if [ -d "$ART" ]; then
             no_editors "$hdir/tic80$lang.wasm" "html$lang"
         else
             echo "export stub missing: $hdir/tic80$lang.js|.wasm" >&2
-            missing=1
+            smissing=1
         fi
     done
-    if [ "$missing" != 0 ]; then
+    if [ "$smissing" != 0 ]; then
         # nothing half-written and no stale bundle from an earlier run: a
-        # caller that ignores the exit code must not find last time's tarball
+        # caller that ignores the exit code must not find last time's tarball.
+        # The run is not stopped here — the players bundle below still has its
+        # own checks to report, and the final check fails the packaging.
+        missing=1
         rm -rf "$tmp"
         rm -f "$OUT/tic80-v$SHORT-stubs.tar.gz"
-        echo "export stubs incomplete — packaging stopped (see the lines above)" >&2
-        exit 1
+        echo "export stubs incomplete (see the lines above)" >&2
+    else
+        (cd "$tmp" && tar czf "$OUT/tic80-v$SHORT-stubs.tar.gz" .)
+        rm -rf "$tmp"
     fi
-    (cd "$tmp" && tar czf "$OUT/tic80-v$SHORT-stubs.tar.gz" .)
+fi
+
+# --- the site's per-language players, for the server's game pages. Not a user
+# download either: deploy-client.sh pulls this and unpacks it into
+# js/<tag>/<lang>/ on the box, so a page loads the player of its cartridge's
+# language instead of the universal one. They are *not* the export stubs above:
+# a stub is built with -DBUILD_EDITORS=OFF (a PRO alone export must not open the
+# IDE on ESC), while a game page keeps the editors and is the same build the
+# universal player is, one language's runtimes lighter — 543,650 bytes over the
+# wire for lua against 2,258,666 (docs/per-language-players.md, server repo).
+# The pair is a directory per language with the loader already renamed to the
+# tic80.js a page asks for, so a deploy copies it as it is.
+#
+# A missing piece fails the packaging: a release shipped without this bundle
+# leaves every game page on the universal player, which is a silent
+# nine-megabyte regression rather than an error. The language list is the stub
+# one — both are the engine's languages, and a language added to one loop and
+# missed here would be a page that never gets its player.
+#
+# Collects like the stubs bundle above and lets the final check fail the run:
+# every section reports its own findings in one pass, which is the rule the
+# header states. Its own flag, because `missing` may be set by a native asset
+# above and blaming this section for that would send the reader to the wrong
+# loop.
+if [ -d "$ART" ]; then
+    tmp="$OUT/.players"
     rm -rf "$tmp"
+    mkdir -p "$tmp"
+    pmissing=0
+    for lang in $STUB_LANGS; do
+        src="$ART/tic80-html-players/$lang"
+        if [ -f "$src/tic80.js" ] && [ -f "$src/tic80$lang.wasm" ]; then
+            mkdir -p "$tmp/$lang"
+            cp "$src/tic80.js" "$tmp/$lang/"
+            cp "$src/tic80$lang.wasm" "$tmp/$lang/"
+            player_has_editors "$tmp/$lang/tic80$lang.wasm" "$lang"
+        else
+            echo "player missing: $ART/tic80-html-players/$lang/{tic80.js,tic80$lang.wasm}" >&2
+            pmissing=1
+        fi
+    done
+    if [ "$pmissing" != 0 ]; then
+        missing=1
+        rm -rf "$tmp"
+        rm -f "$OUT/tic80-v$SHORT-players.tar.gz"
+        echo "the per-language players are incomplete (see the lines above)" >&2
+    else
+        (cd "$tmp" && tar czf "$OUT/tic80-v$SHORT-players.tar.gz" .)
+        rm -rf "$tmp"
+    fi
 fi
 
 if [ "$missing" != 0 ]; then
