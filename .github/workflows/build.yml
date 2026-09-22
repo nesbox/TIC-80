@@ -936,22 +936,82 @@ jobs:
       - name: Install 32-bit build tools
         run: sudo apt-get update && sudo apt-get install -y gcc-multilib
 
-      # The per-language builds below are the PRO alone export stubs, so they
-      # carry no editors, the way the native per-language stubs don't: an
-      # exported game that opens the IDE on ESC is not the standalone the
-      # alone export promises. "Build all" is a different thing — it is the
-      # site's player, and the universal stub every free export downloads —
-      # so it keeps its editors.
+      # Two per-language sets come out of this job, in two artifacts, because
+      # they are two different things. A game page loads the site's player,
+      # which keeps its editors — ESC opens the IDE there, the way it does on
+      # the universal player — while a PRO alone export hands out a build that
+      # must not, so only that one is built with -DBUILD_EDITORS=OFF. The
+      # site's set is staged into tic80-html-players, a directory per
+      # language with the loader already renamed to the tic80.js a page asks
+      # for; the stubs stay flat in tic80-html, where package.sh turns a pair
+      # into html<lang> and the dev instance reads them as they are.
 
-      # The two builds are split by trigger, not by job: the player always,
-      # the stubs on a tag, on a main push, or on a dispatch. The per-language
-      # wasm in this artifact has two consumers: a release, whose package.sh
-      # turns a pair into that language's export stub, and the site, which
-      # lays a pair out under /js/<dir>/<lang>/ so that a game page loads the
-      # player of the cartridge's language instead of the universal one. A tag
-      # feeds production's tree and a main push the dev instance's (it serves
-      # a line, 1.3, not a release), so both have to carry the pairs; a pull
-      # request feeds neither and stays gated.
+      # The trigger is the same for both sets: a tag feeds production's tree
+      # and a main push the dev instance's (it serves a line, 1.3, not a
+      # release), so both carry every language; a pull request feeds neither
+      # and stays gated. The player builds run first, because they write
+      # build/bin under the stub names — what the job ends with there has to
+      # be the editorless pair the artifact and package.sh expect.
+
+      # The editorful per-language build is a third configuration beside
+      # "Build all" and the stubs, and it was the price of the owner's call
+      # of 22.09 (docs/per-language-players.md, server repo): measured then, a
+      # game page pays 129 KB over the wire for the IDE — 543,650 against
+      # 414,333 for lua — where the universal player it replaces is 2,258,666.
+      - name: Build per-language players
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth)
+          stage="$GITHUB_WORKSPACE/build/players"
+          rm -rf "$stage"
+          for lang in "${langs[@]}"; do
+            flags=(-DBUILD_WITH_ALL=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            # "Build all"'s flags with one language on: the site's player is
+            # that build, thirteen runtimes lighter (BUILD_STATIC already
+            # defaults to ON under emscripten, so this leaks nothing into the
+            # stub pass below)
+            emcmake cmake -G Ninja -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=ON "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+            for f in "bin/tic80$lang.js" "bin/tic80$lang.wasm"; do
+              [ -f "$f" ] || { echo "missing player: build/$f" >&2; exit 1; }
+            done
+            # the loader is renamed to the name a page loads and the wasm
+            # keeps the name that loader asks for — the shape the deploy
+            # writes into /js/<dir>/<lang>/, produced once, here
+            mkdir -p "$stage/$lang"
+            cp "bin/tic80$lang.js"   "$stage/$lang/tic80.js"
+            cp "bin/tic80$lang.wasm" "$stage/$lang/tic80$lang.wasm"
+          done
+
+          # The editors are the one thing that tells the site's set from the
+          # stubs, and a flag that stopped taking effect looks exactly like one
+          # that took, so it is read back out of the wasm: "SPRITE EDITOR" is a
+          # menu label only the editors carry, the marker package.sh checks the
+          # release bundles with. The distinctness guard catches a language flag
+          # that did not take, the way the stub step's does.
+          files=("$stage"/{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,forth}/tic80*.wasm)
+          for f in "${files[@]}"; do
+            if ! grep -qa "SPRITE EDITOR" "$f"; then
+              echo "player without editors: $f — BUILD_EDITORS=ON did not take" >&2
+              exit 1
+            fi
+          done
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate player: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} wasm players, all distinct, all with editors"
 
       # The fourteen per-language stubs the PRO alone export downloads — the
       # same work as the native jobs' loop, in one directory: no --fresh
@@ -962,11 +1022,12 @@ jobs:
       # BUILD_WITH_ALL the "Build all" step leaves on when the order is
       # reversed.
       #
-      # About seven minutes of emscripten: a tag pays it for a release, a main
-      # push pays it so the dev instance can carry every language the line has
-      # (a snapshot has no release to take them from), a pull request pays
-      # nothing. The gate cannot change what a release builds — on a tag these
-      # steps run in the same order as before.
+      # About seven minutes of emscripten per pass, so roughly fifteen for the
+      # job: a tag pays it for a release, a main push pays it so the dev
+      # instance can carry every language the line has (a snapshot has no
+      # release to take them from), a pull request pays nothing. The gate
+      # cannot change what a release builds — on a tag these steps run in the
+      # same order as before.
       - name: Build per-language export stubs
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || inputs.stubs
         shell: bash
@@ -1001,6 +1062,17 @@ jobs:
           done
           echo "checked ${#files[@]} wasm stubs, all distinct"
 
+          # and the other direction, which only the dev instance needs: it
+          # lays these pairs out itself, so package.sh's no_editors guard never
+          # runs on them there. A stub that carried the editors would hand a
+          # PRO alone export the IDE the alone mode promises to strip.
+          for f in "${files[@]}"; do
+            if grep -qa "SPRITE EDITOR" "$f"; then
+              echo "stub carries the editors: $(basename "$f") — BUILD_EDITORS=OFF did not take" >&2
+              exit 1
+            fi
+          done
+
       - name: Build all
         run: |
           cd build
@@ -1020,3 +1092,15 @@ jobs:
           name: "tic80-html"
           path: |
             build/bin/*
+
+      # The site's players, an artifact of their own so that nothing reads
+      # them as stubs: a directory per language, the loader already named
+      # tic80.js. Same gate as the builds above — without it a pull request
+      # would upload an empty artifact and fail on it.
+      - name: Deploy players
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-html-players"
+          path: build/players/*
