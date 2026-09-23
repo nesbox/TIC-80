@@ -1432,6 +1432,19 @@ static const char* const PythonKeywords[] =
         "lambda", "nonlocal", "not", "or", "pass", "raise",
         "return", "try", "while", "with", "yield"};
 
+static void eval_pkpy_v2(tic_mem* tic, const char* code)
+{
+    tic_core* core = (tic_core*)tic;
+
+    // No cart has been run yet, so there is no interpreter to evaluate
+    // against. The other runtimes return quietly in the same situation.
+    if (!core->currentVM) return;
+
+    py_StackRef p0 = py_peek(0);
+    if (!py_exec(code, "<eval>", EXEC_MODE, NULL))
+        log_and_clearexc(p0);
+}
+
 static const u8 DemoRom[] =
     {
 #include "../build/assets/pythondemo.tic.dat"
@@ -1461,7 +1474,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Python) =
             },
 
         .getOutline = NULL,
-        .eval = NULL,
+        .eval = eval_pkpy_v2,
         //above is a must need
         .blockCommentStart = NULL,
         .blockCommentEnd = NULL,
