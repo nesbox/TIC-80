@@ -1234,7 +1234,7 @@ static const u8 MarkRom[] =
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Forth) =
 {
-    .id               = 21,
+    .id               = 22, // 21 has been yue's since 1.2.0 (nesbox/TIC-80#3024)
     .name             = "forth",
     .fileExtension    = ".fth",
     .projectComment   = "\\",
