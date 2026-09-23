@@ -240,9 +240,48 @@ public final class MetalRenderer: NSObject, MTKViewDelegate {
         renderEncoder.setRenderPipelineState(pipelineState)
         renderEncoder.setFragmentTexture(screenTex, index: 0)
         
+        var offset = 0.0
+        if let tic = tic {
+            let mouseX = tic.pointee.ram.pointee.input.mouse.x
+            if mouseX < Int32(TIC80_FULLHEIGHT / 2) {
+                offset = Double(TIC80_FULLWIDTH) - Double(TIC80_MARGIN_LEFT)
+            }
+        }
+        
+        let srcW_margin = Double(TIC80_MARGIN_LEFT)
+        let srcH_margin = Double(TIC80_MARGIN_TOP)
         let srcW_full = Double(TIC80_FULLWIDTH)
         let srcH_full = Double(TIC80_FULLHEIGHT)
         
+        // 1. Top border
+        drawSlice(
+            renderEncoder: renderEncoder,
+            srcX: offset, srcY: 0.0, srcW: srcW_margin, srcH: srcH_margin,
+            dstX: 0.0, dstY: 0.0, dstW: viewWidth, dstH: rect.y
+        )
+        
+        // 2. Bottom border
+        drawSlice(
+            renderEncoder: renderEncoder,
+            srcX: offset, srcY: srcH_full - srcH_margin, srcW: srcW_margin, srcH: srcH_margin,
+            dstX: 0.0, dstY: rect.y + rect.h, dstW: viewWidth, dstH: viewHeight - (rect.y + rect.h)
+        )
+        
+        // 3. Left border
+        drawSlice(
+            renderEncoder: renderEncoder,
+            srcX: offset, srcY: 0.0, srcW: srcW_margin, srcH: srcH_full,
+            dstX: 0.0, dstY: rect.y, dstW: rect.x, dstH: rect.h
+        )
+        
+        // 4. Right border
+        drawSlice(
+            renderEncoder: renderEncoder,
+            srcX: offset, srcY: 0.0, srcW: srcW_margin, srcH: srcH_full,
+            dstX: rect.x + rect.w, dstY: rect.y, dstW: viewWidth - (rect.x + rect.w), dstH: rect.h
+        )
+        
+        // 5. Game Screen
         drawSlice(
             renderEncoder: renderEncoder,
             srcX: 0.0, srcY: 0.0, srcW: srcW_full, srcH: srcH_full,

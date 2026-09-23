@@ -3,22 +3,28 @@ import Foundation
 
 public final class GamepadManager: NSObject {
     public private(set) var controllerState: UInt32 = 0
+    private var activeControllers: [GCController] = []
     
     public override init() {
         super.init()
         NotificationCenter.default.addObserver(self, selector: #selector(controllerDidConnect), name: .GCControllerDidConnect, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(controllerDidDisconnect), name: .GCControllerDidDisconnect, object: nil)
+        activeControllers = GCController.controllers()
     }
     
     @objc private func controllerDidConnect(_ notification: Notification) {
         if let controller = notification.object as? GCController {
             print("[GamepadManager]: Controller connected: \(controller.vendorName ?? "Unknown")")
+            if !activeControllers.contains(controller) {
+                activeControllers.append(controller)
+            }
         }
     }
     
     @objc private func controllerDidDisconnect(_ notification: Notification) {
         if let controller = notification.object as? GCController {
             print("[GamepadManager]: Controller disconnected: \(controller.vendorName ?? "Unknown")")
+            activeControllers.removeAll { $0 == controller }
         }
     }
     
@@ -27,8 +33,7 @@ public final class GamepadManager: NSObject {
     public func update() {
         var padState: UInt32 = 0
         var menuPressedState = false
-        let controllers = GCController.controllers()
-        for (index, controller) in controllers.prefix(4).enumerated() {
+        for (index, controller) in activeControllers.prefix(4).enumerated() {
             var buttons: UInt32 = 0
             if let extendedGamepad = controller.extendedGamepad {
                 if extendedGamepad.dpad.up.isPressed { buttons |= (1 << 0) }

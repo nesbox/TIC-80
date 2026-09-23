@@ -2130,6 +2130,13 @@ static void reloadConfirm(Studio* studio, bool yes, void* data)
 
 static void checkChanges(Studio* studio)
 {
+    static u32 tick_count = 0;
+    tick_count++;
+    if (tick_count < 30) {
+        return;
+    }
+    tick_count = 0;
+
     switch(studio->mode)
     {
     case TIC_START_MODE:
