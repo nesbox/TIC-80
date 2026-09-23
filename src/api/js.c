@@ -1388,7 +1388,20 @@ static const tic_outline_item* getJsOutline(const char* code, s32* size)
 static void evalJs(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
-    core->data->error(core->data->data, "TODO: JS eval not yet implemented\n.");
+    JSContext* ctx = core->currentVM;
+
+    // Nothing has been run yet, so there is no context to evaluate against
+    // and nowhere to report to either: core->data is assigned in
+    // tic_core_tick, and js_dump_obj below reaches through it. Reporting the
+    // absence of a context is what used to crash here.
+    if(!ctx) return;
+
+    JSValue ret = JS_Eval(ctx, code, strlen(code), "<eval>", JS_EVAL_TYPE_GLOBAL);
+
+    if(JS_IsException(ret))
+        js_std_dump_error(ctx);
+    else
+        JS_FreeValue(ctx, ret);
 }
 
 static const u8 DemoRom[] =
