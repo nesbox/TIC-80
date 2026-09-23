@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
- <mime-type type="application/x-tic80-item">
+  <mime-type type="application/x-tic80-item">
     <comment>TIC-80 cartridge</comment>
-    <icon>tic80</icon>
     <glob pattern="*.tic"/>
   </mime-type>
- </mime-info>
+</mime-info>
