@@ -2914,13 +2914,19 @@ static void onResumeCommand(Console* console)
         if(strcmp(param, "reload") == 0)
         {
             const tic_script* script_config = tic_get_script(console->tic);
-            if (script_config->eval)
+            if (!script_config->eval)
             {
-                script_config->eval(console->tic, console->tic->cart.code.data);
+                printError(console, "eval not implemented for the script");
+            }
+            // `resume reload` re-evaluates the cart into the running VM, so it
+            // needs one for the same reason `eval` does.
+            else if (!tic_core_script_ready(console->tic))
+            {
+                printError(console, "no cart is running, RUN one first");
             }
             else
             {
-                printError(console, "eval not implemented for the script");
+                script_config->eval(console->tic, console->tic->cart.code.data);
             }
         }
     }
@@ -2937,10 +2943,16 @@ static void onEvalCommand(Console* console)
 
     if (script_config->eval)
     {
-        if(console->desc->count)
+        if(!console->desc->count)
+            printError(console, "nothing to eval");
+        // Every runtime evaluates against the VM the cart left behind, and
+        // returns without a word when there is none -- which reads as `eval`
+        // silently doing nothing. Say what is missing instead.
+        else if(!tic_core_script_ready(console->tic))
+            printError(console, "no cart is running, RUN one first");
+        else
             script_config->eval(console->tic,
                                 console->desc->src+strlen(console->desc->command));
-        else printError(console, "nothing to eval");
     }
     else
     {

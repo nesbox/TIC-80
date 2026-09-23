@@ -504,6 +504,11 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
     core->state.tick(tic);
 }
 
+bool tic_core_script_ready(tic_mem* memory)
+{
+    return ((tic_core*)memory)->currentVM != NULL;
+}
+
 void tic_core_pause(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
