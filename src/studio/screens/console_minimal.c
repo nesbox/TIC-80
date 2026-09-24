@@ -124,3 +124,4 @@ void freeConsole(Console* console)
 }
 
 void forceAutoSave(Console* console, const char* cart_name) {}
+void console_terminal_input(Console* console, tic_key key, char text) {}
