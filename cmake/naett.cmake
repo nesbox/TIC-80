@@ -33,6 +33,11 @@ if(PREFER_SYSTEM_LIBRARIES)
     endif()
 endif()
 
+# A desktop build that lost curl has no network layer at all, and the client only reports "file downloading error" (issue #3033). RPI is excluded: it is on the list above and never gets naett.
+if(LINUX AND NOT RPI AND NOT USE_NAETT)
+    message(WARNING "no libcurl: this build has no network, so every download fails with \"file downloading error\" (export html/win/mac, the carts browser). Install the curl dev package (libcurl4-openssl-dev on Debian/Ubuntu).")
+endif()
+
 if(USE_NAETT)
     add_library(naett STATIC ${THIRDPARTY_DIR}/naett/naett.c)
     target_include_directories(naett PUBLIC ${THIRDPARTY_DIR}/naett)
