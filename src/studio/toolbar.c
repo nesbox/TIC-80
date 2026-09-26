@@ -25,6 +25,13 @@
 // The strip links against the core alone: no Studio, and nothing that only
 // studio.c provides. tests/toolbar.c builds this file without it.
 
+// Runs before the mode's tick, so the strip's frame is settled before anything
+// draws into it. The auto-hide state machine lands here too.
+void toolbar_step(Toolbar* tb)
+{
+    tb->tooltip[0] = '\0';
+}
+
 void toolbar_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color)
 {
     const tic_tile* tile = &tiles->data[id];

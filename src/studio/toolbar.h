@@ -23,6 +23,29 @@
 #pragma once
 
 #include "studio.h"
+#include "apps.h"
+#include "mouse.h"
+
+// The strip's state: one per studio, not one per editor, because its position
+// and its animation are one thing on one screen. The host fills the second
+// half at init — the strip itself holds no Studio.
+// Tagged, because apps.h forward-declares `struct Toolbar` for the band slot.
+typedef struct Toolbar
+{
+    tic_mem*            tic;
+    const StudioConfig* config;
+    MouseState*         mouse;      // [3], the studio's
+    char*               tooltip;    // the studio's buffer, drawn by the strip
+    const EditorApp*    apps;
+    s32                 appCount;
+
+    s32        y;                   // vertical offset; 0 until the strip can hide
+    EditorMode mode;                // whose band is on screen
+    EditorMode requested;           // a tab click, for the host to pick up
+
+} Toolbar;
+
+void toolbar_step(Toolbar*);
 
 // The strip's own drawing and sound. These are the pieces the editors' panels
 // below the strip need too, so studio.c keeps a Studio*-taking wrapper over

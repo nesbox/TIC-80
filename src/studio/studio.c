@@ -133,7 +133,6 @@ struct Studio
 
     EditorMode mode;
     EditorMode prevMode;
-    EditorMode toolbarMode;
 
     // The run ESC acts on: a player's run gets the pause menu and keeps it
     // under ESC, the studio's own leaves back to runFrom — the editor or the
@@ -266,6 +265,8 @@ struct Studio
     tic_fs* fs;
     s32 samplerate;
     tic_font systemFont;
+
+    Toolbar toolbar;
 
 };
 
@@ -1150,7 +1151,7 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
             showTooltip(studio, app->tip);
 
             if(checkMouseClick(studio, &rect, tic_mouse_left))
-                studio->toolbarMode = Modes[i];
+                studio->toolbar.requested = Modes[i];
         }
 
         if(getStudioMode(studio) == Modes[i]) mode = i;
@@ -2286,10 +2287,6 @@ static void renderStudio(Studio* studio)
 {
     tic_mem* tic = studio->tic;
 
-#if defined(BUILD_EDITORS)
-    showTooltip(studio, "");
-#endif
-
     {
         const tic_sfx* sfx = NULL;
         const tic_music* music = NULL;
@@ -2619,10 +2616,15 @@ void studio_tick(Studio* studio, tic80_input input)
     tic_net_start(studio->net);
 #endif
 
-    if(studio->toolbarMode)
+    studio->toolbar.mode = studio->mode;
+    toolbar_step(&studio->toolbar);
+
+    // A tab click lands here rather than switching mid-frame: the mode's blit
+    // callback is chosen after its tick, so the switch has to wait for that.
+    if(studio->toolbar.requested)
     {
-        setStudioMode(studio, studio->toolbarMode);
-        studio->toolbarMode = 0;
+        setStudioMode(studio, studio->toolbar.requested);
+        studio->toolbar.requested = 0;
     }
 
     processMouseStates(studio);
@@ -3069,10 +3071,21 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->config     = calloc(1, sizeof(Config));
     }
     studio->mainmenu = NULL;
+
     tic_fs_makedir(studio->fs, TIC_LOCAL);
     tic_fs_makedir(studio->fs, TIC_LOCAL_VERSION);
 
     initConfig(studio->config, studio, studio->fs);
+
+    studio->toolbar = (Toolbar)
+    {
+        .tic      = studio->tic,
+        .config   = getConfig(studio),
+        .mouse    = studio->mouse.state,
+        .tooltip  = studio->tooltip.text,
+        .apps     = Apps,
+        .appCount = TIC_MODES_COUNT,
+    };
 
     if (studio->config->data.uiScale > maxscale)
     {
