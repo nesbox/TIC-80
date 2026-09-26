@@ -68,7 +68,8 @@ typedef struct
     s32         width;
     u8          color;              // glyph when idle
     u8          over;               // glyph under the pointer; 0 means grey
-    bool        pressed;            // the active look: dark background
+    bool        pressed;            // the active look: filled background
+    u8          pressedColor;       // that fill; 0 is black
     bool        enabled;            // a click is consumed either way
 
 } ToolbarButton;

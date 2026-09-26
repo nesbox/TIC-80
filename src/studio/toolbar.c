@@ -119,7 +119,7 @@ static void stripButton(Toolbar* tb, const ToolbarButton* button, const tic_rect
         : button->color;
 
     if(button->pressed)
-        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_black);
+        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, button->pressedColor);
 
     stripGlyph(tb, button, rect->x, rect->y, color);
 }

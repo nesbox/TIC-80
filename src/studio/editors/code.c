@@ -3665,131 +3665,92 @@ static void textOutlineTick(Code* code)
     drawPopupBar(code, "FUNC:");
 }
 
-static void drawFontButton(Code* code, s32 x, s32 y)
+
+
+
+// The strip's right rail. Drawn by the host after this editor's tick, so it
+// never sees the strip's background and never paints one.
+void codeBand(void* app, Toolbar* tb)
 {
-    tic_mem* tic = code->tic;
+    Code* code = app;
 
-    enum {Size = TIC_FONT_WIDTH};
-    tic_rect rect = {x, y, Size, Size};
-
-    bool over = false;
-    if(checkMousePos(code->studio, &rect))
+    static const struct { u8 icon; const char* tip; } Buttons[] =
     {
-        setCursor(code->studio, tic_cursor_hand);
-
-        showTooltip(code->studio, "SWITCH FONT");
-
-        over = true;
-
-        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-        {
-            code->altFont = !code->altFont;
-        }
-    }
-
-    drawChar(tic, 'F', x, y, over ? tic_color_grey : tic_color_light_grey, code->altFont);
-}
-
-static void drawShadowButton(Code* code, s32 x, s32 y)
-{
-    tic_mem* tic = code->tic;
-
-    enum {Size = TIC_FONT_WIDTH};
-    tic_rect rect = {x, y, Size, Size};
-
-    bool over = false;
-    if(checkMousePos(code->studio, &rect))
-    {
-        setCursor(code->studio, tic_cursor_hand);
-
-        showTooltip(code->studio, "SHOW SHADOW");
-
-        over = true;
-
-        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-        {
-            code->shadowText = !code->shadowText;
-        }
-    }
-
-    drawBitIcon(code->studio, tic_icon_shadow, x, y, over && !code->shadowText ? tic_color_grey : tic_color_light_grey);
-
-    if(code->shadowText)
-        drawBitIcon(code->studio, tic_icon_shadow2, x, y, tic_color_black);
-}
-
-static void drawRunButton(Code* code, s32 x, s32 y)
-{
-    tic_mem* tic = code->tic;
-
-    enum {Size = TIC_FONT_WIDTH};
-    tic_rect rect = {x, y, Size, Size};
-
-    bool over = false;
-    if(checkMousePos(code->studio, &rect))
-    {
-        setCursor(code->studio, tic_cursor_hand);
-        showTooltip(code->studio, "RUN [ctrl+r]");
-        over = true;
-
-        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-            runGame(code->studio, RUN_FROM_STUDIO);
-    }
-
-    drawBitIcon(code->studio, tic_icon_run, x, y, over ? tic_color_grey : tic_color_light_grey);
-}
-
-static void drawCodeToolbar(Code* code)
-{
-    tic_api_rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
-
-    static const struct Button {u8 icon; const char* tip;} Buttons[] =
-    {
-        {tic_icon_hand, "DRAG [right mouse]"},
-        {tic_icon_find, "FIND [ctrl+f]"},
-        {tic_icon_goto, "GOTO [ctrl+g]"},
+        {tic_icon_hand,     "DRAG [right mouse]"},
+        {tic_icon_find,     "FIND [ctrl+f]"},
+        {tic_icon_goto,     "GOTO [ctrl+g]"},
         {tic_icon_bookmark, "BOOKMARKS [ctrl+b]"},
-        {tic_icon_outline, "OUTLINE [ctrl+o]"},
+        {tic_icon_outline,  "OUTLINE [ctrl+o]"},
     };
 
-    enum {Count = COUNT_OF(Buttons), Size = 7};
+    enum {Count = COUNT_OF(Buttons), Size = 7, Small = TIC_FONT_WIDTH};
 
-    for(s32 i = 0; i < Count; i++)
+    // The rail packs right to left, and this editor's order runs the other way.
+    for(s32 i = Count - 1; i >= 0; i--)
     {
-        const struct Button* btn = &Buttons[i];
-        tic_rect rect = {TIC80_WIDTH + (i - Count) * Size, 0, Size, Size};
-
-        bool over = false;
-        if(checkMousePos(code->studio, &rect))
+        ToolbarButton button =
         {
-            setCursor(code->studio, tic_cursor_hand);
+            .icon = Buttons[i].icon,
+            .tip = Buttons[i].tip,
+            .width = Size,
+            .color = tic_color_light_grey,
+            .pressed = i == code->mode && isIdle(code),
+            .pressedColor = tic_color_grey,
+            .enabled = true,
+        };
 
-            showTooltip(code->studio, btn->tip);
-
-            over = true;
-
-            if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-            {
-                if(code->mode == i) code->escape(code);
-                else setCodeMode(code, i);
-            }
-        }
-
-        bool active = i == code->mode && isIdle(code);
-        if (active)
+        if(toolbar_button(tb, &button))
         {
-            tic_api_rect(code->tic, rect.x, rect.y, Size, Size, tic_color_grey);
-            drawBitIcon(code->studio, btn->icon, rect.x, rect.y + 1, tic_color_black);
+            if(code->mode == i) code->escape(code);
+            else setCodeMode(code, i);
         }
-
-        drawBitIcon(code->studio, btn->icon, rect.x, rect.y, active ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
     }
 
-    drawFontButton(code, TIC80_WIDTH - (Count+3) * Size, 1);
-    drawShadowButton(code, TIC80_WIDTH - (Count+2) * Size, 0);
-    drawRunButton(code, TIC80_WIDTH - (Count+1) * Size, 0);
+    {
+        ToolbarButton button =
+        {
+            .icon = code->shadowText ? tic_icon_shadow2 : tic_icon_shadow,
+            .tip = "SHOW SHADOW",
+            .width = Small,
+            .color = tic_color_light_grey,
+            .pressedColor = tic_color_black,
+            .enabled = true,
+        };
 
-    drawToolbar(code->studio, code->tic, false);
+        if(toolbar_button(tb, &button))
+            code->shadowText = !code->shadowText;
+    }
+
+    {
+        ToolbarButton button =
+        {
+            .label = "F",
+            .tip = "SWITCH FONT",
+            .width = Small,
+            .color = code->altFont ? tic_color_white : tic_color_light_grey,
+            .pressed = code->altFont,
+            .pressedColor = tic_color_grey,
+            .enabled = true,
+        };
+
+        if(toolbar_button(tb, &button))
+            code->altFont = !code->altFont;
+    }
+
+    {
+        ToolbarButton button =
+        {
+            .icon = tic_icon_run,
+            .tip = "RUN [ctrl+r]",
+            .width = Small,
+            .color = tic_color_light_grey,
+            .pressedColor = tic_color_black,
+            .enabled = true,
+        };
+
+        if(toolbar_button(tb, &button))
+            runGame(code->studio, RUN_FROM_STUDIO);
+    }
 }
 
 static void tick(Code* code)
@@ -3809,8 +3770,6 @@ static void tick(Code* code)
     case TEXT_BOOKMARK_MODE:textBookmarkTick(code); break;
     case TEXT_OUTLINE_MODE: textOutlineTick(code);  break;
     }
-
-    drawCodeToolbar(code);
 
     code->tickCounter++;
 }

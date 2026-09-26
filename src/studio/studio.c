@@ -100,11 +100,11 @@ typedef struct
 // The editors in tab order, expanded into the mode list and the registry
 // entries, so the tabs, the function keys and the number shortcuts agree.
 #define EDITOR_APPS(APP)                                                                                            \
-    APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard)   \
-    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard) \
-    APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard)    \
-    APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard)    \
-    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard)
+    APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard,   codeBand)   \
+    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard, NULL) \
+    APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard,    NULL)    \
+    APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard,    NULL)    \
+    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard,  NULL)
 
 #if defined(BUILD_EDITORS)
 static const EditorMode Modes[] =
@@ -325,9 +325,10 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 
 // The parameters are capitalised: lowercase ones would be substituted inside
 // the `.name =` designators, which is not what an initialiser means.
-#define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN, CLIP)                 \
+#define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN, CLIP, BAND)                 \
     [MODE] = {.name = NAME, .tip = TIP, .icon = ICON, .hotkey = KEY,                   \
-              .instance = INST, .tick = TICK, .scanline = SCAN, .clipboard = CLIP},
+              .instance = INST, .tick = TICK, .scanline = SCAN, .clipboard = CLIP,    \
+              .band = BAND},
     EDITOR_APPS(APP_ENTRY)
 #undef  APP_ENTRY
 #endif
@@ -1064,31 +1065,37 @@ static bool isBanked(EditorMode mode)
 }
 #endif
 
+// The strip's whole frame: background, the mode's own widgets, then the studio
+// chrome. A mode that is not an editor has no strip at all.
 void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
 {
+    TIC_UNUSED(tic);
+    TIC_UNUSED(bg);
+
     Toolbar* tb = &studio->toolbar;
 
     // Read live: an editor may have switched the mode earlier in this same tick.
     EditorMode mode = tb->mode = studio->mode;
+    const EditorApp* app = &Apps[mode];
 
-    tb->app = Apps[mode].instance(studio);
+    if(!app->name)
+        return;
+
+    tb->app = app->instance(studio);
     tb->hideName = false;
 
-    toolbar_begin(tb, bg);
+    toolbar_begin(tb, true);
 
-    // Before toolbar_end: these set the tooltip that it prints. They are still
-    // the studio's to draw — the clipboard row moves in group 5, the pro bank
-    // row drives studio->bank.
-    if(Apps[mode].name)
-    {
 #if defined (TIC80_PRO) && defined(BUILD_EDITORS)
-        if(isBanked(mode))
-        {
-            drawBankIcon(studio, COUNT_OF(Modes) * TOOLBAR_SIZE + 2, 0);
-            tb->hideName = studio->bank.show;
-        }
-#endif
+    if(isBanked(mode))
+    {
+        drawBankIcon(studio, COUNT_OF(Modes) * TOOLBAR_SIZE + 2, 0);
+        tb->hideName = studio->bank.show;
     }
+#endif
+
+    if(app->band)
+        app->band(tb->app, tb);
 
     toolbar_end(tb);
 }

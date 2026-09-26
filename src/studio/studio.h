@@ -259,7 +259,6 @@ bool checkMouseClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 bool checkMouseDblClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button);
 bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button);
 
-void drawToolbar(Studio* studio, tic_mem* tic, bool bg);
 void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color);
 
 tic_cartridge* loadPngCart(png_buffer buffer);
@@ -267,6 +266,7 @@ void studioRomLoaded(Studio* studio);
 void studioRomSaved(Studio* studio);
 void studioConfigChanged(Studio* studio);
 
+void drawToolbar(Studio* studio, tic_mem* tic, bool bg);
 void setStudioMode(Studio* studio, EditorMode mode);
 EditorMode getStudioMode(Studio* studio);
 void exitStudio(Studio* studio);

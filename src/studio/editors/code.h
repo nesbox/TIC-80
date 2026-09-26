@@ -23,6 +23,7 @@
 #pragma once
 
 #include "studio/studio.h"
+#include "studio/toolbar.h"
 
 typedef struct Code Code;
 
@@ -139,6 +140,7 @@ struct Code
 
 extern const ClipboardOps CodeClipboard;
 
+void codeBand(void*, Toolbar*);
 void initCode(Code*, Studio* studio);
 void freeCode(Code*);
 void codeGetPos(Code*, s32* x, s32* y);
