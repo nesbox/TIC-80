@@ -159,6 +159,13 @@ struct Studio
 #endif
     } mouse;
 
+    // Written by the editors, cleared by toolbar_step, drawn by the strip — so
+    // the buffer is not the editors' to guard.
+    struct
+    {
+        char text[STUDIO_TEXT_BUFFER_WIDTH];
+    } tooltip;
+
     EditorMode menuMode;
 #if defined(BUILD_EDITORS)
     ViMode viMode;
@@ -207,11 +214,6 @@ struct Studio
     {
         char message[STUDIO_TEXT_BUFFER_WIDTH];
     } popup;
-
-    struct
-    {
-        char text[STUDIO_TEXT_BUFFER_WIDTH];
-    } tooltip;
 
     struct
     {
@@ -2611,9 +2613,6 @@ void studio_tick(Studio* studio, tic80_input input)
     tic_net_start(studio->net);
 #endif
 
-    studio->toolbar.mode = studio->mode;
-    toolbar_step(&studio->toolbar);
-
     // A tab click lands here rather than switching mid-frame: the mode's blit
     // callback is chosen after its tick, so the switch has to wait for that.
     if(studio->toolbar.requested)
@@ -2622,12 +2621,21 @@ void studio_tick(Studio* studio, tic80_input input)
         studio->toolbar.requested = 0;
     }
 
+    // After the switch, so a click's frame draws the incoming mode's band.
+    studio->toolbar.mode = studio->mode;
+    toolbar_step(&studio->toolbar);
+
     processMouseStates(studio);
     renderStudio(studio);
 
     {
         const EditorApp* app = &Apps[studio->mode];
-        tic_blit_callback callback = {app->scanline, NULL, NULL, app->instance(studio)};
+        tic_blit_callback callback = {.scanline = app->scanline};
+
+        // Only a mode that has a scanline needs its instance, and only those
+        // have one — this is the fallback to a plain blit.
+        if(app->scanline)
+            callback.data = app->instance(studio);
 
         if(studio->mode != TIC_RUN_MODE)
         {

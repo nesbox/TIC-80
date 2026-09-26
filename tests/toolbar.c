@@ -1,12 +1,12 @@
 /* The strip links without the studio: this file builds toolbar.c with the core
  * and nothing else, so a call to anything studio.c provides fails to link here
  * rather than appearing quietly in the app build.
- * cc -Isrc -Iinclude -Ibuild tests/toolbar.c src/studio/toolbar.c
- *    src/core/core.c src/core/draw.c src/core/io.c src/core/sound.c src/tic.c
- *    src/tools.c src/tilesheet.c src/cart.c src/script.c src/vqtdata.c
- *    src/fftdata.c src/ext/fft.c src/ext/kiss_fft.c src/ext/kiss_fftr.c
- *    src/ext/vqt.c src/ext/vqt_kernel.c vendor/blip-buf/blip_buf.c
- *    -lm -o toolbar-test
+ * cc -Isrc -Iinclude -Ibuild -Ivendor/blip-buf tests/toolbar.c
+ *    src/studio/toolbar.c src/core/core.c src/core/draw.c src/core/io.c
+ *    src/core/sound.c src/tic.c src/tools.c src/tilesheet.c src/cart.c
+ *    src/script.c src/vqtdata.c src/fftdata.c src/ext/fft.c src/ext/kiss_fft.c
+ *    src/ext/kiss_fftr.c src/ext/vqt.c src/ext/vqt_kernel.c
+ *    vendor/blip-buf/blip_buf.c -lm -o toolbar-test
  */
 #include "studio/toolbar.h"
 #include <assert.h>
@@ -71,7 +71,11 @@ static void testClick(tic_mem* tic)
     sample->note = NoteStart;
     sample->octave = 4;
 
+    tic->ram->sfxpos[0] = (tic_sfx_pos){0};
     toolbar_playClick(tic, &Sfx, Id);
+
+    // The click starts the effect on channel 0 and moves it off its start.
+    assert(memcmp(&tic->ram->sfxpos[0], &(tic_sfx_pos){0}, sizeof(tic_sfx_pos)) != 0);
 
     puts("click ok");
 }
