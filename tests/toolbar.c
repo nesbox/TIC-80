@@ -206,7 +206,9 @@ static void testClipboard(tic_mem* tic)
     assert(ClipboardHits[0] == 1);
     assert(ClipboardHits[1] == 0 && ClipboardHits[2] == 0 && ClipboardHits[3] == 0 && ClipboardHits[4] == 0);
 
-    // Hovering a clipboard button names it, and the name is drawn that frame.
+    // Hovering a clipboard button names it, and the rail carries that name in
+    // the frame it was asked for — the pixels, not just the buffer, because a
+    // print that happens after the clip is invisible to a strcmp.
     Tooltip[0] = '\0';
     clickAt(tic, row + Size + 3, 3);
     Mouse[tic_mouse_left].click = false;
@@ -214,6 +216,26 @@ static void testClipboard(tic_mem* tic)
     toolbar_end(&tb);
 
     assert(strcmp(Tooltip, "COPY [ctrl+c]") == 0);
+
+    {
+        enum {NameX = (Named + 1) * Size, NameRow = 1};
+        bool inked = false;
+
+        for(s32 x = NameX; x < NameX + 15 && !inked; x++)
+            inked = screenAt(tic, x, NameRow) == tic_color_dark_grey;
+
+        assert(inked);
+    }
+
+    // A pro build's bank row takes the name's space; it does not take the row.
+    tb.hideName = true;
+    ClipboardHits[1] = 0;
+
+    clickAt(tic, row + Size + 3, 3);
+    toolbar_begin(&tb, true);
+    toolbar_end(&tb);
+
+    assert(ClipboardHits[1] == 1);
 
     puts("clipboard ok");
 }

@@ -735,6 +735,7 @@ void showTooltip(Studio* studio, const char* text)
     strncpy(studio->tooltip.text, text, sizeof studio->tooltip.text - 1);
 }
 
+#if defined(TIC80_PRO) && defined(BUILD_EDITORS)
 static void drawBankIcon(Studio* studio, s32 x, s32 y)
 {
     tic_mem* tic = studio->tic;
@@ -828,6 +829,7 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
         drawBitIcon(studio, tic_icon_bank, x, y, over ? tic_color_red : tic_color_light_grey);
     }
 }
+#endif
 
 struct Sprite* getSpriteEditor(Studio* studio)
 {
