@@ -2116,10 +2116,11 @@ static void processShortcuts(Studio* studio)
             {
             case TIC_MENU_MODE: studio_menu_back(studio->menu); break;
             case TIC_RUN_MODE:
+                gotoMenu(studio); break;
 #if defined(BUILD_SURF)
             case TIC_SURF_MODE:
+                exitSurf(studio); break;
 #endif
-                gotoMenu(studio); break;
             default: break;
             }
         }
