@@ -412,26 +412,6 @@ static char* replaceHelpTokens(const char* text)
 }
 
 
-static const char* getName(const char* name, const char* ext)
-{
-    static char path[TICNAME_MAX];
-
-    strcpy(path, name);
-
-    size_t ps = strlen(path);
-    size_t es = strlen(ext);
-
-    if(!(ps > es && strstr(path, ext) + es == path + ps))
-        strcat(path, ext);
-
-    return path;
-}
-
-static const char* getCartName(const char* name)
-{
-    return getName(name, CART_EXT);
-}
-
 static void scrollBuffer(char* buffer)
 {
     memmove(buffer, buffer + CONSOLE_BUFFER_WIDTH, CONSOLE_BUFFER_SIZE - CONSOLE_BUFFER_WIDTH);
@@ -729,38 +709,6 @@ static void onEditCommand(Console* console)
     commandDone(console);
 }
 
-static void loadCartSection(Console* console, const tic_cartridge* cart, const char* section)
-{
-    tic_mem* tic = console->tic;
-
-    static const struct Section
-    {
-        const char* name;
-        s32 offset;
-        s32 size;
-    } Sections[] =
-    {
-#define SECTION_DEF(name, ...) {#name, offsetof(tic_bank, name), sizeof(tic_ ## name)},
-        TIC_SYNC_LIST(SECTION_DEF)
-#undef  SECTION_DEF
-    };
-
-    if(section)
-    {
-        if(strcmp(section, "code") == 0)
-            memcpy(&tic->cart.code, &cart->code, sizeof(tic_code));
-        else
-            FOR(const struct Section*, it, Sections)
-                if(strcmp(section, it->name) == 0)
-                {
-                    memcpy((u8*)&tic->cart.bank0 + it->offset, (const u8*)&cart->bank0 + it->offset, it->size);
-                    break;
-                }
-    }
-    else
-        memcpy(&tic->cart, cart, sizeof(tic_cartridge));
-}
-
 static char* getDemoCartPath(char* path, const tic_script* script)
 {
     strcpy(path, TIC_LOCAL_VERSION "default_");
@@ -798,15 +746,6 @@ static void* getDemoCart(Console* console, const tic_script* script, s32* size)
     return data;
 }
 
-static void setCartName(Console* console, const char* name, const char* path)
-{
-    if(console->rom.name != name)
-        strcpy(console->rom.name, name);
-
-    if(console->rom.path != path)
-        strcpy(console->rom.path, path);
-}
-
 static void onLoadDemoCommandConfirmed(Console* console, const tic_script* script)
 {
     void* data = NULL;
@@ -816,7 +755,7 @@ static void onLoadDemoCommandConfirmed(Console* console, const tic_script* scrip
         char path[1024];
         getDemoCartPath(path, script);
         const char* name = getCartName(path);
-        setCartName(console, name, tic_fs_path(console->fs, name));
+        studioSetCartName(console->studio, name, tic_fs_path(console->fs, name));
     }
 
     data = getDemoCart(console, script, &size);
@@ -826,10 +765,19 @@ static void onLoadDemoCommandConfirmed(Console* console, const tic_script* scrip
     studioRomLoaded(console->studio);
 
     printBack(console, "\ncart ");
-    printFront(console, console->rom.name);
+    printFront(console, studioCart(console->studio)->name);
     printBack(console, " loaded!\n");
 
     free(data);
+}
+
+static void printCartLoaded(Console* console)
+{
+    printBack(console, "\ncart ");
+    printFront(console, studioCart(console->studio)->name);
+    printBack(console, " loaded!\nuse ");
+    printFront(console, "RUN");
+    printBack(console, " command to run it\n");
 }
 
 static void onCartLoaded(Console* console, const char* name, const char* section)
@@ -837,15 +785,11 @@ static void onCartLoaded(Console* console, const char* name, const char* section
     tic_api_reset(console->tic);
 
     if(!section)
-        setCartName(console, name, tic_fs_path(console->fs, name));
+        studioSetCartName(console->studio, name, tic_fs_path(console->fs, name));
 
     studioRomLoaded(console->studio);
 
-    printBack(console, "\ncart ");
-    printFront(console, console->rom.name);
-    printBack(console, " loaded!\nuse ");
-    printFront(console, "RUN");
-    printBack(console, " command to run it\n");
+    printCartLoaded(console);
 
 }
 
@@ -857,7 +801,7 @@ static inline tic_cartridge* newCart()
 static void updateProject(Console* console)
 {
     tic_mem* tic = console->tic;
-    const char* path = console->rom.path;
+    const char* path = studioCart(console->studio)->path;
 
     if(*path)
     {
@@ -868,7 +812,7 @@ static void updateProject(Console* console)
         {
 #if defined(TIC80_PRO)
             if(project_ext(path))
-                tic_project_load(console->rom.name, data, size, &tic->cart);
+                tic_project_load(studioCart(console->studio)->name, data, size, &tic->cart);
             else
 #endif
                 tic_cart_load(&tic->cart, data, size);
@@ -881,32 +825,21 @@ static void updateProject(Console* console)
 typedef struct
 {
     Console* console;
-    char* name;
-    char* section;
     fs_done_callback callback;
     void* calldata;
-} LoadByHashData;
+} ConsoleHashLoadData;
 
-static void loadByHashDone(const u8* buffer, s32 size, void* data)
+static void onHashLoaded(void* data)
 {
-    LoadByHashData* loadByHashData = data;
-    Console* console = loadByHashData->console;
+    ConsoleHashLoadData* load = data;
+    Console* console = load->console;
 
-    tic_cartridge* cart = newCart();
+    printCartLoaded(console);
 
-    SCOPE(free(cart))
-    {
-        tic_cart_load(cart, buffer, size);
-        loadCartSection(console, cart, loadByHashData->section);
-        onCartLoaded(console, loadByHashData->name, loadByHashData->section);
-    }
+    if(load->callback)
+        load->callback(load->calldata);
 
-    if (loadByHashData->callback)
-        loadByHashData->callback(loadByHashData->calldata);
-
-    FREE(loadByHashData->name);
-    FREE(loadByHashData->section);
-    FREE(loadByHashData);
+    free(load);
 
     commandDone(console);
 }
@@ -915,8 +848,10 @@ static void loadByHash(Console* console, const char* name, const char* hash, con
 {
     console->active = false;
 
-    LoadByHashData loadByHashData = { console, strdup(name), section ? strdup(section) : NULL, callback, data};
-    tic_fs_hashload(console->fs, name, hash, loadByHashDone, MOVE(loadByHashData));
+    ConsoleHashLoadData* load = NEW(ConsoleHashLoadData);
+    *load = (ConsoleHashLoadData){ console, callback, data };
+
+    studioLoadByHash(console->studio, name, hash, section, onHashLoaded, load);
 }
 
 typedef struct
@@ -1024,7 +959,7 @@ static void onLoadCommandConfirmed(Console* console)
                 SCOPE(free(cart))
                 {
                     tic_cart_load(cart, data, size);
-                    loadCartSection(console, cart, section);
+                    loadCartSection(console->studio, cart, section);
                     onCartLoaded(console, name, section);
                 }
             }
@@ -1039,7 +974,7 @@ static void onLoadCommandConfirmed(Console* console)
 
                     if(cart) SCOPE(free(cart))
                     {
-                        loadCartSection(console, cart, section);
+                        loadCartSection(console->studio, cart, section);
                         onCartLoaded(console, param, section);
                     }
                     else printError(console, "\npng cart loading error");
@@ -1061,7 +996,7 @@ static void onLoadCommandConfirmed(Console* console)
                         SCOPE(free(cart))
                         {
                             tic_project_load(name, data, size, cart);
-                            loadCartSection(console, cart, section);
+                            loadCartSection(console->studio, cart, section);
                             onCartLoaded(console, name, section);
                         }
                     }
@@ -1201,7 +1136,7 @@ static void loadDemo(Console* console, const tic_script* script)
         free(data);
     }
 
-    memset(console->rom.name, 0, sizeof console->rom.name);
+    memset(studioCart(console->studio)->name, 0, sizeof studioCart(console->studio)->name);
 
     studioRomLoaded(console->studio);
 }
@@ -1703,10 +1638,12 @@ static void onGameMenuCommand(Console* console)
     commandDone(console);
 }
 
+#if defined(BUILD_SURF)
 static void onSurfCommand(Console* console)
 {
     gotoSurf(console->studio);
 }
+#endif
 
 static void loadExternal(Console* console, const char* path)
 {
@@ -2703,168 +2640,21 @@ static void onExportCommand(Console* console)
     }
 }
 
-static void drawShadowText(tic_mem* tic, const char* text, s32 x, s32 y, tic_color color, s32 scale)
-{
-    tic_api_print(tic, text, x, y + scale, tic_color_black, false, scale, false);
-    tic_api_print(tic, text, x, y, color, false, scale, false);
-}
-
 const char* readMetatag(const char* code, const char* tag, const char* comment);
-
-static CartSaveResult saveCartName(Console* console, const char* name)
-{
-    tic_mem* tic = console->tic;
-
-    bool success = false;
-
-    if(name && strlen(name))
-    {
-        u8* buffer = (u8*)malloc(sizeof(tic_cartridge) * 3);
-
-        if(buffer)
-        {
-            if(strcmp(name, CONFIG_TIC_PATH) == 0)
-            {
-                console->config->saveConfigCart(console->config);
-                studioRomSaved(console->studio);
-                free(buffer);
-                return CART_SAVE_OK;
-            }
-            else
-            {
-                s32 size = 0;
-
-                if(tic_tool_has_ext(name, PngExt))
-                {
-                    png_buffer cover;
-
-                    {
-                        enum{CoverWidth = 256};
-
-                        static const u8 Cartridge[] =
-                        {
-                            #include "../build/assets/cart.png.dat"
-                        };
-
-                        png_buffer template = {(u8*)Cartridge, sizeof Cartridge};
-                        png_img img = png_read(template, NULL);
-
-                        // draw screen
-                        {
-                            enum{PaddingLeft = 8, PaddingTop = 8};
-
-                            const tic_bank* bank = &tic->cart.bank0;
-                            const tic_rgb* pal = bank->palette.vbank0.colors;
-                            const u8* screen = bank->screen.data;
-                            u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
-
-                            for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-                                ptr[i / TIC80_WIDTH * CoverWidth + i % TIC80_WIDTH] = tic_rgba(pal + tic_tool_peek4(screen, i));
-                        }
-
-                        // draw title/author/desc
-                        {
-                            enum{Width = 224, Height = 40, PaddingTop = 162, PaddingLeft = 16, Scale = 2, Row = TIC_FONT_HEIGHT * 2 * Scale};
-
-                            tic_api_cls(tic, tic_color_dark_grey);
-
-                            const char* comment = tic_get_script(tic)->singleComment;
-
-                            const char* title = tic_tool_metatag(tic->cart.code.data, "title", comment);
-                            if(*title)
-                            {
-                                drawShadowText(tic, title, 0, 0, tic_color_white, Scale);
-                            }
-
-                            const char* author = tic_tool_metatag(tic->cart.code.data, "author", comment);
-                            if(*author)
-                            {
-                                char buf[TICNAME_MAX];
-                                snprintf(buf, sizeof buf, "by %s", author);
-                                drawShadowText(tic, buf, 0, Row, tic_color_grey, Scale);
-                            }
-
-                            u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
-                            const u8* screen = tic->ram->vram.screen.data;
-							const tic_rgb Sweetie16[] = {
-								{0x1a, 0x1c, 0x2c}, {0x5d, 0x27, 0x5d}, {0xb1, 0x3e, 0x53}, {0xef, 0x7d, 0x57},
-								{0xff, 0xcd, 0x75}, {0xa7, 0xf0, 0x70}, {0x38, 0xb7, 0x64}, {0x25, 0x71, 0x79},
-								{0x29, 0x36, 0x6f}, {0x3b, 0x5d, 0xc9}, {0x41, 0xa6, 0xf6}, {0x73, 0xef, 0xf7},
-								{0xf4, 0xf4, 0xf4}, {0x94, 0xb0, 0xc2}, {0x56, 0x6c, 0x86}, {0x33, 0x3c, 0x57}
-							};
-							const tic_rgb* pal = Sweetie16;
-
-                            for(s32 y = 0; y < Height; y++)
-                                for(s32 x = 0; x < Width; x++)
-                                    ptr[CoverWidth * y + x] = tic_rgba(pal + tic_tool_peek4(screen, y * TIC80_WIDTH + x));
-                        }
-
-                        cover = png_write(img, (png_buffer){NULL, 0});
-
-                        free(img.data);
-                    }
-
-                    png_buffer zip = png_create(sizeof(tic_cartridge));
-
-                    {
-                        png_buffer cart = png_create(sizeof(tic_cartridge));
-                        cart.size = tic_cart_save(&tic->cart, cart.data);
-                        zip.size = tic_tool_zip(zip.data, zip.size, cart.data, cart.size);
-                        free(cart.data);
-                    }
-
-                    png_buffer result = png_encode(cover, zip);
-                    free(zip.data);
-                    free(cover.data);
-
-                    buffer = result.data;
-                    size = result.size;
-                }
-#if defined(TIC80_PRO)
-                else if(project_ext(name))
-                {
-                    size = tic_project_save(name, buffer, &tic->cart);
-                }
-#endif
-                else
-                {
-                    name = getCartName(name);
-                    size = tic_cart_save(&tic->cart, buffer);
-                }
-
-                if(size && tic_fs_save(console->fs, name, buffer, size, true))
-                {
-                    setCartName(console, name, tic_fs_path(console->fs, name));
-                    success = true;
-                    studioRomSaved(console->studio);
-                }
-            }
-
-            free(buffer);
-        }
-    }
-    else if (strlen(console->rom.name))
-    {
-        return saveCartName(console, console->rom.name);
-    }
-    else return CART_SAVE_MISSING_NAME;
-
-    return success ? CART_SAVE_OK : CART_SAVE_ERROR;
-}
 
 static CartSaveResult saveCart(Console* console)
 {
-    return saveCartName(console, NULL);
+    return studioSaveCart(console->studio, NULL);
 }
 
 static void onSaveCommandConfirmed(Console* console)
 {
-    CartSaveResult rom = saveCartName(console, console->desc->count ? console->desc->params->key : NULL);
+    CartSaveResult rom = studioSaveCart(console->studio, console->desc->count ? console->desc->params->key : NULL);
 
     if(rom == CART_SAVE_OK)
     {
         printBack(console, "\ncart ");
-        printFront(console, console->rom.name);
+        printFront(console, studioCart(console->studio)->name);
         printBack(console, " saved!\n");
     }
     else if(rom == CART_SAVE_MISSING_NAME)
@@ -3137,6 +2927,14 @@ static const char HelpUsage[] = "help [<text>"
 #endif
 
 // macro(name, alt, help, usage, handler, tab-complete for first param, for second param)
+// The browser's command exists only where the browser does.
+#if defined(BUILD_SURF)
+#define SURF_CMD(macro)                                                     \
+    macro("surf", NULL, "Open carts browser.", NULL, onSurfCommand, NULL, NULL)
+#else
+#define SURF_CMD(macro)
+#endif
+
 #define COMMANDS_LIST(macro)                                                            \
     macro("help",                                                                       \
         NULL,                                                                           \
@@ -3310,13 +3108,7 @@ static const char HelpUsage[] = "help [<text>"
         tabCompleteConfig,                                                              \
         NULL)                                                                           \
                                                                                         \
-    macro("surf",                                                                       \
-        NULL,                                                                           \
-        "Open carts browser.",                                                          \
-        NULL,                                                                           \
-        onSurfCommand,                                                                  \
-        NULL,                                                                           \
-        NULL)                                                                           \
+    SURF_CMD(macro)                                                                     \
                                                                                         \
     macro("menu",                                                                       \
         NULL,                                                                           \
@@ -4695,6 +4487,7 @@ static void processKeyboard(Console* console)
 
 }
 
+#if defined(BUILD_SURF)
 static void processGamepad(Console* console)
 {
     tic_mem* tic = console->tic;
@@ -4707,6 +4500,7 @@ static void processGamepad(Console* console)
         gotoSurf(console->studio);
     }
 }
+#endif
 
 static void tick(Console* console)
 {
@@ -4714,7 +4508,9 @@ static void tick(Console* console)
 
     processMouse(console);
     processKeyboard(console);
+#if defined(BUILD_SURF)
     processGamepad(console);
+#endif
 
     Start* start = getStartScreen(console->studio);
 
@@ -4791,83 +4587,9 @@ static void tick(Console* console)
     console->tickCounter++;
 }
 
-static inline bool isslash(char c)
-{
-    return c == '/' || c == '\\';
-}
-
 static bool cmdLoadCart(Console* console, const char* path)
 {
-    bool done = false;
-
-    s32 size = 0;
-    void* data = fs_read(path, &size);
-
-    if(data)
-    {
-        const char* cartName = NULL;
-
-        {
-            const char* ptr = path + strlen(path);
-            while(ptr > path && !isslash(*ptr))--ptr;
-            cartName = ptr + isslash(*ptr);
-        }
-
-        setCartName(console, cartName, path);
-        tic_mem* tic = console->tic;
-
-        if(tic_tool_has_ext(cartName, PngExt))
-        {
-            tic_cartridge* cart = loadPngCart((png_buffer){data, size});
-
-            if(cart)
-            {
-                memcpy(&tic->cart, cart, sizeof(tic_cartridge));
-                free(cart);
-                done = true;
-            }
-        }
-        else if(tic_tool_has_ext(cartName, CART_EXT))
-        {
-            tic_cart_load(&tic->cart, data, size);
-            done = true;
-        }
-#if defined(TIC80_PRO)
-        else if(project_ext(cartName))
-        {
-            if(tic_project_load(cartName, data, size, &tic->cart))
-                done = true;
-        }
-#endif
-
-        free(data);
-    }
-
-    if(done)
-        studioRomLoaded(console->studio);
-
-    return done;
-}
-
-void forceAutoSave(Console* console, const char* cart_name)
-{
-    char namepath[TICNAME_MAX];
-    strcpy(namepath, "/downloads/");
-    strcat(namepath, cart_name);
-    CartSaveResult rom = saveCartName(console, namepath);
-
-    if(rom == CART_SAVE_OK)
-    {
-        printBack(console, "\ncart ");
-        printFront(console, console->rom.name);
-        printBack(console, " autosaved!\n");
-    }
-    else if(rom == CART_SAVE_MISSING_NAME)
-        printBack(console, "\nautosave name is missing\n");
-    else
-        printBack(console, "\ncart autosave error");
-
-    commandDone(console);
+    return studioLoadCart(console->studio, path);
 }
 
 static int cmdcmp(const void* a, const void* b)

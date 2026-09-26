@@ -114,13 +114,19 @@ def ticVersionName = "${ticVersionMajor}.${ticVersionMinor}.${ticVersionShownPat
 // paid channel shipped a build without the features it pays for.
 def ticPro = project.findProperty('PRO') ?: 'OFF'
 
+// The browser-only APK is the same variant built with -PEDITORS=OFF: no IDE,
+// the game browser as the whole UI.
+def ticEditors = project.findProperty('EDITORS') ?: 'ON'
+
 android {
     namespace "com.nesbox.tic"
     compileSdkVersion 31
     ndkVersion "23.2.8568313"
     defaultConfig {
         if (buildAsApplication) {
-            applicationId "com.nesbox.tic"
+            // Two APKs cannot share a package name: the browser-only build is
+            // its own app. The provider authority follows it (AndroidManifest).
+            applicationId(ticEditors == 'OFF' ? "com.nesbox.tic.surf" : "com.nesbox.tic")
         }
         minSdkVersion 24 // Android 7.0 (Nougat)
         targetSdkVersion 31 // Android 12 (Snow Cone)
@@ -140,6 +146,7 @@ android {
             cmake {
                 arguments "-DBUILD_WITH_RUBY=OFF",
                             "-DBUILD_PRO=${ticPro}",
+                            "-DBUILD_EDITORS=${ticEditors}",
                             "-DCMAKE_BUILD_TYPE=Release",
                             "-DBUILD_WITH_ALL=ON"
             }

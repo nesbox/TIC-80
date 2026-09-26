@@ -34,6 +34,7 @@
 #include "defines.h"
 #include "tools.h"
 #include "system.h"
+#include "rom.h"
 #include "anim.h"
 #include "ext/png.h"
 #include "core/core.h"
@@ -152,10 +153,22 @@ typedef enum
     TIC_SFX_MODE,
     TIC_MUSIC_MODE,
     TIC_MENU_MODE,
+#if defined(BUILD_SURF)
     TIC_SURF_MODE,
+#endif
 
     TIC_MODES_COUNT
 } EditorMode;
+
+// Where a build goes when there is nothing else to show, and where leaving a
+// run or the browser goes: the console, the browser, or the menu.
+#if defined(BUILD_EDITORS)
+#define TIC_HOME_MODE TIC_CONSOLE_MODE
+#elif defined(BUILD_SURF)
+#define TIC_HOME_MODE TIC_SURF_MODE
+#else
+#define TIC_HOME_MODE TIC_MENU_MODE
+#endif
 
 // Who asked for the run decides what ESC does in it (#2937): the studio's own
 // runs — Ctrl+R, the console's `run` — step back out to the editor, a cart
@@ -298,9 +311,14 @@ bool studioCartChanged(Studio* studio);
 void playSystemSfx(Studio* studio, s32 id);
 bool studio_is_cart_loaded(Studio* studio);
 
+struct tic_fs* studio_fs(Studio* studio);
+
 void gotoMenu(Studio* studio);
 void gotoCode(Studio* studio);
+#if defined(BUILD_SURF)
 void gotoSurf(Studio* studio);
+void exitSurf(Studio* studio);
+#endif
 
 void runGame(Studio* studio, RunOrigin origin);
 void exitGame(Studio* studio);

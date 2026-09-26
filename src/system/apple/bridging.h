@@ -1,8 +1,8 @@
 #pragma once
 
 #define __APPLE__ 1
+// The bridge parses system.h, whose StudioOptions layout follows this flag.
 #define BUILD_EDITORS 1
-#define BUILD_SURF 1
 
 #include "studio/system.h"
 #include "api.h"

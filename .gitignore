@@ -200,3 +200,6 @@ build/*.map
 # directory to generate pfdicdat.h
 build/pforth_bootstrap/
 build/pforth_bootstrap_src/
+# local tooling, not part of the project
+.claude/
+openspec/

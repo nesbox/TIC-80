@@ -161,6 +161,17 @@ has_editors() { # <file> <name in the bundle>
     fi
 }
 
+# The browser is on by default in every build with a screen to show it in, so
+# an editorless stub carries one only when its job forgot -DBUILD_SURF=OFF.
+BROWSER_MARKER="You don't have any files"
+
+no_browser() { # <file> <name in the bundle>
+    if grep -qa "$BROWSER_MARKER" "$1"; then
+        echo "export stub carries the browser: $2 ($1) — BUILD_SURF=OFF did not take" >&2
+        smissing=1
+    fi
+}
+
 # the site's players are the other way round from the stubs and the same way as
 # the universal one: editors kept. Its own flag, `pmissing`, so that a player
 # that lost them is not reported as a missing native asset.
@@ -195,6 +206,7 @@ if [ -d "$ART" ]; then
             if [ -f "$lsrc" ]; then
                 cp "$lsrc" "$tmp/$dst$lang"
                 no_editors "$tmp/$dst$lang" "$dst$lang"
+                no_browser "$tmp/$dst$lang" "$dst$lang"
             else
                 echo "export stub missing: $ART/tic80-$art-export-langs/tic80$lang[.exe]" >&2
                 smissing=1
@@ -238,6 +250,7 @@ if [ -d "$ART" ]; then
         if [ -f "$hdir/tic80$lang.js" ] && [ -f "$hdir/tic80$lang.wasm" ]; then
             html_stub "html$lang" "$hdir/tic80$lang.js" "$hdir/tic80$lang.wasm"
             no_editors "$hdir/tic80$lang.wasm" "html$lang"
+            no_browser "$hdir/tic80$lang.wasm" "html$lang"
         else
             echo "export stub missing: $hdir/tic80$lang.js|.wasm" >&2
             smissing=1

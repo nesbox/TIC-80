@@ -9,6 +9,7 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/screens/mainmenu.c
     ${TIC80LIB_DIR}/studio/screens/start.c
     ${TIC80LIB_DIR}/studio/studio.c
+    ${TIC80LIB_DIR}/studio/rom.c
     ${TIC80LIB_DIR}/studio/config.c
     ${TIC80LIB_DIR}/studio/fs.c
     ${TIC80LIB_DIR}/ext/md5.c
@@ -16,20 +17,18 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/ext/png.c
 )
 
-# The browser ships with the editors, as it always did — the console's `surf`
-# command runs on it — and BUILD_SURF is what a build without editors asks for
-# to keep it.
+# net.c serves the console as much as the browser: the version check and the
+# site filesystem both go through it, so it stays whenever either is built.
 if(BUILD_EDITORS OR BUILD_SURF)
     set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
-        ${TIC80LIB_DIR}/studio/screens/surf.c
         ${TIC80LIB_DIR}/studio/net.c
     )
+endif()
 
-    if(NOT BUILD_EDITORS)
-        set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
-            ${TIC80LIB_DIR}/studio/screens/console_minimal.c
-        )
-    endif()
+if(BUILD_SURF)
+    set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
+        ${TIC80LIB_DIR}/studio/screens/surf.c
+    )
 endif()
 
 if(BUILD_EDITORS)
@@ -83,13 +82,6 @@ if(BUILD_EDITORS)
     target_compile_definitions(tic80studio PUBLIC BUILD_EDITORS)
 endif()
 
-# BUILD_SURF is the code's name for "the browser is built", which an editors
-# build always has; SURF_MENU is the SURF entry of the main menu, and only a
-# build that asked for the option gets that one.
-if(BUILD_EDITORS OR BUILD_SURF)
-    target_compile_definitions(tic80studio PUBLIC BUILD_SURF)
-endif()
-
 if(BUILD_SURF)
-    target_compile_definitions(tic80studio PUBLIC SURF_MENU)
+    target_compile_definitions(tic80studio PUBLIC BUILD_SURF)
 endif()
