@@ -2160,7 +2160,6 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
         tic_api_print(tic, (char[]){'1' + c, '\0'}, x + (ColWidth - (TIC_ALTFONT_WIDTH - 1)) / 2 + c * ColWidth, y + 2,
             tic_color_grey, true, 1, true);
 
-
         for(s32 i = 0; i < MUSIC_FRAMES; i++)
         {
             const char* index = getPatternLabel(music, i, c);
@@ -3003,18 +3002,15 @@ static void tick(Music* music)
     music->tickCounter++;
 }
 
-static void onStudioEvent(Music* music, StudioEvent event)
-{
-    switch (event)
-    {
-    case TIC_TOOLBAR_CUT: copyToClipboard(music, true); break;
-    case TIC_TOOLBAR_COPY: copyToClipboard(music, false); break;
-    case TIC_TOOLBAR_PASTE: copyFromClipboard(music); break;
-    case TIC_TOOLBAR_UNDO: undo(music); break;
-    case TIC_TOOLBAR_REDO: redo(music); break;
-    default: break;
-    }
-}
+// The clipboard buttons take no arguments, so each editor's own operation gets
+// a uniform entry point here. The argument the old dispatch passed is folded in.
+static void clipboardCut(void* app) { Music* music = app; copyToClipboard(music, true); }
+static void clipboardCopy(void* app) { Music* music = app; copyToClipboard(music, false); }
+static void clipboardPaste(void* app) { Music* music = app; copyFromClipboard(music); }
+static void clipboardUndo(void* app) { Music* music = app; undo(music); }
+static void clipboardRedo(void* app) { Music* music = app; redo(music); }
+
+const ClipboardOps MusicClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
 void initMusic(Music* music, Studio* studio, tic_music* src)
 {
@@ -3065,7 +3061,6 @@ void initMusic(Music* music, Studio* studio, tic_music* src)
         .tickCounter = 0,
         .tab = MUSIC_PIANO_TAB,
         .history = history_create(src, sizeof(tic_music)),
-        .event = onStudioEvent,
     };
 
     resetSelection(music);

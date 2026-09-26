@@ -114,7 +114,9 @@ static void stripGlyph(Toolbar* tb, const ToolbarButton* button, s32 x, s32 y, u
 
 static void stripButton(Toolbar* tb, const ToolbarButton* button, const tic_rect* rect, bool over)
 {
-    u8 color = button->pressed ? tic_color_white : over ? tic_color_grey : button->color;
+    u8 color = button->pressed ? tic_color_white
+        : over ? (button->over ? button->over : tic_color_grey)
+        : button->color;
 
     if(button->pressed)
         tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_black);
@@ -200,7 +202,9 @@ bool toolbar_slider(Toolbar* tb, const char* tip, s32* value, s32 min, s32 max)
 }
 
 // The left rail: one tab per editor, then the mode's name or the tooltip of
-// whatever is under the pointer. The clipboard row joins it in group 5.
+// whatever is under the pointer, then the clipboard row. The five clipboard
+// operations are identical in every editor; only what they act on differs, and
+// that comes from the registry.
 void toolbar_end(Toolbar* tb)
 {
     enum {Size = TOOLBAR_SIZE};
@@ -251,6 +255,55 @@ void toolbar_end(Toolbar* tb)
 
     tic_api_print(tb->tic, tb->tooltip[0] ? tb->tooltip : tb->apps[tb->mode].name, x, 1 + tb->y,
         tb->tooltip[0] ? tic_color_dark_grey : tic_color_grey, false, 1, false);
+
+    const ClipboardOps* ops = tb->apps[tb->mode].clipboard;
+
+    if(!ops)
+        return;
+
+    enum {Gap = 17 * TIC_FONT_WIDTH, Count = 5};
+
+    static const struct { u8 icon; const char* tip; u8 color; } Buttons[Count] =
+    {
+        {tic_icon_cut,   "CUT [ctrl+x]",    tic_color_red},
+        {tic_icon_copy,  "COPY [ctrl+c]",   tic_color_orange},
+        {tic_icon_paste, "PASTE [ctrl+v]",  tic_color_yellow},
+        {tic_icon_undo,  "UNDO [ctrl+z]",   tic_color_light_green},
+        {tic_icon_redo,  "REDO [ctrl+y]",   tic_color_green},
+    };
+
+    void (*const handlers[Count])(void*) =
+    {
+        ops->cut, ops->copy, ops->paste, ops->undo, ops->redo,
+    };
+
+    x += Gap;
+
+    for(s32 i = 0; i < Count; i++)
+    {
+        ToolbarButton button =
+        {
+            .icon = Buttons[i].icon,
+            .tip = Buttons[i].tip,
+            .width = Size,
+            .color = tic_color_light_grey,
+            .over = Buttons[i].color,
+            .enabled = true,
+        };
+
+        tic_rect rect = {x + i * Size, 0, Size, Size};
+
+        bool over = stripHover(tb, &rect, button.tip);
+        bool held = stripDown(tb, &rect, tic_mouse_left);
+
+        if(stripClick(tb, &rect, tic_mouse_left))
+            handlers[i](tb->app);
+
+        if(held)
+            tic_api_rect(tb->tic, rect.x, rect.y + tb->y, rect.w, rect.h, button.over);
+
+        stripGlyph(tb, &button, rect.x, rect.y, held ? tic_color_white : over ? button.over : button.color);
+    }
 }
 
 void toolbar_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color)

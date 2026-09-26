@@ -94,8 +94,9 @@ struct Music
     struct History* history;
 
     void(*tick)(Music*);
-    void(*event)(Music*, StudioEvent);
 };
+
+extern const ClipboardOps MusicClipboard;
 
 void initMusic(Music*, Studio* studio, tic_music* src);
 void freeMusic(Music* music);

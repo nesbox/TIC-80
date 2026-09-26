@@ -99,12 +99,12 @@ typedef struct
 
 // The editors in tab order, expanded into the mode list and the registry
 // entries, so the tabs, the function keys and the number shortcuts agree.
-#define EDITOR_APPS(APP)                                                                               \
-    APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL)          \
-    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline) \
-    APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline)    \
-    APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL)          \
-    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL)
+#define EDITOR_APPS(APP)                                                                                            \
+    APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard)   \
+    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard) \
+    APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard)    \
+    APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard)    \
+    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard)
 
 #if defined(BUILD_EDITORS)
 static const EditorMode Modes[] =
@@ -325,9 +325,9 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 
 // The parameters are capitalised: lowercase ones would be substituted inside
 // the `.name =` designators, which is not what an initialiser means.
-#define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN)                        \
+#define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN, CLIP)                 \
     [MODE] = {.name = NAME, .tip = TIP, .icon = ICON, .hotkey = KEY,                   \
-              .instance = INST, .tick = TICK, .scanline = SCAN},
+              .instance = INST, .tick = TICK, .scanline = SCAN, .clipboard = CLIP},
     EDITOR_APPS(APP_ENTRY)
 #undef  APP_ENTRY
 #endif
@@ -735,84 +735,6 @@ void showTooltip(Studio* studio, const char* text)
     strncpy(studio->tooltip.text, text, sizeof studio->tooltip.text - 1);
 }
 
-static void drawExtrabar(Studio* studio, tic_mem* tic)
-{
-    enum {Size = 7};
-
-    s32 x = (COUNT_OF(Modes) + 1) * Size + 17 * TIC_FONT_WIDTH;
-    s32 y = 0;
-
-    static struct Icon {u8 id; StudioEvent event; const char* tip;} Icons[] =
-    {
-        {tic_icon_cut,      TIC_TOOLBAR_CUT,    "CUT [ctrl+x]"},
-        {tic_icon_copy,     TIC_TOOLBAR_COPY,   "COPY [ctrl+c]"},
-        {tic_icon_paste,    TIC_TOOLBAR_PASTE,  "PASTE [ctrl+v]"},
-        {tic_icon_undo,     TIC_TOOLBAR_UNDO,   "UNDO [ctrl+z]"},
-        {tic_icon_redo,     TIC_TOOLBAR_REDO,   "REDO [ctrl+y]"},
-    };
-
-    u8 color = tic_color_red;
-    FOR(const struct Icon*, icon, Icons)
-    {
-        tic_rect rect = {x, y, Size, Size};
-
-        u8 bg = tic_color_white;
-        u8 fg = tic_color_light_grey;
-
-        if(checkMousePos(studio, &rect))
-        {
-            setCursor(studio, tic_cursor_hand);
-
-            fg = color;
-            showTooltip(studio, icon->tip);
-
-            if(checkMouseDown(studio, &rect, tic_mouse_left))
-            {
-                bg = fg;
-                fg = tic_color_white;
-            }
-            else if(checkMouseClick(studio, &rect, tic_mouse_left))
-            {
-                setStudioEvent(studio, icon->event);
-            }
-        }
-
-        tic_api_rect(tic, x, y, Size, Size, bg);
-        drawBitIcon(studio, icon->id, x, y, fg);
-
-        x += Size;
-        color++;
-    }
-}
-
-struct Sprite* getSpriteEditor(Studio* studio)
-{
-    return studio->banks.sprite[studio->bank.index.sprites];
-}
-#endif
-
-const StudioConfig* studio_config(Studio* studio)
-{
-    return &studio->config->data;
-}
-
-const StudioConfig* getConfig(Studio* studio)
-{
-    return studio_config(studio);
-}
-
-Config* studio_config_get(Studio* studio)
-{
-    return studio->config;
-}
-
-struct Start* getStartScreen(Studio* studio)
-{
-    return studio->start;
-}
-
-#if defined(TIC80_PRO) && defined(BUILD_EDITORS)
-
 static void drawBankIcon(Studio* studio, s32 x, s32 y)
 {
     tic_mem* tic = studio->tic;
@@ -907,6 +829,10 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
     }
 }
 
+struct Sprite* getSpriteEditor(Studio* studio)
+{
+    return studio->banks.sprite[studio->bank.index.sprites];
+}
 #endif
 
 static inline s32 lerp(s32 a, s32 b, float d)
@@ -1143,6 +1069,7 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
     // Read live: an editor may have switched the mode earlier in this same tick.
     EditorMode mode = tb->mode = studio->mode;
 
+    tb->app = Apps[mode].instance(studio);
     tb->hideName = false;
 
     toolbar_begin(tb, bg);
@@ -1152,8 +1079,6 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
     // row drives studio->bank.
     if(Apps[mode].name)
     {
-        drawExtrabar(studio, tic);
-
 #if defined (TIC80_PRO) && defined(BUILD_EDITORS)
         if(isBanked(mode))
         {
@@ -1166,43 +1091,27 @@ void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
     toolbar_end(tb);
 }
 
-void setStudioEvent(Studio* studio, StudioEvent event)
+
+const StudioConfig* studio_config(Studio* studio)
 {
-    switch(studio->mode)
-    {
-    case TIC_CODE_MODE:
-        {
-            Code* code = studio->code;
-            code->event(code, event);
-        }
-        break;
-    case TIC_SPRITE_MODE:
-        {
-            Sprite* sprite = studio->banks.sprite[studio->bank.index.sprites];
-            sprite->event(sprite, event);
-        }
-    break;
-    case TIC_MAP_MODE:
-        {
-            Map* map = studio->banks.map[studio->bank.index.map];
-            map->event(map, event);
-        }
-        break;
-    case TIC_SFX_MODE:
-        {
-            Sfx* sfx = studio->banks.sfx[studio->bank.index.sfx];
-            sfx->event(sfx, event);
-        }
-        break;
-    case TIC_MUSIC_MODE:
-        {
-            Music* music = studio->banks.music[studio->bank.index.music];
-            music->event(music, event);
-        }
-        break;
-    default: break;
-    }
+    return &studio->config->data;
 }
+
+const StudioConfig* getConfig(Studio* studio)
+{
+    return studio_config(studio);
+}
+
+Config* studio_config_get(Studio* studio)
+{
+    return studio->config;
+}
+
+struct Start* getStartScreen(Studio* studio)
+{
+    return studio->start;
+}
+
 
 ClipboardEvent getClipboardEvent(Studio* studio)
 {

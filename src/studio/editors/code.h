@@ -134,9 +134,10 @@ struct Code
 
     void(*tick)(Code*);
     void(*escape)(Code*);
-    void(*event)(Code*, StudioEvent);
     void(*update)(Code*);
 };
+
+extern const ClipboardOps CodeClipboard;
 
 void initCode(Code*, Studio* studio);
 void freeCode(Code*);

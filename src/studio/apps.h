@@ -27,18 +27,6 @@
 struct tic_mem;
 struct Toolbar;
 
-// The five operations the toolbar's clipboard buttons perform. Each editor
-// supplies its own; a mode with none leaves it NULL.
-typedef struct
-{
-    void (*cut)(void*);
-    void (*copy)(void*);
-    void (*paste)(void*);
-    void (*undo)(void*);
-    void (*redo)(void*);
-
-} ClipboardOps;
-
 // One entry per EditorMode. Fields a mode has no use for are NULL and
 // tic_key_unknown. `instance` resolves the mode to its editor: the bank index
 // is the only part that varies at run time.

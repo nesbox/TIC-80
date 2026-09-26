@@ -278,6 +278,18 @@ bool checkStudioViMode(Studio* studio, ViMode mode);
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize);
 
+// The five operations the toolbar's clipboard buttons perform. Each editor
+// supplies its own; a mode with none leaves it NULL.
+typedef struct
+{
+    void (*cut)(void*);
+    void (*copy)(void*);
+    void (*paste)(void*);
+    void (*undo)(void*);
+    void (*redo)(void*);
+
+} ClipboardOps;
+
 typedef enum
 {
     TIC_CLIPBOARD_NONE,
@@ -288,16 +300,6 @@ typedef enum
 
 ClipboardEvent getClipboardEvent(Studio* studio);
 
-typedef enum
-{
-    TIC_TOOLBAR_CUT,
-    TIC_TOOLBAR_COPY,
-    TIC_TOOLBAR_PASTE,
-    TIC_TOOLBAR_UNDO,
-    TIC_TOOLBAR_REDO,
-} StudioEvent;
-
-void setStudioEvent(Studio* studio, StudioEvent event);
 void showTooltip(Studio* studio, const char* text);
 
 void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);

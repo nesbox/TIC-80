@@ -543,7 +543,6 @@ static void setMapSprite(Map* map, s32 x, s32 y)
     s32 mx = map->sheet.rect.x;
     s32 my = map->sheet.rect.y;
 
-
     for(s32 j = 0; j < map->sheet.rect.h; j++)
         for(s32 i = 0; i < map->sheet.rect.w; i++)
             tic_api_mset(map->tic, (x+i)%TIC_MAP_WIDTH, (y+j)%TIC_MAP_HEIGHT, (mx+i) + (my+j) * TIC_SPRITESHEET_COLS);
@@ -921,7 +920,6 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
         clip.r = map->select.rect.x + map->select.rect.w;
         clip.b = map->select.rect.y + map->select.rect.h;
     }
-
 
     while(pop(&stack, &x, &y))
     {
@@ -1350,19 +1348,6 @@ static void tick(Map* map)
     }
 }
 
-static void onStudioEvent(Map* map, StudioEvent event)
-{
-    switch(event)
-    {
-    case TIC_TOOLBAR_CUT:   cutToClipboard(map); break;
-    case TIC_TOOLBAR_COPY:  copyToClipboard(map); break;
-    case TIC_TOOLBAR_PASTE: copyFromClipboard(map); break;
-    case TIC_TOOLBAR_UNDO:  undo(map); break;
-    case TIC_TOOLBAR_REDO:  redo(map); break;
-    default: break;
-    }
-}
-
 static void scanline(tic_mem* tic, s32 row, void* data)
 {
     Map* map = data;
@@ -1385,6 +1370,16 @@ static void freeAnim(Map* map)
     FREE(map->anim.bank.items);
     FREE(map->anim.page.items);
 }
+
+// The clipboard buttons take no arguments, so each editor's own operation gets
+// a uniform entry point here. The argument the old dispatch passed is folded in.
+static void clipboardCut(void* app) { Map* map = app; cutToClipboard(map); }
+static void clipboardCopy(void* app) { Map* map = app; copyToClipboard(map); }
+static void clipboardPaste(void* app) { Map* map = app; copyFromClipboard(map); }
+static void clipboardUndo(void* app) { Map* map = app; undo(map); }
+static void clipboardRedo(void* app) { Map* map = app; redo(map); }
+
+const ClipboardOps MapClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
 void initMap(Map* map, Studio* studio, tic_map* src)
 {
@@ -1456,7 +1451,6 @@ void initMap(Map* map, Studio* studio, tic_map* src)
                 {0, 0, STUDIO_ANIM_TIME, &map->anim.pos.page, AnimEaseIn},
             }),
         },
-        .event = onStudioEvent,
         .scanline = scanline,
     };
 

@@ -1976,7 +1976,6 @@ static void processKeyboard(Sprite* sprite)
     }
 }
 
-
 static void drawSpriteToolbar(Sprite* sprite)
 {
     tic_mem* tic = sprite->tic;
@@ -2170,18 +2169,6 @@ static void tick(Sprite* sprite)
     sprite->tickCounter++;
 }
 
-static void onStudioEvent(Sprite* sprite, StudioEvent event)
-{
-    switch(event)
-    {
-    case TIC_TOOLBAR_CUT: cutToClipboard(sprite); break;
-    case TIC_TOOLBAR_COPY: copyToClipboard(sprite); break;
-    case TIC_TOOLBAR_PASTE: copyFromClipboard(sprite); break;
-    case TIC_TOOLBAR_UNDO: undo(sprite); break;
-    case TIC_TOOLBAR_REDO: redo(sprite); break;
-    }
-}
-
 static void emptyDone(void* data) {}
 
 static void setIdle(void* data)
@@ -2195,6 +2182,16 @@ static void freeAnim(Sprite* sprite)
     FREE(sprite->anim.bank.items);
     FREE(sprite->anim.page.items);
 }
+
+// The clipboard buttons take no arguments, so each editor's own operation gets
+// a uniform entry point here. The argument the old dispatch passed is folded in.
+static void clipboardCut(void* app) { Sprite* sprite = app; cutToClipboard(sprite); }
+static void clipboardCopy(void* app) { Sprite* sprite = app; copyToClipboard(sprite); }
+static void clipboardPaste(void* app) { Sprite* sprite = app; copyFromClipboard(sprite); }
+static void clipboardUndo(void* app) { Sprite* sprite = app; undo(sprite); }
+static void clipboardRedo(void* app) { Sprite* sprite = app; redo(sprite); }
+
+const ClipboardOps SpriteClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
 void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
 {
@@ -2247,7 +2244,6 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
                 {0, 0, STUDIO_ANIM_TIME, &sprite->anim.pos.page, AnimEaseIn},
             }),
         },
-        .event = onStudioEvent,
         .scanline = scanline,
     };
 

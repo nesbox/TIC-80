@@ -49,8 +49,9 @@ struct Sfx
     struct History* waveHistory;
 
     void(*tick)(Sfx*);
-    void(*event)(Sfx*, StudioEvent);
 };
+
+extern const ClipboardOps SfxClipboard;
 
 void initSfx(Sfx*, Studio* studio, tic_sfx* src);
 void freeSfx(Sfx* sfx);

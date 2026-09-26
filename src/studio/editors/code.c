@@ -562,7 +562,6 @@ static inline bool isalnum_(Code* code, char c)
     return config_isalnum_(config, c);
 }
 
-
 static void setCodeState(CodeState* state, u8 color, s32 start, s32 size)
 {
     for(CodeState* s = state + start, *end = s + size; s != end; ++s)
@@ -1229,13 +1228,11 @@ static inline enum KeybindMode getKeybindMode(Code* code)
     return getConfig(code->studio)->options.keybindMode;
 }
 
-
 static inline bool shouldUseStructuredEdit(Code* code)
 {
     const bool emacsMode = getKeybindMode(code) == KEYBIND_EMACS;
     return tic_get_script(code->tic)->useStructuredEdition && emacsMode;
 }
-
 
 static bool structuredDeleteOverride(Code* code, char* pos)
 {
@@ -1411,7 +1408,6 @@ static void deleteLine(Code* code)
         tic_sys_clipboard_set(clipboard);
         free(clipboard);
     }
-
 
     deleteCode(code, linestart, lineend);
     code->cursor.position = linestart;
@@ -1603,7 +1599,6 @@ static void redo(Code* code)
 static bool useSpacesForTab(Code* code) {
     enum TabMode tabmode = getConfig(code->studio)->options.tabMode;
 
-
     if (tabmode == TAB_SPACE)
         return true;
     else if (tabmode == TAB_TAB)
@@ -1616,7 +1611,6 @@ static bool useSpacesForTab(Code* code) {
         return false;
     }
 }
-
 
 static s32 insertTab(Code* code, char* line_start, char* pos) {
     if (useSpacesForTab(code)) {
@@ -1989,7 +1983,6 @@ static char** getLines(Code* code, int lines){
     char* pos = code->cursor.position;
     char* sel = code->cursor.selection;
 
-
     char* start = MIN(pos, sel);
     while(*start == '\n') ++start;
 
@@ -2280,7 +2273,6 @@ static char* downStrStr(const char* start, const char* from, const char* substr)
     return strstr(from, substr);
 }
 
-
 static void seekEmptyLineForward(Code* code) {
     char* pos = code->cursor.position;
 
@@ -2514,7 +2506,6 @@ end:
     return pos;
 }
 
-
 //pass in pointer to beginnign of word and its length
 //so you can just use the word in src
 static char* findFunctionDefinition(Code* code, char* name, size_t length) {
@@ -2547,7 +2538,6 @@ static char* findFunctionDefinition(Code* code, char* name, size_t length) {
 
     return result;
 }
-
 
 static void processViChange(Code* code) {
     //if on a delimiter change the contents of the delimiter
@@ -2629,7 +2619,6 @@ static void processViKeyboard(Code* code)
         updateEditor(code);
         return;
     }
-
 
     if (mode == VI_INSERT)
     {
@@ -3283,7 +3272,6 @@ static void drawPopupBar(Code* code, const char* title)
 
     enum {TextX = BOOKMARK_WIDTH};
 
-
     tic_api_rect(code->tic, 0, TOOLBAR_SIZE + pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, tic_color_grey);
 
     s32 textY = (TOOLBAR_SIZE + 1) + pos;
@@ -3850,18 +3838,6 @@ static void escape(Code* code)
     }
 }
 
-static void onStudioEvent(Code* code, StudioEvent event)
-{
-    switch(event)
-    {
-    case TIC_TOOLBAR_CUT: cutToClipboard(code, false); break;
-    case TIC_TOOLBAR_COPY: copyToClipboard(code, false); break;
-    case TIC_TOOLBAR_PASTE: copyFromClipboard(code, false); break;
-    case TIC_TOOLBAR_UNDO: undo(code); break;
-    case TIC_TOOLBAR_REDO: redo(code); break;
-    }
-}
-
 static void emptyDone(void* data) {}
 
 static void setIdle(void* data)
@@ -3882,6 +3858,16 @@ static void freeAnim(Code* code)
     FREE(code->anim.show.items);
     FREE(code->anim.hide.items);
 }
+
+// The clipboard buttons take no arguments, so each editor's own operation gets
+// a uniform entry point here. The argument the old dispatch passed is folded in.
+static void clipboardCut(void* app) { Code* code = app; cutToClipboard(code, false); }
+static void clipboardCopy(void* app) { Code* code = app; copyToClipboard(code, false); }
+static void clipboardPaste(void* app) { Code* code = app; copyFromClipboard(code, false); }
+static void clipboardUndo(void* app) { Code* code = app; undo(code); }
+static void clipboardRedo(void* app) { Code* code = app; redo(code); }
+
+const ClipboardOps CodeClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
 void initCode(Code* code, Studio* studio)
 {
@@ -3938,7 +3924,6 @@ void initCode(Code* code, Studio* studio)
                 {0, SIDEBAR_WIDTH, STUDIO_ANIM_TIME, &code->anim.sidebar, AnimEaseIn},
             }),
         },
-        .event = onStudioEvent,
         .update = update,
     };
 

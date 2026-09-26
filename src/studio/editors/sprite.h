@@ -103,7 +103,6 @@ struct Sprite
     } anim;
 
     void (*tick)(Sprite*);
-    void (*event)(Sprite*, StudioEvent);
     void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
 
@@ -111,6 +110,8 @@ typedef struct
 {
     s32 cell_w, cell_h, cols, rows, length;
 } tic_palette_dimensions;
+
+extern const ClipboardOps SpriteClipboard;
 
 void initSprite(Sprite*, Studio* studio, tic_tiles* src);
 void freeSprite(Sprite*);

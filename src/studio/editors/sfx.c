@@ -1149,18 +1149,15 @@ static void tick(Sfx* sfx)
         sfx->play.tick = 0;
 }
 
-static void onStudioEvent(Sfx* sfx, StudioEvent event)
-{
-    switch(event)
-    {
-    case TIC_TOOLBAR_CUT:   cutToClipboard(sfx); break;
-    case TIC_TOOLBAR_COPY:  copyToClipboard(sfx); break;
-    case TIC_TOOLBAR_PASTE: copyFromClipboard(sfx); break;
-    case TIC_TOOLBAR_UNDO:  undo(sfx); break;
-    case TIC_TOOLBAR_REDO:  redo(sfx); break;
-    default: break;
-    }
-}
+// The clipboard buttons take no arguments, so each editor's own operation gets
+// a uniform entry point here. The argument the old dispatch passed is folded in.
+static void clipboardCut(void* app) { Sfx* sfx = app; cutToClipboard(sfx); }
+static void clipboardCopy(void* app) { Sfx* sfx = app; copyToClipboard(sfx); }
+static void clipboardPaste(void* app) { Sfx* sfx = app; copyFromClipboard(sfx); }
+static void clipboardUndo(void* app) { Sfx* sfx = app; undo(sfx); }
+static void clipboardRedo(void* app) { Sfx* sfx = app; redo(sfx); }
+
+const ClipboardOps SfxClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
 void initSfx(Sfx* sfx, Studio* studio, tic_sfx* src)
 {
@@ -1186,7 +1183,6 @@ void initSfx(Sfx* sfx, Studio* studio, tic_sfx* src)
 
         .history = history_create(&src->samples, sizeof(tic_samples)),
         .waveHistory = history_create(&src->waveforms, sizeof(tic_waveforms)),
-        .event = onStudioEvent,
     };
 }
 

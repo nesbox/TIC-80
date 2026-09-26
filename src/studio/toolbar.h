@@ -43,6 +43,7 @@ typedef struct Toolbar
     EditorMode mode;                // whose band is on screen
     EditorMode requested;           // a tab click, for the host to pick up
 
+    void* app;                      // the current mode's editor, for its clipboard
     s32  railX;                     // the right rail's packing cursor
     bool hideName;                  // a pro build's bank row takes the name's space
 
@@ -65,8 +66,9 @@ typedef struct
     const char* label;
     const char* tip;
     s32         width;
-    u8          color;
-    bool        pressed;
+    u8          color;              // glyph when idle
+    u8          over;               // glyph under the pointer; 0 means grey
+    bool        pressed;            // the active look: dark background
     bool        enabled;            // a click is consumed either way
 
 } ToolbarButton;
