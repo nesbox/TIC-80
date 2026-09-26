@@ -122,7 +122,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --config Release --parallel
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang.exe" "$GITHUB_WORKSPACE/stubs/"
           done
@@ -273,7 +273,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
@@ -412,7 +412,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
@@ -487,6 +487,7 @@ jobs:
             -DUSE_GLES2=ON \
             -DUSE_EGL=ON \
             -DBUILD_EDITORS=OFF \
+            -DBUILD_SURF=OFF \
             -DPREFER_SYSTEM_SDL2=ON \
             -DBUILD_STATIC=ON \
             -DTIC_DATA_PATH="/userdata/roms/tic80/"
@@ -673,7 +674,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
@@ -712,7 +713,7 @@ jobs:
         run: |
           mkdir -p build_apple
           cd build_apple
-          cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DBUILD_APPLE=ON -DBUILD_STATIC=ON -DBUILD_RENDER_CACHE=ON -DBUILD_SDLGPU=OFF -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DBUILD_APPLE=ON -DBUILD_STATIC=ON -DBUILD_RENDER_CACHE=ON -DBUILD_SDLGPU=OFF -DBUILD_SURF=OFF -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --config Release --parallel 3
 
   # === MacOS 15 / x86_64 ===
@@ -816,7 +817,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
@@ -894,15 +895,21 @@ jobs:
           # instead: the android job still proves the code compiles, the APK
           # cannot be mistaken for a shipable one, and every other event — a
           # push, the tag call — signs exactly as before.
+          # Each build is copied aside before the next one: the two APKs come
+          # out of the same output path, and the second overwrites the first.
           if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
               ./gradlew assembleRelease -PUNSIGNED=1
               cp app/build/outputs/apk/release/app-release-unsigned.apk tic80.apk
-              echo "fork pull request: no repository secrets, the APK is unsigned"
+              ./gradlew assembleRelease -PUNSIGNED=1 -PEDITORS=OFF
+              cp app/build/outputs/apk/release/app-release-unsigned.apk tic80-browser.apk
+              echo "fork pull request: no repository secrets, the APKs are unsigned"
           else
               : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
               : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
               ./gradlew assembleRelease
               cp app/build/outputs/apk/release/app-release.apk tic80.apk
+              ./gradlew assembleRelease -PEDITORS=OFF
+              cp app/build/outputs/apk/release/app-release.apk tic80-browser.apk
           fi
 
         env:
@@ -910,12 +917,42 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
+      - name: Check what each APK carries
+        run: |
+          cd build/android
+          # A flag that did not take looks exactly like one that took, and
+          # gradle can hand the second build the first one's native library.
+          # So each APK is read back: the editors APK carries the IDE, the
+          # browser-only one carries the browser and no IDE.
+          unzip -p tic80.apk lib/arm64-v8a/libtic80.so > editors.so
+          unzip -p tic80-browser.apk lib/arm64-v8a/libtic80.so > browser.so
+          if ! grep -qa "SPRITE EDITOR" editors.so; then
+            echo "the APK has no editors — BUILD_EDITORS did not take" >&2
+            exit 1
+          fi
+          if ! grep -qa "You don't have any files" browser.so; then
+            echo "the browser-only APK has no browser — -PEDITORS=OFF did not take, or gradle reused the first build's library" >&2
+            exit 1
+          fi
+          if grep -qa "SPRITE EDITOR" browser.so; then
+            echo "the browser-only APK carries the editors — -PEDITORS=OFF did not take" >&2
+            exit 1
+          fi
+          echo "both APKs carry what they should"
+
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
           name: "tic80-android"
           path: build/android/tic80.apk
+
+      - name: Deploy the browser-only APK
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-android-browser"
+          path: build/android/tic80-browser.apk
 
   # === HTML ===
   html:
@@ -1059,7 +1096,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            emcmake cmake -G Ninja -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            emcmake cmake -G Ninja -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
           done
 
@@ -1080,13 +1117,17 @@ jobs:
           done
           echo "checked ${#files[@]} wasm stubs, all distinct"
 
-          # and the other direction, which only the dev instance needs: it
-          # lays these pairs out itself, so package.sh's no_editors guard never
-          # runs on them there. A stub that carried the editors would hand a
-          # PRO alone export the IDE the alone mode promises to strip.
+          # The dev instance lays these pairs out itself, so package.sh's
+          # no_editors guard never runs on them there: check the content here.
+          # The browser is checked too — the option defaults to on now, and a
+          # job that forgets -DBUILD_SURF=OFF would ship one silently.
           for f in "${files[@]}"; do
             if grep -qa "SPRITE EDITOR" "$f"; then
               echo "stub carries the editors: $(basename "$f") — BUILD_EDITORS=OFF did not take" >&2
+              exit 1
+            fi
+            if grep -qa "You don't have any files" "$f"; then
+              echo "stub carries the browser: $(basename "$f") — BUILD_SURF=OFF did not take" >&2
               exit 1
             fi
           done

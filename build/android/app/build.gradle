@@ -114,6 +114,10 @@ def ticVersionName = "${ticVersionMajor}.${ticVersionMinor}.${ticVersionShownPat
 // paid channel shipped a build without the features it pays for.
 def ticPro = project.findProperty('PRO') ?: 'OFF'
 
+// The browser-only APK is the same variant built with -PEDITORS=OFF: no IDE,
+// the game browser as the whole UI.
+def ticEditors = project.findProperty('EDITORS') ?: 'ON'
+
 android {
     namespace "com.nesbox.tic"
     compileSdkVersion 31
@@ -140,6 +144,7 @@ android {
             cmake {
                 arguments "-DBUILD_WITH_RUBY=OFF",
                             "-DBUILD_PRO=${ticPro}",
+                            "-DBUILD_EDITORS=${ticEditors}",
                             "-DCMAKE_BUILD_TYPE=Release",
                             "-DBUILD_WITH_ALL=ON"
             }
