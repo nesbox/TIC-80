@@ -540,7 +540,7 @@ enum MainMenu
     MainMenu_GameMenu,
     MainMenu_ResumeGame,
     MainMenu_ResetGame,
-#if defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     MainMenu_CloseGame,
 #endif
     MainMenu_Options,
@@ -555,6 +555,8 @@ static const MenuItem MainMenu[] =
     {"RESET GAME",  onResetGame},
 #if defined(BUILD_EDITORS)
     {"CLOSE GAME",  onExitGame, NULL, "Press F1 to switch to editor"},
+#elif defined(BUILD_SURF)
+    {"CLOSE GAME",  onExitGame},
 #endif
     {"OPTIONS",     showOptionsMenu},
     {""},

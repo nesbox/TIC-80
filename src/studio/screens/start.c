@@ -68,10 +68,20 @@ static void header(Start* start)
     drawHeader(start);
 }
 
-static void start_console(Start* start)
+static void start_home(Start* start)
 {
     drawHeader(start);
-    setStudioMode(start->studio, TIC_CONSOLE_MODE);
+
+#if !defined(BUILD_EDITORS)
+    // No console to show it in: a cart that came with the app is played.
+    if(start->embed)
+    {
+        runGame(start->studio, RUN_FROM_PLAYER);
+        return;
+    }
+#endif
+
+    setStudioMode(start->studio, TIC_HOME_MODE);
 }
 
 static void tick(Start* start)
@@ -137,7 +147,7 @@ void initStart(Start* start, Studio* studio, const char* cart)
             { chime, .ticks = immediate },
             { header, .ticks = one_second },
             { stop_chime, .ticks = immediate },
-            { start_console, .ticks = forever },
+            { start_home, .ticks = forever },
         }
     };
 

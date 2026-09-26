@@ -702,7 +702,7 @@ static void processGamepad(Surf* surf)
         if(tic_api_btnp(tic, B, -1, -1)
             || tic_api_keyp(tic, tic_key_backspace, -1, -1))
         {
-            if(tic_fs_isroot(surf->fs)) setStudioMode(surf->studio, TIC_CONSOLE_MODE);
+            if(tic_fs_isroot(surf->fs)) exitSurf(surf->studio);
             else goBackDir(surf);
         }
 
@@ -750,7 +750,7 @@ static void tick(Surf* surf)
     {
         processGamepad(surf);
         if(tic_api_keyp(tic, tic_key_escape, -1, -1))
-            setStudioMode(surf->studio, TIC_CONSOLE_MODE);
+            exitSurf(surf->studio);
     }
 
     if (getStudioMode(surf->studio) != TIC_SURF_MODE) return;

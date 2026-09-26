@@ -1286,6 +1286,17 @@ void gotoSurf(Studio* studio)
     initSurfMode(studio);
     setStudioMode(studio, TIC_SURF_MODE);
 }
+
+// Out of the browser: home, which is the console in a build that has one and
+// the menu in a build that is only the browser.
+void exitSurf(Studio* studio)
+{
+#if defined(BUILD_EDITORS)
+    setStudioMode(studio, TIC_HOME_MODE);
+#else
+    setStudioMode(studio, TIC_MENU_MODE);
+#endif
+}
 #endif
 
 bool studio_is_cart_loaded(Studio* studio)
@@ -1342,8 +1353,10 @@ void setStudioMode(Studio* studio, EditorMode mode)
             break;
 #if defined(BUILD_EDITORS)
         case TIC_CONSOLE_MODE:
+#if defined(BUILD_SURF)
             if (prev == TIC_SURF_MODE)
                 studio->console->done(studio->console);
+#endif
             break;
         case TIC_WORLD_MODE:    initWorldMap(studio); break;
 #endif
@@ -1670,7 +1683,9 @@ void runGame(Studio* studio, RunOrigin origin)
         // The pause menu is not a place to come back to either: runFrom keeps
         // the origin of the run the menu sits over, or leaveRun would have
         // nowhere to go (gotoMenu sets it for a menu opened in the studio).
-        if(studio->mode != TIC_MENU_MODE)
+        // The startup screen is not an origin: that run belongs to the home
+        // screen it never left (see start.c).
+        if(studio->mode != TIC_MENU_MODE && studio->mode != TIC_START_MODE)
             studio->runFrom = studio->mode;
 
         setStudioMode(studio, TIC_RUN_MODE);
@@ -2232,7 +2247,9 @@ static void renderStudio(Studio* studio)
             break;
         case TIC_START_MODE:
         case TIC_MENU_MODE:
+#if defined(BUILD_SURF)
         case TIC_SURF_MODE:
+#endif
             sfx = &studio->config->cart->bank0.sfx;
             music = &studio->config->cart->bank0.music;
             break;
@@ -2319,7 +2336,9 @@ static void renderStudio(Studio* studio)
     switch(studio->mode)
     {
     case TIC_RUN_MODE: break;
+#if defined(BUILD_SURF)
     case TIC_SURF_MODE:
+#endif
     case TIC_MENU_MODE:
         tic->input.data = -1;
         break;
@@ -2748,14 +2767,14 @@ void studio_load(Studio* studio, const char* file)
 // forgotten SURF by the time the menu is answered (#3015).
 void exitGame(Studio* studio)
 {
+#if defined(BUILD_SURF)
     if(studio->runFrom == TIC_SURF_MODE)
     {
         setStudioMode(studio, TIC_SURF_MODE);
+        return;
     }
-    else
-    {
-        setStudioMode(studio, TIC_CONSOLE_MODE);
-    }
+#endif
+    setStudioMode(studio, TIC_HOME_MODE);
 }
 
 void studio_delete(Studio* studio)
@@ -2950,15 +2969,10 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     *studio = (Studio)
     {
         .mode = TIC_START_MODE,
-        .prevMode = TIC_CODE_MODE,
+        .prevMode = TIC_HOME_MODE,
         .playerRun = true,
-        .runFrom = TIC_CODE_MODE,
-
-#if defined(BUILD_EDITORS)
-        .menuMode = TIC_CONSOLE_MODE,
-#elif defined(BUILD_SURF)
-        .menuMode = TIC_RUN_MODE,
-#endif
+        .runFrom = TIC_HOME_MODE,
+        .menuMode = TIC_HOME_MODE,
 #if defined(BUILD_EDITORS)
 
         .bank =
