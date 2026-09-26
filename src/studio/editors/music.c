@@ -1925,10 +1925,8 @@ static void musicTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
         tab->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
 }
 
-// The strip's right rail. The mode tabs are anchored to the right edge; the
-// play buttons grow rightward from a fixed left edge, because the four- and
-// six-button sets share their first three and those must not move when the set
-// changes.
+// The tabs anchor right; the play buttons grow from a fixed left edge,
+// because the two sets share their first three and those must not move.
 void musicBand(void* app, Toolbar* tb)
 {
     Music* music = app;

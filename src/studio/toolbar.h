@@ -26,10 +26,8 @@
 #include "apps.h"
 #include "mouse.h"
 
-// The strip's state: one per studio, not one per editor, because its position
-// and its animation are one thing on one screen. The host fills the second
-// half at init — the strip itself holds no Studio.
-// Tagged, because apps.h forward-declares `struct Toolbar` for the band slot.
+// One per studio, not per editor. The host fills the second half at init;
+// tagged, because apps.h forward-declares `struct Toolbar` for the band slot.
 typedef struct Toolbar
 {
     tic_mem*            tic;
@@ -47,8 +45,7 @@ typedef struct Toolbar
     s32  railX;                     // the right rail's packing cursor
     bool hideName;                  // a pro build's bank row takes the name's space
 
-    // The strip's y when each button's press began, so a widget that moves
-    // under the pointer still reads the click it was given.
+    // The strip's y when each press began, so a moving strip still reads it.
     struct
     {
         bool wasDown[3];
@@ -57,9 +54,8 @@ typedef struct Toolbar
 
 } Toolbar;
 
-// One widget on the right rail: an icon or a short label, never both. `pressed`
-// is the active look (dark background, inverted glyph); `color` is the glyph's
-// colour otherwise, which is how the music editor's toggles show green.
+// An icon or a short label, never both. `pressed` fills, `color` is the
+// glyph otherwise — which is how the music toggles show green.
 typedef struct
 {
     u8          icon;
@@ -74,8 +70,7 @@ typedef struct
     u8          pressedColor;       // that fill; 0 is black
     bool        enabled;            // a click is consumed either way
 
-    // A widget the fields above cannot describe: the strip reserves the rect,
-    // hit-tests it and hands it over. Two icons on one cell, for instance.
+    // For a widget the fields above cannot describe; two icons on one cell.
     void      (*draw)(Toolbar*, const tic_rect*, bool over, void* ctx);
     void*       ctx;
 
@@ -87,9 +82,8 @@ bool toolbar_button(Toolbar*, const ToolbarButton*);
 bool toolbar_slider(Toolbar*, const char* tip, s32* value, s32 min, s32 max);
 void toolbar_end(Toolbar*);
 
-// The strip's own drawing and sound. These are the pieces the editors' panels
-// below the strip need too, so studio.c keeps a Studio*-taking wrapper over
-// each and no call site outside changes.
+// The strip's own drawing and sound, which the editors' panels need too:
+// studio.c keeps a Studio*-taking wrapper over each.
 void toolbar_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color);
 void toolbar_cursor(tic_mem* tic, tic_cursor id);
 void toolbar_playClick(tic_mem* tic, const tic_sfx* sfx, s32 id);

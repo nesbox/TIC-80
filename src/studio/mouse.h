@@ -24,10 +24,8 @@
 
 #include "tic.h"
 
-// One frame's worth of one mouse button. `start` is where it was pressed and
-// `end` where it was released, both in screen coordinates, so a click needs
-// both inside the same rectangle. Shared because the toolbar hit-tests the
-// same button the editors' own panels do.
+// One button's frame: `start` and `end` in screen coordinates, so a click
+// needs both inside one rectangle. Shared with the editors' own panels.
 typedef struct
 {
     bool down;

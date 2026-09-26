@@ -271,8 +271,7 @@ struct Studio
 
 };
 
-// The registry's void* reaches each editor's own typed tick and scanline
-// through these; the adapters exist because editors keep both in their struct.
+// Editors keep their tick and scanline in their struct, hence the adapters.
 static void* startApp(Studio* studio)   { return studio->start; }
 static void* runApp(Studio* studio)     { return studio->run; }
 static void* menuApp(Studio* studio)    { return studio->menu; }
@@ -1028,9 +1027,8 @@ Movie* resetMovie(Movie* movie)
 
 #if defined(BUILD_EDITORS)
 
-// The popup unrolls from the top of the visible screen by its own height. The
-// constant is POPUP_HEIGHT rather than TOOLBAR_SIZE because the two being 7 is
-// a coincidence of TIC_FONT_HEIGHT + 1, not a relationship.
+// The popup unrolls by its own height; it was never TOOLBAR_SIZE, the two
+// just happen to be 7.
 #define POPUP_HEIGHT (TIC_FONT_HEIGHT + 1)
 
 static void drawPopup(Studio* studio)
@@ -2240,10 +2238,8 @@ static void renderStudio(Studio* studio)
         if(app->tick)
             app->tick(app->instance(studio));
 
-        // The host draws the strip for any mode that is an editor. A mode with
-        // no widgets of its own leaves `band` NULL and still gets the rail. A
-        // mode whose whole screen is the overlay bank drew its strip there
-        // too, and the two layers do not compose the same way.
+        // Any editor mode gets the strip; `band` NULL still draws the rail.
+        // An overlay-bank mode drew its strip there too — see D10.
 #if defined(BUILD_EDITORS)
         if(app->name)
         {
@@ -2542,9 +2538,8 @@ void studio_tick(Studio* studio, tic80_input input)
         studio->toolbar.requested = 0;
     }
 
-    // After processMouseStates, so a press is seen on the frame it arrives and
-    // the strip records the offset it is actually drawn with that frame. Still
-    // before renderStudio, which is where the tooltip's clear has to land.
+    // After processMouseStates so a press is seen the frame it arrives, and
+    // before renderStudio, which is where the tooltip's clear belongs.
     processMouseStates(studio);
     toolbar_step(&studio->toolbar);
 
@@ -2589,13 +2584,8 @@ void studio_tick(Studio* studio, tic80_input input)
             ? tic_core_blit_ex(tic, callback)
             : tic_core_blit(tic);
 
-        // Everything from here to the end of the block is studio chrome drawn
-        // straight into the final screen, in the studio's palette (config's
-        // bank0, not the cart's) and after the blit — which applies the cart's
-        // palette and the mode's scanline. It cannot go through the blit for
-        // that reason, and it must not land in the gif, the screenshot or the
-        // cart's cover image, so recordFrame runs between the cursor and the
-        // popup: the pointer belongs in a recording, a notification does not.
+        // Studio chrome in the studio's palette, after the blit and outside
+        // the gif, screenshot and cover image — hence recordFrame here.
         blitCursor(studio);
 
 #if defined(BUILD_EDITORS)

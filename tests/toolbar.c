@@ -206,9 +206,8 @@ static void testClipboard(tic_mem* tic)
     assert(ClipboardHits[0] == 1);
     assert(ClipboardHits[1] == 0 && ClipboardHits[2] == 0 && ClipboardHits[3] == 0 && ClipboardHits[4] == 0);
 
-    // Hovering a clipboard button names it, and the rail carries that name in
-    // the frame it was asked for — the pixels, not just the buffer, because a
-    // print that happens after the clip is invisible to a strcmp.
+    // The rail carries the hovered name this frame: pixels, not just the
+    // buffer, because a print after the clip is invisible to a strcmp.
     Tooltip[0] = '\0';
     clickAt(tic, row + Size + 3, 3);
     Mouse[tic_mouse_left].click = false;
@@ -247,9 +246,8 @@ static void testSlider(tic_mem* tic)
     Toolbar tb = makeStrip(tic, TIC_SPRITE_MODE);
     s32 left = TIC80_WIDTH - Width;
 
-    // The sprite editor's canvas zoom: four stops over 23 pixels. Each stop is
-    // a hollow square with a white line through it; the thumb is a filled one
-    // with a white centre.
+    // The canvas zoom: four stops over 23 pixels, hollow squares with a line
+    // through them, and a filled thumb with a white centre.
     for(s32 stop = 0; stop < Stops; stop++)
     {
         s32 value = 0;
@@ -279,9 +277,8 @@ static void testSlider(tic_mem* tic)
         }
     }
 
-    // A range wider than the control looks bad but renders: one pixel per stop,
-    // and the click still lands on the stop it names. Reading the step size
-    // from the control's height instead divides by zero here.
+    // A range wider than the control still renders and still lands on the
+    // stop it names; reading the step from its height divides by zero here.
     {
         s32 value = 0;
 
@@ -293,9 +290,8 @@ static void testSlider(tic_mem* tic)
         assert(value == 10);
     }
 
-    // A single stop does not paint a square over the canvas below the strip:
-    // the canvas is filled first, so anything the control draws out of bounds
-    // shows as a change.
+    // A single stop draws nothing below the strip: the canvas is filled
+    // first, so anything out of bounds shows as a change.
     {
         s32 value = 0;
 
@@ -316,17 +312,15 @@ static void testSlider(tic_mem* tic)
     puts("slider ok");
 }
 
-// The strip's y is recorded per button when a press begins, so the press point
-// is read against the strip the user actually pressed. Zero today, and this is
-// what keeps it honest when the strip can move.
+// The strip's y is recorded when a press begins, so the point is read
+// against the strip the user actually pressed.
 static void testPressOffset(tic_mem* tic)
 {
     Toolbar tb = makeStrip(tic, TIC_CODE_MODE);
     ToolbarButton button = {.icon = tic_icon_copy, .tip = "COPY", .width = 7, .color = tic_color_light_grey, .enabled = true};
 
-    // The strip is four pixels up when the press lands on the widget (strip row
-    // 1) and back home when the release does (strip row 3). Reading the press in
-    // the release's frame would put it at row -3, off the widget.
+    // Pressed four pixels up (strip row 1), released at home (row 3). The
+    // release's frame would put the press at row -3, off the widget.
     tb.y = -4;
 
     clickAt(tic, TIC80_WIDTH - 3, -3);
@@ -373,9 +367,8 @@ static bool anyOf(tic_mem* tic, s32 x, s32 y0, s32 y1, u8 color)
     return false;
 }
 
-// A widget draws on its own line inside the strip: the map editor's depth
-// labels sit one row down, and the rail's flush packing leaves every gap the
-// caller had to hold open itself.
+// A widget's own line inside the strip: the depth labels sit one row down,
+// and the rail holds open no gaps of its own.
 static void testWidgetLine(tic_mem* tic)
 {
     enum {Button = 7, Filled = tic_color_red};

@@ -22,11 +22,9 @@
 
 #include "toolbar.h"
 
-// The strip links against the core alone: no Studio, and nothing that only
-// studio.c provides. tests/toolbar.c builds this file without it.
+// Links against the core alone; tests/toolbar.c builds it without studio.c.
 
-// Runs before the mode's tick, so the strip's frame is settled before anything
-// draws into it. The auto-hide state machine lands here too.
+// Before the mode's tick, so the strip's frame is settled first.
 void toolbar_step(Toolbar* tb)
 {
     tb->tooltip[0] = '\0';
@@ -51,11 +49,8 @@ static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
         && (pt->y < (rect->y + rect->h));
 }
 
-// The widget's rectangle is in strip coordinates; the mouse is in screen ones.
-// Each endpoint is read against the strip as it stood at its own moment: the
-// press against where the strip was then, the release against where it is now.
-// So a press that lands on a widget keeps the widget even if the strip moves
-// under the pointer, and a release below a strip that has slid away misses it.
+// The rect is in strip coordinates, the mouse in screen ones. Each endpoint is
+// read against the strip at its own moment, so a moving strip still reads it.
 static bool stripClick(Toolbar* tb, const tic_rect* rect, tic_mouse_btn button)
 {
     MouseState* state = &tb->mouse[button];
@@ -124,9 +119,8 @@ static void stripButton(Toolbar* tb, const ToolbarButton* button, const tic_rect
     stripGlyph(tb, button, rect->x, rect->y, color);
 }
 
-// The rail is reset here whether or not the background is painted: an editor
-// that painted its own passes bg = false, and a stale cursor would pack the
-// right rail from wherever the last frame left it.
+// Reset whether or not the background is painted: a stale cursor would pack
+// the right rail from wherever the last frame left it.
 void toolbar_begin(Toolbar* tb, bool bg)
 {
     if(bg)
@@ -141,8 +135,7 @@ bool toolbar_button(Toolbar* tb, const ToolbarButton* button)
 
     tb->railX -= button->width;
 
-    // The widget's own line inside the strip: the depth labels sit on y 1, as
-    // they did before, and the hit test follows them.
+    // The widget's own line inside the strip; the depth labels sit on y 1.
     rect.y += button->y;
     rect.h -= button->y;
 
@@ -157,10 +150,8 @@ bool toolbar_button(Toolbar* tb, const ToolbarButton* button)
     return hit && button->enabled;
 }
 
-// A discrete control: one stop per value, drawn the way the sprite editor's
-// canvas zoom has always been drawn — hollow stops with the thumb's white
-// centre on top. The range is the caller's, and a range wider than the control
-// still renders instead of dividing by zero or painting outside itself.
+// A discrete control: one stop per value, hollow stops with the thumb's white
+// centre on top. A range wider than the control still renders.
 bool toolbar_slider(Toolbar* tb, const char* tip, s32* value, s32 min, s32 max)
 {
     enum {Width = 23, Height = 5};
@@ -195,8 +186,7 @@ bool toolbar_slider(Toolbar* tb, const char* tip, s32* value, s32 min, s32 max)
         tic_api_rect(tb->tic, rect.x + i * pitch, rect.y + tb->y, tick, tick, tic_color_black);
     }
 
-    // After the drag, not before: the thumb has to show the value this frame
-    // produced, not the one it replaced.
+    // After the drag: the thumb shows the value this frame produced.
     s32 at = CLAMP(*value - min, 0, stops - 1);
     s32 thumbX = rect.x + MIN(at * pitch, Width - tick);
 
@@ -209,10 +199,8 @@ bool toolbar_slider(Toolbar* tb, const char* tip, s32* value, s32 min, s32 max)
     return changed;
 }
 
-// The left rail: one tab per editor, then the mode's name or the tooltip of
-// whatever is under the pointer, then the clipboard row. The five clipboard
-// operations are identical in every editor; only what they act on differs, and
-// that comes from the registry.
+// One tab per editor, then the name or tooltip, then the clipboard row — the
+// same five operations in every editor, acting on whatever the registry says.
 void toolbar_end(Toolbar* tb)
 {
     enum {Size = TOOLBAR_SIZE};

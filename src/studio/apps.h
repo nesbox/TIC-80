@@ -27,9 +27,8 @@
 struct tic_mem;
 struct Toolbar;
 
-// One entry per EditorMode. Fields a mode has no use for are NULL and
-// tic_key_unknown. `instance` resolves the mode to its editor: the bank index
-// is the only part that varies at run time.
+// One entry per EditorMode; unused fields are NULL and tic_key_unknown.
+// `instance` resolves a mode to its editor, the bank index being the variable.
 typedef struct
 {
     const char* name;           // tab label and strip title; NULL outside the editors

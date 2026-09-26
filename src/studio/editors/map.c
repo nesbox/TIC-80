@@ -115,8 +115,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
     }
 }
 
-// A bank or page change starts an animation on the sheet, which is this
-// editor's business, not the strip's. The gate the callers used to test is
+// The sheet's own animation, so these stay here. The callers' idle gate is
 // inside, where selectViewportPage keeps it too.
 void map_select_bank(Map* map, s32 bank)
 {
@@ -169,9 +168,8 @@ static void pageTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
         tab->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey, true, 1, true);
 }
 
-// The strip's right rail. The old layout placed every widget at an absolute x
-// — 233, 222/213, 199, 183 with the sheet up, and a five-pixel gap before the
-// grid with it down — and Vadim chose the rail's flush packing over those gaps.
+// Every widget was at an absolute x before — 233, 222/213, 199, 183 with the
+// sheet up, plus a five-pixel gap before the grid. The rail packs flush now.
 void mapBand(void* app, Toolbar* tb)
 {
     Map* map = app;
@@ -194,11 +192,8 @@ void mapBand(void* app, Toolbar* tb)
 
     if(sheetVisible(map))
     {
-        // How many pages there are follows from the bit depth (pages = 4/bpp),
-        // so switching depth adds or removes tabs. The room for four is
-        // reserved whether or not they are drawn, and they grow leftward into
-        // it from a fixed edge — otherwise the depth labels and the banks slide
-        // every time the depth changes.
+        // pages = 4/bpp, so switching depth adds or removes tabs. Room for
+        // four is reserved either way, or the labels and banks slide too.
         enum {TabW = TIC_ALTFONT_WIDTH + 1, MaxPages = 4, GapBeforeDepth = 1, GapBeforeBank = 4};
 
         s32 tabsRight = tb->railX - GapBeforeDepth;

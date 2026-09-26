@@ -1999,9 +1999,8 @@ static void pageTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
         tab->active ? tic_color_white : tic_color_grey, false, 1, true);
 }
 
-// The strip's right rail. The page tabs come first so the zoom control packs
-// against them and follows the page count, rather than sitting at a fixed x
-// with a gap that grows as the bit depth falls.
+// The tabs come first, so the zoom control packs against them; at a fixed x
+// its gap grew as the bit depth fell.
 void spriteBand(void* app, Toolbar* tb)
 {
     Sprite* sprite = app;
@@ -2009,9 +2008,8 @@ void spriteBand(void* app, Toolbar* tb)
     // One page has nothing to switch to, so there is no tab and no margin.
     if(sprite->blit.pages > 1)
     {
-        // The old tabs started at TIC80_WIDTH - 1 - 7*n, so the group sits a
-        // pixel off the edge and the cells touch; the rail packs flush, so the
-        // margin is held open here.
+        // The old tabs sat a pixel off the edge, cells touching; the rail
+        // packs flush, so the margin is held open here.
         tb->railX -= 1;
 
         for(s32 page = sprite->blit.pages - 1; page >= 0; page--)
@@ -2035,9 +2033,8 @@ void spriteBand(void* app, Toolbar* tb)
         }
     }
 
-    // The canvas zoom: four stops, and the drag's pitch is the six pixels the
-    // control has always used. The rail packs flush, so the gap the control had
-    // beside the tabs is held open here.
+    // Four stops, and the drag's pitch is the six pixels it always used. The
+    // rail packs flush, so the gap beside the tabs is held open here.
     enum {Gap = 6};
 
     tb->railX -= Gap;
