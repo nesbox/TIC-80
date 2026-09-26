@@ -3668,6 +3668,16 @@ static void textOutlineTick(Code* code)
 
 
 
+// The font button is a glyph, not an icon, and it was drawn a pixel in from its
+// cell. Its colour does not change with the font — the shape does.
+static void fontButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
+{
+    Code* code = ctx;
+
+    tic_api_print(tb->tic, "F", rect->x + 1, rect->y + tb->y + 1,
+        over ? tic_color_grey : tic_color_light_grey, true, 1, code->altFont);
+}
+
 // Two icons on one cell: the shadow glyph, and a filled one over it when the
 // shadow is on. Neither `pressed` nor `color` says that.
 static void shadowButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
@@ -3737,13 +3747,11 @@ void codeBand(void* app, Toolbar* tb)
     {
         ToolbarButton button =
         {
-            .label = "F",
-            .altFont = code->altFont,
             .tip = "SWITCH FONT",
             .width = Small,
-            .color = code->altFont ? tic_color_white : tic_color_light_grey,
-            .over = 0,
             .enabled = true,
+            .draw = fontButton,
+            .ctx = code,
         };
 
         if(toolbar_button(tb, &button))
