@@ -109,5 +109,9 @@ struct Map
 
 extern const ClipboardOps MapClipboard;
 
+void map_select_bank(Map*, s32 bank);
+void map_select_page(Map*, s32 page);
+void map_toggle_sheet(Map*);
+
 void initMap(Map*, Studio* studio, tic_map* src);
 void freeMap(Map* map);

@@ -141,11 +141,8 @@ static s32 drawSheetButton(Map* map, s32 x, s32 y)
         over = true;
         showTooltip(map->studio, "SHOW TILES [shift]");
 
-        if(isIdle(map) && checkMouseClick(map->studio, &rect, tic_mouse_left))
-        {
-            map->anim.movie = resetMovie(sheetVisible(map) ? &map->anim.hide : &map->anim.show);
-            map->sheet.keep = true;
-        }
+        if(checkMouseClick(map->studio, &rect, tic_mouse_left))
+            map_toggle_sheet(map);
     }
 
     drawBitIcon(map->studio, sheetVisible(map) ? tic_icon_up : tic_icon_down, rect.x, rect.y,
@@ -282,6 +279,42 @@ static void drawBppButtons(Map* map, s32 x, s32 y)
     }
 }
 
+// A bank or page change starts an animation on the sheet, which is this
+// editor's business, not the strip's. The gate the callers used to test is
+// inside, where selectViewportPage keeps it too.
+void map_select_bank(Map* map, s32 bank)
+{
+    if(!isIdle(map))
+        return;
+
+    Anim* anim = map->anim.bank.items;
+    anim->start = (bank - map->sheet.blit.bank) * TIC_SPRITESHEET_SIZE;
+    map->anim.movie = resetMovie(&map->anim.bank);
+
+    map->sheet.blit.bank = bank;
+}
+
+void map_select_page(Map* map, s32 page)
+{
+    if(!isIdle(map))
+        return;
+
+    Anim* anim = map->anim.page.items;
+    anim->start = (page - map->sheet.blit.page) * TIC_SPRITESHEET_SIZE;
+    map->anim.movie = resetMovie(&map->anim.page);
+
+    map->sheet.blit.page = page;
+}
+
+void map_toggle_sheet(Map* map)
+{
+    if(!isIdle(map))
+        return;
+
+    map->anim.movie = resetMovie(sheetVisible(map) ? &map->anim.hide : &map->anim.show);
+    map->sheet.keep = true;
+}
+
 static void drawBankButtons(Map* map, s32 x, s32 y)
 {
     tic_mem* tic = map->tic;
@@ -302,14 +335,8 @@ static void drawBankButtons(Map* map, s32 x, s32 y)
 
             showTooltip(map->studio, i ? "SPRITES" : "TILES");
 
-            if(isIdle(map) && checkMouseClick(map->studio, &rect, tic_mouse_left))
-            {
-                Anim* anim = map->anim.bank.items;
-                anim->start = (i - map->sheet.blit.bank) * TIC_SPRITESHEET_SIZE;
-                map->anim.movie = resetMovie(&map->anim.bank);
-
-                map->sheet.blit.bank = i;
-            }
+            if(checkMouseClick(map->studio, &rect, tic_mouse_left))
+                map_select_bank(map, i);
         }
 
         drawBitIcon(map->studio, Icons[i], rect.x, rect.y,
@@ -339,14 +366,8 @@ static void drawPagesButtons(Map* map, s32 x, s32 y)
 
             SHOW_TOOLTIP(map->studio, "PAGE %i", i);
 
-            if(isIdle(map) && checkMouseClick(map->studio, &rect, tic_mouse_left))
-            {
-                Anim* anim = map->anim.page.items;
-                anim->start = (i - map->sheet.blit.page) * TIC_SPRITESHEET_SIZE;
-                map->anim.movie = resetMovie(&map->anim.page);
-
-                map->sheet.blit.page = i;
-            }
+            if(checkMouseClick(map->studio, &rect, tic_mouse_left))
+                map_select_page(map, i);
         }
 
         bool active = i == map->sheet.blit.page;
