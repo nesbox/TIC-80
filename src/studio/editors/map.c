@@ -194,6 +194,15 @@ void mapBand(void* app, Toolbar* tb)
 
     if(sheetVisible(map))
     {
+        // How many pages there are follows from the bit depth (pages = 4/bpp),
+        // so switching depth adds or removes tabs. The room for four is
+        // reserved whether or not they are drawn, and they grow leftward into
+        // it from a fixed edge — otherwise the depth labels and the banks slide
+        // every time the depth changes.
+        enum {TabW = TIC_ALTFONT_WIDTH + 1, MaxPages = 4, GapBeforeDepth = 1, GapBeforeBank = 4};
+
+        s32 tabsRight = tb->railX - GapBeforeDepth;
+
         if(map->sheet.blit.pages > 1)
             for(s32 i = map->sheet.blit.pages - 1; i >= 0; i--)
             {
@@ -215,6 +224,8 @@ void mapBand(void* app, Toolbar* tb)
                     map_select_page(map, i);
             }
 
+        tb->railX = tabsRight - MaxPages * TabW - GapBeforeDepth;
+
         // The bit depths, widest first so the rail puts "4" leftmost.
         static const char Depths[] = "421";
 
@@ -234,6 +245,7 @@ void mapBand(void* app, Toolbar* tb)
                 .altFont = true,
                 .tip = tip,
                 .width = TIC_ALTFONT_WIDTH,
+                .y = 1,
                 .color = active ? tic_color_dark_grey : tic_color_light_grey,
                 .over = active ? tic_color_dark_grey : 0,
                 .enabled = true,
@@ -242,6 +254,8 @@ void mapBand(void* app, Toolbar* tb)
             if(toolbar_button(tb, &button))
                 tic_blit_update_bpp(&map->sheet.blit, mode);
         }
+
+        tb->railX -= GapBeforeBank;
 
         static const u8 Banks[] = {tic_icon_tiles, tic_icon_sprites};
 

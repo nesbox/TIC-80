@@ -141,6 +141,11 @@ bool toolbar_button(Toolbar* tb, const ToolbarButton* button)
 
     tb->railX -= button->width;
 
+    // The widget's own line inside the strip: the depth labels sit on y 1, as
+    // they did before, and the hit test follows them.
+    rect.y += button->y;
+    rect.h -= button->y;
+
     bool over = stripHover(tb, &rect, button->tip);
     bool hit = stripClick(tb, &rect, tic_mouse_left);
 

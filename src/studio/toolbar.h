@@ -67,6 +67,7 @@ typedef struct
     bool        altFont;            // the label's font, as drawChar's last argument
     const char* tip;
     s32         width;
+    s8          y;                  // the widget's own line inside the strip
     u8          color;              // glyph when idle
     u8          over;               // glyph under the pointer; 0 means grey
     bool        pressed;            // the active look: filled background
