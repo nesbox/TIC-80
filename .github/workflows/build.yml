@@ -901,7 +901,7 @@ jobs:
               ./gradlew assembleRelease -PUNSIGNED=1
               cp app/build/outputs/apk/release/app-release-unsigned.apk tic80.apk
               ./gradlew assembleRelease -PUNSIGNED=1 -PEDITORS=OFF
-              cp app/build/outputs/apk/release/app-release-unsigned.apk tic80-browser.apk
+              cp app/build/outputs/apk/release/app-release-unsigned.apk tic80-surf.apk
               echo "fork pull request: no repository secrets, the APKs are unsigned"
           else
               : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
@@ -909,7 +909,7 @@ jobs:
               ./gradlew assembleRelease
               cp app/build/outputs/apk/release/app-release.apk tic80.apk
               ./gradlew assembleRelease -PEDITORS=OFF
-              cp app/build/outputs/apk/release/app-release.apk tic80-browser.apk
+              cp app/build/outputs/apk/release/app-release.apk tic80-surf.apk
           fi
 
         env:
@@ -925,16 +925,16 @@ jobs:
           # So each APK is read back: the editors APK carries the IDE, the
           # browser-only one carries the browser and no IDE.
           unzip -p tic80.apk lib/arm64-v8a/libtic80.so > editors.so
-          unzip -p tic80-browser.apk lib/arm64-v8a/libtic80.so > browser.so
+          unzip -p tic80-surf.apk lib/arm64-v8a/libtic80.so > surf.so
           if ! grep -qa "SPRITE EDITOR" editors.so; then
             echo "the APK has no editors — BUILD_EDITORS did not take" >&2
             exit 1
           fi
-          if ! grep -qa "You don't have any files" browser.so; then
+          if ! grep -qa "You don't have any files" surf.so; then
             echo "the browser-only APK has no browser — -PEDITORS=OFF did not take, or gradle reused the first build's library" >&2
             exit 1
           fi
-          if grep -qa "SPRITE EDITOR" browser.so; then
+          if grep -qa "SPRITE EDITOR" surf.so; then
             echo "the browser-only APK carries the editors — -PEDITORS=OFF did not take" >&2
             exit 1
           fi
@@ -951,8 +951,8 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-android-browser"
-          path: build/android/tic80-browser.apk
+          name: "tic80-android-surf"
+          path: build/android/tic80-surf.apk
 
   # === HTML ===
   html:

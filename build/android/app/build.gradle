@@ -126,7 +126,7 @@ android {
         if (buildAsApplication) {
             // Two APKs cannot share a package name: the browser-only build is
             // its own app. The provider authority follows it (AndroidManifest).
-            applicationId(ticEditors == 'OFF' ? "com.nesbox.tic.browser" : "com.nesbox.tic")
+            applicationId(ticEditors == 'OFF' ? "com.nesbox.tic.surf" : "com.nesbox.tic")
         }
         minSdkVersion 24 // Android 7.0 (Nougat)
         targetSdkVersion 31 // Android 12 (Snow Cone)
