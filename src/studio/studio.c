@@ -1028,11 +1028,16 @@ Movie* resetMovie(Movie* movie)
 
 #if defined(BUILD_EDITORS)
 
+// The popup unrolls from the top of the visible screen by its own height. The
+// constant is POPUP_HEIGHT rather than TOOLBAR_SIZE because the two being 7 is
+// a coincidence of TIC_FONT_HEIGHT + 1, not a relationship.
+#define POPUP_HEIGHT (TIC_FONT_HEIGHT + 1)
+
 static void drawPopup(Studio* studio)
 {
     if(studio->anim.movie != &studio->anim.idle)
     {
-        enum{Width = TIC80_WIDTH, Height = TIC_FONT_HEIGHT + 1};
+        enum{Width = TIC80_WIDTH, Height = POPUP_HEIGHT};
 
         tic_api_rect(studio->tic, 0, studio->anim.pos.popup, Width, Height, tic_color_red);
         tic_api_print(studio->tic, studio->popup.message,
@@ -2584,6 +2589,13 @@ void studio_tick(Studio* studio, tic80_input input)
             ? tic_core_blit_ex(tic, callback)
             : tic_core_blit(tic);
 
+        // Everything from here to the end of the block is studio chrome drawn
+        // straight into the final screen, in the studio's palette (config's
+        // bank0, not the cart's) and after the blit — which applies the cart's
+        // palette and the mode's scanline. It cannot go through the blit for
+        // that reason, and it must not land in the gif, the screenshot or the
+        // cart's cover image, so recordFrame runs between the cursor and the
+        // popup: the pointer belongs in a recording, a notification does not.
         blitCursor(studio);
 
 #if defined(BUILD_EDITORS)
@@ -2904,7 +2916,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         {
             .pos =
             {
-                .popup = -TOOLBAR_SIZE,
+                .popup = -POPUP_HEIGHT,
             },
             .idle = {.done = emptyDone,}
         },
@@ -2965,13 +2977,13 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 
         studio->anim.show = (Movie)MOVIE_DEF(STUDIO_ANIM_TIME, setPopupWait,
         {
-            {-TOOLBAR_SIZE, 0, STUDIO_ANIM_TIME, &studio->anim.pos.popup, AnimEaseIn},
+            {-POPUP_HEIGHT, 0, STUDIO_ANIM_TIME, &studio->anim.pos.popup, AnimEaseIn},
         });
 
         studio->anim.wait = (Movie){.time = TIC80_FRAMERATE * 2, .done = setPopupHide};
         studio->anim.hide = (Movie)MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
         {
-            {0, -TOOLBAR_SIZE, STUDIO_ANIM_TIME, &studio->anim.pos.popup, AnimEaseIn},
+            {0, -POPUP_HEIGHT, STUDIO_ANIM_TIME, &studio->anim.pos.popup, AnimEaseIn},
         });
 
         studio->anim.movie = resetMovie(&studio->anim.idle);
