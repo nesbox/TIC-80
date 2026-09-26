@@ -2237,6 +2237,12 @@ static void renderStudio(Studio* studio)
 
         if(app->tick)
             app->tick(app->instance(studio));
+
+        // The host draws the strip for a mode that has a band to draw. The
+        // editors still calling drawToolbar themselves carry a NULL band, and
+        // draw it once, from their own tick.
+        if(app->band)
+            drawToolbar(studio, tic, true);
     }
 
     tic_core_tick_end(tic);
