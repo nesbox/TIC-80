@@ -2766,10 +2766,9 @@ void studio_load(Studio* studio, const char* file)
 }
 
 // Where a run was entered from decides where CLOSE GAME goes: a cart played in
-// SURF returns to the browser it was opened in, any other run lands in the
-// console as it always has. That origin is runFrom, not prevMode — opening the
-// pause menu over the run makes RUN the previous mode, so prevMode has already
-// forgotten SURF by the time the menu is answered (#3015).
+// SURF returns to the browser, any other run lands on the build's home screen.
+// That origin is runFrom, not prevMode — opening the pause menu over the run
+// makes RUN the previous mode, so prevMode has forgotten SURF by then (#3015).
 void exitGame(Studio* studio)
 {
 #if defined(BUILD_SURF)

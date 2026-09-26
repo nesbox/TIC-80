@@ -300,7 +300,12 @@ bool studioLoadCart(Studio* studio, const char* path)
     bool done = false;
 
     s32 size = 0;
-    void* data = fs_read(path, &size);
+    // A name from the browser is relative to the cart folder, a path from the
+    // command line or a drop is the process's own.
+    void* data = tic_fs_load(studio_fs(studio), path, &size);
+
+    if(!data)
+        data = fs_read(path, &size);
 
     if(data)
     {

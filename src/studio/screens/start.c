@@ -178,6 +178,7 @@ void initStart(Start* start, Studio* studio, const char* cart)
             tic_cart_load(&start->tic->cart, data, size);
             tic_api_reset(start->tic);
             start->embed = true;
+            studioRomLoaded(start->studio);
         }
     }
 
@@ -213,6 +214,7 @@ void initStart(Start* start, Studio* studio, const char* cart)
                                 tic_cart_load(&start->tic->cart, data, dataSize);
                                 tic_api_reset(start->tic);
                                 start->embed = true;
+                                studioRomLoaded(start->studio);
                             }
 
                             free(data);

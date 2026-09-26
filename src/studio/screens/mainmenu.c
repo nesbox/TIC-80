@@ -529,11 +529,13 @@ static void onExitStudio(void* data, s32 pos)
     exitStudio(main->studio);
 }
 
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 static void onExitGame(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     exitGame(main->studio);
 }
+#endif
 
 enum MainMenu
 {
