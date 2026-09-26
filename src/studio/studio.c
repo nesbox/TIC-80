@@ -1283,6 +1283,11 @@ static void initSurfMode(Studio* studio)
 
 void gotoSurf(Studio* studio)
 {
+#if defined(BUILD_EDITORS)
+    // The console hands the screen over: end its command, or console->active
+    // stays false and the shortcuts it gates never come back.
+    studio->console->done(studio->console);
+#endif
     initSurfMode(studio);
     setStudioMode(studio, TIC_SURF_MODE);
 }
