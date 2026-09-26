@@ -1976,78 +1976,62 @@ static void processKeyboard(Sprite* sprite)
     }
 }
 
-static void drawSpriteToolbar(Sprite* sprite)
+// The page tabs are a black cell with the number in the alt font, which the
+// widget's own fields do not say; the strip reserves and hit-tests the cell.
+typedef struct
 {
-    tic_mem* tic = sprite->tic;
+    char label[2];
+    bool active;
 
-    tic_api_rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
+} PageTab;
 
-    // draw sprite size control
+static void pageTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
+{
+    const PageTab* tab = ctx;
+
+    if(tab->active)
+        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_black);
+
+    tic_api_print(tb->tic, tab->label, rect->x + 2, rect->y + tb->y + 1,
+        tab->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey, false, 1, true);
+}
+
+// The strip's right rail. The page tabs come first so the zoom control packs
+// against them and follows the page count, rather than sitting at a fixed x
+// with a gap that grows as the bit depth falls.
+void spriteBand(void* app, Toolbar* tb)
+{
+    Sprite* sprite = app;
+
+    for(s32 page = sprite->blit.pages - 1; page >= 0; page--)
     {
-        tic_rect rect = {TIC80_WIDTH - 58, 1, 23, 5};
+        static char tip[16];
+        sprintf(tip, "PAGE %i", page + 1);
 
-        if(checkMousePos(sprite->studio, &rect))
+        PageTab tab = {{'1' + page, '\0'}, page == sprite->blit.page};
+
+        ToolbarButton button =
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            .tip = tip,
+            .width = 7,
+            .enabled = true,
+            .draw = pageTab,
+            .ctx = &tab,
+        };
 
-            showTooltip(sprite->studio, "CANVAS ZOOM");
-
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
-            {
-                s32 mx = tic_api_mouse(tic).x - rect.x;
-                mx /= 6;
-
-                s32 size = 1;
-                while(mx--) size <<= 1;
-
-                updateSpriteSize(sprite, size * TIC_SPRITESIZE);
-            }
-        }
-
-        for(s32 i = 0; i < 4; i++)
-            tic_api_rect(tic, rect.x + i*6, 1, 5, 5, tic_color_black);
-
-        tic_api_rect(tic, rect.x, 2, 23, 3, tic_color_black);
-        tic_api_rect(tic, rect.x+1, 3, 21, 1, tic_color_white);
-
-        s32 size = sprite->size / TIC_SPRITESIZE, val = 0;
-        while(size >>= 1) val++;
-
-        tic_api_rect(tic, rect.x + val*6, 1, 5, 5, tic_color_black);
-        tic_api_rect(tic, rect.x+1 + val*6, 2, 3, 3, tic_color_white);
+        if(toolbar_button(tb, &button))
+            selectViewportPage(sprite, page);
     }
 
-    {
-        u8 nbPages = sprite->blit.pages;
+    // The canvas zoom: four stops, and the drag's pitch is the six pixels the
+    // control has always used.
+    s32 zoom = 0;
 
-        if (nbPages > 1) {
-            enum {SizeX = 7, SizeY = TOOLBAR_SIZE};
+    for(s32 size = sprite->size / TIC_SPRITESIZE; size > 1; size >>= 1)
+        zoom++;
 
-            for(s32 page = 0; page < nbPages; page++)
-            {
-                bool active = page == sprite->blit.page;
-
-                tic_rect rect = {TIC80_WIDTH - 1 - 7*(nbPages-page), 0, 7, TOOLBAR_SIZE};
-
-                bool over = false;
-                if(checkMousePos(sprite->studio, &rect))
-                {
-                    setCursor(sprite->studio, tic_cursor_hand);
-                    over = true;
-
-                    SHOW_TOOLTIP(sprite->studio, "PAGE %i", page + 1);
-
-                    if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
-                    {
-                        selectViewportPage(sprite, page);
-                    }
-                }
-
-                if (active) tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_black);
-                tic_api_print(tic, (char[]){'1' + page, '\0'}, rect.x + 2, rect.y + 1, active ? tic_color_white : tic_color_grey, false, 1, true);
-            }
-        }
-    }
+    if(toolbar_slider(tb, "CANVAS ZOOM", &zoom, 0, 3))
+        updateSpriteSize(sprite, (1 << zoom) * TIC_SPRITESIZE);
 }
 
 static void scanline(tic_mem* tic, s32 row, void* data)
@@ -2162,8 +2146,6 @@ static void tick(Sprite* sprite)
         drawSheetVBank1(sprite, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, 7);
         drawAdvancedButton(sprite, 4, 11);
 
-        drawSpriteToolbar(sprite);
-        drawToolbar(sprite->studio, tic, false);
     }
 
     sprite->tickCounter++;

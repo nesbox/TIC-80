@@ -23,6 +23,7 @@
 #pragma once
 
 #include "studio/studio.h"
+#include "studio/toolbar.h"
 #include "tilesheet.h"
 
 typedef struct Sprite Sprite;
@@ -113,6 +114,7 @@ typedef struct
 
 extern const ClipboardOps SpriteClipboard;
 
+void spriteBand(void*, Toolbar*);
 void initSprite(Sprite*, Studio* studio, tic_tiles* src);
 void freeSprite(Sprite*);
 
