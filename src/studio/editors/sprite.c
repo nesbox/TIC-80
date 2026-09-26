@@ -2024,7 +2024,12 @@ void spriteBand(void* app, Toolbar* tb)
     }
 
     // The canvas zoom: four stops, and the drag's pitch is the six pixels the
-    // control has always used.
+    // control has always used. The rail packs flush, so the gap the control had
+    // beside the tabs is held open here.
+    enum {Gap = 7};
+
+    tb->railX -= Gap;
+
     s32 zoom = 0;
 
     for(s32 size = sprite->size / TIC_SPRITESIZE; size > 1; size >>= 1)
