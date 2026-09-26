@@ -97,9 +97,8 @@ typedef struct
     u8 data[MD5_HASHSIZE];
 } CartHash;
 
-// The editors, in tab order, with everything the strip and the keyboard need to
-// name one. Expand once into the mode list, once into the registry entries — so
-// the tabs, the function keys and the number shortcuts cannot drift apart.
+// The editors in tab order, expanded into the mode list and the registry
+// entries, so the tabs, the function keys and the number shortcuts agree.
 #define EDITOR_APPS(APP)                                                                               \
     APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL)          \
     APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline) \
@@ -270,11 +269,8 @@ struct Studio
 
 };
 
-// Every mode reaches its screen through the registry: `instance` resolves the
-// mode to its editor, the tick adapter bridges the registry's uniform void* to
-// the editor's own typed tick, and the scanline adapter does the same for the
-// blit callback. Editors keep their tick in their struct, which is why the
-// adapters exist at all.
+// The registry's void* reaches each editor's own typed tick and scanline
+// through these; the adapters exist because editors keep both in their struct.
 static void* startApp(Studio* studio)   { return studio->start; }
 static void* runApp(Studio* studio)     { return studio->run; }
 static void* menuApp(Studio* studio)    { return studio->menu; }
@@ -313,9 +309,8 @@ static void surfTick(void* app)     { Surf* surf = app; surf->tick(surf); }
 static void surfScanline(tic_mem* tic, s32 row, void* data)   { Surf* surf = data; surf->scanline(tic, row, surf); }
 #endif
 
-// One entry per EditorMode. The editors are the entries with a name, in tab
-// order; every other list of editors — the tabs, the function keys, the number
-// shortcuts, the cycling — follows from this table.
+// One entry per EditorMode; the editors are the entries with a name, in tab
+// order. Every other list of editors follows from this table.
 static const EditorApp Apps[TIC_MODES_COUNT] =
 {
     [TIC_START_MODE]   = {.instance = startApp, .tick = startTick},
