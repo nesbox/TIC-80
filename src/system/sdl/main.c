@@ -22,6 +22,7 @@
 
 #include "studio/system.h"
 #include "tools.h"
+#include "tic_assert.h"
 
 #include "ext/fft.h"
 #include <stdlib.h>
@@ -1881,9 +1882,28 @@ void tic_sys_default_mapping(tic_mapping* mapping)
         SDL_SCANCODE_S,
     };
 
+    // What the other platforms assign outright: a layout that cannot express
+    // a button keeps this rather than losing it.
+    static const tic_key Fallback[] =
+    {
+        tic_key_up,
+        tic_key_down,
+        tic_key_left,
+        tic_key_right,
+
+        tic_key_z, // a
+        tic_key_x, // b
+        tic_key_a, // x
+        tic_key_s, // y
+    };
+
+    static_assert(COUNT_OF(Scancodes) == COUNT_OF(Fallback), "tic_default_mapping");
+
     for(s32 s = 0; s < COUNT_OF(Scancodes); ++s)
     {
         SDL_Keycode keycode = SDL_GetKeyFromScancode(Scancodes[s]);
+
+        mapping->data[s] = Fallback[s];
 
         for(tic_key i = 0; i < COUNT_OF(KeyboardCodes); i++)
         {
