@@ -3668,6 +3668,30 @@ static void textOutlineTick(Code* code)
 
 
 
+// The active mode button is three layers in the old code: a grey cell, the
+// icon again one line down in black, and the icon in white on top.
+typedef struct
+{
+    u8 icon;
+    bool active;
+
+} ModeButton;
+
+static void modeButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
+{
+    const ModeButton* btn = ctx;
+    const tic_tiles* tiles = &tb->config->cart->bank0.tiles;
+
+    if(btn->active)
+    {
+        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_grey);
+        toolbar_icon(tb->tic, tiles, btn->icon, rect->x, rect->y + tb->y + 1, tic_color_black);
+    }
+
+    toolbar_icon(tb->tic, tiles, btn->icon, rect->x, rect->y + tb->y,
+        btn->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
+}
+
 // The font button is a glyph, not an icon, and it was drawn a pixel in from its
 // cell. Its colour does not change with the font — the shape does.
 static void fontButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
@@ -3712,15 +3736,15 @@ void codeBand(void* app, Toolbar* tb)
     // The rail packs right to left, and this editor's order runs the other way.
     for(s32 i = Count - 1; i >= 0; i--)
     {
+        ModeButton mode = {Buttons[i].icon, i == code->mode && isIdle(code)};
+
         ToolbarButton button =
         {
-            .icon = Buttons[i].icon,
             .tip = Buttons[i].tip,
             .width = Size,
-            .color = tic_color_light_grey,
-            .pressed = i == code->mode && isIdle(code),
-            .pressedColor = tic_color_grey,
             .enabled = true,
+            .draw = modeButton,
+            .ctx = &mode,
         };
 
         if(toolbar_button(tb, &button))

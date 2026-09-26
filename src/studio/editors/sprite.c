@@ -1996,7 +1996,7 @@ static void pageTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
         tic_api_rect(tb->tic, rect->x, rect->y + tb->y, TabW, TOOLBAR_SIZE, tic_color_black);
 
     tic_api_print(tb->tic, tab->label, rect->x + 2, rect->y + tb->y + 1,
-        tab->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey, false, 1, true);
+        tab->active ? tic_color_white : tic_color_grey, false, 1, true);
 }
 
 // The strip's right rail. The page tabs come first so the zoom control packs
@@ -2038,7 +2038,7 @@ void spriteBand(void* app, Toolbar* tb)
     // The canvas zoom: four stops, and the drag's pitch is the six pixels the
     // control has always used. The rail packs flush, so the gap the control had
     // beside the tabs is held open here.
-    enum {Gap = 7};
+    enum {Gap = 6};
 
     tb->railX -= Gap;
 

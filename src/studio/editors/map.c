@@ -203,6 +203,8 @@ void mapBand(void* app, Toolbar* tb)
 
         s32 tabsRight = tb->railX - GapBeforeDepth;
 
+        tb->railX = tabsRight;
+
         if(map->sheet.blit.pages > 1)
             for(s32 i = map->sheet.blit.pages - 1; i >= 0; i--)
             {
@@ -287,7 +289,9 @@ void mapBand(void* app, Toolbar* tb)
             {tic_icon_pen,    "DRAW [1]",     MAP_DRAW_MODE,   ICON_SIZE},
         };
 
-        for(s32 i = COUNT_OF(Tools) - 1; i >= 0; i--)
+        // Ascending: fill is the rightmost, as it was, and the row reads
+        // DRAW, DRAG MAP, SELECT, FILL left to right.
+        for(s32 i = 0; i < COUNT_OF(Tools); i++)
         {
             bool active = map->mode == Tools[i].mode;
 
