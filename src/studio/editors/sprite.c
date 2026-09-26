@@ -2006,29 +2006,33 @@ void spriteBand(void* app, Toolbar* tb)
 {
     Sprite* sprite = app;
 
-    // The old tabs started at TIC80_WIDTH - 1 - 7*n, so the group sits a pixel
-    // off the edge and the cells touch; the rail packs flush, so the margin is
-    // held open here.
-    tb->railX -= 1;
-
-    for(s32 page = sprite->blit.pages - 1; page >= 0; page--)
+    // One page has nothing to switch to, so there is no tab and no margin.
+    if(sprite->blit.pages > 1)
     {
-        static char tip[16];
-        sprintf(tip, "PAGE %i", page + 1);
+        // The old tabs started at TIC80_WIDTH - 1 - 7*n, so the group sits a
+        // pixel off the edge and the cells touch; the rail packs flush, so the
+        // margin is held open here.
+        tb->railX -= 1;
 
-        PageTab tab = {{'1' + page, '\0'}, page == sprite->blit.page};
-
-        ToolbarButton button =
+        for(s32 page = sprite->blit.pages - 1; page >= 0; page--)
         {
-            .tip = tip,
-            .width = TabW,
-            .enabled = true,
-            .draw = pageTab,
-            .ctx = &tab,
-        };
+            static char tip[16];
+            sprintf(tip, "PAGE %i", page + 1);
 
-        if(toolbar_button(tb, &button))
-            selectViewportPage(sprite, page);
+            PageTab tab = {{'1' + page, '\0'}, page == sprite->blit.page};
+
+            ToolbarButton button =
+            {
+                .tip = tip,
+                .width = TabW,
+                .enabled = true,
+                .draw = pageTab,
+                .ctx = &tab,
+            };
+
+            if(toolbar_button(tb, &button))
+                selectViewportPage(sprite, page);
+        }
     }
 
     // The canvas zoom: four stops, and the drag's pitch is the six pixels the
