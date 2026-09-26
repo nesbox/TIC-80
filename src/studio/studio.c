@@ -100,11 +100,11 @@ typedef struct
 // The editors in tab order, expanded into the mode list and the registry
 // entries, so the tabs, the function keys and the number shortcuts agree.
 #define EDITOR_APPS(APP)                                                                                            \
-    APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard,   codeBand)   \
-    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard, spriteBand) \
-    APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard,    NULL)    \
-    APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard,    NULL)    \
-    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard,  NULL)
+    APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard,   codeBand,   false)   \
+    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard, spriteBand, true) \
+    APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard,    NULL,       true)    \
+    APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard,    NULL,       false)    \
+    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard,  NULL,       false)
 
 #if defined(BUILD_EDITORS)
 static const EditorMode Modes[] =
@@ -325,10 +325,10 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 
 // The parameters are capitalised: lowercase ones would be substituted inside
 // the `.name =` designators, which is not what an initialiser means.
-#define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN, CLIP, BAND)                 \
+#define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN, CLIP, BAND, VB1)                 \
     [MODE] = {.name = NAME, .tip = TIP, .icon = ICON, .hotkey = KEY,                   \
               .instance = INST, .tick = TICK, .scanline = SCAN, .clipboard = CLIP,    \
-              .band = BAND},
+              .band = BAND, .vbank1 = VB1},
     EDITOR_APPS(APP_ENTRY)
 #undef  APP_ENTRY
 #endif
@@ -2240,9 +2240,20 @@ static void renderStudio(Studio* studio)
 
         // The host draws the strip for a mode that has a band to draw. The
         // editors still calling drawToolbar themselves carry a NULL band, and
-        // draw it once, from their own tick.
+        // draw it once, from their own tick. A mode whose whole screen is the
+        // overlay bank drew its strip there too, and the two layers do not
+        // compose the same way.
         if(app->band)
-            drawToolbar(studio, tic, true);
+        {
+            if(app->vbank1)
+            {
+                VBANK(tic, 1)
+                {
+                    drawToolbar(studio, tic, true);
+                }
+            }
+            else drawToolbar(studio, tic, true);
+        }
     }
 
     tic_core_tick_end(tic);

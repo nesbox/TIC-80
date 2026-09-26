@@ -38,6 +38,7 @@ typedef struct
     tic_keycode hotkey;
     const ClipboardOps* clipboard;
 
+    bool  vbank1;               // the mode draws its whole screen in the overlay bank
     void* (*instance)(Studio*);
     void  (*tick)(void*);
     void  (*band)(void*, struct Toolbar*);
