@@ -1292,14 +1292,14 @@ void gotoSurf(Studio* studio)
     setStudioMode(studio, TIC_SURF_MODE);
 }
 
-// Out of the browser: home, which is the console in a build that has one and
-// the menu in a build that is only the browser.
+// Out of the browser: home, which is the console in a build that has one. A
+// build that is only the browser has nowhere to go and stays where it is.
 void exitSurf(Studio* studio)
 {
 #if defined(BUILD_EDITORS)
     setStudioMode(studio, TIC_HOME_MODE);
 #else
-    setStudioMode(studio, TIC_MENU_MODE);
+    (void)studio;
 #endif
 }
 #endif
