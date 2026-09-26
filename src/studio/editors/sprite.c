@@ -1978,6 +1978,8 @@ static void processKeyboard(Sprite* sprite)
 
 // The page tabs are a black cell with the number in the alt font, which the
 // widget's own fields do not say; the strip reserves and hit-tests the cell.
+enum {TabW = 7, TabSlack = 1};
+
 typedef struct
 {
     char label[2];
@@ -1989,8 +1991,10 @@ static void pageTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
 {
     const PageTab* tab = ctx;
 
+    // The cell is a tab wide and the strip's full height; the slack the rail
+    // needs to keep the tabs off the right edge is not painted.
     if(tab->active)
-        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_black);
+        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, TabW, TOOLBAR_SIZE, tic_color_black);
 
     tic_api_print(tb->tic, tab->label, rect->x + 2, rect->y + tb->y + 1,
         tab->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey, false, 1, true);
@@ -2013,7 +2017,7 @@ void spriteBand(void* app, Toolbar* tb)
         ToolbarButton button =
         {
             .tip = tip,
-            .width = 7,
+            .width = TabW + TabSlack,
             .enabled = true,
             .draw = pageTab,
             .ctx = &tab,
