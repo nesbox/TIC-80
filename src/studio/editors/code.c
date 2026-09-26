@@ -3674,7 +3674,7 @@ static void fontButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
 {
     Code* code = ctx;
 
-    tic_api_print(tb->tic, "F", rect->x + 1, rect->y + tb->y + 1,
+    tic_api_print(tb->tic, "F", rect->x, rect->y + tb->y + 1,
         over ? tic_color_grey : tic_color_light_grey, true, 1, code->altFont);
 }
 
@@ -3730,11 +3730,27 @@ void codeBand(void* app, Toolbar* tb)
         }
     }
 
+    // These three carry a pixel of slack, which is what put them at 198, 191
+    // and 184 before; the rail packs with no gap of its own.
+    {
+        ToolbarButton button =
+        {
+            .icon = tic_icon_run,
+            .tip = "RUN [ctrl+r]",
+            .width = Small + 1,
+            .color = tic_color_light_grey,
+            .enabled = true,
+        };
+
+        if(toolbar_button(tb, &button))
+            runGame(code->studio, RUN_FROM_STUDIO);
+    }
+
     {
         ToolbarButton button =
         {
             .tip = "SHOW SHADOW",
-            .width = Small,
+            .width = Small + 1,
             .enabled = true,
             .draw = shadowButton,
             .ctx = code,
@@ -3748,7 +3764,7 @@ void codeBand(void* app, Toolbar* tb)
         ToolbarButton button =
         {
             .tip = "SWITCH FONT",
-            .width = Small,
+            .width = Small + 1,
             .enabled = true,
             .draw = fontButton,
             .ctx = code,
@@ -3756,21 +3772,6 @@ void codeBand(void* app, Toolbar* tb)
 
         if(toolbar_button(tb, &button))
             code->altFont = !code->altFont;
-    }
-
-    {
-        ToolbarButton button =
-        {
-            .icon = tic_icon_run,
-            .tip = "RUN [ctrl+r]",
-            .width = Small,
-            .color = tic_color_light_grey,
-            .pressedColor = tic_color_black,
-            .enabled = true,
-        };
-
-        if(toolbar_button(tb, &button))
-            runGame(code->studio, RUN_FROM_STUDIO);
     }
 }
 
