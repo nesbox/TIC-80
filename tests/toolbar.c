@@ -52,6 +52,121 @@ static void testIcon(tic_mem* tic)
     puts("icon ok");
 }
 
+// A strip with two editors in it, driven by hand: the test is the only caller
+// of toolbar_end, so the tab it clicks is the tab it declared.
+static tic_cartridge Cart;
+static StudioConfig Cfg;
+static MouseState Mouse[3];
+static char Tooltip[STUDIO_TEXT_BUFFER_WIDTH];
+static EditorMode Requested;
+
+static const EditorApp Apps[TIC_MODES_COUNT] =
+{
+    [TIC_CODE_MODE]   = {.name = "CODE EDITOR",   .tip = "CODE EDITOR [f1]",   .icon = tic_icon_code},
+    [TIC_SPRITE_MODE] = {.name = "SPRITE EDITOR", .tip = "SPRITE EDITOR [f2]", .icon = tic_icon_sprite},
+};
+
+static Toolbar makeStrip(tic_mem* tic, EditorMode mode)
+{
+    Cfg.cart = &Cart;
+    Requested = TIC_MODES_COUNT;
+
+    return (Toolbar)
+    {
+        .tic      = tic,
+        .config   = &Cfg,
+        .mouse    = Mouse,
+        .tooltip  = Tooltip,
+        .apps     = Apps,
+        .appCount = TIC_MODES_COUNT,
+        .mode     = mode,
+        .requested = TIC_MODES_COUNT,
+    };
+}
+
+// A press and a release on the same point, as processMouseStates would leave
+// them for the frame the button comes up.
+static void clickAt(tic_mem* tic, s32 x, s32 y)
+{
+    memset(Mouse, 0, sizeof Mouse);
+
+    Mouse[tic_mouse_left].start = (tic_point){x, y};
+    Mouse[tic_mouse_left].end   = (tic_point){x, y};
+    Mouse[tic_mouse_left].click = true;
+
+    // The raw input is in the full window; tic_api_mouse subtracts the margins,
+    // and that is the space the strip's rectangles live in.
+    tic->ram->input.mouse.x = x + TIC80_OFFSET_LEFT;
+    tic->ram->input.mouse.y = y + TIC80_OFFSET_TOP;
+}
+
+static void testStrip(tic_mem* tic)
+{
+    enum {Button = 7, Centre = TIC80_WIDTH - Button / 2};
+
+    Toolbar tb = makeStrip(tic, TIC_CODE_MODE);
+    ToolbarButton button = {.icon = tic_icon_copy, .tip = "COPY", .width = Button, .color = tic_color_light_grey, .enabled = true};
+
+    // Hover shows the tooltip in the left rail, and the click is consumed.
+    clickAt(tic, Centre, 3);
+    toolbar_begin(&tb);
+    assert(toolbar_button(&tb, &button));
+    assert(!Mouse[tic_mouse_left].click);
+    assert(strcmp(Tooltip, "COPY") == 0);
+
+    // A click outside the widget is left alone.
+    clickAt(tic, Centre - 2 * Button, 3);
+    toolbar_begin(&tb);
+    assert(!toolbar_button(&tb, &button));
+    assert(Mouse[tic_mouse_left].click);
+
+    // A disabled widget consumes its click but does not act on it.
+    clickAt(tic, Centre, 3);
+    button.enabled = false;
+    toolbar_begin(&tb);
+    assert(!toolbar_button(&tb, &button));
+    assert(!Mouse[tic_mouse_left].click);
+
+    puts("strip ok");
+}
+
+static void testTabs(tic_mem* tic)
+{
+    Toolbar tb = makeStrip(tic, TIC_CODE_MODE);
+
+    clickAt(tic, TOOLBAR_SIZE + 3, 3);
+    toolbar_begin(&tb);
+    toolbar_end(&tb);
+
+    assert(tb.requested == TIC_SPRITE_MODE);
+
+    // The tab of the mode that is on screen is the highlighted one.
+    tb = makeStrip(tic, TIC_CODE_MODE);
+    memset(Mouse, 0, sizeof Mouse);
+    tic->ram->input.mouse.x = TIC80_WIDTH - 1 + TIC80_OFFSET_LEFT;
+    toolbar_begin(&tb);
+    toolbar_end(&tb);
+    assert(tb.requested == TIC_MODES_COUNT);
+
+    puts("tabs ok");
+}
+
+static void testSlider(tic_mem* tic)
+{
+    Toolbar tb = makeStrip(tic, TIC_SPRITE_MODE);
+
+    s32 value = 1;
+
+    clickAt(tic, TIC80_WIDTH - 20, 3);
+    toolbar_begin(&tb);
+    Mouse[tic_mouse_left].down = true;
+
+    assert(toolbar_slider(&tb, 0, "ZOOM", &value, 1, 8));
+    assert(value >= 1 && value <= 8);
+
+    puts("slider ok");
+}
+
 static void testCursor(tic_mem* tic)
 {
     toolbar_cursor(tic, tic_cursor_hand);
@@ -88,6 +203,9 @@ int main(void)
     testIcon(tic);
     testCursor(tic);
     testClick(tic);
+    testStrip(tic);
+    testTabs(tic);
+    testSlider(tic);
 
     tic_core_close(tic);
     puts("toolbar ok");

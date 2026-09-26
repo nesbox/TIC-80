@@ -43,9 +43,39 @@ typedef struct Toolbar
     EditorMode mode;                // whose band is on screen
     EditorMode requested;           // a tab click, for the host to pick up
 
+    s32  railX;                     // the right rail's packing cursor
+    bool hideName;                  // a pro build's bank row takes the name's space
+
+    // The strip's y when each button's press began, so a widget that moves
+    // under the pointer still reads the click it was given.
+    struct
+    {
+        bool wasDown[3];
+        s32  y[3];
+    } press;
+
 } Toolbar;
 
+// One widget on the right rail: an icon or a short label, never both. `pressed`
+// is the active look (dark background, inverted glyph); `color` is the glyph's
+// colour otherwise, which is how the music editor's toggles show green.
+typedef struct
+{
+    u8          icon;
+    const char* label;
+    const char* tip;
+    s32         width;
+    u8          color;
+    bool        pressed;
+    bool        enabled;            // a click is consumed either way
+
+} ToolbarButton;
+
 void toolbar_step(Toolbar*);
+void toolbar_begin(Toolbar*);
+bool toolbar_button(Toolbar*, const ToolbarButton*);
+bool toolbar_slider(Toolbar*, s32 id, const char* tip, s32* value, s32 min, s32 max);
+void toolbar_end(Toolbar*);
 
 // The strip's own drawing and sound. These are the pieces the editors' panels
 // below the strip need too, so studio.c keeps a Studio*-taking wrapper over

@@ -1125,64 +1125,32 @@ static void drawPopup(Studio* studio)
 
 void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
 {
-    if(bg)
-        tic_api_rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
+    Toolbar* tb = &studio->toolbar;
+    EditorMode mode = tb->mode;
 
-    enum {Size = 7};
-
-    s32 mode = -1;
-
-    for(s32 i = 0; i < COUNT_OF(Modes); i++)
-    {
-        const EditorApp* app = &Apps[Modes[i]];
-        tic_rect rect = {i * Size, 0, Size, Size};
-
-        bool over = false;
-
-        if(checkMousePos(studio, &rect))
-        {
-            setCursor(studio, tic_cursor_hand);
-
-            over = true;
-
-            showTooltip(studio, app->tip);
-
-            if(checkMouseClick(studio, &rect, tic_mouse_left))
-                studio->toolbar.requested = Modes[i];
-        }
-
-        if(getStudioMode(studio) == Modes[i]) mode = i;
-
-        if (mode == i)
-        {
-            drawBitIcon(studio, tic_icon_tab, i * Size, 0, tic_color_grey);
-            drawBitIcon(studio, app->icon, i * Size, 1, tic_color_black);
-        }
-
-        drawBitIcon(studio, app->icon, i * Size, 0, mode == i ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
-    }
-
-    if(mode >= 0) drawExtrabar(studio, tic);
+    tb->hideName = false;
 
 #if defined (TIC80_PRO) && defined(BUILD_EDITORS)
-    enum {TextOffset = (COUNT_OF(Modes) + 2) * Size - 2};
-    if(mode >= 1)
-        drawBankIcon(studio, COUNT_OF(Modes) * Size + 2, 0);
-#else
-    enum {TextOffset = (COUNT_OF(Modes) + 1) * Size};
+    tb->hideName = studio->bank.show;
 #endif
 
-    if(mode == 0 || (mode >= 1 && !studio->bank.show))
+    if(bg)
+        toolbar_begin(tb);
+
+    // Before toolbar_end: these two set the tooltip that it prints. They are
+    // still the studio's to draw — the clipboard row moves in group 5, the
+    // pro bank row drives studio->bank.
+    if(Apps[mode].name)
     {
-        if(strlen(studio->tooltip.text))
-        {
-            tic_api_print(tic, studio->tooltip.text, TextOffset, 1, tic_color_dark_grey, false, 1, false);
-        }
-        else
-        {
-            tic_api_print(tic, Apps[Modes[mode]].name, TextOffset, 1, tic_color_grey, false, 1, false);
-        }
+        drawExtrabar(studio, tic);
+
+#if defined (TIC80_PRO) && defined(BUILD_EDITORS)
+        if(mode >= 1)
+            drawBankIcon(studio, COUNT_OF(Modes) * TOOLBAR_SIZE + 2, 0);
+#endif
     }
+
+    toolbar_end(tb);
 }
 
 void setStudioEvent(Studio* studio, StudioEvent event)
