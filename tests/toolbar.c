@@ -151,32 +151,53 @@ static void testTabs(tic_mem* tic)
     puts("tabs ok");
 }
 
+static u8 screenAt(tic_mem* tic, s32 x, s32 y)
+{
+    return tic_tool_peek4(tic->ram->vram.screen.data, y * TIC80_WIDTH + x);
+}
+
 static void testSlider(tic_mem* tic)
 {
-    enum {Width = 23, Stops = 4};
+    enum {Width = 23, Height = 5, Stops = 4, Pitch = 6, Tick = 5};
 
     Toolbar tb = makeStrip(tic, TIC_SPRITE_MODE);
     s32 left = TIC80_WIDTH - Width;
 
-    // The sprite editor's canvas zoom: four stops over 23 pixels.
+    // The sprite editor's canvas zoom: four stops over 23 pixels. Each stop is
+    // a hollow square with a white line through it; the thumb is a filled one
+    // with a white centre.
     for(s32 stop = 0; stop < Stops; stop++)
     {
         s32 value = 0;
 
-        clickAt(tic, left + stop * 6 + 2, 3);
+        clickAt(tic, left + stop * Pitch + 2, 3);
         toolbar_begin(&tb, true);
         Mouse[tic_mouse_left].down = true;
 
-        assert(toolbar_slider(&tb, 0, "ZOOM", &value, 0, Stops - 1));
+        assert(toolbar_slider(&tb, "ZOOM", &value, 0, Stops - 1));
         assert(value == stop);
 
-        // The thumb is the only white pixel in its column, and it sits on the
-        // stop the value names.
-        assert(tic_tool_peek4(tic->ram->vram.screen.data, 3 * TIC80_WIDTH + left + stop * 6 + 2) == tic_color_white);
+        // Every stop is drawn: the corner of its square is black. The white
+        // line runs under them at row 3 and does not reach row 1.
+        for(s32 i = 0; i < Stops; i++)
+        {
+            assert(screenAt(tic, left + i * Pitch, 1 + tb.y) == tic_color_black);
+            assert(screenAt(tic, left + i * Pitch + Tick - 1, 1 + tb.y) == tic_color_black);
+        }
+
+        // The thumb is the filled one, so its middle is white and a stop that
+        // is not the thumb has the black bar there instead.
+        for(s32 i = 0; i < Stops; i++)
+        {
+            u8 middle = screenAt(tic, left + i * Pitch + 2, 2 + tb.y);
+
+            assert(middle == (i == value ? tic_color_white : tic_color_black));
+        }
     }
 
-    // A range wider than the control still renders: no zero pitch, no division
-    // by it on the drag.
+    // A range wider than the control looks bad but renders: one pixel per stop,
+    // and the click still lands on the stop it names. Reading the step size
+    // from the control's height instead divides by zero here.
     {
         s32 value = 0;
 
@@ -184,8 +205,28 @@ static void testSlider(tic_mem* tic)
         toolbar_begin(&tb, true);
         Mouse[tic_mouse_left].down = true;
 
-        assert(toolbar_slider(&tb, 0, "WIDE", &value, 0, 40));
-        assert(value >= 0 && value <= 40);
+        assert(toolbar_slider(&tb, "WIDE", &value, 0, 40));
+        assert(value == 10);
+    }
+
+    // A single stop does not paint a square over the canvas below the strip:
+    // the canvas is filled first, so anything the control draws out of bounds
+    // shows as a change.
+    {
+        s32 value = 0;
+
+        tic_api_cls(tic, tic_color_red);
+
+        clickAt(tic, left + 10, 3);
+        toolbar_begin(&tb, true);
+        Mouse[tic_mouse_left].down = true;
+
+        assert(toolbar_slider(&tb, "ONE", &value, 7, 7));
+        assert(value == 7);
+
+        for(s32 y = TOOLBAR_SIZE; y < TOOLBAR_SIZE + Height; y++)
+            for(s32 x = left; x < TIC80_WIDTH; x++)
+                assert(screenAt(tic, x, y) == tic_color_red);
     }
 
     puts("slider ok");
@@ -199,26 +240,42 @@ static void testPressOffset(tic_mem* tic)
     Toolbar tb = makeStrip(tic, TIC_CODE_MODE);
     ToolbarButton button = {.icon = tic_icon_copy, .tip = "COPY", .width = 7, .color = tic_color_light_grey, .enabled = true};
 
-    tic_rect rect = {TIC80_WIDTH - 7, 0, 7, TOOLBAR_SIZE};
+    // The strip is four pixels up when the press lands on the widget (strip row
+    // 1) and back home when the release does (strip row 3). Reading the press in
+    // the release's frame would put it at row -3, off the widget.
+    tb.y = -4;
 
-    // Press with the strip at 0, then release with it drawn elsewhere: the
-    // click belongs to the widget that was pressed.
+    clickAt(tic, TIC80_WIDTH - 3, -3);
+    Mouse[tic_mouse_left].down = true;
+    Mouse[tic_mouse_left].click = false;
+
+    toolbar_step(&tb);
+    assert(tb.press.y[tic_mouse_left] == -4);
+
+    tb.y = 0;
+    Mouse[tic_mouse_left].down = false;
+    Mouse[tic_mouse_left].click = true;
+    Mouse[tic_mouse_left].end = (tic_point){TIC80_WIDTH - 3, 3};
+
+    toolbar_begin(&tb, true);
+    assert(toolbar_button(&tb, &button));
+
+    // The mirror case: the strip has slid away from under the pointer, so the
+    // release is no longer on the widget even though the press was.
+    tb = makeStrip(tic, TIC_CODE_MODE);
+
     clickAt(tic, TIC80_WIDTH - 3, 3);
     Mouse[tic_mouse_left].down = true;
     Mouse[tic_mouse_left].click = false;
 
     toolbar_step(&tb);
-    assert(tb.press.y[tic_mouse_left] == 0);
 
-    toolbar_begin(&tb, true);
-    assert(!toolbar_button(&tb, &button));
-
+    tb.y = -4;
     Mouse[tic_mouse_left].down = false;
     Mouse[tic_mouse_left].click = true;
 
-    tb.y = -4;
     toolbar_begin(&tb, true);
-    assert(toolbar_button(&tb, &button));
+    assert(!toolbar_button(&tb, &button));
 
     puts("press offset ok");
 }

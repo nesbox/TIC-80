@@ -74,7 +74,7 @@ typedef struct
 void toolbar_step(Toolbar*);
 void toolbar_begin(Toolbar*, bool bg);
 bool toolbar_button(Toolbar*, const ToolbarButton*);
-bool toolbar_slider(Toolbar*, s32 id, const char* tip, s32* value, s32 min, s32 max);
+bool toolbar_slider(Toolbar*, const char* tip, s32* value, s32 min, s32 max);
 void toolbar_end(Toolbar*);
 
 // The strip's own drawing and sound. These are the pieces the editors' panels

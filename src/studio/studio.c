@@ -2602,9 +2602,12 @@ void studio_tick(Studio* studio, tic80_input input)
         studio->toolbar.requested = 0;
     }
 
+    // After processMouseStates, so a press is seen on the frame it arrives and
+    // the strip records the offset it is actually drawn with that frame. Still
+    // before renderStudio, which is where the tooltip's clear has to land.
+    processMouseStates(studio);
     toolbar_step(&studio->toolbar);
 
-    processMouseStates(studio);
     renderStudio(studio);
 
     {

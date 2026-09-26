@@ -52,8 +52,10 @@ static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
 }
 
 // The widget's rectangle is in strip coordinates; the mouse is in screen ones.
-// The press point is read against the strip as it was when the press began, so
-// a strip that moves under the pointer still receives the click.
+// Each endpoint is read against the strip as it stood at its own moment: the
+// press against where the strip was then, the release against where it is now.
+// So a press that lands on a widget keeps the widget even if the strip moves
+// under the pointer, and a release below a strip that has slid away misses it.
 static bool stripClick(Toolbar* tb, const tic_rect* rect, tic_mouse_btn button)
 {
     MouseState* state = &tb->mouse[button];
@@ -62,7 +64,7 @@ static bool stripClick(Toolbar* tb, const tic_rect* rect, tic_mouse_btn button)
         return false;
 
     tic_point start = {state->start.x, state->start.y - tb->press.y[button]};
-    tic_point end   = {state->end.x,   state->end.y   - tb->press.y[button]};
+    tic_point end   = {state->end.x,   state->end.y   - tb->y};
 
     if(!pointInRect(&start, rect) || !pointInRect(&end, rect))
         return false;
@@ -145,10 +147,11 @@ bool toolbar_button(Toolbar* tb, const ToolbarButton* button)
     return hit && button->enabled;
 }
 
-// A discrete control: one stop per value, as the sprite editor's canvas zoom
-// has always been drawn. The caller chooses the range, so a range wider than
-// the control still renders rather than dividing by zero.
-bool toolbar_slider(Toolbar* tb, s32 id, const char* tip, s32* value, s32 min, s32 max)
+// A discrete control: one stop per value, drawn the way the sprite editor's
+// canvas zoom has always been drawn — hollow stops with the thumb's white
+// centre on top. The range is the caller's, and a range wider than the control
+// still renders instead of dividing by zero or painting outside itself.
+bool toolbar_slider(Toolbar* tb, const char* tip, s32* value, s32 min, s32 max)
 {
     enum {Width = 23, Height = 5};
 
@@ -160,7 +163,7 @@ bool toolbar_slider(Toolbar* tb, s32 id, const char* tip, s32* value, s32 min, s
 
     s32 stops = MAX(1, max - min + 1);
     s32 pitch = MAX(1, (Width + 1) / stops);
-    s32 tick  = MAX(1, pitch - 1);
+    s32 tick  = MIN(MAX(1, pitch - 1), Height);
 
     bool changed = false;
 
@@ -174,16 +177,24 @@ bool toolbar_slider(Toolbar* tb, s32 id, const char* tip, s32* value, s32 min, s
     if(stripClick(tb, &rect, tic_mouse_left))
         changed = true;
 
-    s32 at = CLAMP(*value - min, 0, stops - 1) * pitch;
+    for(s32 i = 0; i < stops; i++)
+    {
+        if(i * pitch + tick > Width)
+            break;
+
+        tic_api_rect(tb->tic, rect.x + i * pitch, rect.y + tb->y, tick, tick, tic_color_black);
+    }
+
+    // After the drag, not before: the thumb has to show the value this frame
+    // produced, not the one it replaced.
+    s32 at = CLAMP(*value - min, 0, stops - 1);
+    s32 thumbX = rect.x + MIN(at * pitch, Width - tick);
 
     tic_api_rect(tb->tic, rect.x, rect.y + tb->y + 1, Width, Height - 2, tic_color_black);
     tic_api_rect(tb->tic, rect.x + 1, rect.y + tb->y + 2, Width - 2, Height - 4, tic_color_white);
 
-    for(s32 i = 0; i < stops; i++)
-        tic_api_rect(tb->tic, rect.x + i * pitch, rect.y + tb->y, tick, tick, tic_color_black);
-
-    tic_api_rect(tb->tic, rect.x + at, rect.y + tb->y, tick, tick, tic_color_black);
-    tic_api_rect(tb->tic, rect.x + at + 1, rect.y + tb->y + 1, tick - 2, tick - 2, tic_color_white);
+    tic_api_rect(tb->tic, thumbX, rect.y + tb->y, tick, tick, tic_color_black);
+    tic_api_rect(tb->tic, thumbX + 1, rect.y + tb->y + 1, tick - 2, tick - 2, tic_color_white);
 
     return changed;
 }
