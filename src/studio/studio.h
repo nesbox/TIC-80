@@ -34,6 +34,7 @@
 #include "defines.h"
 #include "tools.h"
 #include "system.h"
+#include "rom.h"
 #include "anim.h"
 #include "ext/png.h"
 #include "core/core.h"
@@ -297,6 +298,8 @@ void confirmLoadCart(Studio* studio, ConfirmCallback callback, void* data);
 bool studioCartChanged(Studio* studio);
 void playSystemSfx(Studio* studio, s32 id);
 bool studio_is_cart_loaded(Studio* studio);
+
+struct tic_fs* studio_fs(Studio* studio);
 
 void gotoMenu(Studio* studio);
 void gotoCode(Studio* studio);

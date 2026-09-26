@@ -45,8 +45,11 @@
 #include "ext/fft.h"
 #endif
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+#if defined(BUILD_EDITORS)
 #include "screens/console.h"
+#endif
+
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 #include "net.h"
 #endif
 
@@ -86,12 +89,12 @@
 #define TIC_EDITOR_BANKS 1
 #endif
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 typedef struct
 {
     u8 data[MD5_HASHSIZE];
 } CartHash;
 
+#if defined(BUILD_EDITORS)
 static const EditorMode Modes[] =
 {
     TIC_CODE_MODE,
@@ -165,19 +168,15 @@ struct Studio
 #endif
     } mouse;
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     EditorMode menuMode;
-#endif
 #if defined(BUILD_EDITORS)
     ViMode viMode;
 #endif
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     struct
     {
         CartHash hash;
         u64 mdate;
     }cart;
-#endif
 #if defined(BUILD_EDITORS)
     struct
     {
@@ -249,7 +248,10 @@ struct Studio
     Bytebattle bytebattle;
 #endif
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+    // The loaded cart's identity, shared by the console and the browser.
+    CartName rom;
+
+#if defined(BUILD_EDITORS)
     Console*    console;
 #endif
 
@@ -1253,7 +1255,7 @@ void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
 static void initRunMode(Studio* studio)
 {
     initRun(studio->run,
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+#if defined(BUILD_EDITORS)
         studio->console,
 #else
         NULL,
@@ -1276,7 +1278,7 @@ void gotoCode(Studio* studio)
 #if defined(BUILD_SURF)
 static void initSurfMode(Studio* studio)
 {
-    initSurf(studio->surf, studio, studio->console);
+    initSurf(studio->surf, studio, studio->fs, studio->net, studio->config);
 }
 
 void gotoSurf(Studio* studio)
@@ -1288,13 +1290,7 @@ void gotoSurf(Studio* studio)
 
 bool studio_is_cart_loaded(Studio* studio)
 {
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-    return strlen(studio->console->rom.name) > 0 || (studio->start && studio->start->embed);
-#else
-    // Editorless builds (export stubs) have no console; only an embedded
-    // cartridge counts as loaded.
-    return studio->start && studio->start->embed;
-#endif
+    return strlen(studio->rom.name) > 0 || (studio->start && studio->start->embed);
 }
 
 void setStudioMode(Studio* studio, EditorMode mode)
@@ -1472,8 +1468,6 @@ void setCursor(Studio* studio, tic_cursor id)
     }
 }
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-
 typedef struct
 {
     Studio* studio;
@@ -1578,23 +1572,18 @@ static void updateHash(Studio* studio)
 
 static void updateMDate(Studio* studio)
 {
-    studio->cart.mdate = fs_date(studio->console->rom.path);
+    studio->cart.mdate = fs_date(studio->rom.path);
 }
-#endif
 
 static void updateTitle(Studio* studio)
 {
     char name[TICNAME_MAX] = TIC_TITLE;
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-    if(strlen(studio->console->rom.name))
-        snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, studio->console->rom.name);
-#endif
+    if(strlen(studio->rom.name))
+        snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, studio->rom.name);
 
     tic_sys_title(name);
 }
-
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 
 bool project_ext(const char* name)
 {
@@ -1632,7 +1621,6 @@ bool studioCartChanged(Studio* studio)
 
     return memcmp(hash.data, studio->cart.hash.data, sizeof(CartHash)) != 0;
 }
-#endif
 
 void runGame(Studio* studio, RunOrigin origin)
 {
@@ -1701,17 +1689,17 @@ void saveProject(Studio* studio)
         char buffer[STUDIO_TEXT_BUFFER_WIDTH];
         char str_saved[] = " saved :)";
 
-        s32 name_len = (s32)strlen(studio->console->rom.name);
+        s32 name_len = (s32)strlen(studio->rom.name);
         if (name_len + strlen(str_saved) > sizeof(buffer)){
             char subbuf[sizeof(buffer) - sizeof(str_saved) - 5];
             memset(subbuf, '\0', sizeof subbuf);
-            strncpy(subbuf, studio->console->rom.name, sizeof subbuf-1);
+            strncpy(subbuf, studio->rom.name, sizeof subbuf-1);
 
             snprintf(buffer, sizeof buffer, "%s[...]%s", subbuf, str_saved);
         }
         else
         {
-            snprintf(buffer, sizeof buffer, "%s%s", studio->console->rom.name, str_saved);
+            snprintf(buffer, sizeof buffer, "%s%s", studio->rom.name, str_saved);
         }
 
         showPopupMessage(studio, buffer);
@@ -1733,7 +1721,7 @@ static void setCoverImage(Studio* studio)
 
 static void generateScreenshotName(Studio* studio, const char* extension, char filenameOut[TICNAME_MAX])
 {
-    const char* romName = studio->console->rom.name;
+    const char* romName = studio->rom.name;
 
     // --- Strip extension ---
     const char* dot = strrchr(romName, '.');
@@ -2143,9 +2131,7 @@ static void checkChanges(Studio* studio)
         break;
     default:
         {
-            Console* console = studio->console;
-
-            u64 date = fs_date(console->rom.path);
+            u64 date = fs_date(studio->rom.path);
 
             if(studio->cart.mdate && date > studio->cart.mdate)
             {
@@ -2160,7 +2146,7 @@ static void checkChanges(Studio* studio)
 
                     confirmDialog(studio, Rows, COUNT_OF(Rows), reloadConfirm, NULL);
                 }
-                else console->updateProject(console);
+                else studio->console->updateProject(studio->console);
             }
         }
     }
@@ -2571,6 +2557,16 @@ tic_mem* getMemory(Studio* studio)
     return studio->tic;
 }
 
+CartName* studioCart(Studio* studio)
+{
+    return &studio->rom;
+}
+
+tic_fs* studio_fs(Studio* studio)
+{
+    return studio->fs;
+}
+
 const tic_mem* studio_mem(Studio* studio)
 {
     return getMemory(studio);
@@ -2711,14 +2707,15 @@ void studio_sound(Studio* studio)
     }
 }
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 static void onStudioLoadConfirmed(Studio* studio, bool yes, void* data)
 {
     if(yes)
     {
         const char* file = data;
+        bool done = studioLoadCart(studio, file);
+
 #if defined(BUILD_EDITORS)
-        showPopupMessage(studio, studio->console->loadCart(studio->console, file)
+        showPopupMessage(studio, done
             ? "cart successfully loaded :)"
             : "error: cart not loaded :(");
 #endif
@@ -2737,15 +2734,11 @@ void confirmLoadCart(Studio* studio, ConfirmCallback callback, void* data)
     confirmDialog(studio, Warning, COUNT_OF(Warning), callback, data);
 }
 
-#endif
-
 void studio_load(Studio* studio, const char* file)
 {
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     studioCartChanged(studio)
         ? confirmLoadCart(studio, onStudioLoadConfirmed, (void*)file)
         : onStudioLoadConfirmed(studio, true, (void*)file);
-#endif
 }
 
 // Where a run was entered from decides where CLOSE GAME goes: a cart played in
@@ -2992,9 +2985,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
             .text = "\0",
         },
 #endif
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
         .samplerate = samplerate,
-#endif
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
         .net = tic_net_create(TIC_WEBSITE),
 #endif
@@ -3052,7 +3043,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->anim.movie = resetMovie(&studio->anim.idle);
 #endif
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+#if defined(BUILD_EDITORS)
         studio->console    = calloc(1, sizeof(Console));
 #endif
 
@@ -3080,8 +3071,21 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     initStart(studio->start, studio, args.cart);
     initRunMode(studio);
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+#if defined(BUILD_EDITORS)
     initConsole(studio->console, studio, studio->fs, studio->net, studio->config, args);
+#else
+    // No console: whatever is on the command line is loaded right here, and
+    // the startup stage plays it (see start.c).
+    if(args.cart)
+    {
+        if(studioLoadCart(studio, args.cart))
+            studio->start->embed = true;
+        else
+        {
+            fprintf(stderr, "error: cart `%s` not loaded\n", args.cart);
+            exit(1);
+        }
+    }
 #endif
 #if defined(BUILD_SURF)
     initSurfMode(studio);

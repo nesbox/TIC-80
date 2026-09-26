@@ -22,67 +22,29 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "system.h"
+#include "fs.h"
 
-typedef struct Surf Surf;
-
-struct Surf
+typedef enum
 {
-    Studio* studio;
-    tic_mem* tic;
-    struct tic_fs* fs;
-    struct tic_net* net;
-    struct Config* config;
+    CART_SAVE_OK,
+    CART_SAVE_ERROR,
+    CART_SAVE_MISSING_NAME,
+} CartSaveResult;
 
-    bool init;
-    bool loading;
-    s32 ticks;
+typedef struct
+{
+    char name[TICNAME_MAX];
+    char path[TICNAME_MAX];
+} CartName;
 
-    struct
-    {
-        s32 pos;
-        s32 target;
-        struct SurfItem* items;
-        s32 count;
-    } menu;
+CartName* studioCart(Studio* studio);
 
-    struct
-    {
-        struct
-        {
-            s32 topBarY;
-            s32 bottomBarY;
-            s32 menuX;
-            s32 menuHeight;
-            s32 coverFade;
-            s32 pos;
-        } val;
+const char* getCartName(const char* name);
+void studioSetCartName(Studio* studio, const char* name, const char* path);
+void loadCartSection(Studio* studio, const tic_cartridge* cart, const char* section);
 
-        Movie* movie;
-
-        Movie idle;
-        Movie show;
-        Movie play;
-        Movie move;
-
-        struct
-        {
-            Movie show;
-            Movie hide;
-        } gotodir;
-
-        struct
-        {
-            Movie show;
-            Movie hide;
-        } goback;
-
-    } anim;
-
-    void(*tick)(Surf* surf);
-    void(*resume)(Surf* surf);
-    void (*scanline)(tic_mem* tic, s32 row, void* data);
-};
-
-void initSurf(Surf* surf, Studio* studio, struct tic_fs* fs, struct tic_net* net, struct Config* config);
-void freeSurf(Surf* surf);
+bool studioLoadCart(Studio* studio, const char* path);
+void studioLoadByHash(Studio* studio, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
+CartSaveResult studioSaveCart(Studio* studio, const char* name);
+CartSaveResult studioAutoSave(Studio* studio);

@@ -9,6 +9,7 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/screens/mainmenu.c
     ${TIC80LIB_DIR}/studio/screens/start.c
     ${TIC80LIB_DIR}/studio/studio.c
+    ${TIC80LIB_DIR}/studio/rom.c
     ${TIC80LIB_DIR}/studio/config.c
     ${TIC80LIB_DIR}/studio/fs.c
     ${TIC80LIB_DIR}/ext/md5.c
@@ -28,13 +29,6 @@ if(BUILD_SURF)
     set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
         ${TIC80LIB_DIR}/studio/screens/surf.c
     )
-
-    # Until the browser stops using a console, an editorless build needs one.
-    if(NOT BUILD_EDITORS)
-        set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
-            ${TIC80LIB_DIR}/studio/screens/console_minimal.c
-        )
-    endif()
 endif()
 
 if(BUILD_EDITORS)

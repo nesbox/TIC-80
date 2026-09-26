@@ -25,13 +25,6 @@
 #include "studio/studio.h"
 #include "studio/fs.h"
 
-typedef enum
-{
-    CART_SAVE_OK,
-    CART_SAVE_ERROR,
-    CART_SAVE_MISSING_NAME,
-} CartSaveResult;
-
 typedef struct Console Console;
 typedef struct CommandDesc CommandDesc;
 
@@ -77,12 +70,6 @@ struct Console
 
     struct
     {
-        char name[TICNAME_MAX];
-        char path[TICNAME_MAX];
-    } rom;
-
-    struct
-    {
         s32 index;
         s32 size;
         char** items;
@@ -116,4 +103,3 @@ struct Console
 
 void initConsole(Console*, Studio* studio, struct tic_fs* fs, struct tic_net* net, struct Config* config, StartArgs args);
 void freeConsole(Console* console);
-void forceAutoSave(Console* console, const char* cart_name);

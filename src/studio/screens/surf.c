@@ -24,7 +24,6 @@
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
-#include "console.h"
 #include "menu.h"
 #include "ext/gif.h"
 #include "ext/png.h"
@@ -561,14 +560,11 @@ static void changeDirectory(Surf* surf, const char* name)
 static void autoSave(Surf* surf)
 {
     const char* save_directory = "/downloads";
-    const char* cart_name = surf->console->rom.name;
 
-    if(!tic_fs_isdir(surf->console->fs, save_directory))
-    {
-        tic_fs_makedir(surf->console->fs, save_directory);
-    }
+    if(!tic_fs_isdir(surf->fs, save_directory))
+        tic_fs_makedir(surf->fs, save_directory);
 
-    forceAutoSave(surf->console, cart_name);
+    studioAutoSave(surf->studio);
 }
 
 static void onCartLoaded(void* data)
@@ -592,11 +588,11 @@ static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
 
         if (item->hash)
         {
-            surf->console->loadByHash(surf->console, item->name, item->hash, NULL, onCartLoaded, surf);
+            studioLoadByHash(surf->studio, item->name, item->hash, NULL, onCartLoaded, surf);
         }
         else
         {
-            surf->console->load(surf->console, item->name);
+            studioLoadCart(surf->studio, item->name);
             runGame(surf->studio, RUN_FROM_PLAYER);
         }
     }
@@ -851,7 +847,7 @@ static void moveDone(void* data)
     surf->anim.movie = resetMovie(&surf->anim.idle);
 }
 
-void initSurf(Surf* surf, Studio* studio, struct Console* console)
+void initSurf(Surf* surf, Studio* studio, tic_fs* fs, tic_net* net, Config* config)
 {
     freeAnim(surf);
 
@@ -859,10 +855,9 @@ void initSurf(Surf* surf, Studio* studio, struct Console* console)
     {
         .studio = studio,
         .tic = getMemory(studio),
-        .console = console,
-        .config = console->config,
-        .fs = console->fs,
-        .net = console->net,
+        .config = config,
+        .fs = fs,
+        .net = net,
         .tick = tick,
         .ticks = 0,
         .init = false,
