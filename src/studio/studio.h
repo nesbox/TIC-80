@@ -300,7 +300,9 @@ bool studio_is_cart_loaded(Studio* studio);
 
 void gotoMenu(Studio* studio);
 void gotoCode(Studio* studio);
+#if defined(BUILD_SURF)
 void gotoSurf(Studio* studio);
+#endif
 
 void runGame(Studio* studio, RunOrigin origin);
 void exitGame(Studio* studio);

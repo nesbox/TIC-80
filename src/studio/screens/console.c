@@ -1703,10 +1703,12 @@ static void onGameMenuCommand(Console* console)
     commandDone(console);
 }
 
+#if defined(BUILD_SURF)
 static void onSurfCommand(Console* console)
 {
     gotoSurf(console->studio);
 }
+#endif
 
 static void loadExternal(Console* console, const char* path)
 {
@@ -3137,6 +3139,14 @@ static const char HelpUsage[] = "help [<text>"
 #endif
 
 // macro(name, alt, help, usage, handler, tab-complete for first param, for second param)
+// The browser's command exists only where the browser does.
+#if defined(BUILD_SURF)
+#define SURF_CMD(macro)                                                     \
+    macro("surf", NULL, "Open carts browser.", NULL, onSurfCommand, NULL, NULL)
+#else
+#define SURF_CMD(macro)
+#endif
+
 #define COMMANDS_LIST(macro)                                                            \
     macro("help",                                                                       \
         NULL,                                                                           \
@@ -3310,13 +3320,7 @@ static const char HelpUsage[] = "help [<text>"
         tabCompleteConfig,                                                              \
         NULL)                                                                           \
                                                                                         \
-    macro("surf",                                                                       \
-        NULL,                                                                           \
-        "Open carts browser.",                                                          \
-        NULL,                                                                           \
-        onSurfCommand,                                                                  \
-        NULL,                                                                           \
-        NULL)                                                                           \
+    SURF_CMD(macro)                                                                     \
                                                                                         \
     macro("menu",                                                                       \
         NULL,                                                                           \
@@ -4695,6 +4699,7 @@ static void processKeyboard(Console* console)
 
 }
 
+#if defined(BUILD_SURF)
 static void processGamepad(Console* console)
 {
     tic_mem* tic = console->tic;
@@ -4707,6 +4712,7 @@ static void processGamepad(Console* console)
         gotoSurf(console->studio);
     }
 }
+#endif
 
 static void tick(Console* console)
 {
@@ -4714,7 +4720,9 @@ static void tick(Console* console)
 
     processMouse(console);
     processKeyboard(console);
+#if defined(BUILD_SURF)
     processGamepad(console);
+#endif
 
     Start* start = getStartScreen(console->studio);
 

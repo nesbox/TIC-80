@@ -47,11 +47,11 @@
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 #include "screens/console.h"
+#include "net.h"
 #endif
 
 #if defined(BUILD_SURF)
 #include "screens/surf.h"
-#include "net.h"
 #endif
 
 #include "ext/md5.h"
@@ -2585,7 +2585,7 @@ void studio_tick(Studio* studio, tic80_input input)
     processAnim(studio->anim.movie, studio);
     checkChanges(studio);
 #endif
-#if defined(BUILD_SURF)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     tic_net_start(studio->net);
 #endif
 
@@ -2658,7 +2658,7 @@ void studio_tick(Studio* studio, tic80_input input)
 #endif
     }
 
-#if defined(BUILD_SURF)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     tic_net_end(studio->net);
 #endif
 #if defined(BUILD_EDITORS)
@@ -2800,7 +2800,7 @@ void studio_delete(Studio* studio)
 
     tic_core_close(studio->tic);
 
-#if defined(BUILD_SURF)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     tic_net_close(studio->net);
 #endif
 #if defined(BUILD_EDITORS)
@@ -2995,7 +2995,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
         .samplerate = samplerate,
 #endif
-#if defined(BUILD_SURF)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
         .net = tic_net_create(TIC_WEBSITE),
 #endif
 #if defined(BUILD_EDITORS)
@@ -3010,7 +3010,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         if (fs_isdir(path))
         {
             studio->fs = tic_fs_create(path,
-#if defined(BUILD_SURF)
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
                 studio->net
 #else
                 NULL
