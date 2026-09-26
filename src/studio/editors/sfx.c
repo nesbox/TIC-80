@@ -1139,7 +1139,6 @@ static void tick(Sfx* sfx)
     drawSelector(sfx, 9, 12);
     drawPiano(sfx, 5, 127);
     drawWavePanel(sfx, 7, 41);
-    drawToolbar(sfx->studio, tic, true);
 
     playSound(sfx);
 

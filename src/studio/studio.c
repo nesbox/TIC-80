@@ -1067,11 +1067,8 @@ static bool isBanked(EditorMode mode)
 
 // The strip's whole frame: background, the mode's own widgets, then the studio
 // chrome. A mode that is not an editor has no strip at all.
-void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
+static void drawToolbar(Studio* studio)
 {
-    TIC_UNUSED(tic);
-    TIC_UNUSED(bg);
-
     Toolbar* tb = &studio->toolbar;
 
     // Read live: an editor may have switched the mode earlier in this same tick.
@@ -2238,22 +2235,25 @@ static void renderStudio(Studio* studio)
         if(app->tick)
             app->tick(app->instance(studio));
 
-        // The host draws the strip for a mode that has a band to draw. The
-        // editors still calling drawToolbar themselves carry a NULL band, and
-        // draw it once, from their own tick. A mode whose whole screen is the
-        // overlay bank drew its strip there too, and the two layers do not
-        // compose the same way.
-        if(app->band)
+        // The host draws the strip for any mode that is an editor. A mode with
+        // no widgets of its own leaves `band` NULL and still gets the rail. A
+        // mode whose whole screen is the overlay bank drew its strip there
+        // too, and the two layers do not compose the same way.
+#if defined(BUILD_EDITORS)
+        if(app->name)
         {
             if(app->vbank1)
             {
                 VBANK(tic, 1)
                 {
-                    drawToolbar(studio, tic, true);
+                    drawToolbar(studio);
                 }
             }
-            else drawToolbar(studio, tic, true);
+            else drawToolbar(studio);
         }
+#else
+        TIC_UNUSED(app);
+#endif
     }
 
     tic_core_tick_end(tic);

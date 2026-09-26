@@ -364,6 +364,52 @@ static void testPressOffset(tic_mem* tic)
     puts("press offset ok");
 }
 
+static bool anyOf(tic_mem* tic, s32 x, s32 y0, s32 y1, u8 color)
+{
+    for(s32 y = y0; y <= y1; y++)
+        if(screenAt(tic, x, y) == color)
+            return true;
+
+    return false;
+}
+
+// A widget draws on its own line inside the strip: the map editor's depth
+// labels sit one row down, and the rail's flush packing leaves every gap the
+// caller had to hold open itself.
+static void testWidgetLine(tic_mem* tic)
+{
+    enum {Button = 7, Filled = tic_color_red};
+    enum {X = TIC80_WIDTH - Button};
+
+    Toolbar tb = makeStrip(tic, TIC_CODE_MODE);
+
+    ToolbarButton down =
+    {
+        .icon = tic_icon_copy, .tip = "T", .width = Button,
+        .color = tic_color_light_grey, .pressed = true,
+        .pressedColor = Filled, .y = 1, .enabled = true,
+    };
+
+    clickAt(tic, TIC80_WIDTH - 3, 3);
+    toolbar_begin(&tb, true);
+    assert(toolbar_button(&tb, &down));
+
+    assert(!anyOf(tic, X, 0, 0, Filled));
+    assert(anyOf(tic, X, 1, TOOLBAR_SIZE - 1, Filled));
+
+    // The same widget on the strip's first line fills from row 0.
+    ToolbarButton flat = down;
+    flat.y = 0;
+
+    clickAt(tic, TIC80_WIDTH - 3, 3);
+    toolbar_begin(&tb, true);
+    assert(toolbar_button(&tb, &flat));
+
+    assert(anyOf(tic, X, 0, 0, Filled));
+
+    puts("widget line ok");
+}
+
 static void testCursor(tic_mem* tic)
 {
     toolbar_cursor(tic, tic_cursor_hand);
@@ -399,6 +445,7 @@ int main(void)
 
     testIcon(tic);
     testCursor(tic);
+    testWidgetLine(tic);
     testClick(tic);
     testStrip(tic);
     testTabs(tic);

@@ -266,7 +266,6 @@ void studioRomLoaded(Studio* studio);
 void studioRomSaved(Studio* studio);
 void studioConfigChanged(Studio* studio);
 
-void drawToolbar(Studio* studio, tic_mem* tic, bool bg);
 void setStudioMode(Studio* studio, EditorMode mode);
 EditorMode getStudioMode(Studio* studio);
 void exitStudio(Studio* studio);
