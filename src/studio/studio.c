@@ -1123,30 +1123,43 @@ static void drawPopup(Studio* studio)
     }
 }
 
+#if defined (TIC80_PRO) && defined(BUILD_EDITORS)
+// The pro bank row belongs to the editors that have banks, which is not the
+// same set as Modes[]: the code editor is not one of them.
+static bool isBanked(EditorMode mode)
+{
+    for(s32 i = 0; i < COUNT_OF(BankModes); i++)
+        if(BankModes[i] == mode)
+            return true;
+
+    return false;
+}
+#endif
+
 void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
 {
     Toolbar* tb = &studio->toolbar;
-    EditorMode mode = tb->mode;
+
+    // Read live: an editor may have switched the mode earlier in this same tick.
+    EditorMode mode = tb->mode = studio->mode;
 
     tb->hideName = false;
 
-#if defined (TIC80_PRO) && defined(BUILD_EDITORS)
-    tb->hideName = studio->bank.show;
-#endif
+    toolbar_begin(tb, bg);
 
-    if(bg)
-        toolbar_begin(tb);
-
-    // Before toolbar_end: these two set the tooltip that it prints. They are
-    // still the studio's to draw — the clipboard row moves in group 5, the
-    // pro bank row drives studio->bank.
+    // Before toolbar_end: these set the tooltip that it prints. They are still
+    // the studio's to draw — the clipboard row moves in group 5, the pro bank
+    // row drives studio->bank.
     if(Apps[mode].name)
     {
         drawExtrabar(studio, tic);
 
 #if defined (TIC80_PRO) && defined(BUILD_EDITORS)
-        if(mode >= 1)
+        if(isBanked(mode))
+        {
             drawBankIcon(studio, COUNT_OF(Modes) * TOOLBAR_SIZE + 2, 0);
+            tb->hideName = studio->bank.show;
+        }
 #endif
     }
 
@@ -2589,8 +2602,6 @@ void studio_tick(Studio* studio, tic80_input input)
         studio->toolbar.requested = 0;
     }
 
-    // After the switch, so a click's frame draws the incoming mode's band.
-    studio->toolbar.mode = studio->mode;
     toolbar_step(&studio->toolbar);
 
     processMouseStates(studio);

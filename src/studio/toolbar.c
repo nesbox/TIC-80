@@ -105,9 +105,9 @@ static bool stripHover(Toolbar* tb, const tic_rect* rect, const char* tip)
 static void stripGlyph(Toolbar* tb, const ToolbarButton* button, s32 x, s32 y, u8 color)
 {
     if(button->label)
-        tic_api_print(tb->tic, button->label, x, y, color, true, 1, true);
+        tic_api_print(tb->tic, button->label, x, y + tb->y, color, true, 1, true);
     else
-        toolbar_icon(tb->tic, &tb->config->cart->bank0.tiles, button->icon, x, y, color);
+        toolbar_icon(tb->tic, &tb->config->cart->bank0.tiles, button->icon, x, y + tb->y, color);
 }
 
 static void stripButton(Toolbar* tb, const ToolbarButton* button, const tic_rect* rect, bool over)
@@ -115,14 +115,18 @@ static void stripButton(Toolbar* tb, const ToolbarButton* button, const tic_rect
     u8 color = button->pressed ? tic_color_white : over ? tic_color_grey : button->color;
 
     if(button->pressed)
-        tic_api_rect(tb->tic, rect->x, rect->y, rect->w, rect->h, tic_color_black);
+        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_black);
 
     stripGlyph(tb, button, rect->x, rect->y, color);
 }
 
-void toolbar_begin(Toolbar* tb)
+// The rail is reset here whether or not the background is painted: an editor
+// that painted its own passes bg = false, and a stale cursor would pack the
+// right rail from wherever the last frame left it.
+void toolbar_begin(Toolbar* tb, bool bg)
 {
-    tic_api_rect(tb->tic, 0, tb->y, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
+    if(bg)
+        tic_api_rect(tb->tic, 0, tb->y, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
 
     tb->railX = TIC80_WIDTH;
 }
@@ -141,6 +145,9 @@ bool toolbar_button(Toolbar* tb, const ToolbarButton* button)
     return hit && button->enabled;
 }
 
+// A discrete control: one stop per value, as the sprite editor's canvas zoom
+// has always been drawn. The caller chooses the range, so a range wider than
+// the control still renders rather than dividing by zero.
 bool toolbar_slider(Toolbar* tb, s32 id, const char* tip, s32* value, s32 min, s32 max)
 {
     enum {Width = 23, Height = 5};
@@ -151,26 +158,32 @@ bool toolbar_slider(Toolbar* tb, s32 id, const char* tip, s32* value, s32 min, s
 
     stripHover(tb, &rect, tip);
 
+    s32 stops = MAX(1, max - min + 1);
+    s32 pitch = MAX(1, (Width + 1) / stops);
+    s32 tick  = MAX(1, pitch - 1);
+
     bool changed = false;
 
     if(stripDown(tb, &rect, tic_mouse_left))
     {
-        s32 step = (tic_api_mouse(tb->tic).x - rect.x) / (Width / (max - min + 1));
-        *value = CLAMP(min + step, min, max);
+        s32 stop = CLAMP((tic_api_mouse(tb->tic).x - rect.x) / pitch, 0, stops - 1);
+        *value = min + stop;
         changed = true;
     }
 
     if(stripClick(tb, &rect, tic_mouse_left))
         changed = true;
 
-    for(s32 i = min; i <= max; i++)
-        tic_api_rect(tb->tic, rect.x + (i - min) * (Width / (max - min + 1)), rect.y, Height / (max - min + 1) - 1, Height, tic_color_black);
+    s32 at = CLAMP(*value - min, 0, stops - 1) * pitch;
 
-    tic_api_rect(tb->tic, rect.x, rect.y + 1, Width, Height - 2, tic_color_black);
-    tic_api_rect(tb->tic, rect.x + 1, rect.y + 2, Width - 2, Height - 4, tic_color_white);
+    tic_api_rect(tb->tic, rect.x, rect.y + tb->y + 1, Width, Height - 2, tic_color_black);
+    tic_api_rect(tb->tic, rect.x + 1, rect.y + tb->y + 2, Width - 2, Height - 4, tic_color_white);
 
-    tic_api_rect(tb->tic, rect.x + (*value - min) * (Width / (max - min + 1)), rect.y, Height / (max - min + 1), Height, tic_color_black);
-    tic_api_rect(tb->tic, rect.x + 1 + (*value - min) * (Width / (max - min + 1)), rect.y + 1, Height / (max - min + 1) - 2, Height - 2, tic_color_white);
+    for(s32 i = 0; i < stops; i++)
+        tic_api_rect(tb->tic, rect.x + i * pitch, rect.y + tb->y, tick, tick, tic_color_black);
+
+    tic_api_rect(tb->tic, rect.x + at, rect.y + tb->y, tick, tick, tic_color_black);
+    tic_api_rect(tb->tic, rect.x + at + 1, rect.y + tb->y + 1, tick - 2, tick - 2, tic_color_white);
 
     return changed;
 }
@@ -204,11 +217,11 @@ void toolbar_end(Toolbar* tb)
 
         if(current == tab)
         {
-            toolbar_icon(tb->tic, tiles, tic_icon_tab, rect.x, 0, tic_color_grey);
-            toolbar_icon(tb->tic, tiles, app->icon, rect.x, 1, tic_color_black);
+            toolbar_icon(tb->tic, tiles, tic_icon_tab, rect.x, tb->y, tic_color_grey);
+            toolbar_icon(tb->tic, tiles, app->icon, rect.x, tb->y + 1, tic_color_black);
         }
 
-        toolbar_icon(tb->tic, tiles, app->icon, rect.x, 0,
+        toolbar_icon(tb->tic, tiles, app->icon, rect.x, tb->y,
             current == tab ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
 
         tab++;
@@ -220,7 +233,12 @@ void toolbar_end(Toolbar* tb)
 
     s32 x = (tab + 1) * Size;
 
-    tic_api_print(tb->tic, tb->tooltip[0] ? tb->tooltip : tb->apps[tb->mode].name, x, 1,
+    // A pro build's bank row sits between the tabs and the text.
+#if defined (TIC80_PRO) && defined(BUILD_EDITORS)
+    x += Size - 2;
+#endif
+
+    tic_api_print(tb->tic, tb->tooltip[0] ? tb->tooltip : tb->apps[tb->mode].name, x, 1 + tb->y,
         tb->tooltip[0] ? tic_color_dark_grey : tic_color_grey, false, 1, false);
 }
 
