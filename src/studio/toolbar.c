@@ -107,7 +107,7 @@ static bool stripHover(Toolbar* tb, const tic_rect* rect, const char* tip)
 static void stripGlyph(Toolbar* tb, const ToolbarButton* button, s32 x, s32 y, u8 color)
 {
     if(button->label)
-        tic_api_print(tb->tic, button->label, x, y + tb->y, color, true, 1, true);
+        tic_api_print(tb->tic, button->label, x, y + tb->y, color, true, 1, button->altFont);
     else
         toolbar_icon(tb->tic, &tb->config->cart->bank0.tiles, button->icon, x, y + tb->y, color);
 }
@@ -144,7 +144,10 @@ bool toolbar_button(Toolbar* tb, const ToolbarButton* button)
     bool over = stripHover(tb, &rect, button->tip);
     bool hit = stripClick(tb, &rect, tic_mouse_left);
 
-    stripButton(tb, button, &rect, over);
+    if(button->draw)
+        button->draw(tb, &rect, over, button->ctx);
+    else
+        stripButton(tb, button, &rect, over);
 
     return hit && button->enabled;
 }

@@ -3668,6 +3668,20 @@ static void textOutlineTick(Code* code)
 
 
 
+// Two icons on one cell: the shadow glyph, and a filled one over it when the
+// shadow is on. Neither `pressed` nor `color` says that.
+static void shadowButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
+{
+    Code* code = ctx;
+    const tic_tiles* tiles = &tb->config->cart->bank0.tiles;
+
+    toolbar_icon(tb->tic, tiles, tic_icon_shadow, rect->x, rect->y + tb->y,
+        over && !code->shadowText ? tic_color_grey : tic_color_light_grey);
+
+    if(code->shadowText)
+        toolbar_icon(tb->tic, tiles, tic_icon_shadow2, rect->x, rect->y + tb->y, tic_color_black);
+}
+
 // The strip's right rail. Drawn by the host after this editor's tick, so it
 // never sees the strip's background and never paints one.
 void codeBand(void* app, Toolbar* tb)
@@ -3709,12 +3723,11 @@ void codeBand(void* app, Toolbar* tb)
     {
         ToolbarButton button =
         {
-            .icon = code->shadowText ? tic_icon_shadow2 : tic_icon_shadow,
             .tip = "SHOW SHADOW",
             .width = Small,
-            .color = tic_color_light_grey,
-            .pressedColor = tic_color_black,
             .enabled = true,
+            .draw = shadowButton,
+            .ctx = code,
         };
 
         if(toolbar_button(tb, &button))
@@ -3725,11 +3738,11 @@ void codeBand(void* app, Toolbar* tb)
         ToolbarButton button =
         {
             .label = "F",
+            .altFont = code->altFont,
             .tip = "SWITCH FONT",
             .width = Small,
             .color = code->altFont ? tic_color_white : tic_color_light_grey,
-            .pressed = code->altFont,
-            .pressedColor = tic_color_grey,
+            .over = 0,
             .enabled = true,
         };
 

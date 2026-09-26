@@ -63,7 +63,8 @@ typedef struct Toolbar
 typedef struct
 {
     u8          icon;
-    const char* label;
+    const char* label;              // drawn with the alt font unless altFont says otherwise
+    bool        altFont;            // the label's font, as drawChar's last argument
     const char* tip;
     s32         width;
     u8          color;              // glyph when idle
@@ -71,6 +72,11 @@ typedef struct
     bool        pressed;            // the active look: filled background
     u8          pressedColor;       // that fill; 0 is black
     bool        enabled;            // a click is consumed either way
+
+    // A widget the fields above cannot describe: the strip reserves the rect,
+    // hit-tests it and hands it over. Two icons on one cell, for instance.
+    void      (*draw)(Toolbar*, const tic_rect*, bool over, void* ctx);
+    void*       ctx;
 
 } ToolbarButton;
 
