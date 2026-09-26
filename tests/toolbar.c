@@ -60,9 +60,19 @@ static MouseState Mouse[3];
 static char Tooltip[STUDIO_TEXT_BUFFER_WIDTH];
 static EditorMode Requested;
 
+static s32 ClipboardHits[5];
+
+static void clipboardCut(void* app)   { (void)app; ClipboardHits[0]++; }
+static void clipboardCopy(void* app)  { (void)app; ClipboardHits[1]++; }
+static void clipboardPaste(void* app) { (void)app; ClipboardHits[2]++; }
+static void clipboardUndo(void* app)  { (void)app; ClipboardHits[3]++; }
+static void clipboardRedo(void* app)  { (void)app; ClipboardHits[4]++; }
+
+static const ClipboardOps CodeClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
+
 static const EditorApp Apps[TIC_MODES_COUNT] =
 {
-    [TIC_CODE_MODE]   = {.name = "CODE EDITOR",   .tip = "CODE EDITOR [f1]",   .icon = tic_icon_code},
+    [TIC_CODE_MODE]   = {.name = "CODE EDITOR",   .tip = "CODE EDITOR [f1]",   .icon = tic_icon_code,   .clipboard = &CodeClipboard},
     [TIC_SPRITE_MODE] = {.name = "SPRITE EDITOR", .tip = "SPRITE EDITOR [f2]", .icon = tic_icon_sprite},
 };
 
@@ -154,6 +164,58 @@ static void testTabs(tic_mem* tic)
 static u8 screenAt(tic_mem* tic, s32 x, s32 y)
 {
     return tic_tool_peek4(tic->ram->vram.screen.data, y * TIC80_WIDTH + x);
+}
+
+// The clipboard row: the same five buttons in every editor, acting on the app
+// the registry entry points at.
+static void testClipboard(tic_mem* tic)
+{
+    enum {Size = TOOLBAR_SIZE, Gap = 17 * TIC_FONT_WIDTH};
+    enum {Named = 2};   /* the registry below has two named entries */
+
+    s32 app = 0;
+
+    Toolbar tb = makeStrip(tic, TIC_CODE_MODE);
+    tb.app = &app;
+
+    // Two named entries, so the row starts past the second tab and the gap the
+    // mode's name leaves.
+    s32 row = (Named + 1) * Size + Gap;
+
+    for(s32 i = 0; i < COUNT_OF(ClipboardHits); i++)
+    {
+        ClipboardHits[i] = 0;
+
+        clickAt(tic, row + i * Size + 3, 3);
+        toolbar_begin(&tb, true);
+        toolbar_end(&tb);
+
+        assert(ClipboardHits[i] == 1);
+        assert(!Mouse[tic_mouse_left].click);
+    }
+
+    // One more click each, all in the same frame's worth of state: the click is
+    // consumed by the first button that tests it, so only that one fires.
+    for(s32 i = 0; i < COUNT_OF(ClipboardHits); i++)
+        ClipboardHits[i] = 0;
+
+    clickAt(tic, row + 3, 3);
+    toolbar_begin(&tb, true);
+    toolbar_end(&tb);
+
+    assert(ClipboardHits[0] == 1);
+    assert(ClipboardHits[1] == 0 && ClipboardHits[2] == 0 && ClipboardHits[3] == 0 && ClipboardHits[4] == 0);
+
+    // Hovering a clipboard button names it, and the name is drawn that frame.
+    Tooltip[0] = '\0';
+    clickAt(tic, row + Size + 3, 3);
+    Mouse[tic_mouse_left].click = false;
+    toolbar_begin(&tb, true);
+    toolbar_end(&tb);
+
+    assert(strcmp(Tooltip, "COPY [ctrl+c]") == 0);
+
+    puts("clipboard ok");
 }
 
 static void testSlider(tic_mem* tic)
@@ -319,6 +381,7 @@ int main(void)
     testStrip(tic);
     testTabs(tic);
     testSlider(tic);
+    testClipboard(tic);
     testPressOffset(tic);
 
     tic_core_close(tic);

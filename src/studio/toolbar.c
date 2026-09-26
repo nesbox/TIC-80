@@ -246,15 +246,13 @@ void toolbar_end(Toolbar* tb)
     if(current < 0 || tb->hideName)
         return;
 
-    s32 x = (tab + 1) * Size;
+    s32 x0 = (tab + 1) * Size;
+    s32 x = x0;
 
     // A pro build's bank row sits between the tabs and the text.
 #if defined (TIC80_PRO) && defined(BUILD_EDITORS)
-    x += Size - 2;
+    x0 += Size - 2;
 #endif
-
-    tic_api_print(tb->tic, tb->tooltip[0] ? tb->tooltip : tb->apps[tb->mode].name, x, 1 + tb->y,
-        tb->tooltip[0] ? tic_color_dark_grey : tic_color_grey, false, 1, false);
 
     const ClipboardOps* ops = tb->apps[tb->mode].clipboard;
 
@@ -304,6 +302,11 @@ void toolbar_end(Toolbar* tb)
 
         stripGlyph(tb, &button, rect.x, rect.y, held ? tic_color_white : over ? button.over : button.color);
     }
+
+    // Last, so a clipboard button's hover has already set the tooltip this
+    // frame draws — which is the order the old drawExtrabar was called in.
+    tic_api_print(tb->tic, tb->tooltip[0] ? tb->tooltip : tb->apps[tb->mode].name, x0, 1 + tb->y,
+        tb->tooltip[0] ? tic_color_dark_grey : tic_color_grey, false, 1, false);
 }
 
 void toolbar_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color)
