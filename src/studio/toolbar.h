@@ -66,8 +66,6 @@ typedef struct
     s8          y;                  // the widget's own line inside the strip
     u8          color;              // glyph when idle
     u8          over;               // glyph under the pointer; 0 means grey
-    bool        pressed;            // the active look: filled background
-    u8          pressedColor;       // that fill; 0 is black
     bool        enabled;            // a click is consumed either way
 
     // For a widget the fields above cannot describe; two icons on one cell.

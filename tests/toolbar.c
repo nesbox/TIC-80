@@ -367,38 +367,45 @@ static bool anyOf(tic_mem* tic, s32 x, s32 y0, s32 y1, u8 color)
     return false;
 }
 
-// A widget's own line inside the strip: the depth labels sit one row down,
-// and the rail holds open no gaps of its own.
+// The strip's rail packs flush, so every gap a layout needs is held open by
+// the caller; and a widget draws on the line its `y` names, which is how the
+// map editor's depth labels sit a row down.
+static s32 HookRow = -1;
+
+static void rowHook(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
+{
+    (void)tb; (void)over; (void)ctx;
+
+    HookRow = rect->y;
+}
+
 static void testWidgetLine(tic_mem* tic)
 {
-    enum {Button = 7, Filled = tic_color_red};
-    enum {X = TIC80_WIDTH - Button};
+    enum {Gap = 6};
 
     Toolbar tb = makeStrip(tic, TIC_CODE_MODE);
 
-    ToolbarButton down =
+    ToolbarButton button =
     {
-        .icon = tic_icon_copy, .tip = "T", .width = Button,
-        .color = tic_color_light_grey, .pressed = true,
-        .pressedColor = Filled, .y = 1, .enabled = true,
+        .tip = "T", .width = 7, .enabled = true, .draw = rowHook,
     };
 
-    clickAt(tic, TIC80_WIDTH - 3, 3);
+    clickAt(tic, 500 - TIC80_OFFSET_LEFT, 3);
     toolbar_begin(&tb, true);
-    assert(toolbar_button(&tb, &down));
+    toolbar_button(&tb, &button);
+    assert(HookRow == 0);
 
-    assert(!anyOf(tic, X, 0, 0, Filled));
-    assert(anyOf(tic, X, 1, TOOLBAR_SIZE - 1, Filled));
-
-    // The same widget on the strip's first line fills from row 0.
-    ToolbarButton flat = down;
-    flat.y = 0;
-
-    clickAt(tic, TIC80_WIDTH - 3, 3);
+    button.y = 1;
     toolbar_begin(&tb, true);
-    assert(toolbar_button(&tb, &flat));
+    toolbar_button(&tb, &button);
+    assert(HookRow == 1);
 
-    assert(anyOf(tic, X, 0, 0, Filled));
+    // The rail leaves the caller the whole gap it wants, nothing of its own.
+    tb = makeStrip(tic, TIC_CODE_MODE);
+    toolbar_begin(&tb, true);
+    tb.railX -= Gap;
+    toolbar_button(&tb, &button);
+    assert(tb.railX == TIC80_WIDTH - Gap - button.width);
 
     puts("widget line ok");
 }

@@ -336,11 +336,6 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 #endif
 };
 
-const EditorApp* studio_apps(void)
-{
-    return Apps;
-}
-
 static void emptyDone(void* data) {}
 
 void fadePalette(tic_palette* pal, s32 value)
@@ -2239,7 +2234,7 @@ static void renderStudio(Studio* studio)
             app->tick(app->instance(studio));
 
         // Any editor mode gets the strip; `band` NULL still draws the rail.
-        // An overlay-bank mode drew its strip there too — see D10.
+        // An overlay-bank mode drew its strip there too — see D2.
 #if defined(BUILD_EDITORS)
         if(app->name)
         {

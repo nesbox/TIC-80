@@ -109,12 +109,7 @@ static void stripGlyph(Toolbar* tb, const ToolbarButton* button, s32 x, s32 y, u
 
 static void stripButton(Toolbar* tb, const ToolbarButton* button, const tic_rect* rect, bool over)
 {
-    u8 color = button->pressed ? tic_color_white
-        : over ? (button->over ? button->over : tic_color_grey)
-        : button->color;
-
-    if(button->pressed)
-        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, button->pressedColor);
+    u8 color = over ? (button->over ? button->over : tic_color_grey) : button->color;
 
     stripGlyph(tb, button, rect->x, rect->y, color);
 }
@@ -251,6 +246,9 @@ void toolbar_end(Toolbar* tb)
 
     const ClipboardOps* ops = tb->apps[tb->mode].clipboard;
 
+    if(!ops)
+        return;
+
     enum {Gap = 17 * TIC_FONT_WIDTH, Count = 5};
 
     static const struct { u8 icon; const char* tip; u8 color; } Buttons[Count] =
@@ -266,9 +264,6 @@ void toolbar_end(Toolbar* tb)
     {
         ops->cut, ops->copy, ops->paste, ops->undo, ops->redo,
     };
-
-    if(!ops)
-        return;
 
     x += Gap;
 

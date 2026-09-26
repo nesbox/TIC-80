@@ -44,5 +44,3 @@ typedef struct
     void  (*scanline)(tic_mem*, s32, void*);
 
 } EditorApp;
-
-const EditorApp* studio_apps(void);
