@@ -22,6 +22,8 @@
 
 #include "studio.h"
 #include "apps.h"
+#include "mouse.h"
+#include "toolbar.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -122,24 +124,6 @@ static const EditorMode BankModes[] =
 };
 
 #endif
-
-typedef struct
-{
-    bool down;
-    bool click;
-
-    struct
-    {
-        s32 start;
-        s32 ticks;
-        bool click;
-    } dbl;
-
-    tic_point start;
-    tic_point end;
-
-
-} MouseState;
 
 struct Studio
 {
@@ -636,8 +620,7 @@ tic_flags* getBankFlags(Studio* studio)
 
 void playSystemSfx(Studio* studio, s32 id)
 {
-    const tic_sample* effect = &studio->config->cart->bank0.sfx.samples.data[id];
-    tic_api_sfx(studio->tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, MAX_VOLUME, effect->speed);
+    toolbar_playClick(studio->tic, &getConfig(studio)->cart->bank0.sfx, id);
 }
 
 static void md5(const void* voidData, s32 length, u8 digest[MD5_HASHSIZE])
@@ -1307,21 +1290,7 @@ void exitStudio(Studio* studio)
 
 void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
 {
-    tic_mem* tic = studio->tic;
-
-    const tic_tile* tile = &getConfig(studio)->cart->bank0.tiles.data[id];
-
-    for(s32 i = 0, sx = x, ex = sx + TIC_SPRITESIZE; i != TIC_SPRITESIZE * TIC_SPRITESIZE; ++i, ++x)
-    {
-        if(x == ex)
-        {
-            x = sx;
-            y++;
-        }
-
-        if(tic_tool_peek4(tile, i))
-            tic_api_pix(tic, x, y, color, false);
-    }
+    toolbar_icon(studio->tic, &getConfig(studio)->cart->bank0.tiles, id, x, y, color);
 }
 
 static void initRunMode(Studio* studio)
@@ -1550,12 +1519,7 @@ bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 
 void setCursor(Studio* studio, tic_cursor id)
 {
-    tic_mem* tic = studio->tic;
-
-    VBANK(tic, 0)
-    {
-        tic->ram->vram.vars.cursor.sprite = id;
-    }
+    toolbar_cursor(studio->tic, id);
 }
 
 typedef struct
