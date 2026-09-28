@@ -1,8 +1,8 @@
 /* Offline spectral and lifecycle regression test (no capture device required).
- * cc -Isrc -Iinclude tests/vqt.c src/ext/fft.c src/fftdata.c src/vqtdata.c
- *    src/ext/vqt.c src/ext/vqt_kernel.c src/ext/kiss_fft.c src/ext/kiss_fftr.c
- *    -lm -o vqt-test
- * Add -DTIC80_FFT_UNSUPPORTED to test all eight API stubs.
+ *
+ * Targets vqt-test and vqt-test-stubs in cmake/tests.cmake; `ctest -R vqt`
+ * runs both. The stubs target adds -DTIC80_FFT_UNSUPPORTED to the module and
+ * to this file, which is what drives all eight API stubs.
  */
 #include "api.h"
 #include "fftdata.h"

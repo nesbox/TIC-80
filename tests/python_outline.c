@@ -4,9 +4,9 @@
  * without pocketpy and the whole API binding, so the test goes through the
  * tic_script the built module exports -- ie exactly what the editor calls.
  *
- * Build python first (-DBUILD_WITH_PYTHON=On), then:
- *   cc -Isrc -Iinclude tests/python_outline.c -ldl -o python-outline-test
- *   ./python-outline-test build/bin/python.so
+ * Target python-outline-test in cmake/tests.cmake, which needs
+ * -DBUILD_WITH_PYTHON=On and a shared build; the module's path is resolved
+ * when the build is generated. `ctest -R python-outline` runs it.
  */
 #include "api.h"
 #include "script.h"

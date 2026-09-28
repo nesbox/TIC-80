@@ -1,7 +1,8 @@
 /* Offline regression test: no capture device is opened.
- * cc -Isrc -Iinclude tests/fft.c src/ext/fft.c src/fftdata.c
- *    src/ext/kiss_fft.c src/ext/kiss_fftr.c -lm -o fft-test
- * Add -DTIC80_FFT_UNSUPPORTED to exercise the no-capture API stubs.
+ *
+ * Targets fft-test and fft-test-stubs in cmake/tests.cmake; `ctest -R fft`
+ * runs both. The stubs target adds -DTIC80_FFT_UNSUPPORTED to the module and
+ * to this file, so the no-capture API stubs are what gets exercised.
  */
 #include "api.h"
 #include "fftdata.h"

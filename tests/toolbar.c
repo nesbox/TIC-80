@@ -1,12 +1,8 @@
 /* The strip links without the studio: this file builds toolbar.c with the core
  * and nothing else, so a call to anything studio.c provides fails to link here
  * rather than appearing quietly in the app build.
- * cc -Isrc -Iinclude -Ibuild -Ivendor/blip-buf tests/toolbar.c
- *    src/studio/toolbar.c src/core/core.c src/core/draw.c src/core/io.c
- *    src/core/sound.c src/tic.c src/tools.c src/tilesheet.c src/cart.c
- *    src/script.c src/vqtdata.c src/fftdata.c src/ext/fft.c src/ext/kiss_fft.c
- *    src/ext/kiss_fftr.c src/ext/vqt.c src/ext/vqt_kernel.c
- *    vendor/blip-buf/blip_buf.c -lm -o toolbar-test
+ *
+ * Target toolbar-test in cmake/tests.cmake; `ctest -R toolbar` runs it.
  */
 #include "studio/toolbar.h"
 #include <assert.h>
@@ -14,15 +10,6 @@
 
 static tic_tiles Tiles;
 static tic_sfx Sfx;
-
-// cart.c brings the png and zip readers with it; nothing here loads a cart.
-png_buffer png_create(s32 size) { (void)size; return (png_buffer){0}; }
-png_buffer png_decode(png_buffer cover) { (void)cover; return (png_buffer){0}; }
-u32 tic_tool_unzip(void* dest, s32 bufSize, const void* source, s32 size)
-{
-    (void)dest; (void)bufSize; (void)source; (void)size;
-    return 0;
-}
 
 static void fillTile(tic_tile* tile, u8 value)
 {
