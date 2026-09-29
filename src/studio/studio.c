@@ -1020,6 +1020,29 @@ Movie* resetMovie(Movie* movie)
     return movie;
 }
 
+// The config's own accessors. They sit outside the editors guard on purpose:
+// main.c, rom.c and mainmenu.c read the config in a build with no editors, and
+// a browser-only build linked nowhere with them inside it.
+const StudioConfig* studio_config(Studio* studio)
+{
+    return &studio->config->data;
+}
+
+const StudioConfig* getConfig(Studio* studio)
+{
+    return studio_config(studio);
+}
+
+Config* studio_config_get(Studio* studio)
+{
+    return studio->config;
+}
+
+struct Start* getStartScreen(Studio* studio)
+{
+    return studio->start;
+}
+
 #if defined(BUILD_EDITORS)
 
 // The popup unrolls by its own height; it was never TOOLBAR_SIZE, the two
@@ -1093,27 +1116,6 @@ static void drawToolbar(Studio* studio)
         app->band(tb->app, tb);
 
     toolbar_end(tb);
-}
-
-
-const StudioConfig* studio_config(Studio* studio)
-{
-    return &studio->config->data;
-}
-
-const StudioConfig* getConfig(Studio* studio)
-{
-    return studio_config(studio);
-}
-
-Config* studio_config_get(Studio* studio)
-{
-    return studio->config;
-}
-
-struct Start* getStartScreen(Studio* studio)
-{
-    return studio->start;
 }
 
 
