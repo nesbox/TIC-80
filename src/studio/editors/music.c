@@ -1897,172 +1897,117 @@ static void drawTrackerLayout(Music* music, s32 x, s32 y)
         drawTrackerChannel(music, x + ChannelWidth * i, y, i);
 }
 
-static void drawPlayButtons(Music* music)
+// The three toggles are the only buttons whose colour depends on state; the
+// old code found them by comparing pointers to static Button structs.
+static bool loopOn(Music* music)    { return music->loop; }
+static bool followOn(Music* music)  { return music->follow; }
+static bool sustainOn(Music* music) { return music->sustain; }
+
+typedef struct
 {
+    u8 icon;
+    bool active;
+
+} MusicTab;
+
+static void musicTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
+{
+    const MusicTab* tab = ctx;
+    const tic_tiles* tiles = &tb->config->cart->bank0.tiles;
+
+    if(tab->active)
+    {
+        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_grey);
+        toolbar_icon(tb->tic, tiles, tab->icon, rect->x, rect->y + tb->y + 1, tic_color_black);
+    }
+
+    toolbar_icon(tb->tic, tiles, tab->icon, rect->x, rect->y + tb->y,
+        tab->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
+}
+
+// The tabs anchor right; the play buttons grow from a fixed left edge,
+// because the two sets share their first three and those must not move.
+void musicBand(void* app, Toolbar* tb)
+{
+    Music* music = app;
+
+    enum {TabW = 7, TabCount = 2, ButtonW = TIC_FONT_WIDTH, MaxButtons = 6, GapBeforeButtons = 4};
+
+    static const u8 TabIcons[TabCount] = {tic_icon_piano, tic_icon_tracker};
+    static const s32 TabIds[TabCount] = {MUSIC_PIANO_TAB, MUSIC_TRACKER_TAB};
+    static const char* TabTips[TabCount] = {"PIANO MODE", "TRACKER MODE"};
+
+    for(s32 i = TabCount - 1; i >= 0; i--)
+    {
+        MusicTab tab = {TabIcons[i], music->tab == TabIds[i]};
+
+        ToolbarButton button =
+        {
+            .tip = TabTips[i],
+            .width = TabW,
+            .enabled = true,
+            .draw = musicTab,
+            .ctx = &tab,
+        };
+
+        if(toolbar_button(tb, &button))
+            music->tab = TabIds[i];
+    }
+
     typedef struct
     {
         u8 icon;
         const char* tip;
         const char* alt;
-        void(*handler)(Music*);
+        void (*handler)(Music*);
+        bool (*on)(Music*);
+
     } Button;
 
-    static const Button FollowButton =
-    {
-        tic_icon_follow,
-        "FOLLOW [ctrl+f]",
-        NULL,
-        toggleFollowMode,
-    };
+    static const Button LoopButton      = {tic_icon_loop,      "LOOP",                NULL,               toggleLoopMode,    loopOn};
+    static const Button FollowButton    = {tic_icon_follow,    "FOLLOW [ctrl+f]",     NULL,               toggleFollowMode,  followOn};
+    static const Button SustainButton   = {tic_icon_sustain,   "SUSTAIN NOTES ...",   "BETWEEN FRAMES",   toggleSustainMode, sustainOn};
+    static const Button PlayFromNowButton = {tic_icon_playnow, "PLAY FROM NOW ...",   "... [shift+enter]", playTrackFromNow,  NULL};
+    static const Button PlayFrameButton = {tic_icon_playframe, "PLAY FRAME ...",      "... [enter]",      playFrame,         NULL};
+    static const Button PlayTrackButton = {tic_icon_right,     "PLAY TRACK ...",      "... [space]",      playTrack,         NULL};
+    static const Button StopButton      = {tic_icon_stop,      "STOP [enter]",        NULL,               stopTrack,         NULL};
 
-    static const Button LoopButton =
-    {
-        tic_icon_loop,
-        "LOOP",
-        NULL,
-        toggleLoopMode,
-    };
+    static const Button* Playing[] = {&LoopButton, &FollowButton, &SustainButton, &StopButton};
+    static const Button* Stopped[] = {&LoopButton, &FollowButton, &SustainButton, &PlayFromNowButton, &PlayFrameButton, &PlayTrackButton};
 
-    static const Button SustainButton =
-    {
-        tic_icon_sustain,
-        "SUSTAIN NOTES ...",
-        "BETWEEN FRAMES",
-        toggleSustainMode,
-    };
+    const Button* const* buttons = checkPlaying(music) ? Playing : Stopped;
+    s32 count = checkPlaying(music) ? COUNT_OF(Playing) : COUNT_OF(Stopped);
 
-    static const Button PlayFromNowButton =
-    {
-        tic_icon_playnow,
-        "PLAY FROM NOW ...",
-        "... [shift+enter]",
-        playTrackFromNow,
-    };
+    tb->railX -= GapBeforeButtons;
 
-    static const Button PlayFrameButton =
-    {
-        tic_icon_playframe,
-        "PLAY FRAME ...",
-        "... [enter]",
-        playFrame,
-    };
+    s32 left = tb->railX - MaxButtons * ButtonW;
 
-    static const Button PlayTrackButton =
+    for(s32 i = 0; i < count; i++)
     {
-        tic_icon_right,
-        "PLAY TRACK ...",
-        "... [space]",
-        playTrack,
-    };
+        const Button* btn = buttons[i];
+        bool on = btn->on && btn->on(music);
 
-    static const Button StopButton =
-    {
-        tic_icon_stop,
-        "STOP [enter]",
-        NULL,
-        stopTrack,
-    };
+        const char* tip = btn->alt && music->tickCounter % (TIC80_FRAMERATE * 2) < TIC80_FRAMERATE ? btn->alt : btn->tip;
 
-    const Button **start, **end;
-
-    if(checkPlaying(music))
-    {
-        static const Button* Buttons[] =
+        ToolbarButton button =
         {
-            &LoopButton,
-            &FollowButton,
-            &SustainButton,
-            &StopButton,
+            .icon = btn->icon,
+            .tip = tip,
+            .width = ButtonW,
+            .color = on ? tic_color_green : tic_color_light_grey,
+            .over = on ? tic_color_green : 0,
+            .enabled = true,
         };
 
-        start = Buttons;
-        end = start + COUNT_OF(Buttons);
-    }
-    else
-    {
-        static const Button* Buttons[] =
-        {
-            &LoopButton,
-            &FollowButton,
-            &SustainButton,
-            &PlayFromNowButton,
-            &PlayFrameButton,
-            &PlayTrackButton,
-        };
+        // Each button is placed from the left edge of the reserved room, so the
+        // shared three keep their x whichever set is on screen.
+        tb->railX = left + (i + 1) * ButtonW;
 
-        start = Buttons;
-        end = start + COUNT_OF(Buttons);
+        if(toolbar_button(tb, &button))
+            btn->handler(music);
     }
 
-    tic_rect rect = { TIC80_WIDTH - 54, 0, TIC_FONT_WIDTH, TOOLBAR_SIZE };
-
-    for(const Button** btn = start; btn < end; btn++, rect.x += TIC_FONT_WIDTH)
-    {
-        bool over = false;
-
-        if (checkMousePos(music->studio, &rect))
-        {
-            setCursor(music->studio, tic_cursor_hand);
-            over = true;
-
-            showTooltip(music->studio, (*btn)->alt && music->tickCounter % (TIC80_FRAMERATE * 2) < TIC80_FRAMERATE ? (*btn)->alt : (*btn)->tip);
-
-            if (checkMouseClick(music->studio, &rect, tic_mouse_left))
-                (*btn)->handler(music);
-        }
-
-        tic_color color = *btn == &FollowButton && music->follow
-            || *btn == &SustainButton && music->sustain
-            || *btn == &LoopButton && music->loop
-                ? tic_color_green
-                : over ? tic_color_grey : tic_color_light_grey;
-
-        drawBitIcon(music->studio, (*btn)->icon, rect.x, rect.y, color);
-    }
-}
-
-static void drawModeTabs(Music* music)
-{
-    static const u8 Icons[] = {tic_icon_piano, tic_icon_tracker};
-
-    enum { Width = 7, Height = 7, Count = COUNT_OF(Icons) };
-
-    for (s32 i = 0; i < Count; i++)
-    {
-        tic_rect rect = { TIC80_WIDTH - Width * (Count - i), 0, Width, Height };
-
-        static const s32 Tabs[] = { MUSIC_PIANO_TAB, MUSIC_TRACKER_TAB };
-
-        bool over = false;
-
-        if (checkMousePos(music->studio, &rect))
-        {
-            setCursor(music->studio, tic_cursor_hand);
-            over = true;
-
-            static const char* Tooltips[] = { "PIANO MODE", "TRACKER MODE" };
-            showTooltip(music->studio, Tooltips[i]);
-
-            if (checkMouseClick(music->studio, &rect, tic_mouse_left))
-                music->tab = Tabs[i];
-        }
-
-        if (music->tab == Tabs[i])
-        {
-            tic_api_rect(music->tic, rect.x, rect.y, rect.w, rect.h, tic_color_grey);
-            drawBitIcon(music->studio, Icons[i], rect.x, rect.y + 1, tic_color_black);
-        }
-
-        drawBitIcon(music->studio, Icons[i], rect.x, rect.y, music->tab == Tabs[i] ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
-    }
-}
-
-static void drawMusicToolbar(Music* music)
-{
-    tic_api_rect(music->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
-
-    drawPlayButtons(music);
-    drawModeTabs(music);
+    tb->railX = left;
 }
 
 static void drawPianoCursor(Music* music, s32 x, s32 y, const char* val)
@@ -2159,7 +2104,6 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
 
         tic_api_print(tic, (char[]){'1' + c, '\0'}, x + (ColWidth - (TIC_ALTFONT_WIDTH - 1)) / 2 + c * ColWidth, y + 2,
             tic_color_grey, true, 1, true);
-
 
         for(s32 i = 0; i < MUSIC_FRAMES; i++)
         {
@@ -2997,24 +2941,19 @@ static void tick(Music* music)
     case MUSIC_TAB_COUNT: break; // No-op.
     }
 
-    drawMusicToolbar(music);
-    drawToolbar(music->studio, music->tic, false);
 
     music->tickCounter++;
 }
 
-static void onStudioEvent(Music* music, StudioEvent event)
-{
-    switch (event)
-    {
-    case TIC_TOOLBAR_CUT: copyToClipboard(music, true); break;
-    case TIC_TOOLBAR_COPY: copyToClipboard(music, false); break;
-    case TIC_TOOLBAR_PASTE: copyFromClipboard(music); break;
-    case TIC_TOOLBAR_UNDO: undo(music); break;
-    case TIC_TOOLBAR_REDO: redo(music); break;
-    default: break;
-    }
-}
+// The clipboard buttons take no arguments, so each editor's own operation gets
+// a uniform entry point here. The argument the old dispatch passed is folded in.
+static void clipboardCut(void* app) { Music* music = app; copyToClipboard(music, true); }
+static void clipboardCopy(void* app) { Music* music = app; copyToClipboard(music, false); }
+static void clipboardPaste(void* app) { Music* music = app; copyFromClipboard(music); }
+static void clipboardUndo(void* app) { Music* music = app; undo(music); }
+static void clipboardRedo(void* app) { Music* music = app; redo(music); }
+
+const ClipboardOps MusicClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
 void initMusic(Music* music, Studio* studio, tic_music* src)
 {
@@ -3065,7 +3004,6 @@ void initMusic(Music* music, Studio* studio, tic_music* src)
         .tickCounter = 0,
         .tab = MUSIC_PIANO_TAB,
         .history = history_create(src, sizeof(tic_music)),
-        .event = onStudioEvent,
     };
 
     resetSelection(music);

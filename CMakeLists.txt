@@ -209,6 +209,9 @@ include(cmake/argparse.cmake)
 include(cmake/naett.cmake)
 include(cmake/studio.cmake)
 
+# After the core and the languages: the tests link what those came out as.
+include(cmake/tests.cmake)
+
 include(cmake/sdl.cmake)
 include(cmake/apple.cmake)
 include(cmake/libretro.cmake)

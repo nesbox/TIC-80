@@ -562,7 +562,6 @@ static inline bool isalnum_(Code* code, char c)
     return config_isalnum_(config, c);
 }
 
-
 static void setCodeState(CodeState* state, u8 color, s32 start, s32 size)
 {
     for(CodeState* s = state + start, *end = s + size; s != end; ++s)
@@ -1229,13 +1228,11 @@ static inline enum KeybindMode getKeybindMode(Code* code)
     return getConfig(code->studio)->options.keybindMode;
 }
 
-
 static inline bool shouldUseStructuredEdit(Code* code)
 {
     const bool emacsMode = getKeybindMode(code) == KEYBIND_EMACS;
     return tic_get_script(code->tic)->useStructuredEdition && emacsMode;
 }
-
 
 static bool structuredDeleteOverride(Code* code, char* pos)
 {
@@ -1411,7 +1408,6 @@ static void deleteLine(Code* code)
         tic_sys_clipboard_set(clipboard);
         free(clipboard);
     }
-
 
     deleteCode(code, linestart, lineend);
     code->cursor.position = linestart;
@@ -1603,7 +1599,6 @@ static void redo(Code* code)
 static bool useSpacesForTab(Code* code) {
     enum TabMode tabmode = getConfig(code->studio)->options.tabMode;
 
-
     if (tabmode == TAB_SPACE)
         return true;
     else if (tabmode == TAB_TAB)
@@ -1616,7 +1611,6 @@ static bool useSpacesForTab(Code* code) {
         return false;
     }
 }
-
 
 static s32 insertTab(Code* code, char* line_start, char* pos) {
     if (useSpacesForTab(code)) {
@@ -1989,7 +1983,6 @@ static char** getLines(Code* code, int lines){
     char* pos = code->cursor.position;
     char* sel = code->cursor.selection;
 
-
     char* start = MIN(pos, sel);
     while(*start == '\n') ++start;
 
@@ -2280,7 +2273,6 @@ static char* downStrStr(const char* start, const char* from, const char* substr)
     return strstr(from, substr);
 }
 
-
 static void seekEmptyLineForward(Code* code) {
     char* pos = code->cursor.position;
 
@@ -2514,7 +2506,6 @@ end:
     return pos;
 }
 
-
 //pass in pointer to beginnign of word and its length
 //so you can just use the word in src
 static char* findFunctionDefinition(Code* code, char* name, size_t length) {
@@ -2547,7 +2538,6 @@ static char* findFunctionDefinition(Code* code, char* name, size_t length) {
 
     return result;
 }
-
 
 static void processViChange(Code* code) {
     //if on a delimiter change the contents of the delimiter
@@ -2629,7 +2619,6 @@ static void processViKeyboard(Code* code)
         updateEditor(code);
         return;
     }
-
 
     if (mode == VI_INSERT)
     {
@@ -3283,7 +3272,6 @@ static void drawPopupBar(Code* code, const char* title)
 
     enum {TextX = BOOKMARK_WIDTH};
 
-
     tic_api_rect(code->tic, 0, TOOLBAR_SIZE + pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, tic_color_grey);
 
     s32 textY = (TOOLBAR_SIZE + 1) + pos;
@@ -3677,131 +3665,138 @@ static void textOutlineTick(Code* code)
     drawPopupBar(code, "FUNC:");
 }
 
-static void drawFontButton(Code* code, s32 x, s32 y)
+
+
+
+// The active mode button is three layers in the old code: a grey cell, the
+// icon again one line down in black, and the icon in white on top.
+typedef struct
 {
-    tic_mem* tic = code->tic;
+    u8 icon;
+    bool active;
 
-    enum {Size = TIC_FONT_WIDTH};
-    tic_rect rect = {x, y, Size, Size};
+} ModeButton;
 
-    bool over = false;
-    if(checkMousePos(code->studio, &rect))
+static void modeButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
+{
+    const ModeButton* btn = ctx;
+    const tic_tiles* tiles = &tb->config->cart->bank0.tiles;
+
+    if(btn->active)
     {
-        setCursor(code->studio, tic_cursor_hand);
-
-        showTooltip(code->studio, "SWITCH FONT");
-
-        over = true;
-
-        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-        {
-            code->altFont = !code->altFont;
-        }
+        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_grey);
+        toolbar_icon(tb->tic, tiles, btn->icon, rect->x, rect->y + tb->y + 1, tic_color_black);
     }
 
-    drawChar(tic, 'F', x, y, over ? tic_color_grey : tic_color_light_grey, code->altFont);
+    toolbar_icon(tb->tic, tiles, btn->icon, rect->x, rect->y + tb->y,
+        btn->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
 }
 
-static void drawShadowButton(Code* code, s32 x, s32 y)
+// The font button is a glyph, not an icon, and it was drawn a pixel in from its
+// cell. Its colour does not change with the font — the shape does.
+static void fontButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
 {
-    tic_mem* tic = code->tic;
+    Code* code = ctx;
 
-    enum {Size = TIC_FONT_WIDTH};
-    tic_rect rect = {x, y, Size, Size};
+    tic_api_print(tb->tic, "F", rect->x, rect->y + tb->y + 1,
+        over ? tic_color_grey : tic_color_light_grey, true, 1, code->altFont);
+}
 
-    bool over = false;
-    if(checkMousePos(code->studio, &rect))
-    {
-        setCursor(code->studio, tic_cursor_hand);
+// Two icons on one cell: the shadow glyph, and a filled one over it when the
+// shadow is on. Neither `pressed` nor `color` says that.
+static void shadowButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
+{
+    Code* code = ctx;
+    const tic_tiles* tiles = &tb->config->cart->bank0.tiles;
 
-        showTooltip(code->studio, "SHOW SHADOW");
-
-        over = true;
-
-        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-        {
-            code->shadowText = !code->shadowText;
-        }
-    }
-
-    drawBitIcon(code->studio, tic_icon_shadow, x, y, over && !code->shadowText ? tic_color_grey : tic_color_light_grey);
+    toolbar_icon(tb->tic, tiles, tic_icon_shadow, rect->x, rect->y + tb->y,
+        over && !code->shadowText ? tic_color_grey : tic_color_light_grey);
 
     if(code->shadowText)
-        drawBitIcon(code->studio, tic_icon_shadow2, x, y, tic_color_black);
+        toolbar_icon(tb->tic, tiles, tic_icon_shadow2, rect->x, rect->y + tb->y, tic_color_black);
 }
 
-static void drawRunButton(Code* code, s32 x, s32 y)
+// The strip's right rail. Drawn by the host after this editor's tick, so it
+// never sees the strip's background and never paints one.
+void codeBand(void* app, Toolbar* tb)
 {
-    tic_mem* tic = code->tic;
+    Code* code = app;
 
-    enum {Size = TIC_FONT_WIDTH};
-    tic_rect rect = {x, y, Size, Size};
-
-    bool over = false;
-    if(checkMousePos(code->studio, &rect))
+    static const struct { u8 icon; const char* tip; } Buttons[] =
     {
-        setCursor(code->studio, tic_cursor_hand);
-        showTooltip(code->studio, "RUN [ctrl+r]");
-        over = true;
+        {tic_icon_hand,     "DRAG [right mouse]"},
+        {tic_icon_find,     "FIND [ctrl+f]"},
+        {tic_icon_goto,     "GOTO [ctrl+g]"},
+        {tic_icon_bookmark, "BOOKMARKS [ctrl+b]"},
+        {tic_icon_outline,  "OUTLINE [ctrl+o]"},
+    };
 
-        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
+    enum {Count = COUNT_OF(Buttons), Size = 7, Small = TIC_FONT_WIDTH};
+
+    // The rail packs right to left, and this editor's order runs the other way.
+    for(s32 i = Count - 1; i >= 0; i--)
+    {
+        ModeButton mode = {Buttons[i].icon, i == code->mode && isIdle(code)};
+
+        ToolbarButton button =
+        {
+            .tip = Buttons[i].tip,
+            .width = Size,
+            .enabled = true,
+            .draw = modeButton,
+            .ctx = &mode,
+        };
+
+        if(toolbar_button(tb, &button))
+        {
+            if(code->mode == i) code->escape(code);
+            else setCodeMode(code, i);
+        }
+    }
+
+    // These three carry a pixel of slack, which is what put them at 198, 191
+    // and 184 before; the rail packs with no gap of its own.
+    {
+        ToolbarButton button =
+        {
+            .icon = tic_icon_run,
+            .tip = "RUN [ctrl+r]",
+            .width = Small + 1,
+            .color = tic_color_light_grey,
+            .enabled = true,
+        };
+
+        if(toolbar_button(tb, &button))
             runGame(code->studio, RUN_FROM_STUDIO);
     }
 
-    drawBitIcon(code->studio, tic_icon_run, x, y, over ? tic_color_grey : tic_color_light_grey);
-}
-
-static void drawCodeToolbar(Code* code)
-{
-    tic_api_rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
-
-    static const struct Button {u8 icon; const char* tip;} Buttons[] =
     {
-        {tic_icon_hand, "DRAG [right mouse]"},
-        {tic_icon_find, "FIND [ctrl+f]"},
-        {tic_icon_goto, "GOTO [ctrl+g]"},
-        {tic_icon_bookmark, "BOOKMARKS [ctrl+b]"},
-        {tic_icon_outline, "OUTLINE [ctrl+o]"},
-    };
-
-    enum {Count = COUNT_OF(Buttons), Size = 7};
-
-    for(s32 i = 0; i < Count; i++)
-    {
-        const struct Button* btn = &Buttons[i];
-        tic_rect rect = {TIC80_WIDTH + (i - Count) * Size, 0, Size, Size};
-
-        bool over = false;
-        if(checkMousePos(code->studio, &rect))
+        ToolbarButton button =
         {
-            setCursor(code->studio, tic_cursor_hand);
+            .tip = "SHOW SHADOW",
+            .width = Small + 1,
+            .enabled = true,
+            .draw = shadowButton,
+            .ctx = code,
+        };
 
-            showTooltip(code->studio, btn->tip);
-
-            over = true;
-
-            if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-            {
-                if(code->mode == i) code->escape(code);
-                else setCodeMode(code, i);
-            }
-        }
-
-        bool active = i == code->mode && isIdle(code);
-        if (active)
-        {
-            tic_api_rect(code->tic, rect.x, rect.y, Size, Size, tic_color_grey);
-            drawBitIcon(code->studio, btn->icon, rect.x, rect.y + 1, tic_color_black);
-        }
-
-        drawBitIcon(code->studio, btn->icon, rect.x, rect.y, active ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
+        if(toolbar_button(tb, &button))
+            code->shadowText = !code->shadowText;
     }
 
-    drawFontButton(code, TIC80_WIDTH - (Count+3) * Size, 1);
-    drawShadowButton(code, TIC80_WIDTH - (Count+2) * Size, 0);
-    drawRunButton(code, TIC80_WIDTH - (Count+1) * Size, 0);
+    {
+        ToolbarButton button =
+        {
+            .tip = "SWITCH FONT",
+            .width = Small + 1,
+            .enabled = true,
+            .draw = fontButton,
+            .ctx = code,
+        };
 
-    drawToolbar(code->studio, code->tic, false);
+        if(toolbar_button(tb, &button))
+            code->altFont = !code->altFont;
+    }
 }
 
 static void tick(Code* code)
@@ -3821,8 +3816,6 @@ static void tick(Code* code)
     case TEXT_BOOKMARK_MODE:textBookmarkTick(code); break;
     case TEXT_OUTLINE_MODE: textOutlineTick(code);  break;
     }
-
-    drawCodeToolbar(code);
 
     code->tickCounter++;
 }
@@ -3850,18 +3843,6 @@ static void escape(Code* code)
     }
 }
 
-static void onStudioEvent(Code* code, StudioEvent event)
-{
-    switch(event)
-    {
-    case TIC_TOOLBAR_CUT: cutToClipboard(code, false); break;
-    case TIC_TOOLBAR_COPY: copyToClipboard(code, false); break;
-    case TIC_TOOLBAR_PASTE: copyFromClipboard(code, false); break;
-    case TIC_TOOLBAR_UNDO: undo(code); break;
-    case TIC_TOOLBAR_REDO: redo(code); break;
-    }
-}
-
 static void emptyDone(void* data) {}
 
 static void setIdle(void* data)
@@ -3882,6 +3863,16 @@ static void freeAnim(Code* code)
     FREE(code->anim.show.items);
     FREE(code->anim.hide.items);
 }
+
+// The clipboard buttons take no arguments, so each editor's own operation gets
+// a uniform entry point here. The argument the old dispatch passed is folded in.
+static void clipboardCut(void* app) { Code* code = app; cutToClipboard(code, false); }
+static void clipboardCopy(void* app) { Code* code = app; copyToClipboard(code, false); }
+static void clipboardPaste(void* app) { Code* code = app; copyFromClipboard(code, false); }
+static void clipboardUndo(void* app) { Code* code = app; undo(code); }
+static void clipboardRedo(void* app) { Code* code = app; redo(code); }
+
+const ClipboardOps CodeClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
 void initCode(Code* code, Studio* studio)
 {
@@ -3938,7 +3929,6 @@ void initCode(Code* code, Studio* studio)
                 {0, SIDEBAR_WIDTH, STUDIO_ANIM_TIME, &code->anim.sidebar, AnimEaseIn},
             }),
         },
-        .event = onStudioEvent,
         .update = update,
     };
 

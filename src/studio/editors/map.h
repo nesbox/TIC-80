@@ -23,6 +23,7 @@
 #pragma once
 
 #include "studio/studio.h"
+#include "studio/toolbar.h"
 #include "tilesheet.h"
 
 typedef struct Map Map;
@@ -104,9 +105,15 @@ struct Map
     } anim;
 
     void (*tick)(Map*);
-    void (*event)(Map*, StudioEvent);
     void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
+
+extern const ClipboardOps MapClipboard;
+
+void mapBand(void*, Toolbar*);
+void map_select_bank(Map*, s32 bank);
+void map_select_page(Map*, s32 page);
+void map_toggle_sheet(Map*);
 
 void initMap(Map*, Studio* studio, tic_map* src);
 void freeMap(Map* map);

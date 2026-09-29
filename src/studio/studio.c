@@ -21,6 +21,9 @@
 // SOFTWARE.
 
 #include "studio.h"
+#include "apps.h"
+#include "mouse.h"
+#include "toolbar.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -94,14 +97,21 @@ typedef struct
     u8 data[MD5_HASHSIZE];
 } CartHash;
 
+// The editors in tab order, expanded into the mode list and the registry
+// entries, so the tabs, the function keys and the number shortcuts agree.
+#define EDITOR_APPS(APP)                                                                                            \
+    APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard,   codeBand,   false)   \
+    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard, spriteBand, true) \
+    APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard,    mapBand,    true)    \
+    APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard,    NULL,       false)    \
+    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard,  musicBand,  false)
+
 #if defined(BUILD_EDITORS)
 static const EditorMode Modes[] =
 {
-    TIC_CODE_MODE,
-    TIC_SPRITE_MODE,
-    TIC_MAP_MODE,
-    TIC_SFX_MODE,
-    TIC_MUSIC_MODE,
+#define APP_MODE(MODE, ...) MODE,
+    EDITOR_APPS(APP_MODE)
+#undef  APP_MODE
 };
 
 static const EditorMode BankModes[] =
@@ -114,24 +124,6 @@ static const EditorMode BankModes[] =
 
 #endif
 
-typedef struct
-{
-    bool down;
-    bool click;
-
-    struct
-    {
-        s32 start;
-        s32 ticks;
-        bool click;
-    } dbl;
-
-    tic_point start;
-    tic_point end;
-
-
-} MouseState;
-
 struct Studio
 {
     tic_mem* tic;
@@ -140,7 +132,6 @@ struct Studio
 
     EditorMode mode;
     EditorMode prevMode;
-    EditorMode toolbarMode;
 
     // The run ESC acts on: a player's run gets the pause menu and keeps it
     // under ESC, the studio's own leaves back to runFrom — the editor or the
@@ -167,6 +158,13 @@ struct Studio
         } prev;
 #endif
     } mouse;
+
+    // Written by the editors, cleared by toolbar_step, drawn by the strip — so
+    // the buffer is not the editors' to guard.
+    struct
+    {
+        char text[STUDIO_TEXT_BUFFER_WIDTH];
+    } tooltip;
 
     EditorMode menuMode;
 #if defined(BUILD_EDITORS)
@@ -216,11 +214,6 @@ struct Studio
     {
         char message[STUDIO_TEXT_BUFFER_WIDTH];
     } popup;
-
-    struct
-    {
-        char text[STUDIO_TEXT_BUFFER_WIDTH];
-    } tooltip;
 
     struct
     {
@@ -274,6 +267,73 @@ struct Studio
     s32 samplerate;
     tic_font systemFont;
 
+    Toolbar toolbar;
+
+};
+
+// Editors keep their tick and scanline in their struct, hence the adapters.
+static void* startApp(Studio* studio)   { return studio->start; }
+static void* runApp(Studio* studio)     { return studio->run; }
+static void* menuApp(Studio* studio)    { return studio->menu; }
+
+static void startTick(void* app)    { Start* start = app; start->tick(start); }
+static void runTick(void* app)      { Run* run = app; run->tick(run); }
+static void menuTick(void* app)     { studio_menu_tick(app); }
+static void menuScanline(tic_mem* tic, s32 row, void* data) { studio_menu_anim_scanline(tic, row, data); }
+
+#if defined(BUILD_EDITORS)
+static void* consoleApp(Studio* studio) { return studio->console; }
+static void* codeApp(Studio* studio)    { return studio->code; }
+static void* worldApp(Studio* studio)   { return studio->world; }
+static void* spriteApp(Studio* studio)  { return studio->banks.sprite[studio->bank.index.sprites]; }
+static void* mapApp(Studio* studio)     { return studio->banks.map[studio->bank.index.map]; }
+static void* sfxApp(Studio* studio)     { return studio->banks.sfx[studio->bank.index.sfx]; }
+static void* musicApp(Studio* studio)   { return studio->banks.music[studio->bank.index.music]; }
+
+static void consoleTick(void* app)  { Console* console = app; console->tick(console); }
+static void codeTick(void* app)     { Code* code = app; code->tick(code); }
+static void worldTick(void* app)    { World* world = app; world->tick(world); }
+static void spriteTick(void* app)   { Sprite* sprite = app; sprite->tick(sprite); }
+static void mapTick(void* app)      { Map* map = app; map->tick(map); }
+static void sfxTick(void* app)       { Sfx* sfx = app; sfx->tick(sfx); }
+static void musicTick(void* app)    { Music* music = app; music->tick(music); }
+
+static void spriteScanline(tic_mem* tic, s32 row, void* data) { Sprite* sprite = data; sprite->scanline(tic, row, sprite); }
+static void mapScanline(tic_mem* tic, s32 row, void* data)    { Map* map = data; map->scanline(tic, row, map); }
+static void worldScanline(tic_mem* tic, s32 row, void* data)  { World* world = data; world->scanline(tic, row, world); }
+#endif
+
+#if defined(BUILD_SURF)
+static void* surfApp(Studio* studio) { return studio->surf; }
+
+static void surfTick(void* app)     { Surf* surf = app; surf->tick(surf); }
+static void surfScanline(tic_mem* tic, s32 row, void* data)   { Surf* surf = data; surf->scanline(tic, row, surf); }
+#endif
+
+// One entry per EditorMode; the editors are the entries with a name, in tab
+// order. Every other list of editors follows from this table.
+static const EditorApp Apps[TIC_MODES_COUNT] =
+{
+    [TIC_START_MODE]   = {.instance = startApp, .tick = startTick},
+    [TIC_RUN_MODE]     = {.instance = runApp, .tick = runTick},
+    [TIC_MENU_MODE]    = {.instance = menuApp, .tick = menuTick, .scanline = menuScanline},
+
+#if defined(BUILD_EDITORS)
+    [TIC_CONSOLE_MODE] = {.instance = consoleApp, .tick = consoleTick},
+    [TIC_WORLD_MODE]   = {.instance = worldApp, .tick = worldTick, .scanline = worldScanline},
+
+// The parameters are capitalised: lowercase ones would be substituted inside
+// the `.name =` designators, which is not what an initialiser means.
+#define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN, CLIP, BAND, VB1)                 \
+    [MODE] = {.name = NAME, .tip = TIP, .icon = ICON, .hotkey = KEY,                   \
+              .instance = INST, .tick = TICK, .scanline = SCAN, .clipboard = CLIP,    \
+              .band = BAND, .vbank1 = VB1},
+    EDITOR_APPS(APP_ENTRY)
+#undef  APP_ENTRY
+#endif
+#if defined(BUILD_SURF)
+    [TIC_SURF_MODE]    = {.instance = surfApp, .tick = surfTick, .scanline = surfScanline},
+#endif
 };
 
 static void emptyDone(void* data) {}
@@ -553,8 +613,7 @@ tic_flags* getBankFlags(Studio* studio)
 
 void playSystemSfx(Studio* studio, s32 id)
 {
-    const tic_sample* effect = &studio->config->cart->bank0.sfx.samples.data[id];
-    tic_api_sfx(studio->tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, MAX_VOLUME, effect->speed);
+    toolbar_playClick(studio->tic, &getConfig(studio)->cart->bank0.sfx, id);
 }
 
 static void md5(const void* voidData, s32 length, u8 digest[MD5_HASHSIZE])
@@ -671,84 +730,7 @@ void showTooltip(Studio* studio, const char* text)
     strncpy(studio->tooltip.text, text, sizeof studio->tooltip.text - 1);
 }
 
-static void drawExtrabar(Studio* studio, tic_mem* tic)
-{
-    enum {Size = 7};
-
-    s32 x = (COUNT_OF(Modes) + 1) * Size + 17 * TIC_FONT_WIDTH;
-    s32 y = 0;
-
-    static struct Icon {u8 id; StudioEvent event; const char* tip;} Icons[] =
-    {
-        {tic_icon_cut,      TIC_TOOLBAR_CUT,    "CUT [ctrl+x]"},
-        {tic_icon_copy,     TIC_TOOLBAR_COPY,   "COPY [ctrl+c]"},
-        {tic_icon_paste,    TIC_TOOLBAR_PASTE,  "PASTE [ctrl+v]"},
-        {tic_icon_undo,     TIC_TOOLBAR_UNDO,   "UNDO [ctrl+z]"},
-        {tic_icon_redo,     TIC_TOOLBAR_REDO,   "REDO [ctrl+y]"},
-    };
-
-    u8 color = tic_color_red;
-    FOR(const struct Icon*, icon, Icons)
-    {
-        tic_rect rect = {x, y, Size, Size};
-
-        u8 bg = tic_color_white;
-        u8 fg = tic_color_light_grey;
-
-        if(checkMousePos(studio, &rect))
-        {
-            setCursor(studio, tic_cursor_hand);
-
-            fg = color;
-            showTooltip(studio, icon->tip);
-
-            if(checkMouseDown(studio, &rect, tic_mouse_left))
-            {
-                bg = fg;
-                fg = tic_color_white;
-            }
-            else if(checkMouseClick(studio, &rect, tic_mouse_left))
-            {
-                setStudioEvent(studio, icon->event);
-            }
-        }
-
-        tic_api_rect(tic, x, y, Size, Size, bg);
-        drawBitIcon(studio, icon->id, x, y, fg);
-
-        x += Size;
-        color++;
-    }
-}
-
-struct Sprite* getSpriteEditor(Studio* studio)
-{
-    return studio->banks.sprite[studio->bank.index.sprites];
-}
-#endif
-
-const StudioConfig* studio_config(Studio* studio)
-{
-    return &studio->config->data;
-}
-
-const StudioConfig* getConfig(Studio* studio)
-{
-    return studio_config(studio);
-}
-
-Config* studio_config_get(Studio* studio)
-{
-    return studio->config;
-}
-
-struct Start* getStartScreen(Studio* studio)
-{
-    return studio->start;
-}
-
 #if defined(TIC80_PRO) && defined(BUILD_EDITORS)
-
 static void drawBankIcon(Studio* studio, s32 x, s32 y)
 {
     tic_mem* tic = studio->tic;
@@ -842,7 +824,12 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
         drawBitIcon(studio, tic_icon_bank, x, y, over ? tic_color_red : tic_color_light_grey);
     }
 }
+#endif
 
+struct Sprite* getSpriteEditor(Studio* studio)
+{
+    return studio->banks.sprite[studio->bank.index.sprites];
+}
 #endif
 
 static inline s32 lerp(s32 a, s32 b, float d)
@@ -1033,13 +1020,40 @@ Movie* resetMovie(Movie* movie)
     return movie;
 }
 
+// The config's own accessors. They sit outside the editors guard on purpose:
+// main.c, rom.c and mainmenu.c read the config in a build with no editors, and
+// a browser-only build linked nowhere with them inside it.
+const StudioConfig* studio_config(Studio* studio)
+{
+    return &studio->config->data;
+}
+
+const StudioConfig* getConfig(Studio* studio)
+{
+    return studio_config(studio);
+}
+
+Config* studio_config_get(Studio* studio)
+{
+    return studio->config;
+}
+
+struct Start* getStartScreen(Studio* studio)
+{
+    return studio->start;
+}
+
 #if defined(BUILD_EDITORS)
+
+// The popup unrolls by its own height; it was never TOOLBAR_SIZE, the two
+// just happen to be 7.
+#define POPUP_HEIGHT (TIC_FONT_HEIGHT + 1)
 
 static void drawPopup(Studio* studio)
 {
     if(studio->anim.movie != &studio->anim.idle)
     {
-        enum{Width = TIC80_WIDTH, Height = TIC_FONT_HEIGHT + 1};
+        enum{Width = TIC80_WIDTH, Height = POPUP_HEIGHT};
 
         tic_api_rect(studio->tic, 0, studio->anim.pos.popup, Width, Height, tic_color_red);
         tic_api_print(studio->tic, studio->popup.message,
@@ -1059,116 +1073,51 @@ static void drawPopup(Studio* studio)
     }
 }
 
-void drawToolbar(Studio* studio, tic_mem* tic, bool bg)
-{
-    if(bg)
-        tic_api_rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
-
-    enum {Size = 7};
-
-    static const u8 Icons[] = {tic_icon_code, tic_icon_sprite, tic_icon_map, tic_icon_sfx, tic_icon_music};
-    static const char* Tips[] = {"CODE EDITOR [f1]", "SPRITE EDITOR [f2]", "MAP EDITOR [f3]", "SFX EDITOR [f4]", "MUSIC EDITOR [f5]",};
-
-    s32 mode = -1;
-
-    for(s32 i = 0; i < COUNT_OF(Modes); i++)
-    {
-        tic_rect rect = {i * Size, 0, Size, Size};
-
-        bool over = false;
-
-        if(checkMousePos(studio, &rect))
-        {
-            setCursor(studio, tic_cursor_hand);
-
-            over = true;
-
-            showTooltip(studio, Tips[i]);
-
-            if(checkMouseClick(studio, &rect, tic_mouse_left))
-                studio->toolbarMode = Modes[i];
-        }
-
-        if(getStudioMode(studio) == Modes[i]) mode = i;
-
-        if (mode == i)
-        {
-            drawBitIcon(studio, tic_icon_tab, i * Size, 0, tic_color_grey);
-            drawBitIcon(studio, Icons[i], i * Size, 1, tic_color_black);
-        }
-
-        drawBitIcon(studio, Icons[i], i * Size, 0, mode == i ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
-    }
-
-    if(mode >= 0) drawExtrabar(studio, tic);
-
-    static const char* Names[] =
-    {
-        "CODE EDITOR",
-        "SPRITE EDITOR",
-        "MAP EDITOR",
-        "SFX EDITOR",
-        "MUSIC EDITOR",
-    };
-
 #if defined (TIC80_PRO) && defined(BUILD_EDITORS)
-    enum {TextOffset = (COUNT_OF(Modes) + 2) * Size - 2};
-    if(mode >= 1)
-        drawBankIcon(studio, COUNT_OF(Modes) * Size + 2, 0);
-#else
-    enum {TextOffset = (COUNT_OF(Modes) + 1) * Size};
+// The pro bank row belongs to the editors that have banks, which is not the
+// same set as Modes[]: the code editor is not one of them.
+static bool isBanked(EditorMode mode)
+{
+    for(s32 i = 0; i < COUNT_OF(BankModes); i++)
+        if(BankModes[i] == mode)
+            return true;
+
+    return false;
+}
 #endif
 
-    if(mode == 0 || (mode >= 1 && !studio->bank.show))
+// The strip's whole frame: background, the mode's own widgets, then the studio
+// chrome. A mode that is not an editor has no strip at all.
+static void drawToolbar(Studio* studio)
+{
+    Toolbar* tb = &studio->toolbar;
+
+    // Read live: an editor may have switched the mode earlier in this same tick.
+    EditorMode mode = tb->mode = studio->mode;
+    const EditorApp* app = &Apps[mode];
+
+    if(!app->name)
+        return;
+
+    tb->app = app->instance(studio);
+    tb->hideName = false;
+
+    toolbar_begin(tb, true);
+
+#if defined (TIC80_PRO) && defined(BUILD_EDITORS)
+    if(isBanked(mode))
     {
-        if(strlen(studio->tooltip.text))
-        {
-            tic_api_print(tic, studio->tooltip.text, TextOffset, 1, tic_color_dark_grey, false, 1, false);
-        }
-        else
-        {
-            tic_api_print(tic, Names[mode], TextOffset, 1, tic_color_grey, false, 1, false);
-        }
+        drawBankIcon(studio, COUNT_OF(Modes) * TOOLBAR_SIZE + 2, 0);
+        tb->hideName = studio->bank.show;
     }
+#endif
+
+    if(app->band)
+        app->band(tb->app, tb);
+
+    toolbar_end(tb);
 }
 
-void setStudioEvent(Studio* studio, StudioEvent event)
-{
-    switch(studio->mode)
-    {
-    case TIC_CODE_MODE:
-        {
-            Code* code = studio->code;
-            code->event(code, event);
-        }
-        break;
-    case TIC_SPRITE_MODE:
-        {
-            Sprite* sprite = studio->banks.sprite[studio->bank.index.sprites];
-            sprite->event(sprite, event);
-        }
-    break;
-    case TIC_MAP_MODE:
-        {
-            Map* map = studio->banks.map[studio->bank.index.map];
-            map->event(map, event);
-        }
-        break;
-    case TIC_SFX_MODE:
-        {
-            Sfx* sfx = studio->banks.sfx[studio->bank.index.sfx];
-            sfx->event(sfx, event);
-        }
-        break;
-    case TIC_MUSIC_MODE:
-        {
-            Music* music = studio->banks.music[studio->bank.index.music];
-            music->event(music, event);
-        }
-        break;
-    default: break;
-    }
-}
 
 ClipboardEvent getClipboardEvent(Studio* studio)
 {
@@ -1235,21 +1184,7 @@ void exitStudio(Studio* studio)
 
 void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
 {
-    tic_mem* tic = studio->tic;
-
-    const tic_tile* tile = &getConfig(studio)->cart->bank0.tiles.data[id];
-
-    for(s32 i = 0, sx = x, ex = sx + TIC_SPRITESIZE; i != TIC_SPRITESIZE * TIC_SPRITESIZE; ++i, ++x)
-    {
-        if(x == ex)
-        {
-            x = sx;
-            y++;
-        }
-
-        if(tic_tool_peek4(tile, i))
-            tic_api_pix(tic, x, y, color, false);
-    }
+    toolbar_icon(studio->tic, &getConfig(studio)->cart->bank0.tiles, id, x, y, color);
 }
 
 static void initRunMode(Studio* studio)
@@ -1478,12 +1413,7 @@ bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 
 void setCursor(Studio* studio, tic_cursor id)
 {
-    tic_mem* tic = studio->tic;
-
-    VBANK(tic, 0)
-    {
-        tic->ram->vram.vars.cursor.sprite = id;
-    }
+    toolbar_cursor(studio->tic, id);
 }
 
 typedef struct
@@ -2008,10 +1938,17 @@ static void processShortcuts(Studio* studio)
                     setJustSwitchedToCodeMode(studio, true);
                 }
             }
-            else if(keyWasPressedOnce(studio, tic_key_2)) setStudioMode(studio, TIC_SPRITE_MODE);
-            else if(keyWasPressedOnce(studio, tic_key_3)) setStudioMode(studio, TIC_MAP_MODE);
-            else if(keyWasPressedOnce(studio, tic_key_4)) setStudioMode(studio, TIC_SFX_MODE);
-            else if(keyWasPressedOnce(studio, tic_key_5)) setStudioMode(studio, TIC_MUSIC_MODE);
+            else
+            {
+                // ctrl+1 is the code editor's, with its "just switched" flag; the
+                // rest follow the tab order.
+                for(s32 i = 1; i < COUNT_OF(Modes); i++)
+                    if(keyWasPressedOnce(studio, tic_key_1 + i))
+                    {
+                        setStudioMode(studio, Modes[i]);
+                        break;
+                    }
+            }
 #endif
         }
 #endif
@@ -2096,7 +2033,7 @@ static void processShortcuts(Studio* studio)
         // studio has no use for them there.
         if((!studio->playerRun && !showGameMenu(studio)) || studio->mode != TIC_RUN_MODE)
         {
-			if(keyWasPressedOnce(studio, tic_key_f1))
+			if(keyWasPressedOnce(studio, Apps[TIC_CODE_MODE].hotkey))
 			{
 				if(studio->mode != TIC_CODE_MODE)
 				{
@@ -2104,10 +2041,16 @@ static void processShortcuts(Studio* studio)
 					setJustSwitchedToCodeMode(studio, true);
 				}
 			}
-            else if(keyWasPressedOnce(studio, tic_key_f2)) setStudioMode(studio, TIC_SPRITE_MODE);
-            else if(keyWasPressedOnce(studio, tic_key_f3)) setStudioMode(studio, TIC_MAP_MODE);
-            else if(keyWasPressedOnce(studio, tic_key_f4)) setStudioMode(studio, TIC_SFX_MODE);
-            else if(keyWasPressedOnce(studio, tic_key_f5)) setStudioMode(studio, TIC_MUSIC_MODE);
+            else
+            {
+                // F1's editor carries the "just switched" flag; the rest are uniform.
+                for(s32 i = 1; i < COUNT_OF(Modes); i++)
+                    if(keyWasPressedOnce(studio, Apps[Modes[i]].hotkey))
+                    {
+                        setStudioMode(studio, Modes[i]);
+                        break;
+                    }
+            }
         }
 #else
         else if(keyWasPressedOnce(studio, tic_key_escape))
@@ -2237,10 +2180,6 @@ static void renderStudio(Studio* studio)
 {
     tic_mem* tic = studio->tic;
 
-#if defined(BUILD_EDITORS)
-    showTooltip(studio, "");
-#endif
-
     {
         const tic_sfx* sfx = NULL;
         const tic_music* music = NULL;
@@ -2290,51 +2229,29 @@ static void renderStudio(Studio* studio)
         }
     }
 
-    switch(studio->mode)
     {
-    case TIC_START_MODE:    studio->start->tick(studio->start); break;
-    case TIC_RUN_MODE:      studio->run->tick(studio->run); break;
-    case TIC_MENU_MODE:     studio_menu_tick(studio->menu); break;
+        const EditorApp* app = &Apps[studio->mode];
 
+        if(app->tick)
+            app->tick(app->instance(studio));
+
+        // Any editor mode gets the strip; `band` NULL still draws the rail.
+        // An overlay-bank mode drew its strip there too — see D2.
 #if defined(BUILD_EDITORS)
-    case TIC_CONSOLE_MODE:  studio->console->tick(studio->console); break;
-    case TIC_CODE_MODE:
+        if(app->name)
         {
-            Code* code = studio->code;
-            code->tick(code);
+            if(app->vbank1)
+            {
+                VBANK(tic, 1)
+                {
+                    drawToolbar(studio);
+                }
+            }
+            else drawToolbar(studio);
         }
-        break;
-    case TIC_SPRITE_MODE:
-        {
-            Sprite* sprite = studio->banks.sprite[studio->bank.index.sprites];
-            sprite->tick(sprite);
-        }
-        break;
-    case TIC_MAP_MODE:
-        {
-            Map* map = studio->banks.map[studio->bank.index.map];
-            map->tick(map);
-        }
-        break;
-    case TIC_SFX_MODE:
-        {
-            Sfx* sfx = studio->banks.sfx[studio->bank.index.sfx];
-            sfx->tick(sfx);
-        }
-        break;
-    case TIC_MUSIC_MODE:
-        {
-            Music* music = studio->banks.music[studio->bank.index.music];
-            music->tick(music);
-        }
-        break;
-
-    case TIC_WORLD_MODE:    studio->world->tick(studio->world); break;
+#else
+        TIC_UNUSED(app);
 #endif
-#if defined(BUILD_SURF)
-    case TIC_SURF_MODE:     studio->surf->tick(studio->surf); break;
-#endif
-    default: break;
     }
 
     tic_core_tick_end(tic);
@@ -2610,34 +2527,29 @@ void studio_tick(Studio* studio, tic80_input input)
     tic_net_start(studio->net);
 #endif
 
-    if(studio->toolbarMode)
+    // A tab click lands here rather than switching mid-frame: the mode's blit
+    // callback is chosen after its tick, so the switch has to wait for that.
+    if(studio->toolbar.requested)
     {
-        setStudioMode(studio, studio->toolbarMode);
-        studio->toolbarMode = 0;
+        setStudioMode(studio, studio->toolbar.requested);
+        studio->toolbar.requested = 0;
     }
 
+    // After processMouseStates so a press is seen the frame it arrives, and
+    // before renderStudio, which is where the tooltip's clear belongs.
     processMouseStates(studio);
+    toolbar_step(&studio->toolbar);
+
     renderStudio(studio);
 
     {
-#if defined(BUILD_EDITORS)
-        Sprite* sprite = studio->banks.sprite[studio->bank.index.sprites];
-        Map* map = studio->banks.map[studio->bank.index.map];
-#endif
+        const EditorApp* app = &Apps[studio->mode];
+        tic_blit_callback callback = {.scanline = app->scanline};
 
-        tic_blit_callback callback[TIC_MODES_COUNT] =
-        {
-            [TIC_MENU_MODE]     = {studio_menu_anim_scanline, NULL, NULL, studio->menu},
-
-#if defined(BUILD_EDITORS)
-            [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL, NULL, sprite},
-            [TIC_MAP_MODE]      = {map->scanline,           NULL, NULL, map},
-            [TIC_WORLD_MODE]    = {studio->world->scanline,    NULL, NULL, studio->world},
-#endif
-#if defined(BUILD_SURF)
-            [TIC_SURF_MODE]     = {studio->surf->scanline,     NULL, NULL, studio->surf},
-#endif
-        };
+        // Only a mode that has a scanline needs its instance, and only those
+        // have one — this is the fallback to a plain blit.
+        if(app->scanline)
+            callback.data = app->instance(studio);
 
         if(studio->mode != TIC_RUN_MODE)
         {
@@ -2665,10 +2577,12 @@ void studio_tick(Studio* studio, tic80_input input)
         }
 #endif
 
-        callback[studio->mode].data
-            ? tic_core_blit_ex(tic, callback[studio->mode])
+        callback.scanline
+            ? tic_core_blit_ex(tic, callback)
             : tic_core_blit(tic);
 
+        // Studio chrome in the studio's palette, after the blit and outside
+        // the gif, screenshot and cover image — hence recordFrame here.
         blitCursor(studio);
 
 #if defined(BUILD_EDITORS)
@@ -2989,7 +2903,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         {
             .pos =
             {
-                .popup = -TOOLBAR_SIZE,
+                .popup = -POPUP_HEIGHT,
             },
             .idle = {.done = emptyDone,}
         },
@@ -3050,13 +2964,13 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 
         studio->anim.show = (Movie)MOVIE_DEF(STUDIO_ANIM_TIME, setPopupWait,
         {
-            {-TOOLBAR_SIZE, 0, STUDIO_ANIM_TIME, &studio->anim.pos.popup, AnimEaseIn},
+            {-POPUP_HEIGHT, 0, STUDIO_ANIM_TIME, &studio->anim.pos.popup, AnimEaseIn},
         });
 
         studio->anim.wait = (Movie){.time = TIC80_FRAMERATE * 2, .done = setPopupHide};
         studio->anim.hide = (Movie)MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
         {
-            {0, -TOOLBAR_SIZE, STUDIO_ANIM_TIME, &studio->anim.pos.popup, AnimEaseIn},
+            {0, -POPUP_HEIGHT, STUDIO_ANIM_TIME, &studio->anim.pos.popup, AnimEaseIn},
         });
 
         studio->anim.movie = resetMovie(&studio->anim.idle);
@@ -3076,10 +2990,21 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->config     = calloc(1, sizeof(Config));
     }
     studio->mainmenu = NULL;
+
     tic_fs_makedir(studio->fs, TIC_LOCAL);
     tic_fs_makedir(studio->fs, TIC_LOCAL_VERSION);
 
     initConfig(studio->config, studio, studio->fs);
+
+    studio->toolbar = (Toolbar)
+    {
+        .tic      = studio->tic,
+        .config   = getConfig(studio),
+        .mouse    = studio->mouse.state,
+        .tooltip  = studio->tooltip.text,
+        .apps     = Apps,
+        .appCount = TIC_MODES_COUNT,
+    };
 
     if (studio->config->data.uiScale > maxscale)
     {

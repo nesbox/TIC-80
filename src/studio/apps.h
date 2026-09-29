@@ -22,36 +22,25 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "studio.h"
 
-typedef struct Sfx Sfx;
+struct tic_mem;
+struct Toolbar;
 
-struct Sfx
+// One entry per EditorMode; unused fields are NULL and tic_key_unknown.
+// `instance` resolves a mode to its editor, the bank index being the variable.
+typedef struct
 {
-    Studio* studio;
-    tic_mem* tic;
+    const char* name;           // tab label and strip title; NULL outside the editors
+    const char* tip;
+    u8          icon;
+    tic_keycode hotkey;
+    const ClipboardOps* clipboard;
 
-    tic_sfx* src;
+    bool  vbank1;               // the mode draws its whole screen in the overlay bank
+    void* (*instance)(Studio*);
+    void  (*tick)(void*);
+    void  (*band)(void*, struct Toolbar*);
+    void  (*scanline)(tic_mem*, s32, void*);
 
-    u8 index:SFX_COUNT_BITS;
-    s32 volwave;
-    s32 hoverWave;
-    s32 holdValue;
-
-    struct
-    {
-        bool active;
-        s32 note;
-        u32 tick;
-    } play;
-
-    struct History* history;
-    struct History* waveHistory;
-
-    void(*tick)(Sfx*);
-};
-
-extern const ClipboardOps SfxClipboard;
-
-void initSfx(Sfx*, Studio* studio, tic_sfx* src);
-void freeSfx(Sfx* sfx);
+} EditorApp;

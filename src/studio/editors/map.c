@@ -64,59 +64,6 @@ static void getMouseMap(Map* map, s32* x, s32* y)
     *y = my / TIC_SPRITESIZE;
 }
 
-static s32 drawWorldButton(Map* map, s32 x, s32 y)
-{
-    enum{Size = 8};
-
-    x -= Size;
-
-    tic_rect rect = {x, y, Size, ICON_SIZE};
-
-    bool over = false;
-
-    if(checkMousePos(map->studio, &rect))
-    {
-        setCursor(map->studio, tic_cursor_hand);
-
-        over = true;
-
-        showTooltip(map->studio, "WORLD MAP [tab]");
-
-        if(checkMouseClick(map->studio, &rect, tic_mouse_left))
-            setStudioMode(map->studio, TIC_WORLD_MODE);
-    }
-
-    drawBitIcon(map->studio, tic_icon_world, x, y, over ? tic_color_grey : tic_color_light_grey);
-
-    return x;
-
-}
-
-static s32 drawGridButton(Map* map, s32 x, s32 y)
-{
-    x -= ICON_SIZE;
-
-    tic_rect rect = {x, y, ICON_SIZE, ICON_SIZE};
-
-    bool over = false;
-
-    if(checkMousePos(map->studio, &rect))
-    {
-        setCursor(map->studio, tic_cursor_hand);
-
-        over = true;
-
-        showTooltip(map->studio, "SHOW/HIDE GRID [`]");
-
-        if(checkMouseClick(map->studio, &rect, tic_mouse_left))
-            map->canvas.grid = !map->canvas.grid;
-    }
-
-    drawBitIcon(map->studio, tic_icon_grid, x, y, map->canvas.grid ? tic_color_black : over ? tic_color_grey : tic_color_light_grey);
-
-    return x;
-}
-
 static inline bool isIdle(Map* map)
 {
     return map->anim.movie == &map->anim.idle;
@@ -125,81 +72,6 @@ static inline bool isIdle(Map* map)
 static inline bool sheetVisible(Map* map)
 {
     return map->anim.pos.sheet >= 0;
-}
-
-static s32 drawSheetButton(Map* map, s32 x, s32 y)
-{
-    x -= ICON_SIZE;
-
-    tic_rect rect = {x, y, ICON_SIZE, ICON_SIZE};
-
-    bool over = false;
-    if(checkMousePos(map->studio, &rect))
-    {
-        setCursor(map->studio, tic_cursor_hand);
-
-        over = true;
-        showTooltip(map->studio, "SHOW TILES [shift]");
-
-        if(isIdle(map) && checkMouseClick(map->studio, &rect, tic_mouse_left))
-        {
-            map->anim.movie = resetMovie(sheetVisible(map) ? &map->anim.hide : &map->anim.show);
-            map->sheet.keep = true;
-        }
-    }
-
-    drawBitIcon(map->studio, sheetVisible(map) ? tic_icon_up : tic_icon_down, rect.x, rect.y,
-        over ? tic_color_grey : tic_color_light_grey);
-
-    return x;
-}
-
-static s32 drawToolButton(Map* map, s32 x, s32 y, u8 icon, s32 width, const char* tip, s32 mode)
-{
-    x -= width;
-
-    tic_rect rect = {x, y, width, ICON_SIZE};
-
-    bool over = false;
-    if(checkMousePos(map->studio, &rect))
-    {
-        setCursor(map->studio, tic_cursor_hand);
-
-        over = true;
-
-        showTooltip(map->studio, tip);
-
-        if(checkMouseClick(map->studio, &rect, tic_mouse_left))
-        {
-            map->mode = mode;
-        }
-    }
-
-    drawBitIcon(map->studio, icon, rect.x, rect.y, map->mode == mode ? tic_color_black : over ? tic_color_grey : tic_color_light_grey);
-
-    return x;
-}
-
-static s32 drawFillButton(Map* map, s32 x, s32 y)
-{
-    enum{Size = 8};
-
-    return drawToolButton(map, x, y, tic_icon_fill, Size, "FILL [4]", MAP_FILL_MODE);
-}
-
-static s32 drawSelectButton(Map* map, s32 x, s32 y)
-{
-    return drawToolButton(map, x, y, tic_icon_select, ICON_SIZE, "SELECT [3]", MAP_SELECT_MODE);
-}
-
-static s32 drawHandButton(Map* map, s32 x, s32 y)
-{
-    return drawToolButton(map, x, y, tic_icon_hand, ICON_SIZE, "DRAG MAP [2]", MAP_DRAG_MODE);
-}
-
-static s32 drawPenButton(Map* map, s32 x, s32 y)
-{
-    return drawToolButton(map, x, y, tic_icon_pen, ICON_SIZE, "DRAW [1]", MAP_DRAW_MODE);
 }
 
 static void drawTileIndex(Map* map, s32 x, s32 y)
@@ -243,154 +115,225 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
     }
 }
 
-static void drawBppButtons(Map* map, s32 x, s32 y)
+// The sheet's own animation, so these stay here. The callers' idle gate is
+// inside, where selectViewportPage keeps it too.
+void map_select_bank(Map* map, s32 bank)
 {
-    tic_mem* tic = map->tic;
+    if(!isIdle(map))
+        return;
 
-    static const char Labels[] = "421";
+    Anim* anim = map->anim.bank.items;
+    anim->start = (bank - map->sheet.blit.bank) * TIC_SPRITESHEET_SIZE;
+    map->anim.movie = resetMovie(&map->anim.bank);
 
-    for(s32 i = 0; i < sizeof Labels - 1; i++)
-    {
-        tic_rect rect = {x + i * TIC_ALTFONT_WIDTH, y, TIC_ALTFONT_WIDTH, TIC_FONT_HEIGHT};
-        tic_bpp mode = 1 << (2 - i);
-
-        bool hover = false;
-        if(checkMousePos(map->studio, &rect))
-        {
-            setCursor(map->studio, tic_cursor_hand);
-            hover = true;
-
-            if(mode > 1)
-                SHOW_TOOLTIP(map->studio, "%iBITS PER PIXEL", mode);
-            else
-                SHOW_TOOLTIP(map->studio, "%iBIT PER PIXEL", mode);
-
-            if(checkMouseClick(map->studio, &rect, tic_mouse_left))
-            {
-                tic_blit_update_bpp(&map->sheet.blit, mode);
-            }
-        }
-
-        const char* label = (char[]){Labels[i], '\0'};
-        tic_api_print(tic, label, rect.x, rect.y,
-            mode == map->sheet.blit.mode
-                ? tic_color_dark_grey
-                : hover
-                    ? tic_color_grey
-                    : tic_color_light_grey,
-            true, 1, true);
-    }
+    map->sheet.blit.bank = bank;
 }
 
-static void drawBankButtons(Map* map, s32 x, s32 y)
+void map_select_page(Map* map, s32 page)
 {
-    tic_mem* tic = map->tic;
+    if(!isIdle(map))
+        return;
 
-    enum{Size = 6};
+    Anim* anim = map->anim.page.items;
+    anim->start = (page - map->sheet.blit.page) * TIC_SPRITESHEET_SIZE;
+    map->anim.movie = resetMovie(&map->anim.page);
 
-    static const u8 Icons[] = {tic_icon_tiles, tic_icon_sprites};
-
-    for(s32 i = 0; i < COUNT_OF(Icons); i++)
-    {
-        tic_rect rect = {x + i * Size, y, Size, Size};
-
-        bool hover = false;
-        if(checkMousePos(map->studio, &rect))
-        {
-            setCursor(map->studio, tic_cursor_hand);
-            hover = true;
-
-            showTooltip(map->studio, i ? "SPRITES" : "TILES");
-
-            if(isIdle(map) && checkMouseClick(map->studio, &rect, tic_mouse_left))
-            {
-                Anim* anim = map->anim.bank.items;
-                anim->start = (i - map->sheet.blit.bank) * TIC_SPRITESHEET_SIZE;
-                map->anim.movie = resetMovie(&map->anim.bank);
-
-                map->sheet.blit.bank = i;
-            }
-        }
-
-        drawBitIcon(map->studio, Icons[i], rect.x, rect.y,
-            i == map->sheet.blit.bank
-                ? tic_color_dark_grey
-                : hover
-                    ? tic_color_grey
-                    : tic_color_light_grey);
-    }
+    map->sheet.blit.page = page;
 }
 
-static void drawPagesButtons(Map* map, s32 x, s32 y)
+void map_toggle_sheet(Map* map)
 {
-    tic_mem* tic = map->tic;
+    if(!isIdle(map))
+        return;
 
-    enum{Width = TIC_ALTFONT_WIDTH + 1, Height = TOOLBAR_SIZE};
-
-    for(s32 i = 0; i < map->sheet.blit.pages; i++)
-    {
-        tic_rect rect = {x + i * Width - 1, y, Width, Height};
-
-        bool hover = false;
-        if(checkMousePos(map->studio, &rect))
-        {
-            setCursor(map->studio, tic_cursor_hand);
-            hover = true;
-
-            SHOW_TOOLTIP(map->studio, "PAGE %i", i);
-
-            if(isIdle(map) && checkMouseClick(map->studio, &rect, tic_mouse_left))
-            {
-                Anim* anim = map->anim.page.items;
-                anim->start = (i - map->sheet.blit.page) * TIC_SPRITESHEET_SIZE;
-                map->anim.movie = resetMovie(&map->anim.page);
-
-                map->sheet.blit.page = i;
-            }
-        }
-
-        bool active = i == map->sheet.blit.page;
-        if(active)
-        {
-            tic_api_rect(tic, rect.x, rect.y, Width, Height, tic_color_black);
-        }
-
-        const char* label = (char[]){i + '1', '\0'};
-        tic_api_print(tic, label, rect.x + 1, rect.y + 1,
-            active
-                ? tic_color_white
-                : hover
-                    ? tic_color_grey
-                    : tic_color_light_grey,
-            true, 1, true);
-    }
+    map->anim.movie = resetMovie(sheetVisible(map) ? &map->anim.hide : &map->anim.show);
+    map->sheet.keep = true;
 }
 
-static void drawMapToolbar(Map* map, s32 x, s32 y)
+typedef struct
 {
-    tic_api_rect(map->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
+    char label[2];
+    bool active;
 
-    drawTileIndex(map, TIC80_WIDTH/2 - TIC_FONT_WIDTH, y);
+} PageTab;
 
-    x = drawSheetButton(map, x, 0);
+static void pageTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
+{
+    const PageTab* tab = ctx;
+
+    if(tab->active)
+        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, TOOLBAR_SIZE, tic_color_black);
+
+    tic_api_print(tb->tic, tab->label, rect->x + 1, rect->y + tb->y + 1,
+        tab->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey, true, 1, true);
+}
+
+// Every widget was at an absolute x before — 233, 222/213, 199, 183 with the
+// sheet up, plus a five-pixel gap before the grid. The rail packs flush now.
+void mapBand(void* app, Toolbar* tb)
+{
+    Map* map = app;
+
+    drawTileIndex(map, TIC80_WIDTH / 2 - TIC_FONT_WIDTH, 1);
+
+    {
+        ToolbarButton button =
+        {
+            .icon = sheetVisible(map) ? tic_icon_up : tic_icon_down,
+            .tip = "SHOW TILES [shift]",
+            .width = ICON_SIZE,
+            .color = tic_color_light_grey,
+            .enabled = true,
+        };
+
+        if(toolbar_button(tb, &button))
+            map_toggle_sheet(map);
+    }
 
     if(sheetVisible(map))
     {
-        drawBankButtons(map, 183, 0);
-        drawBppButtons(map, 199, 1);
+        // pages = 4/bpp, so switching depth adds or removes tabs. Room for
+        // four is reserved either way, or the labels and banks slide too.
+        enum {TabW = TIC_ALTFONT_WIDTH + 1, MaxPages = 4, GapBeforeDepth = 1, GapBeforeBank = 4};
+
+        s32 tabsRight = tb->railX - GapBeforeDepth;
+
+        tb->railX = tabsRight;
 
         if(map->sheet.blit.pages > 1)
-            drawPagesButtons(map, map->sheet.blit.pages == 4 ? 213 : 222, 0);
+            for(s32 i = map->sheet.blit.pages - 1; i >= 0; i--)
+            {
+                static char tip[16];
+                sprintf(tip, "PAGE %i", i);
+
+                PageTab tab = {{'1' + i, '\0'}, i == map->sheet.blit.page};
+
+                ToolbarButton button =
+                {
+                    .tip = tip,
+                    .width = TIC_ALTFONT_WIDTH + 1,
+                    .enabled = true,
+                    .draw = pageTab,
+                    .ctx = &tab,
+                };
+
+                if(toolbar_button(tb, &button))
+                    map_select_page(map, i);
+            }
+
+        tb->railX = tabsRight - MaxPages * TabW - GapBeforeDepth;
+
+        // The bit depths, widest first so the rail puts "4" leftmost.
+        static const char Depths[] = "421";
+
+        for(s32 i = COUNT_OF(Depths) - 2; i >= 0; i--)
+        {
+            tic_bpp mode = 1 << (2 - i);
+            bool active = mode == map->sheet.blit.mode;
+
+            static char tip[24];
+            sprintf(tip, mode > 1 ? "%iBITS PER PIXEL" : "%iBIT PER PIXEL", mode);
+
+            char label[2] = {Depths[i], '\0'};
+
+            ToolbarButton button =
+            {
+                .label = label,
+                .altFont = true,
+                .tip = tip,
+                .width = TIC_ALTFONT_WIDTH,
+                .y = 1,
+                .color = active ? tic_color_dark_grey : tic_color_light_grey,
+                .over = active ? tic_color_dark_grey : 0,
+                .enabled = true,
+            };
+
+            if(toolbar_button(tb, &button))
+                tic_blit_update_bpp(&map->sheet.blit, mode);
+        }
+
+        tb->railX -= GapBeforeBank;
+
+        static const u8 Banks[] = {tic_icon_tiles, tic_icon_sprites};
+
+        for(s32 i = COUNT_OF(Banks) - 1; i >= 0; i--)
+        {
+            bool active = i == map->sheet.blit.bank;
+
+            ToolbarButton button =
+            {
+                .icon = Banks[i],
+                .tip = i ? "SPRITES" : "TILES",
+                .width = 6,
+                .color = active ? tic_color_dark_grey : tic_color_light_grey,
+                .over = active ? tic_color_dark_grey : 0,
+                .enabled = true,
+            };
+
+            if(toolbar_button(tb, &button))
+                map_select_bank(map, i);
+        }
     }
     else
     {
-        x = drawFillButton(map, x, 0);
-        x = drawSelectButton(map, x, 0);
-        x = drawHandButton(map, x, 0);
-        x = drawPenButton(map, x, 0);
+        static const struct { u8 icon; const char* tip; s32 mode; s32 width; } Tools[] =
+        {
+            {tic_icon_fill,   "FILL [4]",     MAP_FILL_MODE,   TIC_SPRITESIZE},
+            {tic_icon_select, "SELECT [3]",   MAP_SELECT_MODE, ICON_SIZE},
+            {tic_icon_hand,   "DRAG MAP [2]", MAP_DRAG_MODE,   ICON_SIZE},
+            {tic_icon_pen,    "DRAW [1]",     MAP_DRAW_MODE,   ICON_SIZE},
+        };
 
-        x = drawGridButton(map, x - 5, 0);
-        drawWorldButton(map, x, 0);
+        // Ascending: fill is the rightmost, as it was, and the row reads
+        // DRAW, DRAG MAP, SELECT, FILL left to right.
+        for(s32 i = 0; i < COUNT_OF(Tools); i++)
+        {
+            bool active = map->mode == Tools[i].mode;
+
+            ToolbarButton button =
+            {
+                .icon = Tools[i].icon,
+                .tip = Tools[i].tip,
+                .width = Tools[i].width,
+                .color = active ? tic_color_black : tic_color_light_grey,
+                .over = active ? tic_color_black : 0,
+                .enabled = true,
+            };
+
+            if(toolbar_button(tb, &button))
+                map->mode = Tools[i].mode;
+        }
+
+        {
+            bool on = map->canvas.grid;
+
+            ToolbarButton button =
+            {
+                .icon = tic_icon_grid,
+                .tip = "SHOW/HIDE GRID [`]",
+                .width = ICON_SIZE,
+                .color = on ? tic_color_black : tic_color_light_grey,
+                .over = on ? tic_color_black : 0,
+                .enabled = true,
+            };
+
+            if(toolbar_button(tb, &button))
+                map->canvas.grid = !on;
+        }
+
+        {
+            ToolbarButton button =
+            {
+                .icon = tic_icon_world,
+                .tip = "WORLD MAP [tab]",
+                .width = TIC_SPRITESIZE,
+                .color = tic_color_light_grey,
+                .enabled = true,
+            };
+
+            if(toolbar_button(tb, &button))
+                setStudioMode(map->studio, TIC_WORLD_MODE);
+        }
     }
 }
 
@@ -542,7 +485,6 @@ static void setMapSprite(Map* map, s32 x, s32 y)
 {
     s32 mx = map->sheet.rect.x;
     s32 my = map->sheet.rect.y;
-
 
     for(s32 j = 0; j < map->sheet.rect.h; j++)
         for(s32 i = 0; i < map->sheet.rect.w; i++)
@@ -921,7 +863,6 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
         clip.r = map->select.rect.x + map->select.rect.w;
         clip.b = map->select.rect.y + map->select.rect.h;
     }
-
 
     while(pop(&stack, &x, &y))
     {
@@ -1345,21 +1286,6 @@ static void tick(Map* map)
         if(!sheetVisible(map))
             drawSelectionVBank1(map);
 
-        drawMapToolbar(map, TIC80_WIDTH, 1);
-        drawToolbar(map->studio, map->tic, false);
-    }
-}
-
-static void onStudioEvent(Map* map, StudioEvent event)
-{
-    switch(event)
-    {
-    case TIC_TOOLBAR_CUT:   cutToClipboard(map); break;
-    case TIC_TOOLBAR_COPY:  copyToClipboard(map); break;
-    case TIC_TOOLBAR_PASTE: copyFromClipboard(map); break;
-    case TIC_TOOLBAR_UNDO:  undo(map); break;
-    case TIC_TOOLBAR_REDO:  redo(map); break;
-    default: break;
     }
 }
 
@@ -1385,6 +1311,16 @@ static void freeAnim(Map* map)
     FREE(map->anim.bank.items);
     FREE(map->anim.page.items);
 }
+
+// The clipboard buttons take no arguments, so each editor's own operation gets
+// a uniform entry point here. The argument the old dispatch passed is folded in.
+static void clipboardCut(void* app) { Map* map = app; cutToClipboard(map); }
+static void clipboardCopy(void* app) { Map* map = app; copyToClipboard(map); }
+static void clipboardPaste(void* app) { Map* map = app; copyFromClipboard(map); }
+static void clipboardUndo(void* app) { Map* map = app; undo(map); }
+static void clipboardRedo(void* app) { Map* map = app; redo(map); }
+
+const ClipboardOps MapClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
 void initMap(Map* map, Studio* studio, tic_map* src)
 {
@@ -1456,7 +1392,6 @@ void initMap(Map* map, Studio* studio, tic_map* src)
                 {0, 0, STUDIO_ANIM_TIME, &map->anim.pos.page, AnimEaseIn},
             }),
         },
-        .event = onStudioEvent,
         .scanline = scanline,
     };
 

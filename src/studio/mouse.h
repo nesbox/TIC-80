@@ -22,36 +22,23 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "tic.h"
 
-typedef struct Sfx Sfx;
-
-struct Sfx
+// One button's frame: `start` and `end` in screen coordinates, so a click
+// needs both inside one rectangle. Shared with the editors' own panels.
+typedef struct
 {
-    Studio* studio;
-    tic_mem* tic;
-
-    tic_sfx* src;
-
-    u8 index:SFX_COUNT_BITS;
-    s32 volwave;
-    s32 hoverWave;
-    s32 holdValue;
+    bool down;
+    bool click;
 
     struct
     {
-        bool active;
-        s32 note;
-        u32 tick;
-    } play;
+        s32 start;
+        s32 ticks;
+        bool click;
+    } dbl;
 
-    struct History* history;
-    struct History* waveHistory;
+    tic_point start;
+    tic_point end;
 
-    void(*tick)(Sfx*);
-};
-
-extern const ClipboardOps SfxClipboard;
-
-void initSfx(Sfx*, Studio* studio, tic_sfx* src);
-void freeSfx(Sfx* sfx);
+} MouseState;
