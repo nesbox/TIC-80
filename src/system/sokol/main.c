@@ -100,21 +100,42 @@ static struct
     bool layoutKnown;
 } platform;
 
-// What sokol has to say, in the shape of the other sokol headers: printed
-// where somebody is reading it — a debug build, where the layers' chatter and
-// its own are worth having — and, in a release build, only the things that
-// went wrong. A release build is the one a player complains about, and a
-// silent picture with nothing said anywhere is the hardest kind to be told
-// about.
+// What sokol has to say, printed where a machine's own output goes: a
+// desktop's stdout and stderr, and on the page the browser console, where
+// stderr is what the console calls an error.
+//
+// A debug build prints everything sokol says, which is where its chatter is
+// worth having. A release build keeps the panics and the errors — a picture
+// that never came up, with nothing said anywhere about why, is the hardest
+// kind of report to be given — and drops the rest. Those come with the item
+// and the line inside the header they were said on rather than with the text,
+// since a release build compiles the text out.
 static void on_log(const char* tag, uint32_t log_level, uint32_t log_item, const char* message,
     uint32_t line_nr, const char* filename, void* user_data)
 {
+    (void)user_data;
+
 #if defined(NDEBUG)
     if (log_level > 1)
         return;
 #endif
 
-    slog_func(tag, log_level, log_item, message, line_nr, filename, user_data);
+    static const char* Levels[] = { "panic", "error", "warning", "info" };
+    const char* level = Levels[log_level < COUNT_OF(Levels) ? log_level : COUNT_OF(Levels) - 1];
+
+    FILE* out = log_level <= 1 ? stderr : stdout;
+
+    if (message)
+    {
+        if (filename)
+            fprintf(out, "[%s] %s: %s (%s:%u)\n", tag ? tag : "sokol", level, message, filename, line_nr);
+        else
+            fprintf(out, "[%s] %s: %s\n", tag ? tag : "sokol", level, message);
+    }
+    else
+        fprintf(out, "[%s] %s: item %u at line %u\n", tag ? tag : "sokol", level, log_item, line_nr);
+
+    fflush(out);
 }
 
 // Where the studio keeps its files, the same place the SDL layer picks:
