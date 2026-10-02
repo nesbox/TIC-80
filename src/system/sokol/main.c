@@ -795,8 +795,11 @@ static sapp_desc app_desc(void)
         .frame_cb = frame_cb,
         .cleanup_cb = cleanup_cb,
         .event_cb = event_cb,
-        .width = TIC80_FULLWIDTH * 3,
-        .height = TIC80_FULLHEIGHT * 3,
+        // The studio reads the window it was given as the largest scale that
+        // fits it, so the window is opened at the scale the config asks for
+        // by default — the SDL layer opens its window at that scale outright.
+        .width = TIC80_FULLWIDTH * 4,
+        .height = TIC80_FULLHEIGHT * 4,
         .window_title = TIC_TITLE,
         .logger.func = slog_func,
         .high_dpi = false,
