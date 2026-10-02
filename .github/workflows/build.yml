@@ -37,6 +37,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The CRT and blit shaders are generated from src/system/sokol/*.glsl into
+  # headers that are committed, so no build needs the tool. That only holds if
+  # the two stay in step, and nothing else would notice them drifting apart:
+  # regenerate here and fail on a difference. The tool is pinned to the release
+  # the headers were last generated with — a newer one may emit different code
+  # for the same source, which would fail this check for no real reason.
+  shaders:
+    name: Shader headers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Get sokol-shdc
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /usr/local/bin/sokol-shdc \
+            https://github.com/floooh/sokol-tools-bin/raw/11d0cf678105d614d675e6d9bd2aaf3eeff12f8c/bin/linux/sokol-shdc
+          chmod +x /usr/local/bin/sokol-shdc
+
+      - name: Regenerate
+        run: |
+          set -euo pipefail
+          for shader in blit crt; do
+            sokol-shdc -i "src/system/sokol/$shader.glsl" -o "src/system/sokol/$shader.h" \
+              -l glsl410:glsl300es:hlsl4:metal_macos:metal_ios:wgsl --ifdef
+          done
+
+      - name: Fail when a header no longer matches its source
+        run: |
+          set -euo pipefail
+          if ! git diff --exit-code -- src/system/sokol; then
+            echo "::error::src/system/sokol/*.h is out of date: regenerate the shaders and commit them"
+            exit 1
+          fi
+
   # === Windows ===
   windows:
     runs-on: windows-2022
