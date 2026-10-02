@@ -30,3 +30,41 @@ Module.showAddPopup = function(callback)
 		reader.readAsArrayBuffer(file);
 	};
 };
+// The safe-area insets are only readable from CSS, and they change with the
+// orientation and with the browser's own bars, so the page pushes them in
+// whenever the viewport moves. The probe element is what makes env() readable.
+Module.tic80Viewport = function()
+{
+	if(!Module._tic80_insets) return;
+
+	var probe = Module.tic80Probe;
+
+	if(!probe)
+	{
+		probe = document.createElement('div');
+		probe.style.cssText = 'position:fixed;left:0;top:0;visibility:hidden;' +
+			'padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+		document.body.appendChild(probe);
+		Module.tic80Probe = probe;
+	}
+
+	var style = getComputedStyle(probe);
+	var value = function(name) { return parseFloat(style.getPropertyValue(name)) || 0; };
+
+	Module._tic80_insets(value('padding-top'), value('padding-right'), value('padding-bottom'), value('padding-left'));
+};
+
+(function()
+{
+	Module.tic80Viewport();
+	addEventListener('resize', Module.tic80Viewport);
+	addEventListener('orientationchange', Module.tic80Viewport);
+
+	// The iOS URL bar and the soft keyboard move the visual viewport without a
+	// window resize.
+	if(window.visualViewport)
+	{
+		visualViewport.addEventListener('resize', Module.tic80Viewport);
+		visualViewport.addEventListener('scroll', Module.tic80Viewport);
+	}
+})();

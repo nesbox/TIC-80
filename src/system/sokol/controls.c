@@ -285,21 +285,79 @@ static void layout_pad(float unit, bool left)
 #undef PAD_ID
 }
 
+// The direction pad is one region, the way a real one is: where the thumb
+// lands inside it decides which sides are held, and the middle cell divides
+// into thirds so a diagonal comes from one finger.
+static void dpad_held(const ControlsInput* input, float x, float y, float w, float h, bool held[4])
+{
+    for (s32 p = 0; p < input->pointerCount; p++)
+    {
+        const ControlsPointer* pointer = &input->pointers[p];
+
+        if (!pointer->down || pointer->x < x || pointer->x >= x + w || pointer->y < y || pointer->y >= y + h)
+            continue;
+
+        const float unit = w / 3.0f;
+        const s32 col = (s32)((pointer->x - x) / unit);
+        const s32 row = (s32)((pointer->y - y) / unit);
+
+        if (row == 0) held[0] = true; else if (row == 2) held[1] = true;
+        if (col == 0) held[2] = true; else if (col == 2) held[3] = true;
+
+        if (row == 1 && col == 1)
+        {
+            const float sub = unit / 3.0f;
+            const s32 sx = (s32)((pointer->x - x - unit) / sub);
+            const s32 sy = (s32)((pointer->y - y - unit) / sub);
+
+            if (sy == 0) held[0] = true; else if (sy == 2) held[1] = true;
+            if (sx == 0) held[2] = true; else if (sx == 2) held[3] = true;
+        }
+    }
+}
+
 static void gamepad_quads(const ControlsInput* input)
 {
     ControlsState* state = &controls.state;
 
-    // The left pad is the direction set, the right one the buttons.
-    static const struct { const char* name; tic80_gamepad bit; } Buttons[] = {
+    enum { Up, Down, Left, Right };
+
+    static const struct { const char* name; tic80_gamepad bit; } Pad[] = {
         { "l_up",    { .up = 1 } },
         { "l_down",  { .down = 1 } },
         { "l_left",  { .left = 1 } },
         { "l_right", { .right = 1 } },
-        { "r_a",     { .a = 1 } },
-        { "r_b",     { .b = 1 } },
-        { "r_x",     { .x = 1 } },
-        { "r_y",     { .y = 1 } },
     };
+
+    static const struct { const char* name; tic80_gamepad bit; } Buttons[] = {
+        { "r_a", { .a = 1 } },
+        { "r_b", { .b = 1 } },
+        { "r_x", { .x = 1 } },
+        { "r_y", { .y = 1 } },
+    };
+
+    float px, py, pw, ph;
+    bool held[4] = { false, false, false, false };
+
+    if (element_box("l_pad", &px, &py, &pw, &ph))
+        dpad_held(input, px, py, pw, ph, held);
+
+    for (s32 i = 0; i < COUNT_OF(Pad); i++)
+    {
+        float x, y, w, h;
+
+        if (!element_box(Pad[i].name, &x, &y, &w, &h))
+            continue;
+
+        if (held[i])
+            state->gamepad.data |= Pad[i].bit.data;
+
+        // The pressed state is the row of tiles under the released one.
+        const float v = ART_TOP + (held[i] ? ART_TILE : 0);
+        const float u = ART_LEFT + i * ART_TILE;
+
+        add_quad(controls_tex_buttons, x, y, w, h, u, v, u + ART_TILE, v + ART_TILE);
+    }
 
     for (s32 i = 0; i < COUNT_OF(Buttons); i++)
     {
@@ -308,14 +366,15 @@ static void gamepad_quads(const ControlsInput* input)
         if (!element_box(Buttons[i].name, &x, &y, &w, &h))
             continue;
 
+        // A button is pressed by a finger of its own: two of them at once is
+        // two fingers, which is what a phone has.
         const bool pressed = point_in(input, x, y, w, h);
 
         if (pressed)
             state->gamepad.data |= Buttons[i].bit.data;
 
-        // The pressed state is the row of tiles under the released one.
         const float v = ART_TOP + (pressed ? ART_TILE : 0);
-        const float u = ART_LEFT + i * ART_TILE;
+        const float u = ART_LEFT + (i + 4) * ART_TILE;
 
         add_quad(controls_tex_buttons, x, y, w, h, u, v, u + ART_TILE, v + ART_TILE);
     }
@@ -502,4 +561,5 @@ void controls_update(const ControlsInput* input)
         gamepad_quads(input);
 
     menu_quad(input);
+
 }

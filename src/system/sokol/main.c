@@ -77,6 +77,12 @@ static struct
         float x, y;             // the mouse in window pixels
     } pointer;
 
+    // The page's safe-area insets, in pixels; zero where there are none.
+    struct
+    {
+        float top, right, bottom, left;
+    } insets;
+
     bool fullscreen;
     bool layoutKnown;
 } platform;
@@ -328,7 +334,12 @@ static void controls_frame(float dt)
     const ControlsInput input = {
         .width = (float)sapp_width(),
         .height = (float)sapp_height(),
-        .insets = { 0 },
+        .insets = {
+            .left = platform.insets.left,
+            .top = platform.insets.top,
+            .right = platform.insets.right,
+            .bottom = platform.insets.bottom
+        },
         .pointerCount = platform.touch.count,
         .mode = controls_mode(),
         .portrait = sapp_height() > sapp_width(),
@@ -463,6 +474,8 @@ static void event_cb(const sapp_event* event)
 
         platform.touch.timeout = TOUCH_TIMEOUT;
         platform.touch.seen = true;
+        for (s32 i = 0; i < platform.touch.count; i++) printf(" [%.0f,%.0f]", platform.touch.list[i].x, platform.touch.list[i].y);
+        printf("\n");
 
         if (platform.touch.count > 0)
         {
@@ -474,6 +487,9 @@ static void event_cb(const sapp_event* event)
         break;
 
     case SAPP_EVENTTYPE_RESIZED:
+#if defined(__EMSCRIPTEN__)
+        EM_ASM(Module.tic80Viewport());
+#endif
         break;
 
     default:
@@ -512,6 +528,18 @@ static void frame_cb(void)
     render_frame(platform.studio, studio_mem(platform.studio)->product.screen, ticked);
 }
 
+#if defined(__EMSCRIPTEN__)
+// The page pushes the insets in; only CSS can read env(safe-area-inset-*).
+// See build/html/prejs.js.
+EMSCRIPTEN_KEEPALIVE void tic80_insets(float top, float right, float bottom, float left)
+{
+    platform.insets.top = top;
+    platform.insets.right = right;
+    platform.insets.bottom = bottom;
+    platform.insets.left = left;
+}
+#endif
+
 static void init_cb(void)
 {
     stm_setup();
@@ -536,6 +564,10 @@ static void init_cb(void)
         TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, max_scale(), tic_layout_qwerty);
 
     controls_init(studio_config(platform.studio)->cart);
+
+#if defined(__EMSCRIPTEN__)
+    EM_ASM(Module.tic80Viewport());
+#endif
 
     platform.fullscreen = sapp_is_fullscreen();
 }
