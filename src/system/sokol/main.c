@@ -462,15 +462,23 @@ static void event_cb(const sapp_event* event)
     case SAPP_EVENTTYPE_TOUCHES_MOVED:
     case SAPP_EVENTTYPE_TOUCHES_ENDED:
     case SAPP_EVENTTYPE_TOUCHES_CANCELLED:
-        // sokol reports the touches still on the screen, not the one that moved.
-        platform.touch.count = MIN(event->num_touches, CONTROLS_MAX_POINTERS);
+        // The list is the fingers still on the screen. An ENDED event also
+        // carries the finger that just lifted, flagged as changed — keeping it
+        // would leave its control held for good.
+        platform.touch.count = 0;
 
-        for (s32 i = 0; i < platform.touch.count; i++)
-        {
-            platform.touch.list[i].x = event->touches[i].pos_x;
-            platform.touch.list[i].y = event->touches[i].pos_y;
-            platform.touch.list[i].down = true;
-        }
+        if (event->type != SAPP_EVENTTYPE_TOUCHES_CANCELLED)
+            for (s32 i = 0; i < event->num_touches && platform.touch.count < CONTROLS_MAX_POINTERS; i++)
+            {
+                if (event->type == SAPP_EVENTTYPE_TOUCHES_ENDED && event->touches[i].changed)
+                    continue;
+
+                ControlsPointer* pointer = &platform.touch.list[platform.touch.count++];
+
+                pointer->x = event->touches[i].pos_x;
+                pointer->y = event->touches[i].pos_y;
+                pointer->down = true;
+            }
 
         platform.touch.timeout = TOUCH_TIMEOUT;
         platform.touch.seen = true;

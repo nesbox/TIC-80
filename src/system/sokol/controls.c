@@ -561,5 +561,4 @@ void controls_update(const ControlsInput* input)
         gamepad_quads(input);
 
     menu_quad(input);
-
 }
