@@ -7,6 +7,12 @@
 
 #include <stdio.h>
 
+// The CRT effect is drawn once, into a texture of its own at this many
+// machine pixels to one, and the result is stretched into the picture's place.
+// The mask and the scanlines then belong to the picture rather than to the
+// window's pixels, and the effect costs the same whatever the window is.
+#define CRT_SCALE 5
+
 // The studio's picture, presented as one quad. The whole renderer is this:
 // a 256x144 texture, a unit quad and the rectangle it goes into.
 static struct
@@ -17,6 +23,17 @@ static struct
     sg_buffer   quad;
     sg_pipeline pipeline;
     sg_pipeline crt;
+
+    // The effect's own texture, a render target when it is drawn into and a
+    // picture when it is drawn out. OpenGL keeps a texture's origin at the
+    // bottom left and Metal and D3D at the top left, so what was drawn into
+    // it is read from the row the backend means.
+    sg_image    crt_image;
+    sg_view     crt_target;
+    sg_view     crt_texture;
+    sg_sampler  linear;
+    bool        crt_flipped;
+
     vs_params_t params;
 } render;
 
@@ -83,6 +100,37 @@ void render_init(void)
         .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
         .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
         .label = "tic80-nearest",
+    });
+
+    // The effect's texture and the two ways of looking at it: an attachment to
+    // draw it into, a picture to stretch out of it.
+    render.crt_image = sg_make_image(&(sg_image_desc){
+        .width = TIC80_FULLWIDTH * CRT_SCALE,
+        .height = TIC80_FULLHEIGHT * CRT_SCALE,
+        .pixel_format = SG_PIXELFORMAT_RGBA8,
+        .usage.color_attachment = true,
+        .label = "tic80-crt",
+    });
+
+    render.crt_target = sg_make_view(&(sg_view_desc){
+        .color_attachment.image = render.crt_image,
+        .label = "tic80-crt-target",
+    });
+
+    render.crt_texture = sg_make_view(&(sg_view_desc){
+        .texture.image = render.crt_image,
+        .label = "tic80-crt-texture",
+    });
+
+    render.crt_flipped = !sg_query_features().origin_top_left;
+
+    // The effect is smooth by its nature: the stretch to the window is too.
+    render.linear = sg_make_sampler(&(sg_sampler_desc){
+        .min_filter = SG_FILTER_LINEAR,
+        .mag_filter = SG_FILTER_LINEAR,
+        .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
+        .wrap_v = SG_WRAP_CLAMP_TO_EDGE,
+        .label = "tic80-linear",
     });
 
     const float quad[] = {
@@ -171,7 +219,12 @@ void render_shutdown(void)
     sg_destroy_pipeline(render.crt);
     sg_destroy_pipeline(render.pipeline);
     sg_destroy_buffer(render.quad);
+    sg_destroy_sampler(render.linear);
     sg_destroy_sampler(render.nearest);
+    sg_destroy_view(render.crt_texture);
+    sg_destroy_view(render.crt_target);
+    sg_destroy_image(render.crt_image);
+    sg_destroy_view(render.view);
     sg_destroy_image(render.framebuffer);
 }
 
@@ -193,25 +246,32 @@ void render_frame(const Studio* studio, const u32* framebuffer, bool dirty)
     render.params.rect_size[1] = h;
     render.params.resolution[0] = (float)sapp_width();
     render.params.resolution[1] = (float)sapp_height();
+    const bool crt = studio_config(studio)->options.crt;
+    const float crt_w = (float)(TIC80_FULLWIDTH * CRT_SCALE);
+    const float crt_h = (float)(TIC80_FULLHEIGHT * CRT_SCALE);
+
+    // What is drawn is the effect's texture when there is an effect and the
+    // machine's own picture when there is not.
     render.params.uv_pos[0] = 0.0f;
-    render.params.uv_pos[1] = 0.0f;
-    render.params.uv_size[0] = (float)TIC80_FULLWIDTH;
-    render.params.uv_size[1] = (float)TIC80_FULLHEIGHT;
-    render.params.tex_size[0] = (float)TIC80_FULLWIDTH;
-    render.params.tex_size[1] = (float)TIC80_FULLHEIGHT;
+    render.params.uv_pos[1] = crt && render.crt_flipped ? crt_h : 0.0f;
+    render.params.uv_size[0] = crt ? crt_w : (float)TIC80_FULLWIDTH;
+    render.params.uv_size[1] = crt ? (render.crt_flipped ? -crt_h : crt_h) : (float)TIC80_FULLHEIGHT;
+    render.params.tex_size[0] = crt ? crt_w : (float)TIC80_FULLWIDTH;
+    render.params.tex_size[1] = crt ? crt_h : (float)TIC80_FULLHEIGHT;
 
-    sg_begin_pass(&(sg_pass){
-        .action = { .colors[0] = { .load_action = SG_LOADACTION_CLEAR, .clear_value = { 0.1f, 0.11f, 0.17f, 1.0f } } },
-        .swapchain = sglue_swapchain(),
-    });
-
-    if (studio_config(studio)->options.crt)
+    if (crt)
     {
+        // The effect at its own size, the picture filling it whole.
         const crt_params_t params = {
-            .rect_pos = { x, y },
-            .rect_size = { w, h },
-            .resolution = { (float)sapp_width(), (float)sapp_height() },
+            .rect_pos = { 0.0f, 0.0f },
+            .rect_size = { crt_w, crt_h },
+            .resolution = { crt_w, crt_h },
         };
+
+        sg_begin_pass(&(sg_pass){
+            .action = { .colors[0] = { .load_action = SG_LOADACTION_CLEAR } },
+            .attachments = { .colors = { render.crt_target } },
+        });
 
         sg_apply_pipeline(render.crt);
         sg_apply_bindings(&(sg_bindings){
@@ -220,17 +280,22 @@ void render_frame(const Studio* studio, const u32* framebuffer, bool dirty)
             .samplers[SMP_smp] = render.nearest,
         });
         sg_apply_uniforms(UB_crt_params, &SG_RANGE(params));
+        sg_draw(0, 4, 1);
+        sg_end_pass();
     }
-    else
-    {
-        sg_apply_pipeline(render.pipeline);
-        sg_apply_bindings(&(sg_bindings){
-            .vertex_buffers[0] = render.quad,
-            .views[VIEW_tex] = render.view,
-            .samplers[SMP_smp] = render.nearest,
-        });
-        sg_apply_uniforms(UB_vs_params, &SG_RANGE(render.params));
-    }
+
+    sg_begin_pass(&(sg_pass){
+        .action = { .colors[0] = { .load_action = SG_LOADACTION_CLEAR, .clear_value = { 0.1f, 0.11f, 0.17f, 1.0f } } },
+        .swapchain = sglue_swapchain(),
+    });
+
+    sg_apply_pipeline(render.pipeline);
+    sg_apply_bindings(&(sg_bindings){
+        .vertex_buffers[0] = render.quad,
+        .views[VIEW_tex] = crt ? render.crt_texture : render.view,
+        .samplers[SMP_smp] = crt ? render.linear : render.nearest,
+    });
+    sg_apply_uniforms(UB_vs_params, &SG_RANGE(render.params));
 
     sg_draw(0, 4, 1);
 
