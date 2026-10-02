@@ -95,3 +95,11 @@
 [submodule "vendor/miniscript2"]
 	path = vendor/miniscript2
 	url = https://github.com/JoeStrout/miniscript2
+[submodule "vendor/sokol"]
+	path = vendor/sokol
+	url = https://github.com/floooh/sokol.git
+	shallow = true
+[submodule "vendor/clay"]
+	path = vendor/clay
+	url = https://github.com/nicbarker/clay.git
+	shallow = true
