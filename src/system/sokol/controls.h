@@ -62,7 +62,8 @@ typedef struct
 typedef struct
 {
     bool visible;                   // the layout below means anything
-    float x, y, w, h;               // the picture's rectangle
+    bool known;                     // the rectangle below has been placed once
+    float x, y, w, h;               // the picture's rectangle, eased
     ControlsQuad quads[CONTROLS_MAX_QUADS];
     s32 quadCount;
     tic80_gamepad gamepad;          // bits the gamepad controls are holding

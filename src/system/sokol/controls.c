@@ -31,6 +31,9 @@
 // How long the controls take to slide in and out.
 #define APPEAR_TIME     0.18f
 
+// How long the picture takes to follow them to wherever they leave it.
+#define PICTURE_TIME    0.10f
+
 static const tic_key KbdLayout[] =
 {
     #include "../kbdlayout.inl"
@@ -44,6 +47,13 @@ static struct
     Clay_Arena      arena;
 
     float           appear;         // 0 hidden, 1 fully out
+    s32             layout;         // the set of controls the last update drew
+
+    // Where the machine's screen is, eased toward wherever the layout puts it
+    // so that nothing about it changes in a single frame.
+    struct { float x, y, w, h; } picture;
+    bool            pictureKnown;
+
     ControlsState   state;
 } controls;
 
@@ -459,9 +469,56 @@ static void menu_quad(const ControlsInput* input)
         TIC80_OFFSET_LEFT + ART_TILE, TIC80_OFFSET_TOP + ART_TILE);
 }
 
+static void update_picture(const ControlsInput* input, float x, float y, float w, float h)
+{
+    ControlsState* state = &controls.state;
+    const float step = input->dt > 0.0f ? MIN(input->dt / PICTURE_TIME, 1.0f) : 1.0f;
+
+    if (!controls.pictureKnown)
+    {
+        controls.picture.x = x;
+        controls.picture.y = y;
+        controls.picture.w = w;
+        controls.picture.h = h;
+        controls.pictureKnown = true;
+    }
+    else
+    {
+        controls.picture.x += (x - controls.picture.x) * step;
+        controls.picture.y += (y - controls.picture.y) * step;
+        controls.picture.w += (w - controls.picture.w) * step;
+        controls.picture.h += (h - controls.picture.h) * step;
+    }
+
+    state->x = controls.picture.x;
+    state->y = controls.picture.y;
+    state->w = controls.picture.w;
+    state->h = controls.picture.h;
+    state->known = true;
+}
+
 void controls_update(const ControlsInput* input)
 {
     ControlsState* state = &controls.state;
+
+    // The on-screen keyboard is for a keyboard cart and for the studio's own
+    // editors, where the player writes code; it only fits upright.
+    const bool keyboard = input->mode == controls_mode_keyboard && input->portrait;
+
+    // Which set of controls there is to draw, or none. A set does not slide
+    // into another one — the keyboard is not a wide gamepad — so a change of
+    // set is the new one growing in the way it does when it is first reached
+    // for, with the picture eased to wherever that leaves it.
+    const s32 layout = input->visible && (input->mode == controls_mode_gamepad || keyboard)
+        ? (keyboard ? 2 : 1) : 0;
+
+    if (layout != controls.layout)
+    {
+        controls.layout = layout;
+
+        if (layout != 0)
+            controls.appear = 0.0f;
+    }
 
     const float target = input->visible ? 1.0f : 0.0f;
     const float step = input->dt > 0.0f ? input->dt / APPEAR_TIME : 1.0f;
@@ -477,15 +534,18 @@ void controls_update(const ControlsInput* input)
     state->menu = false;
     state->claimed = 0;
 
-    // The on-screen keyboard is for a keyboard cart and for the studio's own
-    // editors, where the player writes code; it only fits upright.
-    const bool keyboard = input->mode == controls_mode_keyboard && input->portrait;
-
     state->visible = controls.appear > 0.0f
         && (input->mode == controls_mode_gamepad || keyboard);
 
+    // With nothing drawn the picture is the whole window; whatever it was, it
+    // is carried there below rather than jumping.
+    float px = 0.0f, py = 0.0f, pw = input->width, ph = input->height;
+
     if (!state->visible)
+    {
+        update_picture(input, px, py, pw, ph);
         return;
+    }
 
     const float unit = (input->portrait ? input->width / TILE_PORTRAIT : input->width / TILE_LANDSCAPE) * controls.appear;
     const float kbd = input->width / (KBD_WIDTH / (float)KBD_HEIGHT) * controls.appear;
@@ -566,10 +626,10 @@ void controls_update(const ControlsInput* input)
 
     if (player.found)
     {
-        state->x = player.boundingBox.x;
-        state->y = player.boundingBox.y;
-        state->w = player.boundingBox.width;
-        state->h = player.boundingBox.height;
+        px = player.boundingBox.x;
+        py = player.boundingBox.y;
+        pw = player.boundingBox.width;
+        ph = player.boundingBox.height;
     }
 
     if (keyboard)
@@ -583,4 +643,6 @@ void controls_update(const ControlsInput* input)
         gamepad_quads(input);
 
     menu_quad(input);
+
+    update_picture(input, px, py, pw, ph);
 }

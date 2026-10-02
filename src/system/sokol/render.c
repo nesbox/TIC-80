@@ -53,7 +53,10 @@ void render_player_rect(const Studio* studio, float* x, float* y, float* w, floa
     const bool integer = studio_config(studio)->options.integerScale;
     const ControlsState* controls = controls_state();
 
-    if (controls->visible)
+    // The controls decide where the picture goes — they make room for
+    // themselves and the place is eased — and the window is what is left of
+    // the answer before they have run once.
+    if (controls->known)
         fit_into(controls->x, controls->y, controls->w, controls->h, integer, x, y, w, h);
     else
         fit_into(0.0f, 0.0f, (float)sapp_width(), (float)sapp_height(), integer, x, y, w, h);
