@@ -58,7 +58,10 @@ static struct
     {
         bool state[tic_keys_count];
         bool pressed[tic_keys_count];
-        char text;
+        // Characters arrive faster than the machine ticks; a single slot would
+        // keep only the last of a burst.
+        char queue[64];
+        s32  head, tail;
     } keyboard;
 
     struct
@@ -66,7 +69,13 @@ static struct
         ControlsPointer list[CONTROLS_MAX_POINTERS];
         s32   count;
         float timeout;
+        bool  seen;
     } touch;
+
+    struct
+    {
+        float x, y;             // the mouse in window pixels
+    } pointer;
 
     bool fullscreen;
     bool layoutKnown;
@@ -292,8 +301,27 @@ static ControlsMode controls_mode(void)
     return controls_mode_none;
 }
 
+#if !defined(__EMSCRIPTEN__)
+// A desktop has no touch screen to try the controls on, so the mouse stands in
+// for a finger: moving it brings the controls out and holding the button
+// presses what it is over. Debug affordance, and only for this experiment.
+static void desktop_pointer(void)
+{
+    if (platform.touch.seen)
+        return;
+
+    platform.touch.list[0].x = platform.pointer.x;
+    platform.touch.list[0].y = platform.pointer.y;
+    platform.touch.list[0].down = platform.input.mouse.left;
+    platform.touch.count = 1;
+}
+#endif
+
 static void controls_frame(float dt)
 {
+#if !defined(__EMSCRIPTEN__)
+    desktop_pointer();
+#endif
     if (platform.touch.timeout > 0.0f)
         platform.touch.timeout = MAX(platform.touch.timeout - dt, 0.0f);
 
@@ -340,8 +368,6 @@ static void tick(void)
     studio_sound(platform.studio);
 
     push_audio();
-
-    platform.keyboard.text = '\0';
 }
 
 // How large the studio's own UI may be drawn on this display.
@@ -391,13 +417,26 @@ static void event_cb(const sapp_event* event)
         break;
 
     case SAPP_EVENTTYPE_CHAR:
-        platform.keyboard.text = (char)event->char_code;
+        // Control characters are keys of their own, not text.
+        if (event->char_code >= 32 && event->char_code < 127
+            && platform.keyboard.head - platform.keyboard.tail < (s32)COUNT_OF(platform.keyboard.queue))
+            platform.keyboard.queue[platform.keyboard.head++ % COUNT_OF(platform.keyboard.queue)] = (char)event->char_code;
+
         learn_layout(event->key_code, event->char_code);
         break;
 
     case SAPP_EVENTTYPE_MOUSE_MOVE:
     case SAPP_EVENTTYPE_MOUSE_DOWN:
     case SAPP_EVENTTYPE_MOUSE_UP:
+        platform.pointer.x = event->mouse_x;
+        platform.pointer.y = event->mouse_y;
+
+#if !defined(__EMSCRIPTEN__)
+        // Desktop only: see desktop_pointer() — the mouse stands in for a finger.
+        if (!platform.touch.seen)
+            platform.touch.timeout = TOUCH_TIMEOUT;
+#endif
+
         update_mouse(event->mouse_x, event->mouse_y);
         if (event->type != SAPP_EVENTTYPE_MOUSE_MOVE)
         {
@@ -423,6 +462,7 @@ static void event_cb(const sapp_event* event)
         }
 
         platform.touch.timeout = TOUCH_TIMEOUT;
+        platform.touch.seen = true;
 
         if (platform.touch.count > 0)
         {
@@ -651,13 +691,11 @@ void tic_sys_preseed(void)
 
 bool tic_sys_keyboard_text(char* text)
 {
-    if (platform.keyboard.text)
-    {
-        *text = platform.keyboard.text;
-        return true;
-    }
+    if (platform.keyboard.tail == platform.keyboard.head)
+        return false;
 
-    return false;
+    *text = platform.keyboard.queue[platform.keyboard.tail++ % COUNT_OF(platform.keyboard.queue)];
+    return true;
 }
 
 void tic_sys_update_config(void)
