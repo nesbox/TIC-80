@@ -34,6 +34,10 @@
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
+#elif defined(_WIN32)
+#include <direct.h>
+#else
+#include <sys/stat.h>
 #endif
 
 // The machine runs at sixty ticks a second whatever the display does; a frame
@@ -63,6 +67,10 @@ static struct
         // keep only the last of a burst.
         char queue[64];
         s32  head, tail;
+
+        // A CHAR event carries no key code, so the key it belongs to is the
+        // one that went down last.
+        sapp_keycode lastCode;
     } keyboard;
 
     struct
@@ -71,12 +79,14 @@ static struct
         s32   count;
         float timeout;
         bool  seen;
+        bool  mouseDown;        // a finger is holding the studio's mouse button
     } touch;
 
     struct
     {
         float x, y;             // the mouse in window pixels
         float scrollX, scrollY; // fractions of a notch the wheel has not reached
+        bool left, right, middle;
     } pointer;
 
     // The page's safe-area insets, in pixels; zero where there are none.
@@ -125,6 +135,36 @@ static const char* getAppFolder(void)
 
     return appFolder;
 }
+
+#if !defined(__EMSCRIPTEN__)
+// The folder has to be there before the studio writes anything into it, and
+// nobody makes it for us here — the SDL layer is handed one that
+// SDL_GetPrefPath has already made. Every component is made, since a fresh
+// machine has none of them.
+static void make_folder(const char* path)
+{
+    char buffer[TICNAME_MAX];
+
+    snprintf(buffer, sizeof buffer, "%s", path);
+
+    for (char* p = buffer + 1; *p; p++)
+    {
+        if (*p != '/' && *p != '\\')
+            continue;
+
+        const char separator = *p;
+        *p = '\0';
+
+#if defined(_WIN32)
+        _mkdir(buffer);
+#else
+        mkdir(buffer, 0777);
+#endif
+
+        *p = separator;
+    }
+}
+#endif
 
 // sokol's key codes are physical positions, the same as SDL's scancodes, so
 // this table is the whole keyboard translation.
@@ -248,7 +288,10 @@ static void handle_key(sapp_keycode code, bool down)
     platform.keyboard.state[key] = down;
 }
 
-static void update_mouse(float x, float y)
+// Moves the machine's mouse to a window point; false when the point is off the
+// machine's screen, where it has no mouse to move — a press there is not a
+// click on whatever the mouse was last over.
+static bool update_mouse(float x, float y)
 {
     float rx, ry, rw, rh;
     render_player_rect(platform.studio, &rx, &ry, &rw, &rh);
@@ -267,10 +310,12 @@ static void update_mouse(float x, float y)
     sapp_show_mouse(!inside);
 
     if (!inside)
-        return;
+        return false;
 
     platform.input.mouse.x = m.x;
     platform.input.mouse.y = m.y;
+
+    return true;
 }
 
 // Handles the keyboard state over to the tick's input, and clears what a tick
@@ -339,7 +384,7 @@ static void desktop_pointer(void)
 
     platform.touch.list[0].x = platform.pointer.x;
     platform.touch.list[0].y = platform.pointer.y;
-    platform.touch.list[0].down = platform.input.mouse.left;
+    platform.touch.list[0].down = platform.pointer.left;
     platform.touch.count = 1;
 }
 #endif
@@ -349,7 +394,15 @@ static void controls_frame(float dt)
 #if !defined(__EMSCRIPTEN__)
     desktop_pointer();
 #endif
-    if (platform.touch.timeout > 0.0f)
+
+    // A finger still on the screen keeps the controls out however long it has
+    // been still — a browser sends nothing for a motionless touch. The desktop
+    // mouse stands in for a finger, so its held button does the same.
+    const bool held = platform.touch.count > 0 && (platform.touch.seen || platform.touch.list[0].down);
+
+    if (held)
+        platform.touch.timeout = TOUCH_TIMEOUT;
+    else if (platform.touch.timeout > 0.0f)
         platform.touch.timeout = MAX(platform.touch.timeout - dt, 0.0f);
 
     const ControlsInput input = {
@@ -389,15 +442,15 @@ static void controls_frame(float dt)
                 break;
             }
 
-        if (free >= 0)
-        {
-            update_mouse(platform.touch.list[free].x, platform.touch.list[free].y);
-            platform.input.mouse.left = 1;
-        }
-        else
-            platform.input.mouse.left = 0;
-
+        platform.touch.mouseDown = free >= 0
+            && update_mouse(platform.touch.list[free].x, platform.touch.list[free].y);
     }
+
+    // The button is whichever way pressed it: a finger that lets go says
+    // nothing about a mouse that is still holding it down.
+    platform.input.mouse.left = platform.pointer.left || platform.touch.mouseDown;
+    platform.input.mouse.right = platform.pointer.right;
+    platform.input.mouse.middle = platform.pointer.middle;
 }
 
 static void push_audio(void)
@@ -489,6 +542,7 @@ static void event_cb(const sapp_event* event)
     switch (event->type)
     {
     case SAPP_EVENTTYPE_KEY_DOWN:
+        platform.keyboard.lastCode = event->key_code;
         handle_key(event->key_code, true);
         break;
 
@@ -502,7 +556,15 @@ static void event_cb(const sapp_event* event)
             && platform.keyboard.head - platform.keyboard.tail < (s32)COUNT_OF(platform.keyboard.queue))
             platform.keyboard.queue[platform.keyboard.head++ % COUNT_OF(platform.keyboard.queue)] = (char)event->char_code;
 
-        learn_layout(event->key_code, event->char_code);
+        learn_layout(platform.keyboard.lastCode, event->char_code);
+        break;
+
+    case SAPP_EVENTTYPE_UNFOCUSED:
+        // A key or a button let go of outside the window keeps its last state:
+        // the release happens where the window cannot hear it.
+        memset(platform.keyboard.state, 0, sizeof platform.keyboard.state);
+        memset(platform.keyboard.pressed, 0, sizeof platform.keyboard.pressed);
+        platform.pointer.left = platform.pointer.right = platform.pointer.middle = false;
         break;
 
     case SAPP_EVENTTYPE_MOUSE_MOVE:
@@ -526,9 +588,9 @@ static void event_cb(const sapp_event* event)
         if (event->type != SAPP_EVENTTYPE_MOUSE_MOVE)
         {
             const bool down = event->type == SAPP_EVENTTYPE_MOUSE_DOWN;
-            platform.input.mouse.left = event->mouse_button == SAPP_MOUSEBUTTON_LEFT ? down : platform.input.mouse.left;
-            platform.input.mouse.right = event->mouse_button == SAPP_MOUSEBUTTON_RIGHT ? down : platform.input.mouse.right;
-            platform.input.mouse.middle = event->mouse_button == SAPP_MOUSEBUTTON_MIDDLE ? down : platform.input.mouse.middle;
+            platform.pointer.left = event->mouse_button == SAPP_MOUSEBUTTON_LEFT ? down : platform.pointer.left;
+            platform.pointer.right = event->mouse_button == SAPP_MOUSEBUTTON_RIGHT ? down : platform.pointer.right;
+            platform.pointer.middle = event->mouse_button == SAPP_MOUSEBUTTON_MIDDLE ? down : platform.pointer.middle;
         }
         break;
 
@@ -549,6 +611,21 @@ static void event_cb(const sapp_event* event)
         platform.input.mouse.scrolly += y;
         break;
     }
+
+    case SAPP_EVENTTYPE_RESUMED:
+        // A browser takes the GL context away when the page goes to the
+        // background and hands a new one back on the way in — everything the
+        // layer made belonged to the old one, so all of it is made again.
+        render_shutdown();
+        controls_shutdown();
+        sg_shutdown();
+        sg_setup(&(sg_desc){
+            .environment = sglue_environment(),
+            .logger.func = slog_func,
+        });
+        render_init();
+        controls_init(studio_config(platform.studio)->cart);
+        break;
 
     case SAPP_EVENTTYPE_TOUCHES_BEGAN:
     case SAPP_EVENTTYPE_TOUCHES_MOVED:
@@ -658,6 +735,11 @@ static void init_cb(void)
     });
 
     platform.appFolder = getAppFolder();
+
+#if !defined(__EMSCRIPTEN__)
+    // The page mounts its own folder from IndexedDB before anything starts.
+    make_folder(platform.appFolder);
+#endif
 
     render_init();
 

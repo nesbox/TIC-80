@@ -45,7 +45,11 @@ if(BUILD_SOKOL)
     elseif(EMSCRIPTEN)
 
     else()
-        target_link_libraries(sokol PRIVATE X11 GL Xi Xcursor m dl asound)
+        # sokol_app references pthread_attr_init as a link-time guard and
+        # sokol_audio's ALSA backend starts a thread, so the flag is part of
+        # the documented link line.
+        target_link_libraries(sokol PRIVATE X11 GL Xi Xcursor m dl asound pthread)
+        target_compile_options(sokol PRIVATE -pthread)
     endif()
 
 endif()
