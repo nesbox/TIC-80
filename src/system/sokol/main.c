@@ -310,9 +310,15 @@ static bool update_mouse(float x, float y)
     // is hidden there and left alone everywhere else on the window.
     sapp_show_mouse(!inside);
 
-    // A captured pointer has no place on the screen to be at.
+    // A captured pointer has no place on the screen to be at, and a pointer
+    // off the screen is a mouse the machine is told is off its screen: left
+    // where it was, it would keep drawing its cursor in the corner it left by.
     if (!inside || platform.input.mouse.relative)
+    {
+        platform.input.mouse.x = -1;
+        platform.input.mouse.y = -1;
         return false;
+    }
 
     platform.input.mouse.x = m.x;
     platform.input.mouse.y = m.y;
