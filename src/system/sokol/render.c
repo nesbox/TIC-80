@@ -2,7 +2,10 @@
 
 #include "sokol.h"
 #include "blit.h"
+#include "crt.h"
 #include "controls.h"
+
+#include <stdio.h>
 
 // The studio's picture, presented as one quad. The whole renderer is this:
 // a 256x144 texture, a unit quad and the rectangle it goes into.
@@ -13,6 +16,7 @@ static struct
     sg_sampler  nearest;
     sg_buffer   quad;
     sg_pipeline pipeline;
+    sg_pipeline crt;
     vs_params_t params;
 } render;
 
@@ -107,6 +111,16 @@ void render_init(void)
         .label = "tic80-blit",
     });
 
+    render.crt = sg_make_pipeline(&(sg_pipeline_desc){
+        .shader = sg_make_shader(crt_shader_desc(sg_query_backend())),
+        .layout.attrs = {
+            [ATTR_crt_pos].format = SG_VERTEXFORMAT_FLOAT2,
+            [ATTR_crt_uv].format = SG_VERTEXFORMAT_FLOAT2,
+        },
+        .primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP,
+        .label = "tic80-crt",
+    });
+
     render.params.resolution[0] = (float)sapp_width();
     render.params.resolution[1] = (float)sapp_height();
 }
@@ -151,6 +165,7 @@ static void render_controls(void)
 
 void render_shutdown(void)
 {
+    sg_destroy_pipeline(render.crt);
     sg_destroy_pipeline(render.pipeline);
     sg_destroy_buffer(render.quad);
     sg_destroy_sampler(render.nearest);
@@ -187,13 +202,33 @@ void render_frame(const Studio* studio, const u32* framebuffer, bool dirty)
         .swapchain = sglue_swapchain(),
     });
 
-    sg_apply_pipeline(render.pipeline);
-    sg_apply_bindings(&(sg_bindings){
-        .vertex_buffers[0] = render.quad,
-        .views[VIEW_tex] = render.view,
-        .samplers[SMP_smp] = render.nearest,
-    });
-    sg_apply_uniforms(UB_vs_params, &SG_RANGE(render.params));
+    if (studio_config(studio)->options.crt)
+    {
+        const crt_params_t params = {
+            .rect_pos = { x, y },
+            .rect_size = { w, h },
+            .resolution = { (float)sapp_width(), (float)sapp_height() },
+        };
+
+        sg_apply_pipeline(render.crt);
+        sg_apply_bindings(&(sg_bindings){
+            .vertex_buffers[0] = render.quad,
+            .views[VIEW_tex] = render.view,
+            .samplers[SMP_smp] = render.nearest,
+        });
+        sg_apply_uniforms(UB_crt_params, &SG_RANGE(params));
+    }
+    else
+    {
+        sg_apply_pipeline(render.pipeline);
+        sg_apply_bindings(&(sg_bindings){
+            .vertex_buffers[0] = render.quad,
+            .views[VIEW_tex] = render.view,
+            .samplers[SMP_smp] = render.nearest,
+        });
+        sg_apply_uniforms(UB_vs_params, &SG_RANGE(render.params));
+    }
+
     sg_draw(0, 4, 1);
 
     render_controls();

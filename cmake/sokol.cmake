@@ -4,6 +4,10 @@
 
 if(BUILD_SOKOL)
 
+    # The studio offers the CRT option wherever the layer can draw it, and this
+    # one always can.
+    target_compile_definitions(tic80studio PUBLIC CRT_SHADER_SUPPORT)
+
     set(SOKOL_SRC ${CMAKE_SOURCE_DIR}/src/system/sokol/sokol_impl.c)
 
     add_library(sokol STATIC ${SOKOL_SRC})
