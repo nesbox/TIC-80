@@ -76,6 +76,7 @@ static struct
     struct
     {
         float x, y;             // the mouse in window pixels
+        float scrollX, scrollY; // fractions of a notch the wheel has not reached
     } pointer;
 
     // The page's safe-area insets, in pixels; zero where there are none.
@@ -259,7 +260,13 @@ static void update_mouse(float x, float y)
     };
 
     // The mouse is only on the machine's screen when it is inside it.
-    if (m.x < 0 || m.y < 0 || m.x >= TIC80_FULLWIDTH || m.y >= TIC80_FULLHEIGHT)
+    const bool inside = m.x >= 0 && m.y >= 0 && m.x < TIC80_FULLWIDTH && m.y < TIC80_FULLHEIGHT;
+
+    // The machine draws a cursor of its own on its screen, so the system one
+    // is hidden there and left alone everywhere else on the window.
+    sapp_show_mouse(!inside);
+
+    if (!inside)
         return;
 
     platform.input.mouse.x = m.x;
@@ -413,10 +420,32 @@ static void push_audio(void)
 
 static void tick(void)
 {
+    // A cart that wants the pointer captured says so in its input, the way the
+    // SDL layer reads it: the lock follows the machine, and while it holds, the
+    // mouse is the motion since the last tick rather than a place on the screen.
+    {
+        const tic_mem* tic = studio_mem(platform.studio);
+        const bool relative = tic->ram->input.mouse.relative != 0;
+
+        if (relative != sapp_mouse_locked())
+            sapp_lock_mouse(relative);
+
+        // The request goes back to the machine rather than the state the
+        // platform reports: a browser grants the lock a click later, and a
+        // machine told otherwise would stop asking in the meantime.
+        platform.input.mouse.relative = relative ? 1 : 0;
+    }
+
     build_input();
 
     studio_tick(platform.studio, platform.input);
     studio_sound(platform.studio);
+
+    // The wheel and the relative motion are events rather than states: what
+    // arrived since the last tick is what this tick sees, the way the SDL
+    // layer's input, rebuilt on every poll, carries them.
+    platform.input.mouse.scrollx = platform.input.mouse.scrolly = 0;
+    platform.input.mouse.rx = platform.input.mouse.ry = 0;
 
     push_audio();
 }
@@ -488,6 +517,11 @@ static void event_cb(const sapp_event* event)
             platform.touch.timeout = TOUCH_TIMEOUT;
 #endif
 
+        // The motion the machine reads in relative mode is the sum of what
+        // arrived since its last tick.
+        platform.input.mouse.rx += (s32)event->mouse_dx;
+        platform.input.mouse.ry += (s32)event->mouse_dy;
+
         update_mouse(event->mouse_x, event->mouse_y);
         if (event->type != SAPP_EVENTTYPE_MOUSE_MOVE)
         {
@@ -497,6 +531,24 @@ static void event_cb(const sapp_event* event)
             platform.input.mouse.middle = event->mouse_button == SAPP_MOUSEBUTTON_MIDDLE ? down : platform.input.mouse.middle;
         }
         break;
+
+    case SAPP_EVENTTYPE_MOUSE_SCROLL:
+    {
+        // A trackpad sends a gesture as fractions of a notch and the machine
+        // reads whole ones, so the fraction is kept until it adds up.
+        platform.pointer.scrollX += event->scroll_x;
+        platform.pointer.scrollY += event->scroll_y;
+
+        const s32 x = (s32)platform.pointer.scrollX;
+        const s32 y = (s32)platform.pointer.scrollY;
+
+        platform.pointer.scrollX -= (float)x;
+        platform.pointer.scrollY -= (float)y;
+
+        platform.input.mouse.scrollx += x;
+        platform.input.mouse.scrolly += y;
+        break;
+    }
 
     case SAPP_EVENTTYPE_TOUCHES_BEGAN:
     case SAPP_EVENTTYPE_TOUCHES_MOVED:
