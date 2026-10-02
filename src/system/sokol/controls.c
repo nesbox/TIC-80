@@ -329,6 +329,7 @@ static void gamepad_quads(const ControlsInput* input)
 {
     ControlsState* state = &controls.state;
 
+
     enum { Up, Down, Left, Right };
 
     static const struct { const char* name; tic80_gamepad bit; } Pad[] = {
@@ -361,8 +362,11 @@ static void gamepad_quads(const ControlsInput* input)
         if (held[i])
             state->gamepad.data |= Pad[i].bit.data;
 
-        // The pressed state is the row of tiles under the released one.
-        const float v = ART_TOP + (held[i] ? ART_TILE : 0);
+        // A physical pad draws its buttons pressed as well: what is drawn is
+        // what the machine sees, not only what the thumb is doing.
+        const bool lit = held[i] || (input->gamepad & Pad[i].bit.data);
+
+        const float v = ART_TOP + (lit ? ART_TILE : 0);
         const float u = ART_LEFT + i * ART_TILE;
 
         add_quad(controls_tex_buttons, x, y, w, h, u, v, u + ART_TILE, v + ART_TILE);
@@ -382,7 +386,9 @@ static void gamepad_quads(const ControlsInput* input)
         if (pressed)
             state->gamepad.data |= Buttons[i].bit.data;
 
-        const float v = ART_TOP + (pressed ? ART_TILE : 0);
+        const bool lit = pressed || (input->gamepad & Buttons[i].bit.data);
+
+        const float v = ART_TOP + (lit ? ART_TILE : 0);
         const float u = ART_LEFT + (i + 4) * ART_TILE;
 
         add_quad(controls_tex_buttons, x, y, w, h, u, v, u + ART_TILE, v + ART_TILE);
@@ -414,12 +420,16 @@ static void keyboard_quads(const ControlsInput* input, float x, float y, float w
         TIC80_OFFSET_LEFT, TIC80_OFFSET_TOP,
         TIC80_OFFSET_LEFT + KBD_WIDTH, TIC80_OFFSET_TOP + KBD_HEIGHT);
 
-    // Every cell of a held key is drawn pressed, the way the SDL layer draws it.
+    // Every cell of a held key is drawn pressed, the way the SDL layer draws
+    // it — including the keys a physical keyboard is holding.
     for (s32 i = 0; i < COUNT_OF(KbdLayout); i++)
     {
         const tic_key key = KbdLayout[i];
 
-        if (key == tic_key_unknown || key >= tic_keys_count || !state->keys[key])
+        if (key == tic_key_unknown || key >= tic_keys_count)
+            continue;
+
+        if (!state->keys[key] && !(input->keys && input->keys[key]))
             continue;
 
         const float cw = w / KBD_COLS;

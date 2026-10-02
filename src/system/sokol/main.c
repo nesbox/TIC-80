@@ -24,6 +24,7 @@
 #include "tools.h"
 #include "render.h"
 #include "controls.h"
+#include "sgamepad.h"
 #include "sokol.h"
 
 #include <stdio.h>
@@ -283,9 +284,22 @@ static void build_input(void)
 
     memset(platform.keyboard.pressed, 0, sizeof platform.keyboard.pressed);
 
-    // The on-screen controls are the first gamepad; the menu control is ESC,
-    // the way the SDL layer's BACK button is.
-    input->gamepads.data = controls->visible ? controls->gamepad.data : 0;
+    // The physical pads and the on-screen controls are the same input: a pad
+    // in one hand and a thumb on the screen work at once.
+    {
+        tic80_gamepads pads = { 0 };
+        tic80_gamepad* slots[TIC_GAMEPADS] = { &pads.first, &pads.second, &pads.third, &pads.fourth };
+
+        for (s32 i = 0; i < SGAMEPAD_MAX_GAMEPADS && i < TIC_GAMEPADS; i++)
+            slots[i]->data = sgamepad_gamepad_state(i).data;
+
+        if (controls->visible)
+            pads.first.data |= controls->gamepad.data;
+
+        input->gamepads.data = pads.data;
+    }
+
+    // The menu control is ESC, the way the SDL layer's BACK button is.
 
     if (controls->menu)
         input->keyboard.keys[0] = tic_key_escape;
@@ -342,6 +356,8 @@ static void controls_frame(float dt)
         },
         .pointerCount = platform.touch.count,
         .mode = controls_mode(),
+        .gamepad = platform.input.gamepads.first.data,
+        .keys = platform.keyboard.state,
         .portrait = sapp_height() > sapp_width(),
         .visible = platform.touch.timeout > 0.0f,
         .dt = dt,
@@ -532,6 +548,7 @@ static void frame_cb(void)
 
     const double dt = stm_sec(stm_laptime(&platform.lastTime));
 
+    sgamepad_record_state();
     controls_frame((float)dt);
 
     platform.accumulator += dt;
@@ -589,6 +606,8 @@ static void init_cb(void)
         TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, max_scale(), tic_layout_qwerty);
 
     controls_init(studio_config(platform.studio)->cart);
+
+    sgamepad_setup(&(sgamepad_desc){ .deadzone = 0.5f });
 
 #if defined(__EMSCRIPTEN__)
     EM_ASM(Module.tic80Viewport());

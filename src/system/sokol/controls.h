@@ -45,6 +45,8 @@ typedef struct
     s32 pointerCount;
     ControlsMode mode;
     bool portrait;
+    u8 gamepad;                     // what the machine sees of the first pad
+    const bool* keys;               // the keys it sees, or NULL
     bool visible;                   // the layer decides, the module animates
     float dt;
     u8 alpha;                       // the theme's touch alpha
