@@ -418,7 +418,11 @@ static void controls_frame(float dt)
         },
         .pointerCount = platform.touch.count,
         .mode = controls_mode(),
-        .gamepad = platform.input.gamepads.first.data,
+        // What the machine held last tick, which the core has already merged
+        // the keyboard's own mapping into — a key that stands for a button
+        // lights it, the way a physical pad does — and what the pads hold now.
+        .gamepad = platform.input.gamepads.first.data
+            | studio_mem(platform.studio)->ram->input.gamepads.first.data,
         .keys = platform.keyboard.state,
         .portrait = sapp_height() > sapp_width(),
         .visible = platform.touch.timeout > 0.0f,
