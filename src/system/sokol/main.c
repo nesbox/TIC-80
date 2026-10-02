@@ -100,6 +100,23 @@ static struct
     bool layoutKnown;
 } platform;
 
+// What sokol has to say, in the shape of the other sokol headers: printed
+// where somebody is reading it — a debug build, where the layers' chatter and
+// its own are worth having — and, in a release build, only the things that
+// went wrong. A release build is the one a player complains about, and a
+// silent picture with nothing said anywhere is the hardest kind to be told
+// about.
+static void on_log(const char* tag, uint32_t log_level, uint32_t log_item, const char* message,
+    uint32_t line_nr, const char* filename, void* user_data)
+{
+#if defined(NDEBUG)
+    if (log_level > 1)
+        return;
+#endif
+
+    slog_func(tag, log_level, log_item, message, line_nr, filename, user_data);
+}
+
 // Where the studio keeps its files, the same place the SDL layer picks:
 // the platform's per-application data folder.
 static const char* getAppFolder(void)
@@ -644,7 +661,7 @@ static void event_cb(const sapp_event* event)
         sg_shutdown();
         sg_setup(&(sg_desc){
             .environment = sglue_environment(),
-            .logger.func = slog_func,
+            .logger.func = on_log,
         });
         render_init();
         controls_init(studio_config(platform.studio)->cart);
@@ -754,7 +771,7 @@ static void init_cb(void)
 
     sg_setup(&(sg_desc){
         .environment = sglue_environment(),
-        .logger.func = slog_func,
+        .logger.func = on_log,
     });
 
     platform.appFolder = getAppFolder();
@@ -769,7 +786,7 @@ static void init_cb(void)
     saudio_setup(&(saudio_desc){
         .sample_rate = TIC80_SAMPLERATE,
         .num_channels = TIC80_SAMPLE_CHANNELS,
-        .logger.func = slog_func,
+        .logger.func = on_log,
     });
 
     platform.studio = studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
@@ -807,7 +824,7 @@ static sapp_desc app_desc(void)
         .width = TIC80_FULLWIDTH * 4,
         .height = TIC80_FULLHEIGHT * 4,
         .window_title = TIC_TITLE,
-        .logger.func = slog_func,
+        .logger.func = on_log,
         // The framebuffer follows the display's own pixels wherever there are
         // more of them than the window has: on a Retina screen and on a phone
         // the machine's pixels land on all of them, and the CRT effect is
