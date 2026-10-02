@@ -23,6 +23,7 @@
 #include "studio/system.h"
 #include "tools.h"
 #include "render.h"
+#include "controls.h"
 #include "sokol.h"
 
 #include <stdio.h>
@@ -37,6 +38,9 @@
 // The machine runs at sixty ticks a second whatever the display does; a frame
 // after a stall replays at most this many ticks of the backlog.
 #define MAX_CATCH_UP 4
+
+// How long the controls stay out after the last touch.
+#define TOUCH_TIMEOUT 10.0f
 
 static struct
 {
@@ -56,6 +60,13 @@ static struct
         bool pressed[tic_keys_count];
         char text;
     } keyboard;
+
+    struct
+    {
+        ControlsPointer list[CONTROLS_MAX_POINTERS];
+        s32   count;
+        float timeout;
+    } touch;
 
     bool fullscreen;
     bool layoutKnown;
@@ -220,35 +231,10 @@ static void handle_key(sapp_keycode code, bool down)
     platform.keyboard.state[key] = down;
 }
 
-// The window's picture rectangle, which the mouse and touch map through.
-static void screen_rect(float* x, float* y, float* w, float* h)
-{
-    const bool integer = studio_config(platform.studio)->options.integerScale;
-    const int sw = sapp_width();
-    const int sh = sapp_height();
-    int dw, dh;
-
-    if (sw * TIC80_FULLHEIGHT < sh * TIC80_FULLWIDTH)
-    {
-        dw = sw - (integer ? sw % TIC80_FULLWIDTH : 0);
-        dh = TIC80_FULLHEIGHT * dw / TIC80_FULLWIDTH;
-    }
-    else
-    {
-        dh = sh - (integer ? sh % TIC80_FULLHEIGHT : 0);
-        dw = TIC80_FULLWIDTH * dh / TIC80_FULLHEIGHT;
-    }
-
-    *x = (sw - dw) * 0.5f;
-    *y = (sh - dh) * 0.5f;
-    *w = (float)dw;
-    *h = (float)dh;
-}
-
 static void update_mouse(float x, float y)
 {
     float rx, ry, rw, rh;
-    screen_rect(&rx, &ry, &rw, &rh);
+    render_player_rect(platform.studio, &rx, &ry, &rw, &rh);
 
     const tic_point m =
     {
@@ -269,6 +255,7 @@ static void update_mouse(float x, float y)
 static void build_input(void)
 {
     tic80_input* input = &platform.input;
+    const ControlsState* controls = controls_state();
     s32 c = 0;
 
     for (tic_key i = 0; i < tic_keys_count && c < TIC80_KEY_BUFFER; i++)
@@ -279,6 +266,51 @@ static void build_input(void)
         input->keyboard.keys[c++] = tic_key_unknown;
 
     memset(platform.keyboard.pressed, 0, sizeof platform.keyboard.pressed);
+
+    // The on-screen controls are the first gamepad; the menu control is ESC,
+    // the way the SDL layer's BACK button is.
+    input->gamepads.data = controls->visible ? controls->gamepad.data : 0;
+
+    if (controls->menu)
+        input->keyboard.keys[0] = tic_key_escape;
+}
+
+// What the on-screen controls need to know, gathered from the studio's state.
+static ControlsMode controls_mode(void)
+{
+    // The cart's `-- input:` tag; with no tag every bit is set and the
+    // controls are a gamepad, which is what most carts play on.
+    const tic_mem* tic = studio_mem(platform.studio);
+
+    if (tic->input.gamepad)
+        return controls_mode_gamepad;
+
+    if (tic->input.keyboard)
+        return controls_mode_keyboard;
+
+    return controls_mode_none;
+}
+
+static void controls_frame(float dt)
+{
+    if (platform.touch.timeout > 0.0f)
+        platform.touch.timeout = MAX(platform.touch.timeout - dt, 0.0f);
+
+    const ControlsInput input = {
+        .width = (float)sapp_width(),
+        .height = (float)sapp_height(),
+        .insets = { 0 },
+        .pointerCount = platform.touch.count,
+        .mode = controls_mode(),
+        .portrait = sapp_height() > sapp_width(),
+        .visible = platform.touch.timeout > 0.0f,
+        .dt = dt,
+        .alpha = studio_config(platform.studio)->theme.gamepad.touch.alpha,
+    };
+
+    memcpy((void*)input.pointers, platform.touch.list, sizeof input.pointers);
+
+    controls_update(&input);
 }
 
 static void push_audio(void)
@@ -375,19 +407,29 @@ static void event_cb(const sapp_event* event)
         }
         break;
 
-    // Until the on-screen controls exist, a touch is the studio's mouse.
     case SAPP_EVENTTYPE_TOUCHES_BEGAN:
     case SAPP_EVENTTYPE_TOUCHES_MOVED:
-        if (event->num_touches > 0)
+    case SAPP_EVENTTYPE_TOUCHES_ENDED:
+    case SAPP_EVENTTYPE_TOUCHES_CANCELLED:
+        // sokol reports the touches still on the screen, not the one that moved.
+        platform.touch.count = MIN(event->num_touches, CONTROLS_MAX_POINTERS);
+
+        for (s32 i = 0; i < platform.touch.count; i++)
+        {
+            platform.touch.list[i].x = event->touches[i].pos_x;
+            platform.touch.list[i].y = event->touches[i].pos_y;
+            platform.touch.list[i].down = true;
+        }
+
+        platform.touch.timeout = TOUCH_TIMEOUT;
+
+        if (platform.touch.count > 0)
         {
             update_mouse(event->touches[0].pos_x, event->touches[0].pos_y);
             platform.input.mouse.left = 1;
         }
-        break;
-
-    case SAPP_EVENTTYPE_TOUCHES_ENDED:
-    case SAPP_EVENTTYPE_TOUCHES_CANCELLED:
-        platform.input.mouse.left = 0;
+        else
+            platform.input.mouse.left = 0;
         break;
 
     case SAPP_EVENTTYPE_RESIZED:
@@ -407,6 +449,8 @@ static void frame_cb(void)
     }
 
     const double dt = stm_sec(stm_laptime(&platform.lastTime));
+
+    controls_frame((float)dt);
 
     platform.accumulator += dt;
 
@@ -450,11 +494,14 @@ static void init_cb(void)
     platform.studio = studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
         TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, max_scale(), tic_layout_qwerty);
 
+    controls_init(studio_config(platform.studio)->cart);
+
     platform.fullscreen = sapp_is_fullscreen();
 }
 
 static void cleanup_cb(void)
 {
+    controls_shutdown();
     saudio_shutdown();
     render_shutdown();
     sg_shutdown();

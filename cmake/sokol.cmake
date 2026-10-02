@@ -54,7 +54,8 @@ if(BUILD_SOKOL)
 
     set(TIC80_SRC
         ${CMAKE_SOURCE_DIR}/src/system/sokol/main.c
-        ${CMAKE_SOURCE_DIR}/src/system/sokol/render.c)
+        ${CMAKE_SOURCE_DIR}/src/system/sokol/render.c
+        ${CMAKE_SOURCE_DIR}/src/system/sokol/controls.c)
 
     if(WIN32)
 
@@ -70,7 +71,8 @@ if(BUILD_SOKOL)
     target_include_directories(${TIC80_TARGET} PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
-        ${THIRDPARTY_DIR}/sokol)
+        ${THIRDPARTY_DIR}/sokol
+        ${THIRDPARTY_DIR}/clay)
 
     target_link_libraries(${TIC80_TARGET} PRIVATE tic80studio sokol)
 

@@ -2,6 +2,7 @@
 
 #include "sokol.h"
 #include "blit.h"
+#include "controls.h"
 
 // The studio's picture, presented as one quad. The whole renderer is this:
 // a 256x144 texture, a unit quad and the rectangle it goes into.
@@ -15,30 +16,43 @@ static struct
     vs_params_t params;
 } render;
 
-// The largest rectangle of the framebuffer's shape that fits the window,
-// centred; with integer scaling the framebuffer keeps whole pixels.
-static void screen_rect(const Studio* studio, float* x, float* y, float* w, float* h)
+// The largest rectangle of the framebuffer's shape that fits a box; with
+// integer scaling the framebuffer keeps whole pixels.
+static void fit_into(float bx, float by, float bw, float bh, bool integer,
+    float* x, float* y, float* w, float* h)
 {
-    const bool integer = studio_config(studio)->options.integerScale;
-    const int sw = sapp_width();
-    const int sh = sapp_height();
+    const int iw = (int)bw;
+    const int ih = (int)bh;
     int dw, dh;
 
-    if (sw * TIC80_FULLHEIGHT < sh * TIC80_FULLWIDTH)
+    if (iw * TIC80_FULLHEIGHT < ih * TIC80_FULLWIDTH)
     {
-        dw = sw - (integer ? sw % TIC80_FULLWIDTH : 0);
+        dw = iw - (integer ? iw % TIC80_FULLWIDTH : 0);
         dh = TIC80_FULLHEIGHT * dw / TIC80_FULLWIDTH;
     }
     else
     {
-        dh = sh - (integer ? sh % TIC80_FULLHEIGHT : 0);
+        dh = ih - (integer ? ih % TIC80_FULLHEIGHT : 0);
         dw = TIC80_FULLWIDTH * dh / TIC80_FULLHEIGHT;
     }
 
-    *x = (sw - dw) * 0.5f;
-    *y = (sh - dh) * 0.5f;
+    *x = bx + (bw - dw) * 0.5f;
+    *y = by + (bh - dh) * 0.5f;
     *w = (float)dw;
     *h = (float)dh;
+}
+
+// Where the picture goes: the box the controls laid out while they are out,
+// and the whole window when they are not.
+void render_player_rect(const Studio* studio, float* x, float* y, float* w, float* h)
+{
+    const bool integer = studio_config(studio)->options.integerScale;
+    const ControlsState* controls = controls_state();
+
+    if (controls->visible)
+        fit_into(controls->x, controls->y, controls->w, controls->h, integer, x, y, w, h);
+    else
+        fit_into(0.0f, 0.0f, (float)sapp_width(), (float)sapp_height(), integer, x, y, w, h);
 }
 
 void render_init(void)
@@ -90,6 +104,40 @@ void render_init(void)
     render.params.resolution[1] = (float)sapp_height();
 }
 
+// The controls are sprites of the same texture, drawn where the layout put them.
+static void render_controls(void)
+{
+    const ControlsState* controls = controls_state();
+
+    if (!controls->visible || !controls->quadCount)
+        return;
+
+    sg_apply_pipeline(render.pipeline);
+    sg_apply_bindings(&(sg_bindings){
+        .vertex_buffers[0] = render.quad,
+        .views[VIEW_tex] = controls_view(),
+        .samplers[SMP_smp] = render.nearest,
+    });
+
+    for (s32 i = 0; i < controls->quadCount; i++)
+    {
+        const ControlsQuad* quad = &controls->quads[i];
+
+        const vs_params_t params = {
+            .rect_pos = { quad->x, quad->y },
+            .rect_size = { quad->w, quad->h },
+            .resolution = { render.params.resolution[0], render.params.resolution[1] },
+            .uv_pos = { quad->u0, quad->v0 },
+            .uv_size = { quad->u1 - quad->u0, quad->v1 - quad->v0 },
+            .tex_size = { (float)TIC80_FULLWIDTH, (float)TIC80_FULLHEIGHT },
+        };
+
+        render.params = params;
+        sg_apply_uniforms(UB_vs_params, &SG_RANGE(render.params));
+        sg_draw(0, 4, 1);
+    }
+}
+
 void render_shutdown(void)
 {
     sg_destroy_pipeline(render.pipeline);
@@ -108,7 +156,7 @@ void render_frame(const Studio* studio, const u32* framebuffer, bool dirty)
     }
 
     float x, y, w, h;
-    screen_rect(studio, &x, &y, &w, &h);
+    render_player_rect(studio, &x, &y, &w, &h);
 
     render.params.rect_pos[0] = x;
     render.params.rect_pos[1] = y;
@@ -116,6 +164,12 @@ void render_frame(const Studio* studio, const u32* framebuffer, bool dirty)
     render.params.rect_size[1] = h;
     render.params.resolution[0] = (float)sapp_width();
     render.params.resolution[1] = (float)sapp_height();
+    render.params.uv_pos[0] = 0.0f;
+    render.params.uv_pos[1] = 0.0f;
+    render.params.uv_size[0] = (float)TIC80_FULLWIDTH;
+    render.params.uv_size[1] = (float)TIC80_FULLHEIGHT;
+    render.params.tex_size[0] = (float)TIC80_FULLWIDTH;
+    render.params.tex_size[1] = (float)TIC80_FULLHEIGHT;
 
     sg_begin_pass(&(sg_pass){
         .action = { .colors[0] = { .load_action = SG_LOADACTION_CLEAR, .clear_value = { 0.1f, 0.11f, 0.17f, 1.0f } } },
@@ -130,6 +184,8 @@ void render_frame(const Studio* studio, const u32* framebuffer, bool dirty)
     });
     sg_apply_uniforms(UB_vs_params, &SG_RANGE(render.params));
     sg_draw(0, 4, 1);
+
+    render_controls();
 
     sg_end_pass();
     sg_commit();
