@@ -100,25 +100,19 @@ static struct
     bool layoutKnown;
 } platform;
 
-// What sokol has to say, printed where a machine's own output goes: a
-// desktop's stdout and stderr, and on the page the browser console, where
-// stderr is what the console calls an error.
-//
-// A debug build prints everything sokol says, which is where its chatter is
-// worth having. A release build keeps the panics and the errors — a picture
-// that never came up, with nothing said anywhere about why, is the hardest
-// kind of report to be given — and drops the rest. Those come with the item
-// and the line inside the header they were said on rather than with the text,
-// since a release build compiles the text out.
+// sokol keeps no logger of its own: given none it says nothing, which is what
+// a release build wants and what a release build gets — the field is left
+// empty, and the printing below is not compiled into it at all. What a build
+// with a reader wants is a debug build's, where the chatter about a sample
+// rate is worth as much as the errors.
+#if !defined(NDEBUG)
+
+// Printed where a machine's own output goes: a desktop's stdout and stderr,
+// and on a page the browser console, where stderr is what it calls an error.
 static void on_log(const char* tag, uint32_t log_level, uint32_t log_item, const char* message,
     uint32_t line_nr, const char* filename, void* user_data)
 {
     (void)user_data;
-
-#if defined(NDEBUG)
-    if (log_level > 1)
-        return;
-#endif
 
     static const char* Levels[] = { "panic", "error", "warning", "info" };
     const char* level = Levels[log_level < COUNT_OF(Levels) ? log_level : COUNT_OF(Levels) - 1];
@@ -137,6 +131,14 @@ static void on_log(const char* tag, uint32_t log_level, uint32_t log_item, const
 
     fflush(out);
 }
+
+#define TIC80_LOGGER .logger.func = on_log,
+
+#else
+
+#define TIC80_LOGGER
+
+#endif
 
 // Where the studio keeps its files, the same place the SDL layer picks:
 // the platform's per-application data folder.
@@ -682,7 +684,7 @@ static void event_cb(const sapp_event* event)
         sg_shutdown();
         sg_setup(&(sg_desc){
             .environment = sglue_environment(),
-            .logger.func = on_log,
+            TIC80_LOGGER
         });
         render_init();
         controls_init(studio_config(platform.studio)->cart);
@@ -792,7 +794,7 @@ static void init_cb(void)
 
     sg_setup(&(sg_desc){
         .environment = sglue_environment(),
-        .logger.func = on_log,
+        TIC80_LOGGER
     });
 
     platform.appFolder = getAppFolder();
@@ -807,7 +809,7 @@ static void init_cb(void)
     saudio_setup(&(saudio_desc){
         .sample_rate = TIC80_SAMPLERATE,
         .num_channels = TIC80_SAMPLE_CHANNELS,
-        .logger.func = on_log,
+        TIC80_LOGGER
     });
 
     platform.studio = studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
@@ -845,7 +847,7 @@ static sapp_desc app_desc(void)
         .width = TIC80_FULLWIDTH * 4,
         .height = TIC80_FULLHEIGHT * 4,
         .window_title = TIC_TITLE,
-        .logger.func = on_log,
+        TIC80_LOGGER
         // The framebuffer follows the display's own pixels wherever there are
         // more of them than the window has: on a Retina screen and on a phone
         // the machine's pixels land on all of them, and the CRT effect is
