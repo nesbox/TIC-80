@@ -66,6 +66,7 @@ typedef struct
     tic80_gamepad gamepad;          // bits the gamepad controls are holding
     bool keys[tic_keys_count];      // keys the on-screen keyboard is holding
     bool menu;                      // the menu control was tapped
+    u8 claimed;                     // bit per pointer a control took
 } ControlsState;
 
 void controls_init(const tic_cartridge* cart);

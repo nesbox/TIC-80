@@ -351,6 +351,30 @@ static void controls_frame(float dt)
     memcpy((void*)input.pointers, platform.touch.list, sizeof input.pointers);
 
     controls_update(&input);
+
+    // A touch a control took is not the studio's mouse; the others are, so the
+    // editors stay usable on a phone.
+    if (platform.touch.seen)
+    {
+        const ControlsState* state = controls_state();
+        s32 free = -1;
+
+        for (s32 i = 0; i < platform.touch.count; i++)
+            if (!(state->claimed & (1 << i)))
+            {
+                free = i;
+                break;
+            }
+
+        if (free >= 0)
+        {
+            update_mouse(platform.touch.list[free].x, platform.touch.list[free].y);
+            platform.input.mouse.left = 1;
+        }
+        else
+            platform.input.mouse.left = 0;
+
+    }
 }
 
 static void push_audio(void)
@@ -485,13 +509,6 @@ static void event_cb(const sapp_event* event)
         for (s32 i = 0; i < platform.touch.count; i++) printf(" [%.0f,%.0f]", platform.touch.list[i].x, platform.touch.list[i].y);
         printf("\n");
 
-        if (platform.touch.count > 0)
-        {
-            update_mouse(event->touches[0].pos_x, event->touches[0].pos_y);
-            platform.input.mouse.left = 1;
-        }
-        else
-            platform.input.mouse.left = 0;
         break;
 
     case SAPP_EVENTTYPE_RESIZED:

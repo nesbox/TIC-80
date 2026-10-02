@@ -223,17 +223,24 @@ static bool element_box(const char* name, float* x, float* y, float* w, float* h
     return true;
 }
 
+// A pointer a control takes is not the studio's mouse any more, so what each
+// hit test claimed is remembered for the layer to read back.
 static bool point_in(const ControlsInput* input, float x, float y, float w, float h)
 {
+    bool hit = false;
+
     for (s32 p = 0; p < input->pointerCount; p++)
     {
         const ControlsPointer* pointer = &input->pointers[p];
 
         if (pointer->down && pointer->x >= x && pointer->x < x + w && pointer->y >= y && pointer->y < y + h)
-            return true;
+        {
+            controls.state.claimed |= (u8)(1 << p);
+            hit = true;
+        }
     }
 
-    return false;
+    return hit;
 }
 
 // One button of the pad: its box comes from the layout, its art from the sheet.
@@ -296,6 +303,8 @@ static void dpad_held(const ControlsInput* input, float x, float y, float w, flo
 
         if (!pointer->down || pointer->x < x || pointer->x >= x + w || pointer->y < y || pointer->y >= y + h)
             continue;
+
+        controls.state.claimed |= (u8)(1 << p);
 
         const float unit = w / 3.0f;
         const s32 col = (s32)((pointer->x - x) / unit);
@@ -391,6 +400,8 @@ static void keyboard_quads(const ControlsInput* input, float x, float y, float w
         if (!pointer->down || pointer->x < x || pointer->x >= x + w || pointer->y < y || pointer->y >= y + h)
             continue;
 
+        controls.state.claimed |= (u8)(1 << p);
+
         const s32 col = (s32)((pointer->x - x) * KBD_COLS / w);
         const s32 row = (s32)((pointer->y - y) * KBD_ROWS / h);
         const tic_key key = KbdLayout[row * KBD_COLS + col];
@@ -454,6 +465,7 @@ void controls_update(const ControlsInput* input)
     state->gamepad.data = 0;
     memset(state->keys, 0, sizeof state->keys);
     state->menu = false;
+    state->claimed = 0;
 
     // The on-screen keyboard is for a keyboard cart and for the studio's own
     // editors, where the player writes code; it only fits upright.
