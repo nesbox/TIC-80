@@ -86,6 +86,7 @@ static struct
     {
         float x, y;             // the mouse in window pixels
         float scrollX, scrollY; // fractions of a notch the wheel has not reached
+        float moveX, moveY;     // motion since the last tick, for a captured pointer
         bool left, right, middle;
     } pointer;
 
@@ -309,7 +310,8 @@ static bool update_mouse(float x, float y)
     // is hidden there and left alone everywhere else on the window.
     sapp_show_mouse(!inside);
 
-    if (!inside)
+    // A captured pointer has no place on the screen to be at.
+    if (!inside || platform.input.mouse.relative)
         return false;
 
     platform.input.mouse.x = m.x;
@@ -487,6 +489,17 @@ static void tick(void)
         // platform reports: a browser grants the lock a click later, and a
         // machine told otherwise would stop asking in the meantime.
         platform.input.mouse.relative = relative ? 1 : 0;
+
+        // Motion and position are one field of the machine's mouse, so only
+        // the one it reads is written: a captured pointer has no place on the
+        // screen, and the tick before it is captured still has one.
+        if (relative)
+        {
+            platform.input.mouse.rx = (s32)platform.pointer.moveX;
+            platform.input.mouse.ry = (s32)platform.pointer.moveY;
+        }
+
+        platform.pointer.moveX = platform.pointer.moveY = 0;
     }
 
     build_input();
@@ -494,11 +507,11 @@ static void tick(void)
     studio_tick(platform.studio, platform.input);
     studio_sound(platform.studio);
 
-    // The wheel and the relative motion are events rather than states: what
-    // arrived since the last tick is what this tick sees, the way the SDL
-    // layer's input, rebuilt on every poll, carries them.
+    // The wheel is an event rather than a state: what turned since the last
+    // tick is what this tick sees, the way the SDL layer's input, rebuilt on
+    // every poll, carries it. The motion is cleared with the request, in the
+    // block above, since it is written into the position's own field.
     platform.input.mouse.scrollx = platform.input.mouse.scrolly = 0;
-    platform.input.mouse.rx = platform.input.mouse.ry = 0;
 
     push_audio();
 }
@@ -579,10 +592,10 @@ static void event_cb(const sapp_event* event)
             platform.touch.timeout = TOUCH_TIMEOUT;
 #endif
 
-        // The motion the machine reads in relative mode is the sum of what
-        // arrived since its last tick.
-        platform.input.mouse.rx += (s32)event->mouse_dx;
-        platform.input.mouse.ry += (s32)event->mouse_dy;
+        // A captured pointer moves the machine's mouse by the motion alone;
+        // the sum of it is handed over by the tick.
+        platform.pointer.moveX += event->mouse_dx;
+        platform.pointer.moveY += event->mouse_dy;
 
         update_mouse(event->mouse_x, event->mouse_y);
         if (event->type != SAPP_EVENTTYPE_MOUSE_MOVE)
