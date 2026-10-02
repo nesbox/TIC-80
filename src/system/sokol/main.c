@@ -794,20 +794,6 @@ static void cleanup_cb(void)
     sg_shutdown();
 }
 
-// A framebuffer the size of the display's own pixels is sharper and costs
-// more to fill, and the machine's pixels land on more of them either way.
-// TIC80_HIGHDPI=1 picks the sharp one: a switch for looking at the
-// difference, not a decision.
-static bool high_dpi(void)
-{
-#if defined(__EMSCRIPTEN__)
-    return false;
-#else
-    const char* value = getenv("TIC80_HIGHDPI");
-    return value && atoi(value) != 0;
-#endif
-}
-
 static sapp_desc app_desc(void)
 {
     return (sapp_desc){
@@ -822,7 +808,12 @@ static sapp_desc app_desc(void)
         .height = TIC80_FULLHEIGHT * 4,
         .window_title = TIC_TITLE,
         .logger.func = slog_func,
-        .high_dpi = high_dpi(),
+        // The framebuffer follows the display's own pixels wherever there are
+        // more of them than the window has: on a Retina screen and on a phone
+        // the machine's pixels land on all of them, and the CRT effect is
+        // drawn at its own size either way, so the picture is as sharp as the
+        // display can be and the fill costs the same.
+        .high_dpi = true,
         .swap_interval = 1,
         .html5.canvas_resize = false,
         .enable_clipboard = true,
