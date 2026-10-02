@@ -522,8 +522,6 @@ static void event_cb(const sapp_event* event)
 
         platform.touch.timeout = TOUCH_TIMEOUT;
         platform.touch.seen = true;
-        for (s32 i = 0; i < platform.touch.count; i++) printf(" [%.0f,%.0f]", platform.touch.list[i].x, platform.touch.list[i].y);
-        printf("\n");
 
         break;
 
@@ -568,6 +566,21 @@ static void frame_cb(void)
         platform.accumulator = 0;
 
     render_frame(platform.studio, studio_mem(platform.studio)->product.screen, ticked);
+
+#if defined(__EMSCRIPTEN__)
+    // A file the studio wrote only reaches IndexedDB through a flush, and the
+    // studio asks for one per write; taking them here, once a frame, keeps the
+    // file system's own write out of the studio's call.
+    EM_ASM(
+    {
+        if (!Module.syncing && Module.syncFSRequests)
+        {
+            Module.syncing = true;
+            Module.syncFSRequests = 0;
+            FS.syncfs(false, function() { Module.syncing = false; });
+        }
+    });
+#endif
 }
 
 #if defined(__EMSCRIPTEN__)
@@ -653,17 +666,67 @@ EMSCRIPTEN_KEEPALIVE void sokol_start(void)
     sapp_run(&desc);
 }
 
+// An exported game's page passes its cartridge as the first argument, and the
+// file sits next to the page rather than in the folder: it has to be fetched
+// into the folder before the studio starts, and argv[1] becomes the path the
+// studio opens — the SDL layer's emsStart does the same.
+static const char* cart_argument(char** argv)
+{
+    static char path[TICNAME_MAX];
+    const size_t len = strlen(argv[1]);
+
+    if (len < 4 || strcmp(&argv[1][len - 4], ".tic"))
+        return NULL;
+
+    snprintf(path, sizeof path, "%s%s", getAppFolder(), argv[1]);
+    argv[1] = path;
+
+    return path;
+}
+
 int main(int argc, char* argv[])
 {
     platform.argc = argc;
     platform.argv = argv;
 
+    const char* url = argc >= 2 ? argv[1] : NULL;
+    const char* cart = url ? cart_argument(argv) : NULL;
+
     EM_ASM({
+        Module.syncFSRequests = 0;
+        Module.syncing = false;
+
         const dir = UTF8ToString($0);
+        const file = $1 ? UTF8ToString($1) : null;
+        const url = $2 ? UTF8ToString($2) : null;
+
         FS.mkdirTree(dir);
         FS.mount(IDBFS, {}, dir);
-        FS.syncfs(true, () => Module._sokol_start());
-    }, getAppFolder());
+        FS.syncfs(true, function()
+        {
+            // A session without a cartridge argument, the console and the
+            // editors, starts as soon as its folder is there.
+            if (!file)
+            {
+                Module._sokol_start();
+                return;
+            }
+
+            var path = PATH_FS.resolve(file);
+            var parent = PATH.dirname(path);
+
+            FS.createPreloadedFile(parent, PATH.basename(path), url, true, true,
+                function() { Module._sokol_start(); },
+                function() {},
+                false, false, function()
+                {
+                    // A cartridge the folder kept from an earlier session is
+                    // in the way of the one this page carries.
+                    try { FS.unlink(path); } catch (e) {}
+                    FS.mkdirTree(parent);
+                });
+        });
+    }, getAppFolder(), cart, url);
 
     return 0;
 }
