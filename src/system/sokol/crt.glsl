@@ -16,6 +16,7 @@ in vec2 uv;
 out vec2 uv_out;
 out vec2 rect_pos_out;  // the same for every vertex, so it reaches the
 out vec2 rect_size_out; // fragment stage untouched
+out vec2 pos_out;
 
 void main() {
     vec2 px = rect_pos + pos * rect_size;
@@ -24,6 +25,7 @@ void main() {
     uv_out = uv;
     rect_pos_out = rect_pos;
     rect_size_out = rect_size;
+    pos_out = pos;
 }
 @end
 
@@ -34,6 +36,7 @@ layout(binding=0) uniform sampler smp;
 in vec2 uv_out;
 in vec2 rect_pos_out;
 in vec2 rect_size_out;
+in vec2 pos_out;
 out vec4 frag_color;
 
 // Emulated input resolution.
@@ -141,12 +144,14 @@ vec3 Mask(vec2 pos) {
 void main() {
     hardScan = -12.0;
 
-    vec2 start = gl_FragCoord.xy - rect_pos_out;
-    start.y = rect_size_out.y - start.y;
+    // Where this pixel is inside the picture, from its top left. It comes from
+    // the vertex stage rather than gl_FragCoord, whose origin is the bottom
+    // left on OpenGL and the top left on Metal.
+    vec2 start = pos_out * rect_size_out;
 
     vec2 pos = Warp(start / rect_size_out);
 
-    vec3 color = Tri(pos) * Mask(gl_FragCoord.xy);
+    vec3 color = Tri(pos) * Mask(rect_pos_out + start);
     frag_color = vec4(ToSrgb(color), 1.0);
 }
 @end
