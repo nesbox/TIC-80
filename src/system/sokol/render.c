@@ -3,7 +3,9 @@
 #include "sokol.h"
 #include "blit.h"
 #include "crt.h"
+#if defined(TOUCH_INPUT_SUPPORT)
 #include "controls.h"
+#endif
 
 #include <stdio.h>
 
@@ -68,15 +70,21 @@ static void fit_into(float bx, float by, float bw, float bh, bool integer,
 void render_player_rect(const Studio* studio, float* x, float* y, float* w, float* h)
 {
     const bool integer = studio_config(studio)->options.integerScale;
+
+#if defined(TOUCH_INPUT_SUPPORT)
     const ControlsState* controls = controls_state();
 
     // The controls decide where the picture goes — they make room for
     // themselves and the place is eased — and the window is what is left of
     // the answer before they have run once.
     if (controls->known)
+    {
         fit_into(controls->x, controls->y, controls->w, controls->h, integer, x, y, w, h);
-    else
-        fit_into(0.0f, 0.0f, (float)sapp_width(), (float)sapp_height(), integer, x, y, w, h);
+        return;
+    }
+#endif
+
+    fit_into(0.0f, 0.0f, (float)sapp_width(), (float)sapp_height(), integer, x, y, w, h);
 }
 
 void render_init(void)
@@ -168,6 +176,12 @@ void render_init(void)
             [ATTR_crt_pos].format = SG_VERTEXFORMAT_FLOAT2,
             [ATTR_crt_uv].format = SG_VERTEXFORMAT_FLOAT2,
         },
+        // This one draws into the effect's own texture rather than into the
+        // window, and the two are not the same format: left to the defaults,
+        // the pipeline would take the window's, and a build with sokol's
+        // checks in it would refuse to draw at all.
+        .colors[0].pixel_format = SG_PIXELFORMAT_RGBA8,
+        .depth.pixel_format = SG_PIXELFORMAT_NONE,
         .primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP,
         .label = "tic80-crt",
     });
@@ -176,6 +190,7 @@ void render_init(void)
     render.params.resolution[1] = (float)sapp_height();
 }
 
+#if defined(TOUCH_INPUT_SUPPORT)
 // The controls are sprites of the same texture, drawn where the layout put them.
 static void render_controls(void)
 {
@@ -213,6 +228,7 @@ static void render_controls(void)
         sg_draw(0, 4, 1);
     }
 }
+#endif
 
 void render_shutdown(void)
 {
@@ -299,7 +315,9 @@ void render_frame(const Studio* studio, const u32* framebuffer, bool dirty)
 
     sg_draw(0, 4, 1);
 
+#if defined(TOUCH_INPUT_SUPPORT)
     render_controls();
+#endif
 
     sg_end_pass();
     sg_commit();
