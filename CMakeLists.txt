@@ -33,11 +33,11 @@ endif()
 
 set(BUILD_PLAYER_DEFAULT OFF)
 set(BUILD_LIBRETRO_DEFAULT OFF)
-if(ANDROID OR NINTENDO_SWITCH)
-    set(BUILD_TOUCH_INPUT_DEFAULT ON)
-else()
-    set(BUILD_TOUCH_INPUT_DEFAULT OFF)
-endif()
+# Touch input is off unless a build asks for it: the platforms with a screen
+# to touch — Android, the Switch, the browser a phone opens the player in —
+# pass -DBUILD_TOUCH_INPUT=ON themselves, and a build that does not is a build
+# without the controls, their layout and their textures.
+set(BUILD_TOUCH_INPUT_DEFAULT OFF)
 set(BUILD_WITH_ALL_DEFAULT OFF)
 
 option(BUILD_STATIC "Static runtime" ${BUILD_STATIC_DEFAULT})

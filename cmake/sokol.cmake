@@ -62,8 +62,15 @@ if(BUILD_SOKOL)
 
     set(TIC80_SRC
         ${CMAKE_SOURCE_DIR}/src/system/sokol/main.c
-        ${CMAKE_SOURCE_DIR}/src/system/sokol/render.c
-        ${CMAKE_SOURCE_DIR}/src/system/sokol/controls.c)
+        ${CMAKE_SOURCE_DIR}/src/system/sokol/render.c)
+
+    # The on-screen controls are their own module, and only a build that wants
+    # touch input has them: the layer draws the picture into the whole window
+    # without them, and the layout, the clay it is laid out with and the
+    # textures it draws are not compiled in at all.
+    if(BUILD_TOUCH_INPUT)
+        set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol/controls.c)
+    endif()
 
     if(WIN32)
 
@@ -83,6 +90,11 @@ if(BUILD_SOKOL)
         ${THIRDPARTY_DIR}/clay)
 
     target_link_libraries(${TIC80_TARGET} PRIVATE tic80studio sokol)
+
+    if(BUILD_TOUCH_INPUT)
+        # The same name the SDL layer's touch input is compiled under.
+        target_compile_definitions(${TIC80_TARGET} PRIVATE TOUCH_INPUT_SUPPORT)
+    endif()
 
     if(EMSCRIPTEN)
 

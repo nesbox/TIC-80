@@ -23,7 +23,9 @@
 #include "studio/system.h"
 #include "tools.h"
 #include "render.h"
+#if defined(TOUCH_INPUT_SUPPORT)
 #include "controls.h"
+#endif
 #include "sgamepad.h"
 #include "sokol.h"
 
@@ -44,8 +46,10 @@
 // after a stall replays at most this many ticks of the backlog.
 #define MAX_CATCH_UP 4
 
+#if defined(TOUCH_INPUT_SUPPORT)
 // How long the controls stay out after the last touch.
 #define TOUCH_TIMEOUT 10.0f
+#endif
 
 static struct
 {
@@ -73,6 +77,7 @@ static struct
         sapp_keycode lastCode;
     } keyboard;
 
+#if defined(TOUCH_INPUT_SUPPORT)
     struct
     {
         ControlsPointer list[CONTROLS_MAX_POINTERS];
@@ -81,6 +86,7 @@ static struct
         bool  seen;
         bool  mouseDown;        // a finger is holding the studio's mouse button
     } touch;
+#endif
 
     struct
     {
@@ -371,12 +377,18 @@ static bool update_mouse(float x, float y)
 static void build_input(void)
 {
     tic80_input* input = &platform.input;
-    const ControlsState* controls = controls_state();
     s32 c = 0;
+
+#if defined(TOUCH_INPUT_SUPPORT)
+    const ControlsState* controls = controls_state();
+#endif
 
     for (tic_key i = 0; i < tic_keys_count && c < TIC80_KEY_BUFFER; i++)
         if (platform.keyboard.state[i] || platform.keyboard.pressed[i]
-            || (controls->visible && controls->keys[i]))
+#if defined(TOUCH_INPUT_SUPPORT)
+            || (controls->visible && controls->keys[i])
+#endif
+            )
             input->keyboard.keys[c++] = i;
 
     while (c < TIC80_KEY_BUFFER)
@@ -393,17 +405,23 @@ static void build_input(void)
         for (s32 i = 0; i < SGAMEPAD_MAX_GAMEPADS && i < TIC_GAMEPADS; i++)
             slots[i]->data = sgamepad_gamepad_state(i).data;
 
+#if defined(TOUCH_INPUT_SUPPORT)
         if (controls->visible)
             pads.first.data |= controls->gamepad.data;
+#endif
 
         input->gamepads.data = pads.data;
     }
 
+#if defined(TOUCH_INPUT_SUPPORT)
     // The menu control is ESC, the way the SDL layer's BACK button is.
 
     if (controls->menu)
         input->keyboard.keys[0] = tic_key_escape;
+#endif
 }
+
+#if defined(TOUCH_INPUT_SUPPORT)
 
 // What the on-screen controls need to know, gathered from the studio's state.
 static ControlsMode controls_mode(void)
@@ -504,6 +522,21 @@ static void controls_frame(float dt)
     platform.input.mouse.right = platform.pointer.right;
     platform.input.mouse.middle = platform.pointer.middle;
 }
+
+#else
+
+// Without the controls the buttons are the mouse's own, and a frame has
+// nothing of theirs to do.
+static void controls_frame(float dt)
+{
+    TIC_UNUSED(dt);
+
+    platform.input.mouse.left = platform.pointer.left;
+    platform.input.mouse.right = platform.pointer.right;
+    platform.input.mouse.middle = platform.pointer.middle;
+}
+
+#endif
 
 static void push_audio(void)
 {
@@ -636,7 +669,7 @@ static void event_cb(const sapp_event* event)
         platform.pointer.x = event->mouse_x;
         platform.pointer.y = event->mouse_y;
 
-#if !defined(__EMSCRIPTEN__)
+#if defined(TOUCH_INPUT_SUPPORT) && !defined(__EMSCRIPTEN__)
         // Desktop only: see desktop_pointer() — the mouse stands in for a finger.
         if (!platform.touch.seen)
             platform.touch.timeout = TOUCH_TIMEOUT;
@@ -680,16 +713,21 @@ static void event_cb(const sapp_event* event)
         // background and hands a new one back on the way in — everything the
         // layer made belonged to the old one, so all of it is made again.
         render_shutdown();
+#if defined(TOUCH_INPUT_SUPPORT)
         controls_shutdown();
+#endif
         sg_shutdown();
         sg_setup(&(sg_desc){
             .environment = sglue_environment(),
             TIC80_LOGGER
         });
         render_init();
+#if defined(TOUCH_INPUT_SUPPORT)
         controls_init(studio_config(platform.studio)->cart);
+#endif
         break;
 
+#if defined(TOUCH_INPUT_SUPPORT)
     case SAPP_EVENTTYPE_TOUCHES_BEGAN:
     case SAPP_EVENTTYPE_TOUCHES_MOVED:
     case SAPP_EVENTTYPE_TOUCHES_ENDED:
@@ -716,6 +754,7 @@ static void event_cb(const sapp_event* event)
         platform.touch.seen = true;
 
         break;
+#endif
 
     case SAPP_EVENTTYPE_RESIZED:
 #if defined(__EMSCRIPTEN__)
@@ -815,7 +854,9 @@ static void init_cb(void)
     platform.studio = studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
         TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, max_scale(), tic_layout_qwerty);
 
+#if defined(TOUCH_INPUT_SUPPORT)
     controls_init(studio_config(platform.studio)->cart);
+#endif
 
     sgamepad_setup(&(sgamepad_desc){ .deadzone = 0.5f });
 
@@ -828,7 +869,9 @@ static void init_cb(void)
 
 static void cleanup_cb(void)
 {
+#if defined(TOUCH_INPUT_SUPPORT)
     controls_shutdown();
+#endif
     saudio_shutdown();
     render_shutdown();
     sg_shutdown();
