@@ -1063,7 +1063,7 @@ jobs:
             # that build, thirteen runtimes lighter (BUILD_STATIC already
             # defaults to ON under emscripten, so this leaks nothing into the
             # stub pass below)
-            emcmake cmake -G Ninja -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=ON "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            emcmake cmake -G Ninja -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=ON "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             for f in "bin/tic80$lang.js" "bin/tic80$lang.wasm"; do
               [ -f "$f" ] || { echo "missing player: build/$f" >&2; exit 1; }
@@ -1084,11 +1084,18 @@ jobs:
           # that took, so it is read back out of the wasm: "SPRITE EDITOR" is a
           # menu label only the editors carry, the marker package.sh checks the
           # release bundles with. The distinctness guard catches a language flag
-          # that did not take, the way the stub step's does.
+          # that did not take, the way the stub step's does. The layer is read
+          # back the same way: the SDL layer's "Unable to initialize SDL Video"
+          # is in a build of it and in no build of the sokol layer, which is
+          # what these three passes now build.
           files=("$stage"/{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,forth}/tic80*.wasm)
           for f in "${files[@]}"; do
             if ! grep -qa "SPRITE EDITOR" "$f"; then
               echo "player without editors: $f — BUILD_EDITORS=ON did not take" >&2
+              exit 1
+            fi
+            if grep -qa "Unable to initialize SDL Video" "$f"; then
+              echo "player on the SDL layer: $f — BUILD_SOKOL=ON did not take" >&2
               exit 1
             fi
           done
@@ -1104,10 +1111,10 @@ jobs:
 
       # The fourteen per-language stubs the PRO alone export downloads — the
       # same work as the native jobs' loop, in one directory: no --fresh
-      # between the builds, so SDL2 and whatever a language does not touch are
-      # compiled once (fifteen full builds used to run here, one per language
-      # plus the one below). Every language flag is spelled out on every pass,
-      # which is what --fresh used to buy, and it also clears the
+      # between the builds, so the system layer and whatever a language does
+      # not touch are compiled once (fifteen full builds used to run here, one
+      # per language plus the one below). Every language flag is spelled out on
+      # every pass, which is what --fresh used to buy, and it also clears the
       # BUILD_WITH_ALL the "Build all" step leaves on when the order is
       # reversed.
       #
@@ -1131,7 +1138,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            emcmake cmake -G Ninja -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            emcmake cmake -G Ninja -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
           done
 
@@ -1155,7 +1162,9 @@ jobs:
           # The dev instance lays these pairs out itself, so package.sh's
           # no_editors guard never runs on them there: check the content here.
           # The browser is checked too — the option defaults to on now, and a
-          # job that forgets -DBUILD_SURF=OFF would ship one silently.
+          # job that forgets -DBUILD_SURF=OFF would ship one silently. The
+          # layer is read back as well, since a stub of the wrong layer
+          # carries neither marker to say so.
           for f in "${files[@]}"; do
             if grep -qa "SPRITE EDITOR" "$f"; then
               echo "stub carries the editors: $(basename "$f") — BUILD_EDITORS=OFF did not take" >&2
@@ -1165,12 +1174,16 @@ jobs:
               echo "stub carries the browser: $(basename "$f") — BUILD_SURF=OFF did not take" >&2
               exit 1
             fi
+            if grep -qa "Unable to initialize SDL Video" "$f"; then
+              echo "stub on the SDL layer: $(basename "$f") — BUILD_SOKOL=ON did not take" >&2
+              exit 1
+            fi
           done
 
       - name: Build all
         run: |
           cd build
-          emcmake cmake -G Ninja -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON .. --fresh
+          emcmake cmake -G Ninja -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON .. --fresh
           cmake --build . --parallel
           # index.html is the only page: the site's player, and the page an
           # exported game gets — the client fetches it, rewrites the title
@@ -1178,6 +1191,13 @@ jobs:
           # cartridge (console.c onHtmlPageGet). A second, export-only page
           # used to exist and drifted from this one.
           cp html/index.html bin/index.html
+          # The universal artifact is the one a stray SDL build would slip
+          # through unnoticed — the per-language passes above check their own
+          # sets, and this one carries the markers of neither set to compare.
+          if grep -qa "Unable to initialize SDL Video" bin/tic80.wasm; then
+            echo "the universal build is on the SDL layer — BUILD_SOKOL=ON did not take" >&2
+            exit 1
+          fi
 
       - name: Deploy
         uses: actions/upload-artifact@v6
