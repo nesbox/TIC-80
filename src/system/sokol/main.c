@@ -259,7 +259,8 @@ static void build_input(void)
     s32 c = 0;
 
     for (tic_key i = 0; i < tic_keys_count && c < TIC80_KEY_BUFFER; i++)
-        if (platform.keyboard.state[i] || platform.keyboard.pressed[i])
+        if (platform.keyboard.state[i] || platform.keyboard.pressed[i]
+            || (controls->visible && controls->keys[i]))
             input->keyboard.keys[c++] = i;
 
     while (c < TIC80_KEY_BUFFER)

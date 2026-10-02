@@ -1,10 +1,18 @@
 #pragma once
 
 #include "studio/system.h"
-#include "sokol.h"      // the art texture the renderer draws with
+#include "sokol.h"      // the art textures the renderer draws with
+
+// The keyboard grid carries one cell that is not a key: the one that brings
+// the on-screen keyboard up, the way the SDL layer numbers it.
+enum
+{
+    tic_key_board = tic_keys_count + 1,
+    tic_touch_size,
+};
 
 #define CONTROLS_MAX_POINTERS   8
-#define CONTROLS_MAX_QUADS      16
+#define CONTROLS_MAX_QUADS      40
 
 typedef enum
 {
@@ -12,6 +20,15 @@ typedef enum
     controls_mode_gamepad,
     controls_mode_keyboard,
 } ControlsMode;
+
+// Which sheet a rectangle is cut out of.
+typedef enum
+{
+    controls_tex_buttons,
+    controls_tex_keyboard,
+    controls_tex_keyboard_down,
+    controls_tex_count,
+} ControlsTexture;
 
 typedef struct
 {
@@ -37,6 +54,7 @@ typedef struct
 {
     float x, y, w, h;               // where, in window pixels
     float u0, v0, u1, v1;           // what, in the texture's pixels
+    u8 texture;
 } ControlsQuad;
 
 typedef struct
@@ -45,7 +63,8 @@ typedef struct
     float x, y, w, h;               // the picture's rectangle
     ControlsQuad quads[CONTROLS_MAX_QUADS];
     s32 quadCount;
-    tic80_gamepad gamepad;          // bits the controls are holding
+    tic80_gamepad gamepad;          // bits the gamepad controls are holding
+    bool keys[tic_keys_count];      // keys the on-screen keyboard is holding
     bool menu;                      // the menu control was tapped
 } ControlsState;
 
@@ -54,4 +73,4 @@ void controls_shutdown(void);
 void controls_reset(void);
 void controls_update(const ControlsInput* input);
 const ControlsState* controls_state(void);
-sg_view controls_view(void);
+sg_view controls_view(ControlsTexture texture);

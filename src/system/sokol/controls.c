@@ -16,6 +16,13 @@
 #define ART_LEFT        (TIC80_MARGIN_LEFT + 8 * ART_TILE)
 #define ART_TOP         TIC80_MARGIN_TOP
 
+// The on-screen keyboard is the config cart's map, once as it is and once
+// pressed, with the legends drawn on by the studio's own font.
+#define KBD_COLS        22
+#define KBD_ROWS        17
+#define KBD_WIDTH       (KBD_COLS * TIC_SPRITESIZE)
+#define KBD_HEIGHT      (KBD_ROWS * TIC_SPRITESIZE)
+
 // One control tile is this share of the window's width, the way the SDL layer
 // sizes the same controls.
 #define TILE_PORTRAIT   7
@@ -24,10 +31,15 @@
 // How long the controls take to slide in and out.
 #define APPEAR_TIME     0.18f
 
+static const tic_key KbdLayout[] =
+{
+    #include "../kbdlayout.inl"
+};
+
 static struct
 {
-    sg_image        art;
-    sg_view         artView;
+    sg_image        art[controls_tex_count];
+    sg_view         view[controls_tex_count];
     sg_sampler      nearest;
     Clay_Arena      arena;
 
@@ -35,7 +47,7 @@ static struct
     ControlsState   state;
 } controls;
 
-// CLAY_ID() only takes literals; the buttons are looked up by name at runtime.
+// CLAY_ID() only takes literals; the controls are looked up by name at runtime.
 static Clay_ElementId id_of(const char* name)
 {
     return Clay_GetElementId((Clay_String){
@@ -50,7 +62,40 @@ static void on_clay_error(Clay_ErrorData error)
     printf("controls: clay error %d: %s\n", (s32)error.errorType, error.errorText.chars);
 }
 
-static void build_art(const tic_cartridge* cart)
+// The same legends the SDL layer draws on the keyboard.
+static void draw_keyboard_labels(tic_mem* tic, s32 shift)
+{
+    typedef struct { const char* text; s32 x; s32 y; bool alt; const char* shift; } Label;
+
+    static const Label Labels[] =
+    {
+        #include "../kbdlabels.inl"
+    };
+
+    for (s32 i = 0; i < COUNT_OF(Labels); i++)
+    {
+        const Label* label = Labels + i;
+
+        if (label->text)
+            tic_api_print(tic, label->text, label->x, label->y + shift, tic_color_grey, true, 1, label->alt);
+
+        if (label->shift)
+            tic_api_print(tic, label->shift, label->x + 6, label->y + shift + 2, tic_color_light_grey, true, 1, label->alt);
+    }
+}
+
+static sg_image make_art_image(const u32* pixels, const char* label)
+{
+    return sg_make_image(&(sg_image_desc){
+        .width = TIC80_FULLWIDTH,
+        .height = TIC80_FULLHEIGHT,
+        .pixel_format = SG_PIXELFORMAT_RGBA8,
+        .data.mip_levels[0] = { .ptr = pixels, .size = TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32) },
+        .label = label,
+    });
+}
+
+static void build_buttons(const tic_cartridge* cart)
 {
     tic_mem* tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
 
@@ -69,25 +114,44 @@ static void build_art(const tic_cartridge* cart)
         if (*pix == key)
             *pix = 0;
 
-    controls.art = sg_make_image(&(sg_image_desc){
-        .width = TIC80_FULLWIDTH,
-        .height = TIC80_FULLHEIGHT,
-        .pixel_format = SG_PIXELFORMAT_RGBA8,
-        .data.mip_levels[0] = { .ptr = tic->product.screen, .size = TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32) },
-        .label = "tic80-controls",
-    });
+    controls.art[controls_tex_buttons] = make_art_image(tic->product.screen, "tic80-buttons");
 
     tic_core_close(tic);
+}
 
-    controls.artView = sg_make_view(&(sg_view_desc){
-        .texture.image = controls.art,
-        .label = "tic80-controls-view",
-    });
+static void build_keyboard(const tic_cartridge* cart, bool down, ControlsTexture cell)
+{
+    tic_mem* tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
+
+    const tic_bank* bank = &cart->bank0;
+
+    memcpy(tic->ram->vram.palette.data, &bank->palette.vbank0, sizeof(tic_palette));
+    memcpy(tic->ram->map.data, &bank->map, sizeof(tic_map));
+    memcpy(tic->ram->tiles.data, &bank->tiles, sizeof(tic_tiles) * TIC_SPRITE_BANKS);
+
+    tic_api_cls(tic, 0);
+
+    // The map carries the keyboard twice: released and pressed.
+    tic_api_map(tic, down ? KBD_COLS : 0, 0, KBD_COLS, KBD_ROWS, 0, 0, NULL, 0, 1, NULL, NULL);
+    draw_keyboard_labels(tic, down ? 2 : 0);
+    tic_core_blit(tic);
+
+    controls.art[cell] = make_art_image(tic->product.screen, down ? "tic80-keyboard-down" : "tic80-keyboard");
+
+    tic_core_close(tic);
 }
 
 void controls_init(const tic_cartridge* cart)
 {
-    build_art(cart);
+    build_buttons(cart);
+    build_keyboard(cart, false, controls_tex_keyboard);
+    build_keyboard(cart, true, controls_tex_keyboard_down);
+
+    for (s32 i = 0; i < controls_tex_count; i++)
+        controls.view[i] = sg_make_view(&(sg_view_desc){
+            .texture.image = controls.art[i],
+            .label = "tic80-controls-view",
+        });
 
     controls.nearest = sg_make_sampler(&(sg_sampler_desc){
         .min_filter = SG_FILTER_NEAREST,
@@ -107,14 +171,19 @@ void controls_init(const tic_cartridge* cart)
 void controls_shutdown(void)
 {
     sg_destroy_sampler(controls.nearest);
-    sg_destroy_view(controls.artView);
-    sg_destroy_image(controls.art);
+
+    for (s32 i = 0; i < controls_tex_count; i++)
+    {
+        sg_destroy_view(controls.view[i]);
+        sg_destroy_image(controls.art[i]);
+    }
+
     free(controls.arena.memory);
 }
 
-sg_view controls_view(void)
+sg_view controls_view(ControlsTexture texture)
 {
-    return controls.artView;
+    return controls.view[texture];
 }
 
 void controls_reset(void)
@@ -127,18 +196,22 @@ const ControlsState* controls_state(void)
     return &controls.state;
 }
 
-// One button of the pad: its box comes from the layout, its art from the sheet.
-typedef struct
+static void add_quad(ControlsTexture texture, float x, float y, float w, float h,
+    float u0, float v0, float u1, float v1)
 {
-    Clay_ElementId id;
-    tic_key         unused;
-} ControlButton;
+    ControlsState* state = &controls.state;
 
-static const char* const ButtonNames[] = { "up", "down", "left", "right", "a", "b", "x", "y" };
+    if (state->quadCount >= CONTROLS_MAX_QUADS)
+        return;
 
-static bool button_box(Clay_ElementId id, float* x, float* y, float* w, float* h)
+    ControlsQuad* quad = &state->quads[state->quadCount++];
+
+    *quad = (ControlsQuad){ x, y, w, h, u0, v0, u1, v1, (u8)texture };
+}
+
+static bool element_box(const char* name, float* x, float* y, float* w, float* h)
 {
-    const Clay_ElementData data = Clay_GetElementData(id);
+    const Clay_ElementData data = Clay_GetElementData(id_of(name));
 
     if (!data.found)
         return false;
@@ -150,25 +223,20 @@ static bool button_box(Clay_ElementId id, float* x, float* y, float* w, float* h
     return true;
 }
 
-static void add_button_quad(s32 index, float x, float y, float w, float h, bool pressed)
+static bool point_in(const ControlsInput* input, float x, float y, float w, float h)
 {
-    ControlsState* state = &controls.state;
+    for (s32 p = 0; p < input->pointerCount; p++)
+    {
+        const ControlsPointer* pointer = &input->pointers[p];
 
-    if (state->quadCount >= CONTROLS_MAX_QUADS)
-        return;
+        if (pointer->down && pointer->x >= x && pointer->x < x + w && pointer->y >= y && pointer->y < y + h)
+            return true;
+    }
 
-    ControlsQuad* quad = &state->quads[state->quadCount++];
-
-    quad->x = x;
-    quad->y = y;
-    quad->w = w;
-    quad->h = h;
-    quad->u0 = ART_LEFT + index * ART_TILE;
-    quad->v0 = ART_TOP + (pressed ? ART_TILE : 0);
-    quad->u1 = quad->u0 + ART_TILE;
-    quad->v1 = quad->v0 + ART_TILE;
+    return false;
 }
 
+// One button of the pad: its box comes from the layout, its art from the sheet.
 static void layout_pad(float unit, bool left)
 {
     const Clay_SizingAxis fixed = CLAY_SIZING_FIXED(unit);
@@ -213,12 +281,107 @@ static void layout_pad(float unit, bool left)
             CLAY(PAD_ID("a"), { .layout = { .sizing = { fixed, fixed } } }) {}
         }
     }
+
+#undef PAD_ID
+}
+
+static void gamepad_quads(const ControlsInput* input)
+{
+    ControlsState* state = &controls.state;
+
+    // The left pad is the direction set, the right one the buttons.
+    static const struct { const char* name; tic80_gamepad bit; } Buttons[] = {
+        { "l_up",    { .up = 1 } },
+        { "l_down",  { .down = 1 } },
+        { "l_left",  { .left = 1 } },
+        { "l_right", { .right = 1 } },
+        { "r_a",     { .a = 1 } },
+        { "r_b",     { .b = 1 } },
+        { "r_x",     { .x = 1 } },
+        { "r_y",     { .y = 1 } },
+    };
+
+    for (s32 i = 0; i < COUNT_OF(Buttons); i++)
+    {
+        float x, y, w, h;
+
+        if (!element_box(Buttons[i].name, &x, &y, &w, &h))
+            continue;
+
+        const bool pressed = point_in(input, x, y, w, h);
+
+        if (pressed)
+            state->gamepad.data |= Buttons[i].bit.data;
+
+        // The pressed state is the row of tiles under the released one.
+        const float v = ART_TOP + (pressed ? ART_TILE : 0);
+        const float u = ART_LEFT + i * ART_TILE;
+
+        add_quad(controls_tex_buttons, x, y, w, h, u, v, u + ART_TILE, v + ART_TILE);
+    }
+}
+
+static void keyboard_quads(const ControlsInput* input, float x, float y, float w, float h)
+{
+    ControlsState* state = &controls.state;
+
+    for (s32 p = 0; p < input->pointerCount; p++)
+    {
+        const ControlsPointer* pointer = &input->pointers[p];
+
+        if (!pointer->down || pointer->x < x || pointer->x >= x + w || pointer->y < y || pointer->y >= y + h)
+            continue;
+
+        const s32 col = (s32)((pointer->x - x) * KBD_COLS / w);
+        const s32 row = (s32)((pointer->y - y) * KBD_ROWS / h);
+        const tic_key key = KbdLayout[row * KBD_COLS + col];
+
+        if (key != tic_key_unknown && key < tic_keys_count)
+            state->keys[key] = true;
+    }
+
+    add_quad(controls_tex_keyboard, x, y, w, h,
+        TIC80_OFFSET_LEFT, TIC80_OFFSET_TOP,
+        TIC80_OFFSET_LEFT + KBD_WIDTH, TIC80_OFFSET_TOP + KBD_HEIGHT);
+
+    // Every cell of a held key is drawn pressed, the way the SDL layer draws it.
+    for (s32 i = 0; i < COUNT_OF(KbdLayout); i++)
+    {
+        const tic_key key = KbdLayout[i];
+
+        if (key == tic_key_unknown || key >= tic_keys_count || !state->keys[key])
+            continue;
+
+        const float cw = w / KBD_COLS;
+        const float ch = h / KBD_ROWS;
+        const float cx = x + (i % KBD_COLS) * cw;
+        const float cy = y + (i / KBD_COLS) * ch;
+        const float u = TIC80_OFFSET_LEFT + (i % KBD_COLS) * ART_TILE;
+        const float v = TIC80_OFFSET_TOP + (i / KBD_COLS) * ART_TILE;
+
+        add_quad(controls_tex_keyboard_down, cx, cy, cw, ch, u, v, u + ART_TILE, v + ART_TILE);
+    }
+}
+
+// The menu control is the keyboard's own ESC key, so a phone can leave a game.
+static void menu_quad(const ControlsInput* input)
+{
+    float x, y, w, h;
+
+    if (!element_box("menu", &x, &y, &w, &h))
+        return;
+
+    if (point_in(input, x, y, w, h))
+        controls.state.menu = true;
+
+    add_quad(controls_tex_keyboard, x, y, w, h,
+        TIC80_OFFSET_LEFT, TIC80_OFFSET_TOP,
+        TIC80_OFFSET_LEFT + ART_TILE, TIC80_OFFSET_TOP + ART_TILE);
 }
 
 void controls_update(const ControlsInput* input)
 {
     ControlsState* state = &controls.state;
-
 
     const float target = input->visible ? 1.0f : 0.0f;
     const float step = input->dt > 0.0f ? input->dt / APPEAR_TIME : 1.0f;
@@ -230,13 +393,21 @@ void controls_update(const ControlsInput* input)
 
     state->quadCount = 0;
     state->gamepad.data = 0;
+    memset(state->keys, 0, sizeof state->keys);
     state->menu = false;
-    state->visible = controls.appear > 0.0f && input->mode != controls_mode_none;
+
+    // The on-screen keyboard is for a keyboard cart and for the studio's own
+    // editors, where the player writes code; it only fits upright.
+    const bool keyboard = input->mode == controls_mode_keyboard && input->portrait;
+
+    state->visible = controls.appear > 0.0f
+        && (input->mode == controls_mode_gamepad || keyboard);
 
     if (!state->visible)
         return;
 
     const float unit = (input->portrait ? input->width / TILE_PORTRAIT : input->width / TILE_LANDSCAPE) * controls.appear;
+    const float kbd = input->width / (KBD_WIDTH / (float)KBD_HEIGHT) * controls.appear;
 
     Clay_SetLayoutDimensions((Clay_Dimensions){ input->width, input->height });
     Clay_BeginLayout();
@@ -256,27 +427,35 @@ void controls_update(const ControlsInput* input)
         },
     })
     {
+        // The picture takes what the controls leave; the renderer fits the
+        // framebuffer into it, so the layout has no opinion about 16:9.
         if (input->portrait)
         {
-            // The picture takes what is left, the strip the bottom.
-            // The picture takes what the strip leaves; the renderer fits the
-            // framebuffer into it, so the layout has no opinion about 16:9.
             CLAY(id_of("player"), {
                 .layout = { .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_GROW(0) } },
             }) {}
 
-            CLAY(id_of("strip"), {
-                .layout = {
-                    .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_FIXED(unit * 3 + unit / 4) },
-                    .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
-                },
-            })
+            if (keyboard)
             {
-                layout_pad(unit, true);
+                CLAY(id_of("kbd"), {
+                    .layout = { .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_FIXED(kbd) } },
+                }) {}
+            }
+            else
+            {
+                CLAY(id_of("strip"), {
+                    .layout = {
+                        .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_FIXED(unit * 3 + unit / 4) },
+                        .childAlignment = { .y = CLAY_ALIGN_Y_CENTER },
+                    },
+                })
+                {
+                    layout_pad(unit, true);
 
-                CLAY(id_of("gap"), { .layout = { .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_FIXED(1) } } }) {}
+                    CLAY(id_of("gap"), { .layout = { .sizing = { CLAY_SIZING_GROW(0), CLAY_SIZING_FIXED(1) } } }) {}
 
-                layout_pad(unit, false);
+                    layout_pad(unit, false);
+                }
             }
         }
         else
@@ -289,10 +468,18 @@ void controls_update(const ControlsInput* input)
 
             layout_pad(unit, false);
         }
+
+        CLAY(id_of("menu"), {
+            .layout = { .sizing = { CLAY_SIZING_FIXED(unit), CLAY_SIZING_FIXED(unit) } },
+            .floating = {
+                .attachTo = CLAY_ATTACH_TO_PARENT,
+                .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_TOP, .parent = CLAY_ATTACH_POINT_RIGHT_TOP },
+                .offset = { -unit, unit / 2 },
+            },
+        }) {}
     }
 
     Clay_EndLayout(input->dt);
-
 
     const Clay_ElementData player = Clay_GetElementData(id_of("player"));
 
@@ -304,54 +491,15 @@ void controls_update(const ControlsInput* input)
         state->h = player.boundingBox.height;
     }
 
-
-    // The pointers are tested against the boxes the layout produced; one
-    // pointer presses at most one control.
-    const char* const names[] = { "l_up", "l_down", "l_left", "l_right", "r_a", "r_b", "r_x", "r_y" };
-
-    for (s32 i = 0; i < COUNT_OF(names); i++)
+    if (keyboard)
     {
         float x, y, w, h;
 
-
-        if (!button_box(id_of(names[i]), &x, &y, &w, &h))
-            continue;
-
-        bool pressed = false;
-
-        for (s32 p = 0; p < input->pointerCount; p++)
-        {
-            const ControlsPointer* pointer = &input->pointers[p];
-
-            if (pointer->down && pointer->x >= x && pointer->x < x + w && pointer->y >= y && pointer->y < y + h)
-            {
-                pressed = true;
-                break;
-            }
-        }
-
-        if (pressed)
-        {
-            static const tic80_gamepad bits[8] = {
-                { .up = 1 }, { .down = 1 }, { .left = 1 }, { .right = 1 },
-                { .a = 1 }, { .b = 1 }, { .x = 1 }, { .y = 1 },
-            };
-            state->gamepad.data |= bits[i].data;
-        }
-
-        add_button_quad(i, x, y, w, h, pressed);
+        if (element_box("kbd", &x, &y, &w, &h))
+            keyboard_quads(input, x, y, w, h);
     }
+    else
+        gamepad_quads(input);
 
-    float mx, my, mw, mh;
-
-    if (button_box(id_of("menu"), &mx, &my, &mw, &mh))
-    {
-        for (s32 p = 0; p < input->pointerCount; p++)
-        {
-            const ControlsPointer* pointer = &input->pointers[p];
-
-            if (pointer->down && pointer->x >= mx && pointer->x < mx + mw && pointer->y >= my && pointer->y < my + mh)
-                state->menu = true;
-        }
-    }
+    menu_quad(input);
 }

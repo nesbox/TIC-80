@@ -403,7 +403,7 @@ static void drawKeyboardLabels(tic_mem* tic, s32 shift)
     typedef struct {const char* text; s32 x; s32 y; bool alt; const char* shift;} Label;
     static const Label Labels[] =
     {
-        #include "kbdlabels.inl"
+        #include "../kbdlabels.inl"
     };
 
     for(s32 i = 0; i < COUNT_OF(Labels); i++)
@@ -833,7 +833,7 @@ static bool isKbdVisible()
 
 static const tic_key KbdLayout[] =
 {
-    #include "kbdlayout.inl"
+    #include "../kbdlayout.inl"
 };
 
 static void processTouchKeyboardButton(SDL_Point pt)

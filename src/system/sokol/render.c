@@ -113,15 +113,19 @@ static void render_controls(void)
         return;
 
     sg_apply_pipeline(render.pipeline);
-    sg_apply_bindings(&(sg_bindings){
-        .vertex_buffers[0] = render.quad,
-        .views[VIEW_tex] = controls_view(),
-        .samplers[SMP_smp] = render.nearest,
-    });
 
     for (s32 i = 0; i < controls->quadCount; i++)
     {
         const ControlsQuad* quad = &controls->quads[i];
+
+        // The gamepad sheet and the keyboard are two textures; a frame can
+        // carry rectangles cut from both.
+        if (i == 0 || controls->quads[i - 1].texture != quad->texture)
+            sg_apply_bindings(&(sg_bindings){
+                .vertex_buffers[0] = render.quad,
+                .views[VIEW_tex] = controls_view((ControlsTexture)quad->texture),
+                .samplers[SMP_smp] = render.nearest,
+            });
 
         const vs_params_t params = {
             .rect_pos = { quad->x, quad->y },
