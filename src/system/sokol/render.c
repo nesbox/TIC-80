@@ -96,6 +96,13 @@ void render_init(void)
             [ATTR_blit_pos].format = SG_VERTEXFORMAT_FLOAT2,
             [ATTR_blit_uv].format = SG_VERTEXFORMAT_FLOAT2,
         },
+        .colors[0].blend = {
+            .enabled = true,
+            .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
+            .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            .src_factor_alpha = SG_BLENDFACTOR_ONE,
+            .dst_factor_alpha = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+        },
         .primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP,
         .label = "tic80-blit",
     });
