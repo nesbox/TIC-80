@@ -31,36 +31,46 @@ extern "C" {
 #define SGAMEPAD_API_DECL extern
 #endif
 
+#include <stdbool.h>
+
 // The most gamepads the layer carries, the way the machine numbers them.
 #define SGAMEPAD_MAX_GAMEPADS   4
 
-// One gamepad's buttons, laid out the way the machine reads them.
-typedef union
+// One gamepad's buttons, laid out the way the machine reads them, plus the
+// two the machine has no room for: the layer reads back and start itself —
+// a pad's back opens the menu, the way the SDL layer's did.
+typedef struct
 {
-    struct
+    union
     {
+        struct
+        {
 #if defined(__BIG_ENDIAN__) || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-        unsigned char a : 1;
-        unsigned char b : 1;
-        unsigned char x : 1;
-        unsigned char y : 1;
-        unsigned char right : 1;
-        unsigned char left : 1;
-        unsigned char down : 1;
-        unsigned char up : 1;
+            unsigned char a : 1;
+            unsigned char b : 1;
+            unsigned char x : 1;
+            unsigned char y : 1;
+            unsigned char right : 1;
+            unsigned char left : 1;
+            unsigned char down : 1;
+            unsigned char up : 1;
 #else
-        unsigned char up : 1;
-        unsigned char down : 1;
-        unsigned char left : 1;
-        unsigned char right : 1;
-        unsigned char a : 1;
-        unsigned char b : 1;
-        unsigned char x : 1;
-        unsigned char y : 1;
+            unsigned char up : 1;
+            unsigned char down : 1;
+            unsigned char left : 1;
+            unsigned char right : 1;
+            unsigned char a : 1;
+            unsigned char b : 1;
+            unsigned char x : 1;
+            unsigned char y : 1;
 #endif
+        };
+
+        unsigned char data;
     };
 
-    unsigned char data;
+    bool back;
+    bool start;
 } sgamepad_state;
 
 typedef struct sgamepad_desc
@@ -183,6 +193,7 @@ static bool _sgamepad_button(const EmscriptenGamepadEvent* pad, int button)
 enum
 {
     _SGAMEPAD_A, _SGAMEPAD_B, _SGAMEPAD_X, _SGAMEPAD_Y,
+    _SGAMEPAD_BACK = 8, _SGAMEPAD_START,
     _SGAMEPAD_DPAD_UP = 12, _SGAMEPAD_DPAD_DOWN, _SGAMEPAD_DPAD_LEFT, _SGAMEPAD_DPAD_RIGHT,
 };
 
@@ -196,7 +207,11 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
     const int num = emscripten_get_num_gamepads();
 
     for (int i = 0; i < SGAMEPAD_MAX_GAMEPADS; i++)
+    {
         _sgamepad.states[i].data = 0;
+        _sgamepad.states[i].back = false;
+        _sgamepad.states[i].start = false;
+    }
 
     for (int pad = 0; pad < num; pad++)
     {
@@ -243,6 +258,9 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
         state->b = _sgamepad_button(&event, _SGAMEPAD_B);
         state->x = _sgamepad_button(&event, _SGAMEPAD_X);
         state->y = _sgamepad_button(&event, _SGAMEPAD_Y);
+
+        state->back = _sgamepad_button(&event, _SGAMEPAD_BACK);
+        state->start = _sgamepad_button(&event, _SGAMEPAD_START);
     }
 
     // A pad the browser no longer lists has gone away, and frees its slot.

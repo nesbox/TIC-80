@@ -104,6 +104,10 @@ static struct
 
     bool fullscreen;
     bool layoutKnown;
+
+    // The menu button — the on-screen control or a pad's own — as it was last
+    // frame: the ESC it stands for is written on its edge.
+    bool menuDown;
 } platform;
 
 // sokol keeps no logger of its own: given none it says nothing, which is what
@@ -398,12 +402,22 @@ static void build_input(void)
 
     // The physical pads and the on-screen controls are the same input: a pad
     // in one hand and a thumb on the screen work at once.
+    bool padMenu = false;
+
     {
         tic80_gamepads pads = { 0 };
         tic80_gamepad* slots[TIC_GAMEPADS] = { &pads.first, &pads.second, &pads.third, &pads.fourth };
 
         for (s32 i = 0; i < SGAMEPAD_MAX_GAMEPADS && i < TIC_GAMEPADS; i++)
-            slots[i]->data = sgamepad_gamepad_state(i).data;
+        {
+            const sgamepad_state pad = sgamepad_gamepad_state(i);
+
+            slots[i]->data = pad.data;
+
+            // The machine's gamepad has no button for a menu, so the pad's own
+            // back and start are read here — the SDL layer's back was the menu.
+            padMenu = padMenu || pad.back || pad.start;
+        }
 
 #if defined(TOUCH_INPUT_SUPPORT)
         if (controls->visible)
@@ -413,12 +427,21 @@ static void build_input(void)
         input->gamepads.data = pads.data;
     }
 
-#if defined(TOUCH_INPUT_SUPPORT)
-    // The menu control is ESC, the way the SDL layer's BACK button is.
+    // The menu is ESC, the way the SDL layer's BACK button is, and a pad's own
+    // back and start are that same menu. One press is one ESC: the key is
+    // written on the edge alone, because a button held through a mode change —
+    // where the machine's previous keyboard state is wiped — would read as a
+    // second press and walk a player two steps back.
+    bool menu = padMenu;
 
-    if (controls->menu)
-        input->keyboard.keys[0] = tic_key_escape;
+#if defined(TOUCH_INPUT_SUPPORT)
+    menu = menu || controls->menu;
 #endif
+
+    if (menu && !platform.menuDown)
+        input->keyboard.keys[0] = tic_key_escape;
+
+    platform.menuDown = menu;
 }
 
 #if defined(TOUCH_INPUT_SUPPORT)
