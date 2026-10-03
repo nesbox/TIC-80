@@ -47,6 +47,9 @@
 #define COVER_X (TIC80_WIDTH - COVER_WIDTH - COVER_Y)
 #define COVER_FADEIN 96
 #define COVER_FADEOUT 256
+
+// Cover requests the browser may have in flight at once.
+#define COVERS_IN_FLIGHT 2
 #define CAN_OPEN_URL (__TIC_WINDOWS__ || __TIC_LINUX__ || __TIC_MACOSX__ || __TIC_ANDROID__)
 
 static const char* PngExt = PNG_EXT;
@@ -332,9 +335,27 @@ typedef struct
 {
     Surf* surf;
     s32 pos;
+    char hash[TICNAME_MAX];
     char cachePath[TICNAME_MAX];
     char dir[TICNAME_MAX];
 } CoverLoadingData;
+
+// The item an answer was asked for, or NULL when the list it came from is
+// gone: positions mean nothing once the browser lists something else.
+static SurfItem* coverItem(Surf* surf, const CoverLoadingData* data)
+{
+    if(data->pos >= surf->menu.count)
+        return NULL;
+
+    SurfItem* item = &surf->menu.items[data->pos];
+
+    char dir[TICNAME_MAX];
+    tic_fs_dir(surf->fs, dir);
+
+    return strcmp(dir, data->dir) == 0
+        && item->hash && strcmp(item->hash, data->hash) == 0
+        ? item : NULL;
+}
 
 static void coverLoaded(const net_get_data* netData)
 {
@@ -345,10 +366,7 @@ static void coverLoaded(const net_get_data* netData)
     {
         tic_fs_saveroot(surf->fs, coverLoadingData->cachePath, netData->done.data, netData->done.size, false);
 
-        char dir[TICNAME_MAX];
-        tic_fs_dir(surf->fs, dir);
-
-        if(strcmp(dir, coverLoadingData->dir) == 0)
+        if(coverItem(surf, coverLoadingData))
             updateMenuItemCover(surf, coverLoadingData->pos, netData->done.data, netData->done.size);
     }
 
@@ -356,6 +374,20 @@ static void coverLoaded(const net_get_data* netData)
     {
     case net_get_done:
     case net_get_error:
+
+        // A cover the site did not give is asked for again the next time the
+        // item is under the cursor, rather than staying blank for the session.
+        if(netData->type == net_get_error)
+        {
+            SurfItem* item = coverItem(surf, coverLoadingData);
+
+            if(item)
+                item->coverLoading = false;
+        }
+
+        if(surf->coversInFlight > 0)
+            surf->coversInFlight--;
+
         free(coverLoadingData);
         break;
     default: break;
@@ -364,22 +396,38 @@ static void coverLoaded(const net_get_data* netData)
 
 static void requestCover(Surf* surf, SurfItem* item)
 {
-    CoverLoadingData coverLoadingData = {surf, surf->menu.pos};
-    tic_fs_dir(surf->fs, coverLoadingData.dir);
-
     const char* hash = item->hash;
-    sprintf(coverLoadingData.cachePath, TIC_CACHE "%s.gif", hash);
+
+    char cachePath[TICNAME_MAX];
+    sprintf(cachePath, TIC_CACHE "%s.gif", hash);
 
     {
         s32 size = 0;
-        void* data = tic_fs_loadroot(surf->fs, coverLoadingData.cachePath, &size);
+        void* data = tic_fs_loadroot(surf->fs, cachePath, &size);
 
         if (data)
         {
+            // The cache answers for the site, and nothing is asked over the
+            // network: a folder read through once costs no requests at all.
+            item->coverLoading = true;
             updateMenuItemCover(surf, surf->menu.pos, data, size);
             free(data);
+            return;
         }
     }
+
+    // A handful of pending covers is what the browser can hold without the
+    // folder listings and downloads queueing behind them.
+    if (surf->coversInFlight >= COVERS_IN_FLIGHT)
+        return;
+
+    item->coverLoading = true;
+    surf->coversInFlight++;
+
+    CoverLoadingData coverLoadingData = {surf, surf->menu.pos};
+    strcpy(coverLoadingData.hash, hash);
+    strcpy(coverLoadingData.cachePath, cachePath);
+    tic_fs_dir(surf->fs, coverLoadingData.dir);
 
     char path[TICNAME_MAX];
     sprintf(path, "/cart/%s/cover.gif", hash);
@@ -396,10 +444,9 @@ static void loadCover(Surf* surf)
     if(item->coverLoading)
         return;
 
-    item->coverLoading = true;
-
     if(!tic_fs_ispubdir(surf->fs))
     {
+        item->coverLoading = true;
 
         s32 size = 0;
         void* data = tic_fs_load(surf->fs, item->name, &size);
@@ -655,48 +702,68 @@ static void processGamepad(Surf* surf)
             Up, Down, Left, Right, A, B, X, Y
         };
 
-        if(tic_api_btnp(tic, Up, Hold, Period)
-            || tic_api_keyp(tic, tic_key_up, Hold, Period))
+        // The items are what the moving and the opening need; going back and
+        // out is left outside, so a folder that failed to list still lets go.
+        if(surf->menu.count > 0)
         {
-            move(surf, -1);
-            playSystemSfx(surf->studio, 2);
-        }
-        else if(tic_api_btnp(tic, Down, Hold, Period)
-            || tic_api_keyp(tic, tic_key_down, Hold, Period))
-        {
-            move(surf, +1);
-            playSystemSfx(surf->studio, 2);
-        }
-        else if(tic_api_btnp(tic, Left, Hold, Period)
-            || tic_api_keyp(tic, tic_key_left, Hold, Period)
-            || tic_api_keyp(tic, tic_key_pageup, Hold, Period))
-        {
-            s32 dir = -PAGE;
+            if(tic_api_btnp(tic, Up, Hold, Period)
+                || tic_api_keyp(tic, tic_key_up, Hold, Period))
+            {
+                move(surf, -1);
+                playSystemSfx(surf->studio, 2);
+            }
+            else if(tic_api_btnp(tic, Down, Hold, Period)
+                || tic_api_keyp(tic, tic_key_down, Hold, Period))
+            {
+                move(surf, +1);
+                playSystemSfx(surf->studio, 2);
+            }
+            else if(tic_api_btnp(tic, Left, Hold, Period)
+                || tic_api_keyp(tic, tic_key_left, Hold, Period)
+                || tic_api_keyp(tic, tic_key_pageup, Hold, Period))
+            {
+                s32 dir = -PAGE;
 
-            if(surf->menu.pos == 0) dir = -1;
-            else if(surf->menu.pos <= PAGE) dir = -surf->menu.pos;
+                if(surf->menu.pos == 0) dir = -1;
+                else if(surf->menu.pos <= PAGE) dir = -surf->menu.pos;
 
-            move(surf, dir);
-        }
-        else if(tic_api_btnp(tic, Right, Hold, Period)
-            || tic_api_keyp(tic, tic_key_right, Hold, Period)
-            || tic_api_keyp(tic, tic_key_pagedown, Hold, Period))
-        {
-            s32 dir = +PAGE, last = surf->menu.count - 1;
+                move(surf, dir);
+            }
+            else if(tic_api_btnp(tic, Right, Hold, Period)
+                || tic_api_keyp(tic, tic_key_right, Hold, Period)
+                || tic_api_keyp(tic, tic_key_pagedown, Hold, Period))
+            {
+                s32 dir = +PAGE, last = surf->menu.count - 1;
 
-            if(surf->menu.pos == last) dir = +1;
-            else if(surf->menu.pos + PAGE >= last) dir = last - surf->menu.pos;
+                if(surf->menu.pos == last) dir = +1;
+                else if(surf->menu.pos + PAGE >= last) dir = last - surf->menu.pos;
 
-            move(surf, dir);
-        }
+                move(surf, dir);
+            }
 
-        if(tic_api_btnp(tic, A, -1, -1)
-            || ticEnterWasPressed(tic, -1, -1))
-        {
-            SurfItem* item = getMenuItem(surf);
-            item->dir
-                ? changeDirectory(surf, item->name)
-                : loadCart(surf);
+            if(tic_api_btnp(tic, A, -1, -1)
+                || ticEnterWasPressed(tic, -1, -1))
+            {
+                SurfItem* item = getMenuItem(surf);
+                item->dir
+                    ? changeDirectory(surf, item->name)
+                    : loadCart(surf);
+            }
+
+#ifdef CAN_OPEN_URL
+
+            if(tic_api_btnp(tic, Y, -1, -1))
+            {
+                SurfItem* item = getMenuItem(surf);
+
+                if(!item->dir)
+                {
+                    char url[TICNAME_MAX];
+                    sprintf(url, TIC_WEBSITE "/play?cart=%i", item->id);
+                    tic_sys_open_url(url);
+                }
+            }
+#endif
         }
 
         if(tic_api_btnp(tic, B, -1, -1)
@@ -705,21 +772,6 @@ static void processGamepad(Surf* surf)
             if(tic_fs_isroot(surf->fs)) exitSurf(surf->studio);
             else goBackDir(surf);
         }
-
-#ifdef CAN_OPEN_URL
-
-        if(tic_api_btnp(tic, Y, -1, -1))
-        {
-            SurfItem* item = getMenuItem(surf);
-
-            if(!item->dir)
-            {
-                char url[TICNAME_MAX];
-                sprintf(url, TIC_WEBSITE "/play?cart=%i", item->id);
-                tic_sys_open_url(url);
-            }
-        }
-#endif
 
     }
 
@@ -746,9 +798,12 @@ static void tick(Surf* surf)
 
     studio_menu_anim(surf->tic, surf->ticks++);
 
-    if (isIdle(surf) && surf->menu.count > 0)
+    if (isIdle(surf))
     {
         processGamepad(surf);
+
+        // Escape leaves the browser whatever the list holds: an empty folder
+        // must not be a screen with no way out of it.
         if(tic_api_keyp(tic, tic_key_escape, -1, -1))
             exitSurf(surf->studio);
     }
