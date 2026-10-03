@@ -174,6 +174,10 @@ static MenuOption CrtMonitorOption =
 
 #endif
 
+// A layer that makes its window before the studio reads its config can never
+// honor this: sokol's cannot, so it runs at the display's rate and the menu
+// does not offer what it cannot do.
+#if !defined(VSYNC_ALWAYS_ON)
 static s32 optionVSyncGet(void* data)
 {
     StudioMainMenu* main = data;
@@ -192,6 +196,7 @@ static MenuOption VSyncOption =
     optionVSyncGet,
     optionVSyncSet,
 };
+#endif
 
 static s32 optionVolumeGet(void* data)
 {
@@ -332,7 +337,9 @@ enum
 #if defined(CRT_SHADER_SUPPORT)
     OptionsMenu_CrtMonitorOption,
 #endif
+#if !defined(VSYNC_ALWAYS_ON)
     OptionsMenu_VSyncOption,
+#endif
     OptionsMenu_FullscreenOption,
     OptionsMenu_IntegerScaleOption,
 #if defined(BUILD_RENDER_CACHE)
@@ -353,7 +360,9 @@ static const MenuItem OptionMenu[] =
 #if defined(CRT_SHADER_SUPPORT)
     {"CRT MONITOR",     NULL,   &CrtMonitorOption},
 #endif
+#if !defined(VSYNC_ALWAYS_ON)
     {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
+#endif
     {"FULLSCREEN",      NULL,   &FullscreenOption},
     {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
 #if defined(BUILD_RENDER_CACHE)

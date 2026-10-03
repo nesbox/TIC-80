@@ -31,15 +31,12 @@
 #define DEFAULT_VSYNC 1
 #endif
 
-#if defined(__TIC_ANDROID__) || defined(__EMSCRIPTEN__)
-// Handhelds and the browser fill their viewport instead: integer scale there
-// leaves black borders, which is why the web export page used to force the
-// option off by writing options.json (and, being IDBFS, wrote it into a file
-// every TIC-80 page on the origin shares). The default does the job instead.
+// Integer scale leaves black borders around the picture wherever the window
+// is not a whole multiple of it, and the picture is what the machine is for:
+// off by default everywhere. The web export page used to force it off by
+// writing options.json (and, being IDBFS, wrote it into a file every TIC-80
+// page on the origin shares); the default does the job instead.
 #define INTEGER_SCALE_DEFAULT false
-#else
-#define INTEGER_SCALE_DEFAULT true
-#endif
 
 static void readConfig(Config* config)
 {
@@ -92,7 +89,9 @@ static void setDefault(Config* config)
         .options =
         {
 #if defined(CRT_SHADER_SUPPORT)
-            .crt            = false,
+            // The effect is half the point of the machine on a big screen:
+            // on unless a player turns it off.
+            .crt            = true,
 #endif
             .volume         = MAX_VOLUME,
             .vsync          = DEFAULT_VSYNC,

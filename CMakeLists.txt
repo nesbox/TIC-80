@@ -33,11 +33,11 @@ endif()
 
 set(BUILD_PLAYER_DEFAULT OFF)
 set(BUILD_LIBRETRO_DEFAULT OFF)
-if(ANDROID OR NINTENDO_SWITCH)
-    set(BUILD_TOUCH_INPUT_DEFAULT ON)
-else()
-    set(BUILD_TOUCH_INPUT_DEFAULT OFF)
-endif()
+# Touch input is off unless a build asks for it: the platforms with a screen
+# to touch — Android, the Switch, the browser a phone opens the player in —
+# pass -DBUILD_TOUCH_INPUT=ON themselves, and a build that does not is a build
+# without the controls, their layout and their textures.
+set(BUILD_TOUCH_INPUT_DEFAULT OFF)
 set(BUILD_WITH_ALL_DEFAULT OFF)
 
 option(BUILD_STATIC "Static runtime" ${BUILD_STATIC_DEFAULT})
@@ -48,8 +48,12 @@ if(BUILD_RENDER_CACHE)
     add_definitions(-DBUILD_RENDER_CACHE)
 endif()
 option(BUILD_SDL "SDL Enabled" ON)
+option(BUILD_SOKOL "Sokol Enabled" OFF)
 if(BUILD_APPLE)
     set(BUILD_SDL OFF)
+endif()
+if(BUILD_SDL AND BUILD_SOKOL)
+    message(FATAL_ERROR "BUILD_SDL and BUILD_SOKOL are two system layers: enable exactly one")
 endif()
 option(BUILD_SDLGPU "SDL GPU Enabled" OFF)
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
@@ -213,6 +217,7 @@ include(cmake/studio.cmake)
 include(cmake/tests.cmake)
 
 include(cmake/sdl.cmake)
+include(cmake/sokol.cmake)
 include(cmake/apple.cmake)
 include(cmake/libretro.cmake)
 include(cmake/n3ds.cmake)

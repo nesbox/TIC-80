@@ -148,7 +148,9 @@ android {
                             "-DBUILD_PRO=${ticPro}",
                             "-DBUILD_EDITORS=${ticEditors}",
                             "-DCMAKE_BUILD_TYPE=Release",
-                            "-DBUILD_WITH_ALL=ON"
+                            "-DBUILD_WITH_ALL=ON",
+                            // a phone has a screen to touch and no keys
+                            "-DBUILD_TOUCH_INPUT=ON"
             }
         }
     }
