@@ -633,43 +633,6 @@ static void learn_layout(sapp_keycode code, uint32_t unicode)
         }
 }
 
-// A page may resize the canvas with a stylesheet alone — a class on a
-// container, the site's way of stretching the player — and sokol reads the
-// canvas size only on a window resize, which that is not. Watching the canvas
-// and repeating the news to the window is what puts the layer on whatever box
-// it is given, whoever gave it.
-static void watch_canvas(void)
-{
-#if defined(__EMSCRIPTEN__)
-    EM_ASM({
-        const canvas = Module.canvas || document.getElementById('canvas');
-
-        if (!canvas || typeof ResizeObserver === 'undefined')
-            return;
-
-        // The observer has to be held: a dropped one is collected and stops
-        // reporting. The size is compared before repeating it, so a canvas the
-        // page sizes from its own attributes cannot bounce the news back.
-        let last = canvas.getBoundingClientRect();
-
-        Module.tic80CanvasWatch = new ResizeObserver(function(entries)
-        {
-            const box = entries[0] && entries[0].contentRect;
-            const w = box ? box.width : 0;
-            const h = box ? box.height : 0;
-
-            if (Math.abs(w - last.width) < 0.5 && Math.abs(h - last.height) < 0.5)
-                return;
-
-            last = { width: w, height: h };
-            window.dispatchEvent(new Event('resize'));
-        });
-
-        Module.tic80CanvasWatch.observe(canvas);
-    });
-#endif
-}
-
 // A browser starts the audio context suspended, and only a gesture may start
 // it. sokol's own hook is one-shot and listens on the release, so a gesture
 // that lands while the module is still loading — or a resume the browser
@@ -923,8 +886,6 @@ static void init_cb(void)
 #if defined(__EMSCRIPTEN__)
     EM_ASM(Module.tic80Viewport());
 #endif
-
-    watch_canvas();
 
     platform.fullscreen = sapp_is_fullscreen();
 }
