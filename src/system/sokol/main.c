@@ -681,6 +681,17 @@ static void event_cb(const sapp_event* event)
         platform.pointer.left = platform.pointer.right = platform.pointer.middle = false;
         break;
 
+    case SAPP_EVENTTYPE_MOUSE_LEAVE:
+        // The pointer left the canvas — which on a page is the player's own
+        // box — so it is off the machine's screen, and the machine would keep
+        // drawing its cursor where the pointer left it if it were not told.
+        platform.pointer.left = platform.pointer.right = platform.pointer.middle = false;
+        platform.pointer.x = platform.pointer.y = -1.0f;
+        platform.input.mouse.x = -1;
+        platform.input.mouse.y = -1;
+        sapp_show_mouse(true);
+        break;
+
     case SAPP_EVENTTYPE_MOUSE_MOVE:
     case SAPP_EVENTTYPE_MOUSE_DOWN:
     case SAPP_EVENTTYPE_MOUSE_UP:
