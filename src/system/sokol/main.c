@@ -68,9 +68,11 @@ static struct
         bool state[tic_keys_count];
         bool pressed[tic_keys_count];
         // Characters arrive faster than the machine ticks; a single slot would
-        // keep only the last of a burst.
+        // keep only the last of a burst. `taken` is the frame's answer to
+        // whether anything wanted them.
         char queue[64];
         s32  head, tail;
+        bool taken;
 
         // A CHAR event carries no key code, so the key it belongs to is the
         // one that went down last.
@@ -876,6 +878,16 @@ static void frame_cb(void)
     if (platform.accumulator > MAX_CATCH_UP / (double)TIC80_FRAMERATE)
         platform.accumulator = 0;
 
+    // Typed characters belong to whatever had the keyboard this frame: a frame
+    // in which nothing took one — the browsers, the menus — drops what it was
+    // carrying, or the next text field would get a pocketful typed somewhere
+    // else. A frame that took some keeps the rest of the burst, since a slow
+    // text field reads one character a tick.
+    if (!platform.keyboard.taken)
+        platform.keyboard.head = platform.keyboard.tail = 0;
+
+    platform.keyboard.taken = false;
+
     render_frame(platform.studio, studio_mem(platform.studio)->product.screen, ticked);
 
 #if defined(__EMSCRIPTEN__)
@@ -1174,6 +1186,7 @@ bool tic_sys_keyboard_text(char* text)
         return false;
 
     *text = platform.keyboard.queue[platform.keyboard.tail++ % COUNT_OF(platform.keyboard.queue)];
+    platform.keyboard.taken = true;
     return true;
 }
 
