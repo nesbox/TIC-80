@@ -37,6 +37,19 @@
 
 #include <emscripten/fetch.h>
 
+// A request the server never answers must fail on its own call: with no
+// timeout a stalled link holds a browser connection slot for minutes, and
+// every other request of the studio queues behind it.
+#define FETCH_TIMEOUT_MSEC 15000
+
+// Only the small requests of the studio — the listings and the covers — carry
+// that deadline. A cartridge is what the user waits for and can be megabytes,
+// and the deadline is a total one, so a slow download must be left alone.
+static bool isShortRequest(const char* path)
+{
+    return strncmp(path, "/json", 5) == 0 || strstr(path, "cover.gif") != NULL;
+}
+
 typedef struct
 {
     net_get_callback callback;
@@ -66,7 +79,9 @@ static void downloadSucceeded(emscripten_fetch_t *fetch)
 
     data->callback(&getData);
 
-    free((void*)fetch->data);
+    // The body lives with the fetch and emscripten_fetch_close() frees it:
+    // freeing it here as well was a double free on every answered request,
+    // which is what a release dlmalloc eats in silence.
     free(data);
 
     emscripten_fetch_close(fetch);
@@ -123,7 +138,23 @@ void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void
     };
 
     net->attr.userData = data;
-    emscripten_fetch(&net->attr, path);
+    net->attr.timeoutMSecs = isShortRequest(path) ? FETCH_TIMEOUT_MSEC : 0;
+
+    // A fetch that could not even start answers like a failed one, so no
+    // caller is left waiting on a callback that will never come.
+    if(!emscripten_fetch(&net->attr, path))
+    {
+        net_get_data getData =
+        {
+            .type = net_get_error,
+            .error = {.code = -1},
+            .calldata = calldata,
+            .url = path,
+        };
+
+        callback(&getData);
+        free(data);
+    }
 }
 
 void tic_net_start(tic_net *net) {}

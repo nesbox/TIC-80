@@ -38,6 +38,10 @@ struct Surf
     bool loading;
     s32 ticks;
 
+    // Cover requests the site has not answered yet, so the browser cannot
+    // hold every connection slot with them, see requestCover().
+    s32 coversInFlight;
+
     struct
     {
         s32 pos;
