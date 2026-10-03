@@ -8,6 +8,12 @@ if(BUILD_SOKOL)
     # one always can.
     target_compile_definitions(tic80studio PUBLIC CRT_SHADER_SUPPORT)
 
+    # The swap interval is fixed when sokol makes the window, which is before
+    # the studio reads its config, so the option has nothing to say here and
+    # the menu leaves it out. The field stays in the config for the layers
+    # that can honor it.
+    target_compile_definitions(tic80studio PUBLIC VSYNC_ALWAYS_ON)
+
     set(SOKOL_SRC ${CMAKE_SOURCE_DIR}/src/system/sokol/sokol_impl.c)
 
     add_library(sokol STATIC ${SOKOL_SRC})

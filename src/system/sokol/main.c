@@ -897,6 +897,10 @@ static sapp_desc app_desc(void)
         // drawn at its own size either way, so the picture is as sharp as the
         // display can be and the fill costs the same.
         .high_dpi = true,
+        // Always, never from the config: the window is made here, before the
+        // studio exists to read one, and sokol has no setter for it. The
+        // machine's sixty ticks a second do not depend on it either way, and
+        // the menu leaves the option out for the same reason.
         .swap_interval = 1,
         .html5.canvas_resize = false,
         .enable_clipboard = true,
