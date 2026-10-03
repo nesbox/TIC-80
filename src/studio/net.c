@@ -79,7 +79,9 @@ static void downloadSucceeded(emscripten_fetch_t *fetch)
 
     data->callback(&getData);
 
-    free((void*)fetch->data);
+    // The body lives with the fetch and emscripten_fetch_close() frees it:
+    // freeing it here as well was a double free on every answered request,
+    // which is what a release dlmalloc eats in silence.
     free(data);
 
     emscripten_fetch_close(fetch);
