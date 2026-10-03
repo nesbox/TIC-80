@@ -2910,8 +2910,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     Studio* studio = NEW(Studio);
     *studio = (Studio)
     {
-        // Nothing is drawn until a mouse is moved, and one that never is
-        // never puts a cursor in the corner of a fresh application.
+        // Still since the day it was born: see where `last` is set below.
         .mouse = { .idle = CURSOR_HIDE_TICKS },
 
         .mode = TIC_START_MODE,
@@ -2954,6 +2953,11 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 #endif
         .tic = tic_core_create(samplerate, format),
     };
+
+    // Where the machine's mouse starts is not a move: a layer that has not
+    // seen a mouse yet reports just this, and nothing is drawn until one
+    // arrives — no cursor in the corner of a fresh application.
+    studio->mouse.last = tic_api_mouse(studio->tic);
 
     {
         const char *path = args.fs ? args.fs : folder;
