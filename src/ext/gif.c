@@ -129,7 +129,11 @@ static gif_image* readGif(GifFileType *gif)
                 }
                 while(record != TERMINATE_RECORD_TYPE);
 
-                if(error == E_GIF_SUCCEEDED)
+                ColorMapObject* colorMap = gif->Image.ColorMap ? gif->Image.ColorMap : gif->SColorMap;
+
+                // A GIF that carries no color table at all has nothing to draw
+                // with, and the colors used to be read through a null table.
+                if(error == E_GIF_SUCCEEDED && colorMap)
                 {
 
                     image = (gif_image*)malloc(sizeof(gif_image));
@@ -140,16 +144,21 @@ static gif_image* readGif(GifFileType *gif)
                         image->buffer = screen;
                         image->width = gif->SWidth;
                         image->height = gif->SHeight;
-
-                        ColorMapObject* colorMap = gif->Image.ColorMap ? gif->Image.ColorMap : gif->SColorMap;
-
                         image->colors = colorMap->ColorCount;
 
                         s32 size = image->colors * sizeof(gif_color);
                         image->palette = malloc(size);
 
-                        memcpy(image->palette, colorMap->Colors, size);
-                    }                   
+                        if(image->palette)
+                            memcpy(image->palette, colorMap->Colors, size);
+                        else
+                        {
+                            free(image);
+                            free(screen);
+                            image = NULL;
+                        }
+                    }
+                    else free(screen);
                 }
                 else free(screen);
             }
@@ -164,12 +173,21 @@ static gif_image* readGif(GifFileType *gif)
 typedef struct
 {
     const void* data;
+    s32 size;
     s32 pos;
 } GifBuffer;
 
 static int readBuffer(GifFileType* gif, GifByteType* data, int size)
 {
     GifBuffer* buffer = (GifBuffer*)gif->UserData;
+
+    // Past the end the answer is "no more": a cut-short body must stop the
+    // decoder, not feed it whatever the heap holds next to it.
+    if(buffer->pos >= buffer->size)
+        return 0;
+
+    if(size > buffer->size - buffer->pos)
+        size = buffer->size - buffer->pos;
 
     memcpy(data, (const u8*)buffer->data + buffer->pos, size);
     buffer->pos += size;
@@ -179,7 +197,10 @@ static int readBuffer(GifFileType* gif, GifByteType* data, int size)
 
 gif_image* gif_read_data(const void* data, int size)
 {
-    GifBuffer buffer = {data, 0};
+    if(!data || size <= 0)
+        return NULL;
+
+    GifBuffer buffer = {data, size, 0};
     GifFileType *gif = DGifOpen(&buffer, readBuffer, NULL);
 
     return readGif(gif);
