@@ -468,8 +468,8 @@ static void keyboard_quads(const ControlsInput* input, float x, float y, float w
 
 // The menu control is the keyboard's own ESC key, so a phone can leave a game.
 // A keyboard cart has that key on its own on-screen keyboard, so this one is
-// there for the gamepad, and it is the whole key the layout has for it — two
-// cells wide — not the half of it a square would show.
+// there for the gamepad, and it is the whole key the layout has for it: two
+// cells across and two down, which is the key's face and the shadow under it.
 static void menu_quad(const ControlsInput* input)
 {
     float x, y, w, h;
@@ -485,7 +485,7 @@ static void menu_quad(const ControlsInput* input)
 
     add_quad(controls_tex_menu, x, y, w, h,
         TIC80_OFFSET_LEFT, TIC80_OFFSET_TOP,
-        TIC80_OFFSET_LEFT + 2 * ART_TILE, TIC80_OFFSET_TOP + ART_TILE);
+        TIC80_OFFSET_LEFT + 2 * ART_TILE, TIC80_OFFSET_TOP + 2 * ART_TILE);
 }
 
 static void update_picture(const ControlsInput* input, float x, float y, float w, float h)
@@ -629,10 +629,10 @@ void controls_update(const ControlsInput* input)
             layout_pad(unit, false);
         }
 
-        // The menu key is two cells wide and one tall in the keyboard's art,
-        // and is drawn at half a control unit across.
+        // The menu key is the whole of the keyboard's ESC key — its cells are
+        // square — and is drawn at half a control unit across.
         CLAY(id_of("menu"), {
-            .layout = { .sizing = { CLAY_SIZING_FIXED(unit / 2), CLAY_SIZING_FIXED(unit / 4) } },
+            .layout = { .sizing = { CLAY_SIZING_FIXED(unit / 2), CLAY_SIZING_FIXED(unit / 2) } },
             .floating = {
                 .attachTo = CLAY_ATTACH_TO_PARENT,
                 .attachPoints = { .element = CLAY_ATTACH_POINT_RIGHT_TOP, .parent = CLAY_ATTACH_POINT_RIGHT_TOP },
