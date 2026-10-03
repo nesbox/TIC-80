@@ -37,6 +37,11 @@
 
 #include <emscripten/fetch.h>
 
+// A request the server never answers must fail on its own call: with no
+// timeout a stalled link holds a browser connection slot for minutes, and
+// every other request of the studio queues behind it.
+#define FETCH_TIMEOUT_MSEC 15000
+
 typedef struct
 {
     net_get_callback callback;
@@ -123,7 +128,22 @@ void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void
     };
 
     net->attr.userData = data;
-    emscripten_fetch(&net->attr, path);
+
+    // A fetch that could not even start answers like a failed one, so no
+    // caller is left waiting on a callback that will never come.
+    if(!emscripten_fetch(&net->attr, path))
+    {
+        net_get_data getData =
+        {
+            .type = net_get_error,
+            .error = {.code = -1},
+            .calldata = calldata,
+            .url = path,
+        };
+
+        callback(&getData);
+        free(data);
+    }
 }
 
 void tic_net_start(tic_net *net) {}
@@ -136,6 +156,7 @@ tic_net* tic_net_create(const char* host)
     emscripten_fetch_attr_init(&net->attr);
     strcpy(net->attr.requestMethod, "GET");
     net->attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    net->attr.timeoutMSecs = FETCH_TIMEOUT_MSEC;
     net->attr.onsuccess = downloadSucceeded;
     net->attr.onerror = downloadFailed;
     net->attr.onprogress = downloadProgress;
