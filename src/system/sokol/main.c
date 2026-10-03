@@ -1040,7 +1040,15 @@ bool tic_sys_fullscreen_get(void)
 void tic_sys_fullscreen_set(bool value)
 {
     if (value != sapp_is_fullscreen())
+    {
         sapp_toggle_fullscreen();
+
+        // The window leaves the keyboard behind while the system moves it to
+        // a space of its own: the key that asked for this is never released,
+        // and held it counts as pressed again on every mode switch.
+        memset(platform.keyboard.state, 0, sizeof platform.keyboard.state);
+        memset(platform.keyboard.pressed, 0, sizeof platform.keyboard.pressed);
+    }
 
     platform.fullscreen = sapp_is_fullscreen();
 }
