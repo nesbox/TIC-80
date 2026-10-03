@@ -633,11 +633,29 @@ static void learn_layout(sapp_keycode code, uint32_t unicode)
         }
 }
 
+// A browser starts the audio context suspended, and only a gesture may start
+// it. sokol's own hook is one-shot and listens on the release, so a gesture
+// that lands while the module is still loading — or a resume the browser
+// turns down — leaves the machine silent for good. Ours retries on every
+// press, on the press itself, until the context is running.
+static void resume_audio(void)
+{
+#if defined(__EMSCRIPTEN__)
+    EM_ASM({
+        const ctx = Module._saudio_context;
+
+        if (ctx && ctx.state !== 'running')
+            ctx.resume().catch(function() {});
+    });
+#endif
+}
+
 static void event_cb(const sapp_event* event)
 {
     switch (event->type)
     {
     case SAPP_EVENTTYPE_KEY_DOWN:
+        resume_audio();
         platform.keyboard.lastCode = event->key_code;
         handle_key(event->key_code, true);
         break;
@@ -687,6 +705,9 @@ static void event_cb(const sapp_event* event)
             platform.pointer.left = event->mouse_button == SAPP_MOUSEBUTTON_LEFT ? down : platform.pointer.left;
             platform.pointer.right = event->mouse_button == SAPP_MOUSEBUTTON_RIGHT ? down : platform.pointer.right;
             platform.pointer.middle = event->mouse_button == SAPP_MOUSEBUTTON_MIDDLE ? down : platform.pointer.middle;
+
+            if (down)
+                resume_audio();
         }
         break;
 
@@ -752,6 +773,8 @@ static void event_cb(const sapp_event* event)
 
         platform.touch.timeout = TOUCH_TIMEOUT;
         platform.touch.seen = true;
+
+        resume_audio();
 
         break;
 #endif
