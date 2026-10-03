@@ -5,7 +5,7 @@ This is a ZIG / TIC-80 starter template. To build it, ensure you have the latest
 The build reserves TIC-80's first 96 KiB of linear memory by folding that space into the configured stack size and leaving 8 KiB of actual stack above it.
 
 ```
-zig build --release=small
+zig build
 ```
 
 To import the resulting WASM to a cartridge:
@@ -28,5 +28,5 @@ This is assuming you've run TIC-80 with `--fs .` inside your project directory.
 
 Or easy call it :)
 ```zsh
-sh run.sh
+zig build run
 ```
