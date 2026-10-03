@@ -27,6 +27,7 @@ typedef enum
     controls_tex_buttons,
     controls_tex_keyboard,
     controls_tex_keyboard_down,
+    controls_tex_menu,      // the ESC key on its own, its white painted out
     controls_tex_count,
 } ControlsTexture;
 
