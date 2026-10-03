@@ -148,6 +148,13 @@ struct Studio
     struct
     {
         MouseState state[3];
+
+        // Ticks since the mouse last moved or was pressed: the studio draws
+        // its own cursor while the mouse is being used and stops drawing it
+        // once it has been still for a while. The position itself is left
+        // alone, so a click is a click whether the cursor is drawn or not.
+        s32 idle;
+        tic_point last;
 #if defined(BUILD_RENDER_CACHE)
         struct
         {
@@ -2328,6 +2335,11 @@ void studioConfigChanged(Studio* studio)
     tic_sys_update_config();
 }
 
+// Ticks of stillness after which the studio stops drawing its own cursor.
+// Ten seconds: long enough to read a line of code without the cursor being
+// taken for the mouse having left.
+#define CURSOR_HIDE_TICKS   (TIC80_FRAMERATE * 10)
+
 static void processMouseStates(Studio* studio)
 {
     for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
@@ -2337,6 +2349,15 @@ static void processMouseStates(Studio* studio)
 
     tic->ram->vram.vars.cursor.sprite = tic_cursor_arrow;
     tic->ram->vram.vars.cursor.system = true;
+
+    {
+        const tic_point pos = tic_api_mouse(tic);
+        const bool used = pos.x != studio->mouse.last.x || pos.y != studio->mouse.last.y
+            || tic->ram->input.mouse.btns;
+
+        studio->mouse.last = pos;
+        studio->mouse.idle = used ? 0 : MIN(studio->mouse.idle + 1, CURSOR_HIDE_TICKS);
+    }
 
     for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
     {
@@ -2458,7 +2479,8 @@ static void blitCursor(Studio* studio)
     tic_mem* tic = studio->tic;
     tic80_mouse* m = &tic->ram->input.mouse;
 
-    if(tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT)
+    if(studio->mouse.idle < CURSOR_HIDE_TICKS
+        && tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT)
     {
         s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;
@@ -2559,7 +2581,8 @@ void studio_tick(Studio* studio, tic80_input input)
 
 #if defined(BUILD_RENDER_CACHE)
         tic80_mouse* m = &tic->ram->input.mouse;
-        bool mouse_visible = (tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT && m->x >= 0 && m->y >= 0);
+        bool mouse_visible = (studio->mouse.idle < CURSOR_HIDE_TICKS
+            && tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT && m->x >= 0 && m->y >= 0);
         if (mouse_visible || studio->mouse.prev.visible)
         {
             if (m->x != studio->mouse.prev.x || m->y != studio->mouse.prev.y ||
@@ -2887,6 +2910,10 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     Studio* studio = NEW(Studio);
     *studio = (Studio)
     {
+        // Nothing is drawn until a mouse is moved, and one that never is
+        // never puts a cursor in the corner of a fresh application.
+        .mouse = { .idle = CURSOR_HIDE_TICKS },
+
         .mode = TIC_START_MODE,
         .prevMode = TIC_HOME_MODE,
         .playerRun = true,
