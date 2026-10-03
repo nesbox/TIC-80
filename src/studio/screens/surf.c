@@ -50,6 +50,10 @@
 
 // Cover requests the browser may have in flight at once.
 #define COVERS_IN_FLIGHT 2
+
+// How long a cover the site did not give is left alone before it is asked for
+// again, while its item stays under the cursor.
+#define COVER_RETRY_TICKS (TIC80_FRAMERATE * 5)
 #define CAN_OPEN_URL (__TIC_WINDOWS__ || __TIC_LINUX__ || __TIC_MACOSX__ || __TIC_ANDROID__)
 
 static const char* PngExt = PNG_EXT;
@@ -67,6 +71,7 @@ struct SurfItem
     tic_palette* palette;
 
     bool coverLoading;
+    s32 coverRetry;
     bool dir;
     bool project;
 };
@@ -78,6 +83,7 @@ typedef struct
     Surf* surf;
     fs_done_callback done;
     void* data;
+    char dir[TICNAME_MAX];
 } AddMenuItemData;
 
 static void drawTopToolbar(Surf* surf, s32 x, s32 y)
@@ -257,42 +263,62 @@ static int itemcmp(const void* a, const void* b)
     return casecmp(item1->name, item2->name);
 }
 
+static void freeMenuItems(SurfItem* items, s32 count)
+{
+    for(s32 i = 0; i < count; i++)
+    {
+        SurfItem* item = &items[i];
+
+        free(item->name);
+
+        FREE(item->hash);
+        FREE(item->cover);
+        FREE(item->label);
+        FREE(item->palette);
+    }
+
+    free(items);
+}
+
 static void addMenuItemsDone(void* data)
 {
     AddMenuItemData* addMenuItemData = data;
     Surf* surf = addMenuItemData->surf;
 
-    surf->menu.items = addMenuItemData->items;
-    surf->menu.count = addMenuItemData->count;
+    char dir[TICNAME_MAX];
+    tic_fs_dir(surf->fs, dir);
 
-    if(!tic_fs_ispubdir(surf->fs))
-        qsort(surf->menu.items, surf->menu.count, sizeof *surf->menu.items, itemcmp);
+    // A listing answers into the browser only while it is still the folder the
+    // browser is in. An answer for a folder left behind would put its items
+    // under the wrong path, and menu.pos would point into another list.
+    if(strcmp(dir, addMenuItemData->dir) == 0)
+    {
+        surf->menu.items = addMenuItemData->items;
+        surf->menu.count = addMenuItemData->count;
 
+        if(!tic_fs_ispubdir(surf->fs))
+            qsort(surf->menu.items, surf->menu.count, sizeof *surf->menu.items, itemcmp);
+
+        if(surf->menu.pos >= surf->menu.count)
+            surf->menu.pos = 0;
+
+        surf->loading = false;
+    }
+    else freeMenuItems(addMenuItemData->items, addMenuItemData->count);
+
+    // The animation the answer was waited on belongs to the screen, not to the
+    // listing, and is finished either way.
     if (addMenuItemData->done)
         addMenuItemData->done(addMenuItemData->data);
 
     free(addMenuItemData);
-
-    surf->loading = false;
 }
 
 static void resetMenu(Surf* surf)
 {
     if(surf->menu.items)
     {
-        for(s32 i = 0; i < surf->menu.count; i++)
-        {
-            SurfItem* item = &surf->menu.items[i];
-
-            free(item->name);
-
-            FREE(item->hash);
-            FREE(item->cover);
-            FREE(item->label);
-            FREE(item->palette);
-        }
-
-        free(surf->menu.items);
+        freeMenuItems(surf->menu.items, surf->menu.count);
 
         surf->menu.items = NULL;
         surf->menu.count = 0;
@@ -375,14 +401,15 @@ static void coverLoaded(const net_get_data* netData)
     case net_get_done:
     case net_get_error:
 
-        // A cover the site did not give is asked for again the next time the
-        // item is under the cursor, rather than staying blank for the session.
+        // A cover the site did not give is asked for again later, rather than
+        // staying blank for the session — but not before the retry is due, or
+        // a cursor resting on one item would ask the site every frame.
         if(netData->type == net_get_error)
         {
             SurfItem* item = coverItem(surf, coverLoadingData);
 
             if(item)
-                item->coverLoading = false;
+                item->coverRetry = surf->ticks + COVER_RETRY_TICKS;
         }
 
         if(surf->coversInFlight > 0)
@@ -441,7 +468,7 @@ static void loadCover(Surf* surf)
 
     SurfItem* item = getMenuItem(surf);
 
-    if(item->coverLoading)
+    if(item->coverLoading || surf->ticks < item->coverRetry)
         return;
 
     if(!tic_fs_ispubdir(surf->fs))
@@ -504,6 +531,9 @@ static void initItemsAsync(Surf* surf, fs_done_callback callback, void* calldata
     tic_fs_dir(surf->fs, dir);
 
     AddMenuItemData data = { NULL, 0, surf, callback, calldata};
+
+    // The answer says which folder it is for, see addMenuItemsDone.
+    strcpy(data.dir, dir);
 
     if(strcmp(dir, "") != 0)
         addMenuItem("..", NULL, NULL, 0, &data, true);

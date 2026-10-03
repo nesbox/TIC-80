@@ -42,6 +42,14 @@
 // every other request of the studio queues behind it.
 #define FETCH_TIMEOUT_MSEC 15000
 
+// Only the small requests of the studio — the listings and the covers — carry
+// that deadline. A cartridge is what the user waits for and can be megabytes,
+// and the deadline is a total one, so a slow download must be left alone.
+static bool isShortRequest(const char* path)
+{
+    return strncmp(path, "/json", 5) == 0 || strstr(path, "cover.gif") != NULL;
+}
+
 typedef struct
 {
     net_get_callback callback;
@@ -128,6 +136,7 @@ void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void
     };
 
     net->attr.userData = data;
+    net->attr.timeoutMSecs = isShortRequest(path) ? FETCH_TIMEOUT_MSEC : 0;
 
     // A fetch that could not even start answers like a failed one, so no
     // caller is left waiting on a callback that will never come.
@@ -156,7 +165,6 @@ tic_net* tic_net_create(const char* host)
     emscripten_fetch_attr_init(&net->attr);
     strcpy(net->attr.requestMethod, "GET");
     net->attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    net->attr.timeoutMSecs = FETCH_TIMEOUT_MSEC;
     net->attr.onsuccess = downloadSucceeded;
     net->attr.onerror = downloadFailed;
     net->attr.onprogress = downloadProgress;
