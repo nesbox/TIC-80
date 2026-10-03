@@ -390,7 +390,9 @@ static void build_input(void)
     for (tic_key i = 0; i < tic_keys_count && c < TIC80_KEY_BUFFER; i++)
         if (platform.keyboard.state[i] || platform.keyboard.pressed[i]
 #if defined(TOUCH_INPUT_SUPPORT)
-            || (controls->visible && controls->keys[i])
+            // The on-screen keyboard's escape is the menu, not a key to hold,
+            // and is written below as the edge it is.
+            || (controls->visible && controls->keys[i] && i != tic_key_escape)
 #endif
             )
             input->keyboard.keys[c++] = i;
@@ -428,18 +430,32 @@ static void build_input(void)
     }
 
     // The menu is ESC, the way the SDL layer's BACK button is, and a pad's own
-    // back and start are that same menu. One press is one ESC: the key is
-    // written on the edge alone, because a button held through a mode change —
-    // where the machine's previous keyboard state is wiped — would read as a
-    // second press and walk a player two steps back.
+    // back and start and the on-screen keyboard's escape are that same menu.
+    // One press is one ESC: the key is written on the edge alone, because a
+    // button held through a mode change — where the machine's previous
+    // keyboard state is wiped — would read as a second press and walk a player
+    // two steps back.
     bool menu = padMenu;
 
 #if defined(TOUCH_INPUT_SUPPORT)
-    menu = menu || controls->menu;
+    menu = menu || controls->menu || (controls->visible && controls->keys[tic_key_escape]);
 #endif
 
     if (menu && !platform.menuDown)
-        input->keyboard.keys[0] = tic_key_escape;
+    {
+        // A free slot first: writing over the first key would drop whatever
+        // the player is holding for this tick.
+        s32 slot = 0;
+
+        for (s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+            if (input->keyboard.keys[i] == tic_key_unknown)
+            {
+                slot = i;
+                break;
+            }
+
+        input->keyboard.keys[slot] = tic_key_escape;
+    }
 
     platform.menuDown = menu;
 }
@@ -678,7 +694,11 @@ static void event_cb(const sapp_event* event)
     switch (event->type)
     {
     case SAPP_EVENTTYPE_KEY_DOWN:
-        resume_audio();
+        // A key the browser repeats is the same press, and the audio context
+        // has been asked already.
+        if (!platform.keyboard.state[translate_key(event->key_code)])
+            resume_audio();
+
         platform.keyboard.lastCode = event->key_code;
         handle_key(event->key_code, true);
         break;
@@ -808,7 +828,10 @@ static void event_cb(const sapp_event* event)
         platform.touch.timeout = TOUCH_TIMEOUT;
         platform.touch.seen = true;
 
-        resume_audio();
+        // The beginning is the gesture a browser wants for audio, and the only
+        // one worth asking on: a move or a lift only repeats what it said.
+        if (event->type == SAPP_EVENTTYPE_TOUCHES_BEGAN)
+            resume_audio();
 
         break;
 #endif
