@@ -1,29 +1,35 @@
 #!/usr/bin/env bash
-# generate-notes.sh — print the release body: our summary, then GitHub's list.
+# generate-notes.sh — print the release body: our summary, the site's own
+# changes, then GitHub's list.
 #
 #   DEEPSEEK_API_KEY=... generate-notes.sh <tag>
 #
-# Two halves, each best-effort, so one failing never costs the other:
+# Three parts, each best-effort, so one failing never costs the others:
 #
 #   1. a readable summary written by DeepSeek from the merged pull request
 #      titles of the range — what the release means, grouped for players;
-#   2. the list GitHub generates for the same range — every pull request
+#   2. the site's changes since the previous release, written by hand in
+#      site-notes.md: the model sees this repository's pull requests only, so
+#      the pages that shipped on tic80.com (deletion, the notifications feed,
+#      the like gate coming down) would otherwise never reach the page;
+#   3. the list GitHub generates for the same range — every pull request
 #      with its author and link, the first-time contributors, the compare
 #      link. This is the half that credits people, and prose must never be
 #      the only thing on the page: a summary that replaces the list loses
 #      the contributors and the per-PR links the release is read for.
 #
-# Both halves describe one range, and it is the last *published* release.
-# The nearest git tag is not that range in this repo: releases are cut from
-# `stable`, whose tags are not ancestors of `main` (the nearest ancestor tag
-# is v0.90.1706 of 2021), so `git describe` would describe three and a half
-# extra years — the v1.2.0 draft written this way says "since v0.90.1706"
-# over 1448 commits and 321 pull requests, where GitHub counts the ~250 pull
-# requests merged since v1.1.2837. GitHub's own generate-notes defaults to
-# the same last published release; naming it explicitly keeps the two halves
-# describing one set of changes.
+# The two generated parts describe one range, and it is the last *published*
+# release. The nearest git tag is not that range in this repo: releases are
+# cut from `stable`, whose tags are not ancestors of `main` (the nearest
+# ancestor tag is v0.90.1706 of 2021), so `git describe` would describe three
+# and a half extra years — the v1.2.0 draft written this way says "since
+# v0.90.1706" over 1448 commits and 321 pull requests, where GitHub counts
+# the ~250 pull requests merged since v1.1.2837. GitHub's own generate-notes
+# defaults to the same last published release; naming it explicitly keeps the
+# two describing one set of changes. The site's part is about the same window
+# by hand — site-notes.md is rewritten for each release.
 #
-# Prints the body to stdout and exits non-zero only when both halves are
+# Prints the body to stdout and exits non-zero only when every part is
 # empty, so release.yml can leave the draft's body alone in that case.
 
 set -uo pipefail
@@ -94,7 +100,19 @@ else
     echo "generate-notes: no summary (model, key or the pull request query) — the body keeps the list" >&2
 fi
 
-# --- half two: GitHub's list -----------------------------------------------
+# --- the site's part: what changed on tic80.com ----------------------------
+# No pull request here covers it, so it is a hand-written file beside this
+# script — the version of it that ships with the tag describes that release's
+# site changes. Rewritten for each release by hand; empty or absent means
+# nothing site-side changed and the section simply does not appear.
+SITE_NOTES="$(dirname "$0")/site-notes.md"
+SITE=""
+if [ -s "$SITE_NOTES" ]; then
+    SITE="$(cat "$SITE_NOTES")"
+    printf '%s\n\n' "$SITE"
+fi
+
+# --- half three: GitHub's list ---------------------------------------------
 # previous_tag_name pins the range to the one the summary was written for;
 # without a published release, the endpoint's own default is the right one.
 gh_args=(-f "tag_name=$TAG")
@@ -108,5 +126,8 @@ else
     echo "generate-notes: GitHub's list failed — see the error above" >&2
 fi
 
-# Nothing at all: let the caller keep the draft's existing body.
+# Nothing at all: let the caller keep the draft's existing body. The site's
+# section is deliberately not in this test — the rule above, prose must never
+# be the only thing on the page: a body of site notes alone would replace the
+# pull request list the release is read for.
 [ -n "$SUMMARY$LIST" ]

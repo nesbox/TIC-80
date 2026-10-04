@@ -100,13 +100,62 @@ jobs:
           name: tic80-mac-pkg
           path: flat
 
+      # A re-pushed tag runs the whole pipeline again, and the two steps below
+      # must not touch a release that is already public: `draft: true` sends it
+      # back to a draft and the notes step overwrites a body edited by hand.
+      # Both happened on 1.2.0, and both were caught by cancelling the run by
+      # hand — twice. A draft, or no release at all, is the ordinary path.
+      #
+      # The API is asked rather than `gh release view` because the HTTP status
+      # is what this step branches on: a 404 is the only failure that means
+      # "no release yet". Treating any failure that way — a 5xx, a token
+      # without access — would let an unreachable API send a published release
+      # back to a draft, which is the thing this guard exists to prevent, so
+      # anything but a 404 stops the job.
+      - name: Check what the tag's release is
+        id: release_state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! body="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" 2>&1)"; then
+            case "$body" in
+              *"HTTP 404"*)
+                echo "no release for $GITHUB_REF_NAME yet — the step below creates the draft"
+                echo "published=false" >> "$GITHUB_OUTPUT"
+                ;;
+              *)
+                echo "::error::could not read the release for $GITHUB_REF_NAME: $body"
+                exit 1
+                ;;
+            esac
+          else
+            # plain `.draft`, not `// empty`: jq's alternative operator treats
+            # false as absent, and false is exactly the published case
+            case "$(jq -r '.draft' <<<"$body" 2>/dev/null)" in
+              true)
+                echo "release $GITHUB_REF_NAME is a draft — refreshing its assets and notes"
+                echo "published=false" >> "$GITHUB_OUTPUT"
+                ;;
+              false)
+                echo "::warning::release $GITHUB_REF_NAME is published — leaving it untouched (no asset refresh, no notes rewrite); delete the release or bump the version to rebuild"
+                echo "published=true" >> "$GITHUB_OUTPUT"
+                ;;
+              *)
+                echo "::error::unexpected release payload for $GITHUB_REF_NAME"
+                exit 1
+                ;;
+            esac
+          fi
+
       - name: Draft GitHub release
+        if: steps.release_state.outputs.published != 'true'
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           files: flat/*
 
       - name: Generate release notes
+        if: steps.release_state.outputs.published != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
