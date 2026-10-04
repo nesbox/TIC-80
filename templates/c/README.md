@@ -51,3 +51,21 @@ The script ```buildcart.sh``` does the above steps as a convenience.
 
 ## Additional Notes
 TIC-80 API functions that merely duplicate standard library functionality are not imported. Please use the `memcpy` and `memset` functions provided by the C standard library instead.
+
+## Alternative Build System
+
+You can use [Zig](https://ziglang.org/) to build this template.
+
+Install Zig 0.17 or above and run:
+
+```
+% zig build
+```
+
+The result will be in zig-out/bin/cart.wasm
+
+You can build and run your cart with:
+
+```
+% zig build run
+```
