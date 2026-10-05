@@ -42,6 +42,7 @@ if(BUILD_WITH_YUE)
     target_include_directories(yuescript
         PRIVATE
         ${YUESCRIPT_DIR}/src
+        ${YUESCRIPT_DIR}/src/3rdParty
         ${YUESCRIPT_DIR}/src/yuescript
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
@@ -50,6 +51,7 @@ if(BUILD_WITH_YUE)
 
     target_compile_definitions(yuescript PRIVATE 
         YUE_NO_MACRO 
+        YUE_UTF8_IMPL
         $<$<BOOL:${MSVC}>:_SCL_SECURE_NO_WARNINGS>
     )
 
