@@ -41,7 +41,9 @@ static void evalYuescript(tic_mem* tic, const char* code)
     lua_State* lua = (lua_State*)core->currentVM;
 
     yue::YueCompiler compiler;
-    auto result = compiler.compile(code, yue::YueConfig());
+    yue::YueConfig config;
+    config.options["target"] = LUA_VERSION_MAJOR "." LUA_VERSION_MINOR;
+    auto result = compiler.compile(code, config);
 
     if (result.error)
     {

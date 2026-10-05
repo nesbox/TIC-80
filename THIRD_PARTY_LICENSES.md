@@ -184,7 +184,7 @@ The MIT license text is included in `LICENSES/MIT.txt`.
 ## YueScript
 Project: https://github.com/IppClub/YueScript  
 License: MIT  
-Copyright (c) 2017-2025 Li Jin dragon-fly@qq.com  
+Copyright (c) 2017-2026 Li Jin dragon-fly@qq.com  
 
 The MIT license text is included in `LICENSES/MIT.txt`.
 
