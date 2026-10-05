@@ -40,6 +40,8 @@ if(BUILD_WITH_JS)
         )
 
         add_library(quickjs STATIC ${QUICKJS_SRC})
+        # MSVC's default C mode cannot compile the C11 atomics used by QuickJS-ng.
+        set_target_properties(quickjs PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON)
         target_compile_definitions(quickjs PRIVATE _GNU_SOURCE)
         target_include_directories(quickjs PUBLIC "${QUICKJS_DIR}")
 
@@ -72,7 +74,11 @@ if(BUILD_WITH_JS)
     endif()
 
     if(NOT WIN32)
-        target_link_libraries(quickjs ${QUICKJS_LINK_SCOPE} m ${CMAKE_DL_LIBS})
+        target_link_libraries(quickjs ${QUICKJS_LINK_SCOPE} m)
+        # These console and bare-metal C libraries do not provide libdl.
+        if(CMAKE_DL_LIBS AND NOT NINTENDO_SWITCH AND NOT NINTENDO_3DS AND NOT BAREMETALPI)
+            target_link_libraries(quickjs ${QUICKJS_LINK_SCOPE} ${CMAKE_DL_LIBS})
+        endif()
     endif()
 
     if(NOT EMSCRIPTEN)
