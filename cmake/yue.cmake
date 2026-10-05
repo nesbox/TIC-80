@@ -62,6 +62,7 @@ if(BUILD_WITH_YUE)
 
     if(MSVC)
         target_compile_definitions(yuescript PRIVATE _SCL_SECURE_NO_WARNINGS)
+        target_compile_options(yuescript PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/Zc:__cplusplus>)
     else()
         target_compile_options(yuescript PRIVATE -Wall -Wno-long-long -fPIC -O3)
     endif()
