@@ -341,6 +341,18 @@ static void handle_key(sapp_keycode code, bool down)
     platform.keyboard.state[key] = down;
 }
 
+#if defined(__EMSCRIPTEN__)
+// Ctrl on a character key rides the bubble sokol leaves for text, and Ctrl+R
+// is RUN there. Ctrl+C/X/V and AltGr (Ctrl+Alt) stay the browser's.
+static bool machine_key(sapp_keycode code, u32 modifiers)
+{
+    if ((modifiers & SAPP_MODIFIER_CTRL) && !(modifiers & SAPP_MODIFIER_ALT))
+        return code != SAPP_KEYCODE_C && code != SAPP_KEYCODE_V && code != SAPP_KEYCODE_X;
+
+    return false;
+}
+#endif
+
 // Moves the machine's mouse to a window point; false when the point is off the
 // machine's screen, where it has no mouse to move — a press there is not a
 // click on whatever the mouse was last over.
@@ -703,6 +715,11 @@ static void event_cb(const sapp_event* event)
 
         platform.keyboard.lastCode = event->key_code;
         handle_key(event->key_code, true);
+
+#if defined(__EMSCRIPTEN__)
+        if (machine_key(event->key_code, event->modifiers))
+            sapp_consume_event();
+#endif
         break;
 
     case SAPP_EVENTTYPE_KEY_UP:
