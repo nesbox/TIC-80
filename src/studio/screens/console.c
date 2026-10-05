@@ -2830,6 +2830,13 @@ static void onAddFile(Console* console, const char* name, const u8* buffer, s32 
     commandDone(console);
 }
 
+// The page hands the picked file back here: emscripten no longer emits the dynCall
+// the popup was written against, and its other web callbacks are exported calls too.
+EMSCRIPTEN_KEEPALIVE void tic80_add_file(Console* console, const char* name, const u8* buffer, s32 size)
+{
+    onAddFile(console, name, buffer, size);
+}
+
 static void onAddCommand(Console* console)
 {
     void* data = NULL;
@@ -2840,7 +2847,7 @@ static void onAddCommand(Console* console)
         {
             if(filename == null || rom == null)
             {
-                dynCall('viiii', $0, [$1, 0, 0, 0]);
+                Module._tic80_add_file($0, 0, 0, 0);
             }
             else
             {
@@ -2850,13 +2857,13 @@ static void onAddCommand(Console* console)
                 var dataPtr = _malloc(rom.length);
                 HEAPU8.set(rom, dataPtr);
 
-                dynCall('viiii', $0, [$1, filePtr, dataPtr, rom.length]);
+                Module._tic80_add_file($0, filePtr, dataPtr, rom.length);
 
                 _free(filePtr);
                 _free(dataPtr);
             }
         });
-    }, onAddFile, console);
+    }, console);
 }
 
 static void onGetCommand(Console* console)
