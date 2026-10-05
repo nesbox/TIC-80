@@ -2210,10 +2210,18 @@ static bool tryExportNativeFromLocalTemplate(Console* console, const char* name,
 
 static inline void exportNativeGame(Console* console, const char* name, const char* system, ExportParams params)
 {
-    if(tryExportNativeFromLocalTemplate(console, name, system))
+#if defined(TIC80_PRO)
+    // alone=1 wants an editorless player, and the local template is this very
+    // client, editors and all: only the server keeps editorless stubs.
+    bool local = !params.alone;
+#else
+    bool local = true;
+#endif
+
+    if(local && tryExportNativeFromLocalTemplate(console, name, system))
         return;
 
-    if(canExportNativeFromLocalTemplate(system))
+    if(local && canExportNativeFromLocalTemplate(system))
     {
         printLine(console);
         printBack(console, "\nlocal native template failed, using server template...");
