@@ -129,11 +129,13 @@ Copyright (c) 2026 blueloveTH
 
 The MIT license text is included in `LICENSES/MIT.txt`.
 
-## QuickJS
-Project: https://github.com/nesbox/quickjs  
-License: MIT  
-Copyright (c) 2017-2021 Fabrice Bellard  
-Copyright (c) 2017-2021 Charlie Gordon  
+## QuickJS-ng
+Project: https://github.com/quickjs-ng/quickjs
+License: MIT
+Copyright (c) 2017-2026 Fabrice Bellard
+Copyright (c) 2017-2024 Charlie Gordon
+Copyright (c) 2023-2026 Ben Noordhuis
+Copyright (c) 2023-2026 Saúl Ibarra Corretgé
 
 The MIT license text is included in `LICENSES/MIT.txt`.
 

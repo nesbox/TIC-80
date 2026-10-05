@@ -25,6 +25,12 @@ if(BUILD_TESTS)
         add_test(NAME ${target} COMMAND ${target} ${ARGN})
     endfunction()
 
+    if(BUILD_WITH_JS)
+        add_executable(js-test ${CMAKE_SOURCE_DIR}/tests/js.c)
+        target_link_libraries(js-test PRIVATE js tic80core)
+        tic80_add_test(js-test)
+    endif()
+
     # The strip is tested against the core alone: linking tic80studio instead
     # would hide a call into studio.c, which is the one thing this test is for.
     # version.h is generated into the build directory, and the studio target is
