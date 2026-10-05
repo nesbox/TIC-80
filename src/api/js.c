@@ -65,6 +65,25 @@ static float getNumber(JSContext *ctx, JSValueConst val)
     return res;
 }
 
+static bool isArray(JSContext* ctx, JSValueConst val)
+{
+    // QuickJS-ng's JS_IsArray checks the object itself; keep accepting arrays
+    // wrapped in proxies, as the original context-taking API did.
+    if(!JS_IsProxy(val)) return JS_IsArray(val);
+
+    JSValue target = JS_GetProxyTarget(ctx, val);
+    while(JS_IsProxy(target))
+    {
+        JSValue next = JS_GetProxyTarget(ctx, target);
+        JS_FreeValue(ctx, target);
+        target = next;
+    }
+
+    bool result = JS_IsArray(target);
+    JS_FreeValue(ctx, target);
+    return result;
+}
+
 static void js_dump_obj(JSContext *ctx, FILE *f, JSValueConst val)
 {
     const char *str;
@@ -88,7 +107,7 @@ static void js_std_dump_error1(JSContext *ctx, JSValueConst exception_val)
     JSValue val;
     bool is_error;
 
-    is_error = JS_IsError(ctx, exception_val);
+    is_error = JS_IsError(exception_val);
     js_dump_obj(ctx, stdout, exception_val);
     if (is_error)
     {
@@ -226,12 +245,13 @@ static JSValue js_spr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
     s32 x = getInteger2(ctx, argv[1], 0);
     s32 y = getInteger2(ctx, argv[2], 0);
 
-    if(JS_IsArray(ctx, argv[3]))
+    if(isArray(ctx, argv[3]))
     {
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
             JSValue val = JS_GetPropertyUint32(ctx, argv[3], i);
             colors[i] = getInteger2(ctx, val, -1);
+            JS_FreeValue(ctx, val);
             count++;
         }
     }
@@ -387,12 +407,13 @@ static JSValue js_sfx(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
     s32 channel = getInteger2(ctx, argv[3], 0);
     s32 volumes[TIC80_SAMPLE_CHANNELS];
 
-    if(JS_IsArray(ctx, argv[4]))
+    if(isArray(ctx, argv[4]))
     {
         for(s32 i = 0; i < COUNT_OF(volumes); i++)
         {
             JSValue val = JS_GetPropertyUint32(ctx, argv[4], i);
             volumes[i] = getInteger(ctx, val);
+            JS_FreeValue(ctx, val);
         }
     }
     else volumes[0] = volumes[1] = getInteger2(ctx, argv[4], MAX_VOLUME);
@@ -427,16 +448,23 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
             JS_NewInt32(ctx, y),
         });
 
-    if(JS_IsArray(ctx, res))
+    if(isArray(ctx, res))
     {
-        result->index = JS_IsUndefined(res) ? 0 : getInteger(ctx, JS_GetPropertyUint32(ctx, res, 0));
-        result->flip = getInteger2(ctx, JS_GetPropertyUint32(ctx, res, 1), result->flip);
-        result->rotate = getInteger2(ctx, JS_GetPropertyUint32(ctx, res, 2), result->rotate);
+        JSValue val = JS_GetPropertyUint32(ctx, res, 0);
+        result->index = getInteger(ctx, val);
+        JS_FreeValue(ctx, val);
+        val = JS_GetPropertyUint32(ctx, res, 1);
+        result->flip = getInteger2(ctx, val, result->flip);
+        JS_FreeValue(ctx, val);
+        val = JS_GetPropertyUint32(ctx, res, 2);
+        result->rotate = getInteger2(ctx, val, result->rotate);
+        JS_FreeValue(ctx, val);
     }
     else
     {
         result->index = JS_IsUndefined(res) ? 0 : getInteger(ctx, res);
     }
+    JS_FreeValue(ctx, res);
 }
 
 static JSValue js_map(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
@@ -452,12 +480,13 @@ static JSValue js_map(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
 
-    if(JS_IsArray(ctx, argv[6]))
+    if(isArray(ctx, argv[6]))
     {
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
             JSValue val = JS_GetPropertyUint32(ctx, argv[6], i);
             colors[i] = getInteger2(ctx, val, -1);
+            JS_FreeValue(ctx, val);
             count++;
         }
     }
@@ -829,12 +858,13 @@ static JSValue js_textri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
 
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
-    if(JS_IsArray(ctx, argv[13]))
+    if(isArray(ctx, argv[13]))
     {
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
             JSValue val = JS_GetPropertyUint32(ctx, argv[13], i);
             colors[i] = getInteger2(ctx, val, -1);
+            JS_FreeValue(ctx, val);
             count++;
         }
     }
@@ -871,12 +901,13 @@ static JSValue js_ttri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
-    if(JS_IsArray(ctx, argv[13]))
+    if(isArray(ctx, argv[13]))
     {
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
             JSValue val = JS_GetPropertyUint32(ctx, argv[13], i);
             colors[i] = getInteger2(ctx, val, -1);
+            JS_FreeValue(ctx, val);
             count++;
         }
     }
@@ -1119,6 +1150,9 @@ static bool initJavascript(tic_mem* tic, const char* code)
     closeJavascript(tic);
 
     JSRuntime *rt = JS_NewRuntime();
+#ifndef NDEBUG
+    JS_SetDumpFlags(rt, JS_DUMP_LEAKS);
+#endif
     JSContext* ctx = JS_NewContext(rt);
 
     tic_core* core = (tic_core*)tic;
@@ -1146,6 +1180,7 @@ static bool initJavascript(tic_mem* tic, const char* code)
     if (JS_IsException(ret))
     {
         js_std_dump_error(ctx);
+        closeJavascript(tic);
         return false;
     }
     else

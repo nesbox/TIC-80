@@ -23,7 +23,6 @@ message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
 message("VERSION_HASH: ${VERSION_HASH}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
-include(cmake/runtime_versions.cmake)
 
 if(ANDROID OR EMSCRIPTEN OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI)
     set(BUILD_STATIC_DEFAULT ON)
@@ -203,6 +202,8 @@ include(cmake/quickjs.cmake)
 include(cmake/janet.cmake)
 include(cmake/forth.cmake)
 include(cmake/miniscript.cmake)
+
+include(cmake/runtime_versions.cmake)
 
 # After the languages: the tools check what those options came out as.
 include(cmake/tools.cmake)
