@@ -68,6 +68,7 @@ end)
 
 probe('print/no-args', function()
     print()
+    trace('done')
 end)
 
 ---- pix
@@ -742,6 +743,7 @@ end)
 
 probe('vbank/no-args', function()
     vbank()
+    trace('done')
 end)
 
 ---- sync
@@ -764,6 +766,7 @@ end)
 
 probe('reset/call', function()
     reset()
+    trace('done')
 end)
 
 -- The engine runs a cart's TIC every tick; the probes live at the top level.

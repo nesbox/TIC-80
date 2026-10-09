@@ -69,6 +69,7 @@
 (probe :print/no-args
   (fn []
     (print)
+    (trace "done")
     ))
 
 ;; pix
@@ -849,6 +850,7 @@
 (probe :vbank/no-args
   (fn []
     (vbank)
+    (trace "done")
     ))
 
 ;; sync
@@ -875,6 +877,7 @@
 (probe :reset/call
   (fn []
     (reset)
+    (trace "done")
     ))
 
 ;; The engine runs a cart's TIC every tick; the probes live at the top level.

@@ -53,6 +53,7 @@ probe "print/fixed", ->
 
 probe "print/no-args", ->
   print()
+  trace('done')
 
 -- pix
 
@@ -621,6 +622,7 @@ probe "vbank/switch", ->
 
 probe "vbank/no-args", ->
   vbank()
+  trace('done')
 
 -- sync
 
@@ -639,6 +641,7 @@ probe "exit/call", ->
 
 probe "reset/call", ->
   reset()
+  trace('done')
 
 -- The engine runs a cart's TIC every tick; the probes live at the top level.
 _G.TIC = ->
