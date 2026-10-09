@@ -89,4 +89,16 @@ if(BUILD_TESTS)
         tic80_add_test(python-outline-test $<TARGET_FILE:python>)
     endif()
 
+    # The API conformance suite records every API call of every language
+    # through traps over core->api, no window. It needs the static runtime:
+    # only there does tic_scripts() list every binding instead of leaving
+    # them to be loaded as modules at run time.
+    if(BUILD_STATIC)
+        add_executable(api-conformance
+            ${CMAKE_SOURCE_DIR}/tests/conformance/runner.c
+            ${CMAKE_SOURCE_DIR}/tests/conformance/traps.c)
+        target_link_libraries(api-conformance PRIVATE tic80core)
+        tic80_add_test(api-conformance ${CMAKE_SOURCE_DIR}/tests/conformance/probes)
+    endif()
+
 endif()
