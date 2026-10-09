@@ -3,14 +3,15 @@ const std = @import("std");
 const tic80_reserved_memory = 96 * 1024;
 const tic80_stack_size = 8 * 1024;
 
-pub fn build(b: *std.Build) !void {
-    const optimize = b.standardOptimizeOption(.{});
+pub fn build(b: *std.Build) void {
     const target = b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .freestanding });
     const exe = b.addExecutable(.{
         .name = "cart",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = .small, // binary with debug symbols is too large anyway
+        }),
     });
 
     exe.rdynamic = true;
@@ -24,4 +25,11 @@ pub fn build(b: *std.Build) !void {
     exe.export_table = true;
 
     b.installArtifact(exe);
+
+    const run_cart = b.addSystemCommand(&[_][]const u8{ "tic80", "--skip", "--fs", ".", "--cmd" });
+    run_cart.step.dependOn(b.getInstallStep());
+    run_cart.addArtifactArg2(exe, .{ .prefix = "load cart.wasmp & import binary ", .suffix = " & save & run & quit" });
+
+    const run_step = b.step("run", "Run the cartridge");
+    run_step.dependOn(&run_cart.step);
 }
