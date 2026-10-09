@@ -281,5 +281,490 @@ probe('poke/out-of-bounds', function()
     poke(1000000, 1)
 end)
 
+---- trace
+
+probe('trace/basic', function()
+    trace('hello')
+end)
+
+probe('trace/color', function()
+    trace('hello', 5)
+end)
+
+---- spr
+
+probe('spr/basic', function()
+    cls(0)
+    spr(1, 10, 10)
+    pix(10, 10)
+end)
+
+probe('spr/colorkey', function()
+    cls(0)
+    spr(1, 20, 20, 4)
+    pix(20, 20)
+end)
+
+probe('spr/scale', function()
+    cls(0)
+    spr(1, 30, 30, -1, 2)
+    pix(30, 30)
+end)
+
+probe('spr/flip-rotate', function()
+    cls(0)
+    spr(1, 40, 40, -1, 1, 3, 2)
+    pix(40, 40)
+end)
+
+---- map
+
+probe('map/defaults', function()
+    cls(0)
+    map()
+    pix(0, 0)
+end)
+
+probe('map/size', function()
+    cls(0)
+    map(0, 0, 4, 4)
+    pix(0, 0)
+end)
+
+probe('map/scale', function()
+    cls(0)
+    map(0, 0, 4, 4, 0, 0, -1, 2)
+    pix(0, 0)
+end)
+
+---- btn
+
+probe('btn/pressed', function()
+    btn(0)
+    btn(4)
+end)
+
+probe('btn/missing-id', function()
+    btn()
+end)
+
+---- btnp
+
+probe('btnp/pressed', function()
+    btnp(0)
+end)
+
+probe('btnp/hold-period', function()
+    btnp(0, 10, 5)
+end)
+
+---- key
+
+probe('key/no-key', function()
+    key()
+end)
+
+probe('key/code', function()
+    key(1)
+end)
+
+---- keyp
+
+probe('keyp/no-key', function()
+    keyp()
+end)
+
+probe('keyp/hold-period', function()
+    keyp(1, 10, 5)
+end)
+
+---- mouse
+
+probe('mouse/idle', function()
+    mouse()
+end)
+
+---- circ
+
+probe('circ/fill', function()
+    cls(0)
+    circ(20, 20, 5, 6)
+    pix(20, 20)
+    pix(25, 20)
+end)
+
+probe('circ/zero-radius', function()
+    cls(0)
+    circ(30, 30, 0, 6)
+    pix(30, 30)
+end)
+
+---- circb
+
+probe('circb/border', function()
+    cls(0)
+    circb(20, 20, 5, 6)
+    pix(20, 20)
+    pix(25, 20)
+end)
+
+probe('circb/missing-color', function()
+    cls(0)
+    circb(20, 20, 5)
+    pix(25, 20)
+end)
+
+---- elli
+
+probe('elli/fill', function()
+    cls(0)
+    elli(40, 40, 6, 3, 6)
+    pix(40, 40)
+    pix(46, 40)
+end)
+
+probe('elli/zero-radius', function()
+    cls(0)
+    elli(40, 40, 0, 0, 6)
+    pix(40, 40)
+end)
+
+---- ellib
+
+probe('ellib/border', function()
+    cls(0)
+    ellib(40, 40, 6, 3, 6)
+    pix(40, 40)
+    pix(46, 40)
+end)
+
+probe('ellib/missing-color', function()
+    cls(0)
+    ellib(40, 40, 6, 3)
+    pix(46, 40)
+end)
+
+---- paint
+
+probe('paint/fill', function()
+    cls(0)
+    paint(5, 5, 6)
+    pix(0, 0)
+    pix(239, 135)
+end)
+
+probe('paint/missing-color', function()
+    cls(0)
+    paint(5, 5)
+    pix(0, 0)
+end)
+
+---- tri
+
+probe('tri/fill', function()
+    cls(0)
+    tri(0, 0, 10, 0, 0, 10, 6)
+    pix(0, 0)
+    pix(5, 0)
+    pix(10, 10)
+end)
+
+probe('tri/missing-color', function()
+    cls(0)
+    tri(0, 0, 10, 0, 0, 10)
+    pix(0, 0)
+end)
+
+---- trib
+
+probe('trib/border', function()
+    cls(0)
+    trib(0, 0, 10, 0, 0, 10, 6)
+    pix(0, 0)
+    pix(5, 0)
+end)
+
+probe('trib/missing-color', function()
+    cls(0)
+    trib(0, 0, 10, 0, 0, 10)
+    pix(0, 0)
+end)
+
+---- ttri
+
+probe('ttri/basic', function()
+    cls(0)
+    ttri(0, 0, 10, 0, 0, 10, 0, 0, 1, 0, 0, 1)
+    pix(0, 0)
+    pix(5, 0)
+end)
+
+probe('ttri/chromakey', function()
+    cls(0)
+    ttri(0, 0, 10, 0, 0, 10, 0, 0, 1, 0, 0, 1, 0, 4)
+    pix(0, 0)
+end)
+
+---- clip
+
+probe('clip/set', function()
+    cls(0)
+    clip(2, 2, 5, 5)
+    rect(0, 0, 10, 10, 6)
+    pix(0, 0)
+    pix(2, 2)
+    clip()
+end)
+
+probe('clip/reset', function()
+    cls(0)
+    clip()
+    rect(0, 0, 2, 2, 6)
+    pix(0, 0)
+end)
+
+---- font
+
+probe('font/text', function()
+    cls(0)
+    font('ab', 0, 0, -1, 6, 6)
+    pix(0, 0)
+end)
+
+---- sfx
+
+probe('sfx/basic', function()
+    sfx(0)
+end)
+
+probe('sfx/note', function()
+    sfx(0, 48)
+end)
+
+probe('sfx/channel', function()
+    sfx(0, 48, -1, 1)
+end)
+
+probe('sfx/missing-id', function()
+    sfx()
+end)
+
+---- music
+
+probe('music/basic', function()
+    music(0)
+end)
+
+probe('music/frame', function()
+    music(0, 0, 0, true, false)
+end)
+
+---- fget
+
+probe('fget/out-of-range', function()
+    fget(500, 0)
+end)
+
+---- fset
+
+probe('fset/roundtrip', function()
+    fset(0, 0, true)
+    fget(0, 0)
+end)
+
+probe('fset/missing-bool', function()
+    fset(0, 1)
+    fget(0, 1)
+end)
+
+---- peek1
+
+probe('peek1/read', function()
+    peek1(16)
+end)
+
+---- poke1
+
+probe('poke1/roundtrip', function()
+    poke1(16, 7)
+    peek1(16)
+end)
+
+---- peek2
+
+probe('peek2/read', function()
+    peek2(24)
+end)
+
+---- poke2
+
+probe('poke2/roundtrip', function()
+    poke2(24, 300)
+    peek2(24)
+end)
+
+---- peek4
+
+probe('peek4/read', function()
+    peek4(64)
+end)
+
+---- poke4
+
+probe('poke4/roundtrip', function()
+    poke4(64, 9)
+    peek4(64)
+end)
+
+---- memset
+
+probe('memset/bytes', function()
+    memset(48, 7, 2)
+    peek(48)
+    peek(49)
+end)
+
+---- memcpy
+
+probe('memcpy/copy', function()
+    poke(56, 1)
+    poke(57, 2)
+    memcpy(60, 56, 2)
+    peek(60)
+    peek(61)
+end)
+
+---- pmem
+
+probe('pmem/read', function()
+    pmem(0)
+end)
+
+probe('pmem/write-read', function()
+    pmem(0, 42)
+    pmem(0)
+end)
+
+probe('pmem/out-of-range', function()
+    pmem(1000)
+end)
+
+---- time
+
+probe('time/stub', function()
+    time()
+end)
+
+---- tstamp
+
+probe('tstamp/stub', function()
+    tstamp()
+end)
+
+---- fft
+
+probe('fft/sample', function()
+    fft(0)
+end)
+
+---- ffts
+
+probe('ffts/spectrum', function()
+    ffts(0)
+end)
+
+---- fftr
+
+probe('fftr/range', function()
+    fftr(0, 100)
+end)
+
+---- fftrs
+
+probe('fftrs/range', function()
+    fftrs(0, 100)
+end)
+
+---- vqt
+
+probe('vqt/read', function()
+    vqt(0)
+end)
+
+---- vqts
+
+probe('vqts/read', function()
+    vqts(0)
+end)
+
+---- vqtr
+
+probe('vqtr/read', function()
+    vqtr(0)
+end)
+
+---- vqtrs
+
+probe('vqtrs/read', function()
+    vqtrs(0)
+end)
+
+---- vqtw
+
+probe('vqtw/read', function()
+    vqtw(0)
+end)
+
+---- vqtsw
+
+probe('vqtsw/read', function()
+    vqtsw(0)
+end)
+
+---- vqtrw
+
+probe('vqtrw/read', function()
+    vqtrw(0)
+end)
+
+---- vqtrsw
+
+probe('vqtrsw/read', function()
+    vqtrsw(0)
+end)
+
+---- vbank
+
+probe('vbank/switch', function()
+    vbank(1)
+    vbank(0)
+end)
+
+probe('vbank/no-args', function()
+    vbank()
+end)
+
+---- sync
+
+probe('sync/defaults', function()
+    sync()
+end)
+
+probe('sync/mask', function()
+    sync(32767, 0, false)
+end)
+
+---- exit
+
+probe('exit/call', function()
+    exit()
+end)
+
+---- reset
+
+probe('reset/call', function()
+    reset()
+end)
+
 -- The engine runs a cart's TIC every tick; the probes live at the top level.
 function TIC() end
