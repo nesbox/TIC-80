@@ -338,9 +338,9 @@ static void trap_ttri(tic_mem* tic, float x1, float y1, float x2, float y2, floa
 {
     Real_ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, colors, count, z1, z2, z3, depth);
 
-    api_record("ttri(%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%d,%u:[...],%d,%g,%g,%g,%s)",
+    api_record("ttri(%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%d,%s,%d,%g,%g,%g,%s)",
         x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3,
-        (int)texsrc, (unsigned)count, count, z1, z2, z3, b2s(depth));
+        (int)texsrc, arrayText(colors, (u8)count), count, z1, z2, z3, b2s(depth));
 }
 
 static void trap_clip(tic_mem* tic, s32 x, s32 y, s32 width, s32 height)

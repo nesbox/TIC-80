@@ -585,6 +585,15 @@ int main(int argc, char** argv)
                     else
                         printf(" - |");
                 }
+                else if (ApiProbes[i] == 0)
+                {
+                    // The reference never probed this api: a language with no
+                    // divergence here has nothing to report, not a pass.
+                    if (ApiCells[i * LangCount + l])
+                        printf(" 🔴 %d |", ApiCells[i * LangCount + l]);
+                    else
+                        printf(" - |");
+                }
                 else if (ApiCells[i * LangCount + l] == 0)
                     printf(" ✅ |");
                 else
