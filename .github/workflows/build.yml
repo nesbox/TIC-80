@@ -343,6 +343,52 @@ jobs:
           path: |
             stubs/*
 
+  # The API conformance suite: one static build with every language and no
+  # system layer, one headless run that records every API call of every
+  # language, one table in the job summary. A divergence is a finding, not a
+  # failure — the job goes red only when the measurement itself broke (no lua
+  # reference, a probe file that never ran).
+  conformance:
+    runs-on: ubuntu-22.04
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # mruby builds through a ruby rake, like the other linux jobs.
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+          cmake -B build-conformance -G Ninja \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON \
+            -DBUILD_SDL=OFF -DBUILD_TESTS=ON
+          cmake --build build-conformance --target api-conformance --parallel
+
+      # The table is markdown and the summary renders it; pipefail keeps a
+      # broken measurement red through the tee.
+      - name: Run
+        run: |
+          set -euo pipefail
+          ./build-conformance/bin/api-conformance tests/conformance/probes | tee -a "$GITHUB_STEP_SUMMARY"
+
   # === Ubuntu-arm64 ===
 
   linux-arm64-gcc12-glibc235:
