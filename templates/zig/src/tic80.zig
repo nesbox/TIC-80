@@ -120,10 +120,10 @@ pub const raw = struct {
     pub extern fn ellib(x: i32, y: i32, a: i32, b: i32, color: i32) void;
     pub extern fn fget(id: i32, flag: u8) bool;
     pub extern fn font(text: [*:0]u8, x: u32, y: i32, trans_colors: ?[*]const u8, color_count: i32, char_width: i32, char_height: i32, fixed: bool, scale: i32, alt: bool) i32;
-    pub extern fn fset(id: i32, flag: u8, value: bool) bool;
+    pub extern fn fset(id: i32, flag: u8, value: bool) void;
     pub extern fn key(keycode: i32) bool;
     pub extern fn keyp(keycode: i32, hold: i32, period: i32) bool;
-    pub extern fn line(x0: i32, y0: i32, x1: i32, y1: i32, color: i32) void;
+    pub extern fn line(x0: f32, y0: f32, x1: f32, y1: f32, color: i32) void;
     // pass struct by pointer SHOULD:tm JUST WORK
     pub extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, remap: ?*const RemapArgs) void;
     pub extern fn memcpy(to: u32, from: u32, length: u32) void;
@@ -136,7 +136,7 @@ pub const raw = struct {
     pub extern fn peek4(addr4: u32) u8;
     pub extern fn peek2(addr2: u32) u8;
     pub extern fn peek1(bitaddr: u32) u8;
-    pub extern fn pix(x: i32, y: i32, color: i32) void;
+    pub extern fn pix(x: i32, y: i32, color: i32) i32;
     pub extern fn pmem(index: u32, value: i64) u32;
     pub extern fn poke(addr: u32, value: u8, bits: i32) void;
     pub extern fn poke4(addr4: u32, value: u8) void;
@@ -154,14 +154,14 @@ pub const raw = struct {
     pub extern fn trib(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i32) void;
     pub extern fn time() f32;
     pub extern fn trace(text: [*:0]const u8, color: i32) void;
-    pub extern fn tstamp() u64;
+    pub extern fn tstamp() i32;
     pub extern fn vbank(bank: i32) u8;
 };
 
 // -----
 // INPUT
 
-const MouseData = extern struct {
+pub const MouseData = extern struct {
     x: i16,
     y: i16,
     scrollx: i8,
@@ -211,12 +211,18 @@ pub const mouse = raw.mouse;
 // TODO: remap should be what????
 // pub extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]u8, color_count: i32, scale: i32, remap: i32) void;
 
-const RemapArgs = extern struct { remap: *const fn (?*anyopaque, i32, i32, *RemapInfo) callconv(.C) void, data: ?*anyopaque, res_ptr: *RemapInfo };
+const RemapArgs = extern struct {
+    remap: *const fn (?*anyopaque, i32, i32, *RemapInfo) callconv(.c) void,
+    data: ?*anyopaque,
+    res_ptr: *RemapInfo,
+};
+
 pub const RemapInfo = extern struct {
     index: u8,
     flip: raw.Flip,
     rotate: raw.Rotate,
 };
+
 const MapArgs = struct {
     x: i32 = 0,
     y: i32 = 0,
@@ -229,7 +235,7 @@ const MapArgs = struct {
     remap: ?*const fn (i32, i32, *RemapInfo) void = null, // TODO
 };
 
-fn remap_wrapper(data: ?*anyopaque, x: i32, y: i32, info: *RemapInfo) callconv(.C) void {
+fn remap_wrapper(data: ?*anyopaque, x: i32, y: i32, info: *RemapInfo) callconv(.c) void {
     const fun: *const fn (i32, i32, *RemapInfo) void = @ptrCast(data orelse return);
     fun(x, y, info);
 }
@@ -237,18 +243,26 @@ pub fn map(args: MapArgs) void {
     const color_count = @as(u8, @intCast(args.transparent.len));
     const colors = args.transparent.ptr;
     std.debug.assert(color_count < 16);
+
     // why?
-    var remapinfo = .{ .index = undefined, .flip = undefined, .rotate = undefined };
-    const remap_args: ?RemapArgs = if (args.remap) |it| .{ .remap = &remap_wrapper, .data = @ptrCast(@constCast(it)), .res_ptr = &remapinfo } else null;
+    var remapinfo: RemapInfo = .{ .index = undefined, .flip = undefined, .rotate = undefined };
+
+    const remap_args: ?RemapArgs = if (args.remap) |it| .{
+        .remap = &remap_wrapper,
+        .data = @ptrCast(@constCast(it)),
+        .res_ptr = &remapinfo,
+    } else null;
+
     raw.map(args.x, args.y, args.w, args.h, args.sx, args.sy, colors, color_count, args.scale, if (remap_args) |it| &it else null);
 }
 
 pub fn pix(x: i32, y: i32, color: u8) void {
-    raw.pix(x, y, color);
+    _ = raw.pix(x, y, color);
 }
 
 pub fn getpix(x: i32, y: i32) u8 {
-    raw.pix(x, y, -1);
+    // pix normally returns an i32 due to wasm
+    return @intCast(raw.pix(x, y, -1));
 }
 
 // pub extern fn spr(id: i32, x: i32, y: i32, trans_colors: [*]u8, color_count: i32, scale: i32, flip: i32, rotate: i32, w: i32, h: i32) void;
@@ -324,7 +338,7 @@ pub fn print(text: []const u8, x: i32, y: i32, args: PrintArgs) i32 {
 /// Prints the text using format and returns the width of the text in pixels
 pub fn printf(comptime fmt: []const u8, fmtargs: anytype, x: i32, y: i32, args: PrintArgs) i32 {
     var buff: [MAX_STRING_SIZE:0]u8 = undefined;
-    _ = std.fmt.bufPrintZ(&buff, fmt, fmtargs) catch unreachable;
+    _ = std.mem.print(&buff, fmt, fmtargs) catch unreachable;
     return raw.print(&buff, x, y, args.color, args.fixed, args.scale, args.small_font);
 }
 
@@ -332,7 +346,7 @@ pub fn font(text: []const u8, x: u32, y: i32, args: FontArgs) i32 {
     const color_count = @as(u8, @intCast(args.transparent.len));
     const colors = args.transparent.ptr;
 
-    const as_ptr: [*:0]const u8 = @as([*:0]const u8, @ptrCast(text));
+    const as_ptr: [*:0]u8 = @as([*:0]u8, @ptrCast(@constCast(text)));
     return raw.font(as_ptr, x, y, colors, color_count, args.char_width, args.char_height, args.fixed, args.scale, args.alt);
 }
 
@@ -460,7 +474,7 @@ pub fn trace(text: []const u8) void {
 
 pub fn tracef(comptime fmt: []const u8, fmtargs: anytype) void {
     var buf: [MAX_STRING_SIZE:0]u8 = undefined;
-    _ = std.fmt.bufPrintZ(&buf, fmt, fmtargs) catch unreachable;
+    _ = std.mem.print(&buf, fmt, fmtargs) catch unreachable;
     trace(&buf);
 }
 
