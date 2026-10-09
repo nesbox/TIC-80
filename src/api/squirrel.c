@@ -1930,8 +1930,11 @@ static void callSquirrelTick(tic_mem* tic)
             if(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue)))
             {
                 errorReport(tic);
+                sq_poptop(vm);
                 return;
             }
+
+            sq_pop(vm, 2);
 
 #if defined(BUILD_DEPRECATED)
             // call OVR() callback for backward compatibility
@@ -1949,9 +1952,10 @@ static void callSquirrelTick(tic_mem* tic)
                         {
                             errorReport(tic);
                         }
+                        else sq_poptop(vm);
                     }
                 }
-                else sq_poptop(vm);
+                sq_poptop(vm);
             }
 #endif
         }
@@ -1981,9 +1985,14 @@ static void callSquirrelBoot(tic_mem* tic)
             if(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue)))
             {
                 errorReport(tic);
+                sq_poptop(vm);
                 return;
             }
+
+            sq_poptop(vm);
         }
+
+        sq_poptop(vm);
 
 #if defined(BUILD_RENDER_CACHE)
         sq_pushroottable(vm);
