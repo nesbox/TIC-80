@@ -45,6 +45,37 @@ static void testPressed(tic_mem* tic)
     puts("pressed ok");
 }
 
+// The machine's own repeat: a held key fires again every few frames, and the
+// once-check must not — that is the whole difference between the two, and what
+// the four copies the module replaced relied on. The state that makes it a
+// repeat lives in the core's tick, so the frames have to be really ticked.
+static void testRepeat(tic_mem* tic)
+{
+    enum {Frames = 40};
+
+    bool repeated = false;
+
+    for(s32 i = 0; i < Frames; i++)
+    {
+        press(tic, tic_key_a);
+
+        tic_core_tick_start(tic);
+        tic_core_tick_io(tic);
+        tic_core_tick_end(tic);
+
+        if(i > 0 && keyboard_pressed(tic, tic_key_a))
+        {
+            // A repeat is not a fresh press.
+            assert(!keyboard_pressed_once(tic, tic_key_a));
+            repeated = true;
+        }
+    }
+
+    assert(repeated);
+
+    puts("repeat ok");
+}
+
 static void testEnter(tic_mem* tic)
 {
     press(tic, tic_key_numpadenter);
@@ -102,6 +133,7 @@ int main(void)
     assert(tic);
 
     testPressed(tic);
+    testRepeat(tic);
     testEnter(tic);
     testText(tic);
     testClipboard(tic);

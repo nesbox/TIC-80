@@ -24,9 +24,10 @@
 
 #include "studio.h"
 
-// What the machine's keyboard says: a key being pressed, what it types, and the
-// clipboard gesture the keys ask for. The studio's wrappers add its own hold and
-// period, so both faces answer the same questions.
+// What the machine's keyboard says: a key pressed — and still repeating while it
+// is held, which is the studio's own feel, KEYBOARD_HOLD and KEYBOARD_PERIOD —
+// what it types, and the clipboard gesture the keys ask for. The enter check
+// takes its hold and period because its callers have their own.
 
 bool keyboard_pressed(tic_mem* tic, tic_key key);
 

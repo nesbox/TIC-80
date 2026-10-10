@@ -544,7 +544,6 @@ bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period)
 
 
 
-
 #if defined(BUILD_EDITORS)
 tic_tiles* getBankTiles(Studio* studio)
 {
@@ -606,7 +605,6 @@ const char* md5str(const void* data, s32 length)
 
     return res;
 }
-
 
 
 #if defined(BUILD_EDITORS)
@@ -1428,7 +1426,6 @@ static void updateTitle(Studio* studio)
 
     tic_sys_title(name);
 }
-
 
 
 void studioRomSaved(Studio* studio)

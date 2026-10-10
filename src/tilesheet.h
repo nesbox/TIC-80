@@ -98,6 +98,7 @@ inline void tic_tilesheet_settilepix(const tic_tileptr* tile, s32 x, s32 y, u8 v
 // sheet's coordinates rather than through a segment.
 static inline u8 tic_tilesheet_getflatpix(const tic_tile* tiles, s32 x, s32 y)
 {
+    // TODO: check spritesheet rect
     enum { SheetCols = (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE) };
     const tic_tile* tile = &tiles[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * SheetCols];
 
@@ -106,6 +107,7 @@ static inline u8 tic_tilesheet_getflatpix(const tic_tile* tiles, s32 x, s32 y)
 
 static inline void tic_tilesheet_setflatpix(tic_tile* tiles, s32 x, s32 y, u8 value)
 {
+    // TODO: check spritesheet rect
     enum { SheetCols = (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE) };
     tic_tile* tile = &tiles[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * SheetCols];
 
