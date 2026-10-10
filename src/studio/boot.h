@@ -22,34 +22,23 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "studio.h"
 
-typedef struct Start Start;
+#define CART_SIG "TIC.CART"
 
-typedef struct stage {
-    void(*fn)(Start*);
-    u8 ticks;
-} Stage;
-
-struct Start
+// The cart an app image carries: the app's bytes, then this header, then the
+// zipped cart. `export game` writes it, the launch reads it back.
+typedef struct
 {
-    Studio* studio;
-    tic_mem* tic;
+    u8 sig[STRLEN(CART_SIG)];
+    s32 appSize;
+    s32 cartSize;
+} EmbedHeader;
 
-    bool initialized;
-    Stage stages[5];
+// The image's cart, decompressed into `cart`, which must hold a whole
+// tic_cartridge. False when there is none — the signature alone is not proof.
+bool boot_findCart(const u8* app, s32 size, void* cart, s32 capacity, s32* cartSize);
 
-    u32 stage;
-    s32 ticks;
-    bool play;
-
-    char text[STUDIO_TEXT_BUFFER_SIZE];
-    u8 color[STUDIO_TEXT_BUFFER_SIZE];
-
-    bool embed;
-
-    void (*tick)(Start*);
-};
-
-void initStart(Start* start, Studio* studio, const char* cart);
-void freeStart(Start* start);
+// The format's other end: `app`'s bytes with `tic`'s cart appended, zipped. The
+// caller owns the result.
+void* boot_embedCart(tic_mem* tic, const u8* app, s32* size);

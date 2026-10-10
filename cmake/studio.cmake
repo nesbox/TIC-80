@@ -13,6 +13,9 @@ set(TIC80STUDIO_SRC
     # strip's own widgets are editors-only, but menu.c and the panels below it
     # reach those helpers too.
     ${TIC80LIB_DIR}/studio/toolbar.c
+    # The cart an app image carries and the state of a launch that came with
+    # one: every build boots, so this is not editors-only.
+    ${TIC80LIB_DIR}/studio/boot.c
     ${TIC80LIB_DIR}/studio/rom.c
     ${TIC80LIB_DIR}/studio/config.c
     ${TIC80LIB_DIR}/studio/fs.c

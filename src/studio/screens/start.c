@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "start.h"
+#include "studio/boot.h"
 #include "studio/fs.h"
 #include "cart.h"
 
@@ -103,27 +104,6 @@ static void tick(Start* start)
     start->ticks++;
 }
 
-static void* _memmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
-{
-    const u8* p = haystack;
-    size_t plen = hlen;
-
-    if (!nlen) return NULL;
-
-    s32 needle_first = *(u8*)needle;
-
-    while (plen >= nlen && (p = memchr(p, needle_first, plen - nlen + 1)))
-    {
-        if (!memcmp(p, needle, nlen))
-            return (void*)p;
-
-        p++;
-        plen = hlen - (p - (const u8*)haystack);
-    }
-
-    return NULL;
-}
-
 void initStart(Start* start, Studio* studio, const char* cart)
 {
     enum duration {
@@ -192,44 +172,18 @@ void initStart(Start* start, Studio* studio, const char* cart)
 
         if(app) SCOPE(free(app))
         {
-            s32 size = appSize;
-            const u8* ptr = app;
+            u8* data = calloc(1, sizeof(tic_cartridge));
+            s32 dataSize = 0;
 
-            while(true)
+            if(data && boot_findCart(app, appSize, data, sizeof(tic_cartridge), &dataSize))
             {
-                const EmbedHeader* header = (const EmbedHeader*)_memmem(ptr, size, CART_SIG, STRLEN(CART_SIG));
-
-                if(header)
-                {
-                    if(appSize == header->appSize + sizeof(EmbedHeader) + header->cartSize)
-                    {
-                        u8* data = calloc(1, sizeof(tic_cartridge));
-
-                        if(data)
-                        {
-                            s32 dataSize = tic_tool_unzip(data, sizeof(tic_cartridge), app + header->appSize + sizeof(EmbedHeader), header->cartSize);
-
-                            if(dataSize)
-                            {
-                                tic_cart_load(&start->tic->cart, data, dataSize);
-                                tic_api_reset(start->tic);
-                                start->embed = true;
-                                studioRomLoaded(start->studio);
-                            }
-
-                            free(data);
-                        }
-
-                        break;
-                    }
-                    else
-                    {
-                        ptr = (const u8*)header + STRLEN(CART_SIG);
-                        size = appSize - (s32)(ptr - app);
-                    }
-                }
-                else break;
+                tic_cart_load(&start->tic->cart, data, dataSize);
+                tic_api_reset(start->tic);
+                start->embed = true;
+                studioRomLoaded(start->studio);
             }
+
+            free(data);
         }
     }
 
