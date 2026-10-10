@@ -44,10 +44,15 @@ if(BUILD_SOKOL)
             "-framework Metal"
             "-framework MetalKit"
             "-framework AudioToolbox"
+            # The gamepad backend reads the pads through GameController, which
+            # needs no permission and knows the mainstream pads by itself.
+            "-framework GameController"
         )
 
     elseif(WIN32)
-        target_link_libraries(sokol PRIVATE d3d11)
+        # xinput comes with the system, and the gamepad backend reads it: an
+        # Xbox-family pad or anything that presents as one.
+        target_link_libraries(sokol PRIVATE d3d11 xinput)
     elseif(EMSCRIPTEN)
 
     else()
