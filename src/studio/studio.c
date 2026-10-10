@@ -23,10 +23,14 @@
 #include "studio.h"
 #include "apps.h"
 #include "mouse.h"
-#include "toolbar.h"
 #include "boot.h"
 #include "sound.h"
 #include "ui.h"
+
+// The strip is drawn by the editors' screens alone, so its header comes with them.
+#if defined(BUILD_EDITORS)
+#include "toolbar.h"
+#endif
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -277,7 +281,9 @@ struct Studio
     s32 samplerate;
     tic_font systemFont;
 
+#if defined(BUILD_EDITORS)
     Toolbar toolbar;
+#endif
     Boot boot;
 
 };
@@ -2560,16 +2566,20 @@ void studio_tick(Studio* studio, tic80_input input)
 
     // A tab click lands here rather than switching mid-frame: the mode's blit
     // callback is chosen after its tick, so the switch has to wait for that.
+#if defined(BUILD_EDITORS)
     if(studio->toolbar.requested)
     {
         setStudioMode(studio, studio->toolbar.requested);
         studio->toolbar.requested = 0;
     }
+#endif
 
     // After processMouseStates so a press is seen the frame it arrives, and
     // before renderStudio, which is where the tooltip's clear belongs.
     processMouseStates(studio);
+#if defined(BUILD_EDITORS)
     toolbar_step(&studio->toolbar);
+#endif
 
     renderStudio(studio);
 
@@ -3036,6 +3046,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 
     initConfig(studio->config, studio, studio->fs);
 
+#if defined(BUILD_EDITORS)
     studio->toolbar = (Toolbar)
     {
         .tic      = studio->tic,
@@ -3045,6 +3056,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         .apps     = Apps,
         .appCount = TIC_MODES_COUNT,
     };
+#endif
 
     if (studio->config->data.uiScale > maxscale)
     {

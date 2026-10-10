@@ -241,7 +241,7 @@ void toolbar_end(Toolbar* tb)
     s32 x = x0;
 
     // A pro build's bank row sits between the tabs and the row that follows.
-#if defined (TIC80_PRO) && defined(BUILD_EDITORS)
+#if defined (TIC80_PRO)
     x0 += Size - 2;
 #endif
 
