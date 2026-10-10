@@ -1002,9 +1002,9 @@ static sapp_desc app_desc(void)
         TIC80_LOGGER
         // The framebuffer follows the display's own pixels wherever there are
         // more of them than the window has: on a Retina screen and on a phone
-        // the machine's pixels land on all of them, and the CRT effect is
-        // drawn at its own size either way, so the picture is as sharp as the
-        // display can be and the fill costs the same.
+        // the machine's pixels land on all of them, and the picture is as
+        // sharp as the display can be. The CRT effect is charged per one of
+        // those pixels, which is what its own off switch is for.
         .high_dpi = true,
         // Always, never from the config: the window is made here, before the
         // studio exists to read one, and sokol has no setter for it. The
