@@ -1591,12 +1591,14 @@ static void serveConsole(Studio* studio)
             studioLoadByHash(studio, ask.name, ask.hash, ask.section, onConsoleFetched, studio);
             break;
 
+        // Both answer with the written path, or nothing when they could not
+        // write it.
         case CONSOLE_ASK_EXPORT_SFX:
-            answer.error = studioExportSfx(studio, ask.index, ask.name);
+            answer.ok = studioExportSfx(studio, ask.index, ask.name) != NULL;
             break;
 
         case CONSOLE_ASK_EXPORT_MUSIC:
-            answer.error = studioExportMusic(studio, ask.index, ask.bank, ask.name);
+            answer.ok = studioExportMusic(studio, ask.index, ask.bank, ask.name) != NULL;
             break;
 
         default: break;

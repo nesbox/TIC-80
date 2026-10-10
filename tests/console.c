@@ -271,6 +271,57 @@ static void testReplay(void)
     hostFree(host);
 }
 
+// A batch's own run must not count itself before the host has run the cart:
+// runGame reads that count the moment it is asked, for the rewind --keepcmd
+// does, and a command already counted there would rewind instead of running.
+static void testRunCountsOnAnswer(void)
+{
+    Host* host = hostNew("cls & run");
+    ConsoleAsk ask = hostTick(host);
+
+    host->console->args.keepcmd = true;
+
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+
+    ask = hostTick(host);               // cls asks nothing, so it counts here
+    assert(ask.kind == CONSOLE_ASK_NONE);
+    assert(host->console->commands.current == 1);
+
+    ask = hostTick(host);               // run
+    assert(ask.kind == CONSOLE_ASK_RUN);
+    assert(host->console->commands.current == 1);
+    assert(!console_replay(host->console));     // the host may start the cart
+
+    hostAnswer(host, (ConsoleAnswer){0});       // ... and it counts now
+    assert(host->console->commands.current == 2);
+    assert(!host->console->counting);
+
+    hostFree(host);
+}
+
+// The export's answer is the host's word for the file it wrote, and the
+// console's message is the one that follows from it.
+static void testExport(bool written)
+{
+    Host* host = hostNew("export sfx smoke.wav id=1");
+    ConsoleAsk ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+
+    ask = hostTick(host);
+    assert(ask.kind == CONSOLE_ASK_EXPORT_SFX);
+    assert(strcmp(ask.name, "smoke.wav") == 0);
+    assert(ask.index == 1);
+
+    hostAnswer(host, (ConsoleAnswer){.ok = written});
+
+    assert(written ? said(host, "smoke.wav exported :)") : said(host, "not exported"));
+
+    hostFree(host);
+}
+
 int main(void)
 {
     testMoves();
@@ -278,8 +329,11 @@ int main(void)
     testLoad();
     testSave();
     testReplay();
+    testRunCountsOnAnswer();
+    testExport(true);
+    testExport(false);
 
-    puts("moves ok / confirm ok / load ok / save ok / replay ok");
+    puts("moves ok / confirm ok / load ok / save ok / replay ok / run / export ok");
 
     return 0;
 }

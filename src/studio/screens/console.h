@@ -118,9 +118,9 @@ typedef struct
 struct ConsoleAnswer
 {
     bool yes;               // CONFIRM
+    bool ok;                // EXPORT_SFX / EXPORT_MUSIC: it was written
     CartSaveResult save;    // CART_SAVE
     const char* name;       // the cart's name after the ask: LOADED, SAVE, FETCH
-    const char* error;      // the export's text, NULL when it worked
 
 };
 
@@ -135,7 +135,7 @@ struct Console
 
     struct
     {
-        const char* cmd;
+        char*       cmd;
         bool        cli;
         bool        skip;
         bool        keepcmd;
@@ -146,12 +146,24 @@ struct Console
     const struct ConsoleView* view;
     ConsoleAsk ask;
     bool        waiting;    // the host has taken the ask and owes an answer
+    bool        counting;   // the command's ask is out: it counts on the answer
 
-    // The flow that asked, picking itself up when the answer comes; CART_FETCH
-    // keeps its caller's callback and data beside it.
+    // The flow that asked, picking itself up when the answer comes.
     void (*onAnswer)(Console*, const ConsoleAnswer*);
-    fs_done_callback fetchCallback;
-    void* fetchData;
+
+    // What a CART_FETCH needs when it is answered: the caller's callback and
+    // data, and the cart's own name, hash and section — owned here, because a
+    // public-directory load frees its strings the moment it has asked.
+    struct
+    {
+        fs_done_callback callback;
+        void* calldata;
+
+        char name[TICNAME_MAX];
+        char hash[TICNAME_MAX];
+        char section[TICNAME_MAX];
+
+    } fetch;
 
     struct
     {

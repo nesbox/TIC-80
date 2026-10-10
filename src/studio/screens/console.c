@@ -827,8 +827,8 @@ static void onFetched(Console* console, const ConsoleAnswer* answer)
 {
     printCartLoaded(console, answer->name);
 
-    if(console->fetchCallback)
-        console->fetchCallback(console->fetchData);
+    if(console->fetch.callback)
+        console->fetch.callback(console->fetch.calldata);
 
     commandDone(console);
 }
@@ -837,10 +837,25 @@ static void loadByHash(Console* console, const char* name, const char* hash, con
 {
     console->active = false;
 
-    console->fetchCallback = callback;
-    console->fetchData = data;
+    console->fetch.callback = callback;
+    console->fetch.calldata = data;
 
-    console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CART_FETCH, .name = name, .hash = hash, .section = section};
+    // The ask is served a frame from now, and whoever asked is free to let its
+    // strings go in the meantime — the public-directory path does.
+    strcpy(console->fetch.name, name);
+    strcpy(console->fetch.hash, hash);
+    console->fetch.section[0] = '\0';
+    if(section)
+        strcpy(console->fetch.section, section);
+
+    console->ask = (ConsoleAsk)
+    {
+        .kind = CONSOLE_ASK_CART_FETCH,
+        .name = console->fetch.name,
+        .hash = console->fetch.hash,
+        .section = section ? console->fetch.section : NULL,
+    };
+
     console->onAnswer = onFetched;
 }
 
@@ -1604,19 +1619,6 @@ static void onSurfCommand(Console* console)
 }
 #endif
 
-static void loadExternal(Console* console, const char* path)
-{
-    CommandDesc desc =
-    {
-        .params = malloc(sizeof *desc.params),
-        .count = 1,
-    };
-
-    *desc.params = (struct Param){.key = strdup(path)};
-    *console->desc = desc;
-
-    onLoadCommandConfirmed(console, NULL);
-}
 
 static void onConfigCommand(Console* console)
 {
@@ -2473,7 +2475,7 @@ static void onExport_mapimg(Console* console, const char* param, const char* pat
 
 static void onExported(Console* console, const ConsoleAnswer* answer)
 {
-    onFileExported(console, console->exportName, answer->error == NULL);
+    onFileExported(console, console->exportName, answer->ok);
 }
 
 static void onExport_sfx(Console* console, const char* param, const char* name, ExportParams params)
@@ -4531,7 +4533,15 @@ static void tick(Console* console)
 
                 processCommand(console, command);
 
-                console->commands.current++;
+                // A command that asked the host for its effect counts as run
+                // when that has happened, not when it asked: `run` hands the
+                // whole of it over, and runGame reads this count on the spot
+                // for the rewind --keepcmd does. A command that asked for
+                // nothing is done here.
+                if(console->ask.kind == CONSOLE_ASK_NONE)
+                    console->commands.current++;
+                else
+                    console->counting = true;
             }
             else if(console->config->cli)
                 askStart(console, CONSOLE_ASK_EXIT, NULL);
@@ -4653,6 +4663,15 @@ void console_answer(Console* console, const ConsoleAnswer* answer)
 
     console->waiting = false;
     console->onAnswer = NULL;
+
+    // The command the host was asked for is run now; a command's later asks —
+    // a dialog, then the load it confirmed — are that same command's, and do
+    // not count again.
+    if(console->counting)
+    {
+        console->counting = false;
+        console->commands.current++;
+    }
 
     if(onAnswer)
         onAnswer(console, answer);
