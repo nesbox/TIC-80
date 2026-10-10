@@ -80,8 +80,7 @@ bool toolbar_button(Toolbar*, const ToolbarButton*);
 bool toolbar_slider(Toolbar*, const char* tip, s32* value, s32 min, s32 max);
 void toolbar_end(Toolbar*);
 
-// The strip's own drawing and sound, which the editors' panels need too:
-// studio.c keeps a Studio*-taking wrapper over each.
+// The strip's own drawing, which the editors' panels need too: studio.c keeps a
+// Studio*-taking wrapper over each.
 void toolbar_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color);
 void toolbar_cursor(tic_mem* tic, tic_cursor id);
-void toolbar_playClick(tic_mem* tic, const tic_sfx* sfx, s32 id);

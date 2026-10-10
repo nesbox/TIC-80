@@ -25,6 +25,7 @@
 #include "mouse.h"
 #include "toolbar.h"
 #include "boot.h"
+#include "sound.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -510,7 +511,7 @@ const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* f
 
 void sfx_stop(tic_mem* tic, s32 channel)
 {
-    tic_api_sfx(tic, -1, 0, 0, -1, channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
+    sound_stop(tic, channel);
 }
 
 char getKeyboardText(Studio* studio)
@@ -622,7 +623,7 @@ tic_flags* getBankFlags(Studio* studio)
 
 void playSystemSfx(Studio* studio, s32 id)
 {
-    toolbar_playClick(studio->tic, &getConfig(studio)->cart->bank0.sfx, id);
+    sound_play(studio->tic, &getConfig(studio)->cart->bank0.sfx, id);
 }
 
 static void md5(const void* voidData, s32 length, u8 digest[MD5_HASHSIZE])

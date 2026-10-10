@@ -44,6 +44,17 @@ if(BUILD_TESTS)
     target_link_libraries(toolbar-test PRIVATE tic80core)
     tic80_add_test(toolbar-test)
 
+    # The studio's sound is a module of its own, and links with the core alone:
+    # nothing the test reaches goes near the studio.
+    add_executable(sound-test
+        ${CMAKE_SOURCE_DIR}/tests/sound.c
+        ${CMAKE_SOURCE_DIR}/src/studio/sound.c
+    )
+
+    target_include_directories(sound-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(sound-test PRIVATE tic80core)
+    tic80_add_test(sound-test)
+
     # The embedded cart format has two ends, and this test drives one into the
     # other: the studio link is fine here, where toolbar's test is about links.
     add_executable(boot-test ${CMAKE_SOURCE_DIR}/tests/boot.c)

@@ -9,7 +9,6 @@
 #include <stdio.h>
 
 static tic_tiles Tiles;
-static tic_sfx Sfx;
 
 static void fillTile(tic_tile* tile, u8 value)
 {
@@ -408,23 +407,6 @@ static void testCursor(tic_mem* tic)
     puts("cursor ok");
 }
 
-static void testClick(tic_mem* tic)
-{
-    enum {Id = 3};
-    tic_sample* sample = &Sfx.samples.data[Id];
-
-    sample->note = NoteStart;
-    sample->octave = 4;
-
-    tic->ram->sfxpos[0] = (tic_sfx_pos){0};
-    toolbar_playClick(tic, &Sfx, Id);
-
-    // The click starts the effect on channel 0 and moves it off its start.
-    assert(memcmp(&tic->ram->sfxpos[0], &(tic_sfx_pos){0}, sizeof(tic_sfx_pos)) != 0);
-
-    puts("click ok");
-}
-
 int main(void)
 {
     tic_mem* tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
@@ -433,7 +415,6 @@ int main(void)
     testIcon(tic);
     testCursor(tic);
     testWidgetLine(tic);
-    testClick(tic);
     testStrip(tic);
     testTabs(tic);
     testSlider(tic);

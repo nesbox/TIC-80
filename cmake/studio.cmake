@@ -16,6 +16,9 @@ set(TIC80STUDIO_SRC
     # The cart an app image carries and the state of a launch that came with
     # one: every build boots, so this is not editors-only.
     ${TIC80LIB_DIR}/studio/boot.c
+    # The sound the studio plays, which the menus, the splash and the panels all
+    # reach: every build has a reason to hear it.
+    ${TIC80LIB_DIR}/studio/sound.c
     ${TIC80LIB_DIR}/studio/rom.c
     ${TIC80LIB_DIR}/studio/config.c
     ${TIC80LIB_DIR}/studio/fs.c

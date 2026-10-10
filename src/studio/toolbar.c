@@ -328,10 +328,3 @@ void toolbar_cursor(tic_mem* tic, tic_cursor id)
         tic->ram->vram.vars.cursor.sprite = id;
     }
 }
-
-void toolbar_playClick(tic_mem* tic, const tic_sfx* sfx, s32 id)
-{
-    const tic_sample* effect = &sfx->samples.data[id];
-
-    tic_api_sfx(tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, MAX_VOLUME, effect->speed);
-}
