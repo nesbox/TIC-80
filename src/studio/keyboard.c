@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "keyboard.h"
+#include "system.h"
 
 bool keyboard_pressed(tic_mem* tic, tic_key key)
 {

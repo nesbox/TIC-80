@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "ui.h"
+#include "tools.h"
 
 void ui_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color)
 {

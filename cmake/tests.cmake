@@ -48,13 +48,13 @@ if(BUILD_TESTS)
     tic80_add_test(toolbar-test)
 
     # The studio's sound is a module of its own, and links with the core alone:
-    # nothing the test reaches goes near the studio.
+    # nothing the test reaches goes near the studio, and its header names only
+    # the core, so no build directory is needed here either.
     add_executable(sound-test
         ${CMAKE_SOURCE_DIR}/tests/sound.c
         ${CMAKE_SOURCE_DIR}/src/studio/sound.c
     )
 
-    target_include_directories(sound-test PRIVATE ${CMAKE_BINARY_DIR})
     target_link_libraries(sound-test PRIVATE tic80core)
     tic80_add_test(sound-test)
 
@@ -65,12 +65,12 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src/studio/ui.c
     )
 
-    target_include_directories(ui-test PRIVATE ${CMAKE_BINARY_DIR})
     target_link_libraries(ui-test PRIVATE tic80core)
     tic80_add_test(ui-test)
 
     # The keyboard links with the core alone as well, and the platform call it
-    # makes is the test's own to answer.
+    # makes is the test's own to answer. That call is declared in system.h,
+    # which wants the generated version.h, so this one keeps the build dir.
     add_executable(keyboard-test
         ${CMAKE_SOURCE_DIR}/tests/keyboard.c
         ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
@@ -87,7 +87,6 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
     )
 
-    target_include_directories(mouse-test PRIVATE ${CMAKE_BINARY_DIR})
     target_link_libraries(mouse-test PRIVATE tic80core)
     tic80_add_test(mouse-test)
 

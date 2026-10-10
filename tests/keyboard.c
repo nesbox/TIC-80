@@ -5,6 +5,7 @@
  * Target keyboard-test in cmake/tests.cmake; `ctest -R keyboard` runs it.
  */
 #include "studio/keyboard.h"
+#include "core/core.h"
 #include <assert.h>
 #include <stdio.h>
 

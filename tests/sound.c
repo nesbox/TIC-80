@@ -1,6 +1,7 @@
 /* The sound the studio plays, on a machine of its own: the module links with the
  * core and nothing else, which is what building it here says. */
 #include "studio/sound.h"
+#include "core/core.h"
 #include <assert.h>
 #include <stdio.h>
 

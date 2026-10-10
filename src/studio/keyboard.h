@@ -22,7 +22,22 @@
 
 #pragma once
 
-#include "studio.h"
+#include "tic.h"
+#include "api.h"
+
+// How long a key is held before it repeats, and how fast it repeats after that:
+// the one place the studio's own feel is spelled.
+#define KEYBOARD_HOLD 20
+#define KEYBOARD_PERIOD 3
+
+// The gesture the keys ask for, which `keyboard_clipboard` answers with.
+typedef enum
+{
+    TIC_CLIPBOARD_NONE,
+    TIC_CLIPBOARD_CUT,
+    TIC_CLIPBOARD_COPY,
+    TIC_CLIPBOARD_PASTE,
+} ClipboardEvent;
 
 // What the machine's keyboard says: a key pressed — and still repeating while it
 // is held, which is the studio's own feel, KEYBOARD_HOLD and KEYBOARD_PERIOD —

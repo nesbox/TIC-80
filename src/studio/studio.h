@@ -36,6 +36,7 @@
 #include "system.h"
 #include "rom.h"
 #include "anim.h"
+#include "keyboard.h"
 #include "ext/png.h"
 #include "core/core.h"
 
@@ -60,9 +61,6 @@
 #define tic_api_spr(tic, ...) (((tic_core*)(tic))->api.spr(tic, __VA_ARGS__))
 #define tic_api_map(tic, ...) (((tic_core*)(tic))->api.map(tic, __VA_ARGS__))
 #endif
-
-#define KEYBOARD_HOLD 20
-#define KEYBOARD_PERIOD 3
 
 #ifdef BAREMETALPI
 #define TIC_LOCAL "../.tic80/"
@@ -288,14 +286,6 @@ typedef struct
     void (*redo)(void*);
 
 } ClipboardOps;
-
-typedef enum
-{
-    TIC_CLIPBOARD_NONE,
-    TIC_CLIPBOARD_CUT,
-    TIC_CLIPBOARD_COPY,
-    TIC_CLIPBOARD_PASTE,
-} ClipboardEvent;
 
 ClipboardEvent getClipboardEvent(Studio* studio);
 

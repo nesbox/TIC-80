@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "studio.h"
+#include "tic.h"
+#include "api.h"
 
 // The two halves of how the studio plays a system sound, in a module of their
 // own: the strip never called either, and the studio's wrappers are one line each.
