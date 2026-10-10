@@ -6,6 +6,12 @@
 
 static tic_sfx Sfx;
 
+// The sample channel 0 is playing, or -1: what playing and silencing differ in.
+static s32 channelSample(tic_mem* tic)
+{
+    return ((tic_core*)tic)->state.sfx.channels[0].index;
+}
+
 static void testPlay(tic_mem* tic)
 {
     enum {Id = 3};
@@ -14,22 +20,20 @@ static void testPlay(tic_mem* tic)
     sample->note = NoteStart;
     sample->octave = 4;
 
-    tic->ram->sfxpos[0] = (tic_sfx_pos){0};
     sound_play(tic, &Sfx, Id);
 
-    // The sample starts on channel 0 and moves the channel off its start.
-    assert(memcmp(&tic->ram->sfxpos[0], &(tic_sfx_pos){0}, sizeof(tic_sfx_pos)) != 0);
+    // The channel plays the sample it was handed.
+    assert(channelSample(tic) == Id);
 
     puts("play ok");
 }
 
 static void testStop(tic_mem* tic)
 {
-    tic->ram->sfxpos[0] = (tic_sfx_pos){0};
     sound_stop(tic, 0);
 
-    // Silencing a channel resets it, so it is nowhere the sample left it.
-    assert(memcmp(&tic->ram->sfxpos[0], &(tic_sfx_pos){0}, sizeof(tic_sfx_pos)) != 0);
+    // Silenced: no sample left on the channel to play.
+    assert(channelSample(tic) < 0);
 
     puts("stop ok");
 }

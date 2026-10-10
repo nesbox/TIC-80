@@ -1,6 +1,6 @@
 /* The strip links without the studio: this file builds toolbar.c with the core
- * and nothing else, so a call to anything studio.c provides fails to link here
- * rather than appearing quietly in the app build.
+ * and the module it draws through, ui.c, so a call to anything studio.c provides
+ * fails to link here rather than appearing quietly in the app build.
  *
  * Target toolbar-test in cmake/tests.cmake; `ctest -R toolbar` runs it.
  */

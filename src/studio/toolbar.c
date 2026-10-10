@@ -23,7 +23,8 @@
 #include "toolbar.h"
 #include "ui.h"
 
-// Links against the core alone; tests/toolbar.c builds it without studio.c.
+// Links without the studio's host: tests/toolbar.c builds it with ui.c, the
+// module it draws through, and nothing else.
 
 // Before the mode's tick, so the strip's frame is settled first.
 void toolbar_step(Toolbar* tb)
