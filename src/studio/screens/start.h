@@ -24,15 +24,6 @@
 
 #include "studio/studio.h"
 
-#define CART_SIG "TIC.CART"
-
-typedef struct
-{
-    u8 sig[STRLEN(CART_SIG)];
-    s32 appSize;
-    s32 cartSize;
-} EmbedHeader;
-
 typedef struct Start Start;
 
 typedef struct stage {
@@ -55,10 +46,8 @@ struct Start
     char text[STUDIO_TEXT_BUFFER_SIZE];
     u8 color[STUDIO_TEXT_BUFFER_SIZE];
 
-    bool embed;
-
     void (*tick)(Start*);
 };
 
-void initStart(Start* start, Studio* studio, const char* cart);
+void initStart(Start* start, Studio* studio);
 void freeStart(Start* start);

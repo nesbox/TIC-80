@@ -24,6 +24,7 @@
 #include "apps.h"
 #include "mouse.h"
 #include "toolbar.h"
+#include "boot.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -275,6 +276,7 @@ struct Studio
     tic_font systemFont;
 
     Toolbar toolbar;
+    Boot boot;
 
 };
 
@@ -1050,6 +1052,11 @@ struct Start* getStartScreen(Studio* studio)
     return studio->start;
 }
 
+Boot* getBoot(Studio* studio)
+{
+    return &studio->boot;
+}
+
 #if defined(BUILD_EDITORS)
 
 // The popup unrolls by its own height; it was never TOOLBAR_SIZE, the two
@@ -1248,7 +1255,7 @@ void exitSurf(Studio* studio)
 
 bool studio_is_cart_loaded(Studio* studio)
 {
-    return strlen(studio->rom.name) > 0 || (studio->start && studio->start->embed);
+    return strlen(studio->rom.name) > 0 || studio->boot.cart;
 }
 
 void setStudioMode(Studio* studio, EditorMode mode)
@@ -3043,7 +3050,8 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->config->data.uiScale = maxscale;
     }
 
-    initStart(studio->start, studio, args.cart);
+    initStart(studio->start, studio);
+    boot_init(&studio->boot, studio, args.cart);
     initRunMode(studio);
 
 #if defined(BUILD_EDITORS)
@@ -3054,7 +3062,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     if(args.cart)
     {
         if(studioLoadCart(studio, args.cart))
-            studio->start->embed = true;
+            studio->boot.cart = true;
         else
         {
             fprintf(stderr, "error: cart `%s` not loaded\n", args.cart);

@@ -23,6 +23,7 @@
 #include "console.h"
 #include "start.h"
 #include "tools.h"
+#include "studio/boot.h"
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
@@ -2004,51 +2005,6 @@ static void exportSprites(Console* console, const char* filename, tic_tile* base
     }
 }
 
-static void* embedCart(Console* console, u8* app, s32* size)
-{
-    tic_mem* tic = console->tic;
-    u8* data = NULL;
-    void* cart = newCart();
-
-    SCOPE(free(cart))
-    {
-        s32 cartSize = tic_cart_save(&tic->cart, cart);
-
-        s32 zipSize = sizeof(tic_cartridge);
-        u8* zipData = (u8*)malloc(zipSize);
-
-        SCOPE(free(zipData))
-        {
-            if((zipSize = tic_tool_zip(zipData, zipSize, cart, cartSize)))
-            {
-                s32 appSize = *size;
-
-                EmbedHeader header =
-                {
-                    .appSize = appSize,
-                    .cartSize = zipSize,
-                };
-
-                memcpy(header.sig, CART_SIG, STRLEN(CART_SIG));
-
-                s32 finalSize = appSize + sizeof header + header.cartSize;
-                data = malloc(finalSize);
-
-                if (data)
-                {
-                    memcpy(data, app, appSize);
-                    memcpy(data + appSize, &header, sizeof header);
-                    memcpy(data + appSize + sizeof header, zipData, header.cartSize);
-
-                    *size = finalSize;
-                }
-            }
-        }
-    }
-
-    return data;
-}
-
 typedef struct
 {
     Console* console;
@@ -2108,7 +2064,7 @@ static void onNativeExportGet(const net_get_data* data)
             const char* path = tic_fs_path(console->fs, filename);
             void* buf = NULL;
 
-            onFileExported(console, filename, (buf = embedCart(console, data->done.data, &size)) && fs_write(path, buf, size));
+            onFileExported(console, filename, (buf = boot_embed_cart(console->tic, data->done.data, &size)) && fs_write(path, buf, size));
             chmod(path, DEFAULT_CHMOD);
 
             if (buf)
@@ -2186,7 +2142,7 @@ static bool tryExportNativeFromLocalTemplate(Console* console, const char* name,
     SCOPE(free(app))
     {
         s32 size = appSize;
-        void* buf = embedCart(console, app, &size);
+        void* buf = boot_embed_cart(console->tic, app, &size);
 
         if(buf) SCOPE(free(buf))
         {
@@ -4527,11 +4483,11 @@ static void tick(Console* console)
     processGamepad(console);
 #endif
 
-    Start* start = getStartScreen(console->studio);
+    Boot* boot = getBoot(console->studio);
 
     if(console->tickCounter == 0)
     {
-        if(!start->embed)
+        if(!boot->cart)
         {
             loadDemo(console, tic_get_script(tic));
 
@@ -4553,7 +4509,7 @@ static void tick(Console* console)
     tic_api_cls(tic, TIC_COLOR_BG);
     drawConsoleText(console);
 
-    if(start->embed)
+    if(boot->cart)
     {
         if(console->tickCounter >= (u32)(console->args.skip ? 1 : TIC80_FRAMERATE))
         {
@@ -4561,7 +4517,7 @@ static void tick(Console* console)
             // file, the web player's cart — so this is the player's run.
             runGame(console->studio, RUN_FROM_PLAYER);
 
-            start->embed = false;
+            boot->cart = false;
             studioRomLoaded(console->studio);
 
             printLine(console);
@@ -4674,6 +4630,7 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
     memset(console->desc, 0, sizeof(CommandDesc));
 
     Start* start = getStartScreen(console->studio);
+    Boot* boot = getBoot(console->studio);
 
     if(!console->args.cli)
     {
@@ -4695,10 +4652,10 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
             exit(1);
         }
         else
-            getStartScreen(console->studio)->embed = true;
+            boot->cart = true;
     }
 
-    console->active = !start->embed;
+    console->active = !boot->cart;
 }
 
 void freeConsole(Console* console)

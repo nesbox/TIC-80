@@ -21,14 +21,7 @@
 // SOFTWARE.
 
 #include "start.h"
-#include "studio/fs.h"
-#include "cart.h"
-
-#if defined(__TIC_WINDOWS__)
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
+#include "studio/boot.h"
 
 static void reset(Start* start)
 {
@@ -74,7 +67,7 @@ static void start_home(Start* start)
 
 #if !defined(BUILD_EDITORS)
     // No console to show it in: a cart that came with the app is played.
-    if(start->embed)
+    if(getBoot(start->studio)->cart)
     {
         runGame(start->studio, RUN_FROM_PLAYER);
         return;
@@ -103,28 +96,7 @@ static void tick(Start* start)
     start->ticks++;
 }
 
-static void* _memmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
-{
-    const u8* p = haystack;
-    size_t plen = hlen;
-
-    if (!nlen) return NULL;
-
-    s32 needle_first = *(u8*)needle;
-
-    while (plen >= nlen && (p = memchr(p, needle_first, plen - nlen + 1)))
-    {
-        if (!memcmp(p, needle, nlen))
-            return (void*)p;
-
-        p++;
-        plen = hlen - (p - (const u8*)haystack);
-    }
-
-    return NULL;
-}
-
-void initStart(Start* start, Studio* studio, const char* cart)
+void initStart(Start* start, Studio* studio)
 {
     enum duration {
         immediate = 0,
@@ -138,7 +110,6 @@ void initStart(Start* start, Studio* studio, const char* cart)
         .tic = getMemory(studio),
         .initialized = true,
         .tick = tick,
-        .embed = false,
         .ticks = 0,
         .stage = 0,
         .stages =
@@ -165,75 +136,6 @@ void initStart(Start* start, Studio* studio, const char* cart)
     for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
         start->color[i] = CLAMP(((i % STUDIO_TEXT_BUFFER_WIDTH) + (i / STUDIO_TEXT_BUFFER_WIDTH)) / 2,
             tic_color_black, tic_color_dark_grey);
-
-#if defined(__EMSCRIPTEN__)
-
-    if (cart)
-    {
-        s32 size = 0;
-        void* data = fs_read(cart, &size);
-
-        if(data) SCOPE(free(data))
-        {
-            tic_cart_load(&start->tic->cart, data, size);
-            tic_api_reset(start->tic);
-            start->embed = true;
-            studioRomLoaded(start->studio);
-        }
-    }
-
-#else
-
-    {
-        const char* appPath = fs_apppath();
-
-        s32 appSize = 0;
-        u8* app = fs_read(appPath, &appSize);
-
-        if(app) SCOPE(free(app))
-        {
-            s32 size = appSize;
-            const u8* ptr = app;
-
-            while(true)
-            {
-                const EmbedHeader* header = (const EmbedHeader*)_memmem(ptr, size, CART_SIG, STRLEN(CART_SIG));
-
-                if(header)
-                {
-                    if(appSize == header->appSize + sizeof(EmbedHeader) + header->cartSize)
-                    {
-                        u8* data = calloc(1, sizeof(tic_cartridge));
-
-                        if(data)
-                        {
-                            s32 dataSize = tic_tool_unzip(data, sizeof(tic_cartridge), app + header->appSize + sizeof(EmbedHeader), header->cartSize);
-
-                            if(dataSize)
-                            {
-                                tic_cart_load(&start->tic->cart, data, dataSize);
-                                tic_api_reset(start->tic);
-                                start->embed = true;
-                                studioRomLoaded(start->studio);
-                            }
-
-                            free(data);
-                        }
-
-                        break;
-                    }
-                    else
-                    {
-                        ptr = (const u8*)header + STRLEN(CART_SIG);
-                        size = appSize - (s32)(ptr - app);
-                    }
-                }
-                else break;
-            }
-        }
-    }
-
-#endif
 }
 
 void freeStart(Start* start)
