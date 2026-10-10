@@ -69,6 +69,18 @@ if(BUILD_TESTS)
     target_link_libraries(ui-test PRIVATE tic80core)
     tic80_add_test(ui-test)
 
+    # The splash links without the studio too: start.c and the module it plays
+    # through, with the core and nothing else.
+    add_executable(start-test
+        ${CMAKE_SOURCE_DIR}/tests/start.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/start.c
+        ${CMAKE_SOURCE_DIR}/src/studio/sound.c
+    )
+
+    target_include_directories(start-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(start-test PRIVATE tic80core)
+    tic80_add_test(start-test)
+
     # The embedded cart format has two ends, and this test drives one into the
     # other: the studio link is fine here, where toolbar's test is about links.
     add_executable(boot-test ${CMAKE_SOURCE_DIR}/tests/boot.c)
