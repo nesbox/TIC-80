@@ -35,9 +35,12 @@ if(BUILD_TESTS)
     # would hide a call into studio.c, which is the one thing this test is for.
     # version.h is generated into the build directory, and the studio target is
     # what usually publishes that path.
+    # The strip draws its icons and sets its hand cursor through the ui module,
+    # so that builds here too.
     add_executable(toolbar-test
         ${CMAKE_SOURCE_DIR}/tests/toolbar.c
         ${CMAKE_SOURCE_DIR}/src/studio/toolbar.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
     )
 
     target_include_directories(toolbar-test PRIVATE ${CMAKE_BINARY_DIR})
@@ -54,6 +57,17 @@ if(BUILD_TESTS)
     target_include_directories(sound-test PRIVATE ${CMAKE_BINARY_DIR})
     target_link_libraries(sound-test PRIVATE tic80core)
     tic80_add_test(sound-test)
+
+    # The icon and the cursor are a module of their own, and link with the core
+    # alone: the strip is one of their callers, not their owner.
+    add_executable(ui-test
+        ${CMAKE_SOURCE_DIR}/tests/ui.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+    )
+
+    target_include_directories(ui-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(ui-test PRIVATE tic80core)
+    tic80_add_test(ui-test)
 
     # The embedded cart format has two ends, and this test drives one into the
     # other: the studio link is fine here, where toolbar's test is about links.

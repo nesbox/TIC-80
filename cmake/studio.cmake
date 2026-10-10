@@ -19,6 +19,9 @@ set(TIC80STUDIO_SRC
     # The sound the studio plays, which the menus, the splash and the panels all
     # reach: every build has a reason to hear it.
     ${TIC80LIB_DIR}/studio/sound.c
+    # The icon and the cursor every screen draws with: the menu needs both in
+    # builds that have no strip and never will.
+    ${TIC80LIB_DIR}/studio/ui.c
     ${TIC80LIB_DIR}/studio/rom.c
     ${TIC80LIB_DIR}/studio/config.c
     ${TIC80LIB_DIR}/studio/fs.c

@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "music.h"
+#include "studio/ui.h"
 #include "ext/history.h"
 
 #include <ctype.h>
@@ -1918,10 +1919,10 @@ static void musicTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
     if(tab->active)
     {
         tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_grey);
-        toolbar_icon(tb->tic, tiles, tab->icon, rect->x, rect->y + tb->y + 1, tic_color_black);
+        ui_icon(tb->tic, tiles, tab->icon, rect->x, rect->y + tb->y + 1, tic_color_black);
     }
 
-    toolbar_icon(tb->tic, tiles, tab->icon, rect->x, rect->y + tb->y,
+    ui_icon(tb->tic, tiles, tab->icon, rect->x, rect->y + tb->y,
         tab->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
 }
 

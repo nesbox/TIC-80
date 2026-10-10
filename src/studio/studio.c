@@ -26,6 +26,7 @@
 #include "toolbar.h"
 #include "boot.h"
 #include "sound.h"
+#include "ui.h"
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -1199,7 +1200,7 @@ void exitStudio(Studio* studio)
 
 void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
 {
-    toolbar_icon(studio->tic, &getConfig(studio)->cart->bank0.tiles, id, x, y, color);
+    ui_icon(studio->tic, &getConfig(studio)->cart->bank0.tiles, id, x, y, color);
 }
 
 static void initRunMode(Studio* studio)
@@ -1428,7 +1429,7 @@ bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 
 void setCursor(Studio* studio, tic_cursor id)
 {
-    toolbar_cursor(studio->tic, id);
+    ui_cursor(studio->tic, id);
 }
 
 typedef struct

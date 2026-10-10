@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "toolbar.h"
+#include "ui.h"
 
 // Links against the core alone; tests/toolbar.c builds it without studio.c.
 
@@ -91,7 +92,7 @@ static bool stripHover(Toolbar* tb, const tic_rect* rect, const char* tip)
     if(!stripOver(tb, rect))
         return false;
 
-    toolbar_cursor(tb->tic, tic_cursor_hand);
+    ui_cursor(tb->tic, tic_cursor_hand);
 
     if(tip)
         strncpy(tb->tooltip, tip, STUDIO_TEXT_BUFFER_WIDTH - 1);
@@ -104,7 +105,7 @@ static void stripGlyph(Toolbar* tb, const ToolbarButton* button, s32 x, s32 y, u
     if(button->label)
         tic_api_print(tb->tic, button->label, x, y + tb->y, color, true, 1, button->altFont);
     else
-        toolbar_icon(tb->tic, &tb->config->cart->bank0.tiles, button->icon, x, y + tb->y, color);
+        ui_icon(tb->tic, &tb->config->cart->bank0.tiles, button->icon, x, y + tb->y, color);
 }
 
 static void stripButton(Toolbar* tb, const ToolbarButton* button, const tic_rect* rect, bool over)
@@ -223,11 +224,11 @@ void toolbar_end(Toolbar* tb)
 
         if(current == tab)
         {
-            toolbar_icon(tb->tic, tiles, tic_icon_tab, rect.x, tb->y, tic_color_grey);
-            toolbar_icon(tb->tic, tiles, app->icon, rect.x, tb->y + 1, tic_color_black);
+            ui_icon(tb->tic, tiles, tic_icon_tab, rect.x, tb->y, tic_color_grey);
+            ui_icon(tb->tic, tiles, app->icon, rect.x, tb->y + 1, tic_color_black);
         }
 
-        toolbar_icon(tb->tic, tiles, app->icon, rect.x, tb->y,
+        ui_icon(tb->tic, tiles, app->icon, rect.x, tb->y,
             current == tab ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
 
         tab++;
@@ -304,27 +305,3 @@ void toolbar_end(Toolbar* tb)
         tb->tooltip[0] ? tic_color_dark_grey : tic_color_grey, false, 1, false);
 }
 
-void toolbar_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color)
-{
-    const tic_tile* tile = &tiles->data[id];
-
-    for(s32 i = 0, sx = x, ex = sx + TIC_SPRITESIZE; i != TIC_SPRITESIZE * TIC_SPRITESIZE; ++i, ++x)
-    {
-        if(x == ex)
-        {
-            x = sx;
-            y++;
-        }
-
-        if(tic_tool_peek4(tile, i))
-            tic_api_pix(tic, x, y, color, false);
-    }
-}
-
-void toolbar_cursor(tic_mem* tic, tic_cursor id)
-{
-    VBANK(tic, 0)
-    {
-        tic->ram->vram.vars.cursor.sprite = id;
-    }
-}
