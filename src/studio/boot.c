@@ -57,18 +57,16 @@ void boot_init(Boot* boot, Studio* studio, const char* cart)
 
         if(app) SCOPE(free(app))
         {
-            u8* data = calloc(1, sizeof(tic_cartridge));
             s32 dataSize = 0;
+            u8* data = boot_findCart(app, appSize, &dataSize);
 
-            if(data && boot_findCart(app, appSize, data, sizeof(tic_cartridge), &dataSize))
+            if(data) SCOPE(free(data))
             {
                 tic_cart_load(&tic->cart, data, dataSize);
                 tic_api_reset(tic);
                 boot->cart = true;
                 studioRomLoaded(studio);
             }
-
-            free(data);
         }
     }
 
@@ -96,7 +94,7 @@ static void* _memmem(const void* haystack, size_t hlen, const void* needle, size
     return NULL;
 }
 
-bool boot_findCart(const u8* app, s32 size, void* cart, s32 capacity, s32* cartSize)
+void* boot_findCart(const u8* app, s32 size, s32* cartSize)
 {
     const u8* ptr = app;
     s32 left = size;
@@ -111,15 +109,22 @@ bool boot_findCart(const u8* app, s32 size, void* cart, s32 capacity, s32* cartS
             // match is a signature that merely occurs in the bytes.
             if(size == header->appSize + sizeof(EmbedHeader) + header->cartSize)
             {
-                s32 done = tic_tool_unzip(cart, capacity, app + header->appSize + sizeof(EmbedHeader), header->cartSize);
+                u8* cart = calloc(1, sizeof(tic_cartridge));
 
-                if(done)
+                if(cart)
                 {
-                    *cartSize = done;
-                    return true;
+                    s32 done = tic_tool_unzip(cart, sizeof(tic_cartridge), app + header->appSize + sizeof(EmbedHeader), header->cartSize);
+
+                    if(done)
+                    {
+                        *cartSize = done;
+                        return cart;
+                    }
+
+                    free(cart);
                 }
 
-                return false;
+                return NULL;
             }
 
             ptr = (const u8*)header + STRLEN(CART_SIG);
@@ -128,7 +133,7 @@ bool boot_findCart(const u8* app, s32 size, void* cart, s32 capacity, s32* cartS
         else break;
     }
 
-    return false;
+    return NULL;
 }
 
 void* boot_embedCart(tic_mem* tic, const u8* app, s32* size)

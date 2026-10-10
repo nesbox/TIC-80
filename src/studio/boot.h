@@ -51,9 +51,9 @@ typedef struct
     s32 cartSize;
 } EmbedHeader;
 
-// The image's cart, decompressed into `cart`, which must hold a whole
-// tic_cartridge. False when there is none — the signature alone is not proof.
-bool boot_findCart(const u8* app, s32 size, void* cart, s32 capacity, s32* cartSize);
+// The image's cart, decompressed into a fresh allocation the caller frees, or
+// NULL when there is none — the signature alone is not proof.
+void* boot_findCart(const u8* app, s32 size, s32* cartSize);
 
 // The format's other end: `app`'s bytes with `tic`'s cart appended, zipped. The
 // caller owns the result.
