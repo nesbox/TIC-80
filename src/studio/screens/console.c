@@ -757,7 +757,7 @@ static void onLoadDemoCommandConfirmed(Console* console, const tic_script* scrip
     {
         char path[1024];
         getDemoCartPath(path, script);
-        const char* name = getCartName(path);
+        const char* name = tic_tool_cart_name(path);
         studioSetCartName(console->studio, name, tic_fs_path(console->fs, name));
     }
 
@@ -909,7 +909,7 @@ static void onLoadCommandConfirmed(Console* console)
         tic_mem* tic = console->tic;
 
         const char* param = console->desc->params->key;
-        const char* name = getCartName(param);
+        const char* name = tic_tool_cart_name(param);
         const char* section = console->desc->count > 1 ? console->desc->params[1].key : NULL;
 
         if(section)
@@ -962,7 +962,7 @@ static void onLoadCommandConfirmed(Console* console)
                 SCOPE(free(cart))
                 {
                     tic_cart_load(cart, data, size);
-                    loadCartSection(console->studio, cart, section);
+                    tic_tool_load_section(console->tic, cart, section);
                     onCartLoaded(console, name, section);
                 }
             }
@@ -977,7 +977,7 @@ static void onLoadCommandConfirmed(Console* console)
 
                     if(cart) SCOPE(free(cart))
                     {
-                        loadCartSection(console->studio, cart, section);
+                        tic_tool_load_section(console->tic, cart, section);
                         onCartLoaded(console, param, section);
                     }
                     else printError(console, "\npng cart loading error");
@@ -999,7 +999,7 @@ static void onLoadCommandConfirmed(Console* console)
                         SCOPE(free(cart))
                         {
                             tic_project_load(name, data, size, cart);
-                            loadCartSection(console->studio, cart, section);
+                            tic_tool_load_section(console->tic, cart, section);
                             onCartLoaded(console, name, section);
                         }
                     }
@@ -2637,7 +2637,7 @@ static void onSaveCommand(Console* console)
 
     if(param && strlen(param) &&
         (tic_fs_exists(console->fs, param) ||
-            tic_fs_exists(console->fs, getCartName(param))))
+            tic_fs_exists(console->fs, tic_tool_cart_name(param))))
     {
         static const char* Rows[] =
         {

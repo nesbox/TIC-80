@@ -35,61 +35,9 @@
 #endif
 
 
-static const char* getName(const char* name, const char* ext)
-{
-    static char path[TICNAME_MAX];
-
-    strcpy(path, name);
-
-    size_t ps = strlen(path);
-    size_t es = strlen(ext);
-
-    if(!(ps > es && strstr(path, ext) + es == path + ps))
-        strcat(path, ext);
-
-    return path;
-}
-
-const char* getCartName(const char* name)
-{
-    return getName(name, CART_EXT);
-}
-
 static inline tic_cartridge* newCart()
 {
     return malloc(sizeof(tic_cartridge));
-}
-
-void loadCartSection(Studio* studio, const tic_cartridge* cart, const char* section)
-{
-    tic_mem* tic = getMemory(studio);
-
-    static const struct Section
-    {
-        const char* name;
-        s32 offset;
-        s32 size;
-    } Sections[] =
-    {
-#define SECTION_DEF(name, ...) {#name, offsetof(tic_bank, name), sizeof(tic_ ## name)},
-        TIC_SYNC_LIST(SECTION_DEF)
-#undef  SECTION_DEF
-    };
-
-    if(section)
-    {
-        if(strcmp(section, "code") == 0)
-            memcpy(&tic->cart.code, &cart->code, sizeof(tic_code));
-        else
-            FOR(const struct Section*, it, Sections)
-                if(strcmp(section, it->name) == 0)
-                {
-                    memcpy((u8*)&tic->cart.bank0 + it->offset, (const u8*)&cart->bank0 + it->offset, it->size);
-                    break;
-                }
-    }
-    else
-        memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 }
 
 void studioSetCartName(Studio* studio, const char* name, const char* path)
@@ -119,7 +67,7 @@ static void hashLoadDone(const u8* buffer, s32 size, void* data)
     SCOPE(free(cart))
     {
         tic_cart_load(cart, buffer, size);
-        loadCartSection(studio, cart, loadByHashData->section);
+        tic_tool_load_section(getMemory(studio), cart, loadByHashData->section);
 
         tic_api_reset(getMemory(studio));
 
@@ -267,7 +215,7 @@ CartSaveResult studioSaveCart(Studio* studio, const char* name)
 #endif
                 else
                 {
-                    name = getCartName(name);
+                    name = tic_tool_cart_name(name);
                     size = tic_cart_save(&tic->cart, buffer);
                 }
 

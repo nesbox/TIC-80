@@ -35,6 +35,9 @@
 #define DEF2STR2(x)         #x
 #define DEF2STR(x)          DEF2STR2(x)
 #define STRLEN(str)         (sizeof str - 1)
+
+// The longest name this project keeps in a buffer: a file, a cart, a screen.
+#define TICNAME_MAX 256
 #define CONCAT2(a, b)       a ## b
 #define CONCAT(a, b)        CONCAT2(a, b)
 #define MACROVAR(name)      CONCAT(name, __LINE__)

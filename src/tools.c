@@ -134,6 +134,51 @@ bool tic_tool_has_ext(const char* name, const char* ext)
     return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
 }
 
+const char* tic_tool_cart_name(const char* name)
+{
+    static char path[TICNAME_MAX];
+
+    strcpy(path, name);
+
+    size_t ps = strlen(path);
+    size_t es = STRLEN(CART_EXT);
+
+    if(!(ps > es && strstr(path, CART_EXT) + es == path + ps))
+        strcat(path, CART_EXT);
+
+    return path;
+}
+
+void tic_tool_load_section(tic_mem* tic, const tic_cartridge* cart, const char* section)
+{
+    static const struct Section
+    {
+        const char* name;
+        s32 offset;
+        s32 size;
+    } Sections[] =
+    {
+#define SECTION_DEF(name, ...) {#name, offsetof(tic_bank, name), sizeof(tic_ ## name)},
+        TIC_SYNC_LIST(SECTION_DEF)
+#undef  SECTION_DEF
+    };
+
+    if(section)
+    {
+        if(strcmp(section, "code") == 0)
+            memcpy(&tic->cart.code, &cart->code, sizeof(tic_code));
+        else
+            FOR(const struct Section*, it, Sections)
+                if(strcmp(section, it->name) == 0)
+                {
+                    memcpy((u8*)&tic->cart.bank0 + it->offset, (const u8*)&cart->bank0 + it->offset, it->size);
+                    break;
+                }
+    }
+    else
+        memcpy(&tic->cart, cart, sizeof(tic_cartridge));
+}
+
 bool tic_tool_is_project(const char* name)
 {
     FOREACH_LANG(script)

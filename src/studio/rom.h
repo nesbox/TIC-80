@@ -40,9 +40,7 @@ typedef struct
 
 CartName* studioCart(Studio* studio);
 
-const char* getCartName(const char* name);
 void studioSetCartName(Studio* studio, const char* name, const char* path);
-void loadCartSection(Studio* studio, const tic_cartridge* cart, const char* section);
 
 bool studioLoadCart(Studio* studio, const char* path);
 void studioLoadByHash(Studio* studio, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);

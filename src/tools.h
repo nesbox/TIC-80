@@ -93,6 +93,15 @@ s32     tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
 void    tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
 bool    tic_tool_has_ext(const char* name, const char* ext);
 
+#define CART_EXT ".tic"
+
+// What a cart file is called: `name` with the extension, if it is missing. The
+// console and the browser both spell it, so neither owns it.
+const char* tic_tool_cart_name(const char* name);
+
+// The machine's cart with one section, or all of it, taken from `cart`.
+void    tic_tool_load_section(tic_mem* tic, const tic_cartridge* cart, const char* section);
+
 // Whether a name is one of the built-in languages' source files, rather than a
 // cart: the languages are the core's registry, so the question is the core's.
 bool    tic_tool_is_project(const char* name);
