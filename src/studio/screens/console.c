@@ -4483,11 +4483,11 @@ static void tick(Console* console)
     processGamepad(console);
 #endif
 
-    Start* start = getStartScreen(console->studio);
+    Boot* boot = getBoot(console->studio);
 
     if(console->tickCounter == 0)
     {
-        if(!start->embed)
+        if(!boot->cart)
         {
             loadDemo(console, tic_get_script(tic));
 
@@ -4509,7 +4509,7 @@ static void tick(Console* console)
     tic_api_cls(tic, TIC_COLOR_BG);
     drawConsoleText(console);
 
-    if(start->embed)
+    if(boot->cart)
     {
         if(console->tickCounter >= (u32)(console->args.skip ? 1 : TIC80_FRAMERATE))
         {
@@ -4517,7 +4517,7 @@ static void tick(Console* console)
             // file, the web player's cart — so this is the player's run.
             runGame(console->studio, RUN_FROM_PLAYER);
 
-            start->embed = false;
+            boot->cart = false;
             studioRomLoaded(console->studio);
 
             printLine(console);
@@ -4630,6 +4630,7 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
     memset(console->desc, 0, sizeof(CommandDesc));
 
     Start* start = getStartScreen(console->studio);
+    Boot* boot = getBoot(console->studio);
 
     if(!console->args.cli)
     {
@@ -4651,10 +4652,10 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
             exit(1);
         }
         else
-            getStartScreen(console->studio)->embed = true;
+            boot->cart = true;
     }
 
-    console->active = !start->embed;
+    console->active = !boot->cart;
 }
 
 void freeConsole(Console* console)

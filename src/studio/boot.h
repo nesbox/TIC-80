@@ -24,6 +24,22 @@
 
 #include "studio.h"
 
+// The cart this launch came with: one embedded in the app image, or the one the
+// player named. Not a user cart — it has no name of its own, and nothing saves it.
+typedef struct
+{
+    bool cart;      // arrived with the launch, still to be played
+
+} Boot;
+
+// Reads what the launch brought, loads it and sets the flag. Called once, after
+// the filesystem and the machine exist and before anything reads the flag.
+void boot_init(Boot*, Studio*, const char* cart);
+
+// The studio is opaque outside studio.c, so its boot state is handed out the
+// way the config and the start screen are.
+Boot* getBoot(Studio*);
+
 #define CART_SIG "TIC.CART"
 
 // The cart an app image carries: the app's bytes, then this header, then the

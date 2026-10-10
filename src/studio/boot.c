@@ -22,6 +22,58 @@
 
 #include "boot.h"
 #include "cart.h"
+#include "fs.h"
+
+void boot_init(Boot* boot, Studio* studio, const char* cart)
+{
+    tic_mem* tic = getMemory(studio);
+
+#if defined(__EMSCRIPTEN__)
+
+    // The player handed the path in rather than an image carrying the cart.
+    if(cart)
+    {
+        s32 size = 0;
+        void* data = fs_read(cart, &size);
+
+        if(data) SCOPE(free(data))
+        {
+            tic_cart_load(&tic->cart, data, size);
+            tic_api_reset(tic);
+            boot->cart = true;
+            studioRomLoaded(studio);
+        }
+    }
+
+#else
+
+    TIC_UNUSED(cart);
+
+    {
+        const char* appPath = fs_apppath();
+
+        s32 appSize = 0;
+        u8* app = fs_read(appPath, &appSize);
+
+        if(app) SCOPE(free(app))
+        {
+            u8* data = calloc(1, sizeof(tic_cartridge));
+            s32 dataSize = 0;
+
+            if(data && boot_findCart(app, appSize, data, sizeof(tic_cartridge), &dataSize))
+            {
+                tic_cart_load(&tic->cart, data, dataSize);
+                tic_api_reset(tic);
+                boot->cart = true;
+                studioRomLoaded(studio);
+            }
+
+            free(data);
+        }
+    }
+
+#endif
+}
 
 static void* _memmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
 {

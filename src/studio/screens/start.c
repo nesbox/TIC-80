@@ -22,14 +22,6 @@
 
 #include "start.h"
 #include "studio/boot.h"
-#include "studio/fs.h"
-#include "cart.h"
-
-#if defined(__TIC_WINDOWS__)
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
 
 static void reset(Start* start)
 {
@@ -75,7 +67,7 @@ static void start_home(Start* start)
 
 #if !defined(BUILD_EDITORS)
     // No console to show it in: a cart that came with the app is played.
-    if(start->embed)
+    if(getBoot(start->studio)->cart)
     {
         runGame(start->studio, RUN_FROM_PLAYER);
         return;
@@ -104,7 +96,7 @@ static void tick(Start* start)
     start->ticks++;
 }
 
-void initStart(Start* start, Studio* studio, const char* cart)
+void initStart(Start* start, Studio* studio)
 {
     enum duration {
         immediate = 0,
@@ -118,7 +110,6 @@ void initStart(Start* start, Studio* studio, const char* cart)
         .tic = getMemory(studio),
         .initialized = true,
         .tick = tick,
-        .embed = false,
         .ticks = 0,
         .stage = 0,
         .stages =
@@ -145,49 +136,6 @@ void initStart(Start* start, Studio* studio, const char* cart)
     for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
         start->color[i] = CLAMP(((i % STUDIO_TEXT_BUFFER_WIDTH) + (i / STUDIO_TEXT_BUFFER_WIDTH)) / 2,
             tic_color_black, tic_color_dark_grey);
-
-#if defined(__EMSCRIPTEN__)
-
-    if (cart)
-    {
-        s32 size = 0;
-        void* data = fs_read(cart, &size);
-
-        if(data) SCOPE(free(data))
-        {
-            tic_cart_load(&start->tic->cart, data, size);
-            tic_api_reset(start->tic);
-            start->embed = true;
-            studioRomLoaded(start->studio);
-        }
-    }
-
-#else
-
-    {
-        const char* appPath = fs_apppath();
-
-        s32 appSize = 0;
-        u8* app = fs_read(appPath, &appSize);
-
-        if(app) SCOPE(free(app))
-        {
-            u8* data = calloc(1, sizeof(tic_cartridge));
-            s32 dataSize = 0;
-
-            if(data && boot_findCart(app, appSize, data, sizeof(tic_cartridge), &dataSize))
-            {
-                tic_cart_load(&start->tic->cart, data, dataSize);
-                tic_api_reset(start->tic);
-                start->embed = true;
-                studioRomLoaded(start->studio);
-            }
-
-            free(data);
-        }
-    }
-
-#endif
 }
 
 void freeStart(Start* start)

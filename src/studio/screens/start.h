@@ -46,10 +46,8 @@ struct Start
     char text[STUDIO_TEXT_BUFFER_SIZE];
     u8 color[STUDIO_TEXT_BUFFER_SIZE];
 
-    bool embed;
-
     void (*tick)(Start*);
 };
 
-void initStart(Start* start, Studio* studio, const char* cart);
+void initStart(Start* start, Studio* studio);
 void freeStart(Start* start);
