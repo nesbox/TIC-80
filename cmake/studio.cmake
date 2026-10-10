@@ -18,6 +18,9 @@ set(TIC80STUDIO_SRC
     # The icon and the cursor every screen draws with: the menu needs both in
     # builds that have no strip and never will.
     ${TIC80LIB_DIR}/studio/ui.c
+    # What the machine's keyboard says, which the editors and the console ask
+    # about more than any other one thing.
+    ${TIC80LIB_DIR}/studio/keyboard.c
     ${TIC80LIB_DIR}/studio/rom.c
     ${TIC80LIB_DIR}/studio/config.c
     ${TIC80LIB_DIR}/studio/fs.c

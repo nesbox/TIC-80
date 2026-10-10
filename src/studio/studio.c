@@ -25,6 +25,7 @@
 #include "mouse.h"
 #include "boot.h"
 #include "sound.h"
+#include "keyboard.h"
 #include "ui.h"
 
 // The strip is drawn by the editors' screens alone, so its header comes with them.
@@ -523,70 +524,22 @@ void sfx_stop(tic_mem* tic, s32 channel)
 
 char getKeyboardText(Studio* studio)
 {
-    tic_mem* tic = studio->tic;
-
-    // Ctrl-based shortcuts should not also inject printable characters.
-    if(tic_api_key(tic, tic_key_ctrl) && !tic_api_key(tic, tic_key_alt))
-        return '\0';
-
-    char text;
-    if(!tic_sys_keyboard_text(&text))
-    {
-        tic80_input* input = &tic->ram->input;
-
-#ifdef KEYBOARD_LAYOUT_ES
-        // US KEYS:                     " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789'!`+cn'o,.- ";
-        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ=!\" $%&/()??^*CN\"a;:_ ";
-        static const char Alt[] =       "                            |@#        []} {\\    ";
-#else
-        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
-        static const char Alt[] =       "                                                  ";
-#endif
-
-        enum{Count = sizeof Symbols};
-
-        for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-        {
-            tic_key key = input->keyboard.keys[i];
-
-            if(key > 0 && key < Count && tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-            {
-                bool caps = tic_api_key(tic, tic_key_capslock);
-                bool shift = tic_api_key(tic, tic_key_shift);
-                bool alt = tic_api_key(tic, tic_key_alt);
-
-                if (caps && key >= tic_key_a && key <= tic_key_z) shift = !shift;
-
-                return shift ? Shift[key]
-                    : alt ? Alt[key]
-                    : Symbols[key];
-            }
-        }
-
-        return '\0';
-    }
-
-    return text;
+    return keyboard_text(studio->tic);
 }
 
 bool keyWasPressed(Studio* studio, tic_key key)
 {
-    tic_mem* tic = studio->tic;
-    return tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD);
+    return keyboard_pressed(studio->tic, key);
 }
 
 bool enterWasPressed(Studio* studio)
 {
-    tic_mem* tic = studio->tic;
-    return ticEnterWasPressed(tic, KEYBOARD_HOLD, KEYBOARD_PERIOD);
+    return ticEnterWasPressed(studio->tic, KEYBOARD_HOLD, KEYBOARD_PERIOD);
 }
 
 bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period)
 {
-    return tic_api_keyp(tic, tic_key_return, hold, period) ||
-           tic_api_keyp(tic, tic_key_numpadenter, hold, period);
+    return keyboard_enter(tic, hold, period);
 }
 
 
@@ -1138,24 +1091,7 @@ static void drawToolbar(Studio* studio)
 
 ClipboardEvent getClipboardEvent(Studio* studio)
 {
-    tic_mem* tic = studio->tic;
-
-    bool shift = tic_api_key(tic, tic_key_shift);
-    bool ctrl = tic_api_key(tic, tic_key_ctrl);
-
-    if(ctrl)
-    {
-        if(keyWasPressed(studio, tic_key_insert) || keyWasPressed(studio, tic_key_c)) return TIC_CLIPBOARD_COPY;
-        else if(keyWasPressed(studio, tic_key_x)) return TIC_CLIPBOARD_CUT;
-        else if(keyWasPressed(studio, tic_key_v)) return TIC_CLIPBOARD_PASTE;
-    }
-    else if(shift)
-    {
-        if(keyWasPressed(studio, tic_key_delete)) return TIC_CLIPBOARD_CUT;
-        else if(keyWasPressed(studio, tic_key_insert)) return TIC_CLIPBOARD_PASTE;
-    }
-
-    return TIC_CLIPBOARD_NONE;
+    return keyboard_clipboard(studio->tic);
 }
 
 static void showPopupMessage(Studio* studio, const char* text)
@@ -1801,13 +1737,6 @@ static void takeScreenshot(Studio* studio)
 }
 #endif
 
-static inline bool keyWasPressedOnce(Studio* studio, s32 key)
-{
-    tic_mem* tic = studio->tic;
-
-    return tic_api_keyp(tic, key, -1, -1);
-}
-
 static void gotoFullscreen(Studio* studio)
 {
     tic_sys_fullscreen_set(studio->config->data.options.fullscreen = !tic_sys_fullscreen_get());
@@ -1885,8 +1814,8 @@ void leaveRun(Studio* studio)
 
 static bool enterWasPressedOnce(Studio* studio)
 {
-    return keyWasPressedOnce(studio, tic_key_return) ||
-           keyWasPressedOnce(studio, tic_key_numpadenter);
+    return keyboard_pressed_once(studio->tic, tic_key_return) ||
+           keyboard_pressed_once(studio->tic, tic_key_numpadenter);
 }
 
 #if defined(BUILD_EDITORS)
@@ -1936,7 +1865,7 @@ static void processShortcuts(Studio* studio)
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
 #if defined(CRT_SHADER_SUPPORT)
-    if(keyWasPressedOnce(studio, tic_key_f6)) switchCrtMonitor(studio);
+    if(keyboard_pressed_once(studio->tic, tic_key_f6)) switchCrtMonitor(studio);
 #endif
 
     if(alt)
@@ -1946,8 +1875,8 @@ static void processShortcuts(Studio* studio)
         else if(studio->mode != TIC_RUN_MODE && studio->config->data.keyboardLayout != tic_layout_azerty)
         {
 #ifndef KEYBOARD_LAYOUT_ES
-            if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
-            else if(keyWasPressedOnce(studio, tic_key_1))
+            if(keyboard_pressed_once(studio->tic, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
+            else if(keyboard_pressed_once(studio->tic, tic_key_1))
             {
                 if(studio->mode != TIC_CODE_MODE)
                 {
@@ -1960,7 +1889,7 @@ static void processShortcuts(Studio* studio)
                 // ctrl+1 is the code editor's, with its "just switched" flag; the
                 // rest follow the tab order.
                 for(s32 i = 1; i < COUNT_OF(Modes); i++)
-                    if(keyWasPressedOnce(studio, tic_key_1 + i))
+                    if(keyboard_pressed_once(studio->tic, tic_key_1 + i))
                     {
                         setStudioMode(studio, Modes[i]);
                         break;
@@ -1972,20 +1901,20 @@ static void processShortcuts(Studio* studio)
     }
     else if(ctrl)
     {
-        if(keyWasPressedOnce(studio, tic_key_q)) studio_exit(studio);
+        if(keyboard_pressed_once(studio->tic, tic_key_q)) studio_exit(studio);
 #if defined(BUILD_EDITORS)
-        else if(keyWasPressedOnce(studio, tic_key_pageup)) changeStudioMode(studio, -1);
-        else if(keyWasPressedOnce(studio, tic_key_pagedown)) changeStudioMode(studio, +1);
+        else if(keyboard_pressed_once(studio->tic, tic_key_pageup)) changeStudioMode(studio, -1);
+        else if(keyboard_pressed_once(studio->tic, tic_key_pagedown)) changeStudioMode(studio, +1);
         else if(enterWasPressedOnce(studio)) runGame(studio, RUN_FROM_STUDIO);
-        else if(keyWasPressedOnce(studio, tic_key_r)) runGame(studio, RUN_FROM_STUDIO);
-        else if(keyWasPressedOnce(studio, tic_key_s)) saveProject(studio);
+        else if(keyboard_pressed_once(studio->tic, tic_key_r)) runGame(studio, RUN_FROM_STUDIO);
+        else if(keyboard_pressed_once(studio->tic, tic_key_s)) saveProject(studio);
 #endif
 
 #if defined(TIC80_PRO) && defined(BUILD_EDITORS)
 
         else
             for(s32 bank = 0; bank < TIC_BANKS; bank++)
-                if(keyWasPressedOnce(studio, tic_key_0 + bank))
+                if(keyboard_pressed_once(studio->tic, tic_key_0 + bank))
                     switchBank(studio, bank);
 
 #endif
@@ -1993,9 +1922,9 @@ static void processShortcuts(Studio* studio)
     }
     else
     {
-        if (keyWasPressedOnce(studio, tic_key_f11)) gotoFullscreen(studio);
+        if (keyboard_pressed_once(studio->tic, tic_key_f11)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
-        else if(keyWasPressedOnce(studio, tic_key_escape))
+        else if(keyboard_pressed_once(studio->tic, tic_key_escape))
         {
             if(
                 getConfig(studio)->options.keybindMode == KEYBIND_VI
@@ -2037,11 +1966,11 @@ static void processShortcuts(Studio* studio)
                 setStudioMode(studio, TIC_CONSOLE_MODE);
             }
         }
-        else if(keyWasPressedOnce(studio, tic_key_f8)) takeScreenshot(studio);
-        else if(keyWasPressedOnce(studio, tic_key_f9)) startVideoRecord(studio);
-        else if(keyWasPressedOnce(studio, tic_key_f10)) hideBattleTime(studio);
-        else if(keyWasPressedOnce(studio, tic_key_f12)) startBattle(studio);
-        else if(studio->mode == TIC_RUN_MODE && keyWasPressedOnce(studio, tic_key_f7))
+        else if(keyboard_pressed_once(studio->tic, tic_key_f8)) takeScreenshot(studio);
+        else if(keyboard_pressed_once(studio->tic, tic_key_f9)) startVideoRecord(studio);
+        else if(keyboard_pressed_once(studio->tic, tic_key_f10)) hideBattleTime(studio);
+        else if(keyboard_pressed_once(studio->tic, tic_key_f12)) startBattle(studio);
+        else if(studio->mode == TIC_RUN_MODE && keyboard_pressed_once(studio->tic, tic_key_f7))
             setCoverImage(studio);
 
         // A running game owns the function keys: a player's run always hands
@@ -2050,7 +1979,7 @@ static void processShortcuts(Studio* studio)
         // studio has no use for them there.
         if((!studio->playerRun && !showGameMenu(studio)) || studio->mode != TIC_RUN_MODE)
         {
-			if(keyWasPressedOnce(studio, Apps[TIC_CODE_MODE].hotkey))
+			if(keyboard_pressed_once(studio->tic, Apps[TIC_CODE_MODE].hotkey))
 			{
 				if(studio->mode != TIC_CODE_MODE)
 				{
@@ -2062,7 +1991,7 @@ static void processShortcuts(Studio* studio)
             {
                 // F1's editor carries the "just switched" flag; the rest are uniform.
                 for(s32 i = 1; i < COUNT_OF(Modes); i++)
-                    if(keyWasPressedOnce(studio, Apps[Modes[i]].hotkey))
+                    if(keyboard_pressed_once(studio->tic, Apps[Modes[i]].hotkey))
                     {
                         setStudioMode(studio, Modes[i]);
                         break;
@@ -2070,7 +1999,7 @@ static void processShortcuts(Studio* studio)
             }
         }
 #else
-        else if(keyWasPressedOnce(studio, tic_key_escape))
+        else if(keyboard_pressed_once(studio->tic, tic_key_escape))
         {
             switch(studio->mode)
             {

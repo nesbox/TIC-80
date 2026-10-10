@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "map.h"
+#include "studio/keyboard.h"
 #include "ext/history.h"
 
 #define MAP_WIDTH (TIC80_WIDTH)
@@ -1153,27 +1154,20 @@ static void copyFromClipboard(Map* map)
     }
 }
 
-static inline bool keyWasPressedOnce(Map* map, s32 key)
-{
-    tic_mem* tic = map->tic;
-
-    return tic_api_keyp(tic, key, -1, -1);
-}
-
 static void processKeyboard(Map* map)
 {
     tic_mem* tic = map->tic;
 
     if(isIdle(map))
     {
-        if(!sheetVisible(map) && keyWasPressedOnce(map, tic_key_shift))
+        if(!sheetVisible(map) && keyboard_pressed_once(map->tic, tic_key_shift))
         {
                 map->anim.movie = resetMovie(&map->anim.show);
                 map->sheet.keep = true;
         }
         else
         {
-            if(map->sheet.keep && sheetVisible(map) && keyWasPressedOnce(map, tic_key_shift))
+            if(map->sheet.keep && sheetVisible(map) && keyboard_pressed_once(map->tic, tic_key_shift))
                 map->anim.movie = resetMovie(&map->anim.hide);
         }
     }

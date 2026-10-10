@@ -69,6 +69,17 @@ if(BUILD_TESTS)
     target_link_libraries(ui-test PRIVATE tic80core)
     tic80_add_test(ui-test)
 
+    # The keyboard links with the core alone as well, and the platform call it
+    # makes is the test's own to answer.
+    add_executable(keyboard-test
+        ${CMAKE_SOURCE_DIR}/tests/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+    )
+
+    target_include_directories(keyboard-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(keyboard-test PRIVATE tic80core)
+    tic80_add_test(keyboard-test)
+
     # The splash links without the studio too: start.c and the module it plays
     # through, with the core and nothing else.
     add_executable(start-test
