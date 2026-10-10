@@ -58,7 +58,7 @@ void boot_init(Boot* boot, Studio* studio, const char* cart)
         if(app) SCOPE(free(app))
         {
             s32 dataSize = 0;
-            u8* data = boot_findCart(app, appSize, &dataSize);
+            u8* data = boot_find_cart(app, appSize, &dataSize);
 
             if(data) SCOPE(free(data))
             {
@@ -94,7 +94,7 @@ static void* _memmem(const void* haystack, size_t hlen, const void* needle, size
     return NULL;
 }
 
-void* boot_findCart(const u8* app, s32 size, s32* cartSize)
+void* boot_find_cart(const u8* app, s32 size, s32* cartSize)
 {
     const u8* ptr = app;
     s32 left = size;
@@ -136,7 +136,7 @@ void* boot_findCart(const u8* app, s32 size, s32* cartSize)
     return NULL;
 }
 
-void* boot_embedCart(tic_mem* tic, const u8* app, s32* size)
+void* boot_embed_cart(tic_mem* tic, const u8* app, s32* size)
 {
     u8* data = NULL;
     void* cart = malloc(sizeof(tic_cartridge));

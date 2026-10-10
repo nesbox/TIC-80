@@ -53,8 +53,8 @@ typedef struct
 
 // The image's cart, decompressed into a fresh allocation the caller frees, or
 // NULL when there is none — the signature alone is not proof.
-void* boot_findCart(const u8* app, s32 size, s32* cartSize);
+void* boot_find_cart(const u8* app, s32 size, s32* cartSize);
 
 // The format's other end: `app`'s bytes with `tic`'s cart appended, zipped. The
 // caller owns the result.
-void* boot_embedCart(tic_mem* tic, const u8* app, s32* size);
+void* boot_embed_cart(tic_mem* tic, const u8* app, s32* size);
