@@ -80,6 +80,17 @@ if(BUILD_TESTS)
     target_link_libraries(keyboard-test PRIVATE tic80core)
     tic80_add_test(keyboard-test)
 
+    # The pointer and the buttons, with the core alone as well: the machine's
+    # pointer for the one, the state struct for the others.
+    add_executable(mouse-test
+        ${CMAKE_SOURCE_DIR}/tests/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+    )
+
+    target_include_directories(mouse-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(mouse-test PRIVATE tic80core)
+    tic80_add_test(mouse-test)
+
     # The splash links without the studio too: start.c and the module it plays
     # through, with the core and nothing else.
     add_executable(start-test

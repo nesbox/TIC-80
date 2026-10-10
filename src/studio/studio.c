@@ -1317,51 +1317,24 @@ bool checkStudioViMode(Studio* studio, ViMode mode) {
 }
 #endif
 
-static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
-{
-    return (pt->x >= rect->x)
-        && (pt->x < (rect->x + rect->w))
-        && (pt->y >= rect->y)
-        && (pt->y < (rect->y + rect->h));
-}
-
 bool checkMousePos(Studio* studio, const tic_rect* rect)
 {
-    tic_point pos = tic_api_mouse(studio->tic);
-    return pointInRect(&pos, rect);
+    return mouse_over(studio->tic, rect);
 }
 
 bool checkMouseClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 {
-    MouseState* state = &studio->mouse.state[button];
-
-    bool value = state->click
-        && pointInRect(&state->start, rect)
-        && pointInRect(&state->end, rect);
-
-    if(value) state->click = false;
-
-    return value;
+    return mouse_click(&studio->mouse.state[button], rect);
 }
 
 bool checkMouseDblClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 {
-    MouseState* state = &studio->mouse.state[button];
-
-    bool value = state->dbl.click
-        && pointInRect(&state->start, rect)
-        && pointInRect(&state->end, rect);
-
-    if(value) state->dbl.click = false;
-
-    return value;
+    return mouse_dblclick(&studio->mouse.state[button], rect);
 }
 
 bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 {
-    MouseState* state = &studio->mouse.state[button];
-
-    return state->down && pointInRect(&state->start, rect);
+    return mouse_down(&studio->mouse.state[button], rect);
 }
 
 void setCursor(Studio* studio, tic_cursor id)

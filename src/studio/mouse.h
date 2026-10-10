@@ -23,6 +23,7 @@
 #pragma once
 
 #include "tic.h"
+#include "api.h"
 
 // One button's frame: `start` and `end` in screen coordinates, so a click
 // needs both inside one rectangle. Shared with the editors' own panels.
@@ -42,3 +43,11 @@ typedef struct
     tic_point end;
 
 } MouseState;
+
+// What a screen asks of the pointer: where it is, and whether a button was
+// pressed, clicked or double-clicked inside a rect. A click is consumed.
+
+bool mouse_over(tic_mem* tic, const tic_rect* rect);
+bool mouse_click(MouseState* state, const tic_rect* rect);
+bool mouse_dblclick(MouseState* state, const tic_rect* rect);
+bool mouse_down(const MouseState* state, const tic_rect* rect);

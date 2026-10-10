@@ -21,6 +21,8 @@ set(TIC80STUDIO_SRC
     # What the machine's keyboard says, which the editors and the console ask
     # about more than any other one thing.
     ${TIC80LIB_DIR}/studio/keyboard.c
+    # The pointer and the buttons, beside the state mouse.h already declared.
+    ${TIC80LIB_DIR}/studio/mouse.c
     ${TIC80LIB_DIR}/studio/rom.c
     ${TIC80LIB_DIR}/studio/config.c
     ${TIC80LIB_DIR}/studio/fs.c
