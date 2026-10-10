@@ -8,24 +8,21 @@ layout(binding=0) uniform crt_params {
     vec2 rect_pos;      // where the picture goes, in window pixels
     vec2 rect_size;
     vec2 resolution;    // the window, in pixels
+    float y_origin;     // 0 when the framebuffer's origin is its top left,
+                        // its height when the origin is the bottom left
 };
 
 in vec2 pos;            // the unit quad, 0..1
-in vec2 uv;
 
-out vec2 uv_out;
-out vec2 rect_pos_out;  // the same for every vertex, so it reaches the
-out vec2 rect_size_out; // fragment stage untouched
 out vec2 pos_out;
+out float y_origin_out;
 
 void main() {
     vec2 px = rect_pos + pos * rect_size;
     vec2 ndc = (px / resolution) * 2.0 - 1.0;
     gl_Position = vec4(ndc.x, -ndc.y, 0.0, 1.0);
-    uv_out = uv;
-    rect_pos_out = rect_pos;
-    rect_size_out = rect_size;
     pos_out = pos;
+    y_origin_out = y_origin;
 }
 @end
 
@@ -33,10 +30,8 @@ void main() {
 layout(binding=0) uniform texture2D tex;
 layout(binding=0) uniform sampler smp;
 
-in vec2 uv_out;
-in vec2 rect_pos_out;
-in vec2 rect_size_out;
 in vec2 pos_out;
+in float y_origin_out;
 out vec4 frag_color;
 
 // Emulated input resolution.
@@ -144,14 +139,11 @@ vec3 Mask(vec2 pos) {
 void main() {
     hardScan = -12.0;
 
-    // Where this pixel is inside the picture, from its top left. It comes from
-    // the vertex stage rather than gl_FragCoord, whose origin is the bottom
-    // left on OpenGL and the top left on Metal.
-    vec2 start = pos_out * rect_size_out;
+    // The mask wants the pixel this fragment is, not one interpolated across
+    // the quad: a six pixel pattern moves with what an interpolator drifts by.
+    vec2 frag = vec2(gl_FragCoord.x, abs(y_origin_out - gl_FragCoord.y));
 
-    vec2 pos = Warp(start / rect_size_out);
-
-    vec3 color = Tri(pos) * Mask(rect_pos_out + start);
+    vec3 color = Tri(Warp(pos_out)) * Mask(frag);
     frag_color = vec4(ToSrgb(color), 1.0);
 }
 @end

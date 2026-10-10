@@ -89,9 +89,9 @@ static void setDefault(Config* config)
         .options =
         {
 #if defined(CRT_SHADER_SUPPORT)
-            // The effect is half the point of the machine on a big screen:
-            // on unless a player turns it off.
-            .crt            = true,
+            // Off unless a player turns it on: it costs a fragment shader per
+            // output pixel, and not every machine holds the frame rate.
+            .crt            = false,
 #endif
             .volume         = MAX_VOLUME,
             .vsync          = DEFAULT_VSYNC,
