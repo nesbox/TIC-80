@@ -65,6 +65,15 @@ jobs:
           if not exist "%GITHUB_WORKSPACE%\stub" mkdir "%GITHUB_WORKSPACE%\stub"
           copy /Y bin\tic80.exe "%GITHUB_WORKSPACE%\stub\tic80.exe" || exit /b 1
 
+      # The sokol layer and its Windows gamepad backend, compiled here and
+      # nowhere else: a directory of its own, since `build` is reconfigured around it.
+      - name: Build Sokol
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build-sokol -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_STATIC=ON -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build-sokol --config Release --parallel
+
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
@@ -207,6 +216,15 @@ jobs:
           # tic80 in there — one called tic80-export would fail packaging.
           mkdir -p "$GITHUB_WORKSPACE/stub"
           cp bin/tic80 "$GITHUB_WORKSPACE/stub/tic80"
+
+      # The sokol layer and its evdev gamepad backend, compiled here and nowhere else.
+      - name: Build Sokol
+        run: |
+          set -euo pipefail
+          # sokol_app is X11 here, and no other step links it.
+          sudo apt-get install -y libx11-dev libxi-dev libxcursor-dev
+          cmake -S . -B build-sokol -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_LUA=ON
+          cmake --build build-sokol --parallel
 
       - name: Export help (learn.md)
         run: |
@@ -669,6 +687,13 @@ jobs:
           # tic80 in there — one called tic80-export would fail packaging.
           mkdir -p "$GITHUB_WORKSPACE/stub"
           cp bin/tic80 "$GITHUB_WORKSPACE/stub/tic80"
+
+      # The sokol layer and its GameController gamepad backend, compiled here and nowhere else.
+      - name: Build Sokol
+        run: |
+          set -euo pipefail
+          cmake -S . -B build-sokol -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_LUA=ON
+          cmake --build build-sokol --parallel 3
 
       - name: Deploy
         uses: actions/upload-artifact@v6
