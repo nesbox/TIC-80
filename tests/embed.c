@@ -2,6 +2,7 @@
  * into an app image, embed_find_cart reads it back out. */
 #include "studio/embed.h"
 #include "cart.h"
+#include "tools.h"
 #include <assert.h>
 #include <stdio.h>
 

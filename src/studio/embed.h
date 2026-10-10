@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "studio.h"
+#include "tic.h"
+#include "api.h"
 
 #define CART_SIG "TIC.CART"
 

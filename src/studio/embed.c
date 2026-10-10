@@ -22,6 +22,7 @@
 
 #include "embed.h"
 #include "cart.h"
+#include "tools.h"
 
 static void* _memmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
 {

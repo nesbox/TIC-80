@@ -104,14 +104,13 @@ if(BUILD_TESTS)
     tic80_add_test(start-test)
 
     # The embedded cart format has two ends and this test drives one into the
-    # other; with the format in a file of its own it needs the core alone, where
-    # it used to link the whole studio for the same two functions.
+    # other with the core alone, and with no build directory either: that is
+    # only there for studio.h's version.h, which this module no longer needs.
     add_executable(embed-test
         ${CMAKE_SOURCE_DIR}/tests/embed.c
         ${CMAKE_SOURCE_DIR}/src/studio/embed.c
     )
 
-    target_include_directories(embed-test PRIVATE ${CMAKE_BINARY_DIR})
     target_link_libraries(embed-test PRIVATE tic80core)
     tic80_add_test(embed-test)
 
