@@ -23,6 +23,7 @@
 #include "console.h"
 #include "start.h"
 #include "tools.h"
+#include "tilesheet.h"
 #include "studio/boot.h"
 #include "studio/fs.h"
 #include "studio/net.h"
@@ -812,7 +813,7 @@ static void updateProject(Console* console)
         if(data) SCOPE(free(data))
         {
 #if defined(TIC80_PRO)
-            if(project_ext(path))
+            if(tic_tool_is_project(path))
                 tic_project_load(studioCart(console->studio)->name, data, size, &tic->cart);
             else
 #endif
@@ -986,7 +987,7 @@ static void onLoadCommandConfirmed(Console* console)
                 const char* name = param;
 
 #if defined(TIC80_PRO)
-                if(project_ext(name))
+                if(tic_tool_is_project(name))
                 {
                     void* data = tic_fs_load(console->fs, name, &size);
 
@@ -1006,7 +1007,7 @@ static void onLoadCommandConfirmed(Console* console)
                 }
                 else printError(console, "\nfile not found");
 #else
-                if(project_ext(name)) {
+                if(tic_tool_is_project(name)) {
                     printError(console, "\nproject loading error");
                     printFront(console, "\nThis version only supports binary .png or .tic cartridges.");
                     printLine(console);
@@ -1785,7 +1786,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                 if(x >= 0 && x < TIC_SPRITESHEET_SIZE && y >= 0 && y < TIC_SPRITESHEET_SIZE)
                     switch (bpp) {
                         case 4:
-                            setSpritePixel(base, x, y, tic_nearest_color(pal->colors,
+                            tic_tilesheet_setflatpix(base, x, y, tic_nearest_color(pal->colors,
                                (tic_rgb*)(img.pixels + i + j * img.width), TIC_PALETTE_SIZE));
                             break;
                         case 2:
@@ -1794,7 +1795,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                             // adding them together caused issues with squashing??? no idea why this isn't the case
                             // for bpp 1
                             color = (color2 << 2) | color1;
-                            setSpritePixel(base, x, y, color);
+                            tic_tilesheet_setflatpix(base, x, y, color);
                             break;
                         case 1:
                             color1 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + j * img.width), 2);
@@ -1802,7 +1803,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                             color3 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 2 + j * img.width), 2);
                             color4 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 3 + j * img.width), 2);
                             color = (color4 << 3) | (color3 << 2) | (color2 << 1) | color1;
-                            setSpritePixel(base, x, y, color);
+                            tic_tilesheet_setflatpix(base, x, y, color);
                             break;
                     }
 
@@ -1994,7 +1995,7 @@ static void exportSprites(Console* console, const char* filename, tic_tile* base
         const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
         for(s32 i = 0; i < TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE; i++)
-            img.values[i] = tic_rgba(&pal->colors[getSpritePixel(base, i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE)]);
+            img.values[i] = tic_rgba(&pal->colors[tic_tilesheet_getflatpix(base, i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE)]);
 
         png_buffer png = png_write(img, (png_buffer){NULL, 0});
 

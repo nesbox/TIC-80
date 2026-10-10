@@ -92,6 +92,10 @@ tic_blitpal tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_form
 s32     tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
 void    tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
 bool    tic_tool_has_ext(const char* name, const char* ext);
+
+// Whether a name is one of the built-in languages' source files, rather than a
+// cart: the languages are the core's registry, so the question is the core's.
+bool    tic_tool_is_project(const char* name);
 s32     tic_tool_get_track_row_sfx(const tic_track_row* row);
 void    tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
 

@@ -22,6 +22,7 @@
 
 #include "studio/system.h"
 #include "tools.h"
+#include "tilesheet.h"
 #include "tic_assert.h"
 
 #include "ext/fft.h"
@@ -340,16 +341,7 @@ static void initSound()
     platform.audio.device = SDL_OpenAudioDevice(NULL, 0, &want, &platform.audio.spec, 0);
 }
 
-static const u8* getSpritePtr(const tic_tile* tiles, s32 x, s32 y)
-{
-    enum { SheetCols = (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE) };
-    return tiles[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * SheetCols].data;
-}
 
-static u8 getSpritePixel(const tic_tile* tiles, s32 x, s32 y)
-{
-    return tic_tool_peek4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
-}
 
 static void setWindowIcon()
 {
@@ -363,7 +355,7 @@ static void setWindowIcon()
         for(s32 j = 0, index = 0; j < Size; j++)
             for(s32 i = 0; i < Size; i++, index++)
             {
-                u8 color = getSpritePixel(studio_config(platform.studio)->cart->bank0.tiles.data, i/Scale, j/Scale);
+                u8 color = tic_tilesheet_getflatpix(studio_config(platform.studio)->cart->bank0.tiles.data, i/Scale, j/Scale);
                 pixels[index] = color == ColorKey ? 0 : pal.data[color];
             }
 

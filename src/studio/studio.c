@@ -543,20 +543,7 @@ bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period)
 }
 
 
-bool anyKeyWasPressed(Studio* studio)
-{
-    tic_mem* tic = studio->tic;
 
-    for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-    {
-        tic_key key = tic->ram->input.keyboard.keys[i];
-
-        if(tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-            return true;
-    }
-
-    return false;
-}
 
 #if defined(BUILD_EDITORS)
 tic_tiles* getBankTiles(Studio* studio)
@@ -620,24 +607,7 @@ const char* md5str(const void* data, s32 length)
     return res;
 }
 
-static u8* getSpritePtr(tic_tile* tiles, s32 x, s32 y)
-{
-    enum { SheetCols = (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE) };
-    return tiles[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * SheetCols].data;
-}
 
-
-void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color)
-{
-    // TODO: check spritesheet rect
-    tic_tool_poke4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE, color);
-}
-
-u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y)
-{
-    // TODO: check spritesheet rect
-    return tic_tool_peek4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
-}
 
 #if defined(BUILD_EDITORS)
 void toClipboard(const void* data, s32 size, bool flip)
@@ -1459,16 +1429,7 @@ static void updateTitle(Studio* studio)
     tic_sys_title(name);
 }
 
-bool project_ext(const char* name)
-{
-    FOREACH_LANG(script)
-    {
-        if(tic_tool_has_ext(name, script->fileExtension))
-            return true;
-    }
 
-    return false;
-}
 
 void studioRomSaved(Studio* studio)
 {

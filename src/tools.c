@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "tools.h"
+#include "script.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -131,6 +132,17 @@ tic_blitpal tic_tool_palette_blit(const tic_palette* srcpal, tic80_pixel_color_f
 bool tic_tool_has_ext(const char* name, const char* ext)
 {
     return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
+}
+
+bool tic_tool_is_project(const char* name)
+{
+    FOREACH_LANG(script)
+    {
+        if(tic_tool_has_ext(name, script->fileExtension))
+            return true;
+    }
+
+    return false;
 }
 
 s32 tic_tool_get_track_row_sfx(const tic_track_row* row)

@@ -301,9 +301,6 @@ ClipboardEvent getClipboardEvent(Studio* studio);
 
 void showTooltip(Studio* studio, const char* text);
 
-void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);
-u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y);
-
 typedef void(*ConfirmCallback)(Studio* studio, bool yes, void* data);
 void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback callback, void* data);
 void confirmLoadCart(Studio* studio, ConfirmCallback callback, void* data);
@@ -337,7 +334,6 @@ tic_map* getBankMap(Studio* studio);
 char getKeyboardText(Studio* studio);
 bool keyWasPressed(Studio* studio, tic_key key);
 bool enterWasPressed(Studio* studio);
-bool anyKeyWasPressed(Studio* studio);
 bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period);
 
 typedef struct Config Config;
@@ -356,7 +352,6 @@ s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);
 void tiles2ram(tic_ram* ram, const tic_tiles* src);
 void fadePalette(tic_palette* pal, s32 value);
-bool project_ext(const char* name);
 
 #if defined(BUILD_EDITORS)
 

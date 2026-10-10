@@ -26,6 +26,7 @@
 #include "studio.h"
 #include "rom.h"
 #include "cart.h"
+#include "tools.h"
 #include "fs.h"
 #include "config.h"
 
@@ -259,7 +260,7 @@ CartSaveResult studioSaveCart(Studio* studio, const char* name)
                     size = result.size;
                 }
 #if defined(TIC80_PRO)
-                else if(project_ext(name))
+                else if(tic_tool_is_project(name))
                 {
                     size = tic_project_save(name, buffer, &tic->cart);
                 }
@@ -337,7 +338,7 @@ bool studioLoadCart(Studio* studio, const char* path)
             done = true;
         }
 #if defined(TIC80_PRO)
-        else if(project_ext(cartName))
+        else if(tic_tool_is_project(cartName))
         {
             if(tic_project_load(cartName, data, size, &tic->cart))
                 done = true;
