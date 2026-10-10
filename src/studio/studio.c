@@ -293,7 +293,7 @@ static void* startApp(Studio* studio)   { return studio->start; }
 static void* runApp(Studio* studio)     { return studio->run; }
 static void* menuApp(Studio* studio)    { return studio->menu; }
 
-static void startTick(void* app)    { Start* start = app; start->tick(start); }
+static void startTick(void* app)    { start_tick(app); }
 static void runTick(void* app)      { Run* run = app; run->tick(run); }
 static void menuTick(void* app)     { studio_menu_tick(app); }
 static void menuScanline(tic_mem* tic, s32 row, void* data) { studio_menu_anim_scanline(tic, row, data); }
@@ -1053,11 +1053,6 @@ const StudioConfig* getConfig(Studio* studio)
 Config* studio_config_get(Studio* studio)
 {
     return studio->config;
-}
-
-struct Start* getStartScreen(Studio* studio)
-{
-    return studio->start;
 }
 
 Boot* getBoot(Studio* studio)
@@ -2257,6 +2252,19 @@ static void renderStudio(Studio* studio)
         if(app->tick)
             app->tick(app->instance(studio));
 
+        // The splash reports that the intro is over; where that leads is the
+        // host's: a cart the launch came with, in a build that has no console to
+        // run it from, and the home mode everywhere else.
+        if(studio->mode == TIC_START_MODE && start_done(studio->start))
+        {
+#if !defined(BUILD_EDITORS)
+            if(getBoot(studio)->cart)
+                runGame(studio, RUN_FROM_PLAYER);
+            else
+#endif
+                setStudioMode(studio, TIC_HOME_MODE);
+        }
+
         // Any editor mode gets the strip; `band` NULL still draws the rail.
         // An overlay-bank mode drew its strip there too — see D2.
 #if defined(BUILD_EDITORS)
@@ -2763,7 +2771,7 @@ void studio_delete(Studio* studio)
 #endif
 
 
-        freeStart   (studio->start);
+        start_free  (studio->start);
         freeRun     (studio->run);
         freeConfig  (studio->config);
 
@@ -3034,7 +3042,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->surf       = calloc(1, sizeof(Surf));
 #endif
 
-        studio->start      = calloc(1, sizeof(Start));
         studio->run        = calloc(1, sizeof(Run));
         studio->menu       = studio_menu_create(studio);
         studio->config     = calloc(1, sizeof(Config));
@@ -3064,7 +3071,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->config->data.uiScale = maxscale;
     }
 
-    initStart(studio->start, studio);
+    studio->start = start_create(&(StartDeps){ .tic = studio->tic, .config = getConfig(studio) });
     boot_init(&studio->boot, studio, args.cart);
     initRunMode(studio);
 

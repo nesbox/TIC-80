@@ -21,7 +21,29 @@
 // SOFTWARE.
 
 #include "start.h"
-#include "studio/boot.h"
+#include "studio/sound.h"
+
+typedef struct
+{
+    void (*fn)(Start*);
+    s32 ticks;
+
+} Stage;
+
+struct Start
+{
+    tic_mem* tic;
+    const StudioConfig* config;
+
+    Stage stages[4];
+    s32 stage;
+    s32 ticks;
+
+    char text[STUDIO_TEXT_BUFFER_SIZE];
+    u8 color[STUDIO_TEXT_BUFFER_SIZE];
+
+    bool done;
+};
 
 static void reset(Start* start)
 {
@@ -48,12 +70,12 @@ static void drawHeader(Start* start)
 
 static void chime(Start* start)
 {
-    playSystemSfx(start->studio, 1);
+    sound_play(start->tic, &start->config->cart->bank0.sfx, 1);
 }
 
 static void stop_chime(Start* start)
 {
-    sfx_stop(start->tic, 0);
+    sound_stop(start->tic, 0);
 }
 
 static void header(Start* start)
@@ -61,67 +83,8 @@ static void header(Start* start)
     drawHeader(start);
 }
 
-static void start_home(Start* start)
+void start_banner(char* text, u8* color)
 {
-    drawHeader(start);
-
-#if !defined(BUILD_EDITORS)
-    // No console to show it in: a cart that came with the app is played.
-    if(getBoot(start->studio)->cart)
-    {
-        runGame(start->studio, RUN_FROM_PLAYER);
-        return;
-    }
-#endif
-
-    setStudioMode(start->studio, TIC_HOME_MODE);
-}
-
-static void tick(Start* start)
-{
-    // stages that have a tick count of 0 run in zero time
-    // (typically this is only used to start/stop audio)
-    while (start->stages[start->stage].ticks == 0) {
-        start->stages[start->stage].fn(start);
-        start->stage++;
-    }
-
-    tic_api_cls(start->tic, TIC_COLOR_BG);
-
-    Stage *stage = &start->stages[start->stage];
-    stage->fn(start);
-    if (stage->ticks > 0) stage->ticks--;
-    if (stage->ticks == 0) start->stage++;
-
-    start->ticks++;
-}
-
-void initStart(Start* start, Studio* studio)
-{
-    enum duration {
-        immediate = 0,
-        one_second = TIC80_FRAMERATE,
-        forever = -1
-    };
-
-    *start = (Start)
-    {
-        .studio = studio,
-        .tic = getMemory(studio),
-        .initialized = true,
-        .tick = tick,
-        .ticks = 0,
-        .stage = 0,
-        .stages =
-        {
-            { reset, .ticks = one_second },
-            { chime, .ticks = immediate },
-            { header, .ticks = one_second },
-            { stop_chime, .ticks = immediate },
-            { start_home, .ticks = forever },
-        }
-    };
-
     static const char* Header[] =
     {
         "",
@@ -130,15 +93,74 @@ void initStart(Start* start, Studio* studio)
         " " TIC_COPYRIGHT,
     };
 
+    memset(text, 0, STUDIO_TEXT_BUFFER_SIZE);
+
     for(s32 i = 0; i < COUNT_OF(Header); i++)
-        strcpy(&start->text[i * STUDIO_TEXT_BUFFER_WIDTH], Header[i]);
+        strcpy(&text[i * STUDIO_TEXT_BUFFER_WIDTH], Header[i]);
 
     for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
-        start->color[i] = CLAMP(((i % STUDIO_TEXT_BUFFER_WIDTH) + (i / STUDIO_TEXT_BUFFER_WIDTH)) / 2,
+        color[i] = CLAMP(((i % STUDIO_TEXT_BUFFER_WIDTH) + (i / STUDIO_TEXT_BUFFER_WIDTH)) / 2,
             tic_color_black, tic_color_dark_grey);
 }
 
-void freeStart(Start* start)
+Start* start_create(const StartDeps* deps)
+{
+    Start* start = calloc(1, sizeof(Start));
+
+    if(start)
+    {
+        *start = (Start)
+        {
+            .tic = deps->tic,
+            .config = deps->config,
+            .stages =
+            {
+                { reset, .ticks = TIC80_FRAMERATE },
+                { chime },
+                { header, .ticks = TIC80_FRAMERATE },
+                { stop_chime },
+            },
+        };
+
+        start_banner(start->text, start->color);
+    }
+
+    return start;
+}
+
+void start_tick(Start* start)
+{
+    // A stage with no ticks runs in zero time — the two that start and stop the
+    // chime — and the intro is over when there are none left.
+    while(start->stage < COUNT_OF(start->stages) && start->stages[start->stage].ticks == 0)
+    {
+        start->stages[start->stage].fn(start);
+        start->stage++;
+    }
+
+    if(start->stage >= COUNT_OF(start->stages))
+    {
+        start->done = true;
+        return;
+    }
+
+    tic_api_cls(start->tic, TIC_COLOR_BG);
+
+    Stage* stage = &start->stages[start->stage];
+    stage->fn(start);
+
+    if(stage->ticks > 0 && --stage->ticks == 0)
+        start->stage++;
+
+    start->ticks++;
+}
+
+bool start_done(const Start* start)
+{
+    return start->done;
+}
+
+void start_free(Start* start)
 {
     free(start);
 }
