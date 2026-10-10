@@ -113,6 +113,28 @@ if(BUILD_TESTS)
     target_link_libraries(embed-test PRIVATE tic80core)
     tic80_add_test(embed-test)
 
+    # The console is the module whose face is a request the host answers, and
+    # this test is its host: it builds the module with the core and the modules
+    # it names — no studio anywhere — and every command it is given ends in an
+    # ask the test takes and answers. Net is compiled without USE_NAETT, which
+    # is net's own no-network shape: the test opens no sockets either.
+    add_executable(console-test
+        ${CMAKE_SOURCE_DIR}/tests/console.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/console.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/start.c
+        ${CMAKE_SOURCE_DIR}/src/studio/embed.c
+        ${CMAKE_SOURCE_DIR}/src/studio/fs.c
+        ${CMAKE_SOURCE_DIR}/src/studio/net.c
+        ${CMAKE_SOURCE_DIR}/src/ext/json.c
+    )
+
+    target_include_directories(console-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    target_link_libraries(console-test PRIVATE tic80core zip)
+    tic80_add_test(console-test)
+
     # The FFT module, driven offline by both tests. They build its sources
     # rather than linking the core, because the stubs variant below has to
     # recompile them with TIC80_FFT_UNSUPPORTED. FFT_Open reaches VQT_Open, so
