@@ -17,6 +17,18 @@ static s32 channelSample(tic_mem* tic)
     return ((tic_core*)tic)->state.sfx.channels[0].index;
 }
 
+// Every pixel drawn on the screen, so the test can tell a splash that drew from
+// one that only ran its stages.
+static s32 screenSum(tic_mem* tic)
+{
+    s32 sum = 0;
+
+    for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
+        sum += tic_tool_peek4(tic->ram->vram.screen.data, i);
+
+    return sum;
+}
+
 static Start* makeSplash(tic_mem* tic)
 {
     Cfg.cart = &Cart;
@@ -58,10 +70,23 @@ static void testIntro(tic_mem* tic)
         start_tick(start);
         ticks++;
 
+        // The pulsing tiles are drawn from the first frames on, and their second
+        // ends on a blank screen — so what appears with the banner is the
+        // banner, and a splash that never filled its own copy would draw none of
+        // it while the console, which fills its own, stayed right.
+        if(ticks == TIC80_FRAMERATE / 2)
+            assert(screenSum(tic) > 0);
+
+        if(ticks == TIC80_FRAMERATE)
+            assert(screenSum(tic) == 0);
+
         // The chime is the cart's own first sample, and it plays on the frame
         // after the first second of pulsing.
         if(ticks == TIC80_FRAMERATE + 1)
+        {
             assert(channelSample(tic) == 1);
+            assert(screenSum(tic) > 0);
+        }
     }
 
     // Two seconds of pulsing and banner, and the frame that stops the chime.

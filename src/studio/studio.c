@@ -288,7 +288,7 @@ struct Studio
 
 };
 
-// Editors keep their tick and scanline in their struct, hence the adapters.
+// The screens' ticks take their own type, hence the adapters.
 static void* startApp(Studio* studio)   { return studio->start; }
 static void* runApp(Studio* studio)     { return studio->run; }
 static void* menuApp(Studio* studio)    { return studio->menu; }
@@ -1636,7 +1636,7 @@ void runGame(Studio* studio, RunOrigin origin)
         // the origin of the run the menu sits over, or leaveRun would have
         // nowhere to go (gotoMenu sets it for a menu opened in the studio).
         // The startup screen is not an origin: that run belongs to the home
-        // screen it never left (see start.c).
+        // screen it never left.
         if(studio->mode != TIC_MENU_MODE && studio->mode != TIC_START_MODE)
             studio->runFrom = studio->mode;
 
@@ -3079,7 +3079,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     initConsole(studio->console, studio, studio->fs, studio->net, studio->config, args);
 #else
     // No console: whatever is on the command line is loaded right here, and
-    // the startup stage plays it (see start.c).
+    // played once the splash hands the transition over.
     if(args.cart)
     {
         if(studioLoadCart(studio, args.cart))
