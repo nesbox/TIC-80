@@ -103,13 +103,17 @@ if(BUILD_TESTS)
     target_link_libraries(start-test PRIVATE tic80core)
     tic80_add_test(start-test)
 
-    # The embedded cart format has two ends, and this test drives one into the
-    # other: the studio link is fine here, where toolbar's test is about links.
-    add_executable(boot-test ${CMAKE_SOURCE_DIR}/tests/boot.c)
+    # The embedded cart format has two ends and this test drives one into the
+    # other; with the format in a file of its own it needs the core alone, where
+    # it used to link the whole studio for the same two functions.
+    add_executable(embed-test
+        ${CMAKE_SOURCE_DIR}/tests/embed.c
+        ${CMAKE_SOURCE_DIR}/src/studio/embed.c
+    )
 
-    target_include_directories(boot-test PRIVATE ${CMAKE_BINARY_DIR})
-    target_link_libraries(boot-test PRIVATE tic80studio)
-    tic80_add_test(boot-test)
+    target_include_directories(embed-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(embed-test PRIVATE tic80core)
+    tic80_add_test(embed-test)
 
     # The FFT module, driven offline by both tests. They build its sources
     # rather than linking the core, because the stubs variant below has to

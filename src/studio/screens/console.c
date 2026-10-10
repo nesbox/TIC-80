@@ -25,6 +25,7 @@
 #include "tools.h"
 #include "tilesheet.h"
 #include "studio/boot.h"
+#include "studio/embed.h"
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
@@ -2065,7 +2066,7 @@ static void onNativeExportGet(const net_get_data* data)
             const char* path = tic_fs_path(console->fs, filename);
             void* buf = NULL;
 
-            onFileExported(console, filename, (buf = boot_embed_cart(console->tic, data->done.data, &size)) && fs_write(path, buf, size));
+            onFileExported(console, filename, (buf = embed_cart(console->tic, data->done.data, &size)) && fs_write(path, buf, size));
             chmod(path, DEFAULT_CHMOD);
 
             if (buf)
@@ -2143,7 +2144,7 @@ static bool tryExportNativeFromLocalTemplate(Console* console, const char* name,
     SCOPE(free(app))
     {
         s32 size = appSize;
-        void* buf = boot_embed_cart(console->tic, app, &size);
+        void* buf = embed_cart(console->tic, app, &size);
 
         if(buf) SCOPE(free(buf))
         {
