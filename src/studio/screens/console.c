@@ -4629,13 +4629,11 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
     memset(console->color, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
     memset(console->desc, 0, sizeof(CommandDesc));
 
-    Start* start = getStartScreen(console->studio);
     Boot* boot = getBoot(console->studio);
 
     if(!console->args.cli)
     {
-        memcpy(console->text, start->text, STUDIO_TEXT_BUFFER_SIZE);
-        memcpy(console->color, start->color, STUDIO_TEXT_BUFFER_SIZE);
+        start_banner(console->text, console->color);
 
         printLine(console);
         for(const char* ptr = console->text, *end = ptr + STUDIO_TEXT_BUFFER_SIZE;

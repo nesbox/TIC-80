@@ -22,26 +22,13 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "studio.h"
 
-typedef struct Start Start;
+// The two halves of how the studio plays a system sound, in a module of their
+// own: the strip never called either, and the studio's wrappers are one line each.
 
-// What the intro runs on: the machine it draws with, and the cart its chime
-// comes from. No studio, and nothing to call back into.
-typedef struct
-{
-    tic_mem*            tic;
-    const StudioConfig* config;
+// Plays sample `id` of `sfx` on channel 0.
+void sound_play(tic_mem* tic, const tic_sfx* sfx, s32 id);
 
-} StartDeps;
-
-Start* start_create(const StartDeps* deps);
-void   start_tick(Start* start);
-void   start_free(Start* start);
-
-// The intro is over; where that leads is the host's to decide.
-bool   start_done(const Start* start);
-
-// The studio's name, version and copyright: what the splash draws, and what the
-// console prints in builds that reach it without drawing the splash at all.
-void   start_banner(char* text, u8* color);
+// Silences `channel`.
+void sound_stop(tic_mem* tic, s32 channel);

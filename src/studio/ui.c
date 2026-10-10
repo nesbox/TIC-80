@@ -20,28 +20,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#include "ui.h"
 
-#include "studio/studio.h"
-
-typedef struct Start Start;
-
-// What the intro runs on: the machine it draws with, and the cart its chime
-// comes from. No studio, and nothing to call back into.
-typedef struct
+void ui_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color)
 {
-    tic_mem*            tic;
-    const StudioConfig* config;
+    const tic_tile* tile = &tiles->data[id];
 
-} StartDeps;
+    for(s32 i = 0, sx = x, ex = sx + TIC_SPRITESIZE; i != TIC_SPRITESIZE * TIC_SPRITESIZE; ++i, ++x)
+    {
+        if(x == ex)
+        {
+            x = sx;
+            y++;
+        }
 
-Start* start_create(const StartDeps* deps);
-void   start_tick(Start* start);
-void   start_free(Start* start);
+        if(tic_tool_peek4(tile, i))
+            tic_api_pix(tic, x, y, color, false);
+    }
+}
 
-// The intro is over; where that leads is the host's to decide.
-bool   start_done(const Start* start);
-
-// The studio's name, version and copyright: what the splash draws, and what the
-// console prints in builds that reach it without drawing the splash at all.
-void   start_banner(char* text, u8* color);
+void ui_cursor(tic_mem* tic, tic_cursor id)
+{
+    VBANK(tic, 0)
+    {
+        tic->ram->vram.vars.cursor.sprite = id;
+    }
+}

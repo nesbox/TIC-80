@@ -35,14 +35,51 @@ if(BUILD_TESTS)
     # would hide a call into studio.c, which is the one thing this test is for.
     # version.h is generated into the build directory, and the studio target is
     # what usually publishes that path.
+    # The strip draws its icons and sets its hand cursor through the ui module,
+    # so that builds here too.
     add_executable(toolbar-test
         ${CMAKE_SOURCE_DIR}/tests/toolbar.c
         ${CMAKE_SOURCE_DIR}/src/studio/toolbar.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
     )
 
     target_include_directories(toolbar-test PRIVATE ${CMAKE_BINARY_DIR})
     target_link_libraries(toolbar-test PRIVATE tic80core)
     tic80_add_test(toolbar-test)
+
+    # The studio's sound is a module of its own, and links with the core alone:
+    # nothing the test reaches goes near the studio.
+    add_executable(sound-test
+        ${CMAKE_SOURCE_DIR}/tests/sound.c
+        ${CMAKE_SOURCE_DIR}/src/studio/sound.c
+    )
+
+    target_include_directories(sound-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(sound-test PRIVATE tic80core)
+    tic80_add_test(sound-test)
+
+    # The icon and the cursor are a module of their own, and link with the core
+    # alone: the strip is one of their callers, not their owner.
+    add_executable(ui-test
+        ${CMAKE_SOURCE_DIR}/tests/ui.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+    )
+
+    target_include_directories(ui-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(ui-test PRIVATE tic80core)
+    tic80_add_test(ui-test)
+
+    # The splash links without the studio too: start.c and the module it plays
+    # through, with the core and nothing else.
+    add_executable(start-test
+        ${CMAKE_SOURCE_DIR}/tests/start.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/start.c
+        ${CMAKE_SOURCE_DIR}/src/studio/sound.c
+    )
+
+    target_include_directories(start-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(start-test PRIVATE tic80core)
+    tic80_add_test(start-test)
 
     # The embedded cart format has two ends, and this test drives one into the
     # other: the studio link is fine here, where toolbar's test is about links.

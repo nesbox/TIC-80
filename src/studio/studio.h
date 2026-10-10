@@ -343,7 +343,6 @@ bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period);
 typedef struct Config Config;
 const StudioConfig* getConfig(Studio* studio);
 Config* studio_config_get(Studio* studio);
-struct Start* getStartScreen(Studio* studio);
 struct Sprite* getSpriteEditor(Studio* studio);
 
 const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* filename);

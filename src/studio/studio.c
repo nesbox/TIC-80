@@ -23,8 +23,14 @@
 #include "studio.h"
 #include "apps.h"
 #include "mouse.h"
-#include "toolbar.h"
 #include "boot.h"
+#include "sound.h"
+#include "ui.h"
+
+// The strip is drawn by the editors' screens alone, so its header comes with them.
+#if defined(BUILD_EDITORS)
+#include "toolbar.h"
+#endif
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -275,17 +281,19 @@ struct Studio
     s32 samplerate;
     tic_font systemFont;
 
+#if defined(BUILD_EDITORS)
     Toolbar toolbar;
+#endif
     Boot boot;
 
 };
 
-// Editors keep their tick and scanline in their struct, hence the adapters.
+// The screens' ticks take their own type, hence the adapters.
 static void* startApp(Studio* studio)   { return studio->start; }
 static void* runApp(Studio* studio)     { return studio->run; }
 static void* menuApp(Studio* studio)    { return studio->menu; }
 
-static void startTick(void* app)    { Start* start = app; start->tick(start); }
+static void startTick(void* app)    { start_tick(app); }
 static void runTick(void* app)      { Run* run = app; run->tick(run); }
 static void menuTick(void* app)     { studio_menu_tick(app); }
 static void menuScanline(tic_mem* tic, s32 row, void* data) { studio_menu_anim_scanline(tic, row, data); }
@@ -510,7 +518,7 @@ const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* f
 
 void sfx_stop(tic_mem* tic, s32 channel)
 {
-    tic_api_sfx(tic, -1, 0, 0, -1, channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
+    sound_stop(tic, channel);
 }
 
 char getKeyboardText(Studio* studio)
@@ -622,7 +630,7 @@ tic_flags* getBankFlags(Studio* studio)
 
 void playSystemSfx(Studio* studio, s32 id)
 {
-    toolbar_playClick(studio->tic, &getConfig(studio)->cart->bank0.sfx, id);
+    sound_play(studio->tic, &getConfig(studio)->cart->bank0.sfx, id);
 }
 
 static void md5(const void* voidData, s32 length, u8 digest[MD5_HASHSIZE])
@@ -1047,11 +1055,6 @@ Config* studio_config_get(Studio* studio)
     return studio->config;
 }
 
-struct Start* getStartScreen(Studio* studio)
-{
-    return studio->start;
-}
-
 Boot* getBoot(Studio* studio)
 {
     return &studio->boot;
@@ -1198,7 +1201,7 @@ void exitStudio(Studio* studio)
 
 void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
 {
-    toolbar_icon(studio->tic, &getConfig(studio)->cart->bank0.tiles, id, x, y, color);
+    ui_icon(studio->tic, &getConfig(studio)->cart->bank0.tiles, id, x, y, color);
 }
 
 static void initRunMode(Studio* studio)
@@ -1427,7 +1430,7 @@ bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 
 void setCursor(Studio* studio, tic_cursor id)
 {
-    toolbar_cursor(studio->tic, id);
+    ui_cursor(studio->tic, id);
 }
 
 typedef struct
@@ -1633,7 +1636,7 @@ void runGame(Studio* studio, RunOrigin origin)
         // the origin of the run the menu sits over, or leaveRun would have
         // nowhere to go (gotoMenu sets it for a menu opened in the studio).
         // The startup screen is not an origin: that run belongs to the home
-        // screen it never left (see start.c).
+        // screen it never left.
         if(studio->mode != TIC_MENU_MODE && studio->mode != TIC_START_MODE)
             studio->runFrom = studio->mode;
 
@@ -2249,6 +2252,19 @@ static void renderStudio(Studio* studio)
         if(app->tick)
             app->tick(app->instance(studio));
 
+        // The splash reports that the intro is over; where that leads is the
+        // host's: a cart the launch came with, in a build that has no console to
+        // run it from, and the home mode everywhere else.
+        if(studio->mode == TIC_START_MODE && start_done(studio->start))
+        {
+#if !defined(BUILD_EDITORS)
+            if(getBoot(studio)->cart)
+                runGame(studio, RUN_FROM_PLAYER);
+            else
+#endif
+                setStudioMode(studio, TIC_HOME_MODE);
+        }
+
         // Any editor mode gets the strip; `band` NULL still draws the rail.
         // An overlay-bank mode drew its strip there too — see D2.
 #if defined(BUILD_EDITORS)
@@ -2558,16 +2574,20 @@ void studio_tick(Studio* studio, tic80_input input)
 
     // A tab click lands here rather than switching mid-frame: the mode's blit
     // callback is chosen after its tick, so the switch has to wait for that.
+#if defined(BUILD_EDITORS)
     if(studio->toolbar.requested)
     {
         setStudioMode(studio, studio->toolbar.requested);
         studio->toolbar.requested = 0;
     }
+#endif
 
     // After processMouseStates so a press is seen the frame it arrives, and
     // before renderStudio, which is where the tooltip's clear belongs.
     processMouseStates(studio);
+#if defined(BUILD_EDITORS)
     toolbar_step(&studio->toolbar);
+#endif
 
     renderStudio(studio);
 
@@ -2751,7 +2771,7 @@ void studio_delete(Studio* studio)
 #endif
 
 
-        freeStart   (studio->start);
+        start_free  (studio->start);
         freeRun     (studio->run);
         freeConfig  (studio->config);
 
@@ -3022,7 +3042,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->surf       = calloc(1, sizeof(Surf));
 #endif
 
-        studio->start      = calloc(1, sizeof(Start));
         studio->run        = calloc(1, sizeof(Run));
         studio->menu       = studio_menu_create(studio);
         studio->config     = calloc(1, sizeof(Config));
@@ -3034,6 +3053,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 
     initConfig(studio->config, studio, studio->fs);
 
+#if defined(BUILD_EDITORS)
     studio->toolbar = (Toolbar)
     {
         .tic      = studio->tic,
@@ -3043,6 +3063,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         .apps     = Apps,
         .appCount = TIC_MODES_COUNT,
     };
+#endif
 
     if (studio->config->data.uiScale > maxscale)
     {
@@ -3050,7 +3071,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->config->data.uiScale = maxscale;
     }
 
-    initStart(studio->start, studio);
+    studio->start = start_create(&(StartDeps){ .tic = studio->tic, .config = getConfig(studio) });
     boot_init(&studio->boot, studio, args.cart);
     initRunMode(studio);
 
@@ -3058,7 +3079,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     initConsole(studio->console, studio, studio->fs, studio->net, studio->config, args);
 #else
     // No console: whatever is on the command line is loaded right here, and
-    // the startup stage plays it (see start.c).
+    // played once the splash hands the transition over.
     if(args.cart)
     {
         if(studioLoadCart(studio, args.cart))

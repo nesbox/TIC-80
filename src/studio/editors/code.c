@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "code.h"
+#include "studio/ui.h"
 #include "ext/history.h"
 
 #include <ctype.h>
@@ -3685,10 +3686,10 @@ static void modeButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
     if(btn->active)
     {
         tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_grey);
-        toolbar_icon(tb->tic, tiles, btn->icon, rect->x, rect->y + tb->y + 1, tic_color_black);
+        ui_icon(tb->tic, tiles, btn->icon, rect->x, rect->y + tb->y + 1, tic_color_black);
     }
 
-    toolbar_icon(tb->tic, tiles, btn->icon, rect->x, rect->y + tb->y,
+    ui_icon(tb->tic, tiles, btn->icon, rect->x, rect->y + tb->y,
         btn->active ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
 }
 
@@ -3709,11 +3710,11 @@ static void shadowButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx
     Code* code = ctx;
     const tic_tiles* tiles = &tb->config->cart->bank0.tiles;
 
-    toolbar_icon(tb->tic, tiles, tic_icon_shadow, rect->x, rect->y + tb->y,
+    ui_icon(tb->tic, tiles, tic_icon_shadow, rect->x, rect->y + tb->y,
         over && !code->shadowText ? tic_color_grey : tic_color_light_grey);
 
     if(code->shadowText)
-        toolbar_icon(tb->tic, tiles, tic_icon_shadow2, rect->x, rect->y + tb->y, tic_color_black);
+        ui_icon(tb->tic, tiles, tic_icon_shadow2, rect->x, rect->y + tb->y, tic_color_black);
 }
 
 // The strip's right rail. Drawn by the host after this editor's tick, so it

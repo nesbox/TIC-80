@@ -22,26 +22,13 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "studio.h"
 
-typedef struct Start Start;
+// What every screen draws and points with, out of the strip's file: the menu
+// needs both where no strip exists, and the strip and the panels use them too.
 
-// What the intro runs on: the machine it draws with, and the cart its chime
-// comes from. No studio, and nothing to call back into.
-typedef struct
-{
-    tic_mem*            tic;
-    const StudioConfig* config;
+// Blits tile `id` of `tiles` at x, y; its zero pixels leave the screen alone.
+void ui_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color);
 
-} StartDeps;
-
-Start* start_create(const StartDeps* deps);
-void   start_tick(Start* start);
-void   start_free(Start* start);
-
-// The intro is over; where that leads is the host's to decide.
-bool   start_done(const Start* start);
-
-// The studio's name, version and copyright: what the splash draws, and what the
-// console prints in builds that reach it without drawing the splash at all.
-void   start_banner(char* text, u8* color);
+// Points with the cursor sprite `id`.
+void ui_cursor(tic_mem* tic, tic_cursor id);

@@ -20,28 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#include "sound.h"
 
-#include "studio/studio.h"
-
-typedef struct Start Start;
-
-// What the intro runs on: the machine it draws with, and the cart its chime
-// comes from. No studio, and nothing to call back into.
-typedef struct
+void sound_play(tic_mem* tic, const tic_sfx* sfx, s32 id)
 {
-    tic_mem*            tic;
-    const StudioConfig* config;
+    const tic_sample* effect = &sfx->samples.data[id];
 
-} StartDeps;
+    tic_api_sfx(tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, MAX_VOLUME, effect->speed);
+}
 
-Start* start_create(const StartDeps* deps);
-void   start_tick(Start* start);
-void   start_free(Start* start);
-
-// The intro is over; where that leads is the host's to decide.
-bool   start_done(const Start* start);
-
-// The studio's name, version and copyright: what the splash draws, and what the
-// console prints in builds that reach it without drawing the splash at all.
-void   start_banner(char* text, u8* color);
+void sound_stop(tic_mem* tic, s32 channel)
+{
+    tic_api_sfx(tic, -1, 0, 0, -1, channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
+}
