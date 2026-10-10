@@ -47,6 +47,12 @@ if(BUILD_TESTS)
     target_link_libraries(toolbar-test PRIVATE tic80core)
     tic80_add_test(toolbar-test)
 
+    # The gamepad header is compiled with its test backend here: the slot
+    # policy, the deadzone and the stick are exercised with no pad plugged in,
+    # and on every platform — the platform backends above it need none of this.
+    add_executable(sgamepad-test ${CMAKE_SOURCE_DIR}/tests/sgamepad.c)
+    tic80_add_test(sgamepad-test)
+
     # The studio's sound is a module of its own, and links with the core alone:
     # nothing the test reaches goes near the studio.
     add_executable(sound-test
