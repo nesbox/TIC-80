@@ -857,6 +857,56 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     });
     tic80Module.SetValue("rectb", i.GetFunc());
 
+    // rrect
+    i = Intrinsic::Create("");
+    i.AddParam("x");
+    i.AddParam("y");
+    i.AddParam("width");
+    i.AddParam("height");
+    i.AddParam("color");
+    i.AddParam("radius", -1);
+    i.AddParam("exponent", 2.0f);
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        s32 x = context.GetArg(0).IntValue();
+        s32 y = context.GetArg(1).IntValue();
+        s32 width = context.GetArg(2).IntValue();
+        s32 height = context.GetArg(3).IntValue();
+        u8 color = context.GetArg(4).IntValue() & 0xF;
+        s32 radius = context.GetArg(5).IntValue();
+        float exponent = context.GetArg(6).FloatValue();
+
+        core->api.rrect(tic, x, y, width, height, color, radius, exponent);
+        return IntrinsicResult::Null;
+    });
+    tic80Module.SetValue("rrect", i.GetFunc());
+
+    // rrectb
+    i = Intrinsic::Create("");
+    i.AddParam("x");
+    i.AddParam("y");
+    i.AddParam("width");
+    i.AddParam("height");
+    i.AddParam("color");
+    i.AddParam("radius", -1);
+    i.AddParam("exponent", 2.0f);
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        s32 x = context.GetArg(0).IntValue();
+        s32 y = context.GetArg(1).IntValue();
+        s32 width = context.GetArg(2).IntValue();
+        s32 height = context.GetArg(3).IntValue();
+        u8 color = context.GetArg(4).IntValue() & 0xF;
+        s32 radius = context.GetArg(5).IntValue();
+        float exponent = context.GetArg(6).FloatValue();
+
+        core->api.rrectb(tic, x, y, width, height, color, radius, exponent);
+        return IntrinsicResult::Null;
+    });
+    tic80Module.SetValue("rrectb", i.GetFunc());
+
     // reset
     i = Intrinsic::Create("");
     i.set_Code(INTRINSIC_LAMBDA {

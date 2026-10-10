@@ -29,7 +29,10 @@
 #include <math.h>
 #include <float.h>
 
-#define TRANSPARENT_COLOR 255
+#define TRANSPARENT_COLOR            255
+#define SUPERELLIPSE_MIN_EXPONENT    0.3
+#define SUPERELLIPSE_MAX_EXPONENT    8
+#define SUPERELLIPSE_CIRCLE_EXPONENT 2
 
 typedef void (*PixelFunc)(tic_mem* memory, s32 x, s32 y, u8 color);
 
@@ -584,6 +587,79 @@ static void drawEllipse(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 colo
     }
 }
 
+static void drawSuperEllipseCapsule(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, int radius, float exponent, u8 color, PixelFunc pix)
+{
+    if(x0 > x1 || y0 > y1)
+        return;
+
+    s32 w = abs(x1 - x0), h = abs(y1 - y0);
+
+    // non positive radius should default to half the smallest dimension
+    if(radius <= 0) radius = MIN(w, h) / 2;
+    // radius should never be more than half the smallest dimension
+    if(radius > MIN(w, h) / 2) radius = MIN(w, h) / 2;
+
+    // fill the edges for a tall superellipse capsule
+    for(int yy = y0 + radius; yy < y1 - radius; yy++)
+    {
+        pix(memory, x0, yy, color);
+        pix(memory, x1, yy, color);
+    }
+
+    // exponent <= 0 should default to a circle, otherwise clamp it to sane range
+    if(exponent <= 0)
+        exponent = SUPERELLIPSE_CIRCLE_EXPONENT;
+    else
+        exponent = CLAMP(exponent, SUPERELLIPSE_MIN_EXPONENT, SUPERELLIPSE_MAX_EXPONENT);
+
+    float r = (float)radius;
+    float rn = powf(r, exponent);
+    int x = 0, y = radius;
+
+    x0 += radius;
+    x1 -= radius;
+    y0 += radius;
+    y1 -= radius;
+
+    while(x <= y)
+    {
+        pix(memory, x0 - x, y0 - y, color);
+        pix(memory, x0 - x, y1 + y, color);
+        pix(memory, x1 + x, y0 - y, color);
+        pix(memory, x1 + x, y1 + y, color);
+
+        if(x != y)
+        {
+            pix(memory, x0 - y, y0 - x, color);
+            pix(memory, x0 - y, y1 + x, color);
+            pix(memory, x1 + y, y0 - x, color);
+            pix(memory, x1 + y, y1 + x, color);
+        }
+
+        float fx = (float)x;
+        float fy = (float)y;
+
+        float fxp0 = powf(fx, exponent);
+        float fxp1 = powf(fx + 1.0f, exponent);
+        float fyp0 = powf(fy, exponent);
+        float fyp1 = powf(fy - 1.0f, exponent);
+
+        float eh = fabsf(fxp1 + fyp0 - rn);
+        float ed = fabsf(fxp1 + fyp1 - rn);
+        float ev = fabsf(fxp0 + fyp1 - rn);
+
+        if(eh <= ed && eh <= ev && x < y - 1)
+            x++;
+        else if(ev <= ed && x < y - 1)
+            y--;
+        else
+        {
+            x++;
+            y--;
+        }
+    }
+}
+
 static void setElliPixel(tic_mem* tic, s32 x, s32 y, u8 color)
 {
     setPixel((tic_core*)tic, x, y, color);
@@ -593,6 +669,12 @@ static void setElliSide(tic_mem* tic, s32 x, s32 y, u8 color)
 {
     (void)color;
     (void)tic;
+    setSidePixel(x, y);
+}
+
+static void setElliBoth(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+    setPixel((tic_core*)tic, x, y, color);
     setSidePixel(x, y);
 }
 
@@ -635,6 +717,36 @@ void tic_api_elli(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
 void tic_api_ellib(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
 {
     drawEllipse(memory, x - a, y - b, x + a, y + b, mapColor(memory, color), setElliPixel);
+}
+
+void tic_api_rrect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)
+{
+    // zero radius should just defer to a regular rect
+    if(radius == 0)
+    {
+        tic_api_rect(memory, x, y, width, height, color);
+        return;
+    }
+
+    initSidesBuffer();
+    drawSuperEllipseCapsule(memory, x, y, x + width, y + height, radius, exponent, 0, setElliSide);
+    drawSidesBuffer(memory, y, y + height + 1, mapColor(memory, color));
+}
+
+void tic_api_rrectb(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)
+{
+    // zero radius should just defer to a regular rect
+    if(radius == 0)
+    {
+        tic_api_rectb(memory, x, y, width, height, color);
+        return;
+    }
+
+    initSidesBuffer();
+    color = mapColor(memory, color);
+    drawSuperEllipseCapsule(memory, x, y, x + width, y + height, radius, exponent, color, setElliBoth);
+    drawSidesBuffer(memory, y, y, color);
+    drawSidesBuffer(memory, y + height, y + height, color);
 }
 
 static inline float initLine(float* x0, float* x1, float* y0, float* y1)

@@ -228,6 +228,31 @@ enum
         tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color)                                                        \
                                                                                                                         \
                                                                                                                         \
+    macro(rrect,                                                                                                        \
+        "rrect(x y w h color radius=-1 exponent=2)",                                                                       \
+                                                                                                                        \
+        "This function draws a filled rounded rectangle of the desired size, color, and radius "                        \
+        "at the specified position.\n"                                                                                  \
+        "If you only need to draw the the border or outline of a rounded rectangle (ie not filled) see `rrectb()`.",    \
+        7,                                                                                                              \
+        5,                                                                                                              \
+        0,                                                                                                              \
+        void,                                                                                                           \
+        tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)                            \
+                                                                                                                        \
+                                                                                                                        \
+    macro(rrectb,                                                                                                       \
+        "rrectb(x y w h color radius=-1 exponent=2)",                                                                      \
+                                                                                                                        \
+        "This function draws a one pixel thick rounded rectangle border at the position requested.\n"                   \
+        "If you need to fill the rounded rectangle with a color, see `rrect()` instead.",                               \
+        7,                                                                                                              \
+        5,                                                                                                              \
+        0,                                                                                                              \
+        void,                                                                                                           \
+        tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)                            \
+                                                                                                                        \
+                                                                                                                        \
     macro(spr,                                                                                                          \
         "spr(id x y colorkey=-1 scale=1 flip=0 rotate=0 w=1 h=1)",                                                      \
                                                                                                                         \

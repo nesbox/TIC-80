@@ -247,6 +247,40 @@ static mrb_value mrb_rectb(mrb_state* mrb, mrb_value self)
     return mrb_nil_value();
 }
 
+static mrb_value mrb_rrect(mrb_state* mrb, mrb_value self)
+{
+    (void)self;
+    mrb_int x, y, w, h, color, radius;
+    mrb_float exponent;
+    const mrb_int argc = mrb_get_args(mrb, "iiiii|if", &x, &y, &w, &h, &color, &radius, &exponent);
+    if(argc < 6) radius = -1;
+    if(argc < 7) exponent = 2;
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    core->api.rrect(tic, x, y, w, h, color, radius, exponent);
+
+    return mrb_nil_value();
+}
+
+static mrb_value mrb_rrectb(mrb_state* mrb, mrb_value self)
+{
+    (void)self;
+    mrb_int x, y, w, h, color, radius;
+    mrb_float exponent;
+    const mrb_int argc = mrb_get_args(mrb, "iiiii|if", &x, &y, &w, &h, &color, &radius, &exponent);
+    if(argc < 6) radius = -1;
+    if(argc < 7) exponent = 2;
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    core->api.rrectb(tic, x, y, w, h, color, radius, exponent);
+
+    return mrb_nil_value();
+}
+
 static mrb_value mrb_circ(mrb_state* mrb, mrb_value self)
 {
     (void)self;

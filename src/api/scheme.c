@@ -120,6 +120,40 @@ s7_pointer scheme_rectb(s7_scheme* sc, s7_pointer args)
     core->api.rectb(tic, x, y, w, h, color);
     return s7_nil(sc);
 }
+s7_pointer scheme_rrect(s7_scheme* sc, s7_pointer args)
+{
+    // rrect(x y w h color radius exponent=2)
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = s7_list_length(sc, args);
+    const s32 x = s7_integer(s7_car(args));
+    const s32 y = s7_integer(s7_cadr(args));
+    const s32 w = s7_integer(s7_caddr(args));
+    const s32 h = s7_integer(s7_cadddr(args));
+    const u8 color = s7_integer(s7_list_ref(sc, args, 4));
+    const s32 radius = argn >= 6 ? s7_integer(s7_list_ref(sc, args, 5)) : -1;
+    const double exponent = argn >= 7 ? s7_real(s7_list_ref(sc, args, 6)) : 2;
+
+    core->api.rrect(tic, x, y, w, h, color, radius, (float)exponent);
+    return s7_nil(sc);
+}
+s7_pointer scheme_rrectb(s7_scheme* sc, s7_pointer args)
+{
+    // rrectb(x y w h color radius exponent=2)
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = s7_list_length(sc, args);
+    const s32 x = s7_integer(s7_car(args));
+    const s32 y = s7_integer(s7_cadr(args));
+    const s32 w = s7_integer(s7_caddr(args));
+    const s32 h = s7_integer(s7_cadddr(args));
+    const u8 color = s7_integer(s7_list_ref(sc, args, 4));
+    const s32 radius = argn >= 6 ? s7_integer(s7_list_ref(sc, args, 5)) : -1;
+    const double exponent = argn >= 7 ? s7_real(s7_list_ref(sc, args, 6)) : 2;
+
+    core->api.rrectb(tic, x, y, w, h, color, radius, (float)exponent);
+    return s7_nil(sc);
+}
 
 void parseTransparentColorsArg(s7_scheme* sc, s7_pointer colorkey, u8* out_transparent_colors, u8* out_count)
 {
