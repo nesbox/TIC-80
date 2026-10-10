@@ -127,8 +127,11 @@ void render_init(void)
         .shader = sg_make_shader(crt_shader_desc(sg_query_backend())),
         .layout.attrs = {
             [ATTR_crt_pos].format = SG_VERTEXFORMAT_FLOAT2,
-            [ATTR_crt_uv].format = SG_VERTEXFORMAT_FLOAT2,
         },
+        // The quad is the blit's, which carries a uv the effect has no use
+        // for: without both attributes sokol would read its stride off this
+        // one and step through the positions every other float.
+        .layout.buffers[0].stride = 4 * sizeof(float),
         // Both attachment formats stay at their defaults, which are the
         // window's own.
         .primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP,

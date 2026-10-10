@@ -13,9 +13,7 @@ layout(binding=0) uniform crt_params {
 };
 
 in vec2 pos;            // the unit quad, 0..1
-in vec2 uv;
 
-out vec2 uv_out;
 out vec2 pos_out;
 out float y_origin_out;
 
@@ -23,7 +21,6 @@ void main() {
     vec2 px = rect_pos + pos * rect_size;
     vec2 ndc = (px / resolution) * 2.0 - 1.0;
     gl_Position = vec4(ndc.x, -ndc.y, 0.0, 1.0);
-    uv_out = uv;
     pos_out = pos;
     y_origin_out = y_origin;
 }
@@ -33,7 +30,6 @@ void main() {
 layout(binding=0) uniform texture2D tex;
 layout(binding=0) uniform sampler smp;
 
-in vec2 uv_out;
 in vec2 pos_out;
 in float y_origin_out;
 out vec4 frag_color;
