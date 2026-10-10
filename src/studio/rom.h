@@ -24,13 +24,7 @@
 
 #include "system.h"
 #include "fs.h"
-
-typedef enum
-{
-    CART_SAVE_OK,
-    CART_SAVE_ERROR,
-    CART_SAVE_MISSING_NAME,
-} CartSaveResult;
+#include "cart.h"
 
 typedef struct
 {
@@ -43,6 +37,7 @@ CartName* studioCart(Studio* studio);
 void studioSetCartName(Studio* studio, const char* name, const char* path);
 
 bool studioLoadCart(Studio* studio, const char* path);
+void studioReloadCart(Studio* studio);
 void studioLoadByHash(Studio* studio, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
 CartSaveResult studioSaveCart(Studio* studio, const char* name);
 CartSaveResult studioAutoSave(Studio* studio);

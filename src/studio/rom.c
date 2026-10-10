@@ -91,6 +91,32 @@ void studioLoadByHash(Studio* studio, const char* name, const char* hash, const 
     tic_fs_hashload(studio_fs(studio), name, hash, hashLoadDone, MOVE(loadByHashData));
 }
 
+// The cart's file changed under the studio — another editor, a build — and the
+// machine takes it again: the reload the console used to do for the host.
+void studioReloadCart(Studio* studio)
+{
+    tic_mem* tic = getMemory(studio);
+    const char* path = studioCart(studio)->path;
+
+    if(*path)
+    {
+        s32 size = 0;
+        void* data = fs_read(path, &size);
+
+        if(data) SCOPE(free(data))
+        {
+#if defined(TIC80_PRO)
+            if(tic_tool_is_project(path))
+                tic_project_load(studioCart(studio)->name, data, size, &tic->cart);
+            else
+#endif
+                tic_cart_load(&tic->cart, data, size);
+
+            studioRomLoaded(studio);
+        }
+    }
+}
+
 static void drawShadowText(tic_mem* tic, const char* text, s32 x, s32 y, tic_color color, s32 scale)
 {
     tic_api_print(tic, text, x, y + scale, tic_color_black, false, scale, false);

@@ -24,5 +24,14 @@
 
 #include "tic.h"
 
+// How saving a cart went: the studio's cart layer answers with it, and the
+// console — which reports what it prints — names it too.
+typedef enum
+{
+    CART_SAVE_OK,
+    CART_SAVE_ERROR,
+    CART_SAVE_MISSING_NAME,
+} CartSaveResult;
+
 void tic_cart_load(tic_cartridge* rom, const u8* buffer, s32 size);
 s32  tic_cart_save(const tic_cartridge* rom, u8* buffer);

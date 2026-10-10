@@ -30,7 +30,7 @@ static void onTrace(void* data, const char* text, u8 color)
 {
 #if defined(BUILD_EDITORS)
     Run* run = (Run*)data;
-    run->console->trace(run->console, text, color);
+    console_trace(run->console, text, color);
 #endif
 }
 
@@ -39,7 +39,7 @@ static void onError(void* data, const char* info)
 #if defined(BUILD_EDITORS)
     Run* run = (Run*)data;
     setStudioMode(run->studio, TIC_CONSOLE_MODE);
-    run->console->error(run->console, info);
+    console_error(run->console, info);
 #endif
 }
 

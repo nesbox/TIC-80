@@ -21,14 +21,15 @@
 // SOFTWARE.
 
 #include "console.h"
+#include "studio/keyboard.h"
+#include "studio/mouse.h"
+#include "studio/ui.h"
 #include "start.h"
 #include "tools.h"
 #include "tilesheet.h"
-#include "studio/boot.h"
 #include "studio/embed.h"
 #include "studio/fs.h"
 #include "studio/net.h"
-#include "studio/config.h"
 #include "ext/png.h"
 #include "ext/json.h"
 #include "zip.h"
@@ -588,6 +589,28 @@ static void commandDone(Console* console)
     commandDoneLine(console, true);
 }
 
+// The console reports what it wants and the host serves it after the tick; what
+// runs when the answer comes is the flow that asked, picking itself up.
+static void askStart(Console* console, ConsoleAskKind kind, void (*onAnswer)(Console*, const ConsoleAnswer*))
+{
+    console->ask = (ConsoleAsk){.kind = kind};
+    console->onAnswer = onAnswer;
+}
+
+// What a move the console asked for ends with: the command's own tail.
+static void onMoved(Console* console, const ConsoleAnswer* answer)
+{
+    commandDone(console);
+}
+
+// The cart the console just loaded, made or section-replaced: the host takes
+// its name — or is told it has none — and refreshes what it keeps about it.
+static void askCart(Console* console, const char* name, bool clear, void (*onAnswer)(Console*, const ConsoleAnswer*))
+{
+    console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CART_LOADED, .name = name, .clear = clear};
+    console->onAnswer = onAnswer;
+}
+
 static inline void drawChar(tic_mem* tic, char symbol, s32 x, s32 y, u8 color, bool alt)
 {
     tic_api_print(tic, (char[]){symbol, '\0'}, x, y, color, true, 1, alt);
@@ -702,14 +725,12 @@ static void onHelpCommand(Console* console);
 
 static void onExitCommand(Console* console)
 {
-    exitStudio(console->studio);
-    commandDone(console);
+    askStart(console, CONSOLE_ASK_EXIT, onMoved);
 }
 
 static void onEditCommand(Console* console)
 {
-    gotoCode(console->studio);
-    commandDone(console);
+    askStart(console, CONSOLE_ASK_CODE, onMoved);
 }
 
 static char* getDemoCartPath(char* path, const tic_script* script)
@@ -749,51 +770,52 @@ static void* getDemoCart(Console* console, const tic_script* script, s32* size)
     return data;
 }
 
-static void onLoadDemoCommandConfirmed(Console* console, const tic_script* script)
+static void onDemoLoaded(Console* console, const ConsoleAnswer* answer)
 {
-    void* data = NULL;
-    s32 size = 0;
-
-    {
-        char path[1024];
-        getDemoCartPath(path, script);
-        const char* name = tic_tool_cart_name(path);
-        studioSetCartName(console->studio, name, tic_fs_path(console->fs, name));
-    }
-
-    data = getDemoCart(console, script, &size);
-    tic_cart_load(&console->tic->cart, data, size);
-    tic_api_reset(console->tic);
-
-    studioRomLoaded(console->studio);
-
     printBack(console, "\ncart ");
-    printFront(console, studioCart(console->studio)->name);
+    printFront(console, answer->name);
     printBack(console, " loaded!\n");
-
-    free(data);
 }
 
-static void printCartLoaded(Console* console)
+static void onLoadDemoCommandConfirmed(Console* console, const void* data)
+{
+    const tic_script* script = data;
+
+    void* cart = NULL;
+    s32 size = 0;
+
+    char path[1024];
+    getDemoCartPath(path, script);
+    const char* name = tic_tool_cart_name(path);
+
+    cart = getDemoCart(console, script, &size);
+    tic_cart_load(&console->tic->cart, cart, size);
+    tic_api_reset(console->tic);
+    free(cart);
+
+    askCart(console, name, false, onDemoLoaded);
+}
+
+static void printCartLoaded(Console* console, const char* name)
 {
     printBack(console, "\ncart ");
-    printFront(console, studioCart(console->studio)->name);
+    printFront(console, name);
     printBack(console, " loaded!\nuse ");
     printFront(console, "RUN");
     printBack(console, " command to run it\n");
+}
+
+static void onLoaded(Console* console, const ConsoleAnswer* answer)
+{
+    printCartLoaded(console, answer->name);
 }
 
 static void onCartLoaded(Console* console, const char* name, const char* section)
 {
     tic_api_reset(console->tic);
 
-    if(!section)
-        studioSetCartName(console->studio, name, tic_fs_path(console->fs, name));
-
-    studioRomLoaded(console->studio);
-
-    printCartLoaded(console);
-
+    // Replacing one section keeps the cart's name; a whole cart takes one.
+    askCart(console, section ? NULL : name, false, onLoaded);
 }
 
 static inline tic_cartridge* newCart()
@@ -801,48 +823,12 @@ static inline tic_cartridge* newCart()
     return malloc(sizeof(tic_cartridge));
 }
 
-static void updateProject(Console* console)
+static void onFetched(Console* console, const ConsoleAnswer* answer)
 {
-    tic_mem* tic = console->tic;
-    const char* path = studioCart(console->studio)->path;
+    printCartLoaded(console, answer->name);
 
-    if(*path)
-    {
-        s32 size = 0;
-        void* data = fs_read(path, &size);
-
-        if(data) SCOPE(free(data))
-        {
-#if defined(TIC80_PRO)
-            if(tic_tool_is_project(path))
-                tic_project_load(studioCart(console->studio)->name, data, size, &tic->cart);
-            else
-#endif
-                tic_cart_load(&tic->cart, data, size);
-
-            studioRomLoaded(console->studio);
-        }
-    }
-}
-
-typedef struct
-{
-    Console* console;
-    fs_done_callback callback;
-    void* calldata;
-} ConsoleHashLoadData;
-
-static void onHashLoaded(void* data)
-{
-    ConsoleHashLoadData* load = data;
-    Console* console = load->console;
-
-    printCartLoaded(console);
-
-    if(load->callback)
-        load->callback(load->calldata);
-
-    free(load);
+    if(console->fetchCallback)
+        console->fetchCallback(console->fetchData);
 
     commandDone(console);
 }
@@ -851,10 +837,11 @@ static void loadByHash(Console* console, const char* name, const char* hash, con
 {
     console->active = false;
 
-    ConsoleHashLoadData* load = NEW(ConsoleHashLoadData);
-    *load = (ConsoleHashLoadData){ console, callback, data };
+    console->fetchCallback = callback;
+    console->fetchData = data;
 
-    studioLoadByHash(console->studio, name, hash, section, onHashLoaded, load);
+    console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CART_FETCH, .name = name, .hash = hash, .section = section};
+    console->onAnswer = onFetched;
 }
 
 typedef struct
@@ -902,7 +889,7 @@ static void fileFound(void* data)
 
 static bool printUsage(Console* console, const char* command);
 
-static void onLoadCommandConfirmed(Console* console)
+static void onLoadCommandConfirmed(Console* console, const void* data)
 {
     if(console->desc->count > 0)
     {
@@ -1032,28 +1019,17 @@ static void onLoadCommandConfirmed(Console* console)
     commandDone(console);
 }
 
-typedef void(*ConsoleConfirmCallback)(Console* console);
+typedef void(*ConsoleConfirmCallback)(Console* console, const void* data);
 
-typedef struct
+// The dialog belongs to the host; the console only says which of its flows a
+// "yes" continues, and picks that flow up from the answer.
+static void onConfirmed(Console* console, const ConsoleAnswer* answer)
 {
-    Console* console;
-    ConsoleConfirmCallback callback;
-} CommandConfirmData;
-
-static void onConfirm(Studio* studio, bool yes, void* data)
-{
-    CommandConfirmData* confirmData = (CommandConfirmData*)data;
-
-    if(yes)
-    {
-        confirmData->callback(confirmData->console);
-    }
-    else commandDone(confirmData->console);
-
-    free(confirmData);
+    if(answer->yes) console->confirm.yes(console, console->confirm.data);
+    else commandDone(console);
 }
 
-static void confirmCommand(Console* console, const char** text, s32 rows, ConsoleConfirmCallback callback)
+static void confirmCommand(Console* console, const char** text, s32 rows, ConsoleConfirmCallback callback, const void* data)
 {
     if(console->args.cli)
     {
@@ -1067,31 +1043,13 @@ static void confirmCommand(Console* console, const char** text, s32 rows, Consol
     }
     else
     {
-        CommandConfirmData data = {console, callback};
-        confirmDialog(console->studio, text, rows, onConfirm, MOVE(data));
+        console->confirm.yes = callback;
+        console->confirm.data = data;
+
+        askStart(console, CONSOLE_ASK_CONFIRM, onConfirmed);
+        console->ask.rows = text;
+        console->ask.rowsCount = rows;
     }
-}
-
-typedef void(*LoadDemoConfirmCallback)(Console* console, const tic_script* script);
-
-typedef struct
-{
-    Console* console;
-    LoadDemoConfirmCallback callback;
-    const tic_script* script;
-} LoadDemoConfirmData;
-
-static void onLoadDemoConfirm(Studio* studio, bool yes, void* data)
-{
-    LoadDemoConfirmData* demoData = (LoadDemoConfirmData*)data;
-
-    if(yes)
-    {
-        demoData->callback(demoData->console, demoData->script);
-    }
-    else commandDone(demoData->console);
-
-    free(demoData);
 }
 
 static const char* LoadWarningRows[] =
@@ -1103,10 +1061,9 @@ static const char* LoadWarningRows[] =
 
 static void onLoadDemoCommand(Console* console, const tic_script* script)
 {
-    if(studioCartChanged(console->studio))
+    if(console->view->cartChanged)
     {
-        LoadDemoConfirmData data = {console, onLoadDemoCommandConfirmed, script};
-        confirmDialog(console->studio, LoadWarningRows, COUNT_OF(LoadWarningRows), onLoadDemoConfirm, MOVE(data));
+        confirmCommand(console, LoadWarningRows, COUNT_OF(LoadWarningRows), onLoadDemoCommandConfirmed, script);
     }
     else
     {
@@ -1116,13 +1073,13 @@ static void onLoadDemoCommand(Console* console, const tic_script* script)
 
 static void onLoadCommand(Console* console)
 {
-    if(studioCartChanged(console->studio))
+    if(console->view->cartChanged)
     {
-        confirmCommand(console, LoadWarningRows, COUNT_OF(LoadWarningRows), onLoadCommandConfirmed);
+        confirmCommand(console, LoadWarningRows, COUNT_OF(LoadWarningRows), onLoadCommandConfirmed, NULL);
     }
     else
     {
-        onLoadCommandConfirmed(console);
+        onLoadCommandConfirmed(console, NULL);
     }
 }
 
@@ -1139,12 +1096,10 @@ static void loadDemo(Console* console, const tic_script* script)
         free(data);
     }
 
-    memset(studioCart(console->studio)->name, 0, sizeof studioCart(console->studio)->name);
-
-    studioRomLoaded(console->studio);
+    askCart(console, NULL, true, NULL);
 }
 
-static void onNewCommandConfirmed(Console* console)
+static void onNewCommandConfirmed(Console* console, const void* data)
 {
     bool done = false;
 
@@ -1195,7 +1150,7 @@ static void onNewCommandConfirmed(Console* console)
 
 static void onNewCommand(Console* console)
 {
-    if(studioCartChanged(console->studio))
+    if(console->view->cartChanged)
     {
         static const char* Rows[] =
         {
@@ -1204,11 +1159,11 @@ static void onNewCommand(Console* console)
             "Do you really want to create new cart?",
         };
 
-        confirmCommand(console, Rows, COUNT_OF(Rows), onNewCommandConfirmed);
+        confirmCommand(console, Rows, COUNT_OF(Rows), onNewCommandConfirmed, NULL);
     }
     else
     {
-        onNewCommandConfirmed(console);
+        onNewCommandConfirmed(console, NULL);
     }
 }
 
@@ -1637,14 +1592,15 @@ static void onInstallDemosCommand(Console* console)
 
 static void onGameMenuCommand(Console* console)
 {
-    gotoMenu(console->studio);
-    commandDone(console);
+    askStart(console, CONSOLE_ASK_MENU, onMoved);
 }
 
 #if defined(BUILD_SURF)
 static void onSurfCommand(Console* console)
 {
-    gotoSurf(console->studio);
+    // The browser takes the console's place; nothing of the command is left to
+    // finish, which is why this one ends where it is asked.
+    askStart(console, CONSOLE_ASK_SURF, NULL);
 }
 #endif
 
@@ -1659,7 +1615,7 @@ static void loadExternal(Console* console, const char* path)
     *desc.params = (struct Param){.key = strdup(path)};
     *console->desc = desc;
 
-    onLoadCommandConfirmed(console);
+    onLoadCommandConfirmed(console, NULL);
 }
 
 static void onConfigCommand(Console* console)
@@ -1668,7 +1624,7 @@ static void onConfigCommand(Console* console)
     {
         if(strcmp(console->desc->params->key, "reset") == 0)
         {
-            console->config->reset(console->config);
+            askStart(console, CONSOLE_ASK_CONFIG_RESET, NULL);
             printBack(console, "\nconfiguration reset :)");
         }
         else if(strcmp(console->desc->params->key, "default") == 0)
@@ -1867,7 +1823,9 @@ static void onImport_code(Console* console, const char* name, const void* buffer
         memset(tic->cart.code.data, 0, Size);
         memcpy(tic->cart.code.data, buffer, MIN(size, Size));
 
-        studioRomLoaded(console->studio);
+        // The code came back to what it was saved as: no name changes, and the
+        // host's idea of the cart is simply refreshed.
+        askCart(console, NULL, false, NULL);
     }
     else error = true;
 
@@ -2513,26 +2471,37 @@ static void onExport_mapimg(Console* console, const char* param, const char* pat
     }
 }
 
+static void onExported(Console* console, const ConsoleAnswer* answer)
+{
+    onFileExported(console, console->exportName, answer->error == NULL);
+}
+
 static void onExport_sfx(Console* console, const char* param, const char* name, ExportParams params)
 {
     const char* filename = getFilename(name, ".wav");
-    bool error = true;
 
     if(params.id >= 0 && params.id < SFX_COUNT)
-        error = studioExportSfx(console->studio, params.id, filename) == NULL;
+    {
+        strcpy(console->exportName, filename);
 
-    onFileExported(console, filename, !error);
+        console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_EXPORT_SFX, .name = console->exportName, .index = params.id};
+        console->onAnswer = onExported;
+    }
+    else onFileExported(console, filename, false);
 }
 
 static void onExport_music(Console* console, const char* type, const char* name, ExportParams params)
 {
     const char* filename = getFilename(name, ".wav");
-    bool error = true;
 
     if(params.id >= 0 && params.id < MUSIC_TRACKS)
-        error = studioExportMusic(console->studio, params.id, params.bank, filename) == NULL;
+    {
+        strcpy(console->exportName, filename);
 
-    onFileExported(console, filename, !error);
+        console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_EXPORT_MUSIC, .name = console->exportName, .index = params.id, .bank = params.bank};
+        console->onAnswer = onExported;
+    }
+    else onFileExported(console, filename, false);
 }
 
 static void onExport_screen(Console* console, const char* param, const char* name, ExportParams params)
@@ -2608,27 +2577,26 @@ static void onExportCommand(Console* console)
 
 const char* readMetatag(const char* code, const char* tag, const char* comment);
 
-static CartSaveResult saveCart(Console* console)
+static void onSaved(Console* console, const ConsoleAnswer* answer)
 {
-    return studioSaveCart(console->studio, NULL);
-}
-
-static void onSaveCommandConfirmed(Console* console)
-{
-    CartSaveResult rom = studioSaveCart(console->studio, console->desc->count ? console->desc->params->key : NULL);
-
-    if(rom == CART_SAVE_OK)
+    if(answer->save == CART_SAVE_OK)
     {
         printBack(console, "\ncart ");
-        printFront(console, studioCart(console->studio)->name);
+        printFront(console, answer->name);
         printBack(console, " saved!\n");
     }
-    else if(rom == CART_SAVE_MISSING_NAME)
+    else if(answer->save == CART_SAVE_MISSING_NAME)
         printBack(console, "\ncart name is missing\n");
     else
         printBack(console, "\ncart saving error");
 
     commandDone(console);
+}
+
+static void onSaveCommandConfirmed(Console* console, const void* data)
+{
+    console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CART_SAVE, .name = console->desc->count ? console->desc->params->key : NULL};
+    console->onAnswer = onSaved;
 }
 
 static void onSaveCommand(Console* console)
@@ -2646,11 +2614,11 @@ static void onSaveCommand(Console* console)
             "Do you want to overwrite it?",
         };
 
-        confirmCommand(console, Rows, COUNT_OF(Rows), onSaveCommandConfirmed);
+        confirmCommand(console, Rows, COUNT_OF(Rows), onSaveCommandConfirmed, NULL);
     }
     else
     {
-        onSaveCommandConfirmed(console);
+        onSaveCommandConfirmed(console, NULL);
     }
 }
 
@@ -2658,7 +2626,7 @@ static void onRunCommand(Console* console)
 {
     commandDone(console);
 
-    runGame(console->studio, RUN_FROM_STUDIO);
+    askStart(console, CONSOLE_ASK_RUN, NULL);
 }
 
 static void onResumeCommand(Console* console)
@@ -2688,7 +2656,7 @@ static void onResumeCommand(Console* console)
     }
     commandDone(console);
 
-    resumeGame(console->studio);
+    askStart(console, CONSOLE_ASK_RESUME, NULL);
 }
 
 static void onEvalCommand(Console* console)
@@ -2718,7 +2686,7 @@ static void onEvalCommand(Console* console)
     commandDone(console);
 }
 
-static void onDelCommandConfirmed(Console* console)
+static void onDelCommandConfirmed(Console* console, const void* data)
 {
     if(console->desc->count)
     {
@@ -2756,7 +2724,7 @@ static void onDelCommand(Console* console)
         "Do you really want to delete file?",
     };
 
-    confirmCommand(console, Rows, COUNT_OF(Rows), onDelCommandConfirmed);
+    confirmCommand(console, Rows, COUNT_OF(Rows), onDelCommandConfirmed, NULL);
 }
 
 #if defined(CAN_ADDGET_FILE)
@@ -4252,14 +4220,14 @@ static void processMouse(Console* console)
 
     tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 
-    if(checkMousePos(console->studio, &rect))
-        setCursor(console->studio, tic_cursor_ibeam);
+    if(mouse_over(console->tic, &rect))
+        ui_cursor(console->tic, tic_cursor_ibeam);
 
 #if defined(__TIC_ANDROID__)
 
-    if(checkMouseDown(console->studio, &rect, tic_mouse_left))
+    if(mouse_down(&console->mouse[tic_mouse_left], &rect))
     {
-        setCursor(console->studio, tic_cursor_hand);
+        ui_cursor(console->tic, tic_cursor_hand);
 
         if(console->scroll.active)
         {
@@ -4275,7 +4243,7 @@ static void processMouse(Console* console)
 
 #else
 
-    if(checkMouseDown(console->studio, &rect, tic_mouse_left))
+    if(mouse_down(&console->mouse[tic_mouse_left], &rect))
     {
         tic_point m = tic_api_mouse(tic);
 
@@ -4293,7 +4261,7 @@ static void processMouse(Console* console)
 
 #endif
 
-    if(checkMouseClick(console->studio, &rect, tic_mouse_middle))
+    if(mouse_click(&console->mouse[tic_mouse_middle], &rect))
     {
         char* text = getSelectionText(console);
 
@@ -4382,7 +4350,7 @@ static void processKeyboard(Console* console)
 
     if(tic->ram->input.keyboard.data != 0)
     {
-        switch(getClipboardEvent(console->studio))
+        switch(keyboard_clipboard(console->tic))
         {
         case TIC_CLIPBOARD_COPY: copyToClipboard(console); break;
         case TIC_CLIPBOARD_PASTE: copyFromClipboard(console); scrollConsole(console); break;
@@ -4404,51 +4372,51 @@ static void processKeyboard(Console* console)
                 tic_keycode clearKey = tic_key_k;
 #endif
 
-                if (keyWasPressed(console->studio, tic_key_a))      processConsoleHome(console);
-                else if (keyWasPressed(console->studio, tic_key_e)) processConsoleEnd(console);
-                else if (keyWasPressed(console->studio, clearKey))
+                if (keyboard_pressed(console->tic, tic_key_a))      processConsoleHome(console);
+                else if (keyboard_pressed(console->tic, tic_key_e)) processConsoleEnd(console);
+                else if (keyboard_pressed(console->tic, clearKey))
                 {
                     onClsCommand(console);
                     return;
                 }
             }
 
-            if (keyWasPressed(console->studio, tic_key_left))           leftWord(console);
-            else if(keyWasPressed(console->studio, tic_key_right))      rightWord(console);
-            else if(keyWasPressed(console->studio, tic_key_delete))     deleteWord(console);
-            else if(keyWasPressed(console->studio, tic_key_backspace))  backspaceWord(console);
+            if (keyboard_pressed(console->tic, tic_key_left))           leftWord(console);
+            else if(keyboard_pressed(console->tic, tic_key_right))      rightWord(console);
+            else if(keyboard_pressed(console->tic, tic_key_delete))     deleteWord(console);
+            else if(keyboard_pressed(console->tic, tic_key_backspace))  backspaceWord(console);
         }
         else
         {
-            if(keyWasPressed(console->studio, tic_key_up)) {
+            if(keyboard_pressed(console->tic, tic_key_up)) {
 			    onHistoryUp(console);
 			    scrollConsole(console);
             }
-            else if(keyWasPressed(console->studio, tic_key_down)) onHistoryDown(console);
-            else if(keyWasPressed(console->studio, tic_key_left))
+            else if(keyboard_pressed(console->tic, tic_key_down)) onHistoryDown(console);
+            else if(keyboard_pressed(console->tic, tic_key_left))
             {
                 if(console->input.pos > 0)
                     console->input.pos--;
             }
-            else if(keyWasPressed(console->studio, tic_key_right))
+            else if(keyboard_pressed(console->tic, tic_key_right))
             {
                 console->input.pos++;
                 size_t len = strlen(console->input.text);
                 if(console->input.pos > len)
                     console->input.pos = len;
             }
-            else if(enterWasPressed(console->studio))                    processConsoleCommand(console);
-            else if(keyWasPressed(console->studio, tic_key_backspace))   processConsoleBackspace(console);
-            else if(keyWasPressed(console->studio, tic_key_delete))      processConsoleDel(console);
-            else if(keyWasPressed(console->studio, tic_key_home))        processConsoleHome(console);
-            else if(keyWasPressed(console->studio, tic_key_end))         processConsoleEnd(console);
-            else if(keyWasPressed(console->studio, tic_key_tab))         processConsoleTab(console);
-            else if(keyWasPressed(console->studio, tic_key_pageup))      processConsolePgUp(console);
-            else if(keyWasPressed(console->studio, tic_key_pagedown))    processConsolePgDown(console);
+            else if(keyboard_enter(console->tic, KEYBOARD_HOLD, KEYBOARD_PERIOD))                    processConsoleCommand(console);
+            else if(keyboard_pressed(console->tic, tic_key_backspace))   processConsoleBackspace(console);
+            else if(keyboard_pressed(console->tic, tic_key_delete))      processConsoleDel(console);
+            else if(keyboard_pressed(console->tic, tic_key_home))        processConsoleHome(console);
+            else if(keyboard_pressed(console->tic, tic_key_end))         processConsoleEnd(console);
+            else if(keyboard_pressed(console->tic, tic_key_tab))         processConsoleTab(console);
+            else if(keyboard_pressed(console->tic, tic_key_pageup))      processConsolePgUp(console);
+            else if(keyboard_pressed(console->tic, tic_key_pagedown))    processConsolePgDown(console);
         }
     }
 
-    char sym = getKeyboardText(console->studio);
+    char sym = keyboard_text(console->tic);
 
     if(sym)
     {
@@ -4470,10 +4438,24 @@ static void processGamepad(Console* console)
 
     if(tic->ram->input.keyboard.data == 0 && tic_api_btnp(tic, 6, -1, -1))
     {
-        gotoSurf(console->studio);
+        askStart(console, CONSOLE_ASK_SURF, NULL);
     }
 }
 #endif
+
+// The player's run is going: the host refreshes what it keeps about the cart,
+// and the console says what it says when a command is over.
+static void onLaunched(Console* console, const ConsoleAnswer* answer)
+{
+    printLine(console);
+    commandDone(console);
+    console->active = true;
+}
+
+static void onPlayed(Console* console, const ConsoleAnswer* answer)
+{
+    askCart(console, NULL, false, onLaunched);
+}
 
 static void tick(Console* console)
 {
@@ -4485,11 +4467,9 @@ static void tick(Console* console)
     processGamepad(console);
 #endif
 
-    Boot* boot = getBoot(console->studio);
-
     if(console->tickCounter == 0)
     {
-        if(!boot->cart)
+        if(!console->boot)
         {
             loadDemo(console, tic_get_script(tic));
 
@@ -4499,7 +4479,7 @@ static void tick(Console* console)
                 printFront(console, "help");
                 printBack(console, " for help\n");
 
-                if(getConfig(console->studio)->checkNewVersion)
+                if(console->config->checkNewVersion)
                     tic_net_get(console->net, "/json?fn=version", onHttpVersionGet, console);
             }
 
@@ -4511,20 +4491,18 @@ static void tick(Console* console)
     tic_api_cls(tic, TIC_COLOR_BG);
     drawConsoleText(console);
 
-    if(boot->cart)
+    if(console->boot)
     {
         if(console->tickCounter >= (u32)(console->args.skip ? 1 : TIC80_FRAMERATE))
         {
             // The cart came in as a file — a command line argument, a dropped
-            // file, the web player's cart — so this is the player's run.
-            runGame(console->studio, RUN_FROM_PLAYER);
+            // file, the web player's cart — so this is the player's run. The
+            // flag is this console's own copy: clearing it here is what keeps
+            // the branch a single shot, and the host clears its half when it
+            // serves the run.
+            console->boot = false;
 
-            boot->cart = false;
-            studioRomLoaded(console->studio);
-
-            printLine(console);
-            commandDone(console);
-            console->active = true;
+            askStart(console, CONSOLE_ASK_PLAY, onPlayed);
 
             return;
         }
@@ -4534,11 +4512,16 @@ static void tick(Console* console)
         if(console->cursor.delay)
             console->cursor.delay--;
 
-        if (getStudioMode(console->studio) != TIC_CONSOLE_MODE) return;
+        if (!console->view->inFront) return;
 
         drawCursor(console);
 
-        if(console->active)
+        // One ask at a time: what the console asked the host for — the demo
+        // cart's name, say — is served, and answered, before the next command
+        // starts, or the first ask of a frame would be lost to the second.
+        bool ready = console->ask.kind == CONSOLE_ASK_NONE;
+
+        if(console->active && ready)
         {
             if(console->commands.current < console->commands.count)
             {
@@ -4550,17 +4533,12 @@ static void tick(Console* console)
 
                 console->commands.current++;
             }
-            else if(getConfig(console->studio)->cli)
-                exitStudio(console->studio);
+            else if(console->config->cli)
+                askStart(console, CONSOLE_ASK_EXIT, NULL);
         }
     }
 
     console->tickCounter++;
-}
-
-static bool cmdLoadCart(Console* console, const char* path)
-{
-    return studioLoadCart(console->studio, path);
 }
 
 static int cmdcmp(const void* a, const void* b)
@@ -4573,41 +4551,33 @@ static int apicmp(const void* a, const void* b)
     return strcmp(((const ApiItem*)a)->name, ((const ApiItem*)b)->name);
 }
 
-void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Config* config, StartArgs args)
+Console* console_create(const ConsoleDeps* deps)
 {
-    if(!console->text)  console->text = malloc(CONSOLE_BUFFER_SIZE);
-    if(!console->color) console->color = malloc(CONSOLE_BUFFER_SIZE);
-    if(!console->desc)  console->desc = malloc(sizeof(CommandDesc));
+    Console* console = calloc(1, sizeof(Console));
 
-    *console = (Console)
-    {
-        .studio = studio,
-        .tic = getMemory(studio),
-        .config = config,
-        .loadByHash = loadByHash,
-        .load = loadExternal,
-        .loadCart = cmdLoadCart,
-        .updateProject = updateProject,
-        .error = error,
-        .trace = trace,
-        .tick = tick,
-        .save = saveCart,
-        .done = commandDone,
-        .cursor = {.pos.x = 1, .pos.y = 3, .delay = 0},
-        .input = console->text,
-        .tickCounter = 0,
-        .active = false,
-        .text = console->text,
-        .color = console->color,
-        .fs = fs,
-        .net = net,
-        .args = args,
-        .desc = console->desc,
-    };
+    console->text = malloc(CONSOLE_BUFFER_SIZE);
+    console->color = malloc(CONSOLE_BUFFER_SIZE);
+    console->desc = malloc(sizeof(CommandDesc));
+
+    console->tic = deps->tic;
+    console->view = deps->view;
+    console->fs = deps->fs;
+    console->net = deps->net;
+    console->config = deps->config;
+    console->mouse = deps->mouse;
+    console->args.cmd = deps->args.cmd;
+    console->args.cli = deps->args.cli;
+    console->args.skip = deps->args.skip;
+    console->args.keepcmd = deps->args.keepcmd;
+    console->boot = deps->boot;
+
+    console->cursor.pos = (tic_point){1, 3};
+    console->input.text = console->text;
+    console->active = !console->boot;
 
     // parse --cmd param
     {
-        char* command = args.cmd;
+        char* command = console->args.cmd;
         while(command)
         {
             console->commands.items = realloc(console->commands.items, sizeof(char*) * (console->commands.count + 1));
@@ -4631,8 +4601,6 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
     memset(console->color, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
     memset(console->desc, 0, sizeof(CommandDesc));
 
-    Boot* boot = getBoot(console->studio);
-
     if(!console->args.cli)
     {
         start_banner(console->text, console->color);
@@ -4644,21 +4612,10 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
                 puts(ptr);
     }
 
-    if (args.cart)
-    {
-        if (!cmdLoadCart(console, args.cart))
-        {
-            printf("error: cart `%s` not loaded\n", args.cart);
-            exit(1);
-        }
-        else
-            boot->cart = true;
-    }
-
-    console->active = !boot->cart;
+    return console;
 }
 
-void freeConsole(Console* console)
+void console_free(Console* console)
 {
     free(console->text);
     free(console->color);
@@ -4674,4 +4631,67 @@ void freeConsole(Console* console)
     FREE(console->commands.items);
     free(console->desc);
     free(console);
+}
+
+// What the console wants served: the host takes it once, does it, and answers
+// through console_answer(). Nothing is taken again until that answer comes.
+bool console_take(Console* console, ConsoleAsk* ask)
+{
+    if(console->waiting || console->ask.kind == CONSOLE_ASK_NONE)
+        return false;
+
+    *ask = console->ask;
+    console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_NONE};
+    console->waiting = true;
+
+    return true;
+}
+
+void console_answer(Console* console, const ConsoleAnswer* answer)
+{
+    void (*onAnswer)(Console*, const ConsoleAnswer*) = console->onAnswer;
+
+    console->waiting = false;
+    console->onAnswer = NULL;
+
+    if(onAnswer)
+        onAnswer(console, answer);
+}
+
+void console_done(Console* console)
+{
+    commandDone(console);
+}
+
+bool console_active(const Console* console)
+{
+    return console->active;
+}
+
+bool console_replay(Console* console)
+{
+    if(console->args.keepcmd
+        && console->commands.count
+        && console->commands.current >= console->commands.count)
+    {
+        console->commands.current = 0;
+        return true;
+    }
+
+    return false;
+}
+
+void console_trace(Console* console, const char* text, u8 color)
+{
+    trace(console, text, color);
+}
+
+void console_error(Console* console, const char* info)
+{
+    error(console, info);
+}
+
+void console_tick(Console* console)
+{
+    tick(console);
 }

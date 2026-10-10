@@ -261,6 +261,9 @@ struct Studio
 
 #if defined(BUILD_EDITORS)
     Console*    console;
+    // What the console reads of the host: the host refreshes it before every
+    // tick it gives the console.
+    ConsoleView consoleView;
 #endif
 
 #if defined(BUILD_SURF)
@@ -308,7 +311,7 @@ static void* mapApp(Studio* studio)     { return studio->banks.map[studio->bank.
 static void* sfxApp(Studio* studio)     { return studio->banks.sfx[studio->bank.index.sfx]; }
 static void* musicApp(Studio* studio)   { return studio->banks.music[studio->bank.index.music]; }
 
-static void consoleTick(void* app)  { Console* console = app; console->tick(console); }
+static void consoleTick(void* app)  { Console* console = app; console_tick(console); }
 static void codeTick(void* app)     { Code* code = app; code->tick(code); }
 static void worldTick(void* app)    { World* world = app; world->tick(world); }
 static void spriteTick(void* app)   { Sprite* sprite = app; sprite->tick(sprite); }
@@ -1140,9 +1143,9 @@ static void initSurfMode(Studio* studio)
 void gotoSurf(Studio* studio)
 {
 #if defined(BUILD_EDITORS)
-    // The console hands the screen over: end its command, or console->active
+    // The console hands the screen over: end its command, or its active flag
     // stays false and the shortcuts it gates never come back.
-    studio->console->done(studio->console);
+    console_done(studio->console);
 #endif
     initSurfMode(studio);
     setStudioMode(studio, TIC_SURF_MODE);
@@ -1216,7 +1219,7 @@ void setStudioMode(Studio* studio, EditorMode mode)
         case TIC_CONSOLE_MODE:
 #if defined(BUILD_SURF)
             if (prev == TIC_SURF_MODE)
-                studio->console->done(studio->console);
+                console_done(studio->console);
 #endif
             break;
         case TIC_WORLD_MODE:    initWorldMap(studio); break;
@@ -1472,13 +1475,8 @@ void runGame(Studio* studio, RunOrigin origin)
         memset(fftNormalizedMaxData, 0, sizeof(fftNormalizedMaxData[0]) * FFT_SIZE);
     }
 
-    if(studio->console->args.keepcmd
-        && studio->console->commands.count
-        && studio->console->commands.current >= studio->console->commands.count)
-    {
-        studio->console->commands.current = 0;
+    if(console_replay(studio->console))
         setStudioMode(studio, TIC_CONSOLE_MODE);
-    }
     else
 #endif
     {
@@ -1512,11 +1510,108 @@ void runGame(Studio* studio, RunOrigin origin)
 }
 
 #if defined(BUILD_EDITORS)
+// The cart a fetch found is in the machine and taken as the host's own by the
+// time this is called; all that is left is telling the console it arrived.
+static void onConsoleFetched(void* data)
+{
+    Studio* studio = data;
+
+    ConsoleAnswer answer = {.name = studioCart(studio)->name};
+    console_answer(studio->console, &answer);
+}
+
+// The dialog the console asked for has been answered; its own flow continues
+// from there, whichever of its commands wanted one.
+static void onConsoleConfirmed(Studio* studio, bool yes, void* data)
+{
+    ConsoleAnswer answer = {.yes = yes};
+    console_answer(studio->console, &answer);
+}
+
+// What the console asks the host for: it reports, and this does it and answers.
+// A move is answered on the spot, and the answer can lead to the next ask — a
+// dialog, then the load it confirmed — while a cart fetched by hash is answered
+// later, from wherever it arrives.
+static void serveConsole(Studio* studio)
+{
+    ConsoleAsk ask;
+
+    while(console_take(studio->console, &ask))
+    {
+        ConsoleAnswer answer = {0};
+        bool answered = true;
+
+        switch(ask.kind)
+        {
+        case CONSOLE_ASK_MENU:          gotoMenu(studio); break;
+        case CONSOLE_ASK_CODE:          gotoCode(studio); break;
+        case CONSOLE_ASK_EXIT:          exitStudio(studio); break;
+        case CONSOLE_ASK_RESUME:        resumeGame(studio); break;
+        case CONSOLE_ASK_RUN:           runGame(studio, RUN_FROM_STUDIO); break;
+
+        case CONSOLE_ASK_CONFIG_RESET:
+            studio->config->reset(studio->config);
+            break;
+
+#if defined(BUILD_SURF)
+        case CONSOLE_ASK_SURF:          gotoSurf(studio); break;
+#endif
+
+        case CONSOLE_ASK_CONFIRM:
+            // The dialog belongs to the menu; the answer comes back when the
+            // user picks one of its two items.
+            answered = false;
+            confirmDialog(studio, ask.rows, ask.rowsCount, onConsoleConfirmed, studio);
+            break;
+
+        case CONSOLE_ASK_PLAY:
+            runGame(studio, RUN_FROM_PLAYER);
+            studio->boot.cart = false;
+            break;
+
+        case CONSOLE_ASK_CART_LOADED:
+            if(ask.name)
+                studioSetCartName(studio, ask.name, tic_fs_path(studio->fs, ask.name));
+            else if(ask.clear)
+                memset(studioCart(studio)->name, 0, sizeof studioCart(studio)->name);
+
+            studioRomLoaded(studio);
+
+            answer.name = studioCart(studio)->name;
+            break;
+
+        case CONSOLE_ASK_CART_SAVE:
+            answer.save = studioSaveCart(studio, ask.name);
+            answer.name = studioCart(studio)->name;
+            break;
+
+        case CONSOLE_ASK_CART_FETCH:
+            // Answered from the fetch's own callback, not here.
+            answered = false;
+            studioLoadByHash(studio, ask.name, ask.hash, ask.section, onConsoleFetched, studio);
+            break;
+
+        case CONSOLE_ASK_EXPORT_SFX:
+            answer.error = studioExportSfx(studio, ask.index, ask.name);
+            break;
+
+        case CONSOLE_ASK_EXPORT_MUSIC:
+            answer.error = studioExportMusic(studio, ask.index, ask.bank, ask.name);
+            break;
+
+        default: break;
+        }
+
+        if(answered)
+            console_answer(studio->console, &answer);
+    }
+}
+
 void saveProject(Studio* studio)
 {
     if(getConfig(studio)->trim) trimWhitespace(studio->code);
 
-    CartSaveResult rom = studio->console->save(studio->console);
+    CartSaveResult rom = studioSaveCart(studio, NULL);
 
     if(rom == CART_SAVE_OK)
     {
@@ -1787,7 +1882,7 @@ static void processShortcuts(Studio* studio)
     if(studio->mode == TIC_START_MODE) return;
 
 #if defined(BUILD_EDITORS)
-    if(!studio->console->active) return;
+    if(!console_active(studio->console)) return;
 #endif
 
     if(studio_mainmenu_keyboard(studio->mainmenu)) return;
@@ -1952,7 +2047,7 @@ static void processShortcuts(Studio* studio)
 static void reloadConfirm(Studio* studio, bool yes, void* data)
 {
     if(yes)
-        studio->console->updateProject(studio->console);
+        studioReloadCart(studio);
     else
         updateMDate(studio);
 }
@@ -1987,7 +2082,7 @@ static void checkChanges(Studio* studio)
 
                     confirmDialog(studio, Rows, COUNT_OF(Rows), reloadConfirm, NULL);
                 }
-                else studio->console->updateProject(studio->console);
+                else studioReloadCart(studio);
             }
         }
     }
@@ -2109,8 +2204,23 @@ static void renderStudio(Studio* studio)
     {
         const EditorApp* app = &Apps[studio->mode];
 
+#if defined(BUILD_EDITORS)
+        // What the console reads of the host, fresh before its tick; the
+        // startup tick the mode has not caught up with says it is not in front.
+        if(studio->mode == TIC_CONSOLE_MODE)
+            studio->consoleView = (ConsoleView)
+            {
+                .inFront = true,
+                .cartChanged = studioCartChanged(studio),
+            };
+#endif
+
         if(app->tick)
             app->tick(app->instance(studio));
+
+#if defined(BUILD_EDITORS)
+        serveConsole(studio);
+#endif
 
         // The splash reports that the intro is over; where that leads is the
         // host's: a cart the launch came with, in a build that has no console to
@@ -2619,7 +2729,7 @@ void studio_delete(Studio* studio)
         }
 
         freeCode    (studio->code);
-        freeConsole (studio->console);
+        console_free(studio->console);
         freeWorld   (studio->world);
 
         FREE(studio->anim.show.items);
@@ -2894,10 +3004,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->anim.movie = resetMovie(&studio->anim.idle);
 #endif
 
-#if defined(BUILD_EDITORS)
-        studio->console    = calloc(1, sizeof(Console));
-#endif
-
 #if defined(BUILD_SURF)
         studio->surf       = calloc(1, sizeof(Surf));
 #endif
@@ -2936,7 +3042,38 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     initRunMode(studio);
 
 #if defined(BUILD_EDITORS)
-    initConsole(studio->console, studio, studio->fs, studio->net, studio->config, args);
+    // The cart the command line named is the host's to load: the console only
+    // hears, through its launch flag, that the launch came with one.
+    if(args.cart)
+    {
+        if(studioLoadCart(studio, args.cart))
+            studio->boot.cart = true;
+        else
+        {
+            printf("error: cart `%s` not loaded\n", args.cart);
+            exit(1);
+        }
+    }
+
+    studio->console = console_create(&(ConsoleDeps)
+    {
+        .tic    = studio->tic,
+        .fs     = studio->fs,
+        .net    = studio->net,
+        .config = getConfig(studio),
+        .mouse  = studio->mouse.state,
+        .view   = &studio->consoleView,
+
+        .args   =
+        {
+            .cmd     = args.cmd,
+            .cli     = args.cli,
+            .skip    = args.skip,
+            .keepcmd = args.keepcmd,
+        },
+
+        .boot   = studio->boot.cart,
+    });
 #else
     // No console: whatever is on the command line is loaded right here, and
     // played once the splash hands the transition over.
@@ -3011,7 +3148,14 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     {
         if(getBytebattle(studio))
         {
-            studio->console->tick(studio->console);
+            // The console's first frame, drawn before the code editor takes
+            // over: the mode is still the start screen's, so the tick greets
+            // and loads the demo without running any command.
+            studio->consoleView = (ConsoleView){.cartChanged = studioCartChanged(studio)};
+
+            console_tick(studio->console);
+            serveConsole(studio);
+
             gotoCode(studio);
         }
         else
