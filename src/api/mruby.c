@@ -1475,7 +1475,7 @@ static const char* const MRubyKeywords [] =
     "__FILE__", "__LINE__"
 };
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_' || c == '?' || c == '=' || c == '!';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_' || c == '?' || c == '=' || c == '!';}
 
 static const tic_outline_item* getMRubyOutline(const char* code, s32* size)
 {

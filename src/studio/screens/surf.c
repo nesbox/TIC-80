@@ -250,7 +250,7 @@ static s32 casecmp(const char *str1, const char *str2)
         ++str2;
     }
 
-    return (s32) ((u8) tolower(*str1) - (u8) tolower(*str2));
+    return (s32) ((u8) tolower((u8)(*str1)) - (u8) tolower((u8)(*str2)));
 }
 
 static int itemcmp(const void* a, const void* b)

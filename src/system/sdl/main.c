@@ -381,6 +381,7 @@ static void updateTextureBytes(Texture texture, const void* data, s32 width, s32
     else
 #endif
     {
+        (void)width;
         void* pixels = NULL;
         s32 pitch = 0;
         SDL_LockTexture(texture.sdl, NULL, &pixels, &pitch);
@@ -1636,6 +1637,11 @@ void tic_sys_open_path(const char* path)
 
     sprintf(command, "open \"%s\"", path);
     system(command);
+
+#else
+
+    (void)path;
+    (void)command;
 
 #endif
 }

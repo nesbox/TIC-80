@@ -166,7 +166,7 @@ static bool loadTextSection(const char* project, const char* comment, char* dst,
 
 static inline const char* getLineEnd(const char* ptr)
 {
-    while(*ptr && isspace(*ptr) && *ptr++ != '\n');
+    while(*ptr && isspace((u8)(*ptr)) && *ptr++ != '\n');
 
     return ptr;
 }

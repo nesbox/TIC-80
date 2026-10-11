@@ -472,7 +472,7 @@ static bool iswrap(char sym)
     case '|': return true;
     }
 
-    return isspace(sym);
+    return isspace((u8)sym);
 }
 
 static void consolePrintOffset(Console* console, const char* text, u8 color, s32 wrapLineOffset)
@@ -1427,7 +1427,7 @@ static s32 casecmp(const char *str1, const char *str2)
         ++str2;
     }
 
-    return (s32) ((u8) tolower(*str1) - (u8) tolower(*str2));
+    return (s32) ((u8) tolower((u8)(*str1)) - (u8) tolower((u8)(*str2)));
 }
 
 static inline int itemcmp(const void* a, const void* b)
@@ -4223,7 +4223,7 @@ static void copyFromClipboard(Console* console)
 
             char* dst = text;
             for(const char* src = clipboard; *src; src++)
-                if(isprint(*src))
+                if(isprint((u8)(*src)))
                     *dst++ = *src;
 
             insertInputText(console, text);
@@ -4317,7 +4317,7 @@ static void processConsolePgDown(Console* console)
     setScroll(console, console->scroll.pos + STUDIO_TEXT_BUFFER_HEIGHT/2);
 }
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 static s32 leftWordPos(Console* console)
 {

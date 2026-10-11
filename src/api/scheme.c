@@ -1108,7 +1108,7 @@ static const char* const SchemeKeywords [] =
 
 static inline bool scheme_isalnum(char c)
 {
-    return isalnum(c) || c == '_' || c == '-' || c == ':' || c == '#' || c == '!'
+    return isalnum((u8)c) || c == '_' || c == '-' || c == ':' || c == '#' || c == '!'
         || c == '+' || c == '=' || c == '&' || c == '^' || c == '%' || c == '$' || c == '@';
 }
 
@@ -1144,7 +1144,7 @@ static const tic_outline_item* getSchemeOutline(const char* code, s32* size)
             {
                 char c = *ptr;
 
-                if(scheme_isalnum(c));
+                if(scheme_isalnum((u8)c));
                 else
                 {
                     end = ptr;

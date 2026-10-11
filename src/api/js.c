@@ -1485,7 +1485,7 @@ static const char* const JsKeywords [] =
     "true", "typeof", "var", "void", "while", "with", "yield", "of"
 };
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 static const tic_outline_item* getJsOutline(const char* code, s32* size)
 {

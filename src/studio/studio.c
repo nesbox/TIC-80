@@ -656,7 +656,7 @@ static void removeWhiteSpaces(char* str)
     s32 len = (s32)strlen(str);
 
     for (s32 j = 0; j < len; j++)
-        if(!isspace(str[j]))
+        if(!isspace((u8)str[j]))
             str[i++] = str[j];
 
     str[i] = '\0';
@@ -688,7 +688,8 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bo
 
 void showTooltip(Studio* studio, const char* text)
 {
-    strncpy(studio->tooltip.text, text, sizeof studio->tooltip.text - 1);
+    snprintf(studio->tooltip.text, sizeof studio->tooltip.text, "%.*s",
+        (s32)sizeof studio->tooltip.text - 1, text);
 }
 
 #if defined(TIC80_PRO) && defined(BUILD_EDITORS)
@@ -1088,10 +1089,11 @@ ClipboardEvent getClipboardEvent(Studio* studio)
 static void showPopupMessage(Studio* studio, const char* text)
 {
     memset(studio->popup.message, '\0', sizeof studio->popup.message);
-    strncpy(studio->popup.message, text, sizeof(studio->popup.message) - 1);
+    snprintf(studio->popup.message, sizeof studio->popup.message, "%.*s",
+        (s32)sizeof studio->popup.message - 1, text);
 
     for(char* c = studio->popup.message; c < studio->popup.message + sizeof studio->popup.message; c++)
-        if(*c) *c = toupper(*c);
+        if(*c) *c = toupper((u8)(*c));
 
     studio->anim.movie = resetMovie(&studio->anim.show);
 }

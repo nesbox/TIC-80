@@ -1840,12 +1840,12 @@ static void processKeyboard(Sprite* sprite)
         {
             char sym = getKeyboardText(sprite->studio);
 
-            if(isxdigit(sym))
+            if(isxdigit((u8)sym))
             {
                 u8* data = &getBankPalette(sprite->studio, sprite->palette.vbank1)->data[sprite->color * Rows + row];
                 char buf[sizeof "FF"];
                 sprintf(buf, "%02X", *data);
-                buf[col] = toupper(sym);
+                buf[col] = toupper((u8)sym);
                 *data = (u8)strtol(buf, NULL, 16);
                 ++col;
             }
@@ -1869,7 +1869,7 @@ static void processKeyboard(Sprite* sprite)
         {
             char sym = getKeyboardText(sprite->studio);
 
-            if(isxdigit(sym))
+            if(isxdigit((u8)sym))
             {
                 u8 mask = 0xff;
 
@@ -1881,7 +1881,7 @@ static void processKeyboard(Sprite* sprite)
 
                 char buf[sizeof "FF"];
                 sprintf(buf, "%02X", mask);
-                buf[sprite->flags.pos] = toupper(sym);
+                buf[sprite->flags.pos] = toupper((u8)sym);
                 u8 value = strtol(buf, NULL, 16);
 
                 for(const s32* i = indexes; *i; i++)
@@ -2007,7 +2007,7 @@ void spriteBand(void* app, Toolbar* tb)
 
         for(s32 page = sprite->blit.pages - 1; page >= 0; page--)
         {
-            static char tip[16];
+            static char tip[sizeof "PAGE " + sizeof "-2147483648"];
             sprintf(tip, "PAGE %i", page + 1);
 
             PageTab tab = {{'1' + page, '\0'}, page == sprite->blit.page};

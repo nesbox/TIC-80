@@ -544,7 +544,7 @@ static void updateEditor(Code* code)
 }
 
 static inline bool islineend(char c) {return c == '\n' || c == '\0';}
-static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
+static inline bool isalpha_(char c) {return isalpha((u8)c) || c == '_';}
 static inline bool isdoublequote(char c) {return c == '"'; }
 static inline bool isopenparen_(Code* code, char c) {(void)code; return c == '(' || c == '{' || c == '[';}
 static inline bool iscloseparen_(Code* code, char c) {(void)code; return c == ')' || c == '}' || c == ']';}
@@ -552,9 +552,9 @@ static inline bool iscloseparen_(Code* code, char c) {(void)code; return c == ')
 static inline bool config_isalnum_(const tic_script* config, char c)
 {
     if (config->lang_isalnum)
-        return config->lang_isalnum(c);
+        return config->lang_isalnum((u8)c);
     else
-        return isalnum(c) || c == '_';
+        return isalnum((u8)c) || c == '_';
 }
 
 static inline bool isalnum_(Code* code, char c)
@@ -699,17 +699,17 @@ start:
             {
                 char c = *ptr;
 
-                if(isdigit(c)) ptr++;
+                if(isdigit((u8)c)) ptr++;
                 else if(numberStart[0] == '0'
                     && (numberStart[1] == 'x' || numberStart[1] == 'X')
-                    && isxdigit(numberStart[2]))
+                    && isxdigit((u8)numberStart[2]))
                 {
-                    if((ptr - numberStart < 2) || isxdigit(c)) ptr++;
+                    if((ptr - numberStart < 2) || isxdigit((u8)c)) ptr++;
                     else break;
                 }
                 else if(c == '.' || c == 'e' || c == 'E')
                 {
-                    if(isdigit(ptr[1])) ptr++;
+                    if(isdigit((u8)ptr[1])) ptr++;
                     else break;
                 }
                 else break;
@@ -758,13 +758,13 @@ start:
                 ptr++;
                 continue;
             }
-            else if(isdigit(c) || (c == '.' && isdigit(ptr[1])))
+            else if(isdigit((u8)c) || (c == '.' && isdigit((u8)ptr[1])))
             {
                 numberStart = ptr;
                 ptr++;
                 continue;
             }
-            else if(ispunct(c)) state[ptr - start].syntax = SyntaxType_SIGN;
+            else if(ispunct((u8)c)) state[ptr - start].syntax = SyntaxType_SIGN;
         }
 
         if(!c) break;
@@ -1829,7 +1829,7 @@ static void updateSidebarCode(Code* code)
 static bool isFilterMatch(const char* buffer, s32 size, const char* filter)
 {
     while(size--)
-        if(tolower(*buffer++) == tolower(*filter))
+        if(tolower((u8)(*buffer++)) == tolower((u8)(*filter)))
             filter++;
 
     return *filter == 0;
@@ -1839,7 +1839,7 @@ static void drawFilterMatch(Code *code, s32 x, s32 y, const char* orig, s32 size
 {
     while(size--)
     {
-        bool match = tolower(*orig) == tolower(*filter);
+        bool match = tolower((u8)(*orig)) == tolower((u8)(*filter));
         u8 color = match ? tic_color_orange : tic_color_white;
 
         if(code->shadowText)
@@ -2585,10 +2585,10 @@ static void processViChange(Code* code) {
 }
 
 static char toggleCase(char c) {
-    if (isupper(c))
-        return tolower(c);
-    else if(islower(c))
-        return toupper(c);
+    if (isupper((u8)c))
+        return tolower((u8)c);
+    else if(islower((u8)c))
+        return toupper((u8)c);
     else
         return c;
 }
@@ -3542,7 +3542,7 @@ static void drawSidebarBar(Code* code, s32 x, s32 y)
 		{
 			// find the first non-space character
 			const char* trimmed = ptr->pos;
-			while (*trimmed && *trimmed != '\n' && *trimmed != '\r' && isspace(*trimmed))
+			while (*trimmed && *trimmed != '\n' && *trimmed != '\r' && isspace((u8)(*trimmed)))
 				trimmed++;
 
 			// calculate the new size after trimming

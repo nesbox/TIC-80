@@ -284,8 +284,8 @@ const char* tic_tool_metatag(const char* code, const char* tag, const char* comm
 
         if (end)
         {
-            while (isspace(*start) && start < end) start++;
-            while (isspace(*(end - 1)) && end > start) end--;
+            while (isspace((u8)*start) && start < end) start++;
+            while (isspace((u8)*(end - 1)) && end > start) end--;
 
             const s32 size = MIN((s32)(end - start), (s32)sizeof(value) - 1);
 

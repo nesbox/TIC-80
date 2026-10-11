@@ -2058,7 +2058,7 @@ static const char* const WrenKeywords [] =
     "static", "super", "this", "true", "var", "while"
 };
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 {

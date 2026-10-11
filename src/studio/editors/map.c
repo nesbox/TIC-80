@@ -204,7 +204,7 @@ void mapBand(void* app, Toolbar* tb)
         if(map->sheet.blit.pages > 1)
             for(s32 i = map->sheet.blit.pages - 1; i >= 0; i--)
             {
-                static char tip[16];
+                static char tip[sizeof "PAGE " + sizeof "-2147483648"];
                 sprintf(tip, "PAGE %i", i);
 
                 PageTab tab = {{'1' + i, '\0'}, i == map->sheet.blit.page};
@@ -232,7 +232,7 @@ void mapBand(void* app, Toolbar* tb)
             tic_bpp mode = 1 << (2 - i);
             bool active = mode == map->sheet.blit.mode;
 
-            static char tip[24];
+            static char tip[sizeof "%iBITS PER PIXEL" + sizeof "-2147483648"];
             sprintf(tip, mode > 1 ? "%iBITS PER PIXEL" : "%iBIT PER PIXEL", mode);
 
             char label[2] = {Depths[i], '\0'};

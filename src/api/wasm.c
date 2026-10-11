@@ -1352,7 +1352,7 @@ static void callWasmMenu(tic_mem* tic, s32 index, void* data)
     callWasmIntFunc(tic, MENU_function, index, data);
 }
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 static const tic_outline_item* getWasmOutline(const char* code, s32* size)
 {

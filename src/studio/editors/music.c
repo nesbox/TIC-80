@@ -1213,7 +1213,7 @@ static void processTrackerKeyboard(Music* music)
 
                 if(sym)
                 {
-                    const char* val = strchr(MusicCommands, toupper(sym));
+                    const char* val = strchr(MusicCommands, toupper((u8)sym));
 
                     if(val)
                         setCommand(music, val - MusicCommands);

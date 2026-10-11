@@ -8,7 +8,10 @@
 # them out. A warning here is a build that stops, so ours stays at zero.
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 
-    set(TIC80_WARNING_FLAGS -Wall -Wextra -Werror)
+    # Xcode turns -Wshorten-64-to-32 on by itself for the Apple backend, and
+    # the script bindings narrow 64-bit host values to the 32-bit API on
+    # purpose: the flag is not part of -Wall -Wextra and comes off with them.
+    set(TIC80_WARNING_FLAGS -Wall -Wextra -Werror -Wno-shorten-64-to-32)
 
     file(GLOB_RECURSE TIC80_OWN_SOURCES CONFIGURE_DEPENDS
         ${CMAKE_SOURCE_DIR}/src/*.c

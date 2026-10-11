@@ -30,7 +30,7 @@ extern "C"
 
 static inline bool isalnum_(char c)
 {
-    return isalnum(c) || c == '_';
+    return isalnum((u8)c) || c == '_';
 }
 
 #define YUE_CODE(...) #__VA_ARGS__

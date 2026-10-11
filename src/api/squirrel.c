@@ -2085,7 +2085,7 @@ static const char* const SquirrelKeywords [] =
     "instanceof", "true", "false", "static", "__LINE__", "__FILE__"
 };
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 static const tic_outline_item* getSquirrelOutline(const char* code, s32* size)
 {

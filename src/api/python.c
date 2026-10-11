@@ -1512,7 +1512,7 @@ static void eval_pkpy_v2(tic_mem* tic, const char* code)
         log_and_clearexc(p0);
 }
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 static const tic_outline_item* getPythonOutline(const char* code, s32* size)
 {

@@ -99,7 +99,7 @@ static const char* const FennelKeywords [] =
 
 static inline bool fennel_isalnum(char c)
 {
-    return isalnum(c) || c == '_' || c == '-' || c == '#' || c == '!'
+    return isalnum((u8)c) || c == '_' || c == '-' || c == '#' || c == '!'
         || c == '+' || c == '=' || c == '&' || c == '^' || c == '%' || c == '?'
         || c == '$' || c == '>' || c == '<' || c == '*' || c == '/';
 }

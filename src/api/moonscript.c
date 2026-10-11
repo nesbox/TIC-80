@@ -25,7 +25,7 @@
 
 static const char _ms_loadstring[] = "_ms_loadstring";
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 #include "moonscript.h"
 

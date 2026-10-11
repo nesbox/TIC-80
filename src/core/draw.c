@@ -963,7 +963,7 @@ void tic_api_ttri(tic_mem* tic,
         [tic_vbank_texture] = triTexVbankShader,
     };
 
-    if(texsrc >= 0 && texsrc < COUNT_OF(Shaders))
+    if(texsrc < COUNT_OF(Shaders))
         drawTri(tic,
             (const Vec2*)&t[0],
             (const Vec2*)&t[1],
