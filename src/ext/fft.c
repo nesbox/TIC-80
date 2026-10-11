@@ -5,6 +5,7 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "kiss_fft.h"
 #include "kiss_fftr.h"
+
 #include "miniaudio.h"
 #include "../fftdata.h"
 #include "fft.h"
@@ -49,6 +50,8 @@ void miniaudioLogCallback(void* userData, ma_uint32 level, const char* message)
 
 void OnReceiveFrames(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
+    (void)pDevice;
+    (void)pOutput;
     const float* samples = (const float*)pInput;
     if (frameCount > AUDIO_BUFFER_SIZE)
     {
@@ -59,11 +62,11 @@ void OnReceiveFrames(ma_device* pDevice, void* pOutput, const void* pInput, ma_u
 
     // Just rotate the buffer; copy existing, append new
     float* p = sampleBuf;
-    for (int i = 0; i < AUDIO_BUFFER_SIZE - frameCount; i++)
+    for (ma_uint32 i = 0; i < AUDIO_BUFFER_SIZE - frameCount; i++)
     {
         *(p++) = sampleBuf[i + frameCount];
     }
-    for (int i = 0; i < frameCount; i++)
+    for (ma_uint32 i = 0; i < frameCount; i++)
     {
         *(p++) = samples ? (samples[i * 2] + samples[i * 2 + 1]) / 2.0f : 0.0f;
     }
@@ -189,6 +192,8 @@ void FFT_EnumerateDevices()
 bool FFT_Open(bool CapturePlaybackDevices, const char* CaptureDeviceSearchString)
 {
 #ifdef TIC80_FFT_UNSUPPORTED
+    (void)CapturePlaybackDevices;
+    (void)CaptureDeviceSearchString;
     return true;
 #else
 
@@ -335,6 +340,7 @@ void FFT_Close()
 void FFT_GetFFT(float* _samples)
 {
 #ifdef TIC80_FFT_UNSUPPORTED
+    (void)_samples;
     return;
 #else
 
@@ -377,6 +383,7 @@ void FFT_GetFFT(float* _samples)
 static double fft(s32 startFreq, s32 endFreq, bool smoothing, bool raw)
 {
 #ifdef TIC80_FFT_UNSUPPORTED
+    (void)startFreq; (void)endFreq; (void)smoothing; (void)raw;
     return 0.0;
 #else
     if (!fftEnabled)
@@ -442,7 +449,9 @@ static double fft(s32 startFreq, s32 endFreq, bool smoothing, bool raw)
 
 double tic_api_fft(tic_mem* memory, s32 startFreq, s32 endFreq)
 {
+    (void)memory;
 #ifdef TIC80_FFT_UNSUPPORTED
+    (void)startFreq; (void)endFreq;
     return 0.0;
 #else
     return fft(startFreq, endFreq, false, false);
@@ -451,7 +460,9 @@ double tic_api_fft(tic_mem* memory, s32 startFreq, s32 endFreq)
 
 double tic_api_ffts(tic_mem* memory, s32 startFreq, s32 endFreq)
 {
+    (void)memory;
 #ifdef TIC80_FFT_UNSUPPORTED
+    (void)startFreq; (void)endFreq;
     return 0.0;
 #else
     return fft(startFreq, endFreq, true, false);
@@ -465,15 +476,19 @@ void FFT_CopyAudio(float* samples, int count)
     ma_spinlock_lock(&sampleLock);
     memcpy(samples, sampleBuf + AUDIO_BUFFER_SIZE - count, count * sizeof(float));
     ma_spinlock_unlock(&sampleLock);
+#else
+    (void)samples; (void)count;
 #endif
 }
 
 double tic_api_fftr(tic_mem* memory, s32 startFreq, s32 endFreq)
 {
+    (void)memory;
     return fft(startFreq, endFreq, false, true);
 }
 
 double tic_api_fftrs(tic_mem* memory, s32 startFreq, s32 endFreq)
 {
+    (void)memory;
     return fft(startFreq, endFreq, true, true);
 }

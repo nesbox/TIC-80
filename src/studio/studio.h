@@ -108,12 +108,12 @@
     macro(version,      int,    BOOLEAN,    "",         "print program version")            \
     CRT_CMD_PARAM(macro)
 
-#define SHOW_TOOLTIP(STUDIO, FORMAT, ...)   \
-do{                                         \
-    static const char Format[] = FORMAT;    \
-    static char buf[sizeof Format];         \
-    sprintf(buf, Format, __VA_ARGS__);      \
-    showTooltip(STUDIO, buf);               \
+#define SHOW_TOOLTIP(STUDIO, FORMAT, ...)        \
+do{                                              \
+    static const char Format[] = FORMAT;         \
+    static char buf[STUDIO_TEXT_BUFFER_WIDTH];   \
+    snprintf(buf, sizeof buf, Format, __VA_ARGS__); \
+    showTooltip(STUDIO, buf);                    \
 }while(0)
 
 typedef struct
@@ -352,7 +352,7 @@ typedef struct
     struct
     {
         tic_code code;
-        char postag[32];
+        char postag[sizeof "-- pos: -2147483648,-2147483648\n"];
     } last;
 
     s32 delay;

@@ -64,7 +64,7 @@ static const char* const LuaKeywords [] =
     "self"
 };
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 static const tic_outline_item* getLuaOutline(const char* code, s32* size)
 {
@@ -242,7 +242,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Lua) =
     .keywords           = LuaKeywords,
     .keywordsCount      = COUNT_OF(LuaKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "luamark.tic"},
 
     .demos = (struct tic_demo[])

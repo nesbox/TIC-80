@@ -80,6 +80,20 @@
 
 #include "argparse.h"
 
+// argparse's option macros stop at the help string and leave the tail of
+// struct argparse_option to the compiler; the table below spells it out. -h
+// is the header's own option, callback and all, so it keeps its full form.
+#undef  OPT_HELP
+#define OPT_HELP()       { ARGPARSE_OPT_BOOLEAN, 'h', "help", NULL,           \
+                           "show this help message and exit",                 \
+                           argparse_help_cb, 0, OPT_NONEG }
+#undef  OPT_STRING
+#undef  OPT_INTEGER
+#undef  OPT_BOOLEAN
+#define OPT_STRING(...)  { ARGPARSE_OPT_STRING, __VA_ARGS__, NULL, 0, 0 }
+#define OPT_INTEGER(...) { ARGPARSE_OPT_INTEGER, __VA_ARGS__, NULL, 0, 0 }
+#define OPT_BOOLEAN(...) { ARGPARSE_OPT_BOOLEAN, __VA_ARGS__, NULL, 0, 0 }
+
 #include <ctype.h>
 
 #define _USE_MATH_DEFINES
@@ -122,6 +136,8 @@ static const EditorMode Modes[] =
 #undef  APP_MODE
 };
 
+// Only the PRO build banks the editors, so only it needs the list.
+#if defined(TIC80_PRO)
 static const EditorMode BankModes[] =
 {
     TIC_SPRITE_MODE,
@@ -129,6 +145,7 @@ static const EditorMode BankModes[] =
     TIC_SFX_MODE,
     TIC_MUSIC_MODE,
 };
+#endif
 
 #endif
 
@@ -206,7 +223,9 @@ struct Studio
                 s8 music;
             } index;
 
+#if defined(TIC80_PRO)
             s8 indexes[COUNT_OF(BankModes)];
+#endif
         };
     } bank;
 
@@ -357,7 +376,9 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 #endif
 };
 
-static void emptyDone(void* data) {}
+#if defined(BUILD_EDITORS)
+static void emptyDone(void* data) {(void)data; }
+#endif
 
 void fadePalette(tic_palette* pal, s32 value)
 {
@@ -621,7 +642,6 @@ void toClipboard(const void* data, s32 size, bool flip)
 
         if(clipboard)
         {
-            char* ptr = clipboard;
 
             tic_tool_buf2str(data, size, clipboard, flip);
             tic_sys_clipboard_set(clipboard);
@@ -636,7 +656,7 @@ static void removeWhiteSpaces(char* str)
     s32 len = (s32)strlen(str);
 
     for (s32 j = 0; j < len; j++)
-        if(!isspace(str[j]))
+        if(!isspace((u8)str[j]))
             str[i++] = str[j];
 
     str[i] = '\0';
@@ -654,8 +674,8 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bo
                 removeWhiteSpaces(clipboard);
 
             bool valid = sameSize
-                ? strlen(clipboard) == size * 2
-                : strlen(clipboard) <= size * 2;
+                ? strlen(clipboard) == (size_t)size * 2
+                : strlen(clipboard) <= (size_t)size * 2;
 
             if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
 
@@ -668,7 +688,8 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bo
 
 void showTooltip(Studio* studio, const char* text)
 {
-    strncpy(studio->tooltip.text, text, sizeof studio->tooltip.text - 1);
+    snprintf(studio->tooltip.text, sizeof studio->tooltip.text, "%.*s",
+        (s32)sizeof studio->tooltip.text - 1, text);
 }
 
 #if defined(TIC80_PRO) && defined(BUILD_EDITORS)
@@ -964,7 +985,7 @@ Movie* resetMovie(Movie* movie)
 // The config's own accessors. They sit outside the editors guard on purpose:
 // main.c, rom.c and mainmenu.c read the config in a build with no editors, and
 // a browser-only build linked nowhere with them inside it.
-const StudioConfig* studio_config(Studio* studio)
+const StudioConfig* studio_config(const Studio* studio)
 {
     return &studio->config->data;
 }
@@ -1068,10 +1089,11 @@ ClipboardEvent getClipboardEvent(Studio* studio)
 static void showPopupMessage(Studio* studio, const char* text)
 {
     memset(studio->popup.message, '\0', sizeof studio->popup.message);
-    strncpy(studio->popup.message, text, sizeof(studio->popup.message) - 1);
+    snprintf(studio->popup.message, sizeof studio->popup.message, "%.*s",
+        (s32)sizeof studio->popup.message - 1, text);
 
     for(char* c = studio->popup.message; c < studio->popup.message + sizeof studio->popup.message; c++)
-        if(*c) *c = toupper(*c);
+        if(*c) *c = toupper((u8)(*c));
 
     studio->anim.movie = resetMovie(&studio->anim.show);
 }
@@ -1079,6 +1101,7 @@ static void showPopupMessage(Studio* studio, const char* text)
 
 static void exitConfirm(Studio* studio, bool yes, void* data)
 {
+    (void)data;
     studio->alive = yes;
 }
 
@@ -1339,11 +1362,13 @@ static void confirmHandler(bool yes, void* data)
 
 static void confirmNo(void* data, s32 pos)
 {
+    (void)pos;
     confirmHandler(false, data);
 }
 
 static void confirmYes(void* data, s32 pos)
 {
+    (void)pos;
     confirmHandler(true, data);
 }
 
@@ -1358,9 +1383,9 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
 
     static MenuItem Answers[] =
     {
-        {"",    NULL},
-        {"(N)O",  confirmNo},
-        {"(Y)ES", confirmYes},
+        {.label = ""},
+        {.label = "(N)O", .handler = confirmNo},
+        {.label = "(Y)ES", .handler = confirmYes},
     };
 
     Answers[1].hotkey = tic_key_n;
@@ -1371,7 +1396,7 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
     SCOPE(free(items))
     {
         for(s32 i = 0; i != rows; ++i)
-            items[i] = (MenuItem){text[i], NULL};
+            items[i] = (MenuItem){.label = text[i]};
 
         memcpy(items + rows, Answers, sizeof Answers);
 
@@ -1385,7 +1410,7 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
 #if defined(BUILD_EDITORS)
 static void resetBanks(Studio* studio)
 {
-    memset(studio->bank.indexes, 0, sizeof studio->bank.indexes);
+    memset(&studio->bank.index, 0, sizeof studio->bank.index);
 }
 #endif
 
@@ -1407,6 +1432,8 @@ static void initModules(Studio* studio)
     }
 
     initWorldMap(studio);
+#else
+    (void)studio;
 #endif
 }
 
@@ -1422,10 +1449,10 @@ static void updateMDate(Studio* studio)
 
 static void updateTitle(Studio* studio)
 {
-    char name[TICNAME_MAX] = TIC_TITLE;
+    char name[TICNAME_MAX + sizeof TIC_TITLE + 3] = TIC_TITLE;
 
     if(strlen(studio->rom.name))
-        snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, studio->rom.name);
+        snprintf(name, sizeof name, "%s [%s]", TIC_TITLE, studio->rom.name);
 
     tic_sys_title(name);
 }
@@ -1524,6 +1551,7 @@ static void onConsoleFetched(void* data)
 // from there, whichever of its commands wanted one.
 static void onConsoleConfirmed(Studio* studio, bool yes, void* data)
 {
+    (void)data;
     ConsoleAnswer answer = {.yes = yes};
     console_answer(studio->console, &answer);
 }
@@ -1630,7 +1658,8 @@ void saveProject(Studio* studio)
         }
         else
         {
-            snprintf(buffer, sizeof buffer, "%s%s", studio->rom.name, str_saved);
+            snprintf(buffer, sizeof buffer, "%.*s%s",
+                (s32)(sizeof buffer - sizeof str_saved), studio->rom.name, str_saved);
         }
 
         showPopupMessage(studio, buffer);
@@ -1729,7 +1758,7 @@ static void stopVideoRecord(Studio* studio)
     // Now that it has found an available filename, save it.
     if(tic_fs_save(studio->fs, filename, result.data, result.dataSize, true))
     {
-        char msg[TICNAME_MAX];
+        char msg[TICNAME_MAX + sizeof " saved :)"];
         sprintf(msg, "%s saved :)", filename);
         showPopupMessage(studio, msg);
 
@@ -1854,11 +1883,13 @@ static bool justSwitchedToCodeMode = false;
 
 void setJustSwitchedToCodeMode(Studio* studio, bool value)
 {
+    (void)studio;
     justSwitchedToCodeMode = value;
 }
 
 bool hasJustSwitchedToCodeMode(Studio* studio)
 {
+    (void)studio;
     return justSwitchedToCodeMode;
 }
 #endif
@@ -1990,6 +2021,7 @@ static void processShortcuts(Studio* studio)
                     studio->code->escape(studio->code);
                     return;
                 }
+                // fall through - leaving the code editor lands in the console
             default:
                 setStudioMode(studio, TIC_CONSOLE_MODE);
             }
@@ -2048,6 +2080,7 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
 static void reloadConfirm(Studio* studio, bool yes, void* data)
 {
+    (void)data;
     if(yes)
         studioReloadCart(studio);
     else
@@ -2474,8 +2507,10 @@ static void blitCursor(Studio* studio)
     tic_mem* tic = studio->tic;
     tic80_mouse* m = &tic->ram->input.mouse;
 
-    if(studio->mouse.idle < CURSOR_HIDE_TICKS
-        && tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT)
+    // Leaving the app writes -1 into both axes, which a byte reads as 255; at
+    // that height the cursor's spans would run off the end of the framebuffer.
+    if(studio->mouse.idle < CURSOR_HIDE_TICKS && tic->input.mouse && !m->relative
+        && (s32)m->y < TIC80_FULLHEIGHT)
     {
         s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;
@@ -2581,7 +2616,7 @@ void studio_tick(Studio* studio, tic80_input input)
 #if defined(BUILD_RENDER_CACHE)
         tic80_mouse* m = &tic->ram->input.mouse;
         bool mouse_visible = (studio->mouse.idle < CURSOR_HIDE_TICKS
-            && tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT && m->x >= 0 && m->y >= 0);
+            && tic->input.mouse && !m->relative && (s32)m->y < TIC80_FULLHEIGHT);
         if (mouse_visible || studio->mouse.prev.visible)
         {
             if (m->x != studio->mouse.prev.x || m->y != studio->mouse.prev.y ||
@@ -2679,6 +2714,8 @@ static void onStudioLoadConfirmed(Studio* studio, bool yes, void* data)
         showPopupMessage(studio, done
             ? "cart successfully loaded :)"
             : "error: cart not loaded :(");
+#else
+        (void)done;
 #endif
     }
 }
@@ -2866,6 +2903,11 @@ bool studio_alive(Studio* studio)
 #if defined(TIC_MODULE_EXT)
 static bool onEnumModule(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
+    (void)data;
+    (void)dir;
+    (void)hash;
+    (void)id;
+    (void)title;
     if(strstr(name, TIC_MODULE_EXT))
     {
         void* module = dlopen(name, RTLD_NOW | RTLD_LOCAL);
@@ -3138,6 +3180,8 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->config->data.fftcaptureplaybackdevices = args.fftcaptureplaybackdevices;
     studio->config->data.fftdevice = args.fftdevice;
     studio->config->data.keyboardLayout = keyboardLayout;
+#else
+    (void)keyboardLayout;
 #endif
 
     studioConfigChanged(studio);

@@ -143,7 +143,7 @@ static void drawStatus(Code* code)
         {
             sprintf(code->status.size, "%i/%i", (u32)strlen(code->src), bb->limit.current);
 
-            char buf[sizeof "00:00"];
+            char buf[sizeof "00:00" + sizeof "-2147483648"];
             s32 sec = bb->battle.left / 1000;
             sprintf(buf, "%02i:%02i", sec / 60, sec % 60);
 
@@ -175,6 +175,7 @@ static char* getPosByLine(char* ptr, s32 line)
 
 static char* getNextLineByPos(Code* code, char* pos)
 {
+    (void)code;
     while(*pos && *pos++ != '\n');
     return pos;
 }
@@ -472,7 +473,7 @@ static void removeInvalidChars(char* code)
     for(s = d = code; (*d = *s); d += (*s++ != '\r'));
 }
 
-const char matchingDelim(const char current)
+char matchingDelim(const char current)
 {
     char match = 0;
     switch (current)
@@ -536,24 +537,24 @@ static void updateEditor(Code* code)
 
     sprintf(code->status.line, "line %i/%i col %i", line + 1, getLinesCount(code) + 1, column + 1);
     {
-        s32 codeLen = strlen(code->src);
-        sprintf(code->status.size, "size %i/%i", codeLen, MAX_CODE);
-        code->status.color = codeLen > MAX_CODE ? tic_color_red : tic_color_white;
+        s32 codeLen = (s32)strlen(code->src);
+        sprintf(code->status.size, "size %i/%i", codeLen, (s32)MAX_CODE);
+        code->status.color = codeLen > (s32)MAX_CODE ? tic_color_red : tic_color_white;
     }
 }
 
 static inline bool islineend(char c) {return c == '\n' || c == '\0';}
-static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
+static inline bool isalpha_(char c) {return isalpha((u8)c) || c == '_';}
 static inline bool isdoublequote(char c) {return c == '"'; }
-static inline bool isopenparen_(Code* code, char c) {return c == '(' || c == '{' || c == '[';}
-static inline bool iscloseparen_(Code* code, char c) {return c == ')' || c == '}' || c == ']';}
+static inline bool isopenparen_(Code* code, char c) {(void)code; return c == '(' || c == '{' || c == '[';}
+static inline bool iscloseparen_(Code* code, char c) {(void)code; return c == ')' || c == '}' || c == ']';}
 
 static inline bool config_isalnum_(const tic_script* config, char c)
 {
     if (config->lang_isalnum)
-        return config->lang_isalnum(c);
+        return config->lang_isalnum((u8)c);
     else
-        return isalnum(c) || c == '_';
+        return isalnum((u8)c) || c == '_';
 }
 
 static inline bool isalnum_(Code* code, char c)
@@ -659,7 +660,7 @@ start:
             bool keyword = false;
             {
                 for(s32 i = 0; i < config->keywordsCount; i++)
-                    if(len == strlen(config->keywords[i]) && memcmp(wordStart, config->keywords[i], len) == 0)
+                    if(len == (s32)strlen(config->keywords[i]) && memcmp(wordStart, config->keywords[i], len) == 0)
                     {
                         setCodeState(state, SyntaxType_KEYWORD, (s32)(wordStart - start),len);
                         keyword = true;
@@ -682,7 +683,7 @@ start:
                 const s32 apiCount = config->api_keywordsCount > 0 ? config->api_keywordsCount : COUNT_OF(ApiKeywords);
 
                 for(s32 i = 0; i < apiCount; i++)
-                    if(len == strlen(keywords[i]) && memcmp(wordStart, keywords[i], len) == 0)
+                    if(len == (s32)strlen(keywords[i]) && memcmp(wordStart, keywords[i], len) == 0)
                     {
                         setCodeState(state, SyntaxType_API, (s32)(wordStart - start), len);
                         break;
@@ -698,17 +699,17 @@ start:
             {
                 char c = *ptr;
 
-                if(isdigit(c)) ptr++;
+                if(isdigit((u8)c)) ptr++;
                 else if(numberStart[0] == '0'
                     && (numberStart[1] == 'x' || numberStart[1] == 'X')
-                    && isxdigit(numberStart[2]))
+                    && isxdigit((u8)numberStart[2]))
                 {
-                    if((ptr - numberStart < 2) || isxdigit(c)) ptr++;
+                    if((ptr - numberStart < 2) || isxdigit((u8)c)) ptr++;
                     else break;
                 }
                 else if(c == '.' || c == 'e' || c == 'E')
                 {
-                    if(isdigit(ptr[1])) ptr++;
+                    if(isdigit((u8)ptr[1])) ptr++;
                     else break;
                 }
                 else break;
@@ -757,13 +758,13 @@ start:
                 ptr++;
                 continue;
             }
-            else if(isdigit(c) || (c == '.' && isdigit(ptr[1])))
+            else if(isdigit((u8)c) || (c == '.' && isdigit((u8)ptr[1])))
             {
                 numberStart = ptr;
                 ptr++;
                 continue;
             }
-            else if(ispunct(c)) state[ptr - start].syntax = SyntaxType_SIGN;
+            else if(ispunct((u8)c)) state[ptr - start].syntax = SyntaxType_SIGN;
         }
 
         if(!c) break;
@@ -1248,8 +1249,8 @@ static bool structuredDeleteOverride(Code* code, char* pos)
     const bool isclose = iscloseparen_(code, *pos);
     if (isopen || isclose)
     {
-        if (isopen && iscloseparen_(code, *(pos+1))
-            || isclose && isopenparen_(code, *(pos+1)))
+        if ((isopen && iscloseparen_(code, *(pos+1)))
+            || (isclose && isopenparen_(code, *(pos+1))))
         {
             deleteCode(code, pos, pos+2);
             history(code);
@@ -1362,7 +1363,6 @@ static void deleteLine(Code* code)
 {
     char* linestart = code->cursor.position;
     char* lineend = linestart+1;
-    const char* end = code->src + strlen(code->src);
 
     if (shouldUseStructuredEdit(code))
     {
@@ -1634,6 +1634,7 @@ static s32 insertTab(Code* code, char* line_start, char* pos) {
 
 //has no effect if pos is not a valid tab character
 static s32 removeTab(Code* code, char* line_start, char* pos) {
+    (void)line_start;
     if (useSpacesForTab(code)) {
         s32 tab_size = getConfig(code->studio)->options.tabSize;
         s32 count = 0;
@@ -1807,7 +1808,6 @@ static void centerScroll(Code* code)
 
 static void updateSidebarCode(Code* code)
 {
-    tic_mem* tic = code->tic;
 
     const tic_outline_item* item = code->sidebar.items + code->sidebar.index;
 
@@ -1829,7 +1829,7 @@ static void updateSidebarCode(Code* code)
 static bool isFilterMatch(const char* buffer, s32 size, const char* filter)
 {
     while(size--)
-        if(tolower(*buffer++) == tolower(*filter))
+        if(tolower((u8)(*buffer++)) == tolower((u8)(*filter)))
             filter++;
 
     return *filter == 0;
@@ -1839,7 +1839,7 @@ static void drawFilterMatch(Code *code, s32 x, s32 y, const char* orig, s32 size
 {
     while(size--)
     {
-        bool match = tolower(*orig) == tolower(*filter);
+        bool match = tolower((u8)(*orig)) == tolower((u8)(*filter));
         u8 color = match ? tic_color_orange : tic_color_white;
 
         if(code->shadowText)
@@ -1932,7 +1932,7 @@ static bool isIdle(Code* code)
 
 static void setCodeMode(Code* code, s32 mode)
 {
-    if(isIdle(code) && code->mode != mode)
+    if(isIdle(code) && (s32)code->mode != mode)
     {
         code->anim.movie = resetMovie(&code->anim.show);
 
@@ -2271,6 +2271,7 @@ static char* upStrStr(const char* start, const char* from, const char* substr)
 
 static char* downStrStr(const char* start, const char* from, const char* substr)
 {
+    (void)start;
     return strstr(from, substr);
 }
 
@@ -2522,7 +2523,7 @@ static char* findFunctionDefinition(Code* code, char* name, size_t length) {
 
         if(items)
         {
-            for(size_t i = 0; i < osize; i++)
+            for(s32 i = 0; i < osize; i++)
             {
                 const tic_outline_item* it = items + i;
 
@@ -2584,10 +2585,10 @@ static void processViChange(Code* code) {
 }
 
 static char toggleCase(char c) {
-    if (isupper(c))
-        return tolower(c);
-    else if(islower(c))
-        return toupper(c);
+    if (isupper((u8)c))
+        return tolower((u8)c);
+    else if(islower((u8)c))
+        return toupper((u8)c);
     else
         return c;
 }
@@ -3224,7 +3225,6 @@ static void processMouse(Code* code)
 
 static void textDragTick(Code* code)
 {
-    tic_mem* tic = code->tic;
 
     processMouse(code);
 
@@ -3393,7 +3393,7 @@ static void textReplaceTick(Code* code)
                 deleteCode(code, pos, pos+strlen(code->popup.text));
                 insertCode(code, pos, code->popup.offset);
                 pos += strlen(code->popup.offset);
-                if (pos - code->src > src_length) pos = code->src + src_length;
+                if (pos - code->src > (ptrdiff_t)src_length) pos = code->src + src_length;
 
                 pos = downStrStr(code->src, pos, code->popup.text);
                 if (code->cursor.selection != NULL && pos > code->cursor.position)
@@ -3542,7 +3542,7 @@ static void drawSidebarBar(Code* code, s32 x, s32 y)
 		{
 			// find the first non-space character
 			const char* trimmed = ptr->pos;
-			while (*trimmed && *trimmed != '\n' && *trimmed != '\r' && isspace(*trimmed))
+			while (*trimmed && *trimmed != '\n' && *trimmed != '\r' && isspace((u8)(*trimmed)))
 				trimmed++;
 
 			// calculate the new size after trimming
@@ -3737,7 +3737,7 @@ void codeBand(void* app, Toolbar* tb)
     // The rail packs right to left, and this editor's order runs the other way.
     for(s32 i = Count - 1; i >= 0; i--)
     {
-        ModeButton mode = {Buttons[i].icon, i == code->mode && isIdle(code)};
+        ModeButton mode = {Buttons[i].icon, i == (s32)code->mode && isIdle(code)};
 
         ToolbarButton button =
         {
@@ -3750,7 +3750,7 @@ void codeBand(void* app, Toolbar* tb)
 
         if(toolbar_button(tb, &button))
         {
-            if(code->mode == i) code->escape(code);
+            if((s32)code->mode == i) code->escape(code);
             else setCodeMode(code, i);
         }
     }
@@ -3844,7 +3844,7 @@ static void escape(Code* code)
     }
 }
 
-static void emptyDone(void* data) {}
+static void emptyDone(void* data) {(void)data; }
 
 static void setIdle(void* data)
 {

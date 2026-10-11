@@ -250,7 +250,7 @@ static s32 casecmp(const char *str1, const char *str2)
         ++str2;
     }
 
-    return (s32) ((u8) tolower(*str1) - (u8) tolower(*str2));
+    return (s32) ((u8) tolower((u8)(*str1)) - (u8) tolower((u8)(*str2)));
 }
 
 static int itemcmp(const void* a, const void* b)
@@ -452,7 +452,7 @@ static void requestCover(Surf* surf, SurfItem* item)
     item->coverLoading = true;
     surf->coversInFlight++;
 
-    CoverLoadingData coverLoadingData = {surf, surf->menu.pos};
+    CoverLoadingData coverLoadingData = {.surf = surf, .pos = surf->menu.pos};
     strcpy(coverLoadingData.hash, hash);
     strcpy(coverLoadingData.cachePath, cachePath);
     tic_fs_dir(surf->fs, coverLoadingData.dir);
@@ -465,7 +465,6 @@ static void requestCover(Surf* surf, SurfItem* item)
 
 static void loadCover(Surf* surf)
 {
-    tic_mem* tic = surf->tic;
 
     SurfItem* item = getMenuItem(surf);
 
@@ -531,7 +530,7 @@ static void initItemsAsync(Surf* surf, fs_done_callback callback, void* calldata
     char dir[TICNAME_MAX];
     tic_fs_dir(surf->fs, dir);
 
-    AddMenuItemData data = { NULL, 0, surf, callback, calldata};
+    AddMenuItemData data = {.surf = surf, .done = callback, .data = calldata};
 
     // The answer says which folder it is for, see addMenuItemsDone.
     strcpy(data.dir, dir);
@@ -562,7 +561,7 @@ static void onGoBackDirDone(void* data)
 
         if(item->dir)
         {
-            char path[TICNAME_MAX];
+            char path[TICNAME_MAX * 2];
 
             if(strlen(current))
                 sprintf(path, "%s/%s", current, item->name);
@@ -659,6 +658,7 @@ static void onCartLoaded(void* data)
 
 static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
 {
+    (void)studio;
     if(yes)
     {
         Surf* surf = data;
@@ -679,7 +679,6 @@ static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
 static void onPlayCart(void* data)
 {
     Surf* surf = data;
-    SurfItem* item = getMenuItem(surf);
 
     studioCartChanged(surf->studio)
         ? confirmLoadCart(surf->studio, onLoadCommandConfirmed, surf)
@@ -900,18 +899,12 @@ static void scanline(tic_mem* tic, s32 row, void* data)
     studio_menu_anim_scanline(tic, row, NULL);
 }
 
-static void emptyDone(void* data) {}
+static void emptyDone(void* data) {(void)data; }
 
 static void setIdle(void* data)
 {
     Surf* surf = data;
     surf->anim.movie = resetMovie(&surf->anim.idle);
-}
-
-static void setLeftShow(void* data)
-{
-    Surf* surf = data;
-    surf->anim.movie = resetMovie(&surf->anim.gotodir.show);
 }
 
 static void freeAnim(Surf* surf)

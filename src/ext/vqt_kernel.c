@@ -88,6 +88,7 @@ static bool generateSingleKernel(
     VqtWindowType windowType,
     float sparsityThreshold)
 {
+    (void)minFreq;
     // Use variable Q optimized for 8K FFT
     float Q = calculateVariableQ(centerFreq);
     int windowLength = (int)(Q * sampleRate / centerFreq);
@@ -104,9 +105,9 @@ static bool generateSingleKernel(
     // Ensure it fits in FFT size
     if (windowLength > fftSize) {
         windowLength = fftSize;
+        #ifdef VQT_DEBUG
         // Calculate effective Q after truncation
         float effectiveQ = windowLength * centerFreq / sampleRate;
-        #ifdef VQT_DEBUG
         printf("Freq %.1f Hz: Q designed=%.1f, window=%d, Q effective=%.1f (truncated)\n",
                centerFreq, Q, windowLength, effectiveQ);
         #endif
@@ -282,7 +283,14 @@ bool VQT_GenerateKernels(VqtKernel* kernels, const VqtKernelConfig* config)
 #else // TIC80_FFT_UNSUPPORTED
 
 // Stub implementations when FFT is unsupported
-void VQT_GenerateCenterFrequencies(float* frequencies, int numBins, float minFreq, float maxFreq) {}
-bool VQT_GenerateKernels(VqtKernel* kernels, const VqtKernelConfig* config) { return false; }
+void VQT_GenerateCenterFrequencies(float* frequencies, int numBins, float minFreq, float maxFreq)
+{
+    (void)frequencies; (void)numBins; (void)minFreq; (void)maxFreq;
+}
+bool VQT_GenerateKernels(VqtKernel* kernels, const VqtKernelConfig* config)
+{
+    (void)kernels; (void)config;
+    return false;
+}
 
 #endif // TIC80_FFT_UNSUPPORTED

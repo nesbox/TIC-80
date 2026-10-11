@@ -80,7 +80,7 @@ void syncfs()
 
 const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 {
-    static char path[TICNAME_MAX];
+    static char path[TICNAME_MAX * 2];
 
     snprintf(path, sizeof path, "%s%s", fs->dir, name);
 
@@ -101,11 +101,11 @@ const char* tic_fs_path(tic_fs* fs, const char* name)
     static char path[TICNAME_MAX+1];
 
     if(*name == '/')
-        strncpy(path, name + 1, sizeof path);
+        snprintf(path, sizeof path, "%s", name + 1);
     else if(strlen(fs->work))
         snprintf(path, sizeof path, "%s/%s", fs->work, name);
     else
-        strncpy(path, name, sizeof path);
+        snprintf(path, sizeof path, "%s", name);
 
     return tic_fs_pathroot(fs, path);
 }
@@ -263,6 +263,7 @@ typedef char FsString;
 
 #endif
 
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 typedef struct
 {
     fs_list_callback item;
@@ -312,6 +313,7 @@ static void onDirResponse(const net_get_data* netData)
     default: break;
     }
 }
+#endif
 
 void fs_enum(const char* path, fs_list_callback callback, void* data)
 {
@@ -375,7 +377,7 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
 
 				if (pathLen + nameLen < COUNT_OF(fullPath)) {
 					tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
-					tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath) - pathLen - 1);
+					tic_strncpy(fullPath + pathLen, ent->d_name, nameLen + 1);
 				}
 
                 if(tic_stat(fullPath, &s) == 0)
@@ -510,7 +512,7 @@ void tic_fs_changedir(tic_fs* fs, const char* dir)
         snprintf(temp, TICNAME_MAX, "%s", dir);
     }
 
-    strncpy(fs->work, temp, TICNAME_MAX - 1);
+    snprintf(fs->work, sizeof fs->work, "%.*s", (s32)sizeof fs->work - 1, temp);
 
 #if defined(__TIC_WINDOWS__)
     for(char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
@@ -530,6 +532,10 @@ typedef struct
 
 static bool onEnumPublicDirs(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
+    (void)dir;
+    (void)hash;
+    (void)id;
+    (void)title;
     EnumPublicDirsData* enumPublicDirsData = (EnumPublicDirsData*)data;
 
     if(strcmp(name, enumPublicDirsData->name) == 0)
@@ -756,6 +762,7 @@ bool tic_fs_saveroot(tic_fs* fs, const char* name, const void* data, s32 size, b
     return fs_write(path, data, size);
 }
 
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 typedef struct
 {
     tic_fs* fs;
@@ -785,6 +792,7 @@ static void fileByHashLoaded(const net_get_data* netData)
     default: break;
     }
 }
+#endif
 
 void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_callback callback, void* data)
 {
@@ -813,6 +821,8 @@ void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_cal
 
     LoadFileByHashData loadFileByHashData = { fs, callback, data, strdup(cachePath) };
     tic_net_get(fs->net, path, fileByHashLoaded, MOVE(loadFileByHashData));
+#else
+    (void)name;
 #endif
 
 #endif
@@ -957,7 +967,7 @@ tic_fs* tic_fs_create(const char* path, tic_net* net)
 {
     tic_fs* fs = (tic_fs*)calloc(1, sizeof(tic_fs));
 
-    strncpy(fs->dir, path, TICNAME_MAX);
+    snprintf(fs->dir, sizeof fs->dir, "%s", path);
 
     if(path[strlen(path) - 1] != SEP[0])
         strcat(fs->dir, SEP);

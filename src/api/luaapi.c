@@ -621,7 +621,6 @@ static s32 lua_clip(lua_State* lua)
         s32 h = getLuaNumber(lua, 4);
 
         tic_core* core = getLuaCore(lua);
-        tic_mem* tic = (tic_mem*)core;
 
         core->api.clip((tic_mem*)getLuaCore(lua), x, y, w, h);
     }
@@ -918,7 +917,6 @@ static s32 lua_map(lua_State* lua)
     }
 
     tic_core* core = getLuaCore(lua);
-    tic_mem* tic = (tic_mem*)core;
 
     core->api.map((tic_mem*)getLuaCore(lua), x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
 
@@ -1935,6 +1933,7 @@ void luaapi_tick(tic_mem* tic)
 
 void callLuaIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
     lua_State* lua = core->currentVM;
 

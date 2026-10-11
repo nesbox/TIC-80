@@ -266,16 +266,16 @@ static void msf_cook_frame(MsfCookedFrame * frame, uint8_t * raw, uint8_t * used
                            int width, int height, int pitch, int depth)
 { MsfTimeFunc
     //bit depth for each channel
-    const static int rdepthsArray[17] = { 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5 };
-    const static int gdepthsArray[17] = { 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6 };
-    const static int bdepthsArray[17] = { 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5 };
+    static const int rdepthsArray[17] = { 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5 };
+    static const int gdepthsArray[17] = { 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6 };
+    static const int bdepthsArray[17] = { 0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5 };
     //this extra level of indirection looks unnecessary but we need to explicitly decay the arrays to pointers
     //in order to be able to swap them because of C's annoying not-quite-pointers, not-quite-value-types stack arrays.
     const int * rdepths = msf_gif_bgra_flag? bdepthsArray : rdepthsArray;
     const int * gdepths =                                   gdepthsArray;
     const int * bdepths = msf_gif_bgra_flag? rdepthsArray : bdepthsArray;
 
-    const static int ditherKernel[16] = {
+    static const int ditherKernel[16] = {
          0 << 12,  8 << 12,  2 << 12, 10 << 12,
         12 << 12,  4 << 12, 14 << 12,  6 << 12,
          3 << 12, 11 << 12,  1 << 12,  9 << 12,
@@ -408,7 +408,8 @@ static inline void msf_lzw_reset(MsfStridedList * lzw, int tableSize, int stride
 //PERF TODO: is it possible to use the same array for both `used` and `tlb`?
 static MsfGifBuffer * msf_compress_frame(void * allocContext, int width, int height, int centiSeconds,
                                          MsfCookedFrame frame, MsfGifState * handle, uint8_t * used, uint8_t * tlb, int16_t * lzwMem)
-{ MsfTimeFunc
+{
+    (void)allocContext; MsfTimeFunc
     //NOTE: We reserve enough memory for the theoretical worst case upfront because it's a reasonable amount,
     //      and prevents us from ever having to check size or realloc during compression.
     //NOTE: headers + color table + 12 bits per pixel (since 12 bits is the maximum code size)
@@ -417,7 +418,7 @@ static MsfGifBuffer * msf_compress_frame(void * allocContext, int width, int hei
     MsfGifBuffer * buffer = (MsfGifBuffer *) MSF_GIF_MALLOC(allocContext, maxBufSize);
     if (!buffer) { return NULL; }
     uint8_t * writeHead = buffer->data;
-    MsfStridedList lzw = { lzwMem };
+    MsfStridedList lzw = { .data = lzwMem };
 
     //allocate tlb
     int totalBits = frame.rbits + frame.gbits + frame.bbits;

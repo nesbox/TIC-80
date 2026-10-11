@@ -67,7 +67,6 @@ static inline u8 mapColor(tic_mem* tic, u8 color)
 
 static inline void setPixel(tic_core* core, s32 x, s32 y, u8 color)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
 
     if (x < core->state.clip.l || y < core->state.clip.t || x >= core->state.clip.r || y >= core->state.clip.b) return;
 
@@ -97,7 +96,6 @@ static inline u8 getPixel(tic_core* core, s32 x, s32 y)
 
 static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
 
     if (y < core->state.clip.t || core->state.clip.b <= y) return;
 
@@ -111,7 +109,6 @@ static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 
 static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
 
     if (x < core->state.clip.l || core->state.clip.r <= x) return;
 
@@ -153,7 +150,6 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
 
 static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
     u8* mapping = getPalette(&core->memory, colors, count);
 
     rotate &= 3;
@@ -209,7 +205,6 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
 
 static void drawSprite(tic_core* core, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
 
     if (index < 0)
         return;
@@ -295,7 +290,6 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
 
 static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 scale, bool fixed, u8* mapping)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
 
     enum { Size = TIC_SPRITESIZE };
 
@@ -360,7 +354,6 @@ static s32 drawText(tic_core* core, tic_tilesheet* font_face, const char* text, 
 void tic_api_clip(tic_mem* memory, s32 x, s32 y, s32 width, s32 height)
 {
     tic_core* core = (tic_core*)memory;
-    tic_vram* vram = &memory->ram->vram;
 
     core->state.clip.l = x;
     core->state.clip.t = y;
@@ -539,17 +532,17 @@ static void setElliPixel(tic_mem* tic, s32 x, s32 y, u8 color)
 
 static void setElliSide(tic_mem* tic, s32 x, s32 y, u8 color)
 {
+    (void)color;
+    (void)tic;
     setSidePixel(x, y);
 }
 
 static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
 {
-    tic_vram* vram = &memory->ram->vram;
 
     tic_core* core = (tic_core*)memory;
     s32 yt = MAX(core->state.clip.t, y0);
     s32 yb = MIN(core->state.clip.b, y1 + 1);
-    u8 final_color = mapColor(&core->memory, color);
     for (s32 y = yt; y < yb; y++)
     {
         s32 xl = MAX(SidesBuffer.Left[y], core->state.clip.l);
@@ -739,7 +732,7 @@ static inline double edgeFn(const Vec2* a, const Vec2* b, const Vec2* c)
 
 static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
 {
-    ShaderAttr a = {data, v0, v1, v2};
+    ShaderAttr a = {.data = data, .v = {v0, v1, v2}};
 
     tic_core* core = (tic_core*)tic;
     const struct ClipRect* clip = &core->state.clip;
@@ -769,7 +762,7 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     {
         // pixel center
         const double Center = 0.5 - FLT_EPSILON;
-        Vec2 p = {min.x + Center, min.y + Center};
+        Vec2 p = {{min.x + Center, min.y + Center}};
 
         s32 c = (i + 1) % 3, n = (i + 2) % 3;
 
@@ -801,21 +794,20 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     }
 }
 
-static tic_color triColorShader(const ShaderAttr* a, s32 pixel){return *(u8*)a->data;}
+static tic_color triColorShader(const ShaderAttr* a, s32 pixel){(void)pixel; return *(u8*)a->data;}
 
 void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
 {
     color = mapColor(tic, color);
     drawTri(tic,
-        &(Vec2){x1, y1},
-        &(Vec2){x2, y2},
-        &(Vec2){x3, y3},
+        &(Vec2){{x1, y1}},
+        &(Vec2){{x2, y2}},
+        &(Vec2){{x3, y3}},
         triColorShader, &color);
 }
 
 void tic_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
 {
-    tic_core* core = (tic_core*)tic;
 
     u8 finalColor = mapColor(tic, color);
 
@@ -843,9 +835,10 @@ static inline bool shaderStart(const ShaderAttr* a, Vec3* vars, s32 pixel)
 {
     TexData* data = a->data;
 
+    vars->x = vars->y = vars->z = 0;
+
     if(data->depth)
     {
-        vars->z = 0;
         for(s32 i = 0; i != COUNT_OF(a->v); ++i)
         {
             const TexVert* t = (TexVert*)a->v[i];
@@ -855,8 +848,6 @@ static inline bool shaderStart(const ShaderAttr* a, Vec3* vars, s32 pixel)
         if(ZBuffer[pixel] < vars->z);
         else return false;
     }
-
-    vars->x = vars->y = 0;
     for(s32 i = 0; i != COUNT_OF(a->v); ++i)
     {
         const TexVert* t = (TexVert*)a->v[i];
@@ -954,9 +945,9 @@ void tic_api_ttri(tic_mem* tic,
 
     TexVert t[] =
     {
-        {x1, y1, u1, v1, z1},
-        {x2, y2, u2, v2, z2},
-        {x3, y3, u3, v3, z3},
+        {._ = {{x1, y1}}, .d = {{u1, v1, z1}}},
+        {._ = {{x2, y2}}, .d = {{u2, v2, z2}}},
+        {._ = {{x3, y3}}, .d = {{u3, v3, z3}}},
     };
 
     if(depth)
@@ -972,12 +963,16 @@ void tic_api_ttri(tic_mem* tic,
         [tic_vbank_texture] = triTexVbankShader,
     };
 
-    if(texsrc >= 0 && texsrc < COUNT_OF(Shaders))
+    // The enum is signed where the compiler keeps int for it (MSVC does), so
+    // the cast is what turns a negative source into an out-of-range one.
+    const u32 src = (u32)texsrc;
+
+    if(src < (u32)COUNT_OF(Shaders))
         drawTri(tic,
             (const Vec2*)&t[0],
             (const Vec2*)&t[1],
             (const Vec2*)&t[2],
-            Shaders[texsrc], &texData);
+            Shaders[src], &texData);
 }
 
 void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, u8 count, s32 scale, RemapFunc remap, void* data)

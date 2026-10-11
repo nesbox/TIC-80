@@ -25,7 +25,7 @@
 
 static const char _ms_loadstring[] = "_ms_loadstring";
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 #include "moonscript.h"
 
@@ -231,6 +231,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Moon) =
     .keywords           = MoonKeywords,
     .keywordsCount      = COUNT_OF(MoonKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "moonmark.tic"},
 };

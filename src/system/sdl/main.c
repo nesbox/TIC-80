@@ -302,6 +302,7 @@ static void renderCopy(Renderer render, Texture tex, SDL_Rect src, SDL_Rect dst)
 
 static void audioCallback(void* userdata, u8* stream, s32 len)
 {
+    (void)userdata;
     LOCK_MUTEX(platform.audio.mutex)
     {
         const tic_mem* tic = studio_mem(platform.studio);
@@ -380,6 +381,7 @@ static void updateTextureBytes(Texture texture, const void* data, s32 width, s32
     else
 #endif
     {
+        (void)width;
         void* pixels = NULL;
         s32 pitch = 0;
         SDL_LockTexture(texture.sdl, NULL, &pixels, &pitch);
@@ -984,7 +986,7 @@ static void processGamepad()
                 SDL_JoystickID id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller));
 
                 bool mapped = false;
-                for(s32 j = 0; j < TIC_GAMEPADS; j++)
+                for(s32 j = 0; j < (s32)TIC_GAMEPADS; j++)
                 {
                     if(platform.gamepad.mapping[j] == id)
                     {
@@ -995,7 +997,7 @@ static void processGamepad()
 
                 if(!mapped && isControllerActive(controller))
                 {
-                    for(s32 j = 0; j < TIC_GAMEPADS; j++)
+                    for(s32 j = 0; j < (s32)TIC_GAMEPADS; j++)
                     {
                         if(platform.gamepad.mapping[j] == -1)
                         {
@@ -1007,7 +1009,7 @@ static void processGamepad()
             }
         }
 
-        for(s32 i = 0; i < TIC_GAMEPADS; i++)
+        for(s32 i = 0; i < (s32)TIC_GAMEPADS; i++)
         {
             SDL_JoystickID id = platform.gamepad.mapping[i];
 
@@ -1142,7 +1144,7 @@ static void processTouchInput()
 }
 #endif
 
-static const u32 KeyboardCodes[tic_keys_count] =
+static const s32 KeyboardCodes[tic_keys_count] =
 {
     #include "keycodes.inl"
 };
@@ -1635,6 +1637,11 @@ void tic_sys_open_path(const char* path)
 
     sprintf(command, "open \"%s\"", path);
     system(command);
+
+#else
+
+    (void)path;
+    (void)command;
 
 #endif
 }

@@ -66,8 +66,11 @@ u8 tic_api_peek(tic_mem* memory, s32 address, s32 bits)
     switch(bits)
     {
     case 1: if(address < RamBits / 1) return tic_tool_peek1(ram, address);
+        // fall through - the address may still fit a narrower read
     case 2: if(address < RamBits / 2) return tic_tool_peek2(ram, address);
+        // fall through
     case 4: if(address < RamBits / 4) return tic_tool_peek4(ram, address);
+        // fall through
     case 8: if(address < RamBits / 8) return ram[address];
     }
 
@@ -79,7 +82,6 @@ void tic_api_poke(tic_mem* memory, s32 address, u8 value, s32 bits)
     if (address < 0)
         return;
 
-    tic_core* core = (tic_core*)memory;
     u8* ram = (u8*)memory->ram;
     enum{RamBits = sizeof(tic_ram) * BITS_IN_BYTE};
 
@@ -124,11 +126,10 @@ void tic_api_poke4(tic_mem* memory, s32 address, u8 value)
 
 void tic_api_memcpy(tic_mem* memory, s32 dst, s32 src, s32 size)
 {
-    tic_core* core = (tic_core*)memory;
     s32 bound = sizeof(tic_ram) - size;
 
     if (size >= 0
-        && size <= sizeof(tic_ram)
+        && size <= (s32)sizeof(tic_ram)
         && dst >= 0
         && src >= 0
         && dst <= bound
@@ -141,11 +142,10 @@ void tic_api_memcpy(tic_mem* memory, s32 dst, s32 src, s32 size)
 
 void tic_api_memset(tic_mem* memory, s32 dst, u8 val, s32 size)
 {
-    tic_core* core = (tic_core*)memory;
     s32 bound = sizeof(tic_ram) - size;
 
     if (size >= 0
-        && size <= sizeof(tic_ram)
+        && size <= (s32)sizeof(tic_ram)
         && dst >= 0
         && dst <= bound)
     {
@@ -247,7 +247,7 @@ double tic_api_time(tic_mem* memory)
 
 s32 tic_api_tstamp(tic_mem* memory)
 {
-    tic_core* core = (tic_core*)memory;
+    (void)memory;
     return (s32)time(NULL);
 }
 
@@ -626,8 +626,11 @@ static inline void memset4(void* dst, u32 val, u32 dwords)
     {
     case 0: do {
         *_p++ = _val;
+        // fall through - Duff's device
     case 3:         *_p++ = _val;
+        // fall through
     case 2:         *_p++ = _val;
+        // fall through
     case 1:         *_p++ = _val;
     } while (--_n);
     }
@@ -763,7 +766,7 @@ static inline void border(tic_mem* memory, s32 row, void* data)
 
 void tic_core_blit(tic_mem* tic)
 {
-    tic_core_blit_ex(tic, (tic_blit_callback){scanline, border, NULL});
+    tic_core_blit_ex(tic, (tic_blit_callback){.scanline = scanline, .border = border, .menu = NULL});
 }
 
 #if defined(BUILD_RENDER_CACHE)

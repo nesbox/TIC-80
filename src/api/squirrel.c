@@ -578,7 +578,7 @@ static SQInteger squirrel_clip(HSQUIRRELVM vm)
         s32 w = getSquirrelNumber(vm, 4);
         s32 h = getSquirrelNumber(vm, 5);
 
-        tic_core* core = getSquirrelCore(vm); tic_mem* tic = (tic_mem*)core;
+        tic_core* core = getSquirrelCore(vm);
 
         core->api.clip((tic_mem*)getSquirrelCore(vm), x, y, w, h);
     }
@@ -877,7 +877,7 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
                             SQObjectType type = sq_gettype(vm, 10);
                             if (type & (OT_CLOSURE|OT_NATIVECLOSURE|OT_INSTANCE))
                             {
-                                RemapData data = {vm};
+                                RemapData data = {.vm = vm};
                                 sq_resetobject(&data.reg);
                                 sq_getstackobj(vm, 10, &data.reg);
                                 sq_addref(vm, &data.reg);
@@ -898,7 +898,7 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
         }
     }
 
-    tic_core* core = getSquirrelCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getSquirrelCore(vm);
 
     core->api.map((tic_mem*)getSquirrelCore(vm), x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
 
@@ -2020,6 +2020,7 @@ static void callSquirrelBoot(tic_mem* tic)
 
 static void callSquirrelIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
     HSQUIRRELVM vm = core->currentVM;
 
@@ -2084,7 +2085,7 @@ static const char* const SquirrelKeywords [] =
     "instanceof", "true", "false", "static", "__LINE__", "__FILE__"
 };
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 static const tic_outline_item* getSquirrelOutline(const char* code, s32* size)
 {
@@ -2220,6 +2221,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Squirrel) =
     .keywords           = SquirrelKeywords,
     .keywordsCount      = COUNT_OF(SquirrelKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "squirrelmark.tic"},
 };

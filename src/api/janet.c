@@ -711,7 +711,7 @@ static Janet janet_pmem(int32_t argc, Janet* argv)
     janet_arity(argc, 1, 2);
     s32 index = janet_getinteger(argv, 0);
 
-    if(index < TIC_PERSISTENT_SIZE)
+    if(index >= 0 && index < (s32)TIC_PERSISTENT_SIZE)
     {
         tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
         u32 val = core->api.pmem(tic, index, 0, false);
@@ -732,6 +732,7 @@ static Janet janet_pmem(int32_t argc, Janet* argv)
 
 static Janet janet_time(int32_t argc, Janet* argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     return janet_wrap_number(core->api.time(tic));
@@ -739,6 +740,7 @@ static Janet janet_time(int32_t argc, Janet* argv)
 
 static Janet janet_tstamp(int32_t argc, Janet* argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     return janet_wrap_integer(core->api.tstamp(tic));
@@ -746,6 +748,7 @@ static Janet janet_tstamp(int32_t argc, Janet* argv)
 
 static Janet janet_exit(int32_t argc, Janet* argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     core->api.exit(tic);
@@ -776,6 +779,7 @@ static Janet janet_font(int32_t argc, Janet* argv)
 
 static Janet janet_mouse(int32_t argc, Janet* argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
 
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
@@ -1019,6 +1023,7 @@ static Janet janet_vbank(int32_t argc, Janet* argv)
 
 static Janet janet_reset(int32_t argc, Janet* argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
     tic_core* machine = getJanetMachine();
     machine->state.initialized = false;
@@ -1240,7 +1245,6 @@ static bool initJanet(tic_mem* tic, const char* code)
     janet_init();
     janet_sandbox(JANET_SANDBOX_ALL);
 
-    JanetTable *env  = janet_core_env(NULL);
     JanetTable *sub_env = janet_table(0);
     janet_cfuns(sub_env, "tic80", janet_c_functions);
 
@@ -1359,6 +1363,7 @@ static void callJanetBoot(tic_mem* tic)
  */
 static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
 
     Janet pre_fn;
@@ -1495,6 +1500,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Janet) =
     .keywords           = JanetKeywords,
     .keywordsCount      = COUNT_OF(JanetKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "janetmark.tic"},
 };

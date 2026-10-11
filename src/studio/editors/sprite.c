@@ -391,6 +391,8 @@ static void floodFill(Sprite* sprite, s32 l, s32 t, s32 r, s32 b, s32 x, s32 y, 
 
 static void replaceColor(Sprite* sprite, s32 l, s32 t, s32 r, s32 b, s32 x, s32 y, u8 color, u8 fill)
 {
+    (void)x;
+    (void)y;
     for(s32 sy = t; sy <= b; sy++)
         for(s32 sx = l; sx <= r; sx++)
             if(tic_tilesheet_getpix(&sprite->sheet, sx, sy) == color)
@@ -847,6 +849,7 @@ static void switchBitMode(Sprite* sprite, tic_bpp bpp)
 
 static void drawBitMode(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
 {
+    (void)h;
     tic_mem* tic = sprite->tic;
     s32 label_w = tic_api_print(tic, "BPP :", x+2, y, tic_color_dark_grey, false, 1, true);
     x += label_w+4;
@@ -1214,7 +1217,7 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
 
     drawPanelBorder(tic, x - Gap, y - Gap, PaletteW + Gap, PaletteH + Gap);
 
-    for(s32 row = 0, i = 0; row < palette.rows; row++)
+    for(s32 row = 0; row < palette.rows; row++)
         for(s32 col = 0; col < palette.cols; col++)
         {
             tic_api_rectb(tic, x + col * palette.cell_w - Gap, y + row * palette.cell_h - Gap,
@@ -1246,17 +1249,12 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
     {
         tic_rect rect = {x - 22, y + 1, 19, 5};
 
-        bool down = false;
-        bool over = false;
         if(checkMousePos(sprite->studio, &rect))
         {
             setCursor(sprite->studio, tic_cursor_hand);
-            over = true;
 
             showTooltip(sprite->studio, "VBANK0 PALETTE");
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
-                down = true;
 
             if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
                 sprite->palette.vbank1 = false;
@@ -1275,17 +1273,12 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
     {
         tic_rect rect = {x - 22, y + 9, 19, 5};
 
-        bool down = false;
-        bool over = false;
         if(checkMousePos(sprite->studio, &rect))
         {
             setCursor(sprite->studio, tic_cursor_hand);
-            over = true;
 
             showTooltip(sprite->studio, "VBANK1 PALETTE");
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
-                down = true;
 
             if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
                 sprite->palette.vbank1 = true;
@@ -1604,7 +1597,7 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
             }
         }
 
-        bool pushed = i == sprite->mode;
+        bool pushed = i == (s32)sprite->mode;
 
         if(pushed)
         {
@@ -1772,7 +1765,6 @@ static void drawTab(Sprite* sprite, s32 x, s32 y, s32 w, s32 h, u8 icon, bool ac
 
 static void drawBankTabs(Sprite* sprite, s32 x, s32 y)
 {
-    tic_mem* tic = sprite->tic;
 
     if(hasCanvasSelection(sprite)) return;
 
@@ -1848,12 +1840,12 @@ static void processKeyboard(Sprite* sprite)
         {
             char sym = getKeyboardText(sprite->studio);
 
-            if(isxdigit(sym))
+            if(isxdigit((u8)sym))
             {
                 u8* data = &getBankPalette(sprite->studio, sprite->palette.vbank1)->data[sprite->color * Rows + row];
                 char buf[sizeof "FF"];
                 sprintf(buf, "%02X", *data);
-                buf[col] = toupper(sym);
+                buf[col] = toupper((u8)sym);
                 *data = (u8)strtol(buf, NULL, 16);
                 ++col;
             }
@@ -1877,7 +1869,7 @@ static void processKeyboard(Sprite* sprite)
         {
             char sym = getKeyboardText(sprite->studio);
 
-            if(isxdigit(sym))
+            if(isxdigit((u8)sym))
             {
                 u8 mask = 0xff;
 
@@ -1889,7 +1881,7 @@ static void processKeyboard(Sprite* sprite)
 
                 char buf[sizeof "FF"];
                 sprintf(buf, "%02X", mask);
-                buf[sprite->flags.pos] = toupper(sym);
+                buf[sprite->flags.pos] = toupper((u8)sym);
                 u8 value = strtol(buf, NULL, 16);
 
                 for(const s32* i = indexes; *i; i++)
@@ -1989,6 +1981,7 @@ typedef struct
 
 static void pageTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
 {
+    (void)over;
     const PageTab* tab = ctx;
 
     // Rows 0..TOOLBAR_SIZE-1: the strip's full height.
@@ -2014,7 +2007,7 @@ void spriteBand(void* app, Toolbar* tb)
 
         for(s32 page = sprite->blit.pages - 1; page >= 0; page--)
         {
-            static char tip[16];
+            static char tip[sizeof "PAGE " + sizeof "-2147483648"];
             sprintf(tip, "PAGE %i", page + 1);
 
             PageTab tab = {{'1' + page, '\0'}, page == sprite->blit.page};
@@ -2165,7 +2158,7 @@ static void tick(Sprite* sprite)
     sprite->tickCounter++;
 }
 
-static void emptyDone(void* data) {}
+static void emptyDone(void* data) {(void)data; }
 
 static void setIdle(void* data)
 {

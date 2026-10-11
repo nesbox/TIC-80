@@ -67,7 +67,7 @@ void tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 patte
 u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count)
 {
     u32 min = -1;
-    s32 nearest, i = 0;
+    s32 nearest = 0, i = 0;
 
     for(const tic_rgb *rgb = palette, *end = rgb + count; rgb < end; rgb++, i++)
     {
@@ -284,10 +284,10 @@ const char* tic_tool_metatag(const char* code, const char* tag, const char* comm
 
         if (end)
         {
-            while (isspace(*start) && start < end) start++;
-            while (isspace(*(end - 1)) && end > start) end--;
+            while (isspace((u8)*start) && start < end) start++;
+            while (isspace((u8)*(end - 1)) && end > start) end--;
 
-            const s32 size = MIN((s32)(end - start), sizeof value - 1);
+            const s32 size = MIN((s32)(end - start), (s32)sizeof(value) - 1);
 
             memcpy(value, start, size);
             value[size] = '\0';

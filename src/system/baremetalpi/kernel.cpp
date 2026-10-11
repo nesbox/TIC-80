@@ -113,22 +113,26 @@ u64 tic_sys_freq_get()
 
 void tic_sys_fullscreen_set(bool value)
 {
+    (void)value;
 }
 
 bool tic_sys_fullscreen_get()
 {
+    return true;
 }
 
 void tic_sys_message(const char* title, const char* message)
 {
+    (void)title; (void)message;
 }
 
 void tic_sys_title(const char* title)
 {
+    (void)title;
 }
 
-void tic_sys_open_path(const char* path) {}
-void tic_sys_open_url(const char* url) {}
+void tic_sys_open_path(const char* path) {(void)path;}
+void tic_sys_open_url(const char* url) {(void)url;}
 
 void tic_sys_preseed()
 {

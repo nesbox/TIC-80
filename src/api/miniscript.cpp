@@ -1248,7 +1248,7 @@ static void callMiniScriptCallback(tic_mem *tic, Value name, s32 arg) {
     // Construct the argument and call the function
     ValueList arguments;
     arguments.Add(Value(arg));
-    auto ignored = vm->interpreter.RunFunction(callback, arguments);
+    vm->interpreter.RunFunction(callback, arguments);
 
     // If the user's code errored, display the error.
     if (vm->error) {
@@ -1309,14 +1309,33 @@ extern "C" TIC_EXPORT const tic_script EXPORT_SCRIPT(MiniScript) =
         .scanline           = callMiniScriptScanline,
         .border             = callMiniScriptBorder,
         .menu               = callMiniScriptMenu,
+        .data               = nullptr,
     },
+
+    .getOutline             = nullptr,
+    .eval                   = nullptr,
+
+    .blockCommentStart      = nullptr,
+    .blockCommentEnd        = nullptr,
+    .blockCommentStart2     = nullptr,
+    .blockCommentEnd2       = nullptr,
+    .blockStringStart       = nullptr,
+    .blockStringEnd         = nullptr,
 
     .stdStringStartEnd      = "\"",
     .singleComment          = "//",
+    .blockEnd               = nullptr,
 
     .keywords               = MiniScriptKeywords,
     .keywordsCount          = COUNT_OF(MiniScriptKeywords),
 
-    .demo = { DemoRom, sizeof(DemoRom) },
+    .lang_isalnum           = nullptr,
+    .useStructuredEdition   = false,
+    .useBinarySection       = false,
+    .api_keywordsCount      = 0,
+    .api_keywords           = nullptr,
+
+    .demo = { DemoRom, sizeof(DemoRom), nullptr },
     .mark = { MarkRom, sizeof(MarkRom), "miniscriptmark.tic" },
+    .demos = nullptr,
 };

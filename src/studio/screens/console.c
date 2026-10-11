@@ -472,7 +472,7 @@ static bool iswrap(char sym)
     case '|': return true;
     }
 
-    return isspace(sym);
+    return isspace((u8)sym);
 }
 
 static void consolePrintOffset(Console* console, const char* text, u8 color, s32 wrapLineOffset)
@@ -483,7 +483,7 @@ static void consolePrintOffset(Console* console, const char* text, u8 color, s32
 
     console->cursor.pos = cursorPos(console);
 
-    for(const char* ptr = text, *next = ptr; *ptr; ptr++)
+    for(const char* ptr = text; *ptr; ptr++)
     {
         char symbol = *ptr;
 
@@ -538,10 +538,13 @@ static void printFront(Console* console, const char* text)
     consolePrint(console, text, CONSOLE_FRONT_TEXT_COLOR);
 }
 
+#if !defined(TIC80_PRO)
+// The PRO build points at the text editor it already has instead of a link.
 static void printLink(Console* console, const char* text)
 {
     consolePrint(console, text, CONSOLE_LINK_TEXT_COLOR);
 }
+#endif
 
 static void printError(Console* console, const char* text)
 {
@@ -600,6 +603,7 @@ static void askStart(Console* console, ConsoleAskKind kind, void (*onAnswer)(Con
 // What a move the console asked for ends with: the command's own tail.
 static void onMoved(Console* console, const ConsoleAnswer* answer)
 {
+    (void)answer;
     commandDone(console);
 }
 
@@ -869,8 +873,10 @@ typedef struct
 
 static bool compareFilename(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
+    (void)dir;
+    (void)id;
+    (void)title;
     LoadPublicCartData* loadPublicCartData = data;
-    Console* console = loadPublicCartData->console;
 
     if (strcmp(name, loadPublicCartData->name) == 0 && hash && strlen(hash))
     {
@@ -906,9 +912,9 @@ static bool printUsage(Console* console, const char* command);
 
 static void onLoadCommandConfirmed(Console* console, const void* data)
 {
+    (void)data;
     if(console->desc->count > 0)
     {
-        tic_mem* tic = console->tic;
 
         const char* param = console->desc->params->key;
         const char* name = tic_tool_cart_name(param);
@@ -1116,10 +1122,15 @@ static void loadDemo(Console* console, const tic_script* script)
 
 static void onNewCommandConfirmed(Console* console, const void* data)
 {
+    (void)data;
     bool done = false;
 
     s32 count = 0;
-    FOREACH_LANG(_) count++;
+    FOREACH_LANG(_)
+    {
+        (void)_;
+        count++;
+    }
 
     if(count == 0)
     {
@@ -1321,6 +1332,10 @@ static void tabCompleteImport(TabCompleteData* data)
 
 static bool addFileAndDirToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
+    (void)dir;
+    (void)hash;
+    (void)id;
+    (void)title;
     addTabCompleteOption(data, name);
 
     return true;
@@ -1328,6 +1343,9 @@ static bool addFileAndDirToTabComplete(const char* name, const char* title, cons
 
 static bool addFilenameToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
+    (void)hash;
+    (void)id;
+    (void)title;
     if (!dir)
         addTabCompleteOption(data, name);
 
@@ -1336,6 +1354,9 @@ static bool addFilenameToTabComplete(const char* name, const char* title, const 
 
 static bool addDirToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
+    (void)hash;
+    (void)id;
+    (void)title;
     if (dir)
         addTabCompleteOption(data, name);
 
@@ -1384,6 +1405,9 @@ typedef struct
 
 static bool printFilename(const char* name, const char* title, const char* hash, s32 id, void* ctx, bool dir)
 {
+    (void)hash;
+    (void)id;
+    (void)title;
     PrintFileNameData* data = ctx;
 
     data->items = realloc(data->items, (data->count + 1) * sizeof *data->items);
@@ -1403,7 +1427,7 @@ static s32 casecmp(const char *str1, const char *str2)
         ++str2;
     }
 
-    return (s32) ((u8) tolower(*str1) - (u8) tolower(*str2));
+    return (s32) ((u8) tolower((u8)(*str1)) - (u8) tolower((u8)(*str2)));
 }
 
 static inline int itemcmp(const void* a, const void* b)
@@ -1533,7 +1557,7 @@ static void onDirCommand(Console* console)
 {
     printLine(console);
 
-    PrintFileNameData data = {console};
+    PrintFileNameData data = {.console = console};
     tic_fs_enum(console->fs, printFilename, onDirDone, MOVE(data));
 }
 
@@ -1780,6 +1804,7 @@ static void onImport_tiles(Console* console, const char* name, const void* buffe
 
 static void onImport_binary(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
 {
+    (void)params;
     bool ok = name && buffer && size <= TIC_BINARY_SIZE;
 
     if(ok)
@@ -1799,7 +1824,7 @@ static void onImport_sprites(Console* console, const char* name, const void* buf
 
 static void onImport_map(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
 {
-    bool ok = name && buffer && size <= sizeof(tic_map);
+    bool ok = name && buffer && size >= 0 && size <= (s32)sizeof(tic_map);
 
     if(ok)
     {
@@ -1815,10 +1840,11 @@ static void onImport_map(Console* console, const char* name, const void* buffer,
 
 static void onImport_code(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
 {
+    (void)params;
     tic_mem* tic = console->tic;
     bool error = false;
 
-    if(name && buffer && size <= sizeof(tic_code))
+    if(name && buffer && size >= 0 && size <= (s32)sizeof(tic_code))
     {
         enum {Size = sizeof(tic_code)};
 
@@ -1929,7 +1955,7 @@ static void onFileExported(Console* console, const char* filename, bool result)
     }
     else
     {
-        char buf[TICNAME_MAX];
+        char buf[TICNAME_MAX + sizeof "\nerror:  not exported :("];
         sprintf(buf, "\nerror: %s not exported :(", filename);
         printError(console, buf);
     }
@@ -1946,10 +1972,9 @@ typedef struct
 
 static void exportSprites(Console* console, const char* filename, tic_tile* base, ExportParams params)
 {
-    tic_mem* tic = console->tic;
-    const tic_cartridge* cart = &tic->cart;
 
-    png_img img = {TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE, malloc(TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE * sizeof(png_rgba))};
+    png_img img = {.width = TIC_SPRITESHEET_SIZE, .height = TIC_SPRITESHEET_SIZE,
+        .data = malloc(TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE * sizeof(png_rgba))};
 
     SCOPE(free(img.data))
     {
@@ -2013,7 +2038,6 @@ static void onNativeExportGet(const net_get_data* data)
             GameExportData* exportData = (GameExportData*)data->calldata;
             Console* console = exportData->console;
 
-            tic_mem* tic = console->tic;
 
             char filename[TICNAME_MAX];
             strcpy(filename, exportData->filename);
@@ -2040,9 +2064,9 @@ static void onNativeExportGet(const net_get_data* data)
 
 static void exportGame(Console* console, const char* name, const char* system, net_get_callback callback, ExportParams params)
 {
-    tic_mem* tic = console->tic;
+    (void)params;
     printLine(console);
-    GameExportData data = {console};
+    GameExportData data = {.console = console};
     strcpy(data.filename, name);
 
     // The directory this build's assets live in: a release asks for its tag
@@ -2071,6 +2095,7 @@ static bool canExportNativeFromLocalTemplate(const char* system)
 #elif defined(__TIC_MACOSX__)
     return strcmp(system, "mac") == 0;
 #else
+    (void)system;
     return false;
 #endif
 }
@@ -2373,17 +2398,20 @@ static void onExport_linux(Console* console, const char* param, const char* file
 
 static void onExport_linuxarm(Console* console, const char* param, const char* filename, ExportParams params)
 {
+    (void)param;
     exportNativeGame(console, filename, "linuxarm", params);
 }
 
 static void onExport_mac(Console* console, const char* param, const char* filename, ExportParams params)
 {
+    (void)param;
     // arm64 is the default mac target now; the legacy x64 build is macintel.
     exportNativeGame(console, filename, "mac", params);
 }
 
 static void onExport_macintel(Console* console, const char* param, const char* filename, ExportParams params)
 {
+    (void)param;
     exportNativeGame(console, filename, "macintel", params);
 }
 
@@ -2394,11 +2422,14 @@ static void onExport_html(Console* console, const char* param, const char* filen
 
 static void onExport_tiles(Console* console, const char* param, const char* filename, ExportParams params)
 {
+    (void)param;
     exportSprites(console, getFilename(filename, PngExt), getBank(console, params.bank)->tiles.data, params);
 }
 
 static void onExport_binary(Console* console, const char* param, const char* path, ExportParams params)
 {
+    (void)param;
+    (void)params;
     const char* filename = getFilename(path, ".binary");
 
     tic_binary *binary = &console->tic->cart.binary;
@@ -2415,11 +2446,13 @@ static void onExport_binary(Console* console, const char* param, const char* pat
 
 static void onExport_sprites(Console* console, const char* param, const char* filename, ExportParams params)
 {
+    (void)param;
     exportSprites(console, getFilename(filename, PngExt), getBank(console, params.bank)->sprites.data, params);
 }
 
 static void onExport_map(Console* console, const char* param, const char* path, ExportParams params)
 {
+    (void)param;
     enum{Size = sizeof(tic_map)};
     const char* filename = getFilename(path, ".map");
 
@@ -2436,11 +2469,12 @@ static void onExport_map(Console* console, const char* param, const char* path, 
 
 static void onExport_mapimg(Console* console, const char* param, const char* path, ExportParams params)
 {
+    (void)param;
     const char* filename = getFilename(path, ".png");
 
     enum{Width = TIC_MAP_WIDTH * TIC_SPRITESIZE, Height = TIC_MAP_HEIGHT * TIC_SPRITESIZE};
 
-    png_img img = {Width, Height, malloc(Width * Height * sizeof(png_rgba))};
+    png_img img = {.width = Width, .height = Height, .data = malloc(Width * Height * sizeof(png_rgba))};
 
     SCOPE(free(img.data))
     {
@@ -2480,6 +2514,7 @@ static void onExported(Console* console, const ConsoleAnswer* answer)
 
 static void onExport_sfx(Console* console, const char* param, const char* name, ExportParams params)
 {
+    (void)param;
     const char* filename = getFilename(name, ".wav");
 
     if(params.id >= 0 && params.id < SFX_COUNT)
@@ -2494,6 +2529,7 @@ static void onExport_sfx(Console* console, const char* param, const char* name, 
 
 static void onExport_music(Console* console, const char* type, const char* name, ExportParams params)
 {
+    (void)type;
     const char* filename = getFilename(name, ".wav");
 
     if(params.id >= 0 && params.id < MUSIC_TRACKS)
@@ -2508,12 +2544,12 @@ static void onExport_music(Console* console, const char* type, const char* name,
 
 static void onExport_screen(Console* console, const char* param, const char* name, ExportParams params)
 {
+    (void)param;
     const char* filename = getFilename(name, ".png");
 
-    tic_mem* tic = console->tic;
-    const tic_cartridge* cart = &tic->cart;
 
-    png_img img = {TIC80_WIDTH, TIC80_HEIGHT, malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(png_rgba))};
+    png_img img = {.width = TIC80_WIDTH, .height = TIC80_HEIGHT,
+        .data = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(png_rgba))};
 
     SCOPE(free(img.data))
     {
@@ -2597,6 +2633,7 @@ static void onSaved(Console* console, const ConsoleAnswer* answer)
 
 static void onSaveCommandConfirmed(Console* console, const void* data)
 {
+    (void)data;
     console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CART_SAVE, .name = console->desc->count ? console->desc->params->key : NULL};
     console->onAnswer = onSaved;
 }
@@ -2690,6 +2727,7 @@ static void onEvalCommand(Console* console)
 
 static void onDelCommandConfirmed(Console* console, const void* data)
 {
+    (void)data;
     if(console->desc->count)
     {
         if (tic_fs_ispubdir(console->fs))
@@ -2767,8 +2805,6 @@ EMSCRIPTEN_KEEPALIVE void tic80_add_file(Console* console, const char* name, con
 
 static void onAddCommand(Console* console)
 {
-    void* data = NULL;
-
     EM_ASM_
     ({
         Module.showAddPopup(function(filename, rom)
@@ -3412,6 +3448,8 @@ static void printMdCell(char** ptr, const char* str)
 
 static void onExport_help(Console* console, const char* param, const char* name, ExportParams params)
 {
+    (void)param;
+    (void)params;
     const char* filename = getFilename(name, ".md");
 
     char* buf = malloc(TIC_BANK_SIZE), *ptr = buf;
@@ -3537,10 +3575,10 @@ static void processConsoleTab(Console* console)
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
             s32 commandLen = param-input-1;
-            bool commandMatches = (strlen(Commands[i].name) == commandLen &&
+            bool commandMatches = ((s32)strlen(Commands[i].name) == commandLen &&
                                        strncmp(Commands[i].name, input, commandLen) == 0) ||
                                   (Commands[i].alt &&
-                                      strlen(Commands[i].alt) == commandLen &&
+                                      (s32)strlen(Commands[i].alt) == commandLen &&
                                       strncmp(Commands[i].alt, input, commandLen) == 0);
 
             if (commandMatches)
@@ -3572,15 +3610,6 @@ static void processConsoleTab(Console* console)
         finishTabComplete(&data);
     }
     scrollConsole(console);
-}
-
-static void toUpperStr(char* str)
-{
-    while(*str)
-    {
-        *str = toupper(*str);
-        str++;
-    }
 }
 
 static bool printUsage(Console* console, const char* command)
@@ -4194,7 +4223,7 @@ static void copyFromClipboard(Console* console)
 
             char* dst = text;
             for(const char* src = clipboard; *src; src++)
-                if(isprint(*src))
+                if(isprint((u8)(*src)))
                     *dst++ = *src;
 
             insertInputText(console, text);
@@ -4288,7 +4317,7 @@ static void processConsolePgDown(Console* console)
     setScroll(console, console->scroll.pos + STUDIO_TEXT_BUFFER_HEIGHT/2);
 }
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 static s32 leftWordPos(Console* console)
 {
@@ -4449,6 +4478,7 @@ static void processGamepad(Console* console)
 // and the console says what it says when a command is over.
 static void onLaunched(Console* console, const ConsoleAnswer* answer)
 {
+    (void)answer;
     printLine(console);
     commandDone(console);
     console->active = true;
@@ -4456,6 +4486,7 @@ static void onLaunched(Console* console, const ConsoleAnswer* answer)
 
 static void onPlayed(Console* console, const ConsoleAnswer* answer)
 {
+    (void)answer;
     askCart(console, NULL, false, onLaunched);
 }
 

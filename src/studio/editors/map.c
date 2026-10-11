@@ -110,7 +110,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 
     if(index >= 0)
     {
-        char buf[sizeof "#9999"];
+        char buf[sizeof "#-2147483648"];
         sprintf(buf, "#%03i", index);
         tic_api_print(map->tic, buf, x, y, tic_color_light_grey, true, 1, false);
     }
@@ -204,7 +204,7 @@ void mapBand(void* app, Toolbar* tb)
         if(map->sheet.blit.pages > 1)
             for(s32 i = map->sheet.blit.pages - 1; i >= 0; i--)
             {
-                static char tip[16];
+                static char tip[sizeof "PAGE " + sizeof "-2147483648"];
                 sprintf(tip, "PAGE %i", i);
 
                 PageTab tab = {{'1' + i, '\0'}, i == map->sheet.blit.page};
@@ -232,7 +232,7 @@ void mapBand(void* app, Toolbar* tb)
             tic_bpp mode = 1 << (2 - i);
             bool active = mode == map->sheet.blit.mode;
 
-            static char tip[24];
+            static char tip[sizeof "%iBITS PER PIXEL" + sizeof "-2147483648"];
             sprintf(tip, mode > 1 ? "%iBITS PER PIXEL" : "%iBIT PER PIXEL", mode);
 
             char label[2] = {Depths[i], '\0'};
@@ -289,7 +289,7 @@ void mapBand(void* app, Toolbar* tb)
         // DRAW, DRAG MAP, SELECT, FILL left to right.
         for(s32 i = 0; i < COUNT_OF(Tools); i++)
         {
-            bool active = map->mode == Tools[i].mode;
+            bool active = (s32)map->mode == Tools[i].mode;
 
             ToolbarButton button =
             {
@@ -1290,7 +1290,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
         memcpy(&tic->ram->vram.palette, getBankPalette(map->studio, false), sizeof(tic_palette));
 }
 
-static void emptyDone(void* data) {}
+static void emptyDone(void* data) {(void)data; }
 
 static void setIdle(void* data)
 {

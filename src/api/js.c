@@ -86,6 +86,7 @@ static bool isArray(JSContext* ctx, JSValueConst val)
 
 static void js_dump_obj(JSContext *ctx, FILE *f, JSValueConst val)
 {
+    (void)f;
     const char *str;
 
     tic_core* core = getCore(ctx);
@@ -145,6 +146,8 @@ static void closeJavascript(tic_mem* tic)
 
 static JSValue js_print(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     const char* text = JS_ToCStringLen(ctx, NULL, argv[0]);
@@ -164,6 +167,8 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_cls(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     s32 color = getInteger2(ctx, argv[0], tic_color_black);
@@ -175,6 +180,8 @@ static JSValue js_cls(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_pix(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
 
@@ -195,6 +202,8 @@ static JSValue js_pix(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_line(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     float x0 = getNumber(ctx, argv[0]);
     float y0 = getNumber(ctx, argv[1]);
     float x1 = getNumber(ctx, argv[2]);
@@ -210,6 +219,8 @@ static JSValue js_line(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_rect(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
     s32 w = getInteger2(ctx, argv[2], 0);
@@ -224,6 +235,8 @@ static JSValue js_rect(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_rectb(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
     s32 w = getInteger2(ctx, argv[2], 0);
@@ -238,6 +251,8 @@ static JSValue js_rectb(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_spr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
 
@@ -279,6 +294,8 @@ static JSValue js_spr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_btn(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     return JS_IsUndefined(argv[0])
@@ -288,6 +305,8 @@ static JSValue js_btn(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_btnp(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     if(JS_IsUndefined(argv[0]))
@@ -304,6 +323,8 @@ static JSValue js_btnp(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_key(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx);
     tic_mem* tic = &core->memory;
 
@@ -333,6 +354,8 @@ static void throwError(JSContext* ctx, const char* message)
 
 static JSValue js_keyp(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx);
     tic_mem* tic = &core->memory;
 
@@ -358,6 +381,8 @@ static JSValue js_keyp(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_sfx(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     s32 index = getInteger2(ctx, argv[0], -1);
@@ -469,6 +494,8 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 
 static JSValue js_map(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
     s32 w = getInteger2(ctx, argv[2], TIC_MAP_SCREEN_WIDTH);
@@ -513,6 +540,8 @@ static JSValue js_map(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_mget(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
 
@@ -524,6 +553,8 @@ static JSValue js_mget(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_mset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
     u8 value = getInteger2(ctx, argv[2], 0);
@@ -537,6 +568,8 @@ static JSValue js_mset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_peek(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
     s32 bits = getInteger2(ctx, argv[1], BITS_IN_BYTE);
 
@@ -547,6 +580,8 @@ static JSValue js_peek(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_poke(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
     u8 value = getInteger(ctx, argv[1]);
     s32 bits = getInteger2(ctx, argv[2], BITS_IN_BYTE);
@@ -559,6 +594,8 @@ static JSValue js_poke(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_peek1(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
@@ -568,6 +605,8 @@ static JSValue js_peek1(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_poke1(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
     u8 value = getInteger(ctx, argv[1]);
 
@@ -579,6 +618,8 @@ static JSValue js_poke1(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_peek2(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
@@ -588,6 +629,8 @@ static JSValue js_peek2(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_poke2(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
     u8 value = getInteger(ctx, argv[1]);
 
@@ -599,6 +642,8 @@ static JSValue js_poke2(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_peek4(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
@@ -608,6 +653,8 @@ static JSValue js_peek4(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_poke4(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
     u8 value = getInteger(ctx, argv[1]);
 
@@ -619,6 +666,8 @@ static JSValue js_poke4(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_memcpy(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 dest = getInteger(ctx, argv[0]);
     s32 src = getInteger(ctx, argv[1]);
     s32 size = getInteger(ctx, argv[2]);
@@ -631,6 +680,8 @@ static JSValue js_memcpy(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
 
 static JSValue js_memset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 dest = getInteger(ctx, argv[0]);
     u8 value = getInteger(ctx, argv[1]);
     s32 size = getInteger(ctx, argv[2]);
@@ -644,6 +695,8 @@ static JSValue js_memset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
 
 static JSValue js_trace(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     const char* text = JS_ToCString(ctx, argv[0]);
@@ -657,6 +710,8 @@ static JSValue js_trace(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_pmem(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     u32 index = getInteger(ctx, argv[0]);
 
@@ -678,6 +733,9 @@ static JSValue js_pmem(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_time(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)argv;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     return JS_NewFloat64(ctx, core->api.time(tic));
@@ -685,6 +743,9 @@ static JSValue js_time(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_tstamp(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)argv;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     return JS_NewInt32(ctx, core->api.tstamp(tic));
@@ -692,6 +753,9 @@ static JSValue js_tstamp(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
 
 static JSValue js_exit(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)argv;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     core->api.exit(tic);
@@ -701,6 +765,8 @@ static JSValue js_exit(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_font(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     const char* text = JS_ToCString(ctx, argv[0]);
@@ -721,6 +787,9 @@ static JSValue js_font(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_mouse(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)argv;
+    (void)this_val;
     tic_core* core = getCore(ctx);
 
     const tic80_mouse* mouse = &core->memory.ram->input.mouse;
@@ -742,6 +811,8 @@ static JSValue js_mouse(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_circ(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 radius = getInteger(ctx, argv[2]);
@@ -756,6 +827,8 @@ static JSValue js_circ(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_circb(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 radius = getInteger(ctx, argv[2]);
@@ -770,6 +843,8 @@ static JSValue js_circb(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_elli(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 a = getInteger(ctx, argv[2]);
@@ -785,6 +860,8 @@ static JSValue js_elli(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_ellib(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 a = getInteger(ctx, argv[2]);
@@ -800,6 +877,8 @@ static JSValue js_ellib(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_paint(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 color = getInteger(ctx, argv[2]);
@@ -814,6 +893,8 @@ static JSValue js_paint(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_tri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     float pt[6];
 
     for(s32 i = 0; i < COUNT_OF(pt); i++)
@@ -830,6 +911,8 @@ static JSValue js_tri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_trib(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     float pt[6];
 
     for(s32 i = 0; i < COUNT_OF(pt); i++)
@@ -848,6 +931,8 @@ static JSValue js_trib(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_textri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     float pt[12];
 
     for (s32 i = 0; i < COUNT_OF(pt); i++)
@@ -891,6 +976,8 @@ static JSValue js_textri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
 
 static JSValue js_ttri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     float pt[12];
 
     for (s32 i = 0; i < COUNT_OF(pt); i++)
@@ -942,6 +1029,8 @@ static JSValue js_ttri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_clip(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 w = getInteger2(ctx, argv[2], TIC80_WIDTH);
@@ -956,6 +1045,8 @@ static JSValue js_clip(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_music(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     s32 track = getInteger2(ctx, argv[0], -1);
@@ -984,6 +1075,8 @@ static JSValue js_music(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_vbank(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
 
@@ -997,6 +1090,8 @@ static JSValue js_vbank(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_sync(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     u32 mask = getInteger2(ctx, argv[0], 0);
@@ -1013,6 +1108,9 @@ static JSValue js_sync(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_reset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)argv;
+    (void)this_val;
     tic_core* core = getCore(ctx);
 
     core->state.initialized = false;
@@ -1022,6 +1120,8 @@ static JSValue js_reset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_fget(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     u32 index = getInteger2(ctx, argv[0], 0);
@@ -1034,6 +1134,8 @@ static JSValue js_fget(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_fset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     u32 index = getInteger2(ctx, argv[0], 0);
@@ -1047,6 +1149,8 @@ static JSValue js_fset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_vqt(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 bin = getInteger(ctx, argv[0]);
 
@@ -1055,6 +1159,8 @@ static JSValue js_vqt(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_vqts(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 bin = getInteger(ctx, argv[0]);
 
@@ -1063,6 +1169,8 @@ static JSValue js_vqts(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_vqtr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 bin = getInteger(ctx, argv[0]);
 
@@ -1071,6 +1179,8 @@ static JSValue js_vqtr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_vqtrs(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 bin = getInteger(ctx, argv[0]);
 
@@ -1079,6 +1189,8 @@ static JSValue js_vqtrs(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_vqtw(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 bin = getInteger(ctx, argv[0]);
 
@@ -1087,6 +1199,8 @@ static JSValue js_vqtw(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_vqtsw(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 bin = getInteger(ctx, argv[0]);
 
@@ -1095,6 +1209,8 @@ static JSValue js_vqtsw(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_vqtrw(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 bin = getInteger(ctx, argv[0]);
 
@@ -1103,6 +1219,8 @@ static JSValue js_vqtrw(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_vqtrsw(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 bin = getInteger(ctx, argv[0]);
 
@@ -1111,6 +1229,8 @@ static JSValue js_vqtrsw(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
 
 static JSValue js_fft(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 start_freq = getInteger(ctx, argv[0]);
     s32 end_freq = getInteger2(ctx, argv[1], -1);
@@ -1120,6 +1240,8 @@ static JSValue js_fft(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_fftr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 start_freq = getInteger(ctx, argv[0]);
     s32 end_freq = getInteger2(ctx, argv[1], -1);
@@ -1129,6 +1251,8 @@ static JSValue js_fftr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_fftrs(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 start_freq = getInteger(ctx, argv[0]);
     s32 end_freq = getInteger2(ctx, argv[1], -1);
@@ -1138,6 +1262,8 @@ static JSValue js_fftrs(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_ffts(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
+    (void)argc;
+    (void)this_val;
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     s32 start_freq = getInteger(ctx, argv[0]);
     s32 end_freq = getInteger2(ctx, argv[1], -1);
@@ -1275,6 +1401,7 @@ static void callJavascriptTick(tic_mem* tic)
 
 static void callJavascriptIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
     JSContext* ctx = core->currentVM;
 
@@ -1358,7 +1485,7 @@ static const char* const JsKeywords [] =
     "true", "typeof", "var", "void", "while", "with", "yield", "of"
 };
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 
 static const tic_outline_item* getJsOutline(const char* code, s32* size)
 {
@@ -1483,6 +1610,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Js) =
     .keywords           = JsKeywords,
     .keywordsCount      = COUNT_OF(JsKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "jsmark.tic"},
 };

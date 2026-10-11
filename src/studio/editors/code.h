@@ -73,7 +73,7 @@ struct Code
 
     struct
     {
-        char line[STUDIO_TEXT_BUFFER_WIDTH];
+        char line[STUDIO_TEXT_BUFFER_WIDTH + sizeof "-2147483648"];
         char size[STUDIO_TEXT_BUFFER_WIDTH];
         tic_color color;
     }status;

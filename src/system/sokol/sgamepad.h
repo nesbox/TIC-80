@@ -569,7 +569,7 @@ typedef struct
 {
     bool    present;
     int     fd;
-    char    path[64];
+    char    path[sizeof "/dev/input/" + 256];
     bool    resync;                     // the kernel dropped events: read the pad again
     bool    used;                       // a button or axis the layer does not read
     struct input_absinfo axis[_SGAMEPAD_LINUX_AXES];
@@ -707,7 +707,7 @@ static void _sgamepad_linux_scan(void)
         if (strncmp(entry->d_name, "event", 5) != 0)
             continue;
 
-        char path[64];
+        char path[sizeof "/dev/input/" + sizeof entry->d_name];
 
         snprintf(path, sizeof path, "/dev/input/%s", entry->d_name);
 

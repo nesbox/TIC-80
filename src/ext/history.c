@@ -45,6 +45,7 @@ struct Item
 
 static void list_delete(Item* list, Item* from)
 {
+    (void)list;
     Item* it = from;
 
     while(it)

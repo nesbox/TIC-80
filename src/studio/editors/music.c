@@ -254,7 +254,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
             }
         }
 
-        char val[sizeof "999"];
+        char val[sizeof "-2147483648"];
         sprintf(val, "%02i", value);
         tic_api_print(tic, val, x, y+1, tic_color_black, true, 1, false);
         tic_api_print(tic, val, x, y, tic_color_yellow, true, 1, false);
@@ -467,13 +467,6 @@ static s32 getNote(Music* music)
     tic_track_pattern* pattern = getChannelPattern(music);
 
     return pattern->rows[music->tracker.edit.y].note - NoteStart;
-}
-
-static s32 getOctave(Music* music)
-{
-    tic_track_pattern* pattern = getChannelPattern(music);
-
-    return pattern->rows[music->tracker.edit.y].octave;
 }
 
 static s32 getSfx(Music* music)
@@ -902,16 +895,6 @@ static void updateSelection(Music* music)
         resetSelection(music);
 }
 
-static s32 getDigit(s32 pos, s32 val)
-{
-    enum {Base = 10};
-
-    s32 div = 1;
-    while(pos--) div *= Base;
-
-    return val / div % Base;
-}
-
 static s32 setDigit(s32 pos, s32 val, s32 digit)
 {
     enum {Base = 10};
@@ -1069,26 +1052,26 @@ static void processTrackerKeyboard(Music* music)
 
     static const struct Handler{u8 key; void(*handler)(Music* music); bool select; bool ctrl;} Handlers[] =
     {
-        {tic_key_up,        upRow,          true},
-        {tic_key_down,      downRow,        true},
-        {tic_key_up,        upSfx,          false, true},
-        {tic_key_down,      downSfx,        false, true},
-        {tic_key_left,      leftCol,        true},
-        {tic_key_right,     rightCol,       true},
-        {tic_key_left,      upFrame,        false, true},
-        {tic_key_right,     downFrame,      false, true},
-        {tic_key_home,      goHome,         true},
-        {tic_key_end,       goEnd,          true},
-        {tic_key_pageup,    pageUp,         true},
-        {tic_key_pagedown,  pageDown,       true},
-        {tic_key_tab,       doTab},
-        {tic_key_delete,    delete},
-        {tic_key_backspace, backspace},
-        {tic_key_insert,    insert},
-        {tic_key_f1,        decSemitone,    false, true},
-        {tic_key_f2,        incSemitone,    false, true},
-        {tic_key_f3,        decOctave,      false, true},
-        {tic_key_f4,        incOctave,      false, true},
+        {.key = tic_key_up, .handler = upRow, .select = true},
+        {.key = tic_key_down, .handler = downRow, .select = true},
+        {.key = tic_key_up, .handler = upSfx, .select = false, .ctrl = true},
+        {.key = tic_key_down, .handler = downSfx, .select = false, .ctrl = true},
+        {.key = tic_key_left, .handler = leftCol, .select = true},
+        {.key = tic_key_right, .handler = rightCol, .select = true},
+        {.key = tic_key_left, .handler = upFrame, .select = false, .ctrl = true},
+        {.key = tic_key_right, .handler = downFrame, .select = false, .ctrl = true},
+        {.key = tic_key_home, .handler = goHome, .select = true},
+        {.key = tic_key_end, .handler = goEnd, .select = true},
+        {.key = tic_key_pageup, .handler = pageUp, .select = true},
+        {.key = tic_key_pagedown, .handler = pageDown, .select = true},
+        {.key = tic_key_tab, .handler = doTab},
+        {.key = tic_key_delete, .handler = delete},
+        {.key = tic_key_backspace, .handler = backspace},
+        {.key = tic_key_insert, .handler = insert},
+        {.key = tic_key_f1, .handler = decSemitone, .select = false, .ctrl = true},
+        {.key = tic_key_f2, .handler = incSemitone, .select = false, .ctrl = true},
+        {.key = tic_key_f3, .handler = decOctave, .select = false, .ctrl = true},
+        {.key = tic_key_f4, .handler = incOctave, .select = false, .ctrl = true},
     };
 
     for(const struct Handler *ptr = Handlers, *end = ptr + COUNT_OF(Handlers); ptr < end; ptr++)
@@ -1174,7 +1157,6 @@ static void processTrackerKeyboard(Music* music)
             }
             else
             {
-                tic_track_pattern* pattern = getChannelPattern(music);
 
                 for (s32 i = 0; i < COUNT_OF(Piano); i++)
                 {
@@ -1231,7 +1213,7 @@ static void processTrackerKeyboard(Music* music)
 
                 if(sym)
                 {
-                    const char* val = strchr(MusicCommands, toupper(sym));
+                    const char* val = strchr(MusicCommands, toupper((u8)sym));
 
                     if(val)
                         setCommand(music, val - MusicCommands);
@@ -1285,7 +1267,7 @@ static void processPatternKeyboard(Music* music)
 
         if(val >= 0)
         {
-            s32 pattern = setDigit(1 - music->tracker.col & 1, tic_tool_get_pattern_id(getTrack(music),
+            s32 pattern = setDigit((1 - music->tracker.col) & 1, tic_tool_get_pattern_id(getTrack(music),
                 music->frame, channel), val);
 
             if(pattern <= MUSIC_PATTERNS)
@@ -1349,29 +1331,6 @@ static tic_track_row* getPianoRow(Music* music)
     return pattern ? &pattern->rows[rowIndex(music, music->piano.edit.y)] : NULL;
 }
 
-static s32 getPianoValue(Music* music)
-{
-    s32 col = music->piano.edit.x / 2;
-    tic_track_row* row = getPianoRow(music);
-
-    switch(col)
-    {
-    case PianoChannel1Column:
-    case PianoChannel2Column:
-    case PianoChannel3Column:
-    case PianoChannel4Column:
-        return getDigit(1 - music->piano.edit.x & 1, tic_tool_get_pattern_id(getTrack(music), music->piano.edit.y, col));
-
-    case PianoSfxColumn:
-        return row && row->note >= NoteStart ? getDigit(1 - music->piano.edit.x & 1, tic_tool_get_track_row_sfx(row)) : -1;
-
-    case PianoXYColumn:
-        return row && row->command > tic_music_cmd_empty ? (music->piano.edit.x & 1 ? row->param2 : row->param1) : -1;
-    }
-
-    return -1;
-}
-
 static void setPianoValue(Music* music, char sym)
 {
     s32 col = music->piano.edit.x / 2;
@@ -1397,7 +1356,7 @@ static void setPianoValue(Music* music, char sym)
 
         if(dec >= 0)
         {
-            s32 pattern = setDigit(1 - music->piano.edit.x & 1,
+            s32 pattern = setDigit((1 - music->piano.edit.x) & 1,
                 tic_tool_get_pattern_id(getTrack(music), music->piano.edit.y, col), dec);
 
             if(pattern <= MUSIC_PATTERNS)
@@ -1419,7 +1378,7 @@ static void setPianoValue(Music* music, char sym)
             default:
                 if(dec >= 0)
                 {
-                    s32 sfx = setDigit(1 - music->piano.edit.x & 1, tic_tool_get_track_row_sfx(row), dec);
+                    s32 sfx = setDigit((1 - music->piano.edit.x) & 1, tic_tool_get_track_row_sfx(row), dec);
                     tic_tool_set_track_row_sfx(row, sfx);
                     updatePianoEditCol(music);
                 }
@@ -1693,7 +1652,7 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 
     if(music->tracker.edit.y >= 0)
     {
-        char buf[sizeof "99"];
+        char buf[sizeof "-2147483648"];
         sprintf(buf, "%02i", music->tracker.edit.y);
         tic_api_print(music->tic, buf, x, y - 11, tic_color_black, true, 1, false);
         tic_api_print(music->tic, buf, x, y - 12, tic_color_white, true, 1, false);
@@ -1817,7 +1776,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 
             bool beetRow = noteBeat(music, i);
 
-            for (s32 c = 0, colx = x; c < sizeof rowStr - 1; c++, colx += TIC_FONT_WIDTH)
+            for (s32 c = 0, colx = x; c < (s32)sizeof(rowStr) - 1; c++, colx += TIC_FONT_WIDTH)
             {
                 char sym = rowStr[c];
                 const u8* colors = beetRow || sym != '-' ? Colors : DarkColors;
@@ -1936,7 +1895,7 @@ void musicBand(void* app, Toolbar* tb)
 
     for(s32 i = TabCount - 1; i >= 0; i--)
     {
-        MusicTab tab = {TabIcons[i], music->tab == TabIds[i]};
+        MusicTab tab = {TabIcons[i], (s32)music->tab == TabIds[i]};
 
         ToolbarButton button =
         {
@@ -2693,7 +2652,6 @@ static void drawPianoXYColumn(Music* music, s32 x, s32 y)
             s32 index = rowIndex(music, r);
             const tic_track_row* row = &pattern->rows[index];
 
-            tic_music_command command = MusicCommands[row->command];
 
             if(row->command > tic_music_cmd_empty)
             {
@@ -2854,7 +2812,6 @@ static void updatePianoRollState(Music* music)
 {
     if(getMusicState(music) != tic_music_stop)
     {
-        s32 channel = music->piano.col;
         const tic_music_state* pos = getMusicPos(music);
 
         for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)

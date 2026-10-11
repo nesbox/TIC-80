@@ -30,7 +30,7 @@ extern "C"
 
 static inline bool isalnum_(char c)
 {
-    return isalnum(c) || c == '_';
+    return isalnum((u8)c) || c == '_';
 }
 
 #define YUE_CODE(...) #__VA_ARGS__
@@ -202,7 +202,8 @@ extern "C" TIC_EXPORT const tic_script EXPORT_SCRIPT(Yue) = {
             // callback
             luaapi_scn, // scanline
             luaapi_bdr, // border
-            luaapi_menu // menu
+            luaapi_menu, // menu
+            nullptr      // data
         }},
     getYueOutline,         // getOutline
     evalYuescript,         // eval
