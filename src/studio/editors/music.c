@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "music.h"
+#include "studio/keyboard.h"
 #include "studio/ui.h"
 #include "ext/history.h"
 
@@ -1059,11 +1060,6 @@ static void setChannelPattern(Music* music, s32 delta, s32 channel)
     setChannelPatternValue(music, pattern + delta, music->frame, channel);
 }
 
-static inline bool keyWasPressedOnce(tic_mem* tic, s32 key)
-{
-    return tic_api_keyp(tic, key, -1, -1);
-}
-
 static void processTrackerKeyboard(Music* music)
 {
     tic_mem* tic = music->tic;
@@ -1166,9 +1162,9 @@ static void processTrackerKeyboard(Music* music)
         {
         case ColumnNote:
         case ColumnSemitone:
-            if(keyWasPressedOnce(tic, tic_key_z) && shift)
+            if(keyboard_pressed_once(tic, tic_key_z) && shift)
                 music->last.octave -= 1;
-            else if(keyWasPressedOnce(tic, tic_key_x) && shift)
+            else if(keyboard_pressed_once(tic, tic_key_x) && shift)
                 music->last.octave += 1;
 
             if (keyWasPressed(music->studio, tic_key_a))

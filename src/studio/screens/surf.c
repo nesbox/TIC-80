@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "surf.h"
+#include "tools.h"
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
@@ -203,7 +204,7 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
         || tic_tool_has_ext(name, CartExt)
         || tic_tool_has_ext(name, PngExt)
 #if defined(TIC80_PRO)
-        || project_ext(name)
+        || tic_tool_is_project(name)
 #endif
         )
     {
@@ -497,7 +498,7 @@ static void loadCover(Surf* surf)
                     else memset(cart, 0, sizeof(tic_cartridge));
                 }
 #if defined(TIC80_PRO)
-                else if(project_ext(item->name))
+                else if(tic_tool_is_project(item->name))
                     tic_project_load(item->name, data, size, cart);
 #endif
                 else

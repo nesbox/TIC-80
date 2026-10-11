@@ -1,6 +1,7 @@
 /* What every screen draws and points with, on a machine of its own: the module
  * links with the core and nothing else, which is what building it here says. */
 #include "studio/ui.h"
+#include "tools.h"
 #include <assert.h>
 #include <stdio.h>
 

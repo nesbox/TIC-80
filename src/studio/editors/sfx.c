@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "sfx.h"
+#include "studio/keyboard.h"
 #include "ext/history.h"
 
 #define DEFAULT_CHANNEL 0
@@ -528,11 +529,6 @@ static void copyFromClipboard(Sfx* sfx)
         history_add(sfx->history);
 }
 
-static inline bool keyWasPressedOnce(tic_mem* tic, s32 key)
-{
-    return tic_api_keyp(tic, key, -1, -1);
-}
-
 static void processKeyboard(Sfx* sfx)
 {
     tic_mem* tic = sfx->tic;
@@ -597,7 +593,7 @@ static void processKeyboard(Sfx* sfx)
         u8 octaveShift = 0;
         for(int i = 0; i < COUNT_OF(Keycodes); i++) {
             if(tic_api_key(tic, Keycodes[i])) {
-                if (sfx->play.tick == 0 && !keyWasPressedOnce(tic, Keycodes[i]))
+                if (sfx->play.tick == 0 && !keyboard_pressed_once(tic, Keycodes[i]))
                     continue;
 
                 keyboardButton = (i > SECOND_OCTAVE_KEYBOARD_INDEX
@@ -626,9 +622,9 @@ static void processKeyboard(Sfx* sfx)
     if(tic_api_key(tic, tic_key_space))
         sfx->play.active = true;
 
-    if(keyWasPressedOnce(tic, tic_key_z) && shift)
+    if(keyboard_pressed_once(tic, tic_key_z) && shift)
         effect->octave--;
-    else if(keyWasPressedOnce(tic, tic_key_x) && shift)
+    else if(keyboard_pressed_once(tic, tic_key_x) && shift)
         effect->octave++;
 }
 

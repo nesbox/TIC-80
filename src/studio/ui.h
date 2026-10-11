@@ -22,7 +22,8 @@
 
 #pragma once
 
-#include "studio.h"
+#include "tic.h"
+#include "api.h"
 
 // What every screen draws and points with, out of the strip's file: the menu
 // needs both where no strip exists, and the strip and the panels use them too.

@@ -39,22 +39,3 @@ void boot_init(Boot*, Studio*, const char* cart);
 // The studio is opaque outside studio.c, so its boot state is handed out the
 // way the config and the start screen are.
 Boot* getBoot(Studio*);
-
-#define CART_SIG "TIC.CART"
-
-// The cart an app image carries: the app's bytes, then this header, then the
-// zipped cart. `export game` writes it, the launch reads it back.
-typedef struct
-{
-    u8 sig[STRLEN(CART_SIG)];
-    s32 appSize;
-    s32 cartSize;
-} EmbedHeader;
-
-// The image's cart, decompressed into a fresh allocation the caller frees, or
-// NULL when there is none — the signature alone is not proof.
-void* boot_find_cart(const u8* app, s32 size, s32* cartSize);
-
-// The format's other end: `app`'s bytes with `tic`'s cart appended, zipped. The
-// caller owns the result.
-void* boot_embed_cart(tic_mem* tic, const u8* app, s32* size);

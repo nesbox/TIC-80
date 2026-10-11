@@ -36,6 +36,7 @@
 #include "system.h"
 #include "rom.h"
 #include "anim.h"
+#include "keyboard.h"
 #include "ext/png.h"
 #include "core/core.h"
 
@@ -61,9 +62,6 @@
 #define tic_api_map(tic, ...) (((tic_core*)(tic))->api.map(tic, __VA_ARGS__))
 #endif
 
-#define KEYBOARD_HOLD 20
-#define KEYBOARD_PERIOD 3
-
 #ifdef BAREMETALPI
 #define TIC_LOCAL "../.tic80/"
 #elif defined(__SWITCH__)
@@ -87,7 +85,6 @@
 #define CONFIG_TIC "config.tic"
 #define CONFIG_TIC_PATH TIC_LOCAL_VERSION CONFIG_TIC
 
-#define CART_EXT ".tic"
 #define PNG_EXT ".png"
 
 #if defined(CRT_SHADER_SUPPORT)
@@ -289,20 +286,9 @@ typedef struct
 
 } ClipboardOps;
 
-typedef enum
-{
-    TIC_CLIPBOARD_NONE,
-    TIC_CLIPBOARD_CUT,
-    TIC_CLIPBOARD_COPY,
-    TIC_CLIPBOARD_PASTE,
-} ClipboardEvent;
-
 ClipboardEvent getClipboardEvent(Studio* studio);
 
 void showTooltip(Studio* studio, const char* text);
-
-void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);
-u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y);
 
 typedef void(*ConfirmCallback)(Studio* studio, bool yes, void* data);
 void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback callback, void* data);
@@ -337,7 +323,6 @@ tic_map* getBankMap(Studio* studio);
 char getKeyboardText(Studio* studio);
 bool keyWasPressed(Studio* studio, tic_key key);
 bool enterWasPressed(Studio* studio);
-bool anyKeyWasPressed(Studio* studio);
 bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period);
 
 typedef struct Config Config;
@@ -356,7 +341,6 @@ s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);
 void tiles2ram(tic_ram* ram, const tic_tiles* src);
 void fadePalette(tic_palette* pal, s32 value);
-bool project_ext(const char* name);
 
 #if defined(BUILD_EDITORS)
 

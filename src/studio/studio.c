@@ -25,6 +25,7 @@
 #include "mouse.h"
 #include "boot.h"
 #include "sound.h"
+#include "keyboard.h"
 #include "ui.h"
 
 // The strip is drawn by the editors' screens alone, so its header comes with them.
@@ -260,6 +261,9 @@ struct Studio
 
 #if defined(BUILD_EDITORS)
     Console*    console;
+    // What the console reads of the host: the host refreshes it before every
+    // tick it gives the console.
+    ConsoleView consoleView;
 #endif
 
 #if defined(BUILD_SURF)
@@ -307,7 +311,7 @@ static void* mapApp(Studio* studio)     { return studio->banks.map[studio->bank.
 static void* sfxApp(Studio* studio)     { return studio->banks.sfx[studio->bank.index.sfx]; }
 static void* musicApp(Studio* studio)   { return studio->banks.music[studio->bank.index.music]; }
 
-static void consoleTick(void* app)  { Console* console = app; console->tick(console); }
+static void consoleTick(void* app)  { Console* console = app; console_tick(console); }
 static void codeTick(void* app)     { Code* code = app; code->tick(code); }
 static void worldTick(void* app)    { World* world = app; world->tick(world); }
 static void spriteTick(void* app)   { Sprite* sprite = app; sprite->tick(sprite); }
@@ -523,87 +527,25 @@ void sfx_stop(tic_mem* tic, s32 channel)
 
 char getKeyboardText(Studio* studio)
 {
-    tic_mem* tic = studio->tic;
-
-    // Ctrl-based shortcuts should not also inject printable characters.
-    if(tic_api_key(tic, tic_key_ctrl) && !tic_api_key(tic, tic_key_alt))
-        return '\0';
-
-    char text;
-    if(!tic_sys_keyboard_text(&text))
-    {
-        tic80_input* input = &tic->ram->input;
-
-#ifdef KEYBOARD_LAYOUT_ES
-        // US KEYS:                     " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789'!`+cn'o,.- ";
-        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ=!\" $%&/()??^*CN\"a;:_ ";
-        static const char Alt[] =       "                            |@#        []} {\\    ";
-#else
-        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
-        static const char Alt[] =       "                                                  ";
-#endif
-
-        enum{Count = sizeof Symbols};
-
-        for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-        {
-            tic_key key = input->keyboard.keys[i];
-
-            if(key > 0 && key < Count && tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-            {
-                bool caps = tic_api_key(tic, tic_key_capslock);
-                bool shift = tic_api_key(tic, tic_key_shift);
-                bool alt = tic_api_key(tic, tic_key_alt);
-
-                if (caps && key >= tic_key_a && key <= tic_key_z) shift = !shift;
-
-                return shift ? Shift[key]
-                    : alt ? Alt[key]
-                    : Symbols[key];
-            }
-        }
-
-        return '\0';
-    }
-
-    return text;
+    return keyboard_text(studio->tic);
 }
 
 bool keyWasPressed(Studio* studio, tic_key key)
 {
-    tic_mem* tic = studio->tic;
-    return tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD);
+    return keyboard_pressed(studio->tic, key);
 }
 
 bool enterWasPressed(Studio* studio)
 {
-    tic_mem* tic = studio->tic;
-    return ticEnterWasPressed(tic, KEYBOARD_HOLD, KEYBOARD_PERIOD);
+    return ticEnterWasPressed(studio->tic, KEYBOARD_HOLD, KEYBOARD_PERIOD);
 }
 
 bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period)
 {
-    return tic_api_keyp(tic, tic_key_return, hold, period) ||
-           tic_api_keyp(tic, tic_key_numpadenter, hold, period);
+    return keyboard_enter(tic, hold, period);
 }
 
 
-bool anyKeyWasPressed(Studio* studio)
-{
-    tic_mem* tic = studio->tic;
-
-    for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-    {
-        tic_key key = tic->ram->input.keyboard.keys[i];
-
-        if(tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-            return true;
-    }
-
-    return false;
-}
 
 #if defined(BUILD_EDITORS)
 tic_tiles* getBankTiles(Studio* studio)
@@ -667,24 +609,6 @@ const char* md5str(const void* data, s32 length)
     return res;
 }
 
-static u8* getSpritePtr(tic_tile* tiles, s32 x, s32 y)
-{
-    enum { SheetCols = (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE) };
-    return tiles[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * SheetCols].data;
-}
-
-
-void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color)
-{
-    // TODO: check spritesheet rect
-    tic_tool_poke4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE, color);
-}
-
-u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y)
-{
-    // TODO: check spritesheet rect
-    return tic_tool_peek4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
-}
 
 #if defined(BUILD_EDITORS)
 void toClipboard(const void* data, s32 size, bool flip)
@@ -1138,24 +1062,7 @@ static void drawToolbar(Studio* studio)
 
 ClipboardEvent getClipboardEvent(Studio* studio)
 {
-    tic_mem* tic = studio->tic;
-
-    bool shift = tic_api_key(tic, tic_key_shift);
-    bool ctrl = tic_api_key(tic, tic_key_ctrl);
-
-    if(ctrl)
-    {
-        if(keyWasPressed(studio, tic_key_insert) || keyWasPressed(studio, tic_key_c)) return TIC_CLIPBOARD_COPY;
-        else if(keyWasPressed(studio, tic_key_x)) return TIC_CLIPBOARD_CUT;
-        else if(keyWasPressed(studio, tic_key_v)) return TIC_CLIPBOARD_PASTE;
-    }
-    else if(shift)
-    {
-        if(keyWasPressed(studio, tic_key_delete)) return TIC_CLIPBOARD_CUT;
-        else if(keyWasPressed(studio, tic_key_insert)) return TIC_CLIPBOARD_PASTE;
-    }
-
-    return TIC_CLIPBOARD_NONE;
+    return keyboard_clipboard(studio->tic);
 }
 
 static void showPopupMessage(Studio* studio, const char* text)
@@ -1236,9 +1143,9 @@ static void initSurfMode(Studio* studio)
 void gotoSurf(Studio* studio)
 {
 #if defined(BUILD_EDITORS)
-    // The console hands the screen over: end its command, or console->active
+    // The console hands the screen over: end its command, or its active flag
     // stays false and the shortcuts it gates never come back.
-    studio->console->done(studio->console);
+    console_done(studio->console);
 #endif
     initSurfMode(studio);
     setStudioMode(studio, TIC_SURF_MODE);
@@ -1312,7 +1219,7 @@ void setStudioMode(Studio* studio, EditorMode mode)
         case TIC_CONSOLE_MODE:
 #if defined(BUILD_SURF)
             if (prev == TIC_SURF_MODE)
-                studio->console->done(studio->console);
+                console_done(studio->console);
 #endif
             break;
         case TIC_WORLD_MODE:    initWorldMap(studio); break;
@@ -1381,51 +1288,24 @@ bool checkStudioViMode(Studio* studio, ViMode mode) {
 }
 #endif
 
-static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
-{
-    return (pt->x >= rect->x)
-        && (pt->x < (rect->x + rect->w))
-        && (pt->y >= rect->y)
-        && (pt->y < (rect->y + rect->h));
-}
-
 bool checkMousePos(Studio* studio, const tic_rect* rect)
 {
-    tic_point pos = tic_api_mouse(studio->tic);
-    return pointInRect(&pos, rect);
+    return mouse_over(studio->tic, rect);
 }
 
 bool checkMouseClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 {
-    MouseState* state = &studio->mouse.state[button];
-
-    bool value = state->click
-        && pointInRect(&state->start, rect)
-        && pointInRect(&state->end, rect);
-
-    if(value) state->click = false;
-
-    return value;
+    return mouse_click(&studio->mouse.state[button], rect);
 }
 
 bool checkMouseDblClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 {
-    MouseState* state = &studio->mouse.state[button];
-
-    bool value = state->dbl.click
-        && pointInRect(&state->start, rect)
-        && pointInRect(&state->end, rect);
-
-    if(value) state->dbl.click = false;
-
-    return value;
+    return mouse_dblclick(&studio->mouse.state[button], rect);
 }
 
 bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 {
-    MouseState* state = &studio->mouse.state[button];
-
-    return state->down && pointInRect(&state->start, rect);
+    return mouse_down(&studio->mouse.state[button], rect);
 }
 
 void setCursor(Studio* studio, tic_cursor id)
@@ -1550,16 +1430,6 @@ static void updateTitle(Studio* studio)
     tic_sys_title(name);
 }
 
-bool project_ext(const char* name)
-{
-    FOREACH_LANG(script)
-    {
-        if(tic_tool_has_ext(name, script->fileExtension))
-            return true;
-    }
-
-    return false;
-}
 
 void studioRomSaved(Studio* studio)
 {
@@ -1605,13 +1475,8 @@ void runGame(Studio* studio, RunOrigin origin)
         memset(fftNormalizedMaxData, 0, sizeof(fftNormalizedMaxData[0]) * FFT_SIZE);
     }
 
-    if(studio->console->args.keepcmd
-        && studio->console->commands.count
-        && studio->console->commands.current >= studio->console->commands.count)
-    {
-        studio->console->commands.current = 0;
+    if(console_replay(studio->console))
         setStudioMode(studio, TIC_CONSOLE_MODE);
-    }
     else
 #endif
     {
@@ -1645,11 +1510,110 @@ void runGame(Studio* studio, RunOrigin origin)
 }
 
 #if defined(BUILD_EDITORS)
+// The cart a fetch found is in the machine and taken as the host's own by the
+// time this is called; all that is left is telling the console it arrived.
+static void onConsoleFetched(void* data)
+{
+    Studio* studio = data;
+
+    ConsoleAnswer answer = {.name = studioCart(studio)->name};
+    console_answer(studio->console, &answer);
+}
+
+// The dialog the console asked for has been answered; its own flow continues
+// from there, whichever of its commands wanted one.
+static void onConsoleConfirmed(Studio* studio, bool yes, void* data)
+{
+    ConsoleAnswer answer = {.yes = yes};
+    console_answer(studio->console, &answer);
+}
+
+// What the console asks the host for: it reports, and this does it and answers.
+// A move is answered on the spot, and the answer can lead to the next ask — a
+// dialog, then the load it confirmed — while a cart fetched by hash is answered
+// later, from wherever it arrives.
+static void serveConsole(Studio* studio)
+{
+    ConsoleAsk ask;
+
+    while(console_take(studio->console, &ask))
+    {
+        ConsoleAnswer answer = {0};
+        bool answered = true;
+
+        switch(ask.kind)
+        {
+        case CONSOLE_ASK_MENU:          gotoMenu(studio); break;
+        case CONSOLE_ASK_CODE:          gotoCode(studio); break;
+        case CONSOLE_ASK_EXIT:          exitStudio(studio); break;
+        case CONSOLE_ASK_RESUME:        resumeGame(studio); break;
+        case CONSOLE_ASK_RUN:           runGame(studio, RUN_FROM_STUDIO); break;
+
+        case CONSOLE_ASK_CONFIG_RESET:
+            studio->config->reset(studio->config);
+            break;
+
+#if defined(BUILD_SURF)
+        case CONSOLE_ASK_SURF:          gotoSurf(studio); break;
+#endif
+
+        case CONSOLE_ASK_CONFIRM:
+            // The dialog belongs to the menu; the answer comes back when the
+            // user picks one of its two items.
+            answered = false;
+            confirmDialog(studio, ask.rows, ask.rowsCount, onConsoleConfirmed, studio);
+            break;
+
+        case CONSOLE_ASK_PLAY:
+            runGame(studio, RUN_FROM_PLAYER);
+            studio->boot.cart = false;
+            break;
+
+        case CONSOLE_ASK_CART_LOADED:
+            if(ask.name)
+                studioSetCartName(studio, ask.name, tic_fs_path(studio->fs, ask.name));
+            else if(ask.clear)
+                memset(studioCart(studio)->name, 0, sizeof studioCart(studio)->name);
+
+            studioRomLoaded(studio);
+
+            answer.name = studioCart(studio)->name;
+            break;
+
+        case CONSOLE_ASK_CART_SAVE:
+            answer.save = studioSaveCart(studio, ask.name);
+            answer.name = studioCart(studio)->name;
+            break;
+
+        case CONSOLE_ASK_CART_FETCH:
+            // Answered from the fetch's own callback, not here.
+            answered = false;
+            studioLoadByHash(studio, ask.name, ask.hash, ask.section, onConsoleFetched, studio);
+            break;
+
+        // Both answer with the written path, or nothing when they could not
+        // write it.
+        case CONSOLE_ASK_EXPORT_SFX:
+            answer.ok = studioExportSfx(studio, ask.index, ask.name) != NULL;
+            break;
+
+        case CONSOLE_ASK_EXPORT_MUSIC:
+            answer.ok = studioExportMusic(studio, ask.index, ask.bank, ask.name) != NULL;
+            break;
+
+        default: break;
+        }
+
+        if(answered)
+            console_answer(studio->console, &answer);
+    }
+}
+
 void saveProject(Studio* studio)
 {
     if(getConfig(studio)->trim) trimWhitespace(studio->code);
 
-    CartSaveResult rom = studio->console->save(studio->console);
+    CartSaveResult rom = studioSaveCart(studio, NULL);
 
     if(rom == CART_SAVE_OK)
     {
@@ -1801,13 +1765,6 @@ static void takeScreenshot(Studio* studio)
 }
 #endif
 
-static inline bool keyWasPressedOnce(Studio* studio, s32 key)
-{
-    tic_mem* tic = studio->tic;
-
-    return tic_api_keyp(tic, key, -1, -1);
-}
-
 static void gotoFullscreen(Studio* studio)
 {
     tic_sys_fullscreen_set(studio->config->data.options.fullscreen = !tic_sys_fullscreen_get());
@@ -1885,8 +1842,8 @@ void leaveRun(Studio* studio)
 
 static bool enterWasPressedOnce(Studio* studio)
 {
-    return keyWasPressedOnce(studio, tic_key_return) ||
-           keyWasPressedOnce(studio, tic_key_numpadenter);
+    return keyboard_pressed_once(studio->tic, tic_key_return) ||
+           keyboard_pressed_once(studio->tic, tic_key_numpadenter);
 }
 
 #if defined(BUILD_EDITORS)
@@ -1927,7 +1884,7 @@ static void processShortcuts(Studio* studio)
     if(studio->mode == TIC_START_MODE) return;
 
 #if defined(BUILD_EDITORS)
-    if(!studio->console->active) return;
+    if(!console_active(studio->console)) return;
 #endif
 
     if(studio_mainmenu_keyboard(studio->mainmenu)) return;
@@ -1936,7 +1893,7 @@ static void processShortcuts(Studio* studio)
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
 #if defined(CRT_SHADER_SUPPORT)
-    if(keyWasPressedOnce(studio, tic_key_f6)) switchCrtMonitor(studio);
+    if(keyboard_pressed_once(studio->tic, tic_key_f6)) switchCrtMonitor(studio);
 #endif
 
     if(alt)
@@ -1946,8 +1903,8 @@ static void processShortcuts(Studio* studio)
         else if(studio->mode != TIC_RUN_MODE && studio->config->data.keyboardLayout != tic_layout_azerty)
         {
 #ifndef KEYBOARD_LAYOUT_ES
-            if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
-            else if(keyWasPressedOnce(studio, tic_key_1))
+            if(keyboard_pressed_once(studio->tic, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
+            else if(keyboard_pressed_once(studio->tic, tic_key_1))
             {
                 if(studio->mode != TIC_CODE_MODE)
                 {
@@ -1960,7 +1917,7 @@ static void processShortcuts(Studio* studio)
                 // ctrl+1 is the code editor's, with its "just switched" flag; the
                 // rest follow the tab order.
                 for(s32 i = 1; i < COUNT_OF(Modes); i++)
-                    if(keyWasPressedOnce(studio, tic_key_1 + i))
+                    if(keyboard_pressed_once(studio->tic, tic_key_1 + i))
                     {
                         setStudioMode(studio, Modes[i]);
                         break;
@@ -1972,20 +1929,20 @@ static void processShortcuts(Studio* studio)
     }
     else if(ctrl)
     {
-        if(keyWasPressedOnce(studio, tic_key_q)) studio_exit(studio);
+        if(keyboard_pressed_once(studio->tic, tic_key_q)) studio_exit(studio);
 #if defined(BUILD_EDITORS)
-        else if(keyWasPressedOnce(studio, tic_key_pageup)) changeStudioMode(studio, -1);
-        else if(keyWasPressedOnce(studio, tic_key_pagedown)) changeStudioMode(studio, +1);
+        else if(keyboard_pressed_once(studio->tic, tic_key_pageup)) changeStudioMode(studio, -1);
+        else if(keyboard_pressed_once(studio->tic, tic_key_pagedown)) changeStudioMode(studio, +1);
         else if(enterWasPressedOnce(studio)) runGame(studio, RUN_FROM_STUDIO);
-        else if(keyWasPressedOnce(studio, tic_key_r)) runGame(studio, RUN_FROM_STUDIO);
-        else if(keyWasPressedOnce(studio, tic_key_s)) saveProject(studio);
+        else if(keyboard_pressed_once(studio->tic, tic_key_r)) runGame(studio, RUN_FROM_STUDIO);
+        else if(keyboard_pressed_once(studio->tic, tic_key_s)) saveProject(studio);
 #endif
 
 #if defined(TIC80_PRO) && defined(BUILD_EDITORS)
 
         else
             for(s32 bank = 0; bank < TIC_BANKS; bank++)
-                if(keyWasPressedOnce(studio, tic_key_0 + bank))
+                if(keyboard_pressed_once(studio->tic, tic_key_0 + bank))
                     switchBank(studio, bank);
 
 #endif
@@ -1993,9 +1950,9 @@ static void processShortcuts(Studio* studio)
     }
     else
     {
-        if (keyWasPressedOnce(studio, tic_key_f11)) gotoFullscreen(studio);
+        if (keyboard_pressed_once(studio->tic, tic_key_f11)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
-        else if(keyWasPressedOnce(studio, tic_key_escape))
+        else if(keyboard_pressed_once(studio->tic, tic_key_escape))
         {
             if(
                 getConfig(studio)->options.keybindMode == KEYBIND_VI
@@ -2037,11 +1994,11 @@ static void processShortcuts(Studio* studio)
                 setStudioMode(studio, TIC_CONSOLE_MODE);
             }
         }
-        else if(keyWasPressedOnce(studio, tic_key_f8)) takeScreenshot(studio);
-        else if(keyWasPressedOnce(studio, tic_key_f9)) startVideoRecord(studio);
-        else if(keyWasPressedOnce(studio, tic_key_f10)) hideBattleTime(studio);
-        else if(keyWasPressedOnce(studio, tic_key_f12)) startBattle(studio);
-        else if(studio->mode == TIC_RUN_MODE && keyWasPressedOnce(studio, tic_key_f7))
+        else if(keyboard_pressed_once(studio->tic, tic_key_f8)) takeScreenshot(studio);
+        else if(keyboard_pressed_once(studio->tic, tic_key_f9)) startVideoRecord(studio);
+        else if(keyboard_pressed_once(studio->tic, tic_key_f10)) hideBattleTime(studio);
+        else if(keyboard_pressed_once(studio->tic, tic_key_f12)) startBattle(studio);
+        else if(studio->mode == TIC_RUN_MODE && keyboard_pressed_once(studio->tic, tic_key_f7))
             setCoverImage(studio);
 
         // A running game owns the function keys: a player's run always hands
@@ -2050,7 +2007,7 @@ static void processShortcuts(Studio* studio)
         // studio has no use for them there.
         if((!studio->playerRun && !showGameMenu(studio)) || studio->mode != TIC_RUN_MODE)
         {
-			if(keyWasPressedOnce(studio, Apps[TIC_CODE_MODE].hotkey))
+			if(keyboard_pressed_once(studio->tic, Apps[TIC_CODE_MODE].hotkey))
 			{
 				if(studio->mode != TIC_CODE_MODE)
 				{
@@ -2062,7 +2019,7 @@ static void processShortcuts(Studio* studio)
             {
                 // F1's editor carries the "just switched" flag; the rest are uniform.
                 for(s32 i = 1; i < COUNT_OF(Modes); i++)
-                    if(keyWasPressedOnce(studio, Apps[Modes[i]].hotkey))
+                    if(keyboard_pressed_once(studio->tic, Apps[Modes[i]].hotkey))
                     {
                         setStudioMode(studio, Modes[i]);
                         break;
@@ -2070,7 +2027,7 @@ static void processShortcuts(Studio* studio)
             }
         }
 #else
-        else if(keyWasPressedOnce(studio, tic_key_escape))
+        else if(keyboard_pressed_once(studio->tic, tic_key_escape))
         {
             switch(studio->mode)
             {
@@ -2092,7 +2049,7 @@ static void processShortcuts(Studio* studio)
 static void reloadConfirm(Studio* studio, bool yes, void* data)
 {
     if(yes)
-        studio->console->updateProject(studio->console);
+        studioReloadCart(studio);
     else
         updateMDate(studio);
 }
@@ -2127,7 +2084,7 @@ static void checkChanges(Studio* studio)
 
                     confirmDialog(studio, Rows, COUNT_OF(Rows), reloadConfirm, NULL);
                 }
-                else studio->console->updateProject(studio->console);
+                else studioReloadCart(studio);
             }
         }
     }
@@ -2249,8 +2206,23 @@ static void renderStudio(Studio* studio)
     {
         const EditorApp* app = &Apps[studio->mode];
 
+#if defined(BUILD_EDITORS)
+        // What the console reads of the host, fresh before its tick; the
+        // startup tick the mode has not caught up with says it is not in front.
+        if(studio->mode == TIC_CONSOLE_MODE)
+            studio->consoleView = (ConsoleView)
+            {
+                .inFront = true,
+                .cartChanged = studioCartChanged(studio),
+            };
+#endif
+
         if(app->tick)
             app->tick(app->instance(studio));
+
+#if defined(BUILD_EDITORS)
+        serveConsole(studio);
+#endif
 
         // The splash reports that the intro is over; where that leads is the
         // host's: a cart the launch came with, in a build that has no console to
@@ -2759,7 +2731,7 @@ void studio_delete(Studio* studio)
         }
 
         freeCode    (studio->code);
-        freeConsole (studio->console);
+        console_free(studio->console);
         freeWorld   (studio->world);
 
         FREE(studio->anim.show.items);
@@ -3034,10 +3006,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->anim.movie = resetMovie(&studio->anim.idle);
 #endif
 
-#if defined(BUILD_EDITORS)
-        studio->console    = calloc(1, sizeof(Console));
-#endif
-
 #if defined(BUILD_SURF)
         studio->surf       = calloc(1, sizeof(Surf));
 #endif
@@ -3076,7 +3044,38 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     initRunMode(studio);
 
 #if defined(BUILD_EDITORS)
-    initConsole(studio->console, studio, studio->fs, studio->net, studio->config, args);
+    // The cart the command line named is the host's to load: the console only
+    // hears, through its launch flag, that the launch came with one.
+    if(args.cart)
+    {
+        if(studioLoadCart(studio, args.cart))
+            studio->boot.cart = true;
+        else
+        {
+            printf("error: cart `%s` not loaded\n", args.cart);
+            exit(1);
+        }
+    }
+
+    studio->console = console_create(&(ConsoleDeps)
+    {
+        .tic    = studio->tic,
+        .fs     = studio->fs,
+        .net    = studio->net,
+        .config = getConfig(studio),
+        .mouse  = studio->mouse.state,
+        .view   = &studio->consoleView,
+
+        .args   =
+        {
+            .cmd     = args.cmd,
+            .cli     = args.cli,
+            .skip    = args.skip,
+            .keepcmd = args.keepcmd,
+        },
+
+        .boot   = studio->boot.cart,
+    });
 #else
     // No console: whatever is on the command line is loaded right here, and
     // played once the splash hands the transition over.
@@ -3151,7 +3150,14 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     {
         if(getBytebattle(studio))
         {
-            studio->console->tick(studio->console);
+            // The console's first frame, drawn before the code editor takes
+            // over: the mode is still the start screen's, so the tick greets
+            // and loads the demo without running any command.
+            studio->consoleView = (ConsoleView){.cartChanged = studioCartChanged(studio)};
+
+            console_tick(studio->console);
+            serveConsole(studio);
+
             gotoCode(studio);
         }
         else

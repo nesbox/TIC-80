@@ -52,8 +52,6 @@
 #define TIC_WEBSITE TIC_WEBSITE_PROTOCOL TIC_HOST
 #define TIC_COPYRIGHT TIC_WEBSITE " (C) 2017-" TIC_VERSION_YEAR
 
-#define TICNAME_MAX 256
-
 #ifdef __cplusplus
 extern "C" {
 #endif

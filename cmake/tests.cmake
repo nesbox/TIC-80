@@ -48,13 +48,13 @@ if(BUILD_TESTS)
     tic80_add_test(toolbar-test)
 
     # The studio's sound is a module of its own, and links with the core alone:
-    # nothing the test reaches goes near the studio.
+    # nothing the test reaches goes near the studio, and its header names only
+    # the core, so no build directory is needed here either.
     add_executable(sound-test
         ${CMAKE_SOURCE_DIR}/tests/sound.c
         ${CMAKE_SOURCE_DIR}/src/studio/sound.c
     )
 
-    target_include_directories(sound-test PRIVATE ${CMAKE_BINARY_DIR})
     target_link_libraries(sound-test PRIVATE tic80core)
     tic80_add_test(sound-test)
 
@@ -65,9 +65,30 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src/studio/ui.c
     )
 
-    target_include_directories(ui-test PRIVATE ${CMAKE_BINARY_DIR})
     target_link_libraries(ui-test PRIVATE tic80core)
     tic80_add_test(ui-test)
+
+    # The keyboard links with the core alone as well, and the platform call it
+    # makes is the test's own to answer. That call is declared in system.h,
+    # which wants the generated version.h, so this one keeps the build dir.
+    add_executable(keyboard-test
+        ${CMAKE_SOURCE_DIR}/tests/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+    )
+
+    target_include_directories(keyboard-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(keyboard-test PRIVATE tic80core)
+    tic80_add_test(keyboard-test)
+
+    # The pointer and the buttons, with the core alone as well: the machine's
+    # pointer for the one, the state struct for the others.
+    add_executable(mouse-test
+        ${CMAKE_SOURCE_DIR}/tests/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+    )
+
+    target_link_libraries(mouse-test PRIVATE tic80core)
+    tic80_add_test(mouse-test)
 
     # The splash links without the studio too: start.c and the module it plays
     # through, with the core and nothing else.
@@ -81,13 +102,38 @@ if(BUILD_TESTS)
     target_link_libraries(start-test PRIVATE tic80core)
     tic80_add_test(start-test)
 
-    # The embedded cart format has two ends, and this test drives one into the
-    # other: the studio link is fine here, where toolbar's test is about links.
-    add_executable(boot-test ${CMAKE_SOURCE_DIR}/tests/boot.c)
+    # The embedded cart format has two ends and this test drives one into the
+    # other with the core alone, and with no build directory either: that is
+    # only there for studio.h's version.h, which this module no longer needs.
+    add_executable(embed-test
+        ${CMAKE_SOURCE_DIR}/tests/embed.c
+        ${CMAKE_SOURCE_DIR}/src/studio/embed.c
+    )
 
-    target_include_directories(boot-test PRIVATE ${CMAKE_BINARY_DIR})
-    target_link_libraries(boot-test PRIVATE tic80studio)
-    tic80_add_test(boot-test)
+    target_link_libraries(embed-test PRIVATE tic80core)
+    tic80_add_test(embed-test)
+
+    # The console is the module whose face is a request the host answers, and
+    # this test is its host: it builds the module with the core and the modules
+    # it names — no studio anywhere — and every command it is given ends in an
+    # ask the test takes and answers. Net is compiled without USE_NAETT, which
+    # is net's own no-network shape: the test opens no sockets either.
+    add_executable(console-test
+        ${CMAKE_SOURCE_DIR}/tests/console.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/console.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/start.c
+        ${CMAKE_SOURCE_DIR}/src/studio/embed.c
+        ${CMAKE_SOURCE_DIR}/src/studio/fs.c
+        ${CMAKE_SOURCE_DIR}/src/studio/net.c
+        ${CMAKE_SOURCE_DIR}/src/ext/json.c
+    )
+
+    target_include_directories(console-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    target_link_libraries(console-test PRIVATE tic80core zip)
+    tic80_add_test(console-test)
 
     # The FFT module, driven offline by both tests. They build its sources
     # rather than linking the core, because the stubs variant below has to

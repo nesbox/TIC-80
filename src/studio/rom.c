@@ -26,6 +26,7 @@
 #include "studio.h"
 #include "rom.h"
 #include "cart.h"
+#include "tools.h"
 #include "fs.h"
 #include "config.h"
 
@@ -34,61 +35,9 @@
 #endif
 
 
-static const char* getName(const char* name, const char* ext)
-{
-    static char path[TICNAME_MAX];
-
-    strcpy(path, name);
-
-    size_t ps = strlen(path);
-    size_t es = strlen(ext);
-
-    if(!(ps > es && strstr(path, ext) + es == path + ps))
-        strcat(path, ext);
-
-    return path;
-}
-
-const char* getCartName(const char* name)
-{
-    return getName(name, CART_EXT);
-}
-
 static inline tic_cartridge* newCart()
 {
     return malloc(sizeof(tic_cartridge));
-}
-
-void loadCartSection(Studio* studio, const tic_cartridge* cart, const char* section)
-{
-    tic_mem* tic = getMemory(studio);
-
-    static const struct Section
-    {
-        const char* name;
-        s32 offset;
-        s32 size;
-    } Sections[] =
-    {
-#define SECTION_DEF(name, ...) {#name, offsetof(tic_bank, name), sizeof(tic_ ## name)},
-        TIC_SYNC_LIST(SECTION_DEF)
-#undef  SECTION_DEF
-    };
-
-    if(section)
-    {
-        if(strcmp(section, "code") == 0)
-            memcpy(&tic->cart.code, &cart->code, sizeof(tic_code));
-        else
-            FOR(const struct Section*, it, Sections)
-                if(strcmp(section, it->name) == 0)
-                {
-                    memcpy((u8*)&tic->cart.bank0 + it->offset, (const u8*)&cart->bank0 + it->offset, it->size);
-                    break;
-                }
-    }
-    else
-        memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 }
 
 void studioSetCartName(Studio* studio, const char* name, const char* path)
@@ -118,7 +67,7 @@ static void hashLoadDone(const u8* buffer, s32 size, void* data)
     SCOPE(free(cart))
     {
         tic_cart_load(cart, buffer, size);
-        loadCartSection(studio, cart, loadByHashData->section);
+        tic_tool_load_section(getMemory(studio), cart, loadByHashData->section);
 
         tic_api_reset(getMemory(studio));
 
@@ -140,6 +89,32 @@ void studioLoadByHash(Studio* studio, const char* name, const char* hash, const 
 {
     LoadByHashData loadByHashData = { studio, strdup(name), section ? strdup(section) : NULL, callback, data};
     tic_fs_hashload(studio_fs(studio), name, hash, hashLoadDone, MOVE(loadByHashData));
+}
+
+// The cart's file changed under the studio — another editor, a build — and the
+// machine takes it again: the reload the console used to do for the host.
+void studioReloadCart(Studio* studio)
+{
+    tic_mem* tic = getMemory(studio);
+    const char* path = studioCart(studio)->path;
+
+    if(*path)
+    {
+        s32 size = 0;
+        void* data = fs_read(path, &size);
+
+        if(data) SCOPE(free(data))
+        {
+#if defined(TIC80_PRO)
+            if(tic_tool_is_project(path))
+                tic_project_load(studioCart(studio)->name, data, size, &tic->cart);
+            else
+#endif
+                tic_cart_load(&tic->cart, data, size);
+
+            studioRomLoaded(studio);
+        }
+    }
 }
 
 static void drawShadowText(tic_mem* tic, const char* text, s32 x, s32 y, tic_color color, s32 scale)
@@ -259,14 +234,14 @@ CartSaveResult studioSaveCart(Studio* studio, const char* name)
                     size = result.size;
                 }
 #if defined(TIC80_PRO)
-                else if(project_ext(name))
+                else if(tic_tool_is_project(name))
                 {
                     size = tic_project_save(name, buffer, &tic->cart);
                 }
 #endif
                 else
                 {
-                    name = getCartName(name);
+                    name = tic_tool_cart_name(name);
                     size = tic_cart_save(&tic->cart, buffer);
                 }
 
@@ -337,7 +312,7 @@ bool studioLoadCart(Studio* studio, const char* path)
             done = true;
         }
 #if defined(TIC80_PRO)
-        else if(project_ext(cartName))
+        else if(tic_tool_is_project(cartName))
         {
             if(tic_project_load(cartName, data, size, &tic->cart))
                 done = true;
