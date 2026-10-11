@@ -1363,7 +1363,6 @@ static void deleteLine(Code* code)
 {
     char* linestart = code->cursor.position;
     char* lineend = linestart+1;
-    const char* end = code->src + strlen(code->src);
 
     if (shouldUseStructuredEdit(code))
     {
@@ -1809,7 +1808,6 @@ static void centerScroll(Code* code)
 
 static void updateSidebarCode(Code* code)
 {
-    tic_mem* tic = code->tic;
 
     const tic_outline_item* item = code->sidebar.items + code->sidebar.index;
 
@@ -3227,7 +3225,6 @@ static void processMouse(Code* code)
 
 static void textDragTick(Code* code)
 {
-    tic_mem* tic = code->tic;
 
     processMouse(code);
 

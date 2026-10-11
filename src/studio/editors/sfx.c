@@ -1001,7 +1001,6 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
 
 static void drawPiano(Sfx* sfx, s32 x, s32 y)
 {
-    tic_mem* tic = sfx->tic;
 
     enum {Width = 29};
 

@@ -1174,7 +1174,6 @@ static void processTrackerKeyboard(Music* music)
             }
             else
             {
-                tic_track_pattern* pattern = getChannelPattern(music);
 
                 for (s32 i = 0; i < COUNT_OF(Piano); i++)
                 {
@@ -2693,7 +2692,6 @@ static void drawPianoXYColumn(Music* music, s32 x, s32 y)
             s32 index = rowIndex(music, r);
             const tic_track_row* row = &pattern->rows[index];
 
-            tic_music_command command = MusicCommands[row->command];
 
             if(row->command > tic_music_cmd_empty)
             {
@@ -2854,7 +2852,6 @@ static void updatePianoRollState(Music* music)
 {
     if(getMusicState(music) != tic_music_stop)
     {
-        s32 channel = music->piano.col;
         const tic_music_state* pos = getMusicPos(music);
 
         for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)

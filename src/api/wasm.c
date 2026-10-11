@@ -1069,7 +1069,6 @@ void deinitWasmRuntime( IM3Runtime runtime )
     IM3Environment env = runtime -> environment;
     printf("deiniting env %p\n", env);
 
-    tic_core* tic = getWasmCore(runtime);
     m3_FreeRuntime (runtime);
     m3_FreeEnvironment (env);
 }

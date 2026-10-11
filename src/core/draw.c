@@ -67,7 +67,6 @@ static inline u8 mapColor(tic_mem* tic, u8 color)
 
 static inline void setPixel(tic_core* core, s32 x, s32 y, u8 color)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
 
     if (x < core->state.clip.l || y < core->state.clip.t || x >= core->state.clip.r || y >= core->state.clip.b) return;
 
@@ -97,7 +96,6 @@ static inline u8 getPixel(tic_core* core, s32 x, s32 y)
 
 static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
 
     if (y < core->state.clip.t || core->state.clip.b <= y) return;
 
@@ -111,7 +109,6 @@ static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 
 static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
 
     if (x < core->state.clip.l || core->state.clip.r <= x) return;
 
@@ -153,7 +150,6 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
 
 static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
     u8* mapping = getPalette(&core->memory, colors, count);
 
     rotate &= 3;
@@ -209,7 +205,6 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
 
 static void drawSprite(tic_core* core, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
 
     if (index < 0)
         return;
@@ -295,7 +290,6 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
 
 static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 scale, bool fixed, u8* mapping)
 {
-    const tic_vram* vram = &core->memory.ram->vram;
 
     enum { Size = TIC_SPRITESIZE };
 
@@ -360,7 +354,6 @@ static s32 drawText(tic_core* core, tic_tilesheet* font_face, const char* text, 
 void tic_api_clip(tic_mem* memory, s32 x, s32 y, s32 width, s32 height)
 {
     tic_core* core = (tic_core*)memory;
-    tic_vram* vram = &memory->ram->vram;
 
     core->state.clip.l = x;
     core->state.clip.t = y;
@@ -546,12 +539,10 @@ static void setElliSide(tic_mem* tic, s32 x, s32 y, u8 color)
 
 static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
 {
-    tic_vram* vram = &memory->ram->vram;
 
     tic_core* core = (tic_core*)memory;
     s32 yt = MAX(core->state.clip.t, y0);
     s32 yb = MIN(core->state.clip.b, y1 + 1);
-    u8 final_color = mapColor(&core->memory, color);
     for (s32 y = yt; y < yb; y++)
     {
         s32 xl = MAX(SidesBuffer.Left[y], core->state.clip.l);
@@ -817,7 +808,6 @@ void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3,
 
 void tic_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
 {
-    tic_core* core = (tic_core*)tic;
 
     u8 finalColor = mapColor(tic, color);
 

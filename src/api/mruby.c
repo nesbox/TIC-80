@@ -388,7 +388,7 @@ static mrb_value mrb_clip(mrb_state* mrb, mrb_value self)
     }
     else if(argc == 4)
     {
-        tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
+        tic_core* core = getMRubyMachine(mrb);
 
         core->api.clip((tic_mem*)getMRubyMachine(mrb), x, y, w, h);
     }
@@ -459,7 +459,7 @@ static mrb_value mrb_spr(mrb_state* mrb, mrb_value self)
     static u8 colors[TIC_PALETTE_SIZE];
     mrb_int count = 0;
 
-    mrb_int argc = mrb_get_args(mrb, "iii|oiiiii", &index, &x, &y, &colors_obj, &scale, &flip, &rotate, &w, &h);
+    mrb_get_args(mrb, "iii|oiiiii", &index, &x, &y, &colors_obj, &scale, &flip, &rotate, &w, &h);
 
     if(mrb_array_p(colors_obj))
     {
@@ -853,7 +853,7 @@ static mrb_value mrb_map(mrb_state* mrb, mrb_value self)
     mrb_int scale = 1;
     mrb_value block;
 
-    mrb_int argc = mrb_get_args(mrb, "|iiiiiioi&", &x, &y, &w, &h, &sx, &sy, &chroma, &scale, &block);
+    mrb_get_args(mrb, "|iiiiiioi&", &x, &y, &w, &h, &sx, &sy, &chroma, &scale, &block);
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
@@ -903,7 +903,7 @@ static mrb_value mrb_music(mrb_state* mrb, mrb_value self)
     mrb_int tempo = -1;
     mrb_int speed = -1;
 
-    mrb_int argc = mrb_get_args(mrb, "|iiibbii", &track, &frame, &row, &loop, &sustain, &tempo, &speed);
+    mrb_get_args(mrb, "|iiibbii", &track, &frame, &row, &loop, &sustain, &tempo, &speed);
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
@@ -1016,7 +1016,7 @@ static mrb_value mrb_sync(mrb_state* mrb, mrb_value self)
     mrb_int bank = 0;
     mrb_bool toCart = false;
 
-    mrb_int argc = mrb_get_args(mrb, "|iib", &mask, &bank, &toCart);
+    mrb_get_args(mrb, "|iib", &mask, &bank, &toCart);
 
     if(bank >= 0 && bank < TIC_BANKS)
         core->api.sync(tic, mask, bank, toCart);
@@ -1029,7 +1029,7 @@ static mrb_value mrb_sync(mrb_state* mrb, mrb_value self)
 static mrb_value mrb_reset(mrb_state* mrb, mrb_value self)
 {
     (void)self;
-    tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getMRubyMachine(mrb);
 
     core->state.initialized = false;
 
@@ -1094,7 +1094,7 @@ static mrb_value mrb_memcpy(mrb_state* mrb, mrb_value self)
 {
     (void)self;
     mrb_int dest, src, size;
-    mrb_int argc = mrb_get_args(mrb, "iii", &dest, &src, &size);
+    mrb_get_args(mrb, "iii", &dest, &src, &size);
 
     s32 bound = sizeof(tic_ram) - size;
 
@@ -1115,7 +1115,7 @@ static mrb_value mrb_memset(mrb_state* mrb, mrb_value self)
 {
     (void)self;
     mrb_int dest, value, size;
-    mrb_int argc = mrb_get_args(mrb, "iii", &dest, &value, &size);
+    mrb_get_args(mrb, "iii", &dest, &value, &size);
 
     s32 bound = sizeof(tic_ram) - size;
 
@@ -1198,7 +1198,7 @@ static mrb_value mrb_trace(mrb_state *mrb, mrb_value self)
     mrb_int color = TIC_DEFAULT_COLOR;
     mrb_get_args(mrb, "o|i", &text_obj, &color);
 
-    tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getMRubyMachine(mrb);
 
     const char* text = mrb_value_to_cstr(mrb, text_obj);
     core->data->trace(core->data->data, text, color);
@@ -1212,7 +1212,7 @@ static mrb_value mrb_pmem(mrb_state *mrb, mrb_value self)
     mrb_int index, value;
     mrb_int argc = mrb_get_args(mrb, "i|i", &index, &value);
 
-    tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getMRubyMachine(mrb);
 
     if(index < TIC_PERSISTENT_SIZE)
     {
@@ -1220,7 +1220,7 @@ static mrb_value mrb_pmem(mrb_state *mrb, mrb_value self)
 
         if(argc == 2)
         {
-            u32 val = core->api.pmem((tic_mem*)core, index, value, true);
+            core->api.pmem((tic_mem*)core, index, value, true);
         }
 
         return mrb_fixnum_value(val);
@@ -1243,7 +1243,7 @@ static mrb_value mrb_time(mrb_state *mrb, mrb_value self)
 static mrb_value mrb_exit(mrb_state *mrb, mrb_value self)
 {
     (void)self;
-    tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getMRubyMachine(mrb);
     core->data->exit(core->data->data);
 
     return mrb_nil_value();

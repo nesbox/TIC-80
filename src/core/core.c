@@ -79,7 +79,6 @@ void tic_api_poke(tic_mem* memory, s32 address, u8 value, s32 bits)
     if (address < 0)
         return;
 
-    tic_core* core = (tic_core*)memory;
     u8* ram = (u8*)memory->ram;
     enum{RamBits = sizeof(tic_ram) * BITS_IN_BYTE};
 
@@ -124,7 +123,6 @@ void tic_api_poke4(tic_mem* memory, s32 address, u8 value)
 
 void tic_api_memcpy(tic_mem* memory, s32 dst, s32 src, s32 size)
 {
-    tic_core* core = (tic_core*)memory;
     s32 bound = sizeof(tic_ram) - size;
 
     if (size >= 0
@@ -141,7 +139,6 @@ void tic_api_memcpy(tic_mem* memory, s32 dst, s32 src, s32 size)
 
 void tic_api_memset(tic_mem* memory, s32 dst, u8 val, s32 size)
 {
-    tic_core* core = (tic_core*)memory;
     s32 bound = sizeof(tic_ram) - size;
 
     if (size >= 0
@@ -247,7 +244,7 @@ double tic_api_time(tic_mem* memory)
 
 s32 tic_api_tstamp(tic_mem* memory)
 {
-    tic_core* core = (tic_core*)memory;
+    (void)memory;
     return (s32)time(NULL);
 }
 

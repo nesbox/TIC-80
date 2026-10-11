@@ -105,9 +105,9 @@ static bool generateSingleKernel(
     // Ensure it fits in FFT size
     if (windowLength > fftSize) {
         windowLength = fftSize;
+        #ifdef VQT_DEBUG
         // Calculate effective Q after truncation
         float effectiveQ = windowLength * centerFreq / sampleRate;
-        #ifdef VQT_DEBUG
         printf("Freq %.1f Hz: Q designed=%.1f, window=%d, Q effective=%.1f (truncated)\n",
                centerFreq, Q, windowLength, effectiveQ);
         #endif

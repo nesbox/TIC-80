@@ -1248,7 +1248,7 @@ static void callMiniScriptCallback(tic_mem *tic, Value name, s32 arg) {
     // Construct the argument and call the function
     ValueList arguments;
     arguments.Add(Value(arg));
-    auto ignored = vm->interpreter.RunFunction(callback, arguments);
+    vm->interpreter.RunFunction(callback, arguments);
 
     // If the user's code errored, display the error.
     if (vm->error) {

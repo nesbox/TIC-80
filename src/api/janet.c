@@ -1245,7 +1245,6 @@ static bool initJanet(tic_mem* tic, const char* code)
     janet_init();
     janet_sandbox(JANET_SANDBOX_ALL);
 
-    JanetTable *env  = janet_core_env(NULL);
     JanetTable *sub_env = janet_table(0);
     janet_cfuns(sub_env, "tic80", janet_c_functions);
 

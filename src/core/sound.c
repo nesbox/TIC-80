@@ -167,7 +167,6 @@ static void resetSfxPos(tic_channel_data* channel)
 
 static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_data* channel, tic_sound_register* reg, s32 channelIndex)
 {
-    tic_core* core = (tic_core*)memory;
 
     if (channel->duration > 0)
         channel->duration--;
@@ -207,7 +206,6 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
 
 static void setChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, tic_channel_data* channel, s32 volumeLeft, s32 volumeRight, s32 speed)
 {
-    tic_core* core = (tic_core*)memory;
 
     channel->volume.left = volumeLeft;
     channel->volume.right = volumeRight;
@@ -507,7 +505,6 @@ void tic_api_music(tic_mem* memory, s32 index, s32 frame, s32 row, bool loop, bo
 
 void tic_api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 left, s32 right, s32 speed)
 {
-    tic_core* core = (tic_core*)memory;
     setSfxChannelData(memory, index, note, octave, duration, channel, left, right, speed);
 }
 

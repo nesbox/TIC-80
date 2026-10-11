@@ -578,7 +578,7 @@ static SQInteger squirrel_clip(HSQUIRRELVM vm)
         s32 w = getSquirrelNumber(vm, 4);
         s32 h = getSquirrelNumber(vm, 5);
 
-        tic_core* core = getSquirrelCore(vm); tic_mem* tic = (tic_mem*)core;
+        tic_core* core = getSquirrelCore(vm);
 
         core->api.clip((tic_mem*)getSquirrelCore(vm), x, y, w, h);
     }
@@ -898,7 +898,7 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
         }
     }
 
-    tic_core* core = getSquirrelCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getSquirrelCore(vm);
 
     core->api.map((tic_mem*)getSquirrelCore(vm), x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
 

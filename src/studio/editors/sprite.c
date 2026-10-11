@@ -1217,7 +1217,7 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
 
     drawPanelBorder(tic, x - Gap, y - Gap, PaletteW + Gap, PaletteH + Gap);
 
-    for(s32 row = 0, i = 0; row < palette.rows; row++)
+    for(s32 row = 0; row < palette.rows; row++)
         for(s32 col = 0; col < palette.cols; col++)
         {
             tic_api_rectb(tic, x + col * palette.cell_w - Gap, y + row * palette.cell_h - Gap,
@@ -1249,17 +1249,12 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
     {
         tic_rect rect = {x - 22, y + 1, 19, 5};
 
-        bool down = false;
-        bool over = false;
         if(checkMousePos(sprite->studio, &rect))
         {
             setCursor(sprite->studio, tic_cursor_hand);
-            over = true;
 
             showTooltip(sprite->studio, "VBANK0 PALETTE");
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
-                down = true;
 
             if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
                 sprite->palette.vbank1 = false;
@@ -1278,17 +1273,12 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
     {
         tic_rect rect = {x - 22, y + 9, 19, 5};
 
-        bool down = false;
-        bool over = false;
         if(checkMousePos(sprite->studio, &rect))
         {
             setCursor(sprite->studio, tic_cursor_hand);
-            over = true;
 
             showTooltip(sprite->studio, "VBANK1 PALETTE");
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
-                down = true;
 
             if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
                 sprite->palette.vbank1 = true;
@@ -1775,7 +1765,6 @@ static void drawTab(Sprite* sprite, s32 x, s32 y, s32 w, s32 h, u8 icon, bool ac
 
 static void drawBankTabs(Sprite* sprite, s32 x, s32 y)
 {
-    tic_mem* tic = sprite->tic;
 
     if(hasCanvasSelection(sprite)) return;
 

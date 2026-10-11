@@ -483,7 +483,7 @@ static void consolePrintOffset(Console* console, const char* text, u8 color, s32
 
     console->cursor.pos = cursorPos(console);
 
-    for(const char* ptr = text, *next = ptr; *ptr; ptr++)
+    for(const char* ptr = text; *ptr; ptr++)
     {
         char symbol = *ptr;
 
@@ -874,7 +874,6 @@ static bool compareFilename(const char* name, const char* title, const char* has
     (void)id;
     (void)title;
     LoadPublicCartData* loadPublicCartData = data;
-    Console* console = loadPublicCartData->console;
 
     if (strcmp(name, loadPublicCartData->name) == 0 && hash && strlen(hash))
     {
@@ -913,7 +912,6 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
     (void)data;
     if(console->desc->count > 0)
     {
-        tic_mem* tic = console->tic;
 
         const char* param = console->desc->params->key;
         const char* name = tic_tool_cart_name(param);
@@ -1125,7 +1123,11 @@ static void onNewCommandConfirmed(Console* console, const void* data)
     bool done = false;
 
     s32 count = 0;
-    FOREACH_LANG(_) count++;
+    FOREACH_LANG(_)
+    {
+        (void)_;
+        count++;
+    }
 
     if(count == 0)
     {
@@ -1967,8 +1969,6 @@ typedef struct
 
 static void exportSprites(Console* console, const char* filename, tic_tile* base, ExportParams params)
 {
-    tic_mem* tic = console->tic;
-    const tic_cartridge* cart = &tic->cart;
 
     png_img img = {TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE, malloc(TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE * sizeof(png_rgba))};
 
@@ -2034,7 +2034,6 @@ static void onNativeExportGet(const net_get_data* data)
             GameExportData* exportData = (GameExportData*)data->calldata;
             Console* console = exportData->console;
 
-            tic_mem* tic = console->tic;
 
             char filename[TICNAME_MAX];
             strcpy(filename, exportData->filename);
@@ -2062,7 +2061,6 @@ static void onNativeExportGet(const net_get_data* data)
 static void exportGame(Console* console, const char* name, const char* system, net_get_callback callback, ExportParams params)
 {
     (void)params;
-    tic_mem* tic = console->tic;
     printLine(console);
     GameExportData data = {console};
     strcpy(data.filename, name);
@@ -2544,8 +2542,6 @@ static void onExport_screen(Console* console, const char* param, const char* nam
     (void)param;
     const char* filename = getFilename(name, ".png");
 
-    tic_mem* tic = console->tic;
-    const tic_cartridge* cart = &tic->cart;
 
     png_img img = {TIC80_WIDTH, TIC80_HEIGHT, malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(png_rgba))};
 
