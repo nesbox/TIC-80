@@ -477,7 +477,7 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
                 tic->input.gamepad = 1;
             else if(strcmp(tic_tool_metatag(code, "input", config->singleComment), "keyboard") == 0)
                 tic->input.keyboard = 1;
-            else tic->input.data = -1;  // default is all enabled
+            else tic->input.data = (u8)-1;  // default is all enabled
 
             data->start = data->counter(core->data->data);
 
@@ -784,6 +784,14 @@ void tic_core_invalidate(tic_mem* memory)
 }
 #endif
 
+#if defined BUILD_DEPRECATED
+// Defined in draw_dep.c: the api struct carries its pointer, and there is no
+// header for the two of them to share. Declared here, not in the block below,
+// where MSVC reads a local declaration of a function as an extension (C4210).
+void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3,
+    float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count);
+#endif
+
 tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
 {
     tic_core* core = (tic_core*)malloc(sizeof(tic_core));
@@ -824,7 +832,6 @@ tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
 #undef  API_FUNC_DEF
 
 #if defined BUILD_DEPRECATED
-        void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count);
         core->api.textri = tic_api_textri;
 #endif
 

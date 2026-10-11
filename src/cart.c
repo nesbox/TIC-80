@@ -218,7 +218,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                         if(image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT)
                             for (s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
                                 tic_tool_poke4(cart->bank0.screen.data, i,
-                                    tic_nearest_color(cart->bank0.palette.vbank0.colors, (const tic_rgb*)&image->palette[image->buffer[i]], TIC_PALETTE_SIZE));
+                                    (u8)tic_nearest_color(cart->bank0.palette.vbank0.colors, (const tic_rgb*)&image->palette[image->buffer[i]], TIC_PALETTE_SIZE));
 
                         gif_close(image);
                     }
@@ -252,12 +252,12 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 
         {
             u32 total_size = 0;
-            char* ptr = cart->binary.data;
+            char* dst = cart->binary.data;
             RFOR(const struct BinaryChunk*, chunk, binary)
                 if (chunk->size)
                 {
-                    memcpy(ptr, chunk->data, chunk->size);
-                    ptr += chunk->size;
+                    memcpy(dst, chunk->data, chunk->size);
+                    dst += chunk->size;
                     total_size += chunk->size;
                 }
             cart->binary.size = total_size;
@@ -265,12 +265,12 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 
         if (!*cart->code.data)
         {
-            char* ptr = cart->code.data;
+            char* dst = cart->code.data;
             RFOR(const struct CodeChunk*, chunk, code)
                 if (chunk->data)
                 {
-                    memcpy(ptr, chunk->data, chunk->size);
-                    ptr += chunk->size;
+                    memcpy(dst, chunk->data, chunk->size);
+                    dst += chunk->size;
                 }
         }
     }
@@ -368,8 +368,8 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
     }
 
     ptr = cart->code.data;
-    for(s32 i = strlen(ptr) / TIC_BANK_SIZE; i >= 0; --i, ptr += TIC_BANK_SIZE)
-        buffer = saveFixedChunk(buffer, CHUNK_CODE, ptr, MIN(strlen(ptr), TIC_BANK_SIZE), i);
+    for(s32 i = (s32)(strlen(ptr) / TIC_BANK_SIZE); i >= 0; --i, ptr += TIC_BANK_SIZE)
+        buffer = saveFixedChunk(buffer, CHUNK_CODE, ptr, MIN((s32)(strlen(ptr)), TIC_BANK_SIZE), i);
 
     if(cart->lang)
         SAVE_CHUNK(CHUNK_LANG, cart->lang, 0);

@@ -90,7 +90,11 @@ static void menuUpDone(void* data)
 {
     Menu *menu = data;
     menu->pos = (menu->pos + (menu->count - 1)) % menu->count;
-    if (strcmp("", menu->items[menu->pos].label) == 0) return menuUpDone(data);
+    if (strcmp("", menu->items[menu->pos].label) == 0)
+    {
+        menuUpDone(data);
+        return;
+    }
     menu->anim.pos = 0;
     menu->anim.movie = resetMovie(&menu->anim.idle);
 }
@@ -99,7 +103,11 @@ static void menuDownDone(void* data)
 {
     Menu *menu = data;
     menu->pos = (menu->pos + (menu->count + 1)) % menu->count;
-    if (strcmp("", menu->items[menu->pos].label) == 0) return menuDownDone(data);
+    if (strcmp("", menu->items[menu->pos].label) == 0)
+    {
+        menuDownDone(data);
+        return;
+    }
     menu->anim.pos = 0;
     menu->anim.movie = resetMovie(&menu->anim.idle);
 }
@@ -163,7 +171,7 @@ static void drawBottomBar(Menu* menu, s32 x, s32 y)
     if(help)
     {
         if(menu->ticks % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
-            printShadow(tic, help, x + (TIC80_WIDTH - strlen(help) * TIC_FONT_WIDTH) / 2 + menu->anim.offset,
+            printShadow(tic, help, (s32)(x + (TIC80_WIDTH - strlen(help) * TIC_FONT_WIDTH) / 2 + menu->anim.offset),
                 y + TextMargin, tic_color_white);
     }
     else
@@ -291,7 +299,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
             if(it->option == NULL && it->handler)
                 onMenuItem(menu, it);
 
-            menu->pos = it - menu->items; // set pos so that close will call this handler
+            menu->pos = (s32)(it - menu->items); // set pos so that close will call this handler
         }
 
         bool down = false;
@@ -340,18 +348,18 @@ void studio_menu_anim(tic_mem* tic, s32 ticks)
     {
         s32 ly = Gap - 8 * 32 * 16 / (x - ticks % 16);
 
-        tic_api_line(tic, 0, ly, TIC80_WIDTH, ly, BG_ANIM_COLOR);
-        tic_api_line(tic, 0, TIC80_HEIGHT - ly,
-            TIC80_WIDTH, TIC80_HEIGHT - ly, BG_ANIM_COLOR);
+        tic_api_line(tic, 0, (float)(ly), TIC80_WIDTH, (float)ly, BG_ANIM_COLOR);
+        tic_api_line(tic, 0, (float)(TIC80_HEIGHT - ly),
+            TIC80_WIDTH, (float)(TIC80_HEIGHT - ly), BG_ANIM_COLOR);
     }
 
     for(s32 x = -32; x <= 32; x++)
     {
-        tic_api_line(tic, TIC80_WIDTH / 2 - x * 4, Gap - 16,
-            TIC80_WIDTH / 2 - x * 24, -16, BG_ANIM_COLOR);
+        tic_api_line(tic, (float)(TIC80_WIDTH / 2 - x * 4), Gap - 16,
+            (float)(TIC80_WIDTH / 2 - x * 24), -16, BG_ANIM_COLOR);
 
-        tic_api_line(tic, TIC80_WIDTH / 2 - x * 4, TIC80_HEIGHT - Gap + 16,
-            TIC80_WIDTH / 2 - x * 24, TIC80_HEIGHT + 16, BG_ANIM_COLOR);
+        tic_api_line(tic, (float)(TIC80_WIDTH / 2 - x * 4), TIC80_HEIGHT - Gap + 16,
+            (float)(TIC80_WIDTH / 2 - x * 24), TIC80_HEIGHT + 16, BG_ANIM_COLOR);
     }
 }
 
@@ -362,7 +370,7 @@ void studio_menu_anim_scanline(tic_mem* tic, s32 row, void* data)
     s32 val = dir * (TIC80_WIDTH - row * 7 / 2);
     tic_rgb* dst = tic->ram->vram.palette.colors + BG_ANIM_COLOR;
 
-    memcpy(dst, &(tic_rgb){val * 3 / 4, val * 4 / 5, val}, sizeof(tic_rgb));
+    memcpy(dst, &(tic_rgb){(u8)(val * 3 / 4), (u8)(val * 4 / 5), (u8)(val)}, sizeof(tic_rgb));
 }
 
 static void drawCursor(Menu* menu, s32 x, s32 y)
@@ -483,16 +491,16 @@ void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 
     memcpy(menu->items, items, size);
     for(MenuItem *it = menu->items, *end = it + menu->count; it != end; ++it)
     {
-        it->width = strlen(it->label) * TIC_FONT_WIDTH;
+        it->width = (s32)(strlen(it->label) * TIC_FONT_WIDTH);
 
         if(it->option)
         {
             if(menu->maxwidth.item < it->width)
                 menu->maxwidth.item = it->width;
 
-            for(const char **opt = it->option->values, **end = opt + it->option->count; opt != end; ++opt)
+            for(const char **opt = it->option->values, **optsEnd = opt + it->option->count; opt != optsEnd; ++opt)
             {
-                s32 len = strlen(*opt) * TIC_FONT_WIDTH;
+                s32 len = (s32)(strlen(*opt) * TIC_FONT_WIDTH);
 
                 if(it->option->width < len)
                     it->option->width = len;

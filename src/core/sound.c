@@ -181,7 +181,7 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
     s32 pos = tic_tool_sfx_pos(channel->speed, ++channel->tick);
 
     for (s32 i = 0; i < (s32)sizeof(tic_sfx_pos); i++)
-        *(channel->pos->data + i) = calcLoopPos(effect->loops + i, pos);
+        *(channel->pos->data + i) = (s8)(calcLoopPos(effect->loops + i, pos));
 
     u8 volume = MAX_VOLUME - effect->data[channel->pos->volume].volume;
 
@@ -192,7 +192,7 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
 
         note = CLAMP(note, 0, COUNT_OF(NoteFreqs) - 1);
 
-        tic_sound_register_set_freq(reg, NoteFreqs[note] + effect->data[channel->pos->pitch].pitch * (effect->pitch16x ? 16 : 1) + pitch);
+        tic_sound_register_set_freq(reg, (u16)(NoteFreqs[note] + effect->data[channel->pos->pitch].pitch * (effect->pitch16x ? 16 : 1) + pitch));
         reg->volume = volume;
 
         u8 wave = effect->data[channel->pos->wave].wave;
@@ -207,13 +207,13 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
 static void setChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, tic_channel_data* channel, s32 volumeLeft, s32 volumeRight, s32 speed)
 {
 
-    channel->volume.left = volumeLeft;
-    channel->volume.right = volumeRight;
+    channel->volume.left = (u8)(volumeLeft);
+    channel->volume.right = (u8)(volumeRight);
 
     if (index >= 0)
     {
         struct { s8 speed : SFX_SPEED_BITS; } temp = { speed };
-        channel->speed = speed == temp.speed ? speed : memory->ram->sfx.samples.data[index].speed;
+        channel->speed = speed == temp.speed ? (s8)(speed) : memory->ram->sfx.samples.data[index].speed;
     }
 
     channel->note = note + octave * NOTES;
@@ -259,7 +259,7 @@ static void processMusic(tic_mem* memory)
     if (row != music_state->music.row
         && jumpCmd->active)
     {
-        music_state->music.frame = jumpCmd->frame;
+        music_state->music.frame = (s8)(jumpCmd->frame);
         row = jumpCmd->beat * NOTES_PER_BEAT;
         core->state.music.ticks = row2tick(core, track, row);
         memset(jumpCmd, 0, sizeof(tic_jump_command));
@@ -326,7 +326,7 @@ static void processMusic(tic_mem* memory)
 
     if (row != music_state->music.row)
     {
-        music_state->music.row = row;
+        music_state->music.row = (s8)(row);
 
         for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
         {
@@ -357,7 +357,7 @@ static void processMusic(tic_mem* memory)
                 if (trackRow->note)
                 {
                     cmdData->slide.tick = 0;
-                    cmdData->slide.note = channel->note;
+                    cmdData->slide.note = (u8)(channel->note);
                 }
 
                 if (trackRow->note == NoteStop)
@@ -468,7 +468,7 @@ static void setMusic(tic_core* core, s32 index, s32 frame, s32 row, bool loop, b
     tic_mem* memory = (tic_mem*)core;
     tic_ram* ram = memory->ram;
 
-    ram->music_state.music.track = index;
+    ram->music_state.music.track = (s8)(index);
 
     if (index < 0)
     {
@@ -481,7 +481,7 @@ static void setMusic(tic_core* core, s32 index, s32 frame, s32 row, bool loop, b
             setMusicChannelData(memory, -1, 0, 0, MAX_VOLUME, MAX_VOLUME, c);
 
         ram->music_state.music.row = -1;
-        ram->music_state.music.frame = frame < 0 ? 0 : frame;
+        ram->music_state.music.frame = frame < 0 ? 0 : (s8)(frame);
         ram->music_state.flag.music_loop = loop;
         ram->music_state.flag.music_sustain = sustain;
         ram->music_state.flag.music_status = tic_music_play;
@@ -564,7 +564,7 @@ void tic_core_sound_tick_start(tic_mem* memory)
     ZEROMEM(memory->ram->registers);
     ZEROMEM(memory->ram->pcm);
 
-    memory->ram->stereo.data = -1;
+    memory->ram->stereo.data = (u32)-1;
 
     processMusic(memory);
 

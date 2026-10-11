@@ -30,7 +30,7 @@ bool keyboard_pressed(tic_mem* tic, tic_key key)
 
 bool keyboard_pressed_once(tic_mem* tic, s32 key)
 {
-    return tic_api_keyp(tic, key, -1, -1);
+    return tic_api_keyp(tic, (tic_key)(key), -1, -1);
 }
 
 bool keyboard_enter(tic_mem* tic, s32 hold, s32 period)

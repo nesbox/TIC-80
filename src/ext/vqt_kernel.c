@@ -59,7 +59,7 @@ static void generateHammingWindow(float* window, int length)
 
     for (int i = 0; i < length; i++)
     {
-        window[i] = a0 - a1 * cos(2.0 * M_PI * i / (length - 1));
+        window[i] = (float)(a0 - a1 * cos(2.0 * M_PI * i / (length - 1)));
     }
 }
 
@@ -73,7 +73,7 @@ static void generateGaussianWindow(float* window, int length)
     for (int i = 0; i < length; i++)
     {
         float x = (i - center) / normFactor;
-        window[i] = exp(-0.5f * x * x);
+        window[i] = (float)(exp(-0.5f * x * x));
     }
 }
 
@@ -156,8 +156,8 @@ static bool generateSingleKernel(
         int idx = windowStart + i;
         // Key insight: use idx (position in full FFT buffer) not i (position in window)
         // and center around N/2 where N is the full FFT size
-        float phase = 2.0f * M_PI * (centerFreq / sampleRate) * (idx - fftSize/2);
-        timeKernel[idx] = tempWindow[i] * cos(phase);
+        float phase = (float)(2.0f * M_PI * (centerFreq / sampleRate) * (idx - fftSize/2));
+        timeKernel[idx] = (float)(tempWindow[i] * cos(phase));
     }
 
     // Normalize by window length before FFT (like ESP32)
@@ -175,8 +175,8 @@ static bool generateSingleKernel(
     int nonZeroCount = 0;
     for (int i = 0; i <= fftSize/2; i++)
     {
-        float magnitude = sqrt(freqKernel[i].r * freqKernel[i].r +
-                              freqKernel[i].i * freqKernel[i].i);
+        float magnitude = (float)(sqrt(freqKernel[i].r * freqKernel[i].r +
+                              freqKernel[i].i * freqKernel[i].i));
         if (magnitude > sparsityThreshold)
         {
             nonZeroCount++;
@@ -206,8 +206,8 @@ static bool generateSingleKernel(
     int minIdx = fftSize, maxIdx = 0;  // Track range for debug
     for (int i = 0; i <= fftSize/2; i++)
     {
-        float magnitude = sqrt(freqKernel[i].r * freqKernel[i].r +
-                              freqKernel[i].i * freqKernel[i].i);
+        float magnitude = (float)(sqrt(freqKernel[i].r * freqKernel[i].r +
+                              freqKernel[i].i * freqKernel[i].i));
         if (magnitude > sparsityThreshold)
         {
             kernel->real[sparseIndex] = freqKernel[i].r;

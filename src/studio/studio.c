@@ -383,7 +383,7 @@ static void emptyDone(void* data) {(void)data; }
 void fadePalette(tic_palette* pal, s32 value)
 {
     for(u8 *i = pal->data, *end = i + sizeof(tic_palette); i < end; i++)
-        *i = *i * value >> 8;
+        *i = (u8)(*i * value >> 8);
 }
 
 void map2ram(tic_ram* ram, const tic_map* src)
@@ -495,7 +495,7 @@ const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* f
         else
             for(s32 i = 0; i < COUNT_OF(BankModes); i++)
                 if(BankModes[i] == TIC_MUSIC_MODE)
-                    studio->bank.indexes[i] = bank;
+                    studio->bank.indexes[i] = (s8)bank;
 #endif
         const tic_sfx* sfx = getSfxSrc(studio);
         const tic_music* music = getMusicSrc(studio);
@@ -668,19 +668,18 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bo
     {
         char* clipboard = tic_sys_clipboard_get();
 
-        SCOPE(tic_sys_clipboard_free(clipboard))
-        {
-            if (remove_white_spaces)
-                removeWhiteSpaces(clipboard);
+        if (remove_white_spaces)
+            removeWhiteSpaces(clipboard);
 
-            bool valid = sameSize
-                ? strlen(clipboard) == (size_t)size * 2
-                : strlen(clipboard) <= (size_t)size * 2;
+        bool valid = sameSize
+            ? strlen(clipboard) == (size_t)size * 2
+            : strlen(clipboard) <= (size_t)size * 2;
 
-            if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
+        if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
 
-            return valid;
-        }
+        tic_sys_clipboard_free(clipboard);
+
+        return valid;
     }
 
     return false;
@@ -729,29 +728,29 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
 
         for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
         {
-            tic_rect rect = {x + 2 + (i+1)*Size, 0, Size, Size};
+            tic_rect btnRect = {x + 2 + (i+1)*Size, 0, Size, Size};
 
-            bool over = false;
-            if(checkMousePos(studio, &rect))
+            bool hover = false;
+            if(checkMousePos(studio, &btnRect))
             {
                 setCursor(studio, tic_cursor_hand);
-                over = true;
+                hover = true;
 
-                if(checkMouseClick(studio, &rect, tic_mouse_left))
+                if(checkMouseClick(studio, &btnRect, tic_mouse_left))
                 {
                     if(studio->bank.chained)
                         memset(studio->bank.indexes, i, sizeof studio->bank.indexes);
-                    else studio->bank.indexes[mode] = i;
+                    else studio->bank.indexes[mode] = (s8)i;
                 }
             }
 
             if(i == studio->bank.indexes[mode])
-                tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
+                tic_api_rect(tic, btnRect.x, btnRect.y, btnRect.w, btnRect.h, tic_color_red);
 
-            tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x+1, rect.y+1,
+            tic_api_print(tic, (char[]){(char)('0' + i), '\0'}, btnRect.x+1, btnRect.y+1,
                 i == studio->bank.indexes[mode]
                     ? tic_color_white
-                    : over
+                    : hover
                         ? tic_color_red
                         : tic_color_light_grey,
                 false, 1, false);
@@ -759,17 +758,17 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
         }
 
         {
-            tic_rect rect = {x + 4 + (TIC_EDITOR_BANKS+1)*Size, 0, Size, Size};
+            tic_rect btnRect = {x + 4 + (TIC_EDITOR_BANKS+1)*Size, 0, Size, Size};
 
-            bool over = false;
+            bool hover = false;
 
-            if(checkMousePos(studio, &rect))
+            if(checkMousePos(studio, &btnRect))
             {
                 setCursor(studio, tic_cursor_hand);
 
-                over = true;
+                hover = true;
 
-                if(checkMouseClick(studio, &rect, tic_mouse_left))
+                if(checkMouseClick(studio, &btnRect, tic_mouse_left))
                 {
                     studio->bank.chained = !studio->bank.chained;
 
@@ -778,7 +777,7 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
                 }
             }
 
-            drawBitIcon(studio, tic_icon_pin, rect.x, rect.y, studio->bank.chained ? tic_color_red : over ? tic_color_grey : tic_color_light_grey);
+            drawBitIcon(studio, tic_icon_pin, btnRect.x, btnRect.y, studio->bank.chained ? tic_color_red : hover ? tic_color_grey : tic_color_light_grey);
         }
     }
     else
@@ -796,7 +795,7 @@ struct Sprite* getSpriteEditor(Studio* studio)
 
 static inline s32 lerp(s32 a, s32 b, float d)
 {
-    return (b - a) * d + a;
+    return (s32)((b - a) * d + a);
 }
 
 static inline float bounceOut(float x)
@@ -807,28 +806,28 @@ static inline float bounceOut(float x)
     if (x < 1 / d1) return n1 * x * x;
     else if (x < 2 / d1)
     {
-        x -= 1.5 / d1;
-        return n1 * x * x + 0.75;
+        x -= (float)(1.5 / d1);
+        return (float)(n1 * x * x + 0.75);
     }
     else if (x < 2.5 / d1)
     {
-        x -= 2.25 / d1;
-        return n1 * x * x + 0.9375;
+        x -= (float)(2.25 / d1);
+        return (float)(n1 * x * x + 0.9375);
     }
     else
     {
-        x -= 2.625 / d1;
-        return n1 * x * x + 0.984375;
+        x -= (float)(2.625 / d1);
+        return (float)(n1 * x * x + 0.984375);
     }
 }
 
 static inline float animEffect(AnimEffect effect, float x)
 {
-    const float c1 = 1.70158;
-    const float c2 = c1 * 1.525;
+    const float c1 = 1.70158f;
+    const float c2 = c1 * 1.525f;
     const float c3 = c1 + 1;
-    const float c4 = (2 * M_PI) / 3;
-    const float c5 = (2 * M_PI) / 4.5;
+    const float c4 = (float)((2 * M_PI) / 3);
+    const float c5 = (float)((2 * M_PI) / 4.5);
 
     switch(effect)
     {
@@ -842,103 +841,103 @@ static inline float animEffect(AnimEffect effect, float x)
         return 1 - (1 - x) * (1 - x);
 
     case AnimEaseInOut:
-        return x < 0.5 ? 2 * x * x : 1 - pow(-2 * x + 2, 2) / 2;
+        return x < 0.5 ? 2 * x * x : (float)(1 - pow(-2 * x + 2, 2) / 2);
 
     case AnimEaseInCubic:
         return x * x * x;
 
     case AnimEaseOutCubic:
-        return 1 - pow(1 - x, 3);
+        return (float)(1 - pow(1 - x, 3));
 
     case AnimEaseInOutCubic:
-        return x < 0.5 ? 4 * x * x * x : 1 - pow(-2 * x + 2, 3) / 2;
+        return x < 0.5 ? 4 * x * x * x : (float)(1 - pow(-2 * x + 2, 3) / 2);
 
     case AnimEaseInQuart:
         return x * x * x * x;
 
     case AnimEaseOutQuart:
-        return 1 - pow(1 - x, 4);
+        return (float)(1 - pow(1 - x, 4));
 
     case AnimEaseInOutQuart:
-        return x < 0.5 ? 8 * x * x * x * x : 1 - pow(-2 * x + 2, 4) / 2;
+        return x < 0.5 ? 8 * x * x * x * x : (float)(1 - pow(-2 * x + 2, 4) / 2);
 
     case AnimEaseInQuint:
         return x * x * x * x * x;
 
     case AnimEaseOutQuint:
-        return 1 - pow(1 - x, 5);
+        return (float)(1 - pow(1 - x, 5));
 
     case AnimEaseInOutQuint:
-        return x < 0.5 ? 16 * x * x * x * x * x : 1 - pow(-2 * x + 2, 5) / 2;
+        return x < 0.5 ? 16 * x * x * x * x * x : (float)(1 - pow(-2 * x + 2, 5) / 2);
 
     case AnimEaseInSine:
-        return 1 - cos((x * M_PI) / 2);
+        return (float)(1 - cos((x * M_PI) / 2));
 
     case AnimEaseOutSine:
-        return sin((x * M_PI) / 2);
+        return (float)(sin((x * M_PI) / 2));
 
     case AnimEaseInOutSine:
-        return -(cos(M_PI * x) - 1) / 2;
+        return (float)(-(cos(M_PI * x) - 1) / 2);
 
     case AnimEaseInExpo:
-        return x == 0 ? 0 : pow(2, 10 * x - 10);
+        return x == 0 ? 0 : (float)(pow(2, 10 * x - 10));
 
     case AnimEaseOutExpo:
-        return x == 1 ? 1 : 1 - pow(2, -10 * x);
+        return x == 1 ? 1 : (float)(1 - pow(2, -10 * x));
 
     case AnimEaseInOutExpo:
-        return x == 0
+        return (float)(x == 0
             ? 0
             : x == 1
                 ? 1
                 : x < 0.5
                     ? pow(2, 20 * x - 10) / 2
-                    : (2 - pow(2, -20 * x + 10)) / 2;
+                    : (2 - pow(2, -20 * x + 10)) / 2);
 
     case AnimEaseInCirc:
-        return 1 - sqrt(1 - pow(x, 2));
+        return (float)(1 - sqrt(1 - pow(x, 2)));
 
     case AnimEaseOutCirc:
-        return sqrt(1 - pow(x - 1, 2));
+        return (float)(sqrt(1 - pow(x - 1, 2)));
 
     case AnimEaseInOutCirc:
         return x < 0.5
-            ? (1 - sqrt(1 - pow(2 * x, 2))) / 2
-            : (sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2;
+            ? (float)((1 - sqrt(1 - pow(2 * x, 2))) / 2)
+            : (float)((sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2);
 
     case AnimEaseInBack:
         return c3 * x * x * x - c1 * x * x;
 
     case AnimEaseOutBack:
-        return 1 + c3 * pow(x - 1, 3) + c1 * pow(x - 1, 2);
+        return (float)(1 + c3 * pow(x - 1, 3) + c1 * pow(x - 1, 2));
 
     case AnimEaseInOutBack:
         return x < 0.5
-            ? (pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2)) / 2
-            : (pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2;
+            ? (float)((pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2)) / 2)
+            : (float)((pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2);
 
     case AnimEaseInElastic:
-        return x == 0
+        return (float)(x == 0
             ? 0
             : x == 1
                 ? 1
-                : -pow(2, 10 * x - 10) * sin((x * 10 - 10.75) * c4);
+                : -pow(2, 10 * x - 10) * sin((x * 10 - 10.75) * c4));
 
     case AnimEaseOutElastic:
-        return x == 0
+        return (float)(x == 0
             ? 0
             : x == 1
                 ? 1
-                : pow(2, -10 * x) * sin((x * 10 - 0.75) * c4) + 1;
+                : pow(2, -10 * x) * sin((x * 10 - 0.75) * c4) + 1);
 
     case AnimEaseInOutElastic:
-        return x == 0
+        return (float)(x == 0
             ? 0
             : x == 1
                 ? 1
                 : x < 0.5
                     ? -(pow(2, 20 * x - 10) * sin((20 * x - 11.125) * c5)) / 2
-                    : (pow(2, -20 * x + 10) * sin((20 * x - 11.125) * c5)) / 2 + 1;
+                    : (pow(2, -20 * x + 10) * sin((20 * x - 11.125) * c5)) / 2 + 1);
 
     case AnimEaseInBounce:
         return 1 - bounceOut(1 - x);
@@ -1093,7 +1092,7 @@ static void showPopupMessage(Studio* studio, const char* text)
         (s32)sizeof studio->popup.message - 1, text);
 
     for(char* c = studio->popup.message; c < studio->popup.message + sizeof studio->popup.message; c++)
-        if(*c) *c = toupper((u8)(*c));
+        if(*c) *c = (char)(toupper((u8)(*c)));
 
     studio->anim.movie = resetMovie(&studio->anim.show);
 }
@@ -1756,7 +1755,7 @@ static void stopVideoRecord(Studio* studio)
     generateScreenshotName(studio, ".gif", filename);
 
     // Now that it has found an available filename, save it.
-    if(tic_fs_save(studio->fs, filename, result.data, result.dataSize, true))
+    if(tic_fs_save(studio->fs, filename, result.data, (s32)(result.dataSize), true))
     {
         char msg[TICNAME_MAX + sizeof " saved :)"];
         sprintf(msg, "%s saved :)", filename);
@@ -1809,7 +1808,7 @@ static void switchCrtMonitor(Studio* studio)
 #if defined(BUILD_EDITORS)
 static u32 getTime()
 {
-    return tic_sys_counter_get() * 1000 / tic_sys_freq_get();
+    return (u32)(tic_sys_counter_get() * 1000 / tic_sys_freq_get());
 }
 
 static void hideBattleTime(Studio* studio)
@@ -1832,7 +1831,7 @@ static void switchBank(Studio* studio, s32 bank)
         {
             if(studio->bank.chained)
                 memset(studio->bank.indexes, bank, sizeof studio->bank.indexes);
-            else studio->bank.indexes[i] = bank;
+            else studio->bank.indexes[i] = (s8)bank;
             break;
         }
 }
@@ -2298,10 +2297,10 @@ static void renderStudio(Studio* studio)
     case TIC_SURF_MODE:
 #endif
     case TIC_MENU_MODE:
-        tic->input.data = -1;
+        tic->input.data = (u8)-1;
         break;
     default:
-        tic->input.data = -1;
+        tic->input.data = (u8)-1;
         tic->input.gamepad = 0;
     }
 }
@@ -2478,7 +2477,7 @@ static void doCodeImport(Studio* studio)
                     s32 x = atoi(start);
                     s32 y = atoi(sep + 1);
 
-                    s32 offset = end - code.data + 1;
+                    s32 offset = (s32)(end - code.data + 1);
                     memcpy(studio->code->src, code.data + offset, sizeof(tic_code) - offset);
                     if(x == 0 && y == 0)
                     {
@@ -2699,7 +2698,7 @@ void studio_sound(Studio* studio)
     {
         s32 size = tic->product.samples.count;
         for(s16* it = tic->product.samples.buffer, *end = it + size; it != end; ++it)
-            *it = *it * volume / MAX_VOLUME;
+            *it = (s16)(*it * volume / MAX_VOLUME);
     }
 }
 

@@ -146,11 +146,11 @@ static gif_image* readGif(GifFileType *gif)
                         image->height = gif->SHeight;
                         image->colors = colorMap->ColorCount;
 
-                        s32 size = image->colors * sizeof(gif_color);
-                        image->palette = malloc(size);
+                        s32 paletteSize = image->colors * sizeof(gif_color);
+                        image->palette = malloc(paletteSize);
 
                         if(image->palette)
-                            memcpy(image->palette, colorMap->Colors, size);
+                            memcpy(image->palette, colorMap->Colors, paletteSize);
                         else
                         {
                             free(image);

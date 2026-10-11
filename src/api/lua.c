@@ -41,13 +41,13 @@ static bool initLua(tic_mem* tic, const char* code)
     luaapi_init(core);
 
     {
-        lua_State* lua = core->currentVM;
+        lua_State* vm = core->currentVM;
 
-        lua_settop(lua, 0);
+        lua_settop(vm, 0);
 
-        if(luaL_loadstring(lua, code) != LUA_OK || lua_pcall(lua, 0, LUA_MULTRET, 0) != LUA_OK)
+        if(luaL_loadstring(vm, code) != LUA_OK || lua_pcall(vm, 0, LUA_MULTRET, 0) != LUA_OK)
         {
-            core->data->error(core->data->data, lua_tostring(lua, -1));
+            core->data->error(core->data->data, lua_tostring(vm, -1));
             return false;
         }
     }

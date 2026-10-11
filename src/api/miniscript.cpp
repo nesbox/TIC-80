@@ -83,7 +83,9 @@ static tic_core *getCore(Context context) {
     return static_cast<tic_core*>(context.GetInterpreter().hostData());
 }
 
-#define INTRINSIC_LAMBDA [](MiniScript::Context context, MiniScript::IntrinsicResult partialResult) -> MiniScript::IntrinsicResult
+// No lambda here asks for the partial result, and a name would be an unused
+// parameter in all fifty-two of them, which /W4 counts.
+#define INTRINSIC_LAMBDA [](MiniScript::Context context, MiniScript::IntrinsicResult) -> MiniScript::IntrinsicResult
 
 struct RemapData {
     Interpreter interpreter;
@@ -356,7 +358,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
         if (codeValue.IsNull()) {
             return IntrinsicResult(core->api.key(tic, tic_key_unknown));
         } else {
-            tic_key code = codeValue.IntValue();
+            tic_key code = (tic_key)(codeValue.IntValue());
             if (code < tic_keys_count) {
                 return IntrinsicResult(core->api.key(tic, code));
             }
@@ -381,7 +383,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
         if (codeValue.IsNull()) {
             return IntrinsicResult(core->api.keyp(tic, tic_key_unknown, -1, -1));
         } else {
-            tic_key code = codeValue.IntValue();
+            tic_key code = (tic_key)(codeValue.IntValue());
             if (code >= tic_keys_count) {
                 context.vm.RaiseRuntimeError("unknown keyboard code");
                 return IntrinsicResult::Null;
@@ -451,16 +453,16 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
                 colors[i] = chromakey.ListGet(i).IntValue() & 0xF;
             }
         } else if (chromakey.IsNumber()) {
-            colors[count++] = chromakey.IntValue();
+            colors[count++] = (u8)(chromakey.IntValue());
         }
 
         // Handle remap
         Value remap = context.GetArg(8);
         if (remap.IsFuncRef()) {
             RemapData data{context.GetInterpreter(), remap};
-            core->api.map(tic, x, y, w, h, sx, sy, colors, count, scale, remapCallback, static_cast<void*>(&data));
+            core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, remapCallback, static_cast<void*>(&data));
         } else if (remap.IsNull()) {
-            core->api.map(tic, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+            core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, NULL, NULL);
         } else {
             context.vm.RaiseRuntimeError("remap must be funcRef or null");
         }
@@ -914,10 +916,10 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
                 trans_colors[i] = chromakey.ListGet(i).IntValue() & 0xF;
             }
         } else if (chromakey.IsNumber()) {
-            trans_colors[trans_count++] = chromakey.IntValue();
+            trans_colors[trans_count++] = (u8)(chromakey.IntValue());
         }
 
-        core->api.spr(tic, index, x, y, w, h, trans_colors, trans_count, scale, flip, rotate);
+        core->api.spr(tic, index, x, y, w, h, trans_colors, (u8)(trans_count), scale, flip, rotate);
         return IntrinsicResult::Null;
     });
     tic80Module.SetValue("spr", i.GetFunc());
@@ -987,7 +989,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
                 colors[i] = chromakey.ListGet(i).IntValue() & 0xF;
             }
         } else if (chromakey.IsNumber()) {
-            colors[count++] = chromakey.IntValue();
+            colors[count++] = (u8)(chromakey.IntValue());
         }
 
         float z[3] = { 0 };
@@ -1123,7 +1125,9 @@ void StaticInitMiniScript() {
     MiniScript::hostInfo = "https://tic80.com/";
 
     auto f = Intrinsic::Create("tic80");
-    f.set_Code(INTRINSIC_LAMBDA {
+    // The one intrinsic whose lambda never reads the context, so the Context
+    // goes unnamed — the macro every other one uses names it for them.
+    f.set_Code([](MiniScript::Context, MiniScript::IntrinsicResult) -> MiniScript::IntrinsicResult {
         static ValueDict tic80Module;
         static Value tic80ModuleValue;
 
@@ -1184,7 +1188,7 @@ static void closeMiniScript(tic_mem *tic) {
     }
 }
 
-static void callMiniScriptBoot(tic_mem *tic) {
+static void callMiniScriptBoot(tic_mem *) {
     // Do nothing. The harness will call `BOOT` before it first calls `TIC`,
     // assuming `BOOT` exists.
 }
@@ -1261,17 +1265,17 @@ static void callMiniScriptCallback(tic_mem *tic, Value name, s32 arg) {
     }
 }
 
-static void callMiniScriptScanline(tic_mem *tic, s32 row, void* data) {
+static void callMiniScriptScanline(tic_mem *tic, s32 row, void*) {
     static Value name = Value::make_string("SCN");
     callMiniScriptCallback(tic, name, row);
 }
 
-static void callMiniScriptBorder(tic_mem *tic, s32 row, void* data) {
+static void callMiniScriptBorder(tic_mem *tic, s32 row, void*) {
     static Value name = Value::make_string("BDR");
     callMiniScriptCallback(tic, name, row);
 }
 
-static void callMiniScriptMenu(tic_mem *tic, s32 index, void* data) {
+static void callMiniScriptMenu(tic_mem *tic, s32 index, void*) {
     static Value name = Value::make_string("MENU");
     callMiniScriptCallback(tic, name, index);
 }

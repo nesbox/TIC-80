@@ -40,13 +40,13 @@ static void setSideTexPixel(s32 x, s32 y, float u, float v)
     {
         if (x < SidesBufferDep.Left[yy])
         {
-            SidesBufferDep.Left[yy] = x;
+            SidesBufferDep.Left[yy] = (s16)(x);
             SidesBufferDep.ULeft[yy] = (s32)(u * 65536.0f);
             SidesBufferDep.VLeft[yy] = (s32)(v * 65536.0f);
         }
         if (x > SidesBufferDep.Right[yy])
         {
-            SidesBufferDep.Right[yy] = x;
+            SidesBufferDep.Right[yy] = (s16)(x);
         }
     }
 }
@@ -108,7 +108,7 @@ void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, flo
 {
     tic_core* core = (tic_core*)memory;
 
-    u8* mapping = getPalette(memory, colors, count);
+    u8* mapping = getPalette(memory, colors, (u8)(count));
     TexVertDep V0, V1, V2;
 
     const u8* map = memory->ram->map.data;

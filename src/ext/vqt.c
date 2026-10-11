@@ -103,7 +103,7 @@ void VQT_ApplyKernels(const float* fftReal, const float* fftImag)
         }
 
         // Calculate magnitude with gain boost
-        vqtData[bin] = sqrt(real * real + imag * imag) * 2.0f;  // Match FFT gain factor
+        vqtData[bin] = (float)(sqrt(real * real + imag * imag) * 2.0f);  // Match FFT gain factor
 
         // Check for NaN or Inf
         if (!isfinite(vqtData[bin]))

@@ -42,7 +42,7 @@ static void readConfig(Config* config)
 {
     const char* json = config->cart->code.data;
 
-    if(json_parse(json, strlen(json)))
+    if(json_parse(json, (s32)(strlen(json))))
     {
         config->data.checkNewVersion = json_bool("CHECK_NEW_VERSION", 0);
         config->data.uiScale = json_int("UI_SCALE", 0);
@@ -52,16 +52,16 @@ static void readConfig(Config* config)
         if(config->data.uiScale <= 0)
             config->data.uiScale = 1;
 
-        config->data.theme.gamepad.touch.alpha = json_int("GAMEPAD_TOUCH_ALPHA", 0);
+        config->data.theme.gamepad.touch.alpha = (u8)(json_int("GAMEPAD_TOUCH_ALPHA", 0));
 
         s32 theme = json_object("CODE_THEME", 0);
 
-#define CODE_COLOR_DEF(VAR) config->data.theme.code.VAR = json_int(#VAR, theme);
+#define CODE_COLOR_DEF(VAR) config->data.theme.code.VAR = (u8)json_int(#VAR, theme);
         CODE_COLORS_LIST(CODE_COLOR_DEF)
 #undef  CODE_COLOR_DEF
 
-        config->data.theme.code.select = json_int("SELECT", theme);
-        config->data.theme.code.cursor = json_int("CURSOR", theme);
+        config->data.theme.code.select = (u8)(json_int("SELECT", theme));
+        config->data.theme.code.cursor = (u8)(json_int("CURSOR", theme));
 
         config->data.theme.code.shadow = json_bool("SHADOW", theme);
         config->data.theme.code.altFont = json_bool("ALT_FONT", theme);
@@ -176,7 +176,7 @@ static void loadOptions(Config* config)
         string json;
         snprintf(json.data, sizeof json, "%.*s", size, data);
 
-        if(json_parse(json.data, strlen(json.data)))
+        if(json_parse(json.data, (s32)(strlen(json.data))))
         {
             struct StudioOptions* options = &config->data.options;
 
@@ -302,7 +302,7 @@ static void saveOptions(Config* config)
 #endif
         );
 
-    tic_fs_saveroot(config->fs, OptionsJsonPath, buf, strlen(buf), true);
+    tic_fs_saveroot(config->fs, OptionsJsonPath, buf, (s32)(strlen(buf)), true);
 }
 
 void initConfig(Config* config, Studio* studio, tic_fs* fs)

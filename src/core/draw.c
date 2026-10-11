@@ -150,7 +150,7 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
 
 static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    u8* mapping = getPalette(&core->memory, colors, count);
+    u8* mapping = getPalette(&core->memory, colors, (u8)(count));
 
     rotate &= 3;
     u32 orientation = flip & 3;
@@ -315,7 +315,7 @@ static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 sc
 
     for (s32 i = 0, col = colStart, xs = x; i < width; i++, col += colStep, xs += scale)
     {
-        for (s32 j = 0, row = rowStart, ys = y; j < Size; j++, row += rowStep, ys += scale)
+        for (s32 gy = 0, row = rowStart, ys = y; gy < Size; gy++, row += rowStep, ys += scale)
         {
             u8 color = tic_tilesheet_gettilepix(font_char, col, row);
             if (mapping[color] != TRANSPARENT_COLOR)
@@ -486,8 +486,8 @@ static void setSidePixel(s32 x, s32 y)
 {
     if (y >= 0 && y < TIC80_HEIGHT)
     {
-        if (x < SidesBuffer.Left[y]) SidesBuffer.Left[y] = x;
-        if (x > SidesBuffer.Right[y]) SidesBuffer.Right[y] = x;
+        if (x < SidesBuffer.Left[y]) SidesBuffer.Left[y] = (s16)(x);
+        if (x > SidesBuffer.Right[y]) SidesBuffer.Right[y] = (s16)(x);
     }
 }
 
@@ -500,9 +500,9 @@ static void drawEllipse(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 colo
     s64 dx = 4 * (1 - a) * b * b, dy = 4 * (b1 + 1) * a * a; /* error increment */
     s64 err = dx + dy + b1 * a * a, e2; /* error of 1.step */
 
-    if (x0 > x1) { x0 = x1; x1 += a; } /* if called with swapped pos32s */
+    if (x0 > x1) { x0 = x1; x1 += (s32)a; } /* if called with swapped pos32s */
     if (y0 > y1) y0 = y1; /* .. exchange them */
-    y0 += (b + 1) / 2; y1 = y0 - b1;   /* starting pixel */
+    y0 += (s32)((b + 1) / 2); y1 = (s32)(y0 - b1);   /* starting pixel */
     a *= 8 * a; b1 = 8 * b * b;
 
     do
@@ -598,12 +598,12 @@ static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 co
 {
     if(fabs(x0 - x1) < fabs(y0 - y1))
         for (float t = initLine(&x0, &x1, &y0, &y1); y0 < y1; y0++, x0 += t)
-            setPixel((tic_core*)tic, x0, y0, color);
+            setPixel((tic_core*)tic, (s32)(x0), (s32)y0, color);
     else
         for (float t = initLine(&y0, &y1, &x0, &x1); x0 < x1; x0++, y0 += t)
-            setPixel((tic_core*)tic, x0, y0, color);
+            setPixel((tic_core*)tic, (s32)(x0), (s32)y0, color);
 
-    setPixel((tic_core*)tic, x1, y1, color);
+    setPixel((tic_core*)tic, (s32)(x1), (s32)y1, color);
 }
 
 // Queue frame for floodFill.
@@ -737,8 +737,8 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     tic_core* core = (tic_core*)tic;
     const struct ClipRect* clip = &core->state.clip;
 
-    tic_point min = {floor(MIN3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), floor(MIN3(a.v[0]->y, a.v[1]->y, a.v[2]->y))};
-    tic_point max = {ceil(MAX3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), ceil(MAX3(a.v[0]->y, a.v[1]->y, a.v[2]->y))};
+    tic_point min = {(s32)(floor(MIN3(a.v[0]->x, a.v[1]->x, a.v[2]->x))), (s32)(floor(MIN3(a.v[0]->y, a.v[1]->y, a.v[2]->y)))};
+    tic_point max = {(s32)(ceil(MAX3(a.v[0]->x, a.v[1]->x, a.v[2]->x))), (s32)(ceil(MAX3(a.v[0]->y, a.v[1]->y, a.v[2]->y)))};
 
     min.x = MAX(min.x, clip->l);
     min.y = MAX(min.y, clip->t);
@@ -883,8 +883,8 @@ static tic_color triTexMapShader(const ShaderAttr* a, s32 pixel)
     enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE,
         WMask = TIC_SPRITESIZE - 1, HMask = TIC_SPRITESIZE - 1 };
 
-    s32 iu = tic_modulo(floor(vars.x), MapWidth);
-    s32 iv = tic_modulo(floor(vars.y), MapHeight);
+    s32 iu = tic_modulo((s32)(floor(vars.x)), MapWidth);
+    s32 iv = tic_modulo((s32)(floor(vars.y)), MapHeight);
 
     u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
     tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
@@ -914,8 +914,8 @@ static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
     if(!shaderStart(a, &vars, pixel))
         return TRANSPARENT_COLOR;
 
-    s32 iu = tic_modulo(floor(vars.x), TIC80_WIDTH);
-    s32 iv = tic_modulo(floor(vars.y), TIC80_HEIGHT);
+    s32 iu = tic_modulo((s32)(floor(vars.x)), TIC80_WIDTH);
+    s32 iv = tic_modulo((s32)(floor(vars.y)), TIC80_HEIGHT);
 
     return shaderEnd(a, &vars, pixel, data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)]);
 }
@@ -937,7 +937,7 @@ void tic_api_ttri(tic_mem* tic,
     TexData texData =
     {
         .sheet = getTileSheetFromSegment(tic, tic->ram->vram.blit.segment),
-        .mapping = getPalette(tic, colors, count),
+        .mapping = getPalette(tic, colors, (u8)(count)),
         .map = tic->ram->map.data,
         .vram = &((tic_core*)tic)->state.vbank.mem,
         .depth = depth,

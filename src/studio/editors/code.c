@@ -116,7 +116,7 @@ tic_color getCodeColor(Code* code)
 
     if(bb)
     {
-        s32 size = strlen(code->src) - bb->limit.lower;
+        s32 size = (s32)(strlen(code->src) - bb->limit.lower);
 
         if(size <= 0) return tic_color_light_green;
 
@@ -198,9 +198,9 @@ static void toggleBookmark(Code* code, char* codePos)
 
     if(bookmarked)
     {
-        CodeState* ptr = start;
-        while(ptr < end)
-            ptr++->bookmark = 0;
+        CodeState* state = start;
+        while(state < end)
+            state++->bookmark = 0;
     }
     else start->bookmark = 1;
 
@@ -697,17 +697,17 @@ start:
         {
             while(!islineend(*ptr))
             {
-                char c = *ptr;
+                char ch = *ptr;
 
-                if(isdigit((u8)c)) ptr++;
+                if(isdigit((u8)ch)) ptr++;
                 else if(numberStart[0] == '0'
                     && (numberStart[1] == 'x' || numberStart[1] == 'X')
                     && isxdigit((u8)numberStart[2]))
                 {
-                    if((ptr - numberStart < 2) || isxdigit((u8)c)) ptr++;
+                    if((ptr - numberStart < 2) || isxdigit((u8)ch)) ptr++;
                     else break;
                 }
-                else if(c == '.' || c == 'e' || c == 'E')
+                else if(ch == '.' || ch == 'e' || ch == 'E')
                 {
                     if(isdigit((u8)ptr[1])) ptr++;
                     else break;
@@ -1197,7 +1197,7 @@ static void insertCodeSize(Code* code, char* dst, const char* src, s32 size)
 
 static void insertCode(Code* code, char* dst, const char* src)
 {
-    insertCodeSize(code, dst, src, strlen(src));
+    insertCodeSize(code, dst, src, (s32)(strlen(src)));
 }
 
 static bool replaceSelection(Code* code)
@@ -1977,7 +1977,7 @@ static int getNumberOfLines(Code* code){
         }
         ++iter;
     }
-    return lines;
+    return (s32)lines;
 }
 
 static char** getLines(Code* code, int lines){
@@ -2460,7 +2460,7 @@ static void updateGotoCode(Code* code);
 static void processViGoto(Code* code, s32 initial)
 {
     setCodeMode(code, TEXT_GOTO_MODE);
-    code->popup.text[0] = '0' + initial;
+    code->popup.text[0] = (char)('0' + initial);
     code->popup.text[1] = '\0';
     updateGotoCode(code);
 }
@@ -2586,9 +2586,9 @@ static void processViChange(Code* code) {
 
 static char toggleCase(char c) {
     if (isupper((u8)c))
-        return tolower((u8)c);
+        return (char)(tolower((u8)c));
     else if(islower((u8)c))
-        return toupper((u8)c);
+        return (char)(toupper((u8)c));
     else
         return c;
 }
@@ -2683,7 +2683,7 @@ static void processViKeyboard(Code* code)
             size_t col = code->cursor.column;
             goEnd(code);
             newLine(code);
-            code->cursor.column = col;
+            code->cursor.column = (s32)col;
             upLine(code);
         }
         else if (shift && keyWasPressed(code->studio, tic_key_space))
@@ -3548,7 +3548,7 @@ static void drawSidebarBar(Code* code, s32 x, s32 y)
 			// calculate the new size after trimming
 			size_t trimmed_size = ptr->size - (trimmed - ptr->pos);
 
-			drawFilterMatch(code, x, y, trimmed, trimmed_size, filter);
+			drawFilterMatch(code, x, y, trimmed, (s32)trimmed_size, filter);
 		}
 	}
     else
@@ -3974,7 +3974,7 @@ void trimWhitespace(Code* code)
 
         if(trim > src)
         {
-            s32 len = trim - src;
+            s32 len = (s32)(trim - src);
             memmove(dst, src, len);
             dst += len;
         }

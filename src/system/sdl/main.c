@@ -290,8 +290,8 @@ static void renderCopy(Renderer render, Texture tex, SDL_Rect src, SDL_Rect dst)
 #if defined(CRT_SHADER_SUPPORT)
     if(!studio_config(platform.studio)->soft)
     {
-        GPU_Rect gpusrc = {src.x, src.y, src.w, src.h};
-        GPU_BlitScale(tex.gpu, &gpusrc, render.gpu, dst.x, dst.y, (float)dst.w / src.w, (float)dst.h / src.h);
+        GPU_Rect gpusrc = {(float)src.x, (float)src.y, (float)src.w, (float)src.h};
+        GPU_BlitScale(tex.gpu, &gpusrc, render.gpu, (float)dst.x, (float)dst.y, (float)dst.w / src.w, (float)dst.h / src.h);
     }
     else
 #endif
@@ -568,10 +568,10 @@ static void initGPU()
         GPU_SetInitWindow(SDL_GetWindowID(platform.window));
 
         GPU_SetPreInitFlags(vsync ? GPU_INIT_ENABLE_VSYNC : GPU_INIT_DISABLE_VSYNC);
-        platform.screen.renderer.gpu = GPU_Init(w, h, GPU_DEFAULT_INIT_FLAGS);
+        platform.screen.renderer.gpu = GPU_Init((Uint16)w, (Uint16)h, GPU_DEFAULT_INIT_FLAGS);
 
-        GPU_SetWindowResolution(w, h);
-        GPU_SetVirtualResolution(platform.screen.renderer.gpu, w, h);
+        GPU_SetWindowResolution((Uint16)w, (Uint16)h);
+        GPU_SetVirtualResolution(platform.screen.renderer.gpu, (Uint16)w, (Uint16)h);
 
         platform.screen.texture.gpu = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_RGBA);
         GPU_SetAnchor(platform.screen.texture.gpu, 0, 0);
@@ -679,12 +679,12 @@ static void processMouse()
     {
         SDL_GetRelativeMouseState(&pt.x, &pt.y);
 
-        input->mouse.rx = pt.x;
-        input->mouse.ry = pt.y;
+        input->mouse.rx = (s8)(pt.x);
+        input->mouse.ry = (s8)(pt.y);
     }
     else
     {
-        input->mouse.x = input->mouse.y = -1;
+        input->mouse.x = input->mouse.y = (u8)-1;
 
         if(platform.mouse.focus)
         {
@@ -706,8 +706,8 @@ static void processMouse()
                     else
                     {
                         SDL_ShowCursor(SDL_DISABLE);
-                        input->mouse.x = m.x;
-                        input->mouse.y = m.y;
+                        input->mouse.x = (u8)(m.x);
+                        input->mouse.y = (u8)(m.y);
                     }
                 }
             }
@@ -750,7 +750,7 @@ static void processKeyboard()
             || platform.keyboard.touch.state[i]
 #endif
             )
-            input->keyboard.keys[c++] = i;
+            input->keyboard.keys[c++] = (tic_key)(i);
 
 #if defined(TOUCH_INPUT_SUPPORT)
     if(platform.keyboard.touch.state[tic_key_board])
@@ -1188,9 +1188,9 @@ static void resetKeyboardStateOnFocusLoss()
 
 tic_layout detect_keyboard_layout()
 {
-    char q = SDL_GetKeyFromScancode(SDL_SCANCODE_Q);
-    char w = SDL_GetKeyFromScancode(SDL_SCANCODE_W);
-    char y = SDL_GetKeyFromScancode(SDL_SCANCODE_Y);
+    char q = (char)(SDL_GetKeyFromScancode(SDL_SCANCODE_Q));
+    char w = (char)(SDL_GetKeyFromScancode(SDL_SCANCODE_W));
+    char y = (char)(SDL_GetKeyFromScancode(SDL_SCANCODE_Y));
 
     tic_layout layout = tic_layout_unknown;
 
@@ -1255,8 +1255,8 @@ static void pollEvents()
         case SDL_MOUSEWHEEL:
             {
                 platform.mouse.moved = true;
-                input->mouse.scrollx = event.wheel.x;
-                input->mouse.scrolly = event.wheel.y;
+                input->mouse.scrollx = (s16)(event.wheel.x);
+                input->mouse.scrolly = (s16)(event.wheel.y);
             }
             break;
         case SDL_CONTROLLERDEVICEADDED:
@@ -1333,8 +1333,8 @@ static void pollEvents()
                     {
                         s32 w, h;
                         SDL_GetWindowSize(platform.window, &w, &h);
-                        GPU_SetWindowResolution(w, h);
-                        GPU_SetVirtualResolution(platform.screen.renderer.gpu, w, h);
+                        GPU_SetWindowResolution((Uint16)w, (Uint16)h);
+                        GPU_SetVirtualResolution(platform.screen.renderer.gpu, (Uint16)w, (Uint16)h);
                     }
 #endif
 
@@ -1972,9 +1972,9 @@ static void gpuTick()
         static const char* Uniforms[] = {"trg_x", "trg_y", "trg_w", "trg_h"};
 
         for(s32 i = 0; i < COUNT_OF(Uniforms); ++i)
-            GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, Uniforms[i]), (&rect.x)[i]);
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, Uniforms[i]), (float)(&rect.x)[i]);
 
-        GPU_BlitScale(platform.screen.texture.gpu, NULL, platform.screen.renderer.gpu, rect.x, rect.y,
+        GPU_BlitScale(platform.screen.texture.gpu, NULL, platform.screen.renderer.gpu, (float)rect.x, (float)rect.y,
             (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
         GPU_DeactivateShaderProgram();
     }

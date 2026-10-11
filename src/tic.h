@@ -430,7 +430,7 @@ static INLINE u16 tic_sound_register_get_freq(const tic_sound_register* reg)
 
 static INLINE void tic_sound_register_set_freq(tic_sound_register* reg, u16 val)
 {
-    reg->freq_low = val;
+    reg->freq_low = (u8)val;
     reg->freq_high = val >> 8;
 }
 

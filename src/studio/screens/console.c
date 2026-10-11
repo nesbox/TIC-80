@@ -51,6 +51,11 @@
 
 #include <sys/stat.h>
 
+#if defined(__TIC_WINDOWS__)
+// msvc keeps chmod in io.h; sys/stat.h has the mode macros alone
+#include <io.h>
+#endif
+
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 #endif
@@ -350,12 +355,12 @@ char *str_replace(const char *orig, char *rep, char *with) {
     // sanity checks and initialization
     if (!orig || !rep)
         return NULL;
-    len_rep = strlen(rep);
+    len_rep = (s32)(strlen(rep));
     if (len_rep == 0)
         return NULL; // empty rep causes infinite loop during count
     if (!with)
         with = "";
-    len_with = strlen(with);
+    len_with = (s32)(strlen(with));
 
     // count the number of replacements needed
     ins = orig;
@@ -375,7 +380,7 @@ char *str_replace(const char *orig, char *rep, char *with) {
     //    orig points to the remainder of orig after "end of rep"
     while (count--) {
         ins = strstr(orig, rep);
-        len_front = ins - orig;
+        len_front = (s32)(ins - orig);
         tmp = strncpy(tmp, orig, len_front) + len_front;
         tmp = strcpy(tmp, with) + len_with;
         orig += len_front + len_rep; // move to next "end of rep"
@@ -433,7 +438,7 @@ static void scrollConsole(Console* console)
     }
 
     size_t inputLines = (console->cursor.pos.x + console->input.pos) / CONSOLE_BUFFER_WIDTH;
-    s32 minScroll = console->cursor.pos.y + inputLines - CONSOLE_BUFFER_HEIGHT + 1;
+    s32 minScroll = (s32)(console->cursor.pos.y + inputLines - CONSOLE_BUFFER_HEIGHT + 1);
     if(console->scroll.pos < minScroll)
         console->scroll.pos = minScroll;
 }
@@ -451,7 +456,7 @@ static s32 cursorOffset(Console* console)
 
 static tic_point cursorPos(Console* console)
 {
-    s32 offset = cursorOffset(console) + console->input.pos;
+    s32 offset = (s32)(cursorOffset(console) + console->input.pos);
     return (tic_point)
     {
         offset % CONSOLE_BUFFER_WIDTH,
@@ -697,12 +702,12 @@ static void processConsoleEnd(Console* console)
 
 static s32 getInputOffset(Console* console)
 {
-    return (console->input.text - console->text) + console->input.pos;
+    return (s32)((console->input.text - console->text) + console->input.pos);
 }
 
 static void deleteText(Console* console, s32 start, s32 end)
 {
-    s32 offset = console->input.text - console->text;
+    s32 offset = (s32)(console->input.text - console->text);
     s32 size = CONSOLE_BUFFER_SIZE - offset - end;
     memmove(console->input.text + start, console->input.text + end, size);
 
@@ -712,7 +717,7 @@ static void deleteText(Console* console, s32 start, s32 end)
 
 static void processConsoleDel(Console* console)
 {
-    deleteText(console, console->input.pos, console->input.pos + 1);
+    deleteText(console, (s32)(console->input.pos), (s32)(console->input.pos + 1));
 }
 
 static void processConsoleBackspace(Console* console)
@@ -959,17 +964,17 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
         else
         {
             s32 size = 0;
-            void* data = strcmp(name, CONFIG_TIC_PATH) == 0
+            void* buf = strcmp(name, CONFIG_TIC_PATH) == 0
                 ? tic_fs_loadroot(console->fs, name, &size)
                 : tic_fs_load(console->fs, name, &size);
 
-            if(data) SCOPE(free(data))
+            if(buf) SCOPE(free(buf))
             {
                 tic_cartridge* cart = newCart();
 
                 SCOPE(free(cart))
                 {
-                    tic_cart_load(cart, data, size);
+                    tic_cart_load(cart, buf, size);
                     tic_tool_load_section(console->tic, cart, section);
                     onCartLoaded(console, name, section);
                 }
@@ -993,22 +998,22 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
             }
             else
             {
-                const char* name = param;
+                const char* path = param;
 
 #if defined(TIC80_PRO)
-                if(tic_tool_is_project(name))
+                if(tic_tool_is_project(path))
                 {
-                    void* data = tic_fs_load(console->fs, name, &size);
+                    void* cartData = tic_fs_load(console->fs, path, &size);
 
-                    if(data) SCOPE(free(data))
+                    if(cartData) SCOPE(free(cartData))
                     {
                         tic_cartridge* cart = newCart();
 
                         SCOPE(free(cart))
                         {
-                            tic_project_load(name, data, size, cart);
+                            tic_project_load(path, cartData, size, cart);
                             tic_tool_load_section(console->tic, cart, section);
-                            onCartLoaded(console, name, section);
+                            onCartLoaded(console, path, section);
                         }
                     }
                     else printError(console, "\nproject loading error");
@@ -1016,7 +1021,7 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
                 }
                 else printError(console, "\nfile not found");
 #else
-                if(tic_tool_is_project(name)) {
+                if(tic_tool_is_project(path)) {
                     printError(console, "\nproject loading error");
                     printFront(console, "\nThis version only supports binary .png or .tic cartridges.");
                     printLine(console);
@@ -1195,7 +1200,7 @@ static void onNewCommand(Console* console)
 
 static void insertInputText(Console* console, const char* text)
 {
-    s32 size = strlen(text);
+    s32 size = (s32)(strlen(text));
     s32 offset = getInputOffset(console);
 
     if(size < CONSOLE_BUFFER_SIZE - offset)
@@ -1204,7 +1209,7 @@ static void insertInputText(Console* console, const char* text)
         u8* color = console->color + offset;
 
         {
-            s32 len = strlen(pos);
+            s32 len = (s32)(strlen(pos));
             memmove(pos + size, pos, len);
             memmove(color + size, color, len);
         }
@@ -1769,7 +1774,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                 if(x >= 0 && x < TIC_SPRITESHEET_SIZE && y >= 0 && y < TIC_SPRITESHEET_SIZE)
                     switch (bpp) {
                         case 4:
-                            tic_tilesheet_setflatpix(base, x, y, tic_nearest_color(pal->colors,
+                            tic_tilesheet_setflatpix(base, x, y, (u8)tic_nearest_color(pal->colors,
                                (tic_rgb*)(img.pixels + i + j * img.width), TIC_PALETTE_SIZE));
                             break;
                         case 2:
@@ -1778,7 +1783,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                             // adding them together caused issues with squashing??? no idea why this isn't the case
                             // for bpp 1
                             color = (color2 << 2) | color1;
-                            tic_tilesheet_setflatpix(base, x, y, color);
+                            tic_tilesheet_setflatpix(base, x, y, (u8)(color));
                             break;
                         case 1:
                             color1 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + j * img.width), 2);
@@ -1786,7 +1791,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                             color3 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 2 + j * img.width), 2);
                             color4 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 3 + j * img.width), 2);
                             color = (color4 << 3) | (color3 << 2) | (color2 << 1) | color1;
-                            tic_tilesheet_setflatpix(base, x, y, color);
+                            tic_tilesheet_setflatpix(base, x, y, (u8)(color));
                             break;
                     }
 
@@ -1876,7 +1881,7 @@ static void onImport_screen(Console* console, const char* name, const void* buff
 
             s32 i = 0;
             for(const png_rgba *pix = img.pixels, *end = pix + (TIC80_WIDTH * TIC80_HEIGHT); pix < end; pix++)
-                tic_tool_poke4(bank->screen.data, i++, tic_nearest_color(pal->colors, (tic_rgb*)pix, TIC_PALETTE_SIZE));
+                tic_tool_poke4(bank->screen.data, i++, (u8)(tic_nearest_color(pal->colors, (tic_rgb*)pix, TIC_PALETTE_SIZE)));
 
             error = false;
         }
@@ -2481,7 +2486,7 @@ static void onExport_mapimg(Console* console, const char* param, const char* pat
         {
             tic_mem* tic = console->tic;
 
-            tic_api_sync(tic, -1, params.bank, false);
+            tic_api_sync(tic, (u32)-1, params.bank, false);
 
             for(s32 r = 0; r < TIC_MAP_ROWS; r++)
                 for(s32 c = 0; c < TIC_MAP_COLS; c++)
@@ -3328,7 +3333,7 @@ static s32 createRamTable(char* buf)
 
     ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
 
-    return strlen(buf);
+    return (s32)(strlen(buf));
 }
 
 static s32 createVRamTable(char* buf)
@@ -3345,7 +3350,7 @@ static s32 createVRamTable(char* buf)
 
     ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
 
-    return strlen(buf);
+    return (s32)(strlen(buf));
 }
 
 static s32 createKeysTable(char* buf)
@@ -3362,7 +3367,7 @@ static s32 createKeysTable(char* buf)
 
     ptr += sprintf(ptr, "\n+----+------------+ +----+------------+\n");
 
-    return strlen(buf);
+    return (s32)(strlen(buf));
 }
 
 static s32 createButtonsTable(char* buf)
@@ -3378,7 +3383,7 @@ static s32 createButtonsTable(char* buf)
 
     ptr += sprintf(ptr, "\n+--------+----+----+----+----+\n");
 
-    return strlen(buf);
+    return (s32)(strlen(buf));
 }
 
 static s32 createRamTableMd(char* buf)
@@ -3389,7 +3394,7 @@ static s32 createRamTableMd(char* buf)
     for(const RamRow* row = RamRows, *end = row + COUNT_OF(RamRows) - 1; row < end; row++)
         ptr += sprintf(ptr, "| %05X | %s | %i |\n", row->addr, row->info, (row + 1)->addr - row->addr);
 
-    return strlen(buf);
+    return (s32)(strlen(buf));
 }
 
 static s32 createVRamTableMd(char* buf)
@@ -3400,7 +3405,7 @@ static s32 createVRamTableMd(char* buf)
     for(const RamRow* row = VRamRows, *end = row + COUNT_OF(VRamRows) - 1; row < end; row++)
         ptr += sprintf(ptr, "| %05X | %s | %i |\n", row->addr, row->info, (row + 1)->addr - row->addr);
 
-    return strlen(buf);
+    return (s32)(strlen(buf));
 }
 
 static s32 createButtonsTableMd(char* buf)
@@ -3412,7 +3417,7 @@ static s32 createButtonsTableMd(char* buf)
     for(const char** it = ButtonActions, **end = it + COUNT_OF(ButtonActions); it < end; ++it, ++id)
         ptr += sprintf(ptr, "| %s | %d | %d | %d | %d |\n", *it, id, id + 8, id + 16, id + 24);
 
-    return strlen(buf);
+    return (s32)(strlen(buf));
 }
 
 static s32 createKeysTableMd(char* buf)
@@ -3423,7 +3428,7 @@ static s32 createKeysTableMd(char* buf)
     for(const KeyRow *row = KeyRows, *alt = row + COUNT_OF(KeyRows) / 2, *end = alt; row != end; ++row, ++alt)
         ptr += sprintf(ptr, "| %d | %s | %d | %s |\n", row->code, row->key, alt->code, alt->key);
 
-    return strlen(buf);
+    return (s32)(strlen(buf));
 }
 
 static void printMdCell(char** ptr, const char* str)
@@ -3544,7 +3549,7 @@ static void onExport_help(Console* console, const char* param, const char* name,
 
         SCOPE(free(helpReplaced))
         {
-            onFileExported(console, filename, tic_fs_save(console->fs, filename, helpReplaced, strlen(helpReplaced), true));
+            onFileExported(console, filename, tic_fs_save(console->fs, filename, helpReplaced, (s32)(strlen(helpReplaced)), true));
         }
     }
 }
@@ -3574,7 +3579,7 @@ static void processConsoleTab(Console* console)
 
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
-            s32 commandLen = param-input-1;
+            s32 commandLen = (s32)(param-input-1);
             bool commandMatches = ((s32)strlen(Commands[i].name) == commandLen &&
                                        strncmp(Commands[i].name, input, commandLen) == 0) ||
                                   (Commands[i].alt &&
@@ -4174,7 +4179,7 @@ static char* getSelectionText(Console* console)
     if (start > end)
         SWAP(start, end, const char*);
 
-    s32 size = end - start;
+    s32 size = (s32)(end - start);
     if (size)
     {
         size += size / CONSOLE_BUFFER_WIDTH + 1;
@@ -4328,10 +4333,10 @@ static s32 leftWordPos(Console* console)
     {
         if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
         else while(pos > start && !isalnum_(*(pos-1))) pos--;
-        return pos - console->input.text;
+        return (s32)(pos - console->input.text);
     }
 
-    return console->input.pos;
+    return (s32)(console->input.pos);
 }
 
 static s32 rightWordPos(Console* console)
@@ -4343,10 +4348,10 @@ static s32 rightWordPos(Console* console)
     {
         if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
         else while(pos < end && !isalnum_(*pos)) pos++;
-        return pos - console->input.text;
+        return (s32)(pos - console->input.text);
     }
 
-    return console->input.pos;
+    return (s32)(console->input.pos);
 }
 
 static void leftWord(Console* console)
@@ -4362,13 +4367,13 @@ static void rightWord(Console* console)
 static void deleteWord(Console* console)
 {
     s32 pos = rightWordPos(console);
-    deleteText(console, console->input.pos, pos);
+    deleteText(console, (s32)(console->input.pos), pos);
 }
 
 static void backspaceWord(Console* console)
 {
     s32 pos = leftWordPos(console);
-    deleteText(console, pos, console->input.pos);
+    deleteText(console, pos, (s32)(console->input.pos));
     console->input.pos = pos;
 }
 

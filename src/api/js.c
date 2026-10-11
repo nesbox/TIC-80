@@ -62,7 +62,7 @@ static float getNumber(JSContext *ctx, JSValueConst val)
     double res;
     JS_ToFloat64(ctx, &res, val);
 
-    return res;
+    return (float)res;
 }
 
 static bool isArray(JSContext* ctx, JSValueConst val)
@@ -158,7 +158,7 @@ static JSValue js_print(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
     s32 scale = getInteger2(ctx, argv[5], 1);
     bool alt = JS_ToBool(ctx, argv[6]);
 
-    s32 size = core->api.print(tic, text ? text : "nil", x, y, color, fixed, scale, alt);
+    s32 size = core->api.print(tic, text ? text : "nil", x, y, (u8)(color), fixed, scale, alt);
 
     JS_FreeCString(ctx, text);
 
@@ -173,7 +173,7 @@ static JSValue js_cls(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
     s32 color = getInteger2(ctx, argv[0], tic_color_black);
 
-    core->api.cls(tic, color);
+    core->api.cls(tic, (u8)(color));
 
     return JS_UNDEFINED;
 }
@@ -194,7 +194,7 @@ static JSValue js_pix(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
     else
     {
         s32 color = getInteger(ctx, argv[2]);
-        core->api.pix(tic, x, y, color, false);
+        core->api.pix(tic, x, y, (u8)(color), false);
     }
 
     return JS_UNDEFINED;
@@ -212,7 +212,7 @@ static JSValue js_line(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
-    core->api.line(tic, x0, y0, x1, y1, color);
+    core->api.line(tic, x0, y0, x1, y1, (u8)(color));
 
     return JS_UNDEFINED;
 }
@@ -228,7 +228,7 @@ static JSValue js_rect(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
     s32 color = getInteger2(ctx, argv[4], 0);
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
-    core->api.rect(tic, x, y, w, h, color);
+    core->api.rect(tic, x, y, w, h, (u8)(color));
 
     return JS_UNDEFINED;
 }
@@ -244,7 +244,7 @@ static JSValue js_rectb(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
     s32 color = getInteger2(ctx, argv[4], 0);
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
-    core->api.rectb(tic, x, y, w, h, color);
+    core->api.rectb(tic, x, y, w, h, (u8)(color));
 
     return JS_UNDEFINED;
 }
@@ -265,14 +265,14 @@ static JSValue js_spr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
             JSValue val = JS_GetPropertyUint32(ctx, argv[3], i);
-            colors[i] = getInteger2(ctx, val, -1);
+            colors[i] = (u8)(getInteger2(ctx, val, -1));
             JS_FreeValue(ctx, val);
             count++;
         }
     }
     else
     {
-        colors[0] = getInteger2(ctx, argv[3], -1);
+        colors[0] = (u8)(getInteger2(ctx, argv[3], -1));
         count = 1;
     }
 
@@ -287,7 +287,7 @@ static JSValue js_spr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
     s32 h = getInteger2(ctx, argv[8], 1);
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
-    core->api.spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate);
+    core->api.spr(tic, index, x, y, w, h, colors, (u8)(count), scale, flip, rotate);
 
     return JS_UNDEFINED;
 }
@@ -331,7 +331,7 @@ static JSValue js_key(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
     if (JS_IsUndefined(argv[0]))
         return JS_NewBool(ctx, core->api.key(tic, tic_key_unknown));
 
-    tic_key key = getInteger(ctx, argv[0]);
+    tic_key key = (tic_key)(getInteger(ctx, argv[0]));
 
     if(key < tic_keys_count)
         return JS_NewBool(ctx, core->api.key(tic, key));
@@ -362,7 +362,7 @@ static JSValue js_keyp(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
     if (JS_IsUndefined(argv[0]))
         return JS_NewBool(ctx, core->api.keyp(tic, tic_key_unknown, -1, -1));
 
-    tic_key key = getInteger(ctx, argv[0]);
+    tic_key key = (tic_key)(getInteger(ctx, argv[0]));
 
     if(key < tic_keys_count)
     {
@@ -476,7 +476,7 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     if(isArray(ctx, res))
     {
         JSValue val = JS_GetPropertyUint32(ctx, res, 0);
-        result->index = getInteger(ctx, val);
+        result->index = (u8)(getInteger(ctx, val));
         JS_FreeValue(ctx, val);
         val = JS_GetPropertyUint32(ctx, res, 1);
         result->flip = getInteger2(ctx, val, result->flip);
@@ -487,7 +487,7 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     }
     else
     {
-        result->index = JS_IsUndefined(res) ? 0 : getInteger(ctx, res);
+        result->index = JS_IsUndefined(res) ? 0 : (u8)(getInteger(ctx, res));
     }
     JS_FreeValue(ctx, res);
 }
@@ -512,14 +512,14 @@ static JSValue js_map(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
             JSValue val = JS_GetPropertyUint32(ctx, argv[6], i);
-            colors[i] = getInteger2(ctx, val, -1);
+            colors[i] = (u8)(getInteger2(ctx, val, -1));
             JS_FreeValue(ctx, val);
             count++;
         }
     }
     else
     {
-        colors[0] = getInteger2(ctx, argv[6], 0);
+        colors[0] = (u8)(getInteger2(ctx, argv[6], 0));
         count = 1;
     }
 
@@ -528,11 +528,11 @@ static JSValue js_map(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
     if(JS_IsFunction(ctx, argv[8]))
     {
         RemapData data = {ctx, argv[8]};
-        core->api.map((tic_mem*)getCore(ctx), x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
+        core->api.map((tic_mem*)getCore(ctx), x, y, w, h, sx, sy, colors, (u8)(count), scale, remapCallback, &data);
     }
     else
     {
-        core->api.map(tic, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+        core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, NULL, NULL);
     }
 
     return JS_UNDEFINED;
@@ -557,7 +557,7 @@ static JSValue js_mset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
     (void)this_val;
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
-    u8 value = getInteger2(ctx, argv[2], 0);
+    u8 value = (u8)(getInteger2(ctx, argv[2], 0));
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
@@ -583,7 +583,7 @@ static JSValue js_poke(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
     (void)argc;
     (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
-    u8 value = getInteger(ctx, argv[1]);
+    u8 value = (u8)(getInteger(ctx, argv[1]));
     s32 bits = getInteger2(ctx, argv[2], BITS_IN_BYTE);
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
@@ -608,7 +608,7 @@ static JSValue js_poke1(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
     (void)argc;
     (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
-    u8 value = getInteger(ctx, argv[1]);
+    u8 value = (u8)(getInteger(ctx, argv[1]));
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     core->api.poke1(tic, address, value);
@@ -632,7 +632,7 @@ static JSValue js_poke2(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
     (void)argc;
     (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
-    u8 value = getInteger(ctx, argv[1]);
+    u8 value = (u8)(getInteger(ctx, argv[1]));
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     core->api.poke2(tic, address, value);
@@ -656,7 +656,7 @@ static JSValue js_poke4(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
     (void)argc;
     (void)this_val;
     s32 address = getInteger(ctx, argv[0]);
-    u8 value = getInteger(ctx, argv[1]);
+    u8 value = (u8)(getInteger(ctx, argv[1]));
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
     core->api.poke4(tic, address, value);
@@ -683,7 +683,7 @@ static JSValue js_memset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
     (void)argc;
     (void)this_val;
     s32 dest = getInteger(ctx, argv[0]);
-    u8 value = getInteger(ctx, argv[1]);
+    u8 value = (u8)(getInteger(ctx, argv[1]));
     s32 size = getInteger(ctx, argv[2]);
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
@@ -700,7 +700,7 @@ static JSValue js_trace(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
     const char* text = JS_ToCString(ctx, argv[0]);
-    u8 color = getInteger2(ctx, argv[1], TIC_DEFAULT_COLOR);
+    u8 color = (u8)(getInteger2(ctx, argv[1], TIC_DEFAULT_COLOR));
 
     core->api.trace(tic, text, color);
 
@@ -772,7 +772,7 @@ static JSValue js_font(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
     const char* text = JS_ToCString(ctx, argv[0]);
     s32 x = getInteger(ctx, argv[1]);
     s32 y = getInteger(ctx, argv[2]);
-    u8 chromakey = getInteger(ctx, argv[3]);
+    u8 chromakey = (u8)(getInteger(ctx, argv[3]));
     s32 width = getInteger2(ctx, argv[4], TIC_SPRITESIZE);
     s32 height = getInteger2(ctx, argv[5], TIC_SPRITESIZE);
     bool fixed = JS_ToBool(ctx, argv[6]);
@@ -800,9 +800,9 @@ static JSValue js_mouse(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
     JS_SetPropertyUint32(ctx, arr, 0, JS_NewInt32(ctx, pos.x));
     JS_SetPropertyUint32(ctx, arr, 1, JS_NewInt32(ctx, pos.y));
-    JS_SetPropertyUint32(ctx, arr, 2, JS_NewBool(ctx, mouse->left));
-    JS_SetPropertyUint32(ctx, arr, 3, JS_NewBool(ctx, mouse->middle));
-    JS_SetPropertyUint32(ctx, arr, 4, JS_NewBool(ctx, mouse->right));
+    JS_SetPropertyUint32(ctx, arr, 2, JS_NewBool(ctx, (bool)(mouse->left)));
+    JS_SetPropertyUint32(ctx, arr, 3, JS_NewBool(ctx, (bool)(mouse->middle)));
+    JS_SetPropertyUint32(ctx, arr, 4, JS_NewBool(ctx, (bool)(mouse->right)));
     JS_SetPropertyUint32(ctx, arr, 5, JS_NewInt32(ctx, mouse->scrollx));
     JS_SetPropertyUint32(ctx, arr, 6, JS_NewInt32(ctx, mouse->scrolly));
 
@@ -820,7 +820,7 @@ static JSValue js_circ(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
-    core->api.circ(tic, x, y, radius, color);
+    core->api.circ(tic, x, y, radius, (u8)(color));
 
     return JS_UNDEFINED;
 }
@@ -836,7 +836,7 @@ static JSValue js_circb(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
-    core->api.circb(tic, x, y, radius, color);
+    core->api.circb(tic, x, y, radius, (u8)(color));
 
     return JS_UNDEFINED;
 }
@@ -853,7 +853,7 @@ static JSValue js_elli(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
-    core->api.elli(tic, x, y, a, b, color);
+    core->api.elli(tic, x, y, a, b, (u8)(color));
 
     return JS_UNDEFINED;
 }
@@ -870,7 +870,7 @@ static JSValue js_ellib(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
-    core->api.ellib(tic, x, y, a, b, color);
+    core->api.ellib(tic, x, y, a, b, (u8)(color));
 
     return JS_UNDEFINED;
 }
@@ -886,7 +886,7 @@ static JSValue js_paint(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
-    core->api.paint(tic, x, y, color, bordercolor);
+    core->api.paint(tic, x, y, (u8)(color), (u8)(bordercolor));
 
     return JS_UNDEFINED;
 }
@@ -904,7 +904,7 @@ static JSValue js_tri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
-    core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+    core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
 
     return JS_UNDEFINED;
 }
@@ -922,7 +922,7 @@ static JSValue js_trib(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
-    core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+    core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
 
     return JS_UNDEFINED;
 }
@@ -948,14 +948,14 @@ static JSValue js_textri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
             JSValue val = JS_GetPropertyUint32(ctx, argv[13], i);
-            colors[i] = getInteger2(ctx, val, -1);
+            colors[i] = (u8)(getInteger2(ctx, val, -1));
             JS_FreeValue(ctx, val);
             count++;
         }
     }
     else
     {
-        colors[0] = getInteger2(ctx, argv[13], 0);
+        colors[0] = (u8)(getInteger2(ctx, argv[13], 0));
         count = 1;
     }
 
@@ -993,14 +993,14 @@ static JSValue js_ttri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
             JSValue val = JS_GetPropertyUint32(ctx, argv[13], i);
-            colors[i] = getInteger2(ctx, val, -1);
+            colors[i] = (u8)(getInteger2(ctx, val, -1));
             JS_FreeValue(ctx, val);
             count++;
         }
     }
     else
     {
-        colors[0] = getInteger2(ctx, argv[13], 0);
+        colors[0] = (u8)(getInteger2(ctx, argv[13], 0));
         count = 1;
     }
 
@@ -1127,7 +1127,7 @@ static JSValue js_fget(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
     u32 index = getInteger2(ctx, argv[0], 0);
     u32 flag = getInteger2(ctx, argv[1], 0);
 
-    bool value = core->api.fget(tic, index, flag);
+    bool value = core->api.fget(tic, index, (u8)(flag));
 
     return JS_NewBool(ctx, value);
 }
@@ -1142,7 +1142,7 @@ static JSValue js_fset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
     u32 flag = getInteger2(ctx, argv[1], 0);
     bool value = JS_ToBool(ctx, argv[2]);
 
-    core->api.fset(tic, index, flag, value);
+    core->api.fset(tic, index, (u8)(flag), value);
 
     return JS_UNDEFINED;
 }

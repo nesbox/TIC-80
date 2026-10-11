@@ -195,7 +195,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
     tic_api_print(tic, label, x, y+1, tic_color_black, true, 1, false);
     tic_api_print(tic, label, x, y, tic_color_white, true, 1, false);
 
-    x += strlen(label) * TIC_FONT_WIDTH + TIC_ALTFONT_WIDTH;
+    x += (s32)(strlen(label) * TIC_FONT_WIDTH + TIC_ALTFONT_WIDTH);
 
     {
         tic_rect rect = { x - TIC_ALTFONT_WIDTH, y, TIC_ALTFONT_WIDTH, TIC_FONT_HEIGHT };
@@ -524,8 +524,8 @@ static void setNote(Music* music, s32 note, s32 octave, s32 sfx)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
     tic_track_row* row = &pattern->rows[music->tracker.edit.y];
-    row->note = note + NoteStart;
-    row->octave = octave;
+    row->note = (u8)(note + NoteStart);
+    row->octave = (u8)(octave);
     tic_tool_set_track_row_sfx(row, sfx);
 
     playNote(music, row);
@@ -536,7 +536,7 @@ static void setOctave(Music* music, s32 octave)
     tic_track_pattern* pattern = getChannelPattern(music);
 
     tic_track_row* row = &pattern->rows[music->tracker.edit.y];
-    row->octave = octave;
+    row->octave = (u8)(octave);
 
     music->last.octave = octave;
 
@@ -739,7 +739,7 @@ static void copyTrackerToClipboard(Music* music, bool cut)
             rect.h = 1;
         }
 
-        ClipboardHeader header = {rect.h};
+        ClipboardHeader header = {(u8)rect.h};
 
         enum{RowSize = sizeof(tic_track_pattern) / MUSIC_PATTERN_ROWS, HeaderSize = sizeof(ClipboardHeader)};
 
@@ -793,7 +793,7 @@ static void copyTrackerFromClipboard(Music* music)
                 if(header.size * RowSize == size - HeaderSize)
                 {
                     if(header.size + music->tracker.edit.y > MUSIC_PATTERN_ROWS)
-                        header.size = MUSIC_PATTERN_ROWS - music->tracker.edit.y;
+                        header.size = (u8)(MUSIC_PATTERN_ROWS - music->tracker.edit.y);
 
                     memcpy(&pattern->rows[music->tracker.edit.y], data + HeaderSize, header.size * RowSize);
                     history_add(music->history);
@@ -915,7 +915,7 @@ static s32 sym2dec(char sym)
 static s32 sym2hex(char sym)
 {
     s32 val = sym2dec(sym);
-    sym = toupper((unsigned char)sym);
+    sym = (char)(toupper((unsigned char)sym));
     if(sym >= 'A' && sym <= 'F') val = sym - 'A' + 10;
 
     return val;
@@ -1012,7 +1012,7 @@ static void incNote(Music* music, s32 note, s32 octave)
             if(index >= 0)
             {
                 row->note = (index % NOTES) + NoteStart;
-                row->octave = index / NOTES;
+                row->octave = (u8)(index / NOTES);
             }
         }
     }
@@ -1228,8 +1228,8 @@ static void processTrackerKeyboard(Music* music)
                 if(val >= 0)
                 {
                     col == ColumnParameter1
-                        ? setParam1(music, val)
-                        : setParam2(music, val);
+                        ? setParam1(music, (u8)(val))
+                        : setParam2(music, (u8)(val));
                 }
             }
             break;
@@ -1398,15 +1398,15 @@ static void setPianoValue(Music* music, char sym)
             case '+':
             case '-':
                 if(music->piano.edit.x & 1)
-                    row->param2 += delta;
-                else row->param1 += delta;
+                    row->param2 += (u8)delta;
+                else row->param1 += (u8)delta;
                 break;
             default:
                 if(hex >= 0)
                 {
                     if(music->piano.edit.x & 1)
-                        row->param2 = hex;
-                    else row->param1 = hex;
+                        row->param2 = (u8)(hex);
+                    else row->param1 = (u8)(hex);
                     updatePianoEditCol(music);
                 }
             }
@@ -1562,7 +1562,7 @@ static void setTempo(Music* music, s32 value)
 
     value -= DEFAULT_TEMPO;
     tic_track* track = getTrack(music);
-    track->tempo = CLAMP(value, Min, Max);
+    track->tempo = CLAMP((s8)(value), Min, Max);
 
     history_add(music->history);
 }
@@ -1577,7 +1577,7 @@ static void setSpeed(Music* music, s32 value)
 
     value -= DEFAULT_SPEED;
     tic_track* track = getTrack(music);
-    track->speed = CLAMP(value, Min, Max);
+    track->speed = CLAMP((s8)(value), Min, Max);
 
     history_add(music->history);
 }
@@ -1592,7 +1592,7 @@ static void setRows(Music* music, s32 value)
 
     value = MUSIC_PATTERN_ROWS - value;
     tic_track* track = getTrack(music);
-    track->rows = CLAMP(value, Min, Max);
+    track->rows = CLAMP((u8)(value), Min, Max);
     updateTracker(music);
 
     history_add(music->history);
@@ -1710,8 +1710,8 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 
     if(music->tracker.select.drag)
     {
-        tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-        if(!checkMouseDown(music->studio, &rect, tic_mouse_left))
+        tic_rect dragRect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+        if(!checkMouseDown(music->studio, &dragRect, tic_mouse_left))
         {
             music->tracker.select.drag = false;
         }
@@ -1737,8 +1737,8 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
         // draw selection
         if (selectedChannel)
         {
-            tic_rect rect = music->tracker.select.rect;
-            if (rect.h > 1 && i >= rect.y && i < rect.y + rect.h)
+            tic_rect selRect = music->tracker.select.rect;
+            if (selRect.h > 1 && i >= selRect.y && i < selRect.y + selRect.h)
             {
                 s32 sx = x - 1;
                 tic_api_rect(tic, sx, rowy - 1, CHANNEL_COLS * TIC_FONT_WIDTH + 1, TIC_FONT_HEIGHT + 1, tic_color_grey);
@@ -2058,7 +2058,7 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
         tic_api_rect(tic, x + c * ColWidth, y + 1,
             ColWidth, MUSIC_FRAMES * TIC_FONT_HEIGHT + (Header - 1), c & 1 ? tic_color_black : tic_color_dark_grey);
 
-        tic_api_print(tic, (char[]){'1' + c, '\0'}, x + (ColWidth - (TIC_ALTFONT_WIDTH - 1)) / 2 + c * ColWidth, y + 2,
+        tic_api_print(tic, (char[]){(char)('1' + c), '\0'}, x + (ColWidth - (TIC_ALTFONT_WIDTH - 1)) / 2 + c * ColWidth, y + 2,
             tic_color_grey, true, 1, true);
 
         for(s32 i = 0; i < MUSIC_FRAMES; i++)
@@ -2244,8 +2244,8 @@ static void drawPianoNoteColumn(Music* music, s32 x, s32 y)
                         switch(row->note)
                         {
                         case NoteNone:
-                            row->note = NoteStart + n;
-                            row->octave = music->last.octave;
+                            row->note = (u8)(NoteStart + n);
+                            row->octave = (u8)(music->last.octave);
                             tic_tool_set_track_row_sfx(row, music->last.sfx);
                             playNote(music, row);
                             break;
@@ -2261,7 +2261,7 @@ static void drawPianoNoteColumn(Music* music, s32 x, s32 y)
                             }
                             else
                             {
-                                row->note = NoteStart + n;
+                                row->note = (u8)(NoteStart + n);
                                 playNote(music, row);
                             }
                         }
@@ -2277,8 +2277,8 @@ static void drawPianoNoteColumn(Music* music, s32 x, s32 y)
                             row->octave = 0;
                             break;
                         case NoteStop:
-                            row->note = NoteStart + n;
-                            row->octave = music->last.octave;
+                            row->note = (u8)(NoteStart + n);
+                            row->octave = (u8)(music->last.octave);
                             tic_tool_set_track_row_sfx(row, music->last.sfx);
                             playNote(music, row);
                             break;
@@ -2290,7 +2290,7 @@ static void drawPianoNoteColumn(Music* music, s32 x, s32 y)
                             }
                             else
                             {
-                                row->note = NoteStart + n;
+                                row->note = (u8)(NoteStart + n);
                                 playNote(music, row);
                             }
                         }
@@ -2353,7 +2353,7 @@ static void drawPianoOctaveStatus(Music* music, s32 x, s32 y, s32 xpos, s32 ypos
             showTooltip(music->studio, "set octave");
 
             tic_api_print(tic, "12345678", xpos, ypos, tic_color_dark_grey, true, 1, true);
-            tic_api_print(tic, (char[]){octave + '1', '\0'}, xpos + octave * OctaveWidth, ypos, tic_color_yellow, true, 1, true);
+            tic_api_print(tic, (char[]){(char)(octave + '1'), '\0'}, xpos + octave * OctaveWidth, ypos, tic_color_yellow, true, 1, true);
         }
     }
 }
@@ -2391,7 +2391,7 @@ static void drawPianoOctaveColumn(Music* music, s32 x, s32 y)
 
                         if(checkMouseClick(music->studio, &rect, tic_mouse_left))
                         {
-                            music->last.octave = row->octave = n;
+                            music->last.octave = row->octave = (u8)(n);
                             history_add(music->history);
                             playNote(music, row);
                         }
@@ -2544,7 +2544,7 @@ static void drawPianoCommandColumn(Music* music, s32 x, s32 y)
             {
                 tic_track_row* row = &pattern->rows[rowIndex(music, overRow)];
 
-                row->command = command != row->command ? command : tic_music_cmd_empty;
+                row->command = command != row->command ? (u8)(command) : tic_music_cmd_empty;
 
                 if(row->command == tic_music_cmd_empty)
                     row->param1 = row->param2 = 0;
@@ -2629,8 +2629,8 @@ static void drawPianoXYColumn(Music* music, s32 x, s32 y)
                         s32 step = getStep(music);
                         s32 delta = left ? +step : -step;
                         if(music->piano.edit.x & 1)
-                            row->param2 += delta;
-                        else row->param1 += delta;
+                            row->param2 += (u8)delta;
+                        else row->param1 += (u8)delta;
 
                         history_add(music->history);
                     }
@@ -2763,7 +2763,7 @@ static void scrollNotes(Music* music, s32 delta)
             if(note >= 0 && note < NOTES*OCTAVES)
             {
                 pattern->rows[i].note = note % NOTES + NoteStart;
-                pattern->rows[i].octave = note / NOTES;
+                pattern->rows[i].octave = (u8)(note / NOTES);
             }
         }
 

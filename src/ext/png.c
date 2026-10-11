@@ -116,7 +116,7 @@ png_img png_read(png_buffer buf, png_buffer *cart)
             for(s32 i = 0; i < num_unknowns; i++)
                 if (!memcmp(unknowns[i].name, EXTRA_CHUNK, 5))
                 {
-                    cart->size = unknowns[i].size;
+                    cart->size = (s32)(unknowns[i].size);
                     cart->data = (u8*)malloc(cart->size);
                     if (cart->data)
                         memcpy(cart->data, unknowns[i].data, cart->size);
@@ -242,7 +242,7 @@ png_buffer png_encode(png_buffer cover, png_buffer cart)
             bitcpy(dst, i << 3, cart.data, i * header.bits, header.bits);
 
         for (s32 i = end; i < coverSize; i++)
-            bitcpy(dst, i << 3, (const u8[]){rand()}, 0, header.bits);
+            bitcpy(dst, i << 3, (const u8[]){(u8)rand()}, 0, header.bits);
     }
 
     png_buffer out = png_write(png, cart);

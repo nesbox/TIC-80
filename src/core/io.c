@@ -102,15 +102,15 @@ bool tic_api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 
     for (s32 i = 0; i < TIC80_KEY_BUFFER; i++)
     {
-        tic_key key = tic->ram->input.keyboard.keys[i];
+        tic_key keyCode = tic->ram->input.keyboard.keys[i];
 
-        if (key)
+        if (keyCode)
         {
             bool wasPressed = false;
 
             for (s32 p = 0; p < TIC80_KEY_BUFFER; p++)
             {
-                if (core->state.keyboard.previous.keys[p] == key)
+                if (core->state.keyboard.previous.keys[p] == keyCode)
                 {
                     wasPressed = true;
                     break;
@@ -157,8 +157,8 @@ void tic_core_tick_io(tic_mem* tic)
     // process keyboard
     for (s32 i = 0; i < tic_keys_count; i++)
     {
-        bool prevDown = isKeyPressed(&core->state.keyboard.previous, i);
-        bool down = isKeyPressed(&tic->ram->input.keyboard, i);
+        bool prevDown = isKeyPressed(&core->state.keyboard.previous, (tic_key)(i));
+        bool down = isKeyPressed(&tic->ram->input.keyboard, (tic_key)(i));
 
         u32* hold = &core->state.keyboard.holds[i];
 

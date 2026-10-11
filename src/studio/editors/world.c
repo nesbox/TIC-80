@@ -32,10 +32,10 @@ static void drawGrid(World* world)
     u8 color = tic_color_grey;
 
     for(s32 c = 0; c < TIC80_WIDTH; c += TIC_MAP_SCREEN_WIDTH)
-        tic_api_line(world->tic, c, 0, c, TIC80_HEIGHT, color);
+        tic_api_line(world->tic, (float)(c), 0, (float)c, TIC80_HEIGHT, color);
 
     for(s32 r = 0; r < TIC80_HEIGHT; r += TIC_MAP_SCREEN_HEIGHT)
-        tic_api_line(world->tic, 0, r, TIC80_WIDTH, r, color);
+        tic_api_line(world->tic, 0, (float)(r), TIC80_WIDTH, (float)r, color);
 
     tic_api_rectb(world->tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, color);
 
@@ -125,7 +125,7 @@ void initWorld(World* world, Studio* studio, Map* map)
     memset(world->preview, 0, PREVIEW_SIZE);
     s32 colors[TIC_PALETTE_SIZE];
 
-    u8 segment = tic_blit_calc_segment(&map->sheet.blit);
+    u8 segment = (u8)(tic_blit_calc_segment(&map->sheet.blit));
     tic_tilesheet sheet = tic_tilesheet_get(segment, (u8*)getBankTiles(world->studio));
 
     for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
@@ -152,7 +152,7 @@ void initWorld(World* world, Studio* studio, Map* map)
             for(s32 c = 0; c < COUNT_OF(colors); c++)
                 if(colors[c] > colors[max]) max = c;
 
-            tic_tool_poke4(world->preview, i, max);
+            tic_tool_poke4(world->preview, i, (u8)(max));
         }
     }
 }
