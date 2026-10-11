@@ -8,10 +8,13 @@
 # them out. A warning here is a build that stops, so ours stays at zero.
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 
-    # Xcode turns -Wshorten-64-to-32 on by itself for the Apple backend, and
-    # the script bindings narrow 64-bit host values to the 32-bit API on
-    # purpose: the flag is not part of -Wall -Wextra and comes off with them.
-    set(TIC80_WARNING_FLAGS -Wall -Wextra -Werror -Wno-shorten-64-to-32)
+    set(TIC80_WARNING_FLAGS -Wall -Wextra -Werror)
+
+    # Xcode turns -Wshorten-64-to-32 on by itself, and the script bindings
+    # narrow 64-bit host values to the 32-bit API on purpose: not an error there.
+    if(BUILD_APPLE)
+        list(APPEND TIC80_WARNING_FLAGS -Wno-error=shorten-64-to-32)
+    endif()
 
     # The 3DS toolchain's int32_t is a long, so -Wformat calls every "%i" that
     # formats an s32 a mismatch: the widths agree, the spellings do not. Every
