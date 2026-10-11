@@ -385,13 +385,13 @@ static bool update_mouse(float x, float y)
     // where it was, it would keep drawing its cursor in the corner it left by.
     if (!inside || platform.input.mouse.relative)
     {
-        platform.input.mouse.x = -1;
-        platform.input.mouse.y = -1;
+        platform.input.mouse.x = (u8)-1;
+        platform.input.mouse.y = (u8)-1;
         return false;
     }
 
-    platform.input.mouse.x = m.x;
-    platform.input.mouse.y = m.y;
+    platform.input.mouse.x = (u8)m.x;
+    platform.input.mouse.y = (u8)m.y;
 
     return true;
 }
@@ -434,8 +434,8 @@ static void pad_mouse(bool relative)
         my = TIC80_FULLHEIGHT / 2;
     }
 
-    platform.input.mouse.x = CLAMP(mx + (s32)(x * PAD_MOUSE_SPEED), 0, TIC80_FULLWIDTH - 1);
-    platform.input.mouse.y = CLAMP(my + (s32)(y * PAD_MOUSE_SPEED), 0, TIC80_FULLHEIGHT - 1);
+    platform.input.mouse.x = (u8)CLAMP(mx + (s32)(x * PAD_MOUSE_SPEED), 0, TIC80_FULLWIDTH - 1);
+    platform.input.mouse.y = (u8)CLAMP(my + (s32)(y * PAD_MOUSE_SPEED), 0, TIC80_FULLHEIGHT - 1);
 }
 
 // Handles the keyboard state over to the tick's input, and clears what a tick
@@ -683,8 +683,8 @@ static void tick(void)
         // screen, and the tick before it is captured still has one.
         if (relative)
         {
-            platform.input.mouse.rx = (s32)platform.pointer.moveX;
-            platform.input.mouse.ry = (s32)platform.pointer.moveY;
+            platform.input.mouse.rx = (s8)platform.pointer.moveX;
+            platform.input.mouse.ry = (s8)platform.pointer.moveY;
         }
 
         platform.pointer.moveX = platform.pointer.moveY = 0;
@@ -801,8 +801,8 @@ static void event_cb(const sapp_event* event)
         // drawing its cursor where the pointer left it if it were not told.
         platform.pointer.left = platform.pointer.right = platform.pointer.middle = false;
         platform.pointer.x = platform.pointer.y = -1.0f;
-        platform.input.mouse.x = -1;
-        platform.input.mouse.y = -1;
+        platform.input.mouse.x = (u8)-1;
+        platform.input.mouse.y = (u8)-1;
         sapp_show_mouse(true);
         break;
 
@@ -849,8 +849,8 @@ static void event_cb(const sapp_event* event)
         platform.pointer.scrollX -= (float)x;
         platform.pointer.scrollY -= (float)y;
 
-        platform.input.mouse.scrollx += x;
-        platform.input.mouse.scrolly += y;
+        platform.input.mouse.scrollx += (s16)x;
+        platform.input.mouse.scrolly += (s16)y;
         break;
     }
 

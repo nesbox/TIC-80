@@ -20,6 +20,9 @@ static struct
     sg_pipeline pipeline;
     sg_pipeline crt;
 
+    // The uniform block wants 16 bytes of alignment and six 4-byte handles
+    // leave it at 24: the pad says so, and /W4 stops reporting the padding.
+    float       pad[2];
     vs_params_t params;
 } render;
 
