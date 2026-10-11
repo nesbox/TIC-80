@@ -27,6 +27,14 @@
 #include <string.h>
 #include <ctype.h>
 
+// mruby's inline helpers (value.h, through mruby.h) carry a statement MSVC
+// reads as unreachable, and since the function is instantiated here the
+// warning is counted as ours: /external does not reach it.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4702)
+#endif
+
 #include <mruby.h>
 #include <mruby/compile.h>
 #include <mruby/error.h>
@@ -36,6 +44,10 @@
 #include <mruby/variable.h>
 #include <mruby/value.h>
 #include <mruby/string.h>
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
