@@ -42,7 +42,7 @@ static void readConfig(Config* config)
 {
     const char* json = config->cart->code.data;
 
-    if(json_parse(json, strlen(json)))
+    if(json_parse(json, (s32)(strlen(json))))
     {
         config->data.checkNewVersion = json_bool("CHECK_NEW_VERSION", 0);
         config->data.uiScale = json_int("UI_SCALE", 0);
@@ -176,7 +176,7 @@ static void loadOptions(Config* config)
         string json;
         snprintf(json.data, sizeof json, "%.*s", size, data);
 
-        if(json_parse(json.data, strlen(json.data)))
+        if(json_parse(json.data, (s32)(strlen(json.data))))
         {
             struct StudioOptions* options = &config->data.options;
 
@@ -302,7 +302,7 @@ static void saveOptions(Config* config)
 #endif
         );
 
-    tic_fs_saveroot(config->fs, OptionsJsonPath, buf, strlen(buf), true);
+    tic_fs_saveroot(config->fs, OptionsJsonPath, buf, (s32)(strlen(buf)), true);
 }
 
 void initConfig(Config* config, Studio* studio, tic_fs* fs)

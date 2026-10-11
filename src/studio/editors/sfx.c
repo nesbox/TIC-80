@@ -835,7 +835,7 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
     };
 
     FOR(const Edge*, edge, Edges)
-        tic_api_line(tic, x + edge->x, y + edge->y, x + edge->x1, y + edge->y1, edge->color);
+        tic_api_line(tic, x + edge->x, y + edge->y, x + edge->x1, (float)(y + edge->y1), edge->color);
 
     // draw current wave shape
     {

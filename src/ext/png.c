@@ -116,7 +116,7 @@ png_img png_read(png_buffer buf, png_buffer *cart)
             for(s32 i = 0; i < num_unknowns; i++)
                 if (!memcmp(unknowns[i].name, EXTRA_CHUNK, 5))
                 {
-                    cart->size = unknowns[i].size;
+                    cart->size = (s32)(unknowns[i].size);
                     cart->data = (u8*)malloc(cart->size);
                     if (cart->data)
                         memcpy(cart->data, unknowns[i].data, cart->size);

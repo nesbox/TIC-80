@@ -502,7 +502,7 @@ static void drawEllipse(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 colo
 
     if (x0 > x1) { x0 = x1; x1 += (s32)a; } /* if called with swapped pos32s */
     if (y0 > y1) y0 = y1; /* .. exchange them */
-    y0 += (b + 1) / 2; y1 = y0 - b1;   /* starting pixel */
+    y0 += (b + 1) / 2; y1 = (s32)(y0 - b1);   /* starting pixel */
     a *= 8 * a; b1 = 8 * b * b;
 
     do
@@ -598,12 +598,12 @@ static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 co
 {
     if(fabs(x0 - x1) < fabs(y0 - y1))
         for (float t = initLine(&x0, &x1, &y0, &y1); y0 < y1; y0++, x0 += t)
-            setPixel((tic_core*)tic, x0, y0, color);
+            setPixel((tic_core*)tic, x0, (s32)y0, color);
     else
         for (float t = initLine(&y0, &y1, &x0, &x1); x0 < x1; x0++, y0 += t)
-            setPixel((tic_core*)tic, x0, y0, color);
+            setPixel((tic_core*)tic, x0, (s32)y0, color);
 
-    setPixel((tic_core*)tic, x1, y1, color);
+    setPixel((tic_core*)tic, x1, (s32)y1, color);
 }
 
 // Queue frame for floodFill.
@@ -737,8 +737,8 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     tic_core* core = (tic_core*)tic;
     const struct ClipRect* clip = &core->state.clip;
 
-    tic_point min = {floor(MIN3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), floor(MIN3(a.v[0]->y, a.v[1]->y, a.v[2]->y))};
-    tic_point max = {ceil(MAX3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), ceil(MAX3(a.v[0]->y, a.v[1]->y, a.v[2]->y))};
+    tic_point min = {floor(MIN3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), (s32)(floor(MIN3(a.v[0]->y, a.v[1]->y, a.v[2]->y)))};
+    tic_point max = {ceil(MAX3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), (s32)(ceil(MAX3(a.v[0]->y, a.v[1]->y, a.v[2]->y)))};
 
     min.x = MAX(min.x, clip->l);
     min.y = MAX(min.y, clip->t);
@@ -883,8 +883,8 @@ static tic_color triTexMapShader(const ShaderAttr* a, s32 pixel)
     enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE,
         WMask = TIC_SPRITESIZE - 1, HMask = TIC_SPRITESIZE - 1 };
 
-    s32 iu = tic_modulo(floor(vars.x), MapWidth);
-    s32 iv = tic_modulo(floor(vars.y), MapHeight);
+    s32 iu = tic_modulo((s32)(floor(vars.x)), MapWidth);
+    s32 iv = tic_modulo((s32)(floor(vars.y)), MapHeight);
 
     u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
     tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
@@ -914,8 +914,8 @@ static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
     if(!shaderStart(a, &vars, pixel))
         return TRANSPARENT_COLOR;
 
-    s32 iu = tic_modulo(floor(vars.x), TIC80_WIDTH);
-    s32 iv = tic_modulo(floor(vars.y), TIC80_HEIGHT);
+    s32 iu = tic_modulo((s32)(floor(vars.x)), TIC80_WIDTH);
+    s32 iv = tic_modulo((s32)(floor(vars.y)), TIC80_HEIGHT);
 
     return shaderEnd(a, &vars, pixel, data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)]);
 }

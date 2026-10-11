@@ -289,9 +289,9 @@ static TriDepth tic_opttridepth(Janet* argv, int32_t argc, int32_t n)
     {
         depth.on = true;
 
-        depth.z[0] = janet_getnumber(argv, n);
-        depth.z[1] = janet_getnumber(argv, n+1);
-        depth.z[2] = janet_getnumber(argv, n+2);
+        depth.z[0] = (float)(janet_getnumber(argv, n));
+        depth.z[1] = (float)(janet_getnumber(argv, n+1));
+        depth.z[2] = (float)(janet_getnumber(argv, n+2));
     }
 
     return depth;
@@ -866,7 +866,7 @@ static Janet janet_paint(int32_t argc, Janet* argv)
     s32 x = janet_getinteger(argv, 0);
     s32 y = janet_getinteger(argv, 1);
     u8 color = janet_getinteger(argv, 2);
-    u8 bordercolor = janet_optnumber(argv, argc, 3, 255);
+    u8 bordercolor = (u8)(janet_optnumber(argv, argc, 3, 255));
 
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     core->api.paint(tic, x, y, color, bordercolor);
@@ -877,13 +877,13 @@ static Janet janet_tri(int32_t argc, Janet* argv)
 {
     janet_fixarity(argc, 7);
 
-    float x1 = janet_getnumber(argv, 0);
-    float y1 = janet_getnumber(argv, 1);
-    float x2 = janet_getnumber(argv, 2);
-    float y2 = janet_getnumber(argv, 3);
-    float x3 = janet_getnumber(argv, 4);
-    float y3 = janet_getnumber(argv, 5);
-    u8 color = janet_getnumber(argv, 6);
+    float x1 = (float)(janet_getnumber(argv, 0));
+    float y1 = (float)(janet_getnumber(argv, 1));
+    float x2 = (float)(janet_getnumber(argv, 2));
+    float y2 = (float)(janet_getnumber(argv, 3));
+    float x3 = (float)(janet_getnumber(argv, 4));
+    float y3 = (float)(janet_getnumber(argv, 5));
+    u8 color = (u8)(janet_getnumber(argv, 6));
 
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     core->api.tri(tic, x1, y1, x2, y2, x3, y3, color);
@@ -894,13 +894,13 @@ static Janet janet_trib(int32_t argc, Janet* argv)
 {
     janet_fixarity(argc, 7);
 
-    float x1 = janet_getnumber(argv, 0);
-    float y1 = janet_getnumber(argv, 1);
-    float x2 = janet_getnumber(argv, 2);
-    float y2 = janet_getnumber(argv, 3);
-    float x3 = janet_getnumber(argv, 4);
-    float y3 = janet_getnumber(argv, 5);
-    u8 color = janet_getnumber(argv, 6);
+    float x1 = (float)(janet_getnumber(argv, 0));
+    float y1 = (float)(janet_getnumber(argv, 1));
+    float x2 = (float)(janet_getnumber(argv, 2));
+    float y2 = (float)(janet_getnumber(argv, 3));
+    float x3 = (float)(janet_getnumber(argv, 4));
+    float y3 = (float)(janet_getnumber(argv, 5));
+    u8 color = (u8)(janet_getnumber(argv, 6));
 
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     core->api.trib(tic, x1, y1, x2, y2, x3, y3, color);
@@ -911,19 +911,19 @@ static Janet janet_ttri(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 12, 17);
 
-    float x1 = janet_getnumber(argv, 0);
-    float y1 = janet_getnumber(argv, 1);
-    float x2 = janet_getnumber(argv, 2);
-    float y2 = janet_getnumber(argv, 3);
-    float x3 = janet_getnumber(argv, 4);
-    float y3 = janet_getnumber(argv, 5);
+    float x1 = (float)(janet_getnumber(argv, 0));
+    float y1 = (float)(janet_getnumber(argv, 1));
+    float x2 = (float)(janet_getnumber(argv, 2));
+    float y2 = (float)(janet_getnumber(argv, 3));
+    float x3 = (float)(janet_getnumber(argv, 4));
+    float y3 = (float)(janet_getnumber(argv, 5));
 
-    float u1 = janet_getnumber(argv, 6);
-    float v1 = janet_getnumber(argv, 7);
-    float u2 = janet_getnumber(argv, 8);
-    float v2 = janet_getnumber(argv, 9);
-    float u3 = janet_getnumber(argv, 10);
-    float v3 = janet_getnumber(argv, 11);
+    float u1 = (float)(janet_getnumber(argv, 6));
+    float v1 = (float)(janet_getnumber(argv, 7));
+    float u2 = (float)(janet_getnumber(argv, 8));
+    float v2 = (float)(janet_getnumber(argv, 9));
+    float u3 = (float)(janet_getnumber(argv, 10));
+    float v3 = (float)(janet_getnumber(argv, 11));
 
     tic_texture_src src = tic_tiles_texture;
 

@@ -40,12 +40,12 @@ s7_pointer scheme_print(s7_scheme* sc, s7_pointer args)
     //print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false) -> width
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const char* text = s7_string(s7_car(args));
-    const int argn = s7_list_length(sc, args);
-    const s32 x = argn > 1 ? s7_integer(s7_cadr(args)) : 0;
-    const s32 y = argn > 2 ? s7_integer(s7_caddr(args)) : 0;
-    const u8 color = argn > 3 ? s7_integer(s7_cadddr(args)) : 15;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 x = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : 0;
+    const s32 y = argn > 2 ? (s32)(s7_integer(s7_caddr(args))) : 0;
+    const u8 color = argn > 3 ? (u8)(s7_integer(s7_cadddr(args))) : 15;
     const bool fixed = argn > 4 ? s7_boolean(sc, s7_list_ref(sc, args, 4)) : false;
-    const s32 scale = argn > 5 ? s7_integer(s7_list_ref(sc, args, 5)) : 1;
+    const s32 scale = argn > 5 ? (s32)(s7_integer(s7_list_ref(sc, args, 5))) : 1;
     const bool alt = argn > 6 ? s7_boolean(sc, s7_list_ref(sc, args, 6)) : false;
     const s32 result = core->api.print(tic, text, x, y, color, fixed, scale, alt);
     return s7_make_integer(sc, result);
@@ -54,8 +54,8 @@ s7_pointer scheme_cls(s7_scheme* sc, s7_pointer args)
 {
     // cls(color=0)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const u8 color = argn > 0 ? s7_integer(s7_car(args)) : 0;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const u8 color = argn > 0 ? (u8)(s7_integer(s7_car(args))) : 0;
     core->api.cls(tic, color);
     return s7_nil(sc);
 }
@@ -63,13 +63,13 @@ s7_pointer scheme_pix(s7_scheme* sc, s7_pointer args)
 {
     // pix(x y color)\npix(x y) -> color
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
 
-    const int argn = s7_list_length(sc, args);
+    const int argn = (s32)(s7_list_length(sc, args));
     if (argn == 3)
     {
-        const u8 color = s7_integer(s7_caddr(args));
+        const u8 color = (u8)(s7_integer(s7_caddr(args)));
         core->api.pix(tic, x, y, color, false);
         return s7_nil(sc);
     }
@@ -82,23 +82,23 @@ s7_pointer scheme_line(s7_scheme* sc, s7_pointer args)
 {
     // line(x0 y0 x1 y1 color)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x0 = s7_integer(s7_car(args));
-    const s32 y0 = s7_integer(s7_cadr(args));
-    const s32 x1 = s7_integer(s7_caddr(args));
-    const s32 y1 = s7_integer(s7_cadddr(args));
-    const u8 color = s7_integer(s7_list_ref(sc, args, 4));
-    core->api.line(tic, x0, y0, x1, y1, color);
+    const s32 x0 = (s32)(s7_integer(s7_car(args)));
+    const s32 y0 = (s32)(s7_integer(s7_cadr(args)));
+    const s32 x1 = (s32)(s7_integer(s7_caddr(args)));
+    const s32 y1 = (s32)(s7_integer(s7_cadddr(args)));
+    const u8 color = (u8)(s7_integer(s7_list_ref(sc, args, 4)));
+    core->api.line(tic, x0, y0, x1, (float)y1, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_rect(s7_scheme* sc, s7_pointer args)
 {
     // rect(x y w h color)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const s32 w = s7_integer(s7_caddr(args));
-    const s32 h = s7_integer(s7_cadddr(args));
-    const u8 color = s7_integer(s7_list_ref(sc, args, 4));
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
+    const s32 w = (s32)(s7_integer(s7_caddr(args)));
+    const s32 h = (s32)(s7_integer(s7_cadddr(args)));
+    const u8 color = (u8)(s7_integer(s7_list_ref(sc, args, 4)));
     core->api.rect(tic, x, y, w, h, color);
     return s7_nil(sc);
 }
@@ -106,11 +106,11 @@ s7_pointer scheme_rectb(s7_scheme* sc, s7_pointer args)
 {
     // rectb(x y w h color)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const s32 w = s7_integer(s7_caddr(args));
-    const s32 h = s7_integer(s7_cadddr(args));
-    const u8 color = s7_integer(s7_list_ref(sc, args, 4));
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
+    const s32 w = (s32)(s7_integer(s7_caddr(args)));
+    const s32 h = (s32)(s7_integer(s7_cadddr(args)));
+    const u8 color = (u8)(s7_integer(s7_list_ref(sc, args, 4)));
     core->api.rectb(tic, x, y, w, h, color);
     return s7_nil(sc);
 }
@@ -120,12 +120,12 @@ void parseTransparentColorsArg(s7_scheme* sc, s7_pointer colorkey, u8* out_trans
     *out_count = 0;
     if (s7_is_list(sc, colorkey))
     {
-        const s32 arg_color_count = s7_list_length(sc, colorkey);
+        const s32 arg_color_count = (s32)(s7_list_length(sc, colorkey));
         const u8 color_count = arg_color_count < TIC_PALETTE_SIZE ? (u8)arg_color_count : TIC_PALETTE_SIZE;
         for (u8 i=0; i<color_count; ++i)
         {
             s7_pointer c = s7_list_ref(sc, colorkey, i);
-            out_transparent_colors[i] = s7_is_integer(c) ? s7_integer(c) : 0;
+            out_transparent_colors[i] = s7_is_integer(c) ? (u8)(s7_integer(c)) : 0;
             ++(*out_count);
         }
     }
@@ -139,11 +139,11 @@ void parseTransparentColorsArg(s7_scheme* sc, s7_pointer colorkey, u8* out_trans
 s7_pointer scheme_spr(s7_scheme* sc, s7_pointer args)
 {
     // spr(id x y colorkey=-1 scale=1 flip=0 rotate=0 w=1 h=1)
-    const int argn      = s7_list_length(sc, args);
+    const int argn      = (s32)(s7_list_length(sc, args));
     tic_core* core      = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 id        = s7_integer(s7_car(args));
-    const s32 x         = s7_integer(s7_cadr(args));
-    const s32 y         = s7_integer(s7_caddr(args));
+    const s32 id        = (s32)(s7_integer(s7_car(args)));
+    const s32 x         = (s32)(s7_integer(s7_cadr(args)));
+    const s32 y         = (s32)(s7_integer(s7_caddr(args)));
 
     static u8 trans_colors[TIC_PALETTE_SIZE];
     u8 trans_count = 0;
@@ -153,11 +153,11 @@ s7_pointer scheme_spr(s7_scheme* sc, s7_pointer args)
         parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
     }
 
-    const s32 scale     = argn > 4 ? s7_integer(s7_list_ref(sc, args, 4)) : 1;
-    const s32 flip      = argn > 5 ? s7_integer(s7_list_ref(sc, args, 5)) : 0;
-    const s32 rotate    = argn > 6 ? s7_integer(s7_list_ref(sc, args, 6)) : 0;
-    const s32 w         = argn > 7 ? s7_integer(s7_list_ref(sc, args, 7)) : 1;
-    const s32 h         = argn > 8 ? s7_integer(s7_list_ref(sc, args, 8)) : 1;
+    const s32 scale     = argn > 4 ? (s32)(s7_integer(s7_list_ref(sc, args, 4))) : 1;
+    const s32 flip      = argn > 5 ? (s32)(s7_integer(s7_list_ref(sc, args, 5))) : 0;
+    const s32 rotate    = argn > 6 ? (s32)(s7_integer(s7_list_ref(sc, args, 6))) : 0;
+    const s32 w         = argn > 7 ? (s32)(s7_integer(s7_list_ref(sc, args, 7))) : 1;
+    const s32 h         = argn > 8 ? (s32)(s7_integer(s7_list_ref(sc, args, 8))) : 1;
     core->api.spr(tic, id, x, y, w, h, trans_colors, trans_count, scale, (tic_flip)flip, (tic_rotate) rotate);
     return s7_nil(sc);
 }
@@ -165,7 +165,7 @@ s7_pointer scheme_btn(s7_scheme* sc, s7_pointer args)
 {
     // btn(id) -> pressed
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 id = s7_integer(s7_car(args));
+    const s32 id = (s32)(s7_integer(s7_car(args)));
 
     return s7_make_boolean(sc, core->api.btn(tic, id));
 }
@@ -173,11 +173,11 @@ s7_pointer scheme_btnp(s7_scheme* sc, s7_pointer args)
 {
     // btnp(id hold=-1 period=-1) -> pressed
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 id = s7_integer(s7_car(args));
+    const s32 id = (s32)(s7_integer(s7_car(args)));
 
-    const int argn = s7_list_length(sc, args);
-    const s32 hold = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
-    const s32 period = argn > 2 ? s7_integer(s7_caddr(args)) : -1;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 hold = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : -1;
+    const s32 period = argn > 2 ? (s32)(s7_integer(s7_caddr(args))) : -1;
 
     return s7_make_boolean(sc, core->api.btnp(tic, id, hold, period));
 }
@@ -214,9 +214,9 @@ s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
 {
     // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=-1)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 id = s7_integer(s7_car(args));
+    const s32 id = (s32)(s7_integer(s7_car(args)));
 
-    const int argn = s7_list_length(sc, args);
+    const int argn = (s32)(s7_list_length(sc, args));
     int note = -1;
     int octave = -1;
     if (id >= 0 && id < SFX_COUNT) {
@@ -227,7 +227,7 @@ s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
     if (argn > 1) {
         s7_pointer note_ptr = s7_cadr(args);
         if (s7_is_integer(note_ptr)) {
-            const s32 raw_note = s7_integer(note_ptr);
+            const s32 raw_note = (s32)(s7_integer(note_ptr));
             if (raw_note != -1) {
                 note = raw_note % 12;
                 octave = raw_note / 12;
@@ -239,7 +239,7 @@ s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
             /* } */
         } else if (s7_is_string(note_ptr)) {
             const char* note_str = s7_string(note_ptr);
-            const u8 len = s7_string_length(note_ptr);
+            const u8 len = (u8)(s7_string_length(note_ptr));
             if (len == 3) {
                 const u8 modif = get_note_modif(note_str[1]);
                 note = get_note_base(note_str[0]);
@@ -258,8 +258,8 @@ s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
         }
     }
 
-    const s32 duration = argn > 2 ? s7_integer(s7_caddr(args)) : -1;
-    const s32 channel = argn > 3 ? s7_integer(s7_cadddr(args)) : 0;
+    const s32 duration = argn > 2 ? (s32)(s7_integer(s7_caddr(args))) : -1;
+    const s32 channel = argn > 3 ? (s32)(s7_integer(s7_cadddr(args))) : 0;
 
     s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
     if (argn > 4) {
@@ -271,7 +271,7 @@ s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
             volumes[1] = s7_integer(s7_cadr(volume_arg)) & 0xF;
         }
     }
-    s32 speed = argn > 5 ? s7_integer(s7_list_ref(sc, args, 5)) : -1;
+    s32 speed = argn > 5 ? (s32)(s7_integer(s7_list_ref(sc, args, 5))) : -1;
     if (speed == -1) {
         if (id >= 0 && id < SFX_COUNT) {
             speed = (tic->ram->sfx.samples.data + id)->speed;
@@ -304,7 +304,7 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 
     if (s7_is_list(sc, callbackResult) && s7_list_length(sc, callbackResult) == 3)
     {
-        result->index = s7_integer(s7_car(callbackResult));
+        result->index = (u8)(s7_integer(s7_car(callbackResult)));
         result->flip = (tic_flip)s7_integer(s7_cadr(callbackResult));
         result->rotate = (tic_rotate)s7_integer(s7_caddr(callbackResult));
     }
@@ -314,14 +314,14 @@ s7_pointer scheme_map(s7_scheme* sc, s7_pointer args)
 {
     // map(x=0 y=0 w=30 h=17 sx=0 sy=0 colorkey=-1 scale=1 remap=nil)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const s32 w = s7_integer(s7_caddr(args));
-    const s32 h = s7_integer(s7_cadddr(args));
-    const s32 sx = s7_integer(s7_list_ref(sc, args, 4));
-    const s32 sy = s7_integer(s7_list_ref(sc, args, 5));
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
+    const s32 w = (s32)(s7_integer(s7_caddr(args)));
+    const s32 h = (s32)(s7_integer(s7_cadddr(args)));
+    const s32 sx = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
+    const s32 sy = (s32)(s7_integer(s7_list_ref(sc, args, 5)));
 
-    const int argn = s7_list_length(sc, args);
+    const int argn = (s32)(s7_list_length(sc, args));
 
     static u8 trans_colors[TIC_PALETTE_SIZE];
     u8 trans_count = 0;
@@ -330,7 +330,7 @@ s7_pointer scheme_map(s7_scheme* sc, s7_pointer args)
         parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
     }
 
-    const s32 scale = argn > 7 ? s7_integer(s7_list_ref(sc, args, 7)) : 1;
+    const s32 scale = argn > 7 ? (s32)(s7_integer(s7_list_ref(sc, args, 7))) : 1;
 
     RemapFunc remap = NULL;
     RemapData data;
@@ -347,17 +347,17 @@ s7_pointer scheme_mget(s7_scheme* sc, s7_pointer args)
 {
     // mget(x y) -> tile_id
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
     return s7_make_integer(sc, core->api.mget(tic, x, y));
 }
 s7_pointer scheme_mset(s7_scheme* sc, s7_pointer args)
 {
     // mset(x y tile_id)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const u8 tile_id = s7_integer(s7_caddr(args));
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
+    const u8 tile_id = (u8)(s7_integer(s7_caddr(args)));
     core->api.mset(tic, x, y, tile_id);
     return s7_nil(sc);
 }
@@ -365,19 +365,19 @@ s7_pointer scheme_peek(s7_scheme* sc, s7_pointer args)
 {
     // peek(addr bits=8) -> value
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 addr = s7_integer(s7_car(args));
-    const int argn = s7_list_length(sc, args);
-    const s32 bits = argn > 1 ? s7_integer(s7_cadr(args)) : 8;
+    const s32 addr = (s32)(s7_integer(s7_car(args)));
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 bits = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : 8;
     return s7_make_integer(sc, core->api.peek(tic, addr, bits));
 }
 s7_pointer scheme_poke(s7_scheme* sc, s7_pointer args)
 {
     // poke(addr value bits=8)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 addr = s7_integer(s7_car(args));
-    const s32 value = s7_integer(s7_cadr(args));
-    const int argn = s7_list_length(sc, args);
-    const s32 bits = argn > 2 ? s7_integer(s7_caddr(args)) : 8;
+    const s32 addr = (s32)(s7_integer(s7_car(args)));
+    const s32 value = (s32)(s7_integer(s7_cadr(args)));
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 bits = argn > 2 ? (s32)(s7_integer(s7_caddr(args))) : 8;
     core->api.poke(tic, addr, value, bits);
     return s7_nil(sc);
 }
@@ -385,15 +385,15 @@ s7_pointer scheme_peek1(s7_scheme* sc, s7_pointer args)
 {
     // peek1(addr) -> value
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 addr = s7_integer(s7_car(args));
+    const s32 addr = (s32)(s7_integer(s7_car(args)));
     return s7_make_integer(sc, core->api.peek1(tic, addr));
 }
 s7_pointer scheme_poke1(s7_scheme* sc, s7_pointer args)
 {
     // poke1(addr value)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 addr = s7_integer(s7_car(args));
-    const s32 value = s7_integer(s7_cadr(args));
+    const s32 addr = (s32)(s7_integer(s7_car(args)));
+    const s32 value = (s32)(s7_integer(s7_cadr(args)));
     core->api.poke1(tic, addr, value);
     return s7_nil(sc);
 }
@@ -401,15 +401,15 @@ s7_pointer scheme_peek2(s7_scheme* sc, s7_pointer args)
 {
     // peek2(addr) -> value
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 addr = s7_integer(s7_car(args));
+    const s32 addr = (s32)(s7_integer(s7_car(args)));
     return s7_make_integer(sc, core->api.peek2(tic, addr));
 }
 s7_pointer scheme_poke2(s7_scheme* sc, s7_pointer args)
 {
     // poke2(addr value)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 addr = s7_integer(s7_car(args));
-    const s32 value = s7_integer(s7_cadr(args));
+    const s32 addr = (s32)(s7_integer(s7_car(args)));
+    const s32 value = (s32)(s7_integer(s7_cadr(args)));
     core->api.poke2(tic, addr, value);
     return s7_nil(sc);
 }
@@ -417,15 +417,15 @@ s7_pointer scheme_peek4(s7_scheme* sc, s7_pointer args)
 {
     // peek4(addr) -> value
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 addr = s7_integer(s7_car(args));
+    const s32 addr = (s32)(s7_integer(s7_car(args)));
     return s7_make_integer(sc, core->api.peek4(tic, addr));
 }
 s7_pointer scheme_poke4(s7_scheme* sc, s7_pointer args)
 {
     // poke4(addr value)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 addr = s7_integer(s7_car(args));
-    const s32 value = s7_integer(s7_cadr(args));
+    const s32 addr = (s32)(s7_integer(s7_car(args)));
+    const s32 value = (s32)(s7_integer(s7_cadr(args)));
     core->api.poke4(tic, addr, value);
     return s7_nil(sc);
 }
@@ -433,9 +433,9 @@ s7_pointer scheme_memcpy(s7_scheme* sc, s7_pointer args)
 {
     // memcpy(dest source size)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 dest = s7_integer(s7_car(args));
-    const s32 source = s7_integer(s7_cadr(args));
-    const s32 size = s7_integer(s7_caddr(args));
+    const s32 dest = (s32)(s7_integer(s7_car(args)));
+    const s32 source = (s32)(s7_integer(s7_cadr(args)));
+    const s32 size = (s32)(s7_integer(s7_caddr(args)));
 
     core->api.memcpy(tic, dest, source, size);
     return s7_nil(sc);
@@ -444,9 +444,9 @@ s7_pointer scheme_memset(s7_scheme* sc, s7_pointer args)
 {
     // memset(dest value size)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 dest = s7_integer(s7_car(args));
-    const s32 value = s7_integer(s7_cadr(args));
-    const s32 size = s7_integer(s7_caddr(args));
+    const s32 dest = (s32)(s7_integer(s7_car(args)));
+    const s32 value = (s32)(s7_integer(s7_cadr(args)));
+    const s32 size = (s32)(s7_integer(s7_caddr(args)));
 
     core->api.memset(tic, dest, value, size);
     return s7_nil(sc);
@@ -456,8 +456,8 @@ s7_pointer scheme_trace(s7_scheme* sc, s7_pointer args)
     // trace(message color=15)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const char* msg = s7_string(s7_car(args));
-    const int argn = s7_list_length(sc, args);
-    const s32 color = argn > 1 ? s7_integer(s7_cadr(args)) : 15;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 color = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : 15;
     core->api.trace(tic, msg, color);
     return s7_nil(sc);
 }
@@ -466,13 +466,13 @@ s7_pointer scheme_pmem(s7_scheme* sc, s7_pointer args)
     // pmem(index value)
     // pmem(index) -> value
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 index = s7_integer(s7_car(args));
-    const int argn = s7_list_length(sc, args);
+    const s32 index = (s32)(s7_integer(s7_car(args)));
+    const int argn = (s32)(s7_list_length(sc, args));
     s32 value = 0;
     bool shouldSet = false;
     if (argn > 1)
     {
-        value = s7_integer(s7_cadr(args));
+        value = (s32)(s7_integer(s7_cadr(args)));
         shouldSet = true;
     }
     return s7_make_integer(sc, (s32)core->api.pmem(tic, index, value, shouldSet));
@@ -504,19 +504,19 @@ s7_pointer scheme_font(s7_scheme* sc, s7_pointer args)
     // font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const char* text = s7_string(s7_car(args));
-    const s32 x = s7_integer(s7_cadr(args));
-    const s32 y = s7_integer(s7_caddr(args));
+    const s32 x = (s32)(s7_integer(s7_cadr(args)));
+    const s32 y = (s32)(s7_integer(s7_caddr(args)));
 
     static u8 trans_colors[TIC_PALETTE_SIZE];
     u8 trans_count = 0;
     s7_pointer colorkey = s7_cadddr(args);
     parseTransparentColorsArg(sc, colorkey, trans_colors, &trans_count);
 
-    const s32 w = s7_integer(s7_list_ref(sc, args, 4));
-    const s32 h = s7_integer(s7_list_ref(sc, args, 5));
-    const int argn = s7_list_length(sc, args);
+    const s32 w = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
+    const s32 h = (s32)(s7_integer(s7_list_ref(sc, args, 5)));
+    const int argn = (s32)(s7_list_length(sc, args));
     const s32 fixed = argn > 6 ? s7_boolean(sc, s7_list_ref(sc, args, 6)) : false;
-    const s32 scale = argn > 7 ? s7_integer(s7_list_ref(sc, args, 7)) : 1;
+    const s32 scale = argn > 7 ? (s32)(s7_integer(s7_list_ref(sc, args, 7))) : 1;
     const s32 alt = argn > 8 ? s7_boolean(sc, s7_list_ref(sc, args, 8)) : false;
 
     return s7_make_integer(sc, core->api.font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt));
@@ -543,10 +543,10 @@ s7_pointer scheme_circ(s7_scheme* sc, s7_pointer args)
 {
     // circ(x y radius color)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const s32 radius = s7_integer(s7_caddr(args));
-    const s32 color = s7_integer(s7_cadddr(args));
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
+    const s32 radius = (s32)(s7_integer(s7_caddr(args)));
+    const s32 color = (s32)(s7_integer(s7_cadddr(args)));
     core->api.circ(tic, x, y, radius, color);
     return s7_nil(sc);
 }
@@ -554,10 +554,10 @@ s7_pointer scheme_circb(s7_scheme* sc, s7_pointer args)
 {
     // circb(x y radius color)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const s32 radius = s7_integer(s7_caddr(args));
-    const s32 color = s7_integer(s7_cadddr(args));
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
+    const s32 radius = (s32)(s7_integer(s7_caddr(args)));
+    const s32 color = (s32)(s7_integer(s7_cadddr(args)));
     core->api.circb(tic, x, y, radius, color);
     return s7_nil(sc);
 }
@@ -565,11 +565,11 @@ s7_pointer scheme_elli(s7_scheme* sc, s7_pointer args)
 {
     // elli(x y a b color)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const s32 a = s7_integer(s7_caddr(args));
-    const s32 b = s7_integer(s7_cadddr(args));
-    const s32 color = s7_integer(s7_list_ref(sc, args, 4));
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
+    const s32 a = (s32)(s7_integer(s7_caddr(args)));
+    const s32 b = (s32)(s7_integer(s7_cadddr(args)));
+    const s32 color = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
     core->api.elli(tic, x, y, a, b, color);
     return s7_nil(sc);
 }
@@ -577,23 +577,23 @@ s7_pointer scheme_ellib(s7_scheme* sc, s7_pointer args)
 {
     // ellib(x y a b color)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const s32 a = s7_integer(s7_caddr(args));
-    const s32 b = s7_integer(s7_cadddr(args));
-    const s32 color = s7_integer(s7_list_ref(sc, args, 4));
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
+    const s32 a = (s32)(s7_integer(s7_caddr(args)));
+    const s32 b = (s32)(s7_integer(s7_cadddr(args)));
+    const s32 color = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
     core->api.ellib(tic, x, y, a, b, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_paint(s7_scheme* sc, s7_pointer args)
 {
     // paint(x y color bordercolor=-1)
-    const int argn = s7_list_length(sc, args);
+    const int argn = (s32)(s7_list_length(sc, args));
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const s32 color = s7_integer(s7_caddr(args));
-    const s32 bordercolor = argn >= 4 ? s7_integer(s7_cadddr(args)) : -1;
+    const s32 x = (s32)(s7_integer(s7_car(args)));
+    const s32 y = (s32)(s7_integer(s7_cadr(args)));
+    const s32 color = (s32)(s7_integer(s7_caddr(args)));
+    const s32 bordercolor = argn >= 4 ? (s32)(s7_integer(s7_cadddr(args))) : -1;
     core->api.paint(tic, x, y, color, bordercolor);
     return s7_nil(sc);
 }
@@ -601,48 +601,48 @@ s7_pointer scheme_tri(s7_scheme* sc, s7_pointer args)
 {
     // tri(x1 y1 x2 y2 x3 y3 color)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x1 = s7_integer(s7_car(args));
-    const s32 y1 = s7_integer(s7_cadr(args));
-    const s32 x2 = s7_integer(s7_caddr(args));
-    const s32 y2 = s7_integer(s7_cadddr(args));
-    const s32 x3 = s7_integer(s7_list_ref(sc, args, 4));
-    const s32 y3 = s7_integer(s7_list_ref(sc, args, 5));
-    const s32 color = s7_integer(s7_list_ref(sc, args, 6));
-    core->api.tri(tic, x1, y1, x2, y2, x3, y3, color);
+    const s32 x1 = (s32)(s7_integer(s7_car(args)));
+    const s32 y1 = (s32)(s7_integer(s7_cadr(args)));
+    const s32 x2 = (s32)(s7_integer(s7_caddr(args)));
+    const s32 y2 = (s32)(s7_integer(s7_cadddr(args)));
+    const s32 x3 = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
+    const s32 y3 = (s32)(s7_integer(s7_list_ref(sc, args, 5)));
+    const s32 color = (s32)(s7_integer(s7_list_ref(sc, args, 6)));
+    core->api.tri(tic, x1, y1, x2, y2, x3, (float)y3, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_trib(s7_scheme* sc, s7_pointer args)
 {
     // trib(x1 y1 x2 y2 x3 y3 color)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x1 = s7_integer(s7_car(args));
-    const s32 y1 = s7_integer(s7_cadr(args));
-    const s32 x2 = s7_integer(s7_caddr(args));
-    const s32 y2 = s7_integer(s7_cadddr(args));
-    const s32 x3 = s7_integer(s7_list_ref(sc, args, 4));
-    const s32 y3 = s7_integer(s7_list_ref(sc, args, 5));
-    const s32 color = s7_integer(s7_list_ref(sc, args, 6));
-    core->api.trib(tic, x1, y1, x2, y2, x3, y3, color);
+    const s32 x1 = (s32)(s7_integer(s7_car(args)));
+    const s32 y1 = (s32)(s7_integer(s7_cadr(args)));
+    const s32 x2 = (s32)(s7_integer(s7_caddr(args)));
+    const s32 y2 = (s32)(s7_integer(s7_cadddr(args)));
+    const s32 x3 = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
+    const s32 y3 = (s32)(s7_integer(s7_list_ref(sc, args, 5)));
+    const s32 color = (s32)(s7_integer(s7_list_ref(sc, args, 6)));
+    core->api.trib(tic, x1, y1, x2, y2, x3, (float)y3, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_ttri(s7_scheme* sc, s7_pointer args)
 {
     // ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 x1 = s7_integer(s7_car(args));
-    const s32 y1 = s7_integer(s7_cadr(args));
-    const s32 x2 = s7_integer(s7_caddr(args));
-    const s32 y2 = s7_integer(s7_cadddr(args));
-    const s32 x3 = s7_integer(s7_list_ref(sc, args, 4));
-    const s32 y3 = s7_integer(s7_list_ref(sc, args, 5));
-    const s32 u1 = s7_integer(s7_list_ref(sc, args, 6));
-    const s32 v1 = s7_integer(s7_list_ref(sc, args, 7));
-    const s32 u2 = s7_integer(s7_list_ref(sc, args, 8));
-    const s32 v2 = s7_integer(s7_list_ref(sc, args, 9));
-    const s32 u3 = s7_integer(s7_list_ref(sc, args, 10));
-    const s32 v3 = s7_integer(s7_list_ref(sc, args, 11));
+    const s32 x1 = (s32)(s7_integer(s7_car(args)));
+    const s32 y1 = (s32)(s7_integer(s7_cadr(args)));
+    const s32 x2 = (s32)(s7_integer(s7_caddr(args)));
+    const s32 y2 = (s32)(s7_integer(s7_cadddr(args)));
+    const s32 x3 = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
+    const s32 y3 = (s32)(s7_integer(s7_list_ref(sc, args, 5)));
+    const s32 u1 = (s32)(s7_integer(s7_list_ref(sc, args, 6)));
+    const s32 v1 = (s32)(s7_integer(s7_list_ref(sc, args, 7)));
+    const s32 u2 = (s32)(s7_integer(s7_list_ref(sc, args, 8)));
+    const s32 v2 = (s32)(s7_integer(s7_list_ref(sc, args, 9)));
+    const s32 u3 = (s32)(s7_integer(s7_list_ref(sc, args, 10)));
+    const s32 v3 = (s32)(s7_integer(s7_list_ref(sc, args, 11)));
 
-    const int argn = s7_list_length(sc, args);
+    const int argn = (s32)(s7_list_length(sc, args));
     const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? s7_integer(s7_list_ref(sc, args, 12)) : 0);
 
     static u8 trans_colors[TIC_PALETTE_SIZE];
@@ -655,11 +655,11 @@ s7_pointer scheme_ttri(s7_scheme* sc, s7_pointer args)
     }
 
     bool depth = argn > 14 ? true : false;
-    const s32 z1 = argn > 14 ? s7_integer(s7_list_ref(sc, args, 14)) : 0;
-    const s32 z2 = argn > 15 ? s7_integer(s7_list_ref(sc, args, 15)) : 0;
-    const s32 z3 = argn > 16 ? s7_integer(s7_list_ref(sc, args, 16)) : 0;
+    const s32 z1 = argn > 14 ? (s32)(s7_integer(s7_list_ref(sc, args, 14))) : 0;
+    const s32 z2 = argn > 15 ? (s32)(s7_integer(s7_list_ref(sc, args, 15))) : 0;
+    const s32 z3 = argn > 16 ? (s32)(s7_integer(s7_list_ref(sc, args, 16))) : 0;
 
-    core->api.ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, trans_colors, trans_count, z1, z2, z3, depth);
+    core->api.ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, trans_colors, trans_count, z1, z2, (float)z3, depth);
     return s7_nil(sc);
 }
 s7_pointer scheme_clip(s7_scheme* sc, s7_pointer args)
@@ -667,14 +667,14 @@ s7_pointer scheme_clip(s7_scheme* sc, s7_pointer args)
     // clip(x y width height)
     // clip()
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
+    const int argn = (s32)(s7_list_length(sc, args));
     if (argn != 4) {
         core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
     } else {
-        const s32 x = s7_integer(s7_car(args));
-        const s32 y = s7_integer(s7_cadr(args));
-        const s32 w = s7_integer(s7_caddr(args));
-        const s32 h = s7_integer(s7_cadddr(args));
+        const s32 x = (s32)(s7_integer(s7_car(args)));
+        const s32 y = (s32)(s7_integer(s7_cadr(args)));
+        const s32 w = (s32)(s7_integer(s7_caddr(args)));
+        const s32 h = (s32)(s7_integer(s7_cadddr(args)));
         core->api.clip(tic, x, y, w, h);
     }
     return s7_nil(sc);
@@ -683,14 +683,14 @@ s7_pointer scheme_music(s7_scheme* sc, s7_pointer args)
 {
     // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 track = argn > 0 ? s7_integer(s7_car(args)) : -1;
-    const s32 frame = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
-    const s32 row = argn > 2 ? s7_integer(s7_caddr(args)) : -1;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 track = argn > 0 ? (s32)(s7_integer(s7_car(args))) : -1;
+    const s32 frame = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : -1;
+    const s32 row = argn > 2 ? (s32)(s7_integer(s7_caddr(args))) : -1;
     const bool loop = argn > 3 ? s7_boolean(sc, s7_cadddr(args)) : true;
     const bool sustain = argn > 4 ? s7_boolean(sc, s7_list_ref(sc, args, 4)) : false;
-    const s32 tempo = argn > 5 ? s7_integer(s7_list_ref(sc, args, 5)) : -1;
-    const s32 speed = argn > 6 ? s7_integer(s7_list_ref(sc, args, 6)) : -1;
+    const s32 tempo = argn > 5 ? (s32)(s7_integer(s7_list_ref(sc, args, 5))) : -1;
+    const s32 speed = argn > 6 ? (s32)(s7_integer(s7_list_ref(sc, args, 6))) : -1;
     core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
     return s7_nil(sc);
 }
@@ -698,9 +698,9 @@ s7_pointer scheme_sync(s7_scheme* sc, s7_pointer args)
 {
     // sync(mask=0 bank=0 tocart=false)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
+    const int argn = (s32)(s7_list_length(sc, args));
     const u32 mask = argn > 0 ? (u32)s7_integer(s7_car(args)) : 0;
-    const s32 bank = argn > 1 ? s7_integer(s7_cadr(args)) : 0;
+    const s32 bank = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : 0;
     const bool tocart = argn > 2 ? s7_boolean(sc, s7_caddr(args)) : false;
     core->api.sync(tic, mask, bank, tocart);
     return s7_nil(sc);
@@ -710,11 +710,11 @@ s7_pointer scheme_vbank(s7_scheme* sc, s7_pointer args)
     // vbank(bank) -> prev
     // vbank() -> prev
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
+    const int argn = (s32)(s7_list_length(sc, args));
 
     const s32 prev = ((tic_core*)tic)->state.vbank.id;
     if (argn == 1) {
-        const s32 bank = s7_integer(s7_car(args));
+        const s32 bank = (s32)(s7_integer(s7_car(args)));
         core->api.vbank(tic, bank);
     }
     return s7_make_integer(sc, prev);
@@ -731,34 +731,34 @@ s7_pointer scheme_key(s7_scheme* sc, s7_pointer args)
 {
     //key(code=-1) -> pressed
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const tic_key code = argn > 0 ? s7_integer(s7_car(args)) : -1;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const tic_key code = argn > 0 ? (tic_key)(s7_integer(s7_car(args))) : -1;
     return s7_make_boolean(sc, core->api.key(tic, code));
 }
 s7_pointer scheme_keyp(s7_scheme* sc, s7_pointer args)
 {
     // keyp(code=-1 hold=-1 period=-1) -> pressed
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const tic_key code = argn > 0 ? s7_integer(s7_car(args)) : -1;
-    const s32 hold = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
-    const s32 period = argn > 2 ? s7_integer(s7_caddr(args)) : -1;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const tic_key code = argn > 0 ? (tic_key)(s7_integer(s7_car(args))) : -1;
+    const s32 hold = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : -1;
+    const s32 period = argn > 2 ? (s32)(s7_integer(s7_caddr(args))) : -1;
     return s7_make_boolean(sc, core->api.keyp(tic, code, hold, period));
 }
 s7_pointer scheme_fget(s7_scheme* sc, s7_pointer args)
 {
     // fget(sprite_id flag) -> bool
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 sprite_id = s7_integer(s7_car(args));
-    const u8 flag = s7_integer(s7_cadr(args));
+    const s32 sprite_id = (s32)(s7_integer(s7_car(args)));
+    const u8 flag = (u8)(s7_integer(s7_cadr(args)));
     return s7_make_boolean(sc, core->api.fget(tic, sprite_id, flag));
 }
 s7_pointer scheme_fset(s7_scheme* sc, s7_pointer args)
 {
     // fset(sprite_id flag bool)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const s32 sprite_id = s7_integer(s7_car(args));
-    const u8 flag = s7_integer(s7_cadr(args));
+    const s32 sprite_id = (s32)(s7_integer(s7_car(args)));
+    const u8 flag = (u8)(s7_integer(s7_cadr(args)));
     const bool val = s7_boolean(sc, s7_caddr(args));
     core->api.fset(tic, sprite_id, flag, val);
     return s7_nil(sc);
@@ -769,8 +769,8 @@ s7_pointer scheme_vqt(s7_scheme* sc, s7_pointer args)
     // vqt(int bin) -> float_value
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 bin = argn > 0 ? (s32)(s7_integer(s7_car(args))) : 0;
 
     return s7_make_real(sc, core->api.vqt(tic, bin));
 }
@@ -780,8 +780,8 @@ s7_pointer scheme_vqts(s7_scheme* sc, s7_pointer args)
     // vqts(int bin) -> float_value
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 bin = argn > 0 ? (s32)(s7_integer(s7_car(args))) : 0;
 
     return s7_make_real(sc, core->api.vqts(tic, bin));
 }
@@ -791,8 +791,8 @@ s7_pointer scheme_vqtr(s7_scheme* sc, s7_pointer args)
     // vqtr(int bin) -> float_value
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 bin = argn > 0 ? (s32)(s7_integer(s7_car(args))) : 0;
 
     return s7_make_real(sc, core->api.vqtr(tic, bin));
 }
@@ -802,8 +802,8 @@ s7_pointer scheme_vqtrs(s7_scheme* sc, s7_pointer args)
     // vqtrs(int bin) -> float_value
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 bin = argn > 0 ? (s32)(s7_integer(s7_car(args))) : 0;
 
     return s7_make_real(sc, core->api.vqtrs(tic, bin));
 }
@@ -813,8 +813,8 @@ s7_pointer scheme_vqtw(s7_scheme* sc, s7_pointer args)
     // vqtw(int bin) -> float_value
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 bin = argn > 0 ? (s32)(s7_integer(s7_car(args))) : 0;
 
     return s7_make_real(sc, core->api.vqtw(tic, bin));
 }
@@ -824,8 +824,8 @@ s7_pointer scheme_vqtsw(s7_scheme* sc, s7_pointer args)
     // vqtsw(int bin) -> float_value
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 bin = argn > 0 ? (s32)(s7_integer(s7_car(args))) : 0;
 
     return s7_make_real(sc, core->api.vqtsw(tic, bin));
 }
@@ -835,8 +835,8 @@ s7_pointer scheme_vqtrw(s7_scheme* sc, s7_pointer args)
     // vqtrw(int bin) -> float_value
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 bin = argn > 0 ? (s32)(s7_integer(s7_car(args))) : 0;
 
     return s7_make_real(sc, core->api.vqtrw(tic, bin));
 }
@@ -846,8 +846,8 @@ s7_pointer scheme_vqtrsw(s7_scheme* sc, s7_pointer args)
     // vqtrsw(int bin) -> float_value
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 bin = argn > 0 ? s7_integer(s7_car(args)) : 0;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 bin = argn > 0 ? (s32)(s7_integer(s7_car(args))) : 0;
 
     return s7_make_real(sc, core->api.vqtrsw(tic, bin));
 }
@@ -858,9 +858,9 @@ s7_pointer scheme_fft(s7_scheme* sc, s7_pointer args)
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
 
-    const int argn = s7_list_length(sc, args);
-    const s32 start_freq = argn > 0 ? s7_integer(s7_car(args)) : -1;
-    const s32 end_freq = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 start_freq = argn > 0 ? (s32)(s7_integer(s7_car(args))) : -1;
+    const s32 end_freq = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : -1;
 
     return s7_make_real(sc, core->api.fft(tic, start_freq, end_freq));
 }
@@ -871,9 +871,9 @@ s7_pointer scheme_fftr(s7_scheme* sc, s7_pointer args)
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
 
-    const int argn = s7_list_length(sc, args);
-    const s32 start_freq = argn > 0 ? s7_integer(s7_car(args)) : -1;
-    const s32 end_freq = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 start_freq = argn > 0 ? (s32)(s7_integer(s7_car(args))) : -1;
+    const s32 end_freq = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : -1;
 
     return s7_make_real(sc, core->api.fftr(tic, start_freq, end_freq));
 }
@@ -884,9 +884,9 @@ s7_pointer scheme_fftrs(s7_scheme* sc, s7_pointer args)
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
 
-    const int argn = s7_list_length(sc, args);
-    const s32 start_freq = argn > 0 ? s7_integer(s7_car(args)) : -1;
-    const s32 end_freq = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 start_freq = argn > 0 ? (s32)(s7_integer(s7_car(args))) : -1;
+    const s32 end_freq = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : -1;
 
     return s7_make_real(sc, core->api.fftrs(tic, start_freq, end_freq));
 }
@@ -896,9 +896,9 @@ s7_pointer scheme_ffts(s7_scheme* sc, s7_pointer args)
     // ffts(int start_freq, int end_freq=-1) -> float_value
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 start_freq = argn > 0 ? s7_integer(s7_car(args)) : -1;
-    const s32 end_freq = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const s32 start_freq = argn > 0 ? (s32)(s7_integer(s7_car(args))) : -1;
+    const s32 end_freq = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : -1;
 
     return s7_make_real(sc, core->api.ffts(tic, start_freq, end_freq));
 }

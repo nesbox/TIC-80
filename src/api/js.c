@@ -62,7 +62,7 @@ static float getNumber(JSContext *ctx, JSValueConst val)
     double res;
     JS_ToFloat64(ctx, &res, val);
 
-    return res;
+    return (float)res;
 }
 
 static bool isArray(JSContext* ctx, JSValueConst val)

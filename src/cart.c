@@ -368,8 +368,8 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
     }
 
     ptr = cart->code.data;
-    for(s32 i = strlen(ptr) / TIC_BANK_SIZE; i >= 0; --i, ptr += TIC_BANK_SIZE)
-        buffer = saveFixedChunk(buffer, CHUNK_CODE, ptr, MIN(strlen(ptr), TIC_BANK_SIZE), i);
+    for(s32 i = (s32)(strlen(ptr) / TIC_BANK_SIZE); i >= 0; --i, ptr += TIC_BANK_SIZE)
+        buffer = saveFixedChunk(buffer, CHUNK_CODE, ptr, MIN((s32)(strlen(ptr)), TIC_BANK_SIZE), i);
 
     if(cart->lang)
         SAVE_CHUNK(CHUNK_LANG, cart->lang, 0);

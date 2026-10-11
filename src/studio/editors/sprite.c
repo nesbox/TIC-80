@@ -177,8 +177,8 @@ static void paintPoint(Sprite* sprite, u8 color, s32 x, s32 y)
 
 static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
 {
-    float dx = x2 - x1;
-    float dy = y2 - y1;
+    float dx = (float)(x2 - x1);
+    float dy = (float)(y2 - y1);
 
     // If infinite slope, draw vertical line
     if (dx == 0)
@@ -197,13 +197,13 @@ static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
         {
             s32 step = x2 > x1 ? 1 : -1;
             for (s32 lx = x1; x2 > x1 ? lx <= x2 : lx >= x2; lx += step)
-                paintPoint(sprite, color, lx, slope * lx + intercept);
+                paintPoint(sprite, color, lx, (s32)(slope * lx + intercept));
         }
         else
         {
             s32 step = y2 > y1 ? 1 : -1;
             for (s32 ly = y1; y2 > y1 ? ly <= y2 : ly >= y2; ly += step)
-                paintPoint(sprite, color, (ly - intercept) / slope, ly);
+                paintPoint(sprite, color, (s32)((ly - intercept) / slope), ly);
         }
     }
 }
@@ -527,7 +527,7 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
         s32 index = sprite->index + tic_blit_calc_index(&sprite->blit);
         sprintf(buf, sprite->hexindex ? "0x%02X" : "#%i", index);
 
-        s32 w = CANVAS_SIZE - strlen(buf) * TIC_FONT_WIDTH;
+        s32 w = (s32)(CANVAS_SIZE - strlen(buf) * TIC_FONT_WIDTH);
         const tic_rect rect = {x + w / 2, TIC_SPRITESIZE + 2, w, TIC_FONT_HEIGHT};
 
         if(checkMousePos(sprite->studio, &rect))
@@ -1752,11 +1752,11 @@ static void drawTab(Sprite* sprite, s32 x, s32 y, s32 w, s32 h, u8 icon, bool ac
     tic_color label_color = active ? tic_color_dark_grey : tic_color_grey;
 
     tic_api_rect(sprite->tic, x+1, y, w-1, h, tab_color);
-    tic_api_line(sprite->tic, x, y+1, x, y+h-2, tab_color);
+    tic_api_line(sprite->tic, x, y+1, x, (float)(y+h-2), tab_color);
 
     if (active)
     {
-        tic_api_line(sprite->tic, x+1, y + h, x + w-1, y + h, tic_color_black);
+        tic_api_line(sprite->tic, x+1, y + h, x + w-1, (float)(y + h), tic_color_black);
         tic_api_pix(sprite->tic, x, y-1 + h, label_color, false);
     }
 
@@ -1882,7 +1882,7 @@ static void processKeyboard(Sprite* sprite)
                 char buf[sizeof "FF"];
                 sprintf(buf, "%02X", mask);
                 buf[sprite->flags.pos] = toupper((u8)sym);
-                u8 value = strtol(buf, NULL, 16);
+                u8 value = (u8)(strtol(buf, NULL, 16));
 
                 for(const s32* i = indexes; *i; i++)
                     flags[*i] = value;

@@ -796,7 +796,7 @@ struct Sprite* getSpriteEditor(Studio* studio)
 
 static inline s32 lerp(s32 a, s32 b, float d)
 {
-    return (b - a) * d + a;
+    return (s32)((b - a) * d + a);
 }
 
 static inline float bounceOut(float x)
@@ -807,18 +807,18 @@ static inline float bounceOut(float x)
     if (x < 1 / d1) return n1 * x * x;
     else if (x < 2 / d1)
     {
-        x -= 1.5 / d1;
-        return n1 * x * x + 0.75;
+        x -= (float)(1.5 / d1);
+        return (float)(n1 * x * x + 0.75);
     }
     else if (x < 2.5 / d1)
     {
-        x -= 2.25 / d1;
-        return n1 * x * x + 0.9375;
+        x -= (float)(2.25 / d1);
+        return (float)(n1 * x * x + 0.9375);
     }
     else
     {
-        x -= 2.625 / d1;
-        return n1 * x * x + 0.984375;
+        x -= (float)(2.625 / d1);
+        return (float)(n1 * x * x + 0.984375);
     }
 }
 
@@ -827,8 +827,8 @@ static inline float animEffect(AnimEffect effect, float x)
     const float c1 = 1.70158f;
     const float c2 = c1 * 1.525f;
     const float c3 = c1 + 1;
-    const float c4 = (2 * M_PI) / 3;
-    const float c5 = (2 * M_PI) / 4.5;
+    const float c4 = (float)((2 * M_PI) / 3);
+    const float c5 = (float)((2 * M_PI) / 4.5);
 
     switch(effect)
     {
@@ -842,49 +842,49 @@ static inline float animEffect(AnimEffect effect, float x)
         return 1 - (1 - x) * (1 - x);
 
     case AnimEaseInOut:
-        return x < 0.5 ? 2 * x * x : 1 - pow(-2 * x + 2, 2) / 2;
+        return x < 0.5 ? 2 * x * x : (float)(1 - pow(-2 * x + 2, 2) / 2);
 
     case AnimEaseInCubic:
         return x * x * x;
 
     case AnimEaseOutCubic:
-        return 1 - pow(1 - x, 3);
+        return (float)(1 - pow(1 - x, 3));
 
     case AnimEaseInOutCubic:
-        return x < 0.5 ? 4 * x * x * x : 1 - pow(-2 * x + 2, 3) / 2;
+        return x < 0.5 ? 4 * x * x * x : (float)(1 - pow(-2 * x + 2, 3) / 2);
 
     case AnimEaseInQuart:
         return x * x * x * x;
 
     case AnimEaseOutQuart:
-        return 1 - pow(1 - x, 4);
+        return (float)(1 - pow(1 - x, 4));
 
     case AnimEaseInOutQuart:
-        return x < 0.5 ? 8 * x * x * x * x : 1 - pow(-2 * x + 2, 4) / 2;
+        return x < 0.5 ? 8 * x * x * x * x : (float)(1 - pow(-2 * x + 2, 4) / 2);
 
     case AnimEaseInQuint:
         return x * x * x * x * x;
 
     case AnimEaseOutQuint:
-        return 1 - pow(1 - x, 5);
+        return (float)(1 - pow(1 - x, 5));
 
     case AnimEaseInOutQuint:
-        return x < 0.5 ? 16 * x * x * x * x * x : 1 - pow(-2 * x + 2, 5) / 2;
+        return x < 0.5 ? 16 * x * x * x * x * x : (float)(1 - pow(-2 * x + 2, 5) / 2);
 
     case AnimEaseInSine:
-        return 1 - cos((x * M_PI) / 2);
+        return (float)(1 - cos((x * M_PI) / 2));
 
     case AnimEaseOutSine:
-        return sin((x * M_PI) / 2);
+        return (float)(sin((x * M_PI) / 2));
 
     case AnimEaseInOutSine:
-        return -(cos(M_PI * x) - 1) / 2;
+        return (float)(-(cos(M_PI * x) - 1) / 2);
 
     case AnimEaseInExpo:
-        return x == 0 ? 0 : pow(2, 10 * x - 10);
+        return x == 0 ? 0 : (float)(pow(2, 10 * x - 10));
 
     case AnimEaseOutExpo:
-        return x == 1 ? 1 : 1 - pow(2, -10 * x);
+        return x == 1 ? 1 : (float)(1 - pow(2, -10 * x));
 
     case AnimEaseInOutExpo:
         return (float)(x == 0
@@ -896,25 +896,25 @@ static inline float animEffect(AnimEffect effect, float x)
                     : (2 - pow(2, -20 * x + 10)) / 2);
 
     case AnimEaseInCirc:
-        return 1 - sqrt(1 - pow(x, 2));
+        return (float)(1 - sqrt(1 - pow(x, 2)));
 
     case AnimEaseOutCirc:
-        return sqrt(1 - pow(x - 1, 2));
+        return (float)(sqrt(1 - pow(x - 1, 2)));
 
     case AnimEaseInOutCirc:
         return x < 0.5
-            ? (1 - sqrt(1 - pow(2 * x, 2))) / 2
+            ? (float)((1 - sqrt(1 - pow(2 * x, 2))) / 2)
             : (sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2;
 
     case AnimEaseInBack:
         return c3 * x * x * x - c1 * x * x;
 
     case AnimEaseOutBack:
-        return 1 + c3 * pow(x - 1, 3) + c1 * pow(x - 1, 2);
+        return (float)(1 + c3 * pow(x - 1, 3) + c1 * pow(x - 1, 2));
 
     case AnimEaseInOutBack:
         return x < 0.5
-            ? (pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2)) / 2
+            ? (float)((pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2)) / 2)
             : (pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2;
 
     case AnimEaseInElastic:
@@ -1756,7 +1756,7 @@ static void stopVideoRecord(Studio* studio)
     generateScreenshotName(studio, ".gif", filename);
 
     // Now that it has found an available filename, save it.
-    if(tic_fs_save(studio->fs, filename, result.data, result.dataSize, true))
+    if(tic_fs_save(studio->fs, filename, result.data, (s32)(result.dataSize), true))
     {
         char msg[TICNAME_MAX + sizeof " saved :)"];
         sprintf(msg, "%s saved :)", filename);
@@ -1809,7 +1809,7 @@ static void switchCrtMonitor(Studio* studio)
 #if defined(BUILD_EDITORS)
 static u32 getTime()
 {
-    return tic_sys_counter_get() * 1000 / tic_sys_freq_get();
+    return (u32)(tic_sys_counter_get() * 1000 / tic_sys_freq_get());
 }
 
 static void hideBattleTime(Studio* studio)
@@ -2478,7 +2478,7 @@ static void doCodeImport(Studio* studio)
                     s32 x = atoi(start);
                     s32 y = atoi(sep + 1);
 
-                    s32 offset = end - code.data + 1;
+                    s32 offset = (s32)(end - code.data + 1);
                     memcpy(studio->code->src, code.data + offset, sizeof(tic_code) - offset);
                     if(x == 0 && y == 0)
                     {

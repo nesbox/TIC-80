@@ -1544,7 +1544,7 @@ static SQInteger squirrel_vqt(HSQUIRRELVM vm)
     {
         double bin = getSquirrelNumber(vm, 2);
 
-        sq_pushfloat(vm, (SQFloat)(core->api.vqt(tic, bin)));
+        sq_pushfloat(vm, (SQFloat)(core->api.vqt(tic, (s32)bin)));
         return 1;
     }
 
@@ -1564,7 +1564,7 @@ static SQInteger squirrel_vqts(HSQUIRRELVM vm)
     {
         double bin = getSquirrelNumber(vm, 2);
 
-        sq_pushfloat(vm, (SQFloat)(core->api.vqts(tic, bin)));
+        sq_pushfloat(vm, (SQFloat)(core->api.vqts(tic, (s32)bin)));
         return 1;
     }
 
@@ -1584,7 +1584,7 @@ static SQInteger squirrel_vqtr(HSQUIRRELVM vm)
     {
         double bin = getSquirrelNumber(vm, 2);
 
-        sq_pushfloat(vm, (SQFloat)(core->api.vqtr(tic, bin)));
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtr(tic, (s32)bin)));
         return 1;
     }
 
@@ -1604,7 +1604,7 @@ static SQInteger squirrel_vqtrs(HSQUIRRELVM vm)
     {
         double bin = getSquirrelNumber(vm, 2);
 
-        sq_pushfloat(vm, (SQFloat)(core->api.vqtrs(tic, bin)));
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtrs(tic, (s32)bin)));
         return 1;
     }
 
@@ -1624,7 +1624,7 @@ static SQInteger squirrel_vqtw(HSQUIRRELVM vm)
     {
         double bin = getSquirrelNumber(vm, 2);
 
-        sq_pushfloat(vm, (SQFloat)(core->api.vqtw(tic, bin)));
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtw(tic, (s32)bin)));
         return 1;
     }
 
@@ -1644,7 +1644,7 @@ static SQInteger squirrel_vqtsw(HSQUIRRELVM vm)
     {
         double bin = getSquirrelNumber(vm, 2);
 
-        sq_pushfloat(vm, (SQFloat)(core->api.vqtsw(tic, bin)));
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtsw(tic, (s32)bin)));
         return 1;
     }
 
@@ -1664,7 +1664,7 @@ static SQInteger squirrel_vqtrw(HSQUIRRELVM vm)
     {
         double bin = getSquirrelNumber(vm, 2);
 
-        sq_pushfloat(vm, (SQFloat)(core->api.vqtrw(tic, bin)));
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtrw(tic, (s32)bin)));
         return 1;
     }
 
@@ -1684,7 +1684,7 @@ static SQInteger squirrel_vqtrsw(HSQUIRRELVM vm)
     {
         double bin = getSquirrelNumber(vm, 2);
 
-        sq_pushfloat(vm, (SQFloat)(core->api.vqtrsw(tic, bin)));
+        sq_pushfloat(vm, (SQFloat)(core->api.vqtrsw(tic, (s32)bin)));
         return 1;
     }
 
@@ -1710,7 +1710,7 @@ static SQInteger squirrel_fft(HSQUIRRELVM vm)
             end_freq = getSquirrelNumber(vm, 3);
         }
 
-        sq_pushfloat(vm, (SQFloat)(core->api.fft(tic, start_freq, end_freq)));
+        sq_pushfloat(vm, (SQFloat)(core->api.fft(tic, start_freq, (s32)end_freq)));
         return 1;
     }
 
@@ -1736,7 +1736,7 @@ static SQInteger squirrel_fftr(HSQUIRRELVM vm)
             end_freq = getSquirrelNumber(vm, 3);
         }
 
-        sq_pushfloat(vm, (SQFloat)(core->api.fftr(tic, start_freq, end_freq)));
+        sq_pushfloat(vm, (SQFloat)(core->api.fftr(tic, start_freq, (s32)end_freq)));
         return 1;
     }
 
@@ -1762,7 +1762,7 @@ static SQInteger squirrel_fftrs(HSQUIRRELVM vm)
             end_freq = getSquirrelNumber(vm, 3);
         }
 
-        sq_pushfloat(vm, (SQFloat)(core->api.fftrs(tic, start_freq, end_freq)));
+        sq_pushfloat(vm, (SQFloat)(core->api.fftrs(tic, start_freq, (s32)end_freq)));
         return 1;
     }
 
@@ -1788,7 +1788,7 @@ static SQInteger squirrel_ffts(HSQUIRRELVM vm)
             end_freq = getSquirrelNumber(vm, 3);
         }
 
-        sq_pushfloat(vm, (SQFloat)(core->api.ffts(tic, start_freq, end_freq)));
+        sq_pushfloat(vm, (SQFloat)(core->api.ffts(tic, start_freq, (s32)end_freq)));
         return 1;
     }
 

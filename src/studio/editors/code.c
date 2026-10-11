@@ -116,7 +116,7 @@ tic_color getCodeColor(Code* code)
 
     if(bb)
     {
-        s32 size = strlen(code->src) - bb->limit.lower;
+        s32 size = (s32)(strlen(code->src) - bb->limit.lower);
 
         if(size <= 0) return tic_color_light_green;
 
@@ -1197,7 +1197,7 @@ static void insertCodeSize(Code* code, char* dst, const char* src, s32 size)
 
 static void insertCode(Code* code, char* dst, const char* src)
 {
-    insertCodeSize(code, dst, src, strlen(src));
+    insertCodeSize(code, dst, src, (s32)(strlen(src)));
 }
 
 static bool replaceSelection(Code* code)
@@ -1977,7 +1977,7 @@ static int getNumberOfLines(Code* code){
         }
         ++iter;
     }
-    return lines;
+    return (s32)lines;
 }
 
 static char** getLines(Code* code, int lines){
@@ -2683,7 +2683,7 @@ static void processViKeyboard(Code* code)
             size_t col = code->cursor.column;
             goEnd(code);
             newLine(code);
-            code->cursor.column = col;
+            code->cursor.column = (s32)col;
             upLine(code);
         }
         else if (shift && keyWasPressed(code->studio, tic_key_space))
@@ -3974,7 +3974,7 @@ void trimWhitespace(Code* code)
 
         if(trim > src)
         {
-            s32 len = trim - src;
+            s32 len = (s32)(trim - src);
             memmove(dst, src, len);
             dst += len;
         }

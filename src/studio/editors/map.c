@@ -1250,8 +1250,8 @@ static void tick(Map* map)
             s32 screenScrollX = map->scroll.x % TIC80_WIDTH;
             s32 screenScrollY = map->scroll.y % TIC80_HEIGHT;
 
-            tic_api_line(tic, 0, TIC80_HEIGHT - screenScrollY, TIC80_WIDTH, TIC80_HEIGHT - screenScrollY, tic_color_grey);
-            tic_api_line(tic, TIC80_WIDTH - screenScrollX, 0, TIC80_WIDTH - screenScrollX, TIC80_HEIGHT, tic_color_grey);
+            tic_api_line(tic, 0, TIC80_HEIGHT - screenScrollY, TIC80_WIDTH, (float)(TIC80_HEIGHT - screenScrollY), tic_color_grey);
+            tic_api_line(tic, TIC80_WIDTH - screenScrollX, 0, (float)(TIC80_WIDTH - screenScrollX), TIC80_HEIGHT, tic_color_grey);
         }
         tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 

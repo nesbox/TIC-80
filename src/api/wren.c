@@ -1516,7 +1516,7 @@ static void wren_vqt(WrenVM* vm)
     {
         double bin = getWrenNumber(vm, 1);
 
-        wrenSetSlotDouble(vm, 0, core->api.vqt(tic, bin));
+        wrenSetSlotDouble(vm, 0, core->api.vqt(tic, (s32)bin));
         return;
     }
 
@@ -1533,7 +1533,7 @@ static void wren_vqts(WrenVM* vm)
     {
         double bin = getWrenNumber(vm, 1);
 
-        wrenSetSlotDouble(vm, 0, core->api.vqts(tic, bin));
+        wrenSetSlotDouble(vm, 0, core->api.vqts(tic, (s32)bin));
         return;
     }
 
@@ -1550,7 +1550,7 @@ static void wren_vqtr(WrenVM* vm)
     {
         double bin = getWrenNumber(vm, 1);
 
-        wrenSetSlotDouble(vm, 0, core->api.vqtr(tic, bin));
+        wrenSetSlotDouble(vm, 0, core->api.vqtr(tic, (s32)bin));
         return;
     }
 
@@ -1567,7 +1567,7 @@ static void wren_vqtrs(WrenVM* vm)
     {
         double bin = getWrenNumber(vm, 1);
 
-        wrenSetSlotDouble(vm, 0, core->api.vqtrs(tic, bin));
+        wrenSetSlotDouble(vm, 0, core->api.vqtrs(tic, (s32)bin));
         return;
     }
 
@@ -1584,7 +1584,7 @@ static void wren_vqtw(WrenVM* vm)
     {
         double bin = getWrenNumber(vm, 1);
 
-        wrenSetSlotDouble(vm, 0, core->api.vqtw(tic, bin));
+        wrenSetSlotDouble(vm, 0, core->api.vqtw(tic, (s32)bin));
         return;
     }
 
@@ -1601,7 +1601,7 @@ static void wren_vqtsw(WrenVM* vm)
     {
         double bin = getWrenNumber(vm, 1);
 
-        wrenSetSlotDouble(vm, 0, core->api.vqtsw(tic, bin));
+        wrenSetSlotDouble(vm, 0, core->api.vqtsw(tic, (s32)bin));
         return;
     }
 
@@ -1618,7 +1618,7 @@ static void wren_vqtrw(WrenVM* vm)
     {
         double bin = getWrenNumber(vm, 1);
 
-        wrenSetSlotDouble(vm, 0, core->api.vqtrw(tic, bin));
+        wrenSetSlotDouble(vm, 0, core->api.vqtrw(tic, (s32)bin));
         return;
     }
 
@@ -1635,7 +1635,7 @@ static void wren_vqtrsw(WrenVM* vm)
     {
         double bin = getWrenNumber(vm, 1);
 
-        wrenSetSlotDouble(vm, 0, core->api.vqtrsw(tic, bin));
+        wrenSetSlotDouble(vm, 0, core->api.vqtrsw(tic, (s32)bin));
         return;
     }
 
@@ -1656,7 +1656,7 @@ static void wren_fft(WrenVM* vm)
         if (top > 2)
             end_freq = getWrenNumber(vm, 2);
 
-        wrenSetSlotDouble(vm, 0, core->api.fft(tic, start_freq, end_freq));
+        wrenSetSlotDouble(vm, 0, core->api.fft(tic, start_freq, (s32)end_freq));
         return;
     }
 
@@ -1677,7 +1677,7 @@ static void wren_fftr(WrenVM* vm)
         if (top > 2)
             end_freq = getWrenNumber(vm, 2);
 
-        wrenSetSlotDouble(vm, 0, core->api.fftr(tic, start_freq, end_freq));
+        wrenSetSlotDouble(vm, 0, core->api.fftr(tic, start_freq, (s32)end_freq));
         return;
     }
 
@@ -1698,7 +1698,7 @@ static void wren_fftrs(WrenVM* vm)
         if (top > 2)
             end_freq = getWrenNumber(vm, 2);
 
-        wrenSetSlotDouble(vm, 0, core->api.fftrs(tic, start_freq, end_freq));
+        wrenSetSlotDouble(vm, 0, core->api.fftrs(tic, start_freq, (s32)end_freq));
         return;
     }
 
@@ -1719,7 +1719,7 @@ static void wren_ffts(WrenVM* vm)
         if (top > 2)
             end_freq = getWrenNumber(vm, 2);
 
-        wrenSetSlotDouble(vm, 0, core->api.ffts(tic, start_freq, end_freq));
+        wrenSetSlotDouble(vm, 0, core->api.ffts(tic, start_freq, (s32)end_freq));
         return;
     }
 
