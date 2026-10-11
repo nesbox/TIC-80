@@ -2607,7 +2607,7 @@ void studio_tick(Studio* studio, tic80_input input)
 #if defined(BUILD_RENDER_CACHE)
         tic80_mouse* m = &tic->ram->input.mouse;
         bool mouse_visible = (studio->mouse.idle < CURSOR_HIDE_TICKS
-            && tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT && m->x >= 0 && m->y >= 0);
+            && tic->input.mouse && !m->relative);
         if (mouse_visible || studio->mouse.prev.visible)
         {
             if (m->x != studio->mouse.prev.x || m->y != studio->mouse.prev.y ||

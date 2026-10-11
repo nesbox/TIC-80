@@ -390,17 +390,17 @@ double tic_api_vqtrsw(tic_mem* memory, s32 bin)
 bool VQT_Open(void) { return false; }
 void VQT_ProcessAudio(void) {}
 void VQT_Close(void) {}
-void VQT_ApplyKernels(const float* fftReal, const float* fftImag) {}
+void VQT_ApplyKernels(const float* fftReal, const float* fftImag) {(void)fftReal; (void)fftImag;}
 
 // API stubs when FFT is unsupported
-double tic_api_vqt(tic_mem* memory, s32 bin) { return 0.0; }
-double tic_api_vqts(tic_mem* memory, s32 bin) { return 0.0; }
-double tic_api_vqtr(tic_mem* memory, s32 bin) { return 0.0; }
-double tic_api_vqtrs(tic_mem* memory, s32 bin) { return 0.0; }
+double tic_api_vqt(tic_mem* memory, s32 bin) {(void)memory; (void)bin; return 0.0; }
+double tic_api_vqts(tic_mem* memory, s32 bin) {(void)memory; (void)bin; return 0.0; }
+double tic_api_vqtr(tic_mem* memory, s32 bin) {(void)memory; (void)bin; return 0.0; }
+double tic_api_vqtrs(tic_mem* memory, s32 bin) {(void)memory; (void)bin; return 0.0; }
 
-double tic_api_vqtw(tic_mem* memory, s32 bin) { return 0.0; }
-double tic_api_vqtsw(tic_mem* memory, s32 bin) { return 0.0; }
-double tic_api_vqtrw(tic_mem* memory, s32 bin) { return 0.0; }
-double tic_api_vqtrsw(tic_mem* memory, s32 bin) { return 0.0; }
+double tic_api_vqtw(tic_mem* memory, s32 bin) {(void)memory; (void)bin; return 0.0; }
+double tic_api_vqtsw(tic_mem* memory, s32 bin) {(void)memory; (void)bin; return 0.0; }
+double tic_api_vqtrw(tic_mem* memory, s32 bin) {(void)memory; (void)bin; return 0.0; }
+double tic_api_vqtrsw(tic_mem* memory, s32 bin) {(void)memory; (void)bin; return 0.0; }
 
 #endif // TIC80_FFT_UNSUPPORTED

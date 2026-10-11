@@ -80,7 +80,7 @@ void syncfs()
 
 const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 {
-    static char path[TICNAME_MAX];
+    static char path[TICNAME_MAX * 2];
 
     snprintf(path, sizeof path, "%s%s", fs->dir, name);
 
@@ -263,6 +263,7 @@ typedef char FsString;
 
 #endif
 
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 typedef struct
 {
     fs_list_callback item;
@@ -312,6 +313,7 @@ static void onDirResponse(const net_get_data* netData)
     default: break;
     }
 }
+#endif
 
 void fs_enum(const char* path, fs_list_callback callback, void* data)
 {
@@ -760,6 +762,7 @@ bool tic_fs_saveroot(tic_fs* fs, const char* name, const void* data, s32 size, b
     return fs_write(path, data, size);
 }
 
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 typedef struct
 {
     tic_fs* fs;
@@ -789,6 +792,7 @@ static void fileByHashLoaded(const net_get_data* netData)
     default: break;
     }
 }
+#endif
 
 void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_callback callback, void* data)
 {
@@ -817,6 +821,8 @@ void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_cal
 
     LoadFileByHashData loadFileByHashData = { fs, callback, data, strdup(cachePath) };
     tic_net_get(fs->net, path, fileByHashLoaded, MOVE(loadFileByHashData));
+#else
+    (void)name;
 #endif
 
 #endif

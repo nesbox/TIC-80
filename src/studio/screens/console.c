@@ -538,10 +538,13 @@ static void printFront(Console* console, const char* text)
     consolePrint(console, text, CONSOLE_FRONT_TEXT_COLOR);
 }
 
+#if !defined(TIC80_PRO)
+// The PRO build points at the text editor it already has instead of a link.
 static void printLink(Console* console, const char* text)
 {
     consolePrint(console, text, CONSOLE_LINK_TEXT_COLOR);
 }
+#endif
 
 static void printError(Console* console, const char* text)
 {
@@ -2092,6 +2095,7 @@ static bool canExportNativeFromLocalTemplate(const char* system)
 #elif defined(__TIC_MACOSX__)
     return strcmp(system, "mac") == 0;
 #else
+    (void)system;
     return false;
 #endif
 }
@@ -2801,8 +2805,6 @@ EMSCRIPTEN_KEEPALIVE void tic80_add_file(Console* console, const char* name, con
 
 static void onAddCommand(Console* console)
 {
-    void* data = NULL;
-
     EM_ASM_
     ({
         Module.showAddPopup(function(filename, rom)

@@ -283,7 +283,14 @@ bool VQT_GenerateKernels(VqtKernel* kernels, const VqtKernelConfig* config)
 #else // TIC80_FFT_UNSUPPORTED
 
 // Stub implementations when FFT is unsupported
-void VQT_GenerateCenterFrequencies(float* frequencies, int numBins, float minFreq, float maxFreq) {}
-bool VQT_GenerateKernels(VqtKernel* kernels, const VqtKernelConfig* config) { return false; }
+void VQT_GenerateCenterFrequencies(float* frequencies, int numBins, float minFreq, float maxFreq)
+{
+    (void)frequencies; (void)numBins; (void)minFreq; (void)maxFreq;
+}
+bool VQT_GenerateKernels(VqtKernel* kernels, const VqtKernelConfig* config)
+{
+    (void)kernels; (void)config;
+    return false;
+}
 
 #endif // TIC80_FFT_UNSUPPORTED

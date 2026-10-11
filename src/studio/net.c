@@ -157,11 +157,12 @@ void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void
     }
 }
 
-void tic_net_start(tic_net *net) {}
-void tic_net_end(tic_net *net) {}
+void tic_net_start(tic_net *net) {(void)net;}
+void tic_net_end(tic_net *net) {(void)net;}
 
 tic_net* tic_net_create(const char* host)
 {
+    (void)host;
     tic_net* net = (tic_net*)malloc(sizeof(tic_net));
 
     emscripten_fetch_attr_init(&net->attr);
@@ -309,9 +310,10 @@ void tic_net_end(tic_net *net)
 
 #else
 
-tic_net* tic_net_create(const char* host) {return NULL;}
+tic_net* tic_net_create(const char* host) {(void)host; return NULL;}
 void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
 {
+    (void)net;
     // close all requests with error to keep frontend responsive
     net_get_data getData =
     {
@@ -322,8 +324,8 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
     };
     callback(&getData);
 }
-void tic_net_close(tic_net* net) {}
-void tic_net_start(tic_net *net) {}
-void tic_net_end(tic_net *net) {}
+void tic_net_close(tic_net* net) {(void)net;}
+void tic_net_start(tic_net *net) {(void)net;}
+void tic_net_end(tic_net *net) {(void)net;}
 
 #endif
