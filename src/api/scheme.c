@@ -212,18 +212,23 @@ u8 get_note_octave(char c) {
 
 s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
 {
-    // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)
+    // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=-1)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 id = s7_integer(s7_car(args));
 
     const int argn = s7_list_length(sc, args);
     int note = -1;
     int octave = -1;
+    if (id >= 0 && id < SFX_COUNT) {
+        tic_sample* effect = tic->ram->sfx.samples.data + id;
+        note = effect->note;
+        octave = effect->octave;
+    }
     if (argn > 1) {
         s7_pointer note_ptr = s7_cadr(args);
         if (s7_is_integer(note_ptr)) {
             const s32 raw_note = s7_integer(note_ptr);
-            if (raw_note >= 0 || raw_note <= 95) {
+            if (raw_note != -1) {
                 note = raw_note % 12;
                 octave = raw_note / 12;
             }
@@ -266,7 +271,14 @@ s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
             volumes[1] = s7_integer(s7_cadr(volume_arg)) & 0xF;
         }
     }
-    const s32 speed = argn > 5 ? s7_integer(s7_list_ref(sc, args, 5)) : 0;
+    s32 speed = argn > 5 ? s7_integer(s7_list_ref(sc, args, 5)) : -1;
+    if (speed == -1) {
+        if (id >= 0 && id < SFX_COUNT) {
+            speed = (tic->ram->sfx.samples.data + id)->speed;
+        } else {
+            speed = SFX_DEF_SPEED;
+        }
+    }
 
     core->api.sfx(tic, id, note, octave, duration, channel, volumes[0], volumes[1], speed);
     return s7_nil(sc);
