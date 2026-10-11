@@ -90,7 +90,11 @@ static void menuUpDone(void* data)
 {
     Menu *menu = data;
     menu->pos = (menu->pos + (menu->count - 1)) % menu->count;
-    if (strcmp("", menu->items[menu->pos].label) == 0) return menuUpDone(data);
+    if (strcmp("", menu->items[menu->pos].label) == 0)
+    {
+        menuUpDone(data);
+        return;
+    }
     menu->anim.pos = 0;
     menu->anim.movie = resetMovie(&menu->anim.idle);
 }
@@ -99,7 +103,11 @@ static void menuDownDone(void* data)
 {
     Menu *menu = data;
     menu->pos = (menu->pos + (menu->count + 1)) % menu->count;
-    if (strcmp("", menu->items[menu->pos].label) == 0) return menuDownDone(data);
+    if (strcmp("", menu->items[menu->pos].label) == 0)
+    {
+        menuDownDone(data);
+        return;
+    }
     menu->anim.pos = 0;
     menu->anim.movie = resetMovie(&menu->anim.idle);
 }

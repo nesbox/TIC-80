@@ -824,8 +824,8 @@ static inline float bounceOut(float x)
 
 static inline float animEffect(AnimEffect effect, float x)
 {
-    const float c1 = 1.70158;
-    const float c2 = c1 * 1.525;
+    const float c1 = 1.70158f;
+    const float c2 = c1 * 1.525f;
     const float c3 = c1 + 1;
     const float c4 = (2 * M_PI) / 3;
     const float c5 = (2 * M_PI) / 4.5;

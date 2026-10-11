@@ -51,6 +51,11 @@
 
 #include <sys/stat.h>
 
+#if defined(__TIC_WINDOWS__)
+// msvc keeps chmod in io.h; sys/stat.h has the mode macros alone
+#include <io.h>
+#endif
+
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 #endif

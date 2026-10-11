@@ -151,7 +151,7 @@ static const tic_script *Scripts[MAX_SUPPORTED_LANGS + 1] =
     NULL,
 };
 
-static s32 compareScripts(const void* a, const void* b)
+static int compareScripts(const void* a, const void* b)
 {
     const tic_script* script1 = *(const tic_script**)a;
     const tic_script* script2 = *(const tic_script**)b;
@@ -178,7 +178,7 @@ void tic_add_script(const tic_script* script)
     if(index < MAX_SUPPORTED_LANGS)
     {
         Scripts[index] = script;
-        qsort(Scripts, index + 1, sizeof Scripts[0], (int (*)(const void *, const void *))compareScripts);
+        qsort(Scripts, index + 1, sizeof Scripts[0], compareScripts);
     }
 }
 
