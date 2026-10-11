@@ -60,7 +60,7 @@ static mrb_value mrb_peek(mrb_state* mrb, mrb_value self)
     mrb_int bits = BITS_IN_BYTE;
     mrb_get_args(mrb, "i|i", &address, &bits);
 
-    return mrb_fixnum_value(core->api.peek(tic, address, (s32)bits));
+    return mrb_fixnum_value(core->api.peek(tic, (s32)(address), (s32)bits));
 }
 
 static mrb_value mrb_poke(mrb_state* mrb, mrb_value self)
@@ -73,7 +73,7 @@ static mrb_value mrb_poke(mrb_state* mrb, mrb_value self)
     mrb_int bits = BITS_IN_BYTE;
     mrb_get_args(mrb, "ii|i", &address, &value, &bits);
 
-    core->api.poke(tic, address, (u8)value, (s32)bits);
+    core->api.poke(tic, (s32)(address), (u8)value, (s32)bits);
 
     return mrb_nil_value();
 }
@@ -179,12 +179,12 @@ static mrb_value mrb_pix(mrb_state* mrb, mrb_value self)
 
     if(argc == 3)
     {
-        core->api.pix(tic, x, (s32)y, (u8)color, false);
+        core->api.pix(tic, (s32)(x), (s32)y, (u8)color, false);
         return mrb_nil_value();
     }
     else
     {
-        return mrb_fixnum_value(core->api.pix(tic, x, (s32)y, 0, true));
+        return mrb_fixnum_value(core->api.pix(tic, (s32)(x), (s32)y, 0, true));
     }
 }
 
@@ -197,7 +197,7 @@ static mrb_value mrb_line(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    core->api.line(tic, x0, y0, x1, (float)y1, (u8)color);
+    core->api.line(tic, (float)(x0), (float)(y0), (float)(x1), (float)y1, (u8)color);
 
     return mrb_nil_value();
 }
@@ -210,7 +210,7 @@ static mrb_value mrb_rect(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    core->api.rect(tic, x, y, w, (s32)h, (u8)color);
+    core->api.rect(tic, (s32)(x), (s32)(y), (s32)(w), (s32)h, (u8)color);
 
     return mrb_nil_value();
 }
@@ -223,7 +223,7 @@ static mrb_value mrb_rectb(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    core->api.rectb(tic, x, y, w, (s32)h, (u8)color);
+    core->api.rectb(tic, (s32)(x), (s32)(y), (s32)(w), (s32)h, (u8)color);
 
     return mrb_nil_value();
 }
@@ -237,7 +237,7 @@ static mrb_value mrb_circ(mrb_state* mrb, mrb_value self)
     if(radius >= 0) {
         tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-        core->api.circ(tic, x, y, (s32)radius, (u8)color);
+        core->api.circ(tic, (s32)(x), (s32)(y), (s32)radius, (u8)color);
     } else {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "radius must be greater than or equal 0");
     }
@@ -254,7 +254,7 @@ static mrb_value mrb_circb(mrb_state* mrb, mrb_value self)
     if(radius >= 0) {
         tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-        core->api.circb(tic, x, y, (s32)radius, (u8)color);
+        core->api.circb(tic, (s32)(x), (s32)(y), (s32)radius, (u8)color);
     } else {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "radius must be greater than or equal 0");
     }
@@ -270,7 +270,7 @@ static mrb_value mrb_elli(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    core->api.elli(tic, x, y, a, (s32)b, (u8)color);
+    core->api.elli(tic, (s32)(x), (s32)(y), (s32)(a), (s32)b, (u8)color);
 
     return mrb_nil_value();
 }
@@ -283,7 +283,7 @@ static mrb_value mrb_ellib(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    core->api.ellib(tic, x, y, a, (s32)b, (u8)color);
+    core->api.ellib(tic, (s32)(x), (s32)(y), (s32)(a), (s32)b, (u8)color);
 
     return mrb_nil_value();
 }
@@ -297,7 +297,7 @@ static mrb_value mrb_paint(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    core->api.paint(tic, x, (s32)y, color, (u8)bordercolor);
+    core->api.paint(tic, (s32)(x), (s32)y, (u8)(color), (u8)bordercolor);
 
     return mrb_nil_value();
 }
@@ -311,7 +311,7 @@ static mrb_value mrb_tri(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    core->api.tri(tic, x1, y1, x2, y2, x3, (float)y3, (u8)color);
+    core->api.tri(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)y3, (u8)color);
 
     return mrb_nil_value();
 }
@@ -325,7 +325,7 @@ static mrb_value mrb_trib(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    core->api.trib(tic, x1, y1, x2, y2, x3, (float)y3, (u8)color);
+    core->api.trib(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)y3, (u8)color);
 
     return mrb_nil_value();
 }
@@ -364,9 +364,9 @@ static mrb_value mrb_ttri(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
     core->api.ttri(tic,
-                        x1, y1, x2, y2, x3, (float)y3,
-                        u1, v1, u2, v2, u3, (float)v3,
-                        src, chromas, (s32)count, z1, z2, (float)z3, argc == 17);
+                        (float)x1, (float)y1, (float)x2, (float)y2, (float)x3, (float)y3,
+                        (float)u1, (float)v1, (float)u2, (float)v2, (float)u3, (float)v3,
+                        src, chromas, (s32)count, (float)z1, (float)z2, (float)z3, argc == 17);
 
     free(chromas);
 
@@ -390,7 +390,7 @@ static mrb_value mrb_clip(mrb_state* mrb, mrb_value self)
     {
         tic_core* core = getMRubyMachine(mrb);
 
-        core->api.clip((tic_mem*)getMRubyMachine(mrb), x, y, w, (s32)h);
+        core->api.clip((tic_mem*)getMRubyMachine(mrb), (s32)(x), (s32)(y), (s32)(w), (s32)h);
     }
     else mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid parameters, use clip(x,y,w,h) or clip()");
 
@@ -416,7 +416,7 @@ static mrb_value mrb_btnp(mrb_state* mrb, mrb_value self)
     }
     else if (argc == 3)
     {
-        return mrb_bool_value(core->api.btnp(tic, index & 0x1f, hold, (s32)period) != 0);
+        return mrb_bool_value(core->api.btnp(tic, index & 0x1f, (s32)(hold), (s32)period) != 0);
     }
     else
     {
@@ -480,7 +480,7 @@ static mrb_value mrb_spr(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    core->api.spr(tic, index, x, y, w, h, colors, (u8)count, (s32)scale, flip, rotate);
+    core->api.spr(tic, (s32)(index), (s32)(x), (s32)(y), (s32)(w), (s32)(h), colors, (u8)count, (s32)scale, flip, rotate);
 
     return mrb_nil_value();
 }
@@ -493,7 +493,7 @@ static mrb_value mrb_mget(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    u8 value = core->api.mget(tic, x, (s32)y);
+    u8 value = core->api.mget(tic, (s32)(x), (s32)y);
     return mrb_fixnum_value(value);
 }
 
@@ -505,7 +505,7 @@ static mrb_value mrb_mset(mrb_state* mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-    core->api.mset(tic, x, (s32)y, (u8)val);
+    core->api.mset(tic, (s32)(x), (s32)y, (u8)val);
 
     return mrb_nil_value();
 }
@@ -738,7 +738,7 @@ static mrb_value mrb_fft(mrb_state* mrb, mrb_value self)
     }
     else
     {
-        return mrb_float_value(mrb, core->api.fft(tic, start_freq, (s32)end_freq));
+        return mrb_float_value(mrb, core->api.fft(tic, (s32)(start_freq), (s32)end_freq));
     }
 }
 
@@ -758,7 +758,7 @@ static mrb_value mrb_fftr(mrb_state* mrb, mrb_value self)
     }
     else
     {
-        return mrb_float_value(mrb, core->api.fftr(tic, start_freq, (s32)end_freq));
+        return mrb_float_value(mrb, core->api.fftr(tic, (s32)(start_freq), (s32)end_freq));
     }
 }
 
@@ -778,7 +778,7 @@ static mrb_value mrb_fftrs(mrb_state* mrb, mrb_value self)
     }
     else
     {
-        return mrb_float_value(mrb, core->api.fftrs(tic, start_freq, (s32)end_freq));
+        return mrb_float_value(mrb, core->api.fftrs(tic, (s32)(start_freq), (s32)end_freq));
     }
 }
 
@@ -798,7 +798,7 @@ static mrb_value mrb_ffts(mrb_state* mrb, mrb_value self)
     }
     else
     {
-        return mrb_float_value(mrb, core->api.ffts(tic, start_freq, (s32)end_freq));
+        return mrb_float_value(mrb, core->api.ffts(tic, (s32)(start_freq), (s32)end_freq));
     }
 }
 
@@ -882,11 +882,11 @@ static mrb_value mrb_map(mrb_state* mrb, mrb_value self)
     if (mrb_proc_p(block))
     {
         RemapData data = { mrb, block };
-        core->api.map(tic, x, y, w, h, sx, sy, chromas, (u8)count, (s32)scale, remapCallback, &data);
+        core->api.map(tic, (s32)(x), (s32)(y), (s32)(w), (s32)(h), (s32)(sx), (s32)(sy), chromas, (u8)count, (s32)scale, remapCallback, &data);
     }
     else
     {
-        core->api.map(tic, x, y, w, h, sx, sy, chromas, (u8)count, (s32)scale, NULL, NULL);
+        core->api.map(tic, (s32)(x), (s32)(y), (s32)(w), (s32)(h), (s32)(sx), (s32)(sy), chromas, (u8)count, (s32)scale, NULL, NULL);
     }
 
     free(chromas);
@@ -916,7 +916,7 @@ static mrb_value mrb_music(mrb_state* mrb, mrb_value self)
         if(track > MUSIC_TRACKS - 1)
             mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid music track index");
         else
-            core->api.music(tic, track, frame, row, loop, sustain, tempo, (s32)speed);
+            core->api.music(tic, (s32)(track), (s32)(frame), (s32)(row), loop, sustain, (s32)(tempo), (s32)speed);
     }
 
     return mrb_nil_value();
@@ -1000,7 +1000,7 @@ static mrb_value mrb_sfx(mrb_state* mrb, mrb_value self)
 
         if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
         {
-            core->api.sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, (s32)speed);
+            core->api.sfx(tic, (s32)(index), note, (s32)(octave), (s32)(duration), (s32)(channel), volumes[0] & 0xf, volumes[1] & 0xf, (s32)speed);
         }
         else mrb_raise(mrb, E_ARGUMENT_ERROR, "unknown channel");
     }
@@ -1083,7 +1083,7 @@ static mrb_value mrb_keyp(mrb_state* mrb, mrb_value self)
     }
     else if (argc == 3)
     {
-        return mrb_bool_value(core->api.keyp(tic, (tic_key)(key), hold, (s32)period));
+        return mrb_bool_value(core->api.keyp(tic, (tic_key)(key), (s32)(hold), (s32)period));
     }
     else
     {
@@ -1103,7 +1103,7 @@ static mrb_value mrb_memcpy(mrb_state* mrb, mrb_value self)
     if(size >= 0 && size <= (mrb_int)sizeof(tic_ram) && dest >= 0 && src >= 0 && dest <= bound && src <= bound)
     {
         tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
-        core->api.memcpy(tic, dest, src, (s32)size);
+        core->api.memcpy(tic, (s32)(dest), (s32)(src), (s32)size);
     }
     else
     {
@@ -1125,7 +1125,7 @@ static mrb_value mrb_memset(mrb_state* mrb, mrb_value self)
     {
         tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-        core->api.memset(tic, dest, (u8)value, (s32)size);
+        core->api.memset(tic, (s32)(dest), (u8)value, (s32)size);
     }
     else
     {
@@ -1164,7 +1164,7 @@ static mrb_value mrb_font(mrb_state* mrb, mrb_value self)
 
     const char* text = mrb_value_to_cstr(mrb, text_obj);
 
-    s32 size = core->api.font(tic, text, x, y, (u8*)&chromakey, 1, width, height, fixed, (s32)scale, alt);
+    s32 size = core->api.font(tic, text, (s32)(x), (s32)(y), (u8*)&chromakey, 1, (s32)(width), (s32)(height), fixed, (s32)scale, alt);
     return mrb_fixnum_value(size);
 }
 
@@ -1189,7 +1189,7 @@ static mrb_value mrb_print(mrb_state* mrb, mrb_value self)
 
     const char* text = mrb_str_to_cstr(mrb, text_obj);
 
-    s32 size = core->api.print(tic, text, x, y, (u8)color, fixed, (s32)scale, alt);
+    s32 size = core->api.print(tic, text, (s32)(x), (s32)(y), (u8)color, fixed, (s32)scale, alt);
     return mrb_fixnum_value(size);
 }
 

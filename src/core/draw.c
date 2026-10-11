@@ -598,12 +598,12 @@ static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 co
 {
     if(fabs(x0 - x1) < fabs(y0 - y1))
         for (float t = initLine(&x0, &x1, &y0, &y1); y0 < y1; y0++, x0 += t)
-            setPixel((tic_core*)tic, x0, (s32)y0, color);
+            setPixel((tic_core*)tic, (s32)(x0), (s32)y0, color);
     else
         for (float t = initLine(&y0, &y1, &x0, &x1); x0 < x1; x0++, y0 += t)
-            setPixel((tic_core*)tic, x0, (s32)y0, color);
+            setPixel((tic_core*)tic, (s32)(x0), (s32)y0, color);
 
-    setPixel((tic_core*)tic, x1, (s32)y1, color);
+    setPixel((tic_core*)tic, (s32)(x1), (s32)y1, color);
 }
 
 // Queue frame for floodFill.
@@ -737,8 +737,8 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     tic_core* core = (tic_core*)tic;
     const struct ClipRect* clip = &core->state.clip;
 
-    tic_point min = {floor(MIN3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), (s32)(floor(MIN3(a.v[0]->y, a.v[1]->y, a.v[2]->y)))};
-    tic_point max = {ceil(MAX3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), (s32)(ceil(MAX3(a.v[0]->y, a.v[1]->y, a.v[2]->y)))};
+    tic_point min = {(s32)(floor(MIN3(a.v[0]->x, a.v[1]->x, a.v[2]->x))), (s32)(floor(MIN3(a.v[0]->y, a.v[1]->y, a.v[2]->y)))};
+    tic_point max = {(s32)(ceil(MAX3(a.v[0]->x, a.v[1]->x, a.v[2]->x))), (s32)(ceil(MAX3(a.v[0]->y, a.v[1]->y, a.v[2]->y)))};
 
     min.x = MAX(min.x, clip->l);
     min.y = MAX(min.y, clip->t);

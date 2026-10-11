@@ -659,7 +659,7 @@ s7_pointer scheme_ttri(s7_scheme* sc, s7_pointer args)
     const s32 z2 = argn > 15 ? (s32)(s7_integer(s7_list_ref(sc, args, 15))) : 0;
     const s32 z3 = argn > 16 ? (s32)(s7_integer(s7_list_ref(sc, args, 16))) : 0;
 
-    core->api.ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, trans_colors, trans_count, z1, z2, (float)z3, depth);
+    core->api.ttri(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)(y3), (float)(u1), (float)(v1), (float)(u2), (float)(v2), (float)(u3), (float)(v3), texsrc, trans_colors, trans_count, (float)(z1), (float)(z2), (float)z3, depth);
     return s7_nil(sc);
 }
 s7_pointer scheme_clip(s7_scheme* sc, s7_pointer args)

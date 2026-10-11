@@ -1710,7 +1710,7 @@ static SQInteger squirrel_fft(HSQUIRRELVM vm)
             end_freq = getSquirrelNumber(vm, 3);
         }
 
-        sq_pushfloat(vm, (SQFloat)(core->api.fft(tic, start_freq, (s32)end_freq)));
+        sq_pushfloat(vm, (SQFloat)(core->api.fft(tic, (s32)(start_freq), (s32)end_freq)));
         return 1;
     }
 
@@ -1736,7 +1736,7 @@ static SQInteger squirrel_fftr(HSQUIRRELVM vm)
             end_freq = getSquirrelNumber(vm, 3);
         }
 
-        sq_pushfloat(vm, (SQFloat)(core->api.fftr(tic, start_freq, (s32)end_freq)));
+        sq_pushfloat(vm, (SQFloat)(core->api.fftr(tic, (s32)(start_freq), (s32)end_freq)));
         return 1;
     }
 
@@ -1762,7 +1762,7 @@ static SQInteger squirrel_fftrs(HSQUIRRELVM vm)
             end_freq = getSquirrelNumber(vm, 3);
         }
 
-        sq_pushfloat(vm, (SQFloat)(core->api.fftrs(tic, start_freq, (s32)end_freq)));
+        sq_pushfloat(vm, (SQFloat)(core->api.fftrs(tic, (s32)(start_freq), (s32)end_freq)));
         return 1;
     }
 
@@ -1788,7 +1788,7 @@ static SQInteger squirrel_ffts(HSQUIRRELVM vm)
             end_freq = getSquirrelNumber(vm, 3);
         }
 
-        sq_pushfloat(vm, (SQFloat)(core->api.ffts(tic, start_freq, (s32)end_freq)));
+        sq_pushfloat(vm, (SQFloat)(core->api.ffts(tic, (s32)(start_freq), (s32)end_freq)));
         return 1;
     }
 

@@ -1752,11 +1752,11 @@ static void drawTab(Sprite* sprite, s32 x, s32 y, s32 w, s32 h, u8 icon, bool ac
     tic_color label_color = active ? tic_color_dark_grey : tic_color_grey;
 
     tic_api_rect(sprite->tic, x+1, y, w-1, h, tab_color);
-    tic_api_line(sprite->tic, x, y+1, x, (float)(y+h-2), tab_color);
+    tic_api_line(sprite->tic, (float)(x), (float)(y+1), (float)(x), (float)(y+h-2), tab_color);
 
     if (active)
     {
-        tic_api_line(sprite->tic, x+1, y + h, x + w-1, (float)(y + h), tic_color_black);
+        tic_api_line(sprite->tic, (float)(x+1), (float)(y + h), (float)(x + w-1), (float)(y + h), tic_color_black);
         tic_api_pix(sprite->tic, x, y-1 + h, label_color, false);
     }
 

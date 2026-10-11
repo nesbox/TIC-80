@@ -717,7 +717,7 @@ static void deleteText(Console* console, s32 start, s32 end)
 
 static void processConsoleDel(Console* console)
 {
-    deleteText(console, console->input.pos, (s32)(console->input.pos + 1));
+    deleteText(console, (s32)(console->input.pos), (s32)(console->input.pos + 1));
 }
 
 static void processConsoleBackspace(Console* console)

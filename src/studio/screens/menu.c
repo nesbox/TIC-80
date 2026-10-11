@@ -348,7 +348,7 @@ void studio_menu_anim(tic_mem* tic, s32 ticks)
     {
         s32 ly = Gap - 8 * 32 * 16 / (x - ticks % 16);
 
-        tic_api_line(tic, 0, ly, TIC80_WIDTH, (float)ly, BG_ANIM_COLOR);
+        tic_api_line(tic, 0, (float)(ly), TIC80_WIDTH, (float)ly, BG_ANIM_COLOR);
         tic_api_line(tic, 0, (float)(TIC80_HEIGHT - ly),
             TIC80_WIDTH, (float)(TIC80_HEIGHT - ly), BG_ANIM_COLOR);
     }

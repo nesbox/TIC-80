@@ -32,10 +32,10 @@ static void drawGrid(World* world)
     u8 color = tic_color_grey;
 
     for(s32 c = 0; c < TIC80_WIDTH; c += TIC_MAP_SCREEN_WIDTH)
-        tic_api_line(world->tic, c, 0, (float)c, TIC80_HEIGHT, color);
+        tic_api_line(world->tic, (float)(c), 0, (float)c, TIC80_HEIGHT, color);
 
     for(s32 r = 0; r < TIC80_HEIGHT; r += TIC_MAP_SCREEN_HEIGHT)
-        tic_api_line(world->tic, 0, r, TIC80_WIDTH, (float)r, color);
+        tic_api_line(world->tic, 0, (float)(r), TIC80_WIDTH, (float)r, color);
 
     tic_api_rectb(world->tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, color);
 
