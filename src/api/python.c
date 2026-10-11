@@ -47,7 +47,7 @@ static int prepare_colorindex(py_Ref index, u8* buffer)
         }
         else
         {
-            buffer[0] = value;
+            buffer[0] = (u8)(value);
             return 1;
         }
     }
@@ -146,7 +146,7 @@ static bool py_spr(int argc, py_Ref argv)
     s32 h = (s32)(py_toint(py_arg(8)));
 
     tic_core* core = get_core();
-    core->api.spr((tic_mem*)core, spr_id, x, y, w, h, colors, colors_count, scale, flip, rotate);
+    core->api.spr((tic_mem*)core, spr_id, x, y, w, h, colors, (u8)(colors_count), scale, flip, rotate);
     py_newnone(py_retval());
     return true;
 }
@@ -495,11 +495,11 @@ static bool py_map(int argc, py_Ref argv)
     tic_core* core = get_core();
     if (!py_isnone(py_arg(8)))
     {
-        core->api.map((tic_mem*)core, x, y, w, h, sx, sy, colors, colors_count, scale, remap_callback, py_arg(8));
+        core->api.map((tic_mem*)core, x, y, w, h, sx, sy, colors, (u8)(colors_count), scale, remap_callback, py_arg(8));
     }
     else
     {
-        core->api.map((tic_mem*)core, x, y, w, h, sx, sy, colors, colors_count, scale, NULL, NULL);
+        core->api.map((tic_mem*)core, x, y, w, h, sx, sy, colors, (u8)(colors_count), scale, NULL, NULL);
     }
     py_newnone(py_retval());
     return true;
@@ -758,7 +758,7 @@ static bool py_pokebits(int argc, py_Ref argv)
     s32 bits = 8;
 
     tic_core* core = get_core();
-    core->api.poke((tic_mem*)core, addr, value, bits);
+    core->api.poke((tic_mem*)core, addr, (u8)(value), bits);
     py_newnone(py_retval());
     return true;
 }
@@ -774,7 +774,7 @@ static bool py_poke1(int argc, py_Ref argv)
     s32 value = (s32)(py_toint(py_arg(1)));
 
     tic_core* core = get_core();
-    core->api.poke1((tic_mem*)core, addr, value);
+    core->api.poke1((tic_mem*)core, addr, (u8)(value));
     py_newnone(py_retval());
     return true;
 }
@@ -790,7 +790,7 @@ static bool py_poke2(int argc, py_Ref argv)
     s32 value = (s32)(py_toint(py_arg(1)));
 
     tic_core* core = get_core();
-    core->api.poke2((tic_mem*)core, addr, value);
+    core->api.poke2((tic_mem*)core, addr, (u8)(value));
     py_newnone(py_retval());
     return true;
 }
@@ -806,7 +806,7 @@ static bool py_poke4(int argc, py_Ref argv)
     s32 value = (s32)(py_toint(py_arg(1)));
 
     tic_core* core = get_core();
-    core->api.poke4((tic_mem*)core, addr, value);
+    core->api.poke4((tic_mem*)core, addr, (u8)(value));
     py_newnone(py_retval());
     return true;
 }

@@ -59,7 +59,7 @@ static void clearCanvasSelection(Sprite* sprite)
 static void initTileSheet(Sprite* sprite)
 {
     sprite->blit.page %= sprite->blit.pages;
-    sprite->sheet = tic_tilesheet_get( tic_blit_calc_segment(&sprite->blit), (u8*)sprite->src);
+    sprite->sheet = tic_tilesheet_get( (u8)(tic_blit_calc_segment(&sprite->blit)), (u8*)sprite->src);
 }
 
 static void updateIndex(Sprite* sprite)
@@ -465,7 +465,7 @@ static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
         {
             s32 my = tic_api_mouse(tic).y - y;
 
-            sprite->brushSize = Count - my / (Size+1);
+            sprite->brushSize = (u8)(Count - my / (Size+1));
         }
     }
 
@@ -782,7 +782,7 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
 
         tic_api_rect(tic, rect.x, rect.y, Size, Size, tic_color_black);
 
-        u8 flagColor = i + 2;
+        u8 flagColor = (u8)(i + 2);
 
         if(or & mask)
             tic_api_pix(tic, rect.x + 2, rect.y + 2, flagColor, false);
@@ -887,7 +887,7 @@ static void drawBitMode(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
 
         tic_api_rect(tic, rect.x, rect.y, SizeX, SizeY, tic_color_dark_grey);
         if (current) {
-            tic_api_rect(tic, rect.x+1, rect.y+1, SizeX-2, SizeY-2, tic_color_yellow-i);
+            tic_api_rect(tic, rect.x+1, rect.y+1, SizeX-2, SizeY-2, (u8)(tic_color_yellow-i));
             tic_api_pix(tic, rect.x+3, rect.y+1,tic_color_white, false);
         }
         else if (over)
@@ -954,7 +954,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
             if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
             {
                 s32 mx = tic_api_mouse(tic).x - x;
-                *value = mx * Max / (Size-1);
+                *value = (u8)(mx * Max / (Size-1));
             }
         }
 
@@ -1208,8 +1208,8 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
 
         if(left || right)
         {
-            if(left) sprite->color = index;
-            if(right) sprite->color2 = index;
+            if(left) sprite->color = (u8)(index);
+            if(right) sprite->color2 = (u8)(index);
         }
     }
 
@@ -1337,7 +1337,7 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 
     for(s32 row = 0, i = 0; row < palette.rows; row++)
         for(s32 col = 0; col < palette.cols; col++)
-            tic_api_rect(tic, x + col * palette.cell_w, y + row * palette.cell_h, palette.cell_w-1, palette.cell_h-1, i++);
+            tic_api_rect(tic, x + col * palette.cell_w, y + row * palette.cell_h, palette.cell_w-1, palette.cell_h-1, (u8)(i++));
 }
 
 static void selectSprite(Sprite* sprite, s32 x, s32 y)
@@ -1349,8 +1349,8 @@ static void selectSprite(Sprite* sprite, s32 x, s32 y)
         if(x > size) x = size;
         if(y > size) y = size;
     }
-    sprite->x = x / TIC_SPRITESIZE;
-    sprite->y = y / TIC_SPRITESIZE;
+    sprite->x = (u16)(x / TIC_SPRITESIZE);
+    sprite->y = (u16)(y / TIC_SPRITESIZE);
     updateIndex(sprite);
 }
 
@@ -1358,7 +1358,7 @@ static void updateSpriteSize(Sprite* sprite, s32 size)
 {
     if(size != sprite->size)
     {
-        sprite->size = size;
+        sprite->size = (u8)(size);
         selectSprite(sprite, sprite->x*TIC_SPRITESIZE, sprite->y*TIC_SPRITESIZE);
     }
 }
@@ -1421,7 +1421,7 @@ static void drawSheet(Sprite* sprite, s32 x, s32 y)
         {
             for(blit.page = 0; blit.page < blit.pages; ++blit.page, pos.x += TIC_SPRITESHEET_SIZE)
             {
-                tic->ram->vram.blit.segment = tic_blit_calc_segment(&blit);
+                tic->ram->vram.blit.segment = (u8)(tic_blit_calc_segment(&blit));
                 tic_api_spr(tic, 0, pos.x, pos.y, TIC_SPRITESHEET_COLS, TIC_SPRITESHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
             }
         }
@@ -1739,7 +1739,7 @@ static void switchBanks(Sprite* sprite)
         anim->start = (bank - sprite->blit.bank) * TIC_SPRITESHEET_SIZE;
         sprite->anim.movie = resetMovie(&sprite->anim.bank);
 
-        sprite->blit.bank = bank;
+        sprite->blit.bank = (u8)(bank);
 
         updateIndex(sprite);
         initTileSheet(sprite);
@@ -1808,7 +1808,7 @@ static void updateBrushSize(Sprite* sprite, s32 val)
 static void updateColorIndex(Sprite* sprite, s32 val)
 {
     s32 colors = 1 << sprite->blit.mode;
-    sprite->color = (sprite->color + val + colors) % colors;
+    sprite->color = (u8)((sprite->color + val + colors) % colors);
 }
 
 static void processKeyboard(Sprite* sprite)
@@ -1845,7 +1845,7 @@ static void processKeyboard(Sprite* sprite)
                 u8* data = &getBankPalette(sprite->studio, sprite->palette.vbank1)->data[sprite->color * Rows + row];
                 char buf[sizeof "FF"];
                 sprintf(buf, "%02X", *data);
-                buf[col] = toupper((u8)sym);
+                buf[col] = (char)(toupper((u8)sym));
                 *data = (u8)strtol(buf, NULL, 16);
                 ++col;
             }
@@ -1881,7 +1881,7 @@ static void processKeyboard(Sprite* sprite)
 
                 char buf[sizeof "FF"];
                 sprintf(buf, "%02X", mask);
-                buf[sprite->flags.pos] = toupper((u8)sym);
+                buf[sprite->flags.pos] = (char)(toupper((u8)sym));
                 u8 value = (u8)(strtol(buf, NULL, 16));
 
                 for(const s32* i = indexes; *i; i++)
@@ -2022,7 +2022,7 @@ void spriteBand(void* app, Toolbar* tb)
             };
 
             if(toolbar_button(tb, &button))
-                selectViewportPage(sprite, page);
+                selectViewportPage(sprite, (u8)(page));
         }
     }
 

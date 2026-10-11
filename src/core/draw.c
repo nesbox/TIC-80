@@ -150,7 +150,7 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
 
 static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    u8* mapping = getPalette(&core->memory, colors, count);
+    u8* mapping = getPalette(&core->memory, colors, (u8)(count));
 
     rotate &= 3;
     u32 orientation = flip & 3;
@@ -486,8 +486,8 @@ static void setSidePixel(s32 x, s32 y)
 {
     if (y >= 0 && y < TIC80_HEIGHT)
     {
-        if (x < SidesBuffer.Left[y]) SidesBuffer.Left[y] = x;
-        if (x > SidesBuffer.Right[y]) SidesBuffer.Right[y] = x;
+        if (x < SidesBuffer.Left[y]) SidesBuffer.Left[y] = (s16)(x);
+        if (x > SidesBuffer.Right[y]) SidesBuffer.Right[y] = (s16)(x);
     }
 }
 
@@ -937,7 +937,7 @@ void tic_api_ttri(tic_mem* tic,
     TexData texData =
     {
         .sheet = getTileSheetFromSegment(tic, tic->ram->vram.blit.segment),
-        .mapping = getPalette(tic, colors, count),
+        .mapping = getPalette(tic, colors, (u8)(count)),
         .map = tic->ram->map.data,
         .vram = &((tic_core*)tic)->state.vbank.mem,
         .depth = depth,

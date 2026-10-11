@@ -157,8 +157,8 @@ void tic_core_tick_io(tic_mem* tic)
     // process keyboard
     for (s32 i = 0; i < tic_keys_count; i++)
     {
-        bool prevDown = isKeyPressed(&core->state.keyboard.previous, i);
-        bool down = isKeyPressed(&tic->ram->input.keyboard, i);
+        bool prevDown = isKeyPressed(&core->state.keyboard.previous, (tic_key)(i));
+        bool down = isKeyPressed(&tic->ram->input.keyboard, (tic_key)(i));
 
         u32* hold = &core->state.keyboard.holds[i];
 

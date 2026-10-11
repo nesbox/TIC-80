@@ -127,7 +127,7 @@ void map_select_bank(Map* map, s32 bank)
     anim->start = (bank - map->sheet.blit.bank) * TIC_SPRITESHEET_SIZE;
     map->anim.movie = resetMovie(&map->anim.bank);
 
-    map->sheet.blit.bank = bank;
+    map->sheet.blit.bank = (u8)(bank);
 }
 
 void map_select_page(Map* map, s32 page)
@@ -139,7 +139,7 @@ void map_select_page(Map* map, s32 page)
     anim->start = (page - map->sheet.blit.page) * TIC_SPRITESHEET_SIZE;
     map->anim.movie = resetMovie(&map->anim.page);
 
-    map->sheet.blit.page = page;
+    map->sheet.blit.page = (u8)(page);
 }
 
 void map_toggle_sheet(Map* map)
@@ -376,7 +376,7 @@ static void initBlitMode(Map* map)
 {
     tic_mem* tic = map->tic;
     tiles2ram(tic->ram, getBankTiles(map->studio));
-    tic->ram->vram.blit.segment = tic_blit_calc_segment(&map->sheet.blit);
+    tic->ram->vram.blit.segment = (u8)(tic_blit_calc_segment(&map->sheet.blit));
 }
 
 static void resetBlitMode(tic_mem* tic)
@@ -443,7 +443,7 @@ static void drawSheetReg(Map* map, s32 x, s32 y)
         {
             for(blit.page = 0; blit.page < blit.pages; ++blit.page, pos.x += TIC_SPRITESHEET_SIZE)
             {
-                tic->ram->vram.blit.segment = tic_blit_calc_segment(&blit);
+                tic->ram->vram.blit.segment = (u8)(tic_blit_calc_segment(&blit));
                 tic_api_spr(tic, 0, pos.x, pos.y + map->anim.pos.sheet, TIC_SPRITESHEET_COLS, TIC_SPRITESHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
             }
         }
@@ -489,7 +489,7 @@ static void setMapSprite(Map* map, s32 x, s32 y)
 
     for(s32 j = 0; j < map->sheet.rect.h; j++)
         for(s32 i = 0; i < map->sheet.rect.w; i++)
-            tic_api_mset(map->tic, (x+i)%TIC_MAP_WIDTH, (y+j)%TIC_MAP_HEIGHT, (mx+i) + (my+j) * TIC_SPRITESHEET_COLS);
+            tic_api_mset(map->tic, (x+i)%TIC_MAP_WIDTH, (y+j)%TIC_MAP_HEIGHT, (u8)((mx+i) + (my+j) * TIC_SPRITESHEET_COLS));
 
     ram2map(map->tic->ram, map->src);
 
@@ -869,7 +869,7 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
     {
         for(s32 j = 0; j < map->sheet.rect.h; j++)
             for(s32 i = 0; i < map->sheet.rect.w; i++)
-                tic_api_mset(map->tic, x+i, y+j, (mx+i) + (my+j) * TIC_SPRITESHEET_COLS);
+                tic_api_mset(map->tic, x+i, y+j, (u8)((mx+i) + (my+j) * TIC_SPRITESHEET_COLS));
 
         for(s32 i = 0; i < COUNT_OF(dx); i++)
         {
@@ -932,7 +932,7 @@ static void replaceTile(Map* map, s32 x, s32 y, u8 tile)
                 s32 oy = moduloWrap(j - y, map->sheet.rect.h);
                 s32 ox = moduloWrap(i - x, map->sheet.rect.w);
 
-                u8 newtile = (mx + ox) + (my + oy) * TIC_SPRITESHEET_COLS;
+                u8 newtile = (u8)((mx + ox) + (my + oy) * TIC_SPRITESHEET_COLS);
                 tic_api_mset(map->tic, i, j, newtile);
             }
 }
@@ -1071,8 +1071,8 @@ static void copySelectionToClipboard(Map* map)
 
         if(buffer)
         {
-            buffer[0] = sel->w;
-            buffer[1] = sel->h;
+            buffer[0] = (u8)(sel->w);
+            buffer[1] = (u8)(sel->h);
 
             u8* ptr = buffer + 2;
 

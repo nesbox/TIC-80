@@ -679,8 +679,8 @@ static void processMouse()
     {
         SDL_GetRelativeMouseState(&pt.x, &pt.y);
 
-        input->mouse.rx = pt.x;
-        input->mouse.ry = pt.y;
+        input->mouse.rx = (s8)(pt.x);
+        input->mouse.ry = (s8)(pt.y);
     }
     else
     {
@@ -706,8 +706,8 @@ static void processMouse()
                     else
                     {
                         SDL_ShowCursor(SDL_DISABLE);
-                        input->mouse.x = m.x;
-                        input->mouse.y = m.y;
+                        input->mouse.x = (u8)(m.x);
+                        input->mouse.y = (u8)(m.y);
                     }
                 }
             }
@@ -750,7 +750,7 @@ static void processKeyboard()
             || platform.keyboard.touch.state[i]
 #endif
             )
-            input->keyboard.keys[c++] = i;
+            input->keyboard.keys[c++] = (tic_key)(i);
 
 #if defined(TOUCH_INPUT_SUPPORT)
     if(platform.keyboard.touch.state[tic_key_board])
@@ -1188,9 +1188,9 @@ static void resetKeyboardStateOnFocusLoss()
 
 tic_layout detect_keyboard_layout()
 {
-    char q = SDL_GetKeyFromScancode(SDL_SCANCODE_Q);
-    char w = SDL_GetKeyFromScancode(SDL_SCANCODE_W);
-    char y = SDL_GetKeyFromScancode(SDL_SCANCODE_Y);
+    char q = (char)(SDL_GetKeyFromScancode(SDL_SCANCODE_Q));
+    char w = (char)(SDL_GetKeyFromScancode(SDL_SCANCODE_W));
+    char y = (char)(SDL_GetKeyFromScancode(SDL_SCANCODE_Y));
 
     tic_layout layout = tic_layout_unknown;
 
@@ -1255,8 +1255,8 @@ static void pollEvents()
         case SDL_MOUSEWHEEL:
             {
                 platform.mouse.moved = true;
-                input->mouse.scrollx = event.wheel.x;
-                input->mouse.scrolly = event.wheel.y;
+                input->mouse.scrollx = (s16)(event.wheel.x);
+                input->mouse.scrolly = (s16)(event.wheel.y);
             }
             break;
         case SDL_CONTROLLERDEVICEADDED:

@@ -356,7 +356,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
         if (codeValue.IsNull()) {
             return IntrinsicResult(core->api.key(tic, tic_key_unknown));
         } else {
-            tic_key code = codeValue.IntValue();
+            tic_key code = (tic_key)(codeValue.IntValue());
             if (code < tic_keys_count) {
                 return IntrinsicResult(core->api.key(tic, code));
             }
@@ -381,7 +381,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
         if (codeValue.IsNull()) {
             return IntrinsicResult(core->api.keyp(tic, tic_key_unknown, -1, -1));
         } else {
-            tic_key code = codeValue.IntValue();
+            tic_key code = (tic_key)(codeValue.IntValue());
             if (code >= tic_keys_count) {
                 context.vm.RaiseRuntimeError("unknown keyboard code");
                 return IntrinsicResult::Null;
@@ -451,16 +451,16 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
                 colors[i] = chromakey.ListGet(i).IntValue() & 0xF;
             }
         } else if (chromakey.IsNumber()) {
-            colors[count++] = chromakey.IntValue();
+            colors[count++] = (u8)(chromakey.IntValue());
         }
 
         // Handle remap
         Value remap = context.GetArg(8);
         if (remap.IsFuncRef()) {
             RemapData data{context.GetInterpreter(), remap};
-            core->api.map(tic, x, y, w, h, sx, sy, colors, count, scale, remapCallback, static_cast<void*>(&data));
+            core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, remapCallback, static_cast<void*>(&data));
         } else if (remap.IsNull()) {
-            core->api.map(tic, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+            core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, NULL, NULL);
         } else {
             context.vm.RaiseRuntimeError("remap must be funcRef or null");
         }
@@ -914,10 +914,10 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
                 trans_colors[i] = chromakey.ListGet(i).IntValue() & 0xF;
             }
         } else if (chromakey.IsNumber()) {
-            trans_colors[trans_count++] = chromakey.IntValue();
+            trans_colors[trans_count++] = (u8)(chromakey.IntValue());
         }
 
-        core->api.spr(tic, index, x, y, w, h, trans_colors, trans_count, scale, flip, rotate);
+        core->api.spr(tic, index, x, y, w, h, trans_colors, (u8)(trans_count), scale, flip, rotate);
         return IntrinsicResult::Null;
     });
     tic80Module.SetValue("spr", i.GetFunc());
@@ -987,7 +987,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
                 colors[i] = chromakey.ListGet(i).IntValue() & 0xF;
             }
         } else if (chromakey.IsNumber()) {
-            colors[count++] = chromakey.IntValue();
+            colors[count++] = (u8)(chromakey.IntValue());
         }
 
         float z[3] = { 0 };

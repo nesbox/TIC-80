@@ -383,7 +383,7 @@ static void emptyDone(void* data) {(void)data; }
 void fadePalette(tic_palette* pal, s32 value)
 {
     for(u8 *i = pal->data, *end = i + sizeof(tic_palette); i < end; i++)
-        *i = *i * value >> 8;
+        *i = (u8)(*i * value >> 8);
 }
 
 void map2ram(tic_ram* ram, const tic_map* src)
@@ -1093,7 +1093,7 @@ static void showPopupMessage(Studio* studio, const char* text)
         (s32)sizeof studio->popup.message - 1, text);
 
     for(char* c = studio->popup.message; c < studio->popup.message + sizeof studio->popup.message; c++)
-        if(*c) *c = toupper((u8)(*c));
+        if(*c) *c = (char)(toupper((u8)(*c)));
 
     studio->anim.movie = resetMovie(&studio->anim.show);
 }
@@ -2699,7 +2699,7 @@ void studio_sound(Studio* studio)
     {
         s32 size = tic->product.samples.count;
         for(s16* it = tic->product.samples.buffer, *end = it + size; it != end; ++it)
-            *it = *it * volume / MAX_VOLUME;
+            *it = (s16)(*it * volume / MAX_VOLUME);
     }
 }
 

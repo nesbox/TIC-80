@@ -426,7 +426,7 @@ m3ApiRawFunction(wasmtic_key)
 
     tic_core* core = getWasmCore(runtime);
 
-    m3ApiReturn(core->api.key((tic_mem *)core, index));
+    m3ApiReturn(core->api.key((tic_mem *)core, (tic_key)(index)));
 
     m3ApiSuccess();
 }
@@ -509,7 +509,7 @@ m3ApiRawFunction(wasmtic_mset)
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
-    core->api.mset(tic, x, y, value);
+    core->api.mset(tic, x, y, (u8)(value));
 
     m3ApiSuccess();
 }
@@ -932,7 +932,7 @@ m3ApiRawFunction(wasmtic_memset)
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
-    core->api.memset(tic, address, value, length);
+    core->api.memset(tic, address, (u8)(value), length);
 
     m3ApiSuccess();
 }
@@ -1044,7 +1044,7 @@ m3ApiRawFunction(wasmtic_vbank)
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
-    uint8_t previous_bank = core->api.vbank(tic, bank);
+    uint8_t previous_bank = (uint8_t)(core->api.vbank(tic, bank));
     m3ApiReturn(previous_bank);
 
     m3ApiSuccess();
@@ -1075,8 +1075,8 @@ m3ApiRawFunction(wasmtic_mouse)
 
     tic_point pos = core->api.mouse(tic);
 
-    mouse_data->x = pos.x;
-    mouse_data->y = pos.y;
+    mouse_data->x = (int16_t)(pos.x);
+    mouse_data->y = (int16_t)(pos.y);
     mouse_data->left = (bool)(mouse->left);
     mouse_data->middle = (bool)(mouse->middle);
     mouse_data->right = (bool)(mouse->right);

@@ -138,10 +138,10 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 
             switch(canvasTab)
             {
-            case SFX_WAVE_PANEL:   effect->data[mx].wave = my; break;
-            case SFX_VOLUME_PANEL: effect->data[mx].volume = my; break;
-            case SFX_CHORD_PANEL:  effect->data[mx].chord = my; break;
-            case SFX_PITCH_PANEL:  effect->data[mx].pitch = my; break;
+            case SFX_WAVE_PANEL:   effect->data[mx].wave = (u8)(my); break;
+            case SFX_VOLUME_PANEL: effect->data[mx].volume = (u8)(my); break;
+            case SFX_CHORD_PANEL:  effect->data[mx].chord = (u8)(my); break;
+            case SFX_PITCH_PANEL:  effect->data[mx].pitch = (s8)(my); break;
             default: break;
             }
 
@@ -592,7 +592,7 @@ static void processKeyboard(Sfx* sfx)
     {
         u8 octaveShift = 0;
         for(int i = 0; i < COUNT_OF(Keycodes); i++) {
-            if(tic_api_key(tic, Keycodes[i])) {
+            if(tic_api_key(tic, (tic_key)(Keycodes[i]))) {
                 if (sfx->play.tick == 0 && !keyboard_pressed_once(tic, Keycodes[i]))
                     continue;
 
@@ -600,7 +600,7 @@ static void processKeyboard(Sfx* sfx)
                     ? i - SECOND_OCTAVE_KEYBOARD_SHIFT
                     : i) % NOTES;
 
-                octaveShift = (i - keyboardButton) / NOTES;
+                octaveShift = (u8)((i - keyboardButton) / NOTES);
             }
         }
 
@@ -615,7 +615,7 @@ static void processKeyboard(Sfx* sfx)
         if (keyboardButton != sfx->play.note)
             sfx->play.tick = 0;
 
-        effect->note = keyboardButton;
+        effect->note = (u8)(keyboardButton);
         sfx->play.active = true;
     }
 
@@ -781,7 +781,7 @@ static void drawWaves(Sfx* sfx, s32 x, s32 y)
             if(checkMouseClick(sfx->studio, &rect, tic_mouse_left))
             {
                 for(s32 c = 0; c < SFX_TICKS; c++)
-                    effect->data[c].wave = i;
+                    effect->data[c].wave = (u8)(i);
 
                 history_add(sfx->history);
             }
@@ -876,7 +876,7 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
 
                     if(tic_tool_peek4(wave->data, cx) != cy)
                     {
-                        tic_tool_poke4(wave->data, cx, cy);
+                        tic_tool_poke4(wave->data, cx, (u8)(cy));
                         history_add(sfx->waveHistory);
                     }
                 }
@@ -961,8 +961,8 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
 
                 if(checkMouseDown(sfx->studio, &rect, tic_mouse_left))
                 {
-                    effect->note = btn->note;
-                    effect->octave = octave;
+                    effect->note = (u8)(btn->note);
+                    effect->octave = (u8)(octave);
                     sfx->play.active = true;
 
                     history_add(sfx->history);
@@ -1036,7 +1036,7 @@ static void drawSpeedPanel(Sfx* sfx, s32 x, s32 y)
 
         if(checkMouseDown(sfx->studio, &rect, tic_mouse_left))
         {
-            effect->speed = spd - MaxSpeed;
+            effect->speed = (s8)(spd - MaxSpeed);
             history_add(sfx->history);
         }
     }
@@ -1077,7 +1077,7 @@ static void drawSelectorPanel(Sfx* sfx, s32 x, s32 y)
                         SHOW_TOOLTIP(sfx->studio, "edit sfx #%02i", hover);
 
                         if(checkMouseClick(sfx->studio, &rect, tic_mouse_left))
-                            sfx->index = i;
+                            sfx->index = (u8)(i);
 
                         goto draw;
                     }

@@ -1783,7 +1783,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                             // adding them together caused issues with squashing??? no idea why this isn't the case
                             // for bpp 1
                             color = (color2 << 2) | color1;
-                            tic_tilesheet_setflatpix(base, x, y, color);
+                            tic_tilesheet_setflatpix(base, x, y, (u8)(color));
                             break;
                         case 1:
                             color1 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + j * img.width), 2);
@@ -1791,7 +1791,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                             color3 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 2 + j * img.width), 2);
                             color4 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 3 + j * img.width), 2);
                             color = (color4 << 3) | (color3 << 2) | (color2 << 1) | color1;
-                            tic_tilesheet_setflatpix(base, x, y, color);
+                            tic_tilesheet_setflatpix(base, x, y, (u8)(color));
                             break;
                     }
 
@@ -1881,7 +1881,7 @@ static void onImport_screen(Console* console, const char* name, const void* buff
 
             s32 i = 0;
             for(const png_rgba *pix = img.pixels, *end = pix + (TIC80_WIDTH * TIC80_HEIGHT); pix < end; pix++)
-                tic_tool_poke4(bank->screen.data, i++, tic_nearest_color(pal->colors, (tic_rgb*)pix, TIC_PALETTE_SIZE));
+                tic_tool_poke4(bank->screen.data, i++, (u8)(tic_nearest_color(pal->colors, (tic_rgb*)pix, TIC_PALETTE_SIZE)));
 
             error = false;
         }

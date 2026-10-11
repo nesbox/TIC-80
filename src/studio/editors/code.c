@@ -2460,7 +2460,7 @@ static void updateGotoCode(Code* code);
 static void processViGoto(Code* code, s32 initial)
 {
     setCodeMode(code, TEXT_GOTO_MODE);
-    code->popup.text[0] = '0' + initial;
+    code->popup.text[0] = (char)('0' + initial);
     code->popup.text[1] = '\0';
     updateGotoCode(code);
 }
@@ -2586,9 +2586,9 @@ static void processViChange(Code* code) {
 
 static char toggleCase(char c) {
     if (isupper((u8)c))
-        return tolower((u8)c);
+        return (char)(tolower((u8)c));
     else if(islower((u8)c))
-        return toupper((u8)c);
+        return (char)(toupper((u8)c));
     else
         return c;
 }

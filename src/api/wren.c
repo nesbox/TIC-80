@@ -366,7 +366,7 @@ static void wren_key(WrenVM* vm)
     }
     else if (top == 2)
     {
-        tic_key key = getWrenNumber(vm, 1);
+        tic_key key = (tic_key)(getWrenNumber(vm, 1));
 
         if(key < tic_keys_count)
             wrenSetSlotBool(vm, 0, core->api.key(tic, key));
@@ -391,7 +391,7 @@ static void wren_keyp(WrenVM* vm)
     }
     else
     {
-        tic_key key = getWrenNumber(vm, 1);
+        tic_key key = (tic_key)(getWrenNumber(vm, 1));
 
         if(key >= tic_keys_count)
         {
@@ -469,7 +469,7 @@ static void wren_print(WrenVM* vm)
 
     bool alt = wrenGetSlotBool(vm, 7);
 
-    s32 size = core->api.print(tic, text, x, y, color, fixed, scale, alt);
+    s32 size = core->api.print(tic, text, x, y, (u8)(color), fixed, scale, alt);
 
     wrenSetSlotDouble(vm, 0, size);
 }
@@ -503,7 +503,7 @@ static void wren_font(WrenVM* vm)
 
             if(top > 4)
             {
-                chromakey = getWrenNumber(vm, 4);
+                chromakey = (u8)(getWrenNumber(vm, 4));
 
                 if(top > 6)
                 {
@@ -589,7 +589,7 @@ static void wren_spr(WrenVM* vm)
                         wrenGetListElement(vm, 4, i, top);
                         if(isNumber(vm, top))
                         {
-                            colors[i] = getWrenNumber(vm, top);
+                            colors[i] = (u8)(getWrenNumber(vm, top));
                             count++;
                         }
                         else
@@ -600,7 +600,7 @@ static void wren_spr(WrenVM* vm)
                 }
                 else
                 {
-                    colors[0] = getWrenNumber(vm, 4);
+                    colors[0] = (u8)(getWrenNumber(vm, 4));
                     count = 1;
                 }
 
@@ -630,7 +630,7 @@ static void wren_spr(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate);
+    core->api.spr(tic, index, x, y, w, h, colors, (u8)(count), scale, flip, rotate);
 }
 
 static void wren_spr_internal(WrenVM* vm)
@@ -658,7 +658,7 @@ static void wren_spr_internal(WrenVM* vm)
             wrenGetListElement(vm, 4, i, top);
             if(isNumber(vm, top))
             {
-                colors[i] = getWrenNumber(vm, top);
+                colors[i] = (u8)(getWrenNumber(vm, top));
                 count++;
             }
             else
@@ -669,7 +669,7 @@ static void wren_spr_internal(WrenVM* vm)
     }
     else
     {
-        colors[0] = getWrenNumber(vm, 4);
+        colors[0] = (u8)(getWrenNumber(vm, 4));
         count = 1;
     }
 
@@ -679,7 +679,7 @@ static void wren_spr_internal(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.spr(tic, index, x, y, 1, 1, colors, count, scale, flip, rotate);
+    core->api.spr(tic, index, x, y, 1, 1, colors, (u8)(count), scale, flip, rotate);
 }
 
 static void wren_map(WrenVM* vm)
@@ -727,7 +727,7 @@ static void wren_map(WrenVM* vm)
                             wrenGetListElement(vm, 7, i, top);
                             if(isNumber(vm, top))
                             {
-                                colors[i] = getWrenNumber(vm, top);
+                                colors[i] = (u8)(getWrenNumber(vm, top));
                                 count++;
                             }
                             else
@@ -738,7 +738,7 @@ static void wren_map(WrenVM* vm)
                     }
                     else
                     {
-                        colors[0] = getWrenNumber(vm, 7);
+                        colors[0] = (u8)(getWrenNumber(vm, 7));
                         count = 1;
                     }
 
@@ -753,14 +753,14 @@ static void wren_map(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.map(tic, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+    core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, NULL, NULL);
 }
 
 static void wren_mset(WrenVM* vm)
 {
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
-    u8 value = getWrenNumber(vm, 3);
+    u8 value = (u8)(getWrenNumber(vm, 3));
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
@@ -838,7 +838,7 @@ static void wren_ttri(WrenVM* vm)
                 wrenGetListElement(vm, 14, i, top);
                 if(isNumber(vm, top))
                 {
-                    colors[i] = getWrenNumber(vm, top);
+                    colors[i] = (u8)(getWrenNumber(vm, top));
                     count++;
                 }
                 else
@@ -849,7 +849,7 @@ static void wren_ttri(WrenVM* vm)
         }
         else
         {
-            colors[0] = getWrenNumber(vm, 14);
+            colors[0] = (u8)(getWrenNumber(vm, 14));
             count = 1;
         }
     }
@@ -908,7 +908,7 @@ static void wren_textri(WrenVM* vm)
                 wrenGetListElement(vm, 14, i, top);
                 if(isNumber(vm, top))
                 {
-                    colors[i] = getWrenNumber(vm, top);
+                    colors[i] = (u8)(getWrenNumber(vm, top));
                     count++;
                 }
                 else
@@ -919,7 +919,7 @@ static void wren_textri(WrenVM* vm)
         }
         else
         {
-            colors[0] = getWrenNumber(vm, 14);
+            colors[0] = (u8)(getWrenNumber(vm, 14));
             count = 1;
         }
     }
@@ -949,7 +949,7 @@ static void wren_pix(WrenVM* vm)
     if(top > 3)
     {
         s32 color = getWrenNumber(vm, 3);
-        core->api.pix(tic, x, y, color, false);
+        core->api.pix(tic, x, y, (u8)(color), false);
     }
     else
     {
@@ -967,7 +967,7 @@ static void wren_line(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.line(tic, x0, y0, x1, y1, color);
+    core->api.line(tic, x0, y0, x1, y1, (u8)(color));
 }
 
 static void wren_circ(WrenVM* vm)
@@ -979,7 +979,7 @@ static void wren_circ(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.circ(tic, x, y, radius, color);
+    core->api.circ(tic, x, y, radius, (u8)(color));
 }
 
 static void wren_circb(WrenVM* vm)
@@ -991,7 +991,7 @@ static void wren_circb(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.circb(tic, x, y, radius, color);
+    core->api.circb(tic, x, y, radius, (u8)(color));
 }
 
 static void wren_elli(WrenVM* vm)
@@ -1004,7 +1004,7 @@ static void wren_elli(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.elli(tic, x, y, a, b, color);
+    core->api.elli(tic, x, y, a, b, (u8)(color));
 }
 
 static void wren_ellib(WrenVM* vm)
@@ -1017,7 +1017,7 @@ static void wren_ellib(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.ellib(tic, x, y, a, b, color);
+    core->api.ellib(tic, x, y, a, b, (u8)(color));
 }
 
 static void wren_paint(WrenVM* vm)
@@ -1030,7 +1030,7 @@ static void wren_paint(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.paint(tic, x, y, color, bordercolor);
+    core->api.paint(tic, x, y, (u8)(color), (u8)(bordercolor));
 }
 
 static void wren_rect(WrenVM* vm)
@@ -1043,7 +1043,7 @@ static void wren_rect(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.rect(tic, x, y, w, h, color);
+    core->api.rect(tic, x, y, w, h, (u8)(color));
 }
 
 static void wren_rectb(WrenVM* vm)
@@ -1056,7 +1056,7 @@ static void wren_rectb(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.rectb(tic, x, y, w, h, color);
+    core->api.rectb(tic, x, y, w, h, (u8)(color));
 }
 
 static void wren_tri(WrenVM* vm)
@@ -1072,7 +1072,7 @@ static void wren_tri(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+    core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
 }
 
 static void wren_trib(WrenVM* vm)
@@ -1088,7 +1088,7 @@ static void wren_trib(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+    core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
 }
 
 static void wren_cls(WrenVM* vm)
@@ -1097,7 +1097,7 @@ static void wren_cls(WrenVM* vm)
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.cls(tic, top == 1 ? 0 : getWrenNumber(vm, 1));
+    core->api.cls(tic, top == 1 ? 0 : (u8)(getWrenNumber(vm, 1)));
 }
 
 static void wren_clip(WrenVM* vm)
@@ -1161,7 +1161,7 @@ static void wren_poke1(WrenVM* vm)
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
-    u8 value = getWrenNumber(vm, 2);
+    u8 value = (u8)(getWrenNumber(vm, 2));
 
     core->api.poke1(tic, address, value);
 }
@@ -1180,7 +1180,7 @@ static void wren_poke2(WrenVM* vm)
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
-    u8 value = getWrenNumber(vm, 2);
+    u8 value = (u8)(getWrenNumber(vm, 2));
 
     core->api.poke2(tic, address, value);
 }
@@ -1199,7 +1199,7 @@ static void wren_poke4(WrenVM* vm)
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
-    u8 value = getWrenNumber(vm, 2);
+    u8 value = (u8)(getWrenNumber(vm, 2));
 
     core->api.poke4(tic, address, value);
 }
@@ -1218,7 +1218,7 @@ static void wren_memcpy(WrenVM* vm)
 static void wren_memset(WrenVM* vm)
 {
     s32 dest = getWrenNumber(vm, 1);
-    u8 value = getWrenNumber(vm, 2);
+    u8 value = (u8)(getWrenNumber(vm, 2));
     s32 size = getWrenNumber(vm, 3);
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
@@ -1473,7 +1473,7 @@ static void wren_fget(WrenVM* vm)
         if(top > 2)
         {
             u32 flag = getWrenNumber(vm, 2);
-            wrenSetSlotBool(vm, 0, core->api.fget(tic, index, flag));
+            wrenSetSlotBool(vm, 0, core->api.fget(tic, index, (u8)(flag)));
             return;
         }
     }
@@ -1497,7 +1497,7 @@ static void wren_fset(WrenVM* vm)
             if(top > 3)
             {
                 bool value = wrenGetSlotBool(vm, 3);
-                core->api.fset(tic, index, flag, value);
+                core->api.fset(tic, index, (u8)(flag), value);
                 return;
             }
         }

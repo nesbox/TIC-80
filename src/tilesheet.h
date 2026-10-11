@@ -61,7 +61,7 @@ inline u8 tic_tilesheet_getpix(const tic_tilesheet* sheet, s32 x, s32 y)
     page_offset = ((((x>>7) + sheet->segment->page_orig) % sheet->segment->nb_pages) << 4) / sheet->segment->nb_pages;
 
     // tile coord
-    u16 tile_index = bank_offset + (((y & 127) >> 3) << 4 ) + page_offset + ((x & 127) / sheet->segment->tile_width);
+    u16 tile_index = (u16)(bank_offset + (((y & 127) >> 3) << 4 ) + page_offset + ((x & 127) / sheet->segment->tile_width));
 
     // coord in tile
     u32 pix_addr = ((x & (sheet->segment->tile_width - 1)) + ((y & 7) * sheet->segment->tile_width)) ;
@@ -75,7 +75,7 @@ inline void tic_tilesheet_setpix(const tic_tilesheet* sheet, s32 x, s32 y, u8 va
     page_offset = ((((x>>7) + sheet->segment->page_orig) % sheet->segment->nb_pages) << 4) / sheet->segment->nb_pages;
 
     // tile coord
-    u16 tile_index = bank_offset + (((y & 127) >> 3) << 4 ) + page_offset + ((x & 127) / sheet->segment->tile_width);
+    u16 tile_index = (u16)(bank_offset + (((y & 127) >> 3) << 4 ) + page_offset + ((x & 127) / sheet->segment->tile_width));
 
     // coord in tile
     u32 pix_addr = ((x & (sheet->segment->tile_width - 1)) + ((y & 7) * sheet->segment->tile_width)) ;
