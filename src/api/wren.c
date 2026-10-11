@@ -1866,6 +1866,7 @@ static WrenForeignMethodFn bindForeignMethod(
     WrenVM* vm, const char* module, const char* className,
     bool isStatic, const char* signature)
 {
+    (void)vm;
     if (strcmp(module, "main") != 0) return NULL;
 
     // For convenience, concatenate all of the method qualifiers into a single signature string.
@@ -1895,6 +1896,7 @@ static void initAPI(tic_core* core)
 
 static void reportError(WrenVM* vm, WrenErrorType type, const char* module, int line, const char* message)
 {
+    (void)type;
     tic_core* core = getWrenCore(vm);
 
     char buffer[1024];
@@ -2021,6 +2023,7 @@ static void callWrenBoot(tic_mem* tic)
 
 static void callWrenIntCallback(tic_mem* tic, s32 value, WrenHandle* handle, void* data)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
     WrenVM* vm = core->currentVM;
 

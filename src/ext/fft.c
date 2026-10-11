@@ -49,6 +49,8 @@ void miniaudioLogCallback(void* userData, ma_uint32 level, const char* message)
 
 void OnReceiveFrames(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
 {
+    (void)pDevice;
+    (void)pOutput;
     const float* samples = (const float*)pInput;
     if (frameCount > AUDIO_BUFFER_SIZE)
     {
@@ -442,6 +444,7 @@ static double fft(s32 startFreq, s32 endFreq, bool smoothing, bool raw)
 
 double tic_api_fft(tic_mem* memory, s32 startFreq, s32 endFreq)
 {
+    (void)memory;
 #ifdef TIC80_FFT_UNSUPPORTED
     return 0.0;
 #else
@@ -451,6 +454,7 @@ double tic_api_fft(tic_mem* memory, s32 startFreq, s32 endFreq)
 
 double tic_api_ffts(tic_mem* memory, s32 startFreq, s32 endFreq)
 {
+    (void)memory;
 #ifdef TIC80_FFT_UNSUPPORTED
     return 0.0;
 #else
@@ -470,10 +474,12 @@ void FFT_CopyAudio(float* samples, int count)
 
 double tic_api_fftr(tic_mem* memory, s32 startFreq, s32 endFreq)
 {
+    (void)memory;
     return fft(startFreq, endFreq, false, true);
 }
 
 double tic_api_fftrs(tic_mem* memory, s32 startFreq, s32 endFreq)
 {
+    (void)memory;
     return fft(startFreq, endFreq, true, true);
 }

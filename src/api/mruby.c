@@ -47,11 +47,13 @@ typedef struct {
 static tic_core* CurrentMachine = NULL;
 static inline tic_core* getMRubyMachine(mrb_state* mrb)
 {
+    (void)mrb;
     return CurrentMachine;
 }
 
 static mrb_value mrb_peek(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
     mrb_int address;
@@ -63,6 +65,7 @@ static mrb_value mrb_peek(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_poke(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
 
@@ -77,6 +80,7 @@ static mrb_value mrb_poke(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_peek1(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
 
@@ -88,6 +92,7 @@ static mrb_value mrb_peek1(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_poke1(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
 
@@ -101,6 +106,7 @@ static mrb_value mrb_poke1(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_peek2(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
 
@@ -112,6 +118,7 @@ static mrb_value mrb_peek2(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_poke2(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
 
@@ -125,6 +132,7 @@ static mrb_value mrb_poke2(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_peek4(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
 
@@ -136,6 +144,7 @@ static mrb_value mrb_peek4(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_poke4(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
 
@@ -149,6 +158,7 @@ static mrb_value mrb_poke4(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_cls(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int color = 0;
     mrb_get_args(mrb, "|i", &color);
 
@@ -161,6 +171,7 @@ static mrb_value mrb_cls(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_pix(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y, color;
     mrb_int argc = mrb_get_args(mrb, "ii|i", &x, &y, &color);
 
@@ -179,6 +190,7 @@ static mrb_value mrb_pix(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_line(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_float x0, y0, x1, y1;
     mrb_int color;
     mrb_get_args(mrb, "ffffi", &x0, &y0, &x1, &y1, &color);
@@ -192,6 +204,7 @@ static mrb_value mrb_line(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_rect(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y, w, h, color;
     mrb_get_args(mrb, "iiiii", &x, &y, &w, &h, &color);
 
@@ -204,6 +217,7 @@ static mrb_value mrb_rect(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_rectb(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y, w, h, color;
     mrb_get_args(mrb, "iiiii", &x, &y, &w, &h, &color);
 
@@ -216,6 +230,7 @@ static mrb_value mrb_rectb(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_circ(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y, radius, color;
     mrb_get_args(mrb, "iiii", &x, &y, &radius, &color);
 
@@ -232,6 +247,7 @@ static mrb_value mrb_circ(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_circb(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y, radius, color;
     mrb_get_args(mrb, "iiii", &x, &y, &radius, &color);
 
@@ -248,6 +264,7 @@ static mrb_value mrb_circb(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_elli(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y, a, b, color;
     mrb_get_args(mrb, "iiiii", &x, &y, &a, &b, &color);
 
@@ -260,6 +277,7 @@ static mrb_value mrb_elli(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_ellib(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y, a, b, color;
     mrb_get_args(mrb, "iiiii", &x, &y, &a, &b, &color);
 
@@ -272,6 +290,7 @@ static mrb_value mrb_ellib(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_paint(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y, color;
     mrb_int bordercolor = -1;
     mrb_get_args(mrb, "iii|i", &x, &y, &color, &bordercolor);
@@ -285,6 +304,7 @@ static mrb_value mrb_paint(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_tri(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_float x1, y1, x2, y2, x3, y3;
     mrb_int color;
     mrb_get_args(mrb, "ffffffi", &x1, &y1, &x2, &y2, &x3, &y3, &color);
@@ -298,6 +318,7 @@ static mrb_value mrb_tri(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_trib(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_float x1, y1, x2, y2, x3, y3;
     mrb_int color;
     mrb_get_args(mrb, "ffffffi", &x1, &y1, &x2, &y2, &x3, &y3, &color);
@@ -311,6 +332,7 @@ static mrb_value mrb_trib(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_ttri(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_value chroma = mrb_fixnum_value(0xff);
     mrb_int src = tic_tiles_texture;
 
@@ -354,6 +376,7 @@ static mrb_value mrb_ttri(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_clip(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y, w, h;
     mrb_int argc = mrb_get_args(mrb, "|iiii", &x, &y, &w, &h);
 
@@ -376,6 +399,7 @@ static mrb_value mrb_clip(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_btnp(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
 
@@ -403,6 +427,7 @@ static mrb_value mrb_btnp(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_btn(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
 
@@ -426,6 +451,7 @@ static mrb_value mrb_btn(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_spr(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int index, x, y;
     mrb_int w = 1, h = 1, scale = 1;
     mrb_int flip = tic_no_flip, rotate = tic_no_rotate;
@@ -461,6 +487,7 @@ static mrb_value mrb_spr(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_mget(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y;
     mrb_get_args(mrb, "ii", &x, &y);
 
@@ -472,6 +499,7 @@ static mrb_value mrb_mget(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_mset(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x, y, val;
     mrb_get_args(mrb, "iii", &x, &y, &val);
 
@@ -484,6 +512,7 @@ static mrb_value mrb_mset(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_tstamp(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
     return mrb_fixnum_value(core->api.tstamp(tic));
@@ -491,6 +520,7 @@ static mrb_value mrb_tstamp(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_vbank(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core *core = getMRubyMachine(mrb);
     tic_mem *tic = (tic_mem*)core;
 
@@ -509,6 +539,7 @@ static mrb_value mrb_vbank(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_fget(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int index, flag;
     mrb_get_args(mrb, "ii", &index, &flag);
 
@@ -519,6 +550,7 @@ static mrb_value mrb_fget(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_fset(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int index, flag;
     mrb_bool value;
     mrb_get_args(mrb, "iib", &index, &flag, &value);
@@ -532,6 +564,7 @@ static mrb_value mrb_fset(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_vqt(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int bin;
     mrb_int argc = mrb_get_args(mrb, "i", &bin);
 
@@ -551,6 +584,7 @@ static mrb_value mrb_vqt(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_vqts(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int bin;
     mrb_int argc = mrb_get_args(mrb, "i", &bin);
 
@@ -570,6 +604,7 @@ static mrb_value mrb_vqts(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_vqtr(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int bin;
     mrb_int argc = mrb_get_args(mrb, "i", &bin);
 
@@ -589,6 +624,7 @@ static mrb_value mrb_vqtr(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_vqtrs(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int bin;
     mrb_int argc = mrb_get_args(mrb, "i", &bin);
 
@@ -608,6 +644,7 @@ static mrb_value mrb_vqtrs(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_vqtw(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int bin;
     mrb_int argc = mrb_get_args(mrb, "i", &bin);
 
@@ -627,6 +664,7 @@ static mrb_value mrb_vqtw(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_vqtsw(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int bin;
     mrb_int argc = mrb_get_args(mrb, "i", &bin);
 
@@ -646,6 +684,7 @@ static mrb_value mrb_vqtsw(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_vqtrw(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int bin;
     mrb_int argc = mrb_get_args(mrb, "i", &bin);
 
@@ -665,6 +704,7 @@ static mrb_value mrb_vqtrw(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_vqtrsw(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int bin;
     mrb_int argc = mrb_get_args(mrb, "i", &bin);
 
@@ -684,6 +724,7 @@ static mrb_value mrb_vqtrsw(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_fft(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int start_freq, end_freq = -1;
     mrb_int argc = mrb_get_args(mrb, "i|i", &start_freq, &end_freq);
 
@@ -703,6 +744,7 @@ static mrb_value mrb_fft(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_fftr(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int start_freq, end_freq = -1;
     mrb_int argc = mrb_get_args(mrb, "i|i", &start_freq, &end_freq);
 
@@ -722,6 +764,7 @@ static mrb_value mrb_fftr(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_fftrs(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int start_freq, end_freq = -1;
     mrb_int argc = mrb_get_args(mrb, "i|i", &start_freq, &end_freq);
 
@@ -741,6 +784,7 @@ static mrb_value mrb_fftrs(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_ffts(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int start_freq, end_freq = -1;
     mrb_int argc = mrb_get_args(mrb, "i|i", &start_freq, &end_freq);
 
@@ -798,6 +842,7 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 
 static mrb_value mrb_map(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int x = 0;
     mrb_int y = 0;
     mrb_int w = TIC_MAP_SCREEN_WIDTH;
@@ -849,6 +894,7 @@ static mrb_value mrb_map(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_music(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int track = 0;
     mrb_int frame = -1;
     mrb_int row = -1;
@@ -876,6 +922,7 @@ static mrb_value mrb_music(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_sfx(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int index;
 
     mrb_value note_obj;
@@ -962,6 +1009,7 @@ static mrb_value mrb_sfx(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_sync(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
     mrb_int mask = 0;
@@ -980,6 +1028,7 @@ static mrb_value mrb_sync(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_reset(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
     core->state.initialized = false;
@@ -989,6 +1038,7 @@ static mrb_value mrb_reset(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_key(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
     mrb_int key;
@@ -1010,6 +1060,7 @@ static mrb_value mrb_key(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_keyp(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
 
@@ -1041,6 +1092,7 @@ static mrb_value mrb_keyp(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_memcpy(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int dest, src, size;
     mrb_int argc = mrb_get_args(mrb, "iii", &dest, &src, &size);
 
@@ -1061,6 +1113,7 @@ static mrb_value mrb_memcpy(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_memset(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_int dest, value, size;
     mrb_int argc = mrb_get_args(mrb, "iii", &dest, &value, &size);
 
@@ -1088,6 +1141,7 @@ static char* mrb_value_to_cstr(mrb_state* mrb, mrb_value value)
 
 static mrb_value mrb_font(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_value text_obj;
     mrb_int x = 0;
     mrb_int y = 0;
@@ -1114,6 +1168,7 @@ static mrb_value mrb_font(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_print(mrb_state* mrb, mrb_value self)
 {
+    (void)self;
     mrb_value text_obj;
     mrb_int x = 0;
     mrb_int y = 0;
@@ -1138,6 +1193,7 @@ static mrb_value mrb_print(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_trace(mrb_state *mrb, mrb_value self)
 {
+    (void)self;
     mrb_value text_obj;
     mrb_int color = TIC_DEFAULT_COLOR;
     mrb_get_args(mrb, "o|i", &text_obj, &color);
@@ -1152,6 +1208,7 @@ static mrb_value mrb_trace(mrb_state *mrb, mrb_value self)
 
 static mrb_value mrb_pmem(mrb_state *mrb, mrb_value self)
 {
+    (void)self;
     mrb_int index, value;
     mrb_int argc = mrb_get_args(mrb, "i|i", &index, &value);
 
@@ -1178,12 +1235,14 @@ static mrb_value mrb_pmem(mrb_state *mrb, mrb_value self)
 
 static mrb_value mrb_time(mrb_state *mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
     return mrb_float_value(mrb, core->api.time(tic));
 }
 
 static mrb_value mrb_exit(mrb_state *mrb, mrb_value self)
 {
+    (void)self;
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
     core->data->exit(core->data->data);
 
@@ -1192,6 +1251,7 @@ static mrb_value mrb_exit(mrb_state *mrb, mrb_value self)
 
 static mrb_value mrb_mouse(mrb_state *mrb, mrb_value self)
 {
+    (void)self;
     mrb_value sym_x = mrb_symbol_value(mrb_intern_cstr(mrb, "x"));
     mrb_value sym_y = mrb_symbol_value(mrb_intern_cstr(mrb, "y"));
     mrb_value sym_left = mrb_symbol_value(mrb_intern_cstr(mrb, "left"));
@@ -1364,6 +1424,7 @@ static void callMRubyBoot(tic_mem* tic)
 
 static void callMRubyIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
     mrb_state* mrb = ((mrbVm*)core->currentVM)->mrb;
 

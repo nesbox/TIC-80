@@ -357,7 +357,7 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 #endif
 };
 
-static void emptyDone(void* data) {}
+static void emptyDone(void* data) {(void)data; }
 
 void fadePalette(tic_palette* pal, s32 value)
 {
@@ -1079,6 +1079,7 @@ static void showPopupMessage(Studio* studio, const char* text)
 
 static void exitConfirm(Studio* studio, bool yes, void* data)
 {
+    (void)data;
     studio->alive = yes;
 }
 
@@ -1339,11 +1340,13 @@ static void confirmHandler(bool yes, void* data)
 
 static void confirmNo(void* data, s32 pos)
 {
+    (void)pos;
     confirmHandler(false, data);
 }
 
 static void confirmYes(void* data, s32 pos)
 {
+    (void)pos;
     confirmHandler(true, data);
 }
 
@@ -1524,6 +1527,7 @@ static void onConsoleFetched(void* data)
 // from there, whichever of its commands wanted one.
 static void onConsoleConfirmed(Studio* studio, bool yes, void* data)
 {
+    (void)data;
     ConsoleAnswer answer = {.yes = yes};
     console_answer(studio->console, &answer);
 }
@@ -1854,11 +1858,13 @@ static bool justSwitchedToCodeMode = false;
 
 void setJustSwitchedToCodeMode(Studio* studio, bool value)
 {
+    (void)studio;
     justSwitchedToCodeMode = value;
 }
 
 bool hasJustSwitchedToCodeMode(Studio* studio)
 {
+    (void)studio;
     return justSwitchedToCodeMode;
 }
 #endif
@@ -2048,6 +2054,7 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
 static void reloadConfirm(Studio* studio, bool yes, void* data)
 {
+    (void)data;
     if(yes)
         studioReloadCart(studio);
     else
@@ -2866,6 +2873,11 @@ bool studio_alive(Studio* studio)
 #if defined(TIC_MODULE_EXT)
 static bool onEnumModule(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
+    (void)data;
+    (void)dir;
+    (void)hash;
+    (void)id;
+    (void)title;
     if(strstr(name, TIC_MODULE_EXT))
     {
         void* module = dlopen(name, RTLD_NOW | RTLD_LOCAL);

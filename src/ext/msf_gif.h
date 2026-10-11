@@ -408,7 +408,8 @@ static inline void msf_lzw_reset(MsfStridedList * lzw, int tableSize, int stride
 //PERF TODO: is it possible to use the same array for both `used` and `tlb`?
 static MsfGifBuffer * msf_compress_frame(void * allocContext, int width, int height, int centiSeconds,
                                          MsfCookedFrame frame, MsfGifState * handle, uint8_t * used, uint8_t * tlb, int16_t * lzwMem)
-{ MsfTimeFunc
+{
+    (void)allocContext; MsfTimeFunc
     //NOTE: We reserve enough memory for the theoretical worst case upfront because it's a reasonable amount,
     //      and prevents us from ever having to check size or realloc during compression.
     //NOTE: headers + color table + 12 bits per pixel (since 12 bits is the maximum code size)

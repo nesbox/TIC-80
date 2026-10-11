@@ -92,6 +92,7 @@ bool studio_mainmenu_keyboard(StudioMainMenu* main)
 
 static s32 optionFullscreenGet(void* data)
 {
+    (void)data;
     return tic_sys_fullscreen_get() ? 1 : 0;
 }
 
@@ -325,6 +326,7 @@ static void showEditorMenu(void* data, s32 pos);
 
 static void showGamepadMenu(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
     main->gamepads.index = 0;
     main->gamepads.mapping = main->options->mapping;
@@ -417,6 +419,7 @@ static_assert(COUNT_OF(EditorMenu) == EditorMenu_Back + 1, "EditorMenuCount");
 
 static void showEditorMenu(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
 
     studio_menu_init(main->menu, EditorMenu,
@@ -482,6 +485,7 @@ static void initGameMenu(StudioMainMenu* main)
 
 static void showGameMenu(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
     studio_menu_init(main->menu, main->items, main->count, 0, 0, showMainMenu, main);
 }
@@ -506,6 +510,7 @@ static void onBackFromOptionsMenu(void* data, s32 pos)
 
 static void onResumeGame(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
     resumeGame(main->studio);
 }
@@ -527,6 +532,7 @@ static void onMenuBack(void* data, s32 pos)
 
 static void onResetGame(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
     tic_api_reset(main->tic);
     setStudioMode(main->studio, TIC_RUN_MODE);
@@ -534,6 +540,7 @@ static void onResetGame(void* data, s32 pos)
 
 static void onExitStudio(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
     exitStudio(main->studio);
 }
@@ -541,6 +548,7 @@ static void onExitStudio(void* data, s32 pos)
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
 static void onExitGame(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
     exitGame(main->studio);
 }
@@ -578,6 +586,7 @@ static_assert(COUNT_OF(MainMenu) == MainMenu_Quit + 1, "MainMenuCount");
 
 static void showMainMenu(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
     initGameMenu(main);
 
@@ -595,6 +604,7 @@ static void showOptionsMenuPos(void* data, s32 pos)
 
 static void showOptionsMenu(void* data, s32 pos)
 {
+    (void)pos;
     showOptionsMenuPos(data, OptionsMenu_VolumeOption);
 }
 
@@ -698,6 +708,7 @@ static MenuOption GamepadOption =
 
 static void clearGamepadMenu(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
     ZEROMEM(main->gamepads.mapping);
     initGamepadMenu(main);
@@ -705,6 +716,7 @@ static void clearGamepadMenu(void* data, s32 pos)
 
 static void saveGamepadMenu(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
 
     main->options->mapping = main->gamepads.mapping;
@@ -747,6 +759,7 @@ static void initGamepadMenu(StudioMainMenu* main)
 
 static void resetGamepadMenu(void* data, s32 pos)
 {
+    (void)pos;
     StudioMainMenu* main = data;
     main->gamepads.index = 0;
     ZEROMEM(main->gamepads.mapping);

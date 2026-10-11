@@ -391,6 +391,8 @@ static void floodFill(Sprite* sprite, s32 l, s32 t, s32 r, s32 b, s32 x, s32 y, 
 
 static void replaceColor(Sprite* sprite, s32 l, s32 t, s32 r, s32 b, s32 x, s32 y, u8 color, u8 fill)
 {
+    (void)x;
+    (void)y;
     for(s32 sy = t; sy <= b; sy++)
         for(s32 sx = l; sx <= r; sx++)
             if(tic_tilesheet_getpix(&sprite->sheet, sx, sy) == color)
@@ -847,6 +849,7 @@ static void switchBitMode(Sprite* sprite, tic_bpp bpp)
 
 static void drawBitMode(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
 {
+    (void)h;
     tic_mem* tic = sprite->tic;
     s32 label_w = tic_api_print(tic, "BPP :", x+2, y, tic_color_dark_grey, false, 1, true);
     x += label_w+4;
@@ -1989,6 +1992,7 @@ typedef struct
 
 static void pageTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
 {
+    (void)over;
     const PageTab* tab = ctx;
 
     // Rows 0..TOOLBAR_SIZE-1: the strip's full height.
@@ -2165,7 +2169,7 @@ static void tick(Sprite* sprite)
     sprite->tickCounter++;
 }
 
-static void emptyDone(void* data) {}
+static void emptyDone(void* data) {(void)data; }
 
 static void setIdle(void* data)
 {

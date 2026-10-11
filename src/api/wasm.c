@@ -1115,6 +1115,7 @@ static void closeWasm(tic_mem* tic)
 
 static bool initWasm(tic_mem* tic, const char* code)
 {
+    (void)code;
     // closeWasm(tic);
     tic_core* core = (tic_core*)tic;
     dbg("Initializing WASM3 runtime %p\n", core);
@@ -1237,6 +1238,7 @@ static void callWasmBoot(tic_mem* tic)
 
 static void callWasmIntFunc(tic_mem* tic, IM3Function func, s32 value, void* data)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
 
     IM3Runtime runtime = core->currentVM;
@@ -1329,6 +1331,8 @@ static const tic_outline_item* getWasmOutline(const char* code, s32* size)
 }
 
 void evalWasm(tic_mem* tic, const char* code) {
+    (void)code;
+    (void)tic;
     printf("TODO: Wasm eval not yet implemented\n.");
 }
 

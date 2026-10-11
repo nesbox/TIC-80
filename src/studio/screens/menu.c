@@ -84,7 +84,7 @@ enum
 enum{TextMargin = 2, ItemHeight = TIC_FONT_HEIGHT + TextMargin * 2};
 enum{Hold = KEYBOARD_HOLD, Period = ItemHeight};
 
-static void emptyDone(void* data) {}
+static void emptyDone(void* data) {(void)data; }
 
 static void menuUpDone(void* data)
 {
@@ -357,6 +357,7 @@ void studio_menu_anim(tic_mem* tic, s32 ticks)
 
 void studio_menu_anim_scanline(tic_mem* tic, s32 row, void* data)
 {
+    (void)data;
     s32 dir = row < TIC80_HEIGHT / 2 ? 1 : -1;
     s32 val = dir * (TIC80_WIDTH - row * 7 / 2);
     tic_rgb* dst = tic->ram->vram.palette.colors + BG_ANIM_COLOR;

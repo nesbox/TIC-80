@@ -123,11 +123,13 @@ static void tick(Run* run)
 
 static u64 getFreq(void* data)
 {
+    (void)data;
     return tic_sys_freq_get();
 }
 
 static u64 getCounter(void* data)
 {
+    (void)data;
     return tic_sys_counter_get();
 }
 

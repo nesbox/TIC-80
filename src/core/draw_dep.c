@@ -53,6 +53,7 @@ static void setSideTexPixel(s32 x, s32 y, float u, float v)
 
 static void ticTexLine(tic_mem* memory, TexVertDep* v0, TexVertDep* v1)
 {
+    (void)memory;
     TexVertDep* top = v0;
     TexVertDep* bot = v1;
 

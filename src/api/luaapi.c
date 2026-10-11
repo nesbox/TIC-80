@@ -1935,6 +1935,7 @@ void luaapi_tick(tic_mem* tic)
 
 void callLuaIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
     lua_State* lua = core->currentVM;
 

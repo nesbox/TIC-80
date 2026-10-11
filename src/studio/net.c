@@ -260,7 +260,7 @@ void tic_net_close(tic_net* net)
         free(net->requests);
 }
 
-void tic_net_start(tic_net *net) {}
+void tic_net_start(tic_net *net) {(void)net; }
 
 void tic_net_end(tic_net *net)
 {

@@ -530,6 +530,10 @@ typedef struct
 
 static bool onEnumPublicDirs(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
+    (void)dir;
+    (void)hash;
+    (void)id;
+    (void)title;
     EnumPublicDirsData* enumPublicDirsData = (EnumPublicDirsData*)data;
 
     if(strcmp(name, enumPublicDirsData->name) == 0)

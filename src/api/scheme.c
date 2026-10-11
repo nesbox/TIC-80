@@ -479,18 +479,21 @@ s7_pointer scheme_pmem(s7_scheme* sc, s7_pointer args)
 }
 s7_pointer scheme_time(s7_scheme* sc, s7_pointer args)
 {
+    (void)args;
     // time() -> ticks
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     return s7_make_real(sc, core->api.time(tic));
 }
 s7_pointer scheme_tstamp(s7_scheme* sc, s7_pointer args)
 {
+    (void)args;
     // tstamp() -> timestamp
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     return s7_make_integer(sc, core->api.tstamp(tic));
 }
 s7_pointer scheme_exit(s7_scheme* sc, s7_pointer args)
 {
+    (void)args;
     // exit()
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     core->api.exit(tic);
@@ -520,6 +523,7 @@ s7_pointer scheme_font(s7_scheme* sc, s7_pointer args)
 }
 s7_pointer scheme_mouse(s7_scheme* sc, s7_pointer args)
 {
+    (void)args;
     // mouse() -> x y left middle right scrollx scrolly
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const tic_point point = core->api.mouse(tic);
@@ -717,6 +721,7 @@ s7_pointer scheme_vbank(s7_scheme* sc, s7_pointer args)
 }
 s7_pointer scheme_reset(s7_scheme* sc, s7_pointer args)
 {
+    (void)args;
     // reset()
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     core->api.reset(tic);
@@ -1027,6 +1032,7 @@ static void callSchemeBoot(tic_mem* tic)
 
 static void callSchemeScanline(tic_mem* tic, s32 row, void* data)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
     s7_scheme* sc = core->currentVM;
 
@@ -1039,6 +1045,7 @@ static void callSchemeScanline(tic_mem* tic, s32 row, void* data)
 
 static void callSchemeBorder(tic_mem* tic, s32 row, void* data)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
     s7_scheme* sc = core->currentVM;
 
@@ -1051,6 +1058,7 @@ static void callSchemeBorder(tic_mem* tic, s32 row, void* data)
 
 static void callSchemeMenu(tic_mem* tic, s32 index, void* data)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
     s7_scheme* sc = core->currentVM;
 

@@ -659,6 +659,7 @@ static void onCartLoaded(void* data)
 
 static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
 {
+    (void)studio;
     if(yes)
     {
         Surf* surf = data;
@@ -900,7 +901,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
     studio_menu_anim_scanline(tic, row, NULL);
 }
 
-static void emptyDone(void* data) {}
+static void emptyDone(void* data) {(void)data; }
 
 static void setIdle(void* data)
 {

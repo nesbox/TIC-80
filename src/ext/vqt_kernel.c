@@ -88,6 +88,7 @@ static bool generateSingleKernel(
     VqtWindowType windowType,
     float sparsityThreshold)
 {
+    (void)minFreq;
     // Use variable Q optimized for 8K FFT
     float Q = calculateVariableQ(centerFreq);
     int windowLength = (int)(Q * sampleRate / centerFreq);

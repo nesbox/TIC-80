@@ -2020,6 +2020,7 @@ static void callSquirrelBoot(tic_mem* tic)
 
 static void callSquirrelIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
     HSQUIRRELVM vm = core->currentVM;
 

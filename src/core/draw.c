@@ -539,6 +539,8 @@ static void setElliPixel(tic_mem* tic, s32 x, s32 y, u8 color)
 
 static void setElliSide(tic_mem* tic, s32 x, s32 y, u8 color)
 {
+    (void)color;
+    (void)tic;
     setSidePixel(x, y);
 }
 
@@ -801,7 +803,7 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     }
 }
 
-static tic_color triColorShader(const ShaderAttr* a, s32 pixel){return *(u8*)a->data;}
+static tic_color triColorShader(const ShaderAttr* a, s32 pixel){(void)pixel; return *(u8*)a->data;}
 
 void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
 {

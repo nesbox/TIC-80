@@ -732,6 +732,7 @@ static Janet janet_pmem(int32_t argc, Janet* argv)
 
 static Janet janet_time(int32_t argc, Janet* argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     return janet_wrap_number(core->api.time(tic));
@@ -739,6 +740,7 @@ static Janet janet_time(int32_t argc, Janet* argv)
 
 static Janet janet_tstamp(int32_t argc, Janet* argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     return janet_wrap_integer(core->api.tstamp(tic));
@@ -746,6 +748,7 @@ static Janet janet_tstamp(int32_t argc, Janet* argv)
 
 static Janet janet_exit(int32_t argc, Janet* argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     core->api.exit(tic);
@@ -776,6 +779,7 @@ static Janet janet_font(int32_t argc, Janet* argv)
 
 static Janet janet_mouse(int32_t argc, Janet* argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
 
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
@@ -1019,6 +1023,7 @@ static Janet janet_vbank(int32_t argc, Janet* argv)
 
 static Janet janet_reset(int32_t argc, Janet* argv)
 {
+    (void)argv;
     janet_fixarity(argc, 0);
     tic_core* machine = getJanetMachine();
     machine->state.initialized = false;
@@ -1359,6 +1364,7 @@ static void callJanetBoot(tic_mem* tic)
  */
 static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
+    (void)data;
     tic_core* core = (tic_core*)tic;
 
     Janet pre_fn;

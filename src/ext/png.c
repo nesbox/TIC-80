@@ -143,7 +143,7 @@ static void pngWriteCallback(png_structp png, png_bytep data, png_size_t size)
     stream->pos += size;
 }
 
-static void pngFlushCallback(png_structp png) {}
+static void pngFlushCallback(png_structp png) {(void)png; }
 
 png_buffer png_write(png_img src, png_buffer cart)
 {

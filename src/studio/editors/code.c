@@ -175,6 +175,7 @@ static char* getPosByLine(char* ptr, s32 line)
 
 static char* getNextLineByPos(Code* code, char* pos)
 {
+    (void)code;
     while(*pos && *pos++ != '\n');
     return pos;
 }
@@ -545,8 +546,8 @@ static void updateEditor(Code* code)
 static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
 static inline bool isdoublequote(char c) {return c == '"'; }
-static inline bool isopenparen_(Code* code, char c) {return c == '(' || c == '{' || c == '[';}
-static inline bool iscloseparen_(Code* code, char c) {return c == ')' || c == '}' || c == ']';}
+static inline bool isopenparen_(Code* code, char c) {(void)code; return c == '(' || c == '{' || c == '[';}
+static inline bool iscloseparen_(Code* code, char c) {(void)code; return c == ')' || c == '}' || c == ']';}
 
 static inline bool config_isalnum_(const tic_script* config, char c)
 {
@@ -1634,6 +1635,7 @@ static s32 insertTab(Code* code, char* line_start, char* pos) {
 
 //has no effect if pos is not a valid tab character
 static s32 removeTab(Code* code, char* line_start, char* pos) {
+    (void)line_start;
     if (useSpacesForTab(code)) {
         s32 tab_size = getConfig(code->studio)->options.tabSize;
         s32 count = 0;
@@ -2271,6 +2273,7 @@ static char* upStrStr(const char* start, const char* from, const char* substr)
 
 static char* downStrStr(const char* start, const char* from, const char* substr)
 {
+    (void)start;
     return strstr(from, substr);
 }
 
@@ -3844,7 +3847,7 @@ static void escape(Code* code)
     }
 }
 
-static void emptyDone(void* data) {}
+static void emptyDone(void* data) {(void)data; }
 
 static void setIdle(void* data)
 {
