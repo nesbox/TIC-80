@@ -236,6 +236,16 @@ jobs:
           cmake -S . -B build-sokol -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_LUA=ON
           cmake --build build-sokol --parallel
 
+      # The sokol binary, for trying the evdev gamepad backend on a real Linux
+      # machine: the releases ship the SDL layer, nothing else hands it out.
+      - name: Deploy Sokol
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-linux-sokol"
+          path: |
+            build-sokol/bin/tic80
+
       - name: Export help (learn.md)
         run: |
           cd build
