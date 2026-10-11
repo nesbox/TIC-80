@@ -376,7 +376,9 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 #endif
 };
 
+#if defined(BUILD_EDITORS)
 static void emptyDone(void* data) {(void)data; }
+#endif
 
 void fadePalette(tic_palette* pal, s32 value)
 {
@@ -1428,6 +1430,8 @@ static void initModules(Studio* studio)
     }
 
     initWorldMap(studio);
+#else
+    (void)studio;
 #endif
 }
 
@@ -2705,6 +2709,8 @@ static void onStudioLoadConfirmed(Studio* studio, bool yes, void* data)
         showPopupMessage(studio, done
             ? "cart successfully loaded :)"
             : "error: cart not loaded :(");
+#else
+        (void)done;
 #endif
     }
 }
@@ -3169,6 +3175,8 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->config->data.fftcaptureplaybackdevices = args.fftcaptureplaybackdevices;
     studio->config->data.fftdevice = args.fftdevice;
     studio->config->data.keyboardLayout = keyboardLayout;
+#else
+    (void)keyboardLayout;
 #endif
 
     studioConfigChanged(studio);
