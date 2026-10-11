@@ -67,7 +67,7 @@ void tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 patte
 u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count)
 {
     u32 min = -1;
-    s32 nearest, i = 0;
+    s32 nearest = 0, i = 0;
 
     for(const tic_rgb *rgb = palette, *end = rgb + count; rgb < end; rgb++, i++)
     {

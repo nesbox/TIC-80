@@ -257,8 +257,9 @@ static void saveOptions(Config* config)
 {
     const struct StudioOptions* options = &config->data.options;
 
-    string buf;
-    sprintf(buf.data,
+    // the mapping alone can fill a string, and the JSON wraps it in more
+    char buf[sizeof(string) * 2];
+    sprintf(buf,
         "{ "
 #if defined(CRT_SHADER_SUPPORT)
             "\"crt\":%s, "
@@ -301,7 +302,7 @@ static void saveOptions(Config* config)
 #endif
         );
 
-    tic_fs_saveroot(config->fs, OptionsJsonPath, buf.data, strlen(buf.data), true);
+    tic_fs_saveroot(config->fs, OptionsJsonPath, buf, strlen(buf), true);
 }
 
 void initConfig(Config* config, Studio* studio, tic_fs* fs)

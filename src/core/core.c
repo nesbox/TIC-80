@@ -66,8 +66,11 @@ u8 tic_api_peek(tic_mem* memory, s32 address, s32 bits)
     switch(bits)
     {
     case 1: if(address < RamBits / 1) return tic_tool_peek1(ram, address);
+        // fall through - the address may still fit a narrower read
     case 2: if(address < RamBits / 2) return tic_tool_peek2(ram, address);
+        // fall through
     case 4: if(address < RamBits / 4) return tic_tool_peek4(ram, address);
+        // fall through
     case 8: if(address < RamBits / 8) return ram[address];
     }
 
@@ -623,8 +626,11 @@ static inline void memset4(void* dst, u32 val, u32 dwords)
     {
     case 0: do {
         *_p++ = _val;
+        // fall through - Duff's device
     case 3:         *_p++ = _val;
+        // fall through
     case 2:         *_p++ = _val;
+        // fall through
     case 1:         *_p++ = _val;
     } while (--_n);
     }

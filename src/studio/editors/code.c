@@ -143,7 +143,7 @@ static void drawStatus(Code* code)
         {
             sprintf(code->status.size, "%i/%i", (u32)strlen(code->src), bb->limit.current);
 
-            char buf[sizeof "00:00"];
+            char buf[sizeof "00:00" + sizeof "-2147483648"];
             s32 sec = bb->battle.left / 1000;
             sprintf(buf, "%02i:%02i", sec / 60, sec % 60);
 

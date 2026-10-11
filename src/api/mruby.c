@@ -828,8 +828,10 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
         {
         case 3:
             result->rotate = mrb_int(mrb, mrb_ary_entry(out, 2));
+            // fall through
         case 2:
             result->flip = mrb_int(mrb, mrb_ary_entry(out, 1));
+            // fall through
         case 1:
             result->index = mrb_int(mrb, mrb_ary_entry(out, 0));
         }

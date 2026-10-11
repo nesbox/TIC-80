@@ -561,7 +561,7 @@ static void onGoBackDirDone(void* data)
 
         if(item->dir)
         {
-            char path[TICNAME_MAX];
+            char path[TICNAME_MAX * 2];
 
             if(strlen(current))
                 sprintf(path, "%s/%s", current, item->name);

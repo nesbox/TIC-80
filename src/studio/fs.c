@@ -101,11 +101,11 @@ const char* tic_fs_path(tic_fs* fs, const char* name)
     static char path[TICNAME_MAX+1];
 
     if(*name == '/')
-        strncpy(path, name + 1, sizeof path);
+        snprintf(path, sizeof path, "%s", name + 1);
     else if(strlen(fs->work))
         snprintf(path, sizeof path, "%s/%s", fs->work, name);
     else
-        strncpy(path, name, sizeof path);
+        snprintf(path, sizeof path, "%s", name);
 
     return tic_fs_pathroot(fs, path);
 }
@@ -375,7 +375,7 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
 
 				if (pathLen + nameLen < COUNT_OF(fullPath)) {
 					tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
-					tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath) - pathLen - 1);
+					tic_strncpy(fullPath + pathLen, ent->d_name, nameLen + 1);
 				}
 
                 if(tic_stat(fullPath, &s) == 0)
@@ -510,7 +510,7 @@ void tic_fs_changedir(tic_fs* fs, const char* dir)
         snprintf(temp, TICNAME_MAX, "%s", dir);
     }
 
-    strncpy(fs->work, temp, TICNAME_MAX - 1);
+    snprintf(fs->work, sizeof fs->work, "%.*s", (s32)sizeof fs->work - 1, temp);
 
 #if defined(__TIC_WINDOWS__)
     for(char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
@@ -961,7 +961,7 @@ tic_fs* tic_fs_create(const char* path, tic_net* net)
 {
     tic_fs* fs = (tic_fs*)calloc(1, sizeof(tic_fs));
 
-    strncpy(fs->dir, path, TICNAME_MAX);
+    snprintf(fs->dir, sizeof fs->dir, "%s", path);
 
     if(path[strlen(path) - 1] != SEP[0])
         strcat(fs->dir, SEP);

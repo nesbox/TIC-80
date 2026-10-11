@@ -1443,10 +1443,10 @@ static void updateMDate(Studio* studio)
 
 static void updateTitle(Studio* studio)
 {
-    char name[TICNAME_MAX] = TIC_TITLE;
+    char name[TICNAME_MAX + sizeof TIC_TITLE + 3] = TIC_TITLE;
 
     if(strlen(studio->rom.name))
-        snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, studio->rom.name);
+        snprintf(name, sizeof name, "%s [%s]", TIC_TITLE, studio->rom.name);
 
     tic_sys_title(name);
 }
@@ -1652,7 +1652,8 @@ void saveProject(Studio* studio)
         }
         else
         {
-            snprintf(buffer, sizeof buffer, "%s%s", studio->rom.name, str_saved);
+            snprintf(buffer, sizeof buffer, "%.*s%s",
+                (s32)(sizeof buffer - sizeof str_saved), studio->rom.name, str_saved);
         }
 
         showPopupMessage(studio, buffer);
@@ -1751,7 +1752,7 @@ static void stopVideoRecord(Studio* studio)
     // Now that it has found an available filename, save it.
     if(tic_fs_save(studio->fs, filename, result.data, result.dataSize, true))
     {
-        char msg[TICNAME_MAX];
+        char msg[TICNAME_MAX + sizeof " saved :)"];
         sprintf(msg, "%s saved :)", filename);
         showPopupMessage(studio, msg);
 
@@ -2014,6 +2015,7 @@ static void processShortcuts(Studio* studio)
                     studio->code->escape(studio->code);
                     return;
                 }
+                // fall through - leaving the code editor lands in the console
             default:
                 setStudioMode(studio, TIC_CONSOLE_MODE);
             }

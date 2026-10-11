@@ -1952,7 +1952,7 @@ static void onFileExported(Console* console, const char* filename, bool result)
     }
     else
     {
-        char buf[TICNAME_MAX];
+        char buf[TICNAME_MAX + sizeof "\nerror:  not exported :("];
         sprintf(buf, "\nerror: %s not exported :(", filename);
         printError(console, buf);
     }

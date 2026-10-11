@@ -835,9 +835,10 @@ static inline bool shaderStart(const ShaderAttr* a, Vec3* vars, s32 pixel)
 {
     TexData* data = a->data;
 
+    vars->x = vars->y = vars->z = 0;
+
     if(data->depth)
     {
-        vars->z = 0;
         for(s32 i = 0; i != COUNT_OF(a->v); ++i)
         {
             const TexVert* t = (TexVert*)a->v[i];
@@ -847,8 +848,6 @@ static inline bool shaderStart(const ShaderAttr* a, Vec3* vars, s32 pixel)
         if(ZBuffer[pixel] < vars->z);
         else return false;
     }
-
-    vars->x = vars->y = 0;
     for(s32 i = 0; i != COUNT_OF(a->v); ++i)
     {
         const TexVert* t = (TexVert*)a->v[i];
