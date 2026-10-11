@@ -126,7 +126,7 @@ void tic_api_memcpy(tic_mem* memory, s32 dst, s32 src, s32 size)
     s32 bound = sizeof(tic_ram) - size;
 
     if (size >= 0
-        && size <= sizeof(tic_ram)
+        && size <= (s32)sizeof(tic_ram)
         && dst >= 0
         && src >= 0
         && dst <= bound
@@ -142,7 +142,7 @@ void tic_api_memset(tic_mem* memory, s32 dst, u8 val, s32 size)
     s32 bound = sizeof(tic_ram) - size;
 
     if (size >= 0
-        && size <= sizeof(tic_ram)
+        && size <= (s32)sizeof(tic_ram)
         && dst >= 0
         && dst <= bound)
     {

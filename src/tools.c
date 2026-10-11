@@ -287,7 +287,7 @@ const char* tic_tool_metatag(const char* code, const char* tag, const char* comm
             while (isspace(*start) && start < end) start++;
             while (isspace(*(end - 1)) && end > start) end--;
 
-            const s32 size = MIN((s32)(end - start), sizeof value - 1);
+            const s32 size = MIN((s32)(end - start), (s32)sizeof(value) - 1);
 
             memcpy(value, start, size);
             value[size] = '\0';

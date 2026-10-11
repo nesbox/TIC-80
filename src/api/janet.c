@@ -711,7 +711,7 @@ static Janet janet_pmem(int32_t argc, Janet* argv)
     janet_arity(argc, 1, 2);
     s32 index = janet_getinteger(argv, 0);
 
-    if(index < TIC_PERSISTENT_SIZE)
+    if(index < (s32)TIC_PERSISTENT_SIZE)
     {
         tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
         u32 val = core->api.pmem(tic, index, 0, false);

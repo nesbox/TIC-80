@@ -138,7 +138,7 @@ void tic_core_tick_io(tic_mem* tic)
 
     // process gamepads mapping
     u8* keycodes = tic->ram->mapping.data;
-    for(s32 i = 0; i < sizeof(tic_mapping); ++i)
+    for(s32 i = 0; i < (s32)sizeof(tic_mapping); ++i)
         if(keycodes[i] && tic_api_key(tic, keycodes[i]))
             tic->ram->input.gamepads.data |= 1 << i;
 

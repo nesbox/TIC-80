@@ -81,7 +81,15 @@
 #include "argparse.h"
 
 // argparse's option macros stop at the help string and leave the tail of
-// struct argparse_option to the compiler; the table below spells it out.
+// struct argparse_option to the compiler; the table below spells it out. -h
+// is the header's own option, callback and all, so it keeps its full form.
+#undef  OPT_HELP
+#define OPT_HELP()       { ARGPARSE_OPT_BOOLEAN, 'h', "help", NULL,           \
+                           "show this help message and exit",                 \
+                           argparse_help_cb, 0, OPT_NONEG }
+#undef  OPT_STRING
+#undef  OPT_INTEGER
+#undef  OPT_BOOLEAN
 #define OPT_STRING(...)  { ARGPARSE_OPT_STRING, __VA_ARGS__, NULL, 0, 0 }
 #define OPT_INTEGER(...) { ARGPARSE_OPT_INTEGER, __VA_ARGS__, NULL, 0, 0 }
 #define OPT_BOOLEAN(...) { ARGPARSE_OPT_BOOLEAN, __VA_ARGS__, NULL, 0, 0 }
@@ -659,8 +667,8 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bo
                 removeWhiteSpaces(clipboard);
 
             bool valid = sameSize
-                ? strlen(clipboard) == size * 2
-                : strlen(clipboard) <= size * 2;
+                ? strlen(clipboard) == (size_t)size * 2
+                : strlen(clipboard) <= (size_t)size * 2;
 
             if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
 

@@ -58,7 +58,7 @@ void* embed_find_cart(const u8* app, s32 size, s32* cartSize)
         {
             // The image is exactly the app, the header and the cart: any other
             // match is a signature that merely occurs in the bytes.
-            if(size == header->appSize + sizeof(EmbedHeader) + header->cartSize)
+            if(size == header->appSize + (s32)sizeof(EmbedHeader) + header->cartSize)
             {
                 u8* cart = calloc(1, sizeof(tic_cartridge));
 

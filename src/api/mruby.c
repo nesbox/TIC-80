@@ -1098,7 +1098,7 @@ static mrb_value mrb_memcpy(mrb_state* mrb, mrb_value self)
 
     s32 bound = sizeof(tic_ram) - size;
 
-    if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && src >= 0 && dest <= bound && src <= bound)
+    if(size >= 0 && size <= (mrb_int)sizeof(tic_ram) && dest >= 0 && src >= 0 && dest <= bound && src <= bound)
     {
         tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
         core->api.memcpy(tic, dest, src, size);
@@ -1119,7 +1119,7 @@ static mrb_value mrb_memset(mrb_state* mrb, mrb_value self)
 
     s32 bound = sizeof(tic_ram) - size;
 
-    if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && dest <= bound)
+    if(size >= 0 && size <= (mrb_int)sizeof(tic_ram) && dest >= 0 && dest <= bound)
     {
         tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
@@ -1214,7 +1214,7 @@ static mrb_value mrb_pmem(mrb_state *mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb);
 
-    if(index < TIC_PERSISTENT_SIZE)
+    if(index < (s32)TIC_PERSISTENT_SIZE)
     {
         u32 val = core->api.pmem((tic_mem*)core, index, 0, false);
 

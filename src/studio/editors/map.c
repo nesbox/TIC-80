@@ -289,7 +289,7 @@ void mapBand(void* app, Toolbar* tb)
         // DRAW, DRAG MAP, SELECT, FILL left to right.
         for(s32 i = 0; i < COUNT_OF(Tools); i++)
         {
-            bool active = map->mode == Tools[i].mode;
+            bool active = (s32)map->mode == Tools[i].mode;
 
             ToolbarButton button =
             {

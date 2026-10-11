@@ -402,7 +402,7 @@ static void pad_mouse(bool relative)
     float x = 0.0f;
     float y = 0.0f;
 
-    for (s32 i = 0; i < SGAMEPAD_MAX_GAMEPADS && i < TIC_GAMEPADS; i++)
+    for (s32 i = 0; i < SGAMEPAD_MAX_GAMEPADS && i < (s32)TIC_GAMEPADS; i++)
     {
         const sgamepad_state pad = sgamepad_gamepad_state(i);
 
@@ -470,7 +470,7 @@ static void build_input(void)
         tic80_gamepads pads = { 0 };
         tic80_gamepad* slots[TIC_GAMEPADS] = { &pads.first, &pads.second, &pads.third, &pads.fourth };
 
-        for (s32 i = 0; i < SGAMEPAD_MAX_GAMEPADS && i < TIC_GAMEPADS; i++)
+        for (s32 i = 0; i < SGAMEPAD_MAX_GAMEPADS && i < (s32)TIC_GAMEPADS; i++)
         {
             const sgamepad_state pad = sgamepad_gamepad_state(i);
 

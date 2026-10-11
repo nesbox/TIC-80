@@ -902,16 +902,6 @@ static void updateSelection(Music* music)
         resetSelection(music);
 }
 
-static s32 getDigit(s32 pos, s32 val)
-{
-    enum {Base = 10};
-
-    s32 div = 1;
-    while(pos--) div *= Base;
-
-    return val / div % Base;
-}
-
 static s32 setDigit(s32 pos, s32 val, s32 digit)
 {
     enum {Base = 10};
@@ -1816,7 +1806,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 
             bool beetRow = noteBeat(music, i);
 
-            for (s32 c = 0, colx = x; c < sizeof rowStr - 1; c++, colx += TIC_FONT_WIDTH)
+            for (s32 c = 0, colx = x; c < (s32)sizeof(rowStr) - 1; c++, colx += TIC_FONT_WIDTH)
             {
                 char sym = rowStr[c];
                 const u8* colors = beetRow || sym != '-' ? Colors : DarkColors;
@@ -1935,7 +1925,7 @@ void musicBand(void* app, Toolbar* tb)
 
     for(s32 i = TabCount - 1; i >= 0; i--)
     {
-        MusicTab tab = {TabIcons[i], music->tab == TabIds[i]};
+        MusicTab tab = {TabIcons[i], (s32)music->tab == TabIds[i]};
 
         ToolbarButton button =
         {

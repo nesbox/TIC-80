@@ -723,7 +723,7 @@ static bool py_pmem(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(0, tp_int);
     s32 index = py_toint(py_arg(0));
 
-    if (index < 0 || index >= TIC_PERSISTENT_SIZE)
+    if (index < 0 || index >= (s32)TIC_PERSISTENT_SIZE)
     {
         return ValueError("invalid tic persistent index");
     }
@@ -1534,7 +1534,7 @@ static const tic_outline_item* getPythonOutline(const char* code, s32* size)
     // than in source order, which the editor does not mind -- it sorts them.
     static const char* const Keywords[] = {"def ", "class "};
 
-    for(s32 k = 0; k < sizeof Keywords / sizeof *Keywords; k++)
+    for(s32 k = 0; k < (s32)(sizeof Keywords / sizeof *Keywords); k++)
     {
         const char* keyword = Keywords[k];
         const s32 keywordSize = (s32)strlen(keyword);

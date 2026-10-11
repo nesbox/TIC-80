@@ -180,7 +180,7 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
     const tic_sample* effect = &memory->ram->sfx.samples.data[index];
     s32 pos = tic_tool_sfx_pos(channel->speed, ++channel->tick);
 
-    for (s32 i = 0; i < sizeof(tic_sfx_pos); i++)
+    for (s32 i = 0; i < (s32)sizeof(tic_sfx_pos); i++)
         *(channel->pos->data + i) = calcLoopPos(effect->loops + i, pos);
 
     u8 volume = MAX_VOLUME - effect->data[channel->pos->volume].volume;

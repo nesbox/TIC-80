@@ -211,7 +211,7 @@ static_assert(sizeof(Header) == RGBA_SIZE, "header_size");
 
 static inline void bitcpy(u8* dst, u32 to, const u8* src, u32 from, u32 size)
 {
-    for(s32 i = 0; i < size; i++, to++, from++)
+    for(u32 i = 0; i < size; i++, to++, from++)
         BITCHECK(src[from >> 3], from & 7) 
             ? _BITSET(dst[to >> 3], to & 7) 
             : _BITCLEAR(dst[to >> 3], to & 7);
@@ -233,7 +233,7 @@ png_buffer png_encode(png_buffer cover, png_buffer cart)
     // only save with steganography if there are enough pixels for the size of the cartidge
     if (coverSize >= cartBits) 
     {
-        for (s32 i = 0; i < HEADER_SIZE; i++)
+        for (s32 i = 0; i < (s32)HEADER_SIZE; i++)
             bitcpy(png.data, i << 3, header.data, i * HEADER_BITS, HEADER_BITS);
 
         u8* dst = png.data + HEADER_SIZE;
@@ -270,7 +270,7 @@ png_buffer png_decode(png_buffer cover)
     {
         Header header;
 
-        for (s32 i = 0; i < HEADER_SIZE; i++)
+        for (s32 i = 0; i < (s32)HEADER_SIZE; i++)
             bitcpy(header.data, i * HEADER_BITS, png.data, i << 3, HEADER_BITS);
 
         if (header.bits > 0 

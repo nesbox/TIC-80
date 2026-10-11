@@ -1597,7 +1597,7 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
             }
         }
 
-        bool pushed = i == sprite->mode;
+        bool pushed = i == (s32)sprite->mode;
 
         if(pushed)
         {

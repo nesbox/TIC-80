@@ -54,7 +54,7 @@ static void reset(Start* start)
     static const u8 Reset[] = {0x0, 0x2, 0x42, 0x00};
     u8 val = Reset[sizeof(Reset) * (start->ticks % TIC80_FRAMERATE) / TIC80_FRAMERATE];
 
-    for(s32 i = 0; i < sizeof(tic_tile); i++) tile[i] = val;
+    for(s32 i = 0; i < (s32)sizeof(tic_tile); i++) tile[i] = val;
 
     tic_api_map(start->tic, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT + (TIC80_HEIGHT % TIC_SPRITESIZE ? 1 : 0), 0, 0, 0, 0, 1, NULL, NULL);
 }

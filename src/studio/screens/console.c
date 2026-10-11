@@ -1821,7 +1821,7 @@ static void onImport_sprites(Console* console, const char* name, const void* buf
 
 static void onImport_map(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
 {
-    bool ok = name && buffer && size <= sizeof(tic_map);
+    bool ok = name && buffer && size <= (s32)sizeof(tic_map);
 
     if(ok)
     {
@@ -1841,7 +1841,7 @@ static void onImport_code(Console* console, const char* name, const void* buffer
     tic_mem* tic = console->tic;
     bool error = false;
 
-    if(name && buffer && size <= sizeof(tic_code))
+    if(name && buffer && size <= (s32)sizeof(tic_code))
     {
         enum {Size = sizeof(tic_code)};
 
@@ -3573,10 +3573,10 @@ static void processConsoleTab(Console* console)
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
             s32 commandLen = param-input-1;
-            bool commandMatches = (strlen(Commands[i].name) == commandLen &&
+            bool commandMatches = ((s32)strlen(Commands[i].name) == commandLen &&
                                        strncmp(Commands[i].name, input, commandLen) == 0) ||
                                   (Commands[i].alt &&
-                                      strlen(Commands[i].alt) == commandLen &&
+                                      (s32)strlen(Commands[i].alt) == commandLen &&
                                       strncmp(Commands[i].alt, input, commandLen) == 0);
 
             if (commandMatches)

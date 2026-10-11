@@ -660,7 +660,7 @@ start:
             bool keyword = false;
             {
                 for(s32 i = 0; i < config->keywordsCount; i++)
-                    if(len == strlen(config->keywords[i]) && memcmp(wordStart, config->keywords[i], len) == 0)
+                    if(len == (s32)strlen(config->keywords[i]) && memcmp(wordStart, config->keywords[i], len) == 0)
                     {
                         setCodeState(state, SyntaxType_KEYWORD, (s32)(wordStart - start),len);
                         keyword = true;
@@ -683,7 +683,7 @@ start:
                 const s32 apiCount = config->api_keywordsCount > 0 ? config->api_keywordsCount : COUNT_OF(ApiKeywords);
 
                 for(s32 i = 0; i < apiCount; i++)
-                    if(len == strlen(keywords[i]) && memcmp(wordStart, keywords[i], len) == 0)
+                    if(len == (s32)strlen(keywords[i]) && memcmp(wordStart, keywords[i], len) == 0)
                     {
                         setCodeState(state, SyntaxType_API, (s32)(wordStart - start), len);
                         break;
@@ -1932,7 +1932,7 @@ static bool isIdle(Code* code)
 
 static void setCodeMode(Code* code, s32 mode)
 {
-    if(isIdle(code) && code->mode != mode)
+    if(isIdle(code) && (s32)code->mode != mode)
     {
         code->anim.movie = resetMovie(&code->anim.show);
 
@@ -2523,7 +2523,7 @@ static char* findFunctionDefinition(Code* code, char* name, size_t length) {
 
         if(items)
         {
-            for(size_t i = 0; i < osize; i++)
+            for(s32 i = 0; i < osize; i++)
             {
                 const tic_outline_item* it = items + i;
 
@@ -3393,7 +3393,7 @@ static void textReplaceTick(Code* code)
                 deleteCode(code, pos, pos+strlen(code->popup.text));
                 insertCode(code, pos, code->popup.offset);
                 pos += strlen(code->popup.offset);
-                if (pos - code->src > src_length) pos = code->src + src_length;
+                if (pos - code->src > (ptrdiff_t)src_length) pos = code->src + src_length;
 
                 pos = downStrStr(code->src, pos, code->popup.text);
                 if (code->cursor.selection != NULL && pos > code->cursor.position)
@@ -3737,7 +3737,7 @@ void codeBand(void* app, Toolbar* tb)
     // The rail packs right to left, and this editor's order runs the other way.
     for(s32 i = Count - 1; i >= 0; i--)
     {
-        ModeButton mode = {Buttons[i].icon, i == code->mode && isIdle(code)};
+        ModeButton mode = {Buttons[i].icon, i == (s32)code->mode && isIdle(code)};
 
         ToolbarButton button =
         {
@@ -3750,7 +3750,7 @@ void codeBand(void* app, Toolbar* tb)
 
         if(toolbar_button(tb, &button))
         {
-            if(code->mode == i) code->escape(code);
+            if((s32)code->mode == i) code->escape(code);
             else setCodeMode(code, i);
         }
     }

@@ -54,7 +54,7 @@ bool json_parse(const char *json, s32 size)
 static s32 jsoneq(const char *json, const jsmntok_t *tok, const char *s) 
 {
     if (tok->type & JSMN_STRING 
-        && strlen(s) == tok->end - tok->start 
+        && strlen(s) == (size_t)(tok->end - tok->start) 
         && strncmp(json + tok->start, s, tok->end - tok->start) == 0) 
         return 0;
 

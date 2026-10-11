@@ -220,7 +220,7 @@ void toolbar_end(Toolbar* tb)
         if(stripClick(tb, &rect, tic_mouse_left))
             tb->requested = mode;
 
-        if(tb->mode == mode)
+        if((s32)tb->mode == mode)
             current = tab;
 
         if(current == tab)

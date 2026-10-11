@@ -54,7 +54,8 @@ s7_pointer scheme_cls(s7_scheme* sc, s7_pointer args)
 {
     // cls(color=0)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
-    const u8 color = (args > 0) ? s7_integer(s7_car(args)) : 0;
+    const int argn = s7_list_length(sc, args);
+    const u8 color = argn > 0 ? s7_integer(s7_car(args)) : 0;
     core->api.cls(tic, color);
     return s7_nil(sc);
 }

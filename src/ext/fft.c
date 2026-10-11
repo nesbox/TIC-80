@@ -61,11 +61,11 @@ void OnReceiveFrames(ma_device* pDevice, void* pOutput, const void* pInput, ma_u
 
     // Just rotate the buffer; copy existing, append new
     float* p = sampleBuf;
-    for (int i = 0; i < AUDIO_BUFFER_SIZE - frameCount; i++)
+    for (ma_uint32 i = 0; i < AUDIO_BUFFER_SIZE - frameCount; i++)
     {
         *(p++) = sampleBuf[i + frameCount];
     }
-    for (int i = 0; i < frameCount; i++)
+    for (ma_uint32 i = 0; i < frameCount; i++)
     {
         *(p++) = samples ? (samples[i * 2] + samples[i * 2 + 1]) / 2.0f : 0.0f;
     }
