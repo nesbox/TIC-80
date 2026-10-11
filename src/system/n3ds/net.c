@@ -133,11 +133,14 @@ static void n3ds_net_execute(net_ctx *ctx, bool ignore_lock)
             break;
         }
 
-        if (httpcGetResponseStatusCode(&ctx->httpc, &status_code))
+        // libctru hands the code back in a u32, the error codes above are not
+        u32 code = 0;
+        if (httpcGetResponseStatusCode(&ctx->httpc, &code))
         {
             status_code = -3;
             break;
         }
+        status_code = (s32)code;
 
         if ((status_code >= 301 && status_code <= 303) || (status_code >= 307 && status_code <= 308))
         {
@@ -154,8 +157,8 @@ static void n3ds_net_execute(net_ctx *ctx, bool ignore_lock)
 
     NET_EXEC_ERROR_CHECK;
 
-    s32 state = HTTPC_RESULTCODE_DOWNLOADPENDING;
-    s32 read_size;
+    u32 state = HTTPC_RESULTCODE_DOWNLOADPENDING;
+    u32 read_size = 0;
     while (state == HTTPC_RESULTCODE_DOWNLOADPENDING)
     {
         s32 old_size = ctx->size;
@@ -169,14 +172,18 @@ static void n3ds_net_execute(net_ctx *ctx, bool ignore_lock)
         state = httpcDownloadData(&ctx->httpc, old_ptr, NET_PAGE_SIZE, &read_size);
         if (state == HTTPC_RESULTCODE_DOWNLOADPENDING || state == 0)
         {
-            ctx_resize_buf(ctx, old_size + read_size);
+            ctx_resize_buf(ctx, old_size + (s32)read_size);
             if (ctx->callback != NULL)
             {
                 if (ignore_lock || !LightLock_TryLock(&ctx->net->tick_lock))
                 {
                     ctx->data.type = net_get_progress;
-                    if (!httpcGetDownloadSizeState(&ctx->httpc, &ctx->data.progress.size, &ctx->data.progress.total))
+                    u32 size = 0, total = 0;
+                    if (!httpcGetDownloadSizeState(&ctx->httpc, &size, &total))
                     {
+                        ctx->data.progress.size = (s32)size;
+                        ctx->data.progress.total = (s32)total;
+
                         if (ctx->data.progress.total < ctx->data.progress.size)
                         {
                             ctx->data.progress.total = ctx->data.progress.size;
