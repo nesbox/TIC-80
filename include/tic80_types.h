@@ -33,14 +33,11 @@
 #undef memset
 #endif
 
-// The widths are spelled with the plain C types rather than with int32_t and
-// its siblings: a toolchain may make int32_t a long — the 3DS one does — and
-// every "%i" that formats an s32 would then mismatch the type it is handed.
-typedef unsigned char u8;
-typedef unsigned short u16;
-typedef unsigned int u32;
-typedef unsigned long long u64;
-typedef signed char s8;
-typedef short s16;
-typedef int s32;
-typedef long long s64;
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef int8_t s8;
+typedef int16_t s16;
+typedef int32_t s32;
+typedef int64_t s64;
