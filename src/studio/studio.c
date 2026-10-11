@@ -2505,7 +2505,10 @@ static void blitCursor(Studio* studio)
     tic_mem* tic = studio->tic;
     tic80_mouse* m = &tic->ram->input.mouse;
 
-    if(studio->mouse.idle < CURSOR_HIDE_TICKS && tic->input.mouse && !m->relative)
+    // Leaving the app writes -1 into both axes, which a byte reads as 255; at
+    // that height the cursor's spans would run off the end of the framebuffer.
+    if(studio->mouse.idle < CURSOR_HIDE_TICKS && tic->input.mouse && !m->relative
+        && (s32)m->y < TIC80_FULLHEIGHT)
     {
         s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;
@@ -2611,7 +2614,7 @@ void studio_tick(Studio* studio, tic80_input input)
 #if defined(BUILD_RENDER_CACHE)
         tic80_mouse* m = &tic->ram->input.mouse;
         bool mouse_visible = (studio->mouse.idle < CURSOR_HIDE_TICKS
-            && tic->input.mouse && !m->relative);
+            && tic->input.mouse && !m->relative && (s32)m->y < TIC80_FULLHEIGHT);
         if (mouse_visible || studio->mouse.prev.visible)
         {
             if (m->x != studio->mouse.prev.x || m->y != studio->mouse.prev.y ||
