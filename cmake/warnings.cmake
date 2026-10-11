@@ -14,7 +14,11 @@ if(MSVC)
     # 4201 is the nameless struct/union: C11 has them and the RAM layout is
     # written in them, but /W4 reads them as an extension and says so 1500
     # times over. Not a defect, so it is the one thing switched off.
-    set(TIC80_WARNING_FLAGS /W4 /wd4201 /WX)
+    # The headers we include from vendor/ are the libraries' own, and they warn
+    # on their own terms (mruby's value.h, miniscript's StringStorage.h,
+    # quickjs's cutils.h); /WX would turn each of those into an error in a file
+    # of ours. Everything under vendor/ is external, and external is level 0.
+    set(TIC80_WARNING_FLAGS /W4 /wd4201 /WX /external:W0 /external:I${CMAKE_SOURCE_DIR}/vendor)
 
 elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 
