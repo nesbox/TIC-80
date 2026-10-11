@@ -14,12 +14,14 @@ extern "C" {
 
 int chmod (const char *filename, mode_t mode)
 {
+    (void)filename; (void)mode;
 dbg("called chmod\n");
 	return -1;
 }
 
 int symlink(const char *target, const char *linkpath)
 {
+    (void)target; (void)linkpath;
 dbg("called symlink\n");
 
 	return -1;
