@@ -1216,7 +1216,7 @@ static mrb_value mrb_pmem(mrb_state *mrb, mrb_value self)
 
     tic_core* core = getMRubyMachine(mrb);
 
-    if(index < (s32)TIC_PERSISTENT_SIZE)
+    if(index >= 0 && index < (s32)TIC_PERSISTENT_SIZE)
     {
         u32 val = core->api.pmem((tic_mem*)core, index, 0, false);
 

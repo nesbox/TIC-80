@@ -1824,7 +1824,7 @@ static void onImport_sprites(Console* console, const char* name, const void* buf
 
 static void onImport_map(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
 {
-    bool ok = name && buffer && size <= (s32)sizeof(tic_map);
+    bool ok = name && buffer && size >= 0 && size <= (s32)sizeof(tic_map);
 
     if(ok)
     {
@@ -1844,7 +1844,7 @@ static void onImport_code(Console* console, const char* name, const void* buffer
     tic_mem* tic = console->tic;
     bool error = false;
 
-    if(name && buffer && size <= (s32)sizeof(tic_code))
+    if(name && buffer && size >= 0 && size <= (s32)sizeof(tic_code))
     {
         enum {Size = sizeof(tic_code)};
 

@@ -328,7 +328,9 @@ static const u8 Keymap[] =
 
 static tic_key translate_key(sapp_keycode code)
 {
-    return code < COUNT_OF(Keymap) ? (tic_key)Keymap[code] : tic_key_unknown;
+    const u32 key = (u32)code;
+
+    return key < (u32)COUNT_OF(Keymap) ? (tic_key)Keymap[key] : tic_key_unknown;
 }
 
 static void handle_key(sapp_keycode code, bool down)

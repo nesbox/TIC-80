@@ -654,7 +654,7 @@ m3ApiRawFunction(wasmtic_pmem)
     };
 
     // TODO: this should move into core->api.pmem, should it not?
-    if (address >= (s32)TIC_PERSISTENT_SIZE) {
+    if (address < 0 || address >= (s32)TIC_PERSISTENT_SIZE) {
         m3ApiReturn(0);
     }  else {
         u32 val = core->api.pmem(tic, address, value, writeToStorage);

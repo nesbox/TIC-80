@@ -963,12 +963,16 @@ void tic_api_ttri(tic_mem* tic,
         [tic_vbank_texture] = triTexVbankShader,
     };
 
-    if(texsrc < COUNT_OF(Shaders))
+    // The enum is signed where the compiler keeps int for it (MSVC does), so
+    // the cast is what turns a negative source into an out-of-range one.
+    const u32 src = (u32)texsrc;
+
+    if(src < (u32)COUNT_OF(Shaders))
         drawTri(tic,
             (const Vec2*)&t[0],
             (const Vec2*)&t[1],
             (const Vec2*)&t[2],
-            Shaders[texsrc], &texData);
+            Shaders[src], &texData);
 }
 
 void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, u8 count, s32 scale, RemapFunc remap, void* data)
