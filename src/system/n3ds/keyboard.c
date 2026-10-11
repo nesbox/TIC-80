@@ -155,7 +155,7 @@ void n3ds_keyboard_draw(tic_n3ds_keyboard *kbd) {
 	if (kbd->tex.data != NULL)
 	{
 		n3ds_draw_texture(&(kbd->tex), 0, 0, 0, 16, 320, 240, 320, 240, 240, 1.0f);
-		for(int i = 0; i < kbd->kd_count; i++)
+		for(int i = 0; i < (s32)kbd->kd_count; i++)
 		{
 			n3ds_keyboard_draw_pressed(kbd, kbd->kd[i]);
 		}
@@ -199,13 +199,13 @@ void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic80_input* input) {
 
 		if(key_down & KEY_TOUCH)
 		{
-			for(i = 0; i < touch_areas_len; i++)
+			for(i = 0; i < (s32)touch_areas_len; i++)
 			{
 				area = &touch_areas[i];
 				if(n3ds_key_touched(&touch, area))
 				{
 					int set = -1;
-					for(j = 0; j < kbd->kd_count; j++)
+					for(j = 0; j < (s32)kbd->kd_count; j++)
 					{
 						if(kbd->kd[j] == i)
 						{
@@ -223,7 +223,7 @@ void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic80_input* input) {
 					{
 						// allow de-pressing modifiers
 						kbd->kd[set] = 0;
-						for (j = set + 1; j < kbd->kd_count; j++) {
+						for (j = set + 1; j < (s32)kbd->kd_count; j++) {
 							kbd->kd[j - 1] = kbd->kd[j];
 							kbd->kd[j] = 0;
 						}
@@ -238,7 +238,7 @@ void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic80_input* input) {
 		else if(key_up & KEY_TOUCH)
 		{
 			if(kbd->kd_count > 0 && !(touch_areas[kbd->kd[kbd->kd_count - 1]].flags & TOUCH_AREA_MODIFIER)) {
-				for(i = 0, j = 0; i < kbd->kd_count; i++) {
+				for(i = 0, j = 0; i < (s32)kbd->kd_count; i++) {
 					if(touch_areas[kbd->kd[i]].flags & TOUCH_AREA_MOD_TOGGLE) {
 						kbd->kd[j++] = kbd->kd[i];
 					}
@@ -257,7 +257,7 @@ void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic80_input* input) {
 
 		tic_kbd->data = 0;
 		int buffer_pos = 0;
-		for(i = 0; i < kbd->kd_count && buffer_pos < TIC80_KEY_BUFFER; i++)
+		for(i = 0; i < (s32)kbd->kd_count && buffer_pos < TIC80_KEY_BUFFER; i++)
 		{
 			tic_keycode curr_keycode = touch_areas[kbd->kd[i]].keycode;
 			if(!state[curr_keycode])

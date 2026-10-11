@@ -142,6 +142,7 @@ static void n3ds_vbuf_exit(void) {
 
 static int n3ds_vbuf_clear(void) {
     platform.render.vbuf_pos = 0;
+    return 0;
 }
 
 static int n3ds_vbuf_append(float x, float y, float z, float u, float v, float opa) {
@@ -228,7 +229,7 @@ void tic_sys_update_config()
 void tic_sys_default_mapping(tic_mapping* mapping)
 {
     *mapping = (tic_mapping)
-    {
+    {{
         tic_key_up,
         tic_key_down,
         tic_key_left,
@@ -238,7 +239,7 @@ void tic_sys_default_mapping(tic_mapping* mapping)
         tic_key_x, // b
         tic_key_a, // x
         tic_key_s, // y
-    };
+    }};
 }
 
 bool tic_sys_keyboard_text(char* text)
@@ -494,7 +495,7 @@ static void audio_update(void) {
     ndspWaveBuf *wave_buf = &platform.audio.ndspBuf[platform.audio.curr_block];
 
     if (wave_buf->status == NDSP_WBUF_DONE) {
-        u16 *audio_ptr = wave_buf->data_pcm16;
+        s16 *audio_ptr = wave_buf->data_pcm16;
         memcpy(audio_ptr, studio_mem(platform.studio)->product.samples.buffer, platform.audio.buffer_size);
         DSP_FlushDataCache(audio_ptr, platform.audio.buffer_size);
 
@@ -504,7 +505,6 @@ static void audio_update(void) {
 }
 
 static void touch_update(void) {
-	u32 key_down = hidKeysDown();
 	u32 key_held = hidKeysHeld();
     touchPosition touch;
 
