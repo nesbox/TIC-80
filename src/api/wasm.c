@@ -1000,7 +1000,7 @@ m3ApiRawFunction(wasmtic_time)
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
-    m3ApiReturn(core->api.time(tic));
+    m3ApiReturn((float)(core->api.time(tic)));
 
     m3ApiSuccess();
 }
@@ -1077,11 +1077,11 @@ m3ApiRawFunction(wasmtic_mouse)
 
     mouse_data->x = pos.x;
     mouse_data->y = pos.y;
-    mouse_data->left = mouse->left;
-    mouse_data->middle = mouse->middle;
-    mouse_data->right = mouse->right;
-    mouse_data->scrollx = mouse->scrollx;
-    mouse_data->scrolly = mouse->scrolly;
+    mouse_data->left = (bool)(mouse->left);
+    mouse_data->middle = (bool)(mouse->middle);
+    mouse_data->right = (bool)(mouse->right);
+    mouse_data->scrollx = (int8_t)(mouse->scrollx);
+    mouse_data->scrolly = (int8_t)(mouse->scrolly);
 
     m3ApiSuccess();
 }

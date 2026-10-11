@@ -1271,9 +1271,9 @@ static mrb_value mrb_mouse(mrb_state *mrb, mrb_value self)
 
     mrb_hash_set(mrb, hash, sym_x, mrb_fixnum_value(pos.x));
     mrb_hash_set(mrb, hash, sym_y, mrb_fixnum_value(pos.y));
-    mrb_hash_set(mrb, hash, sym_left, mrb_bool_value(mouse->left));
-    mrb_hash_set(mrb, hash, sym_middle, mrb_bool_value(mouse->middle));
-    mrb_hash_set(mrb, hash, sym_right, mrb_bool_value(mouse->right));
+    mrb_hash_set(mrb, hash, sym_left, mrb_bool_value((mrb_bool)(mouse->left)));
+    mrb_hash_set(mrb, hash, sym_middle, mrb_bool_value((mrb_bool)(mouse->middle)));
+    mrb_hash_set(mrb, hash, sym_right, mrb_bool_value((mrb_bool)(mouse->right)));
     mrb_hash_set(mrb, hash, sym_scrollx, mrb_fixnum_value(mouse->scrollx));
     mrb_hash_set(mrb, hash, sym_scrolly, mrb_fixnum_value(mouse->scrolly));
 

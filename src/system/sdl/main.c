@@ -290,8 +290,8 @@ static void renderCopy(Renderer render, Texture tex, SDL_Rect src, SDL_Rect dst)
 #if defined(CRT_SHADER_SUPPORT)
     if(!studio_config(platform.studio)->soft)
     {
-        GPU_Rect gpusrc = {src.x, src.y, src.w, src.h};
-        GPU_BlitScale(tex.gpu, &gpusrc, render.gpu, dst.x, dst.y, (float)dst.w / src.w, (float)dst.h / src.h);
+        GPU_Rect gpusrc = {(float)src.x, (float)src.y, (float)src.w, (float)src.h};
+        GPU_BlitScale(tex.gpu, &gpusrc, render.gpu, (float)dst.x, (float)dst.y, (float)dst.w / src.w, (float)dst.h / src.h);
     }
     else
 #endif
@@ -1972,9 +1972,9 @@ static void gpuTick()
         static const char* Uniforms[] = {"trg_x", "trg_y", "trg_w", "trg_h"};
 
         for(s32 i = 0; i < COUNT_OF(Uniforms); ++i)
-            GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, Uniforms[i]), (&rect.x)[i]);
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, Uniforms[i]), (float)(&rect.x)[i]);
 
-        GPU_BlitScale(platform.screen.texture.gpu, NULL, platform.screen.renderer.gpu, rect.x, rect.y,
+        GPU_BlitScale(platform.screen.texture.gpu, NULL, platform.screen.renderer.gpu, (float)rect.x, (float)rect.y,
             (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
         GPU_DeactivateShaderProgram();
     }

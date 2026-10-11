@@ -3548,7 +3548,7 @@ static void drawSidebarBar(Code* code, s32 x, s32 y)
 			// calculate the new size after trimming
 			size_t trimmed_size = ptr->size - (trimmed - ptr->pos);
 
-			drawFilterMatch(code, x, y, trimmed, trimmed_size, filter);
+			drawFilterMatch(code, x, y, trimmed, (s32)trimmed_size, filter);
 		}
 	}
     else

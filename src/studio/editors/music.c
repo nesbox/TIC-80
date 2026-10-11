@@ -195,7 +195,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
     tic_api_print(tic, label, x, y+1, tic_color_black, true, 1, false);
     tic_api_print(tic, label, x, y, tic_color_white, true, 1, false);
 
-    x += strlen(label) * TIC_FONT_WIDTH + TIC_ALTFONT_WIDTH;
+    x += (s32)(strlen(label) * TIC_FONT_WIDTH + TIC_ALTFONT_WIDTH);
 
     {
         tic_rect rect = { x - TIC_ALTFONT_WIDTH, y, TIC_ALTFONT_WIDTH, TIC_FONT_HEIGHT };

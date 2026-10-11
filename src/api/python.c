@@ -589,9 +589,9 @@ static bool py_mouse(int argc, py_Ref argv)
     py_newtuple(res, 7);
     py_newint(py_tuple_getitem(res, 0), pos.x);
     py_newint(py_tuple_getitem(res, 1), pos.y);
-    py_newbool(py_tuple_getitem(res, 2), mouse->left);
-    py_newbool(py_tuple_getitem(res, 3), mouse->middle);
-    py_newbool(py_tuple_getitem(res, 4), mouse->right);
+    py_newbool(py_tuple_getitem(res, 2), (bool)(mouse->left));
+    py_newbool(py_tuple_getitem(res, 3), (bool)(mouse->middle));
+    py_newbool(py_tuple_getitem(res, 4), (bool)(mouse->right));
     py_newint(py_tuple_getitem(res, 5), mouse->scrollx);
     py_newint(py_tuple_getitem(res, 6), mouse->scrolly);
     return true;

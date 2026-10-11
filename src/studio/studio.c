@@ -887,13 +887,13 @@ static inline float animEffect(AnimEffect effect, float x)
         return x == 1 ? 1 : 1 - pow(2, -10 * x);
 
     case AnimEaseInOutExpo:
-        return x == 0
+        return (float)(x == 0
             ? 0
             : x == 1
                 ? 1
                 : x < 0.5
                     ? pow(2, 20 * x - 10) / 2
-                    : (2 - pow(2, -20 * x + 10)) / 2;
+                    : (2 - pow(2, -20 * x + 10)) / 2);
 
     case AnimEaseInCirc:
         return 1 - sqrt(1 - pow(x, 2));
@@ -918,27 +918,27 @@ static inline float animEffect(AnimEffect effect, float x)
             : (pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2;
 
     case AnimEaseInElastic:
-        return x == 0
+        return (float)(x == 0
             ? 0
             : x == 1
                 ? 1
-                : -pow(2, 10 * x - 10) * sin((x * 10 - 10.75) * c4);
+                : -pow(2, 10 * x - 10) * sin((x * 10 - 10.75) * c4));
 
     case AnimEaseOutElastic:
-        return x == 0
+        return (float)(x == 0
             ? 0
             : x == 1
                 ? 1
-                : pow(2, -10 * x) * sin((x * 10 - 0.75) * c4) + 1;
+                : pow(2, -10 * x) * sin((x * 10 - 0.75) * c4) + 1);
 
     case AnimEaseInOutElastic:
-        return x == 0
+        return (float)(x == 0
             ? 0
             : x == 1
                 ? 1
                 : x < 0.5
                     ? -(pow(2, 20 * x - 10) * sin((20 * x - 11.125) * c5)) / 2
-                    : (pow(2, -20 * x + 10) * sin((20 * x - 11.125) * c5)) / 2 + 1;
+                    : (pow(2, -20 * x + 10) * sin((20 * x - 11.125) * c5)) / 2 + 1);
 
     case AnimEaseInBounce:
         return 1 - bounceOut(1 - x);

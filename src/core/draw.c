@@ -500,7 +500,7 @@ static void drawEllipse(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 colo
     s64 dx = 4 * (1 - a) * b * b, dy = 4 * (b1 + 1) * a * a; /* error increment */
     s64 err = dx + dy + b1 * a * a, e2; /* error of 1.step */
 
-    if (x0 > x1) { x0 = x1; x1 += a; } /* if called with swapped pos32s */
+    if (x0 > x1) { x0 = x1; x1 += (s32)a; } /* if called with swapped pos32s */
     if (y0 > y1) y0 = y1; /* .. exchange them */
     y0 += (b + 1) / 2; y1 = y0 - b1;   /* starting pixel */
     a *= 8 * a; b1 = 8 * b * b;

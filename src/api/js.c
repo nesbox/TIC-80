@@ -800,9 +800,9 @@ static JSValue js_mouse(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
 
     JS_SetPropertyUint32(ctx, arr, 0, JS_NewInt32(ctx, pos.x));
     JS_SetPropertyUint32(ctx, arr, 1, JS_NewInt32(ctx, pos.y));
-    JS_SetPropertyUint32(ctx, arr, 2, JS_NewBool(ctx, mouse->left));
-    JS_SetPropertyUint32(ctx, arr, 3, JS_NewBool(ctx, mouse->middle));
-    JS_SetPropertyUint32(ctx, arr, 4, JS_NewBool(ctx, mouse->right));
+    JS_SetPropertyUint32(ctx, arr, 2, JS_NewBool(ctx, (bool)(mouse->left)));
+    JS_SetPropertyUint32(ctx, arr, 3, JS_NewBool(ctx, (bool)(mouse->middle)));
+    JS_SetPropertyUint32(ctx, arr, 4, JS_NewBool(ctx, (bool)(mouse->right)));
     JS_SetPropertyUint32(ctx, arr, 5, JS_NewInt32(ctx, mouse->scrollx));
     JS_SetPropertyUint32(ctx, arr, 6, JS_NewInt32(ctx, mouse->scrolly));
 
