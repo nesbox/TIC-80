@@ -65,25 +65,6 @@ jobs:
           if not exist "%GITHUB_WORKSPACE%\stub" mkdir "%GITHUB_WORKSPACE%\stub"
           copy /Y bin\tic80.exe "%GITHUB_WORKSPACE%\stub\tic80.exe" || exit /b 1
 
-      # The sokol layer and its Windows gamepad backend, compiled here and
-      # nowhere else: a directory of its own, since `build` is reconfigured around it.
-      - name: Build Sokol
-        shell: bash
-        run: |
-          set -euo pipefail
-          cmake -S . -B build-sokol -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_STATIC=ON -DBUILD_WITH_LUA=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-          cmake --build build-sokol --config Release --parallel
-
-      # The sokol binary, so the gamepad work can be tried on a real Windows
-      # machine: the releases ship the SDL layer, nothing else hands it out.
-      - name: Deploy Sokol
-        uses: actions/upload-artifact@v6
-        with:
-          if-no-files-found: error
-          name: "tic80-windows-sokol"
-          path: |
-            build-sokol/bin/tic80.exe
-
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
@@ -226,25 +207,6 @@ jobs:
           # tic80 in there — one called tic80-export would fail packaging.
           mkdir -p "$GITHUB_WORKSPACE/stub"
           cp bin/tic80 "$GITHUB_WORKSPACE/stub/tic80"
-
-      # The sokol layer and its evdev gamepad backend, compiled here and nowhere else.
-      - name: Build Sokol
-        run: |
-          set -euo pipefail
-          # sokol_app is X11 here, and no other step links it.
-          sudo apt-get install -y libx11-dev libxi-dev libxcursor-dev
-          cmake -S . -B build-sokol -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_LUA=ON
-          cmake --build build-sokol --parallel
-
-      # The sokol binary, for trying the evdev gamepad backend on a real Linux
-      # machine: the releases ship the SDL layer, nothing else hands it out.
-      - name: Deploy Sokol
-        uses: actions/upload-artifact@v6
-        with:
-          if-no-files-found: error
-          name: "tic80-linux-sokol"
-          path: |
-            build-sokol/bin/tic80
 
       - name: Export help (learn.md)
         run: |
@@ -708,13 +670,6 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/stub"
           cp bin/tic80 "$GITHUB_WORKSPACE/stub/tic80"
 
-      # The sokol layer and its GameController gamepad backend, compiled here and nowhere else.
-      - name: Build Sokol
-        run: |
-          set -euo pipefail
-          cmake -S . -B build-sokol -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_LUA=ON
-          cmake --build build-sokol --parallel 3
-
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
@@ -946,6 +901,134 @@ jobs:
             stubs/*
 
   # === Android ===
+  # === Sokol desktop builds ===
+  #
+  # The sokol layer with every language, built on its own so the SDL jobs are
+  # not slowed by a second full build, and handed out as the bench binary for
+  # its system. Each one prints what it cost and what it weighs, which is the
+  # comparison the migration wants.
+
+  sokol-windows:
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          cmake -S . -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build --config Release --parallel
+          echo "sokol build: $((SECONDS - start))s"
+          du -h build/bin/tic80.exe
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-windows-sokol"
+          path: |
+            build/bin/tic80.exe
+
+  sokol-linux:
+    runs-on: ubuntu-22.04
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install
+        run: |
+          sudo apt-get update
+          # The X11 trio and ALSA are sokol_app's and sokol_audio's link line;
+          # the rest is what the studio itself needs.
+          sudo apt-get install -y libx11-dev libxi-dev libxcursor-dev libasound2-dev libglu1-mesa-dev libcurl4-openssl-dev
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+          command -v ccache >/dev/null || sudo apt-get install -y ccache
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_ALL=ON
+          cmake --build build --parallel
+          echo "sokol build: $((SECONDS - start))s"
+          du -h build/bin/tic80
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-linux-sokol"
+          path: |
+            build/bin/tic80
+
+  sokol-macos:
+    runs-on: macos-14
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install
+        run: |
+          brew uninstall --ignore-dependencies libidn2
+          command -v ninja >/dev/null || brew install ninja
+          command -v ccache >/dev/null || brew install ccache
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_ALL=ON
+          cmake --build build --parallel 3
+          echo "sokol build: $((SECONDS - start))s"
+          du -h build/bin/tic80
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-sokol"
+          path: |
+            build/bin/tic80
+
   android:
     runs-on: ubuntu-latest
 
