@@ -233,6 +233,8 @@ typedef struct {
 
 static void playbackRemapCallback(void* data, s32 x, s32 y, RemapResult* result)
 {
+    // the remap is a flat table, the position in it is the coordinate
+    (void)x; (void)y;
     PlaybackRemapContext* ctx = (PlaybackRemapContext*)data;
     *result = ctx->remapped_tiles[ctx->pos++];
 }
@@ -324,7 +326,6 @@ static void execute_draw_call(tic_core* core, u8 type, const u8* data)
             const DrawCallMap* c = (const DrawCallMap*)data;
             if (c->has_remap)
             {
-                s32 tiles_count = c->w * c->h;
                 const RemapResult* remapped_tiles = (const RemapResult*)(data + sizeof(DrawCallMap));
                 PlaybackRemapContext ctx = { remapped_tiles, 0 };
                 tic_api_map(&core->memory, c->x, c->y, c->w, c->h, c->sx, c->sy,

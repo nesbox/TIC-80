@@ -45,7 +45,7 @@ typedef enum {
 typedef struct {
     tic_net *net;
 
-    char url[URL_SIZE];
+    char url[URL_SIZE * 2];   // the host and the request are each URL_SIZE long
     volatile req_state state;
 
     // for callback
@@ -95,6 +95,7 @@ static size_t switch_write_cb(void *contents, size_t size, size_t nmemb, void *u
 
 static int switch_xferinfo_cb(void *userp, curl_off_t dltotal, curl_off_t dlnow,
     curl_off_t ultotal, curl_off_t ulnow) {
+    (void)ultotal; (void)ulnow;
     net_ctx *ctx = (net_ctx *)userp;
 
     // no size yet
@@ -229,7 +230,7 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
 
     ctx->net = net;
 
-    snprintf(ctx->url, URL_SIZE - 1, "%s%s", net->host, url);
+    snprintf(ctx->url, sizeof ctx->url, "%s%s", net->host, url);
     ctx->state = RS_RUNNING;
 
     ctx->callback = callback;
@@ -316,7 +317,7 @@ void tic_net_end(tic_net *net) {
 
                 if(ctx->state == RS_OK) {
                     getData.type = net_get_done;
-                    getData.done.data = ctx->buffer;
+                    getData.done.data = (u8*)ctx->buffer;
                     getData.done.size = ctx->size;
                 } else {
                     getData.type = net_get_error;

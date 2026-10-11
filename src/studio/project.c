@@ -43,7 +43,7 @@ static const struct BinarySection{const char* tag; s32 count; s32 offset; s32 si
     {"PALETTE",     TIC_PALETTES,       offsetof(tic_bank, palette),        sizeof(tic_palette),                false},
 };
 
-static const struct BinarySection LangSection = {"LANG", 1, 0, sizeof (tic_cartridge){0}.lang, false};
+static const struct BinarySection LangSection = {"LANG", 1, 0, sizeof (((tic_cartridge*)0)->lang), false};
 
 static void makeTag(const char* tag, char* out, s32 bank)
 {

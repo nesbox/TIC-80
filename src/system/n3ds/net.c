@@ -220,6 +220,7 @@ static void n3ds_net_init(tic_net *net)
 
 static void n3ds_net_free(tic_net *net)
 {
+    (void)net;
     httpcExit();
 }
 
