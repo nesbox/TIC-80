@@ -743,8 +743,6 @@ static SQInteger squirrel_mget(HSQUIRRELVM vm)
         return 1;
     }
     else return sq_throwerror(vm, "invalid params, mget(x,y)\n");
-
-    return 0;
 }
 
 static SQInteger squirrel_mset(HSQUIRRELVM vm)
@@ -942,9 +940,9 @@ static SQInteger squirrel_music(HSQUIRRELVM vm)
                     loop = (b != SQFalse);
                     if(top >= 6)
                     {
-                        SQBool b = SQFalse;
-                        sq_getbool(vm, 6, &b);
-                        sustain = (b != SQFalse);
+                        SQBool sustainFlag = SQFalse;
+                        sq_getbool(vm, 6, &sustainFlag);
+                        sustain = (sustainFlag != SQFalse);
 
                         if (top >= 7)
                         {
@@ -1282,9 +1280,9 @@ static SQInteger squirrel_font(HSQUIRRELVM vm)
 
                                                         if (top >= 10)
                                                         {
-                                                            SQBool b = SQFalse;
-                                                            sq_getbool(vm, 10, &b);
-                                                            alt = (b != SQFalse);
+                                                            SQBool altFlag = SQFalse;
+                                                            sq_getbool(vm, 10, &altFlag);
+                                                            alt = (altFlag != SQFalse);
                                                         }
 
                         }
@@ -1346,9 +1344,9 @@ static SQInteger squirrel_print(HSQUIRRELVM vm)
 
                                                 if (top >= 8)
                                                 {
-                                                    SQBool b = SQFalse;
-                                                    sq_getbool(vm, 8, &b);
-                                                    alt = (b != SQFalse);
+                                                    SQBool altFlag = SQFalse;
+                                                    sq_getbool(vm, 8, &altFlag);
+                                                    alt = (altFlag != SQFalse);
                                                 }
                     }
                 }
@@ -1419,8 +1417,6 @@ static SQInteger squirrel_pmem(HSQUIRRELVM vm)
         return sq_throwerror(vm, "invalid persistent tic index\n");
     }
     else return sq_throwerror(vm, "invalid params, pmem(index [val]) -> val\n");
-
-    return 0;
 }
 
 static SQInteger squirrel_time(HSQUIRRELVM vm)

@@ -798,10 +798,10 @@ static void drawWaves(Sfx* sfx, s32 x, s32 y)
         {
             tic_waveform* wave = getWaveformById(sfx, i);
 
-            for(s32 i = 0; i < WAVE_VALUES/Scale; i++)
+            for(s32 wv = 0; wv < WAVE_VALUES/Scale; wv++)
             {
-                s32 value = tic_tool_peek4(wave->data, i*Scale)/Scale;
-                tic_api_pix(tic, rect.x + i+1, rect.y + Height - value - 2,
+                s32 value = tic_tool_peek4(wave->data, wv*Scale)/Scale;
+                tic_api_pix(tic, rect.x + wv+1, rect.y + Height - value - 2,
                     active ? tic_color_red : sel ? tic_color_dark_green : hover ? tic_color_light_grey : tic_color_white, false);
             }
 
@@ -982,19 +982,19 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
     for(s32 i = 0; i < COUNT_OF(Buttons); i++)
     {
         const PianoBtn* btn = Buttons + i;
-        const tic_rect* rect = &btn->rect;
-        tic_api_rect(tic, x + rect->x, y + rect->y, rect->w, rect->h,
+        const tic_rect* btnRect = &btn->rect;
+        tic_api_rect(tic, x + btnRect->x, y + btnRect->y, btnRect->w, btnRect->h,
             active && effect->note == btn->note ? tic_color_red :
                 btn->white
                     ? hover == btn->note ? tic_color_light_grey : tic_color_white
                     : hover == btn->note ? tic_color_dark_grey : tic_color_black);
 
         if(btn->white)
-            tic_api_rect(tic, x + rect->x, y + (WhiteHeight - WhiteShadow), WhiteWidth, WhiteShadow, tic_color_black);
+            tic_api_rect(tic, x + btnRect->x, y + (WhiteHeight - WhiteShadow), WhiteWidth, WhiteShadow, tic_color_black);
 
         // draw current note marker
         if(currentOctave == octave && effect->note == btn->note) {
-            tic_api_rect(tic, x + rect->x + 1, y + rect->y + rect->h - 3, 1, 1, tic_color_red);
+            tic_api_rect(tic, x + btnRect->x + 1, y + btnRect->y + btnRect->h - 3, 1, 1, tic_color_red);
         }
     }
 }
@@ -1067,16 +1067,16 @@ static void drawSelectorPanel(Sfx* sfx, s32 x, s32 y)
             for(s32 r = 0; r < Rows; r++)
                 for(s32 c = 0; c < Cols; c++, i++)
                 {
-                    tic_rect rect = {x + c * SizeGap + g * (GroupWidth + GroupGap), y + r * SizeGap, SizeGap, SizeGap};
+                    tic_rect cellRect = {x + c * SizeGap + g * (GroupWidth + GroupGap), y + r * SizeGap, SizeGap, SizeGap};
 
-                    if(checkMousePos(sfx->studio, &rect))
+                    if(checkMousePos(sfx->studio, &cellRect))
                     {
                         setCursor(sfx->studio, tic_cursor_hand);
                         hover = i;
 
                         SHOW_TOOLTIP(sfx->studio, "edit sfx #%02i", hover);
 
-                        if(checkMouseClick(sfx->studio, &rect, tic_mouse_left))
+                        if(checkMouseClick(sfx->studio, &cellRect, tic_mouse_left))
                             sfx->index = (u8)(i);
 
                         goto draw;

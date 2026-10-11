@@ -198,9 +198,9 @@ static void toggleBookmark(Code* code, char* codePos)
 
     if(bookmarked)
     {
-        CodeState* ptr = start;
-        while(ptr < end)
-            ptr++->bookmark = 0;
+        CodeState* state = start;
+        while(state < end)
+            state++->bookmark = 0;
     }
     else start->bookmark = 1;
 
@@ -697,17 +697,17 @@ start:
         {
             while(!islineend(*ptr))
             {
-                char c = *ptr;
+                char ch = *ptr;
 
-                if(isdigit((u8)c)) ptr++;
+                if(isdigit((u8)ch)) ptr++;
                 else if(numberStart[0] == '0'
                     && (numberStart[1] == 'x' || numberStart[1] == 'X')
                     && isxdigit((u8)numberStart[2]))
                 {
-                    if((ptr - numberStart < 2) || isxdigit((u8)c)) ptr++;
+                    if((ptr - numberStart < 2) || isxdigit((u8)ch)) ptr++;
                     else break;
                 }
-                else if(c == '.' || c == 'e' || c == 'E')
+                else if(ch == '.' || ch == 'e' || ch == 'E')
                 {
                     if(isdigit((u8)ptr[1])) ptr++;
                     else break;

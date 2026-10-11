@@ -346,11 +346,11 @@ static void msf_cook_frame(MsfCookedFrame * frame, uint8_t * raw, uint8_t * used
                 }
 
                 int dx = x & 3, dy = y & 3;
-                int k = ditherKernel[dy * 4 + dx];
+                int dither = ditherKernel[dy * 4 + dx];
                 cooked[y * width + x] =
-                    (msf_imin(65535, p[2] * bmul + (k >> bbits)) >> (16 - rbits - gbits - bbits) & bmask) |
-                    (msf_imin(65535, p[1] * gmul + (k >> gbits)) >> (16 - rbits - gbits        ) & gmask) |
-                     msf_imin(65535, p[0] * rmul + (k >> rbits)) >> (16 - rbits                );
+                    (msf_imin(65535, p[2] * bmul + (dither >> bbits)) >> (16 - rbits - gbits - bbits) & bmask) |
+                    (msf_imin(65535, p[1] * gmul + (dither >> gbits)) >> (16 - rbits - gbits        ) & gmask) |
+                     msf_imin(65535, p[0] * rmul + (dither >> rbits)) >> (16 - rbits                );
             }
         }
 

@@ -10,7 +10,10 @@
 if(MSVC)
 
     # /W4 is the counterpart of -Wall -Wextra; /WX comes once the list is empty.
-    set(TIC80_WARNING_FLAGS /W4)
+    # 4201 is the nameless struct/union: C11 has them and the RAM layout is
+    # written in them, but /W4 reads them as an extension and says so 1500
+    # times over. Not a defect, so it is the one thing switched off.
+    set(TIC80_WARNING_FLAGS /W4 /wd4201)
 
 elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
 

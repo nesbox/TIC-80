@@ -1033,7 +1033,7 @@ static Janet janet_reset(int32_t argc, Janet* argv)
 static Janet janet_key(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 1);
-    tic_key key = -1;
+    tic_key key = (tic_key)-1;
 
     if (argc >= 1) key = (tic_key)janet_getinteger(argv, 0);
 
@@ -1044,7 +1044,7 @@ static Janet janet_key(int32_t argc, Janet* argv)
 static Janet janet_keyp(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 3);
-    tic_key key = -1;
+    tic_key key = (tic_key)-1;
     s32 hold = -1;
     s32 period = -1;
 
@@ -1314,9 +1314,9 @@ static void callJanetTick(tic_mem* tic)
     (void)janet_resolve(core->currentVM, janet_csymbol(OVR_FN), &pre_fn);
     if (janet_type(pre_fn) == JANET_FUNCTION) {
         JanetFunction *ovr_fn = janet_unwrap_function(pre_fn);
-        JanetSignal status = janet_pcall(ovr_fn, 0, NULL, &result, &GameFiber);
+        JanetSignal callStatus = janet_pcall(ovr_fn, 0, NULL, &result, &GameFiber);
 
-        if (status != JANET_SIGNAL_OK) {
+        if (callStatus != JANET_SIGNAL_OK) {
             reportError(core, result);
         }
     }

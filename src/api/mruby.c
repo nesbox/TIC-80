@@ -1071,7 +1071,7 @@ static mrb_value mrb_keyp(mrb_state* mrb, mrb_value self)
 
     if (argc == 0)
     {
-        return mrb_fixnum_value(core->api.keyp(tic, -1, -1, -1));
+        return mrb_fixnum_value(core->api.keyp(tic, (tic_key)-1, -1, -1));
     }
     else if (key >= tic_key_escape)
     {

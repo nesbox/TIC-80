@@ -310,11 +310,11 @@ static void copySelection(Sprite* sprite)
             sprite->select.back[i++] = tic_tilesheet_getpix(&sprite->sheet, sx, sy);
 
     {
-        tic_rect* rect = &sprite->select.rect;
+        tic_rect* selRect = &sprite->select.rect;
         memset(sprite->select.front, 0, CANVAS_SIZE * CANVAS_SIZE);
 
-        for(s32 j = rect->y, index = 0; j < (rect->y + rect->h); j++)
-            for(s32 i = rect->x; i < (rect->x + rect->w); i++)
+        for(s32 j = selRect->y, index = 0; j < (selRect->y + selRect->h); j++)
+            for(s32 i = selRect->x; i < (selRect->x + selRect->w); i++)
             {
                 u8* color = &sprite->select.back[i+j*sprite->size];
                 sprite->select.front[index++] = *color;
@@ -348,13 +348,13 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
         {
             if(sprite->select.drag)
             {
-                s32 x = mx / Size;
-                s32 y = my / Size;
+                s32 tx = mx / Size;
+                s32 ty = my / Size;
 
-                s32 rl = MIN(x, sprite->select.start.x);
-                s32 rt = MIN(y, sprite->select.start.y);
-                s32 rr = MAX(x, sprite->select.start.x);
-                s32 rb = MAX(y, sprite->select.start.y);
+                s32 rl = MIN(tx, sprite->select.start.x);
+                s32 rt = MIN(ty, sprite->select.start.y);
+                s32 rr = MAX(tx, sprite->select.start.x);
+                s32 rb = MAX(ty, sprite->select.start.y);
 
                 sprite->select.rect = (tic_rect){rl, rt, rr - rl + 1, rb - rt + 1};
             }
@@ -528,20 +528,20 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
         sprintf(buf, sprite->hexindex ? "0x%02X" : "#%i", index);
 
         s32 w = (s32)(CANVAS_SIZE - strlen(buf) * TIC_FONT_WIDTH);
-        const tic_rect rect = {x + w / 2, TIC_SPRITESIZE + 2, w, TIC_FONT_HEIGHT};
+        const tic_rect hexRect = {x + w / 2, TIC_SPRITESIZE + 2, w, TIC_FONT_HEIGHT};
 
-        if(checkMousePos(sprite->studio, &rect))
+        if(checkMousePos(sprite->studio, &hexRect))
         {
             setCursor(sprite->studio, tic_cursor_hand);
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(checkMouseClick(sprite->studio, &hexRect, tic_mouse_left))
             {
                 sprite->hexindex = !sprite->hexindex;
             }
         }
 
-        tic_api_print(tic, buf, rect.x, rect.y + 1, tic_color_black, true, 1, false);
-        tic_api_print(tic, buf, rect.x, rect.y, tic_color_white, true, 1, false);
+        tic_api_print(tic, buf, hexRect.x, hexRect.y + 1, tic_color_black, true, 1, false);
+        tic_api_print(tic, buf, hexRect.x, hexRect.y, tic_color_white, true, 1, false);
     }
 }
 
@@ -769,14 +769,14 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
 
             if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
             {
-                const s32* i = indexes;
+                const s32* idx = indexes;
 
                 if(or & mask)
-                    while(*i >= 0)
-                        flags[*i++] &= ~mask;
+                    while(*idx >= 0)
+                        flags[*idx++] &= ~mask;
                 else
-                    while(*i >= 0)
-                        flags[*i++] |= mask;
+                    while(*idx >= 0)
+                        flags[*idx++] |= mask;
             }
         }
 
@@ -1151,14 +1151,14 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
         {
             s32 col = sprite->palette.focus % Cols;
             s32 row = sprite->palette.focus / Cols;
-            s32 x = rect.x + col * TIC_FONT_WIDTH;
-            s32 y = rect.y + row * TIC_FONT_HEIGHT;
-            tic_api_rect(sprite->tic, x, y, Width, Height, tic_color_red);
+            s32 px = rect.x + col * TIC_FONT_WIDTH;
+            s32 py = rect.y + row * TIC_FONT_HEIGHT;
+            tic_api_rect(sprite->tic, px, py, Width, Height, tic_color_red);
 
             {
                 char buf[sizeof "FF"];
                 sprintf(buf, "%02X", data[row]);
-                tic_api_print(tic, (char[]){buf[col], '\0'}, x + 1, y + 1, tic_color_black, true, 1, false);
+                tic_api_print(tic, (char[]){buf[col], '\0'}, px + 1, py + 1, tic_color_black, true, 1, false);
             }
         }
     }
@@ -1247,69 +1247,69 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
 
     if(sprite->advanced)
     {
-        tic_rect rect = {x - 22, y + 1, 19, 5};
+        tic_rect btnRect = {x - 22, y + 1, 19, 5};
 
-        if(checkMousePos(sprite->studio, &rect))
+        if(checkMousePos(sprite->studio, &btnRect))
         {
             setCursor(sprite->studio, tic_cursor_hand);
 
             showTooltip(sprite->studio, "VBANK0 PALETTE");
 
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(checkMouseClick(sprite->studio, &btnRect, tic_mouse_left))
                 sprite->palette.vbank1 = false;
         }
 
         {
             static const char* Label = "bank0";
             if(!sprite->palette.vbank1)
-                tic_api_print(tic, Label, rect.x, rect.y + 1, tic_color_black, false, 1, true);
+                tic_api_print(tic, Label, btnRect.x, btnRect.y + 1, tic_color_black, false, 1, true);
 
-            tic_api_print(tic, Label, rect.x, rect.y, sprite->palette.vbank1 ? tic_color_dark_grey : tic_color_white, false, 1, true);
+            tic_api_print(tic, Label, btnRect.x, btnRect.y, sprite->palette.vbank1 ? tic_color_dark_grey : tic_color_white, false, 1, true);
         }
     }
 
     if(sprite->advanced)
     {
-        tic_rect rect = {x - 22, y + 9, 19, 5};
+        tic_rect btnRect = {x - 22, y + 9, 19, 5};
 
-        if(checkMousePos(sprite->studio, &rect))
+        if(checkMousePos(sprite->studio, &btnRect))
         {
             setCursor(sprite->studio, tic_cursor_hand);
 
             showTooltip(sprite->studio, "VBANK1 PALETTE");
 
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(checkMouseClick(sprite->studio, &btnRect, tic_mouse_left))
                 sprite->palette.vbank1 = true;
         }
 
         {
             static const char* Label = "bank1";
             if(sprite->palette.vbank1)
-                tic_api_print(tic, Label, rect.x, rect.y + 1, tic_color_black, false, 1, true);
+                tic_api_print(tic, Label, btnRect.x, btnRect.y + 1, tic_color_black, false, 1, true);
 
-            tic_api_print(tic, Label, rect.x, rect.y, sprite->palette.vbank1 ? tic_color_white : tic_color_dark_grey, false, 1, true);
+            tic_api_print(tic, Label, btnRect.x, btnRect.y, sprite->palette.vbank1 ? tic_color_white : tic_color_dark_grey, false, 1, true);
         }
     }
 
     if(sprite->advanced)
     {
-        tic_rect rect = {x + PALETTE_WIDTH + 3, y + (PALETTE_HEIGHT-8)/2-1, 8, 8};
+        tic_rect editRect = {x + PALETTE_WIDTH + 3, y + (PALETTE_HEIGHT-8)/2-1, 8, 8};
 
         bool down = false;
         bool over = false;
-        if(checkMousePos(sprite->studio, &rect))
+        if(checkMousePos(sprite->studio, &editRect))
         {
             setCursor(sprite->studio, tic_cursor_hand);
             over = true;
 
             showTooltip(sprite->studio, "EDIT PALETTE");
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+            if(checkMouseDown(sprite->studio, &editRect, tic_mouse_left))
                 down = true;
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(checkMouseClick(sprite->studio, &editRect, tic_mouse_left))
             {
                 sprite->palette.edit = !sprite->palette.edit;
 
@@ -1320,12 +1320,12 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
 
         if(sprite->palette.edit || down)
         {
-            drawBitIcon(sprite->studio, tic_icon_rgb, rect.x, rect.y+1, (over ? tic_color_light_grey : tic_color_white));
+            drawBitIcon(sprite->studio, tic_icon_rgb, editRect.x, editRect.y+1, (over ? tic_color_light_grey : tic_color_white));
         }
         else
         {
-            drawBitIcon(sprite->studio, tic_icon_rgb, rect.x, rect.y+1, tic_color_black);
-            drawBitIcon(sprite->studio, tic_icon_rgb, rect.x, rect.y, (over ? tic_color_light_grey : tic_color_white));
+            drawBitIcon(sprite->studio, tic_icon_rgb, editRect.x, editRect.y+1, tic_color_black);
+            drawBitIcon(sprite->studio, tic_icon_rgb, editRect.x, editRect.y, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 }

@@ -964,17 +964,17 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
         else
         {
             s32 size = 0;
-            void* data = strcmp(name, CONFIG_TIC_PATH) == 0
+            void* buf = strcmp(name, CONFIG_TIC_PATH) == 0
                 ? tic_fs_loadroot(console->fs, name, &size)
                 : tic_fs_load(console->fs, name, &size);
 
-            if(data) SCOPE(free(data))
+            if(buf) SCOPE(free(buf))
             {
                 tic_cartridge* cart = newCart();
 
                 SCOPE(free(cart))
                 {
-                    tic_cart_load(cart, data, size);
+                    tic_cart_load(cart, buf, size);
                     tic_tool_load_section(console->tic, cart, section);
                     onCartLoaded(console, name, section);
                 }
@@ -998,22 +998,22 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
             }
             else
             {
-                const char* name = param;
+                const char* path = param;
 
 #if defined(TIC80_PRO)
-                if(tic_tool_is_project(name))
+                if(tic_tool_is_project(path))
                 {
-                    void* data = tic_fs_load(console->fs, name, &size);
+                    void* buf = tic_fs_load(console->fs, path, &size);
 
-                    if(data) SCOPE(free(data))
+                    if(buf) SCOPE(free(buf))
                     {
                         tic_cartridge* cart = newCart();
 
                         SCOPE(free(cart))
                         {
-                            tic_project_load(name, data, size, cart);
+                            tic_project_load(path, buf, size, cart);
                             tic_tool_load_section(console->tic, cart, section);
-                            onCartLoaded(console, name, section);
+                            onCartLoaded(console, path, section);
                         }
                     }
                     else printError(console, "\nproject loading error");
@@ -1021,7 +1021,7 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
                 }
                 else printError(console, "\nfile not found");
 #else
-                if(tic_tool_is_project(name)) {
+                if(tic_tool_is_project(path)) {
                     printError(console, "\nproject loading error");
                     printFront(console, "\nThis version only supports binary .png or .tic cartridges.");
                     printLine(console);
@@ -2486,7 +2486,7 @@ static void onExport_mapimg(Console* console, const char* param, const char* pat
         {
             tic_mem* tic = console->tic;
 
-            tic_api_sync(tic, -1, params.bank, false);
+            tic_api_sync(tic, (u32)-1, params.bank, false);
 
             for(s32 r = 0; r < TIC_MAP_ROWS; r++)
                 for(s32 c = 0; c < TIC_MAP_COLS; c++)

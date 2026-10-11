@@ -22,7 +22,9 @@
 
 #pragma once
 
-#define COUNT_OF(x)         ((s32)((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x]))))))
+// (x)[0] rather than 0[x]: identical in C, but msvc reads the reversed index of
+// a compound literal — MOVIE_DEF's array — as a comma operator (C4709).
+#define COUNT_OF(x)         ((s32)((sizeof(x)/sizeof((x)[0])) / ((size_t)(!(sizeof(x) % sizeof((x)[0]))))))
 #define MIN(a,b)            ((a) < (b) ? (a) : (b))
 #define MAX(a,b)            ((a) > (b) ? (a) : (b))
 #define MIN3(a,b,c)         MIN(MIN(a, b), c)

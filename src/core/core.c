@@ -477,7 +477,7 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
                 tic->input.gamepad = 1;
             else if(strcmp(tic_tool_metatag(code, "input", config->singleComment), "keyboard") == 0)
                 tic->input.keyboard = 1;
-            else tic->input.data = -1;  // default is all enabled
+            else tic->input.data = (u8)-1;  // default is all enabled
 
             data->start = data->counter(core->data->data);
 

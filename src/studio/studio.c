@@ -668,19 +668,18 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bo
     {
         char* clipboard = tic_sys_clipboard_get();
 
-        SCOPE(tic_sys_clipboard_free(clipboard))
-        {
-            if (remove_white_spaces)
-                removeWhiteSpaces(clipboard);
+        if (remove_white_spaces)
+            removeWhiteSpaces(clipboard);
 
-            bool valid = sameSize
-                ? strlen(clipboard) == (size_t)size * 2
-                : strlen(clipboard) <= (size_t)size * 2;
+        bool valid = sameSize
+            ? strlen(clipboard) == (size_t)size * 2
+            : strlen(clipboard) <= (size_t)size * 2;
 
-            if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
+        if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
 
-            return valid;
-        }
+        tic_sys_clipboard_free(clipboard);
+
+        return valid;
     }
 
     return false;
@@ -729,15 +728,15 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
 
         for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
         {
-            tic_rect rect = {x + 2 + (i+1)*Size, 0, Size, Size};
+            tic_rect btnRect = {x + 2 + (i+1)*Size, 0, Size, Size};
 
-            bool over = false;
-            if(checkMousePos(studio, &rect))
+            bool hover = false;
+            if(checkMousePos(studio, &btnRect))
             {
                 setCursor(studio, tic_cursor_hand);
-                over = true;
+                hover = true;
 
-                if(checkMouseClick(studio, &rect, tic_mouse_left))
+                if(checkMouseClick(studio, &btnRect, tic_mouse_left))
                 {
                     if(studio->bank.chained)
                         memset(studio->bank.indexes, i, sizeof studio->bank.indexes);
@@ -746,12 +745,12 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
             }
 
             if(i == studio->bank.indexes[mode])
-                tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
+                tic_api_rect(tic, btnRect.x, btnRect.y, btnRect.w, btnRect.h, tic_color_red);
 
-            tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x+1, rect.y+1,
+            tic_api_print(tic, (char[]){'0' + i, '\0'}, btnRect.x+1, btnRect.y+1,
                 i == studio->bank.indexes[mode]
                     ? tic_color_white
-                    : over
+                    : hover
                         ? tic_color_red
                         : tic_color_light_grey,
                 false, 1, false);
@@ -759,17 +758,17 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
         }
 
         {
-            tic_rect rect = {x + 4 + (TIC_EDITOR_BANKS+1)*Size, 0, Size, Size};
+            tic_rect btnRect = {x + 4 + (TIC_EDITOR_BANKS+1)*Size, 0, Size, Size};
 
-            bool over = false;
+            bool hover = false;
 
-            if(checkMousePos(studio, &rect))
+            if(checkMousePos(studio, &btnRect))
             {
                 setCursor(studio, tic_cursor_hand);
 
-                over = true;
+                hover = true;
 
-                if(checkMouseClick(studio, &rect, tic_mouse_left))
+                if(checkMouseClick(studio, &btnRect, tic_mouse_left))
                 {
                     studio->bank.chained = !studio->bank.chained;
 
@@ -778,7 +777,7 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
                 }
             }
 
-            drawBitIcon(studio, tic_icon_pin, rect.x, rect.y, studio->bank.chained ? tic_color_red : over ? tic_color_grey : tic_color_light_grey);
+            drawBitIcon(studio, tic_icon_pin, btnRect.x, btnRect.y, studio->bank.chained ? tic_color_red : hover ? tic_color_grey : tic_color_light_grey);
         }
     }
     else
@@ -2298,10 +2297,10 @@ static void renderStudio(Studio* studio)
     case TIC_SURF_MODE:
 #endif
     case TIC_MENU_MODE:
-        tic->input.data = -1;
+        tic->input.data = (u8)-1;
         break;
     default:
-        tic->input.data = -1;
+        tic->input.data = (u8)-1;
         tic->input.gamepad = 0;
     }
 }

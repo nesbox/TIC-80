@@ -564,7 +564,7 @@ void tic_core_sound_tick_start(tic_mem* memory)
     ZEROMEM(memory->ram->registers);
     ZEROMEM(memory->ram->pcm);
 
-    memory->ram->stereo.data = -1;
+    memory->ram->stereo.data = (u32)-1;
 
     processMusic(memory);
 

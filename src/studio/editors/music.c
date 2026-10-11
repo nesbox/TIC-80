@@ -1710,8 +1710,8 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 
     if(music->tracker.select.drag)
     {
-        tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-        if(!checkMouseDown(music->studio, &rect, tic_mouse_left))
+        tic_rect dragRect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+        if(!checkMouseDown(music->studio, &dragRect, tic_mouse_left))
         {
             music->tracker.select.drag = false;
         }
@@ -1737,8 +1737,8 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
         // draw selection
         if (selectedChannel)
         {
-            tic_rect rect = music->tracker.select.rect;
-            if (rect.h > 1 && i >= rect.y && i < rect.y + rect.h)
+            tic_rect selRect = music->tracker.select.rect;
+            if (selRect.h > 1 && i >= selRect.y && i < selRect.y + selRect.h)
             {
                 s32 sx = x - 1;
                 tic_api_rect(tic, sx, rowy - 1, CHANNEL_COLS * TIC_FONT_WIDTH + 1, TIC_FONT_HEIGHT + 1, tic_color_grey);

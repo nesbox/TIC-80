@@ -880,8 +880,8 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
             {
                 bool match = true;
                 for(s32 j = 0; j < map->sheet.rect.h; j++)
-                    for(s32 i = 0; i < map->sheet.rect.w; i++)
-                        if(tic_api_mget(map->tic, nx+i, ny+j) != tile)
+                    for(s32 ti = 0; ti < map->sheet.rect.w; ti++)
+                        if(tic_api_mget(map->tic, nx+ti, ny+j) != tile)
                             match = false;
 
                 if(match)

@@ -498,7 +498,7 @@ void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 
             if(menu->maxwidth.item < it->width)
                 menu->maxwidth.item = it->width;
 
-            for(const char **opt = it->option->values, **end = opt + it->option->count; opt != end; ++opt)
+            for(const char **opt = it->option->values, **optsEnd = opt + it->option->count; opt != optsEnd; ++opt)
             {
                 s32 len = (s32)(strlen(*opt) * TIC_FONT_WIDTH);
 

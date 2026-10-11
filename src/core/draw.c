@@ -315,7 +315,7 @@ static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 sc
 
     for (s32 i = 0, col = colStart, xs = x; i < width; i++, col += colStep, xs += scale)
     {
-        for (s32 j = 0, row = rowStart, ys = y; j < Size; j++, row += rowStep, ys += scale)
+        for (s32 gy = 0, row = rowStart, ys = y; gy < Size; gy++, row += rowStep, ys += scale)
         {
             u8 color = tic_tilesheet_gettilepix(font_char, col, row);
             if (mapping[color] != TRANSPARENT_COLOR)

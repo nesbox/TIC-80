@@ -252,12 +252,12 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 
         {
             u32 total_size = 0;
-            char* ptr = cart->binary.data;
+            char* dst = cart->binary.data;
             RFOR(const struct BinaryChunk*, chunk, binary)
                 if (chunk->size)
                 {
-                    memcpy(ptr, chunk->data, chunk->size);
-                    ptr += chunk->size;
+                    memcpy(dst, chunk->data, chunk->size);
+                    dst += chunk->size;
                     total_size += chunk->size;
                 }
             cart->binary.size = total_size;
@@ -265,12 +265,12 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 
         if (!*cart->code.data)
         {
-            char* ptr = cart->code.data;
+            char* dst = cart->code.data;
             RFOR(const struct CodeChunk*, chunk, code)
                 if (chunk->data)
                 {
-                    memcpy(ptr, chunk->data, chunk->size);
-                    ptr += chunk->size;
+                    memcpy(dst, chunk->data, chunk->size);
+                    dst += chunk->size;
                 }
         }
     }

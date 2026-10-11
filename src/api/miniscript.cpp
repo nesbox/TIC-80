@@ -83,7 +83,9 @@ static tic_core *getCore(Context context) {
     return static_cast<tic_core*>(context.GetInterpreter().hostData());
 }
 
-#define INTRINSIC_LAMBDA [](MiniScript::Context context, MiniScript::IntrinsicResult partialResult) -> MiniScript::IntrinsicResult
+// No lambda here asks for the partial result, and a name would be an unused
+// parameter in all fifty-two of them, which /W4 counts.
+#define INTRINSIC_LAMBDA [](MiniScript::Context context, MiniScript::IntrinsicResult) -> MiniScript::IntrinsicResult
 
 struct RemapData {
     Interpreter interpreter;

@@ -386,8 +386,6 @@ m3ApiRawFunction(wasmtic_btn)
     // it just gets passed straight thru
 
     m3ApiReturn(core->api.btn((tic_mem *)core, index));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_btnp)
@@ -408,8 +406,6 @@ m3ApiRawFunction(wasmtic_btnp)
     
     u32 pressed = core->api.btnp((tic_mem*)core, index, hold, period);
     m3ApiReturn((int32_t)(pressed ? 1 : 0));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_key)
@@ -427,8 +423,6 @@ m3ApiRawFunction(wasmtic_key)
     tic_core* core = getWasmCore(runtime);
 
     m3ApiReturn(core->api.key((tic_mem *)core, (tic_key)(index)));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_keyp)
@@ -448,8 +442,6 @@ m3ApiRawFunction(wasmtic_keyp)
     tic_core* core = getWasmCore(runtime);
 
     m3ApiReturn(core->api.keyp((tic_mem *)core, index, hold, period));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_fget)
@@ -464,8 +456,6 @@ m3ApiRawFunction(wasmtic_fget)
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.fget(tic, sprite_index, flag) ? 1 : 0);
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_fset)
@@ -495,8 +485,6 @@ m3ApiRawFunction(wasmtic_mget)
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.mget(tic, x, y));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_mset)
@@ -527,8 +515,6 @@ m3ApiRawFunction(wasmtic_peek)
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.peek(tic, address, bits));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_peek4)
@@ -542,8 +528,6 @@ m3ApiRawFunction(wasmtic_peek4)
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.peek4(tic, address));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_peek2)
@@ -557,8 +541,6 @@ m3ApiRawFunction(wasmtic_peek2)
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.peek2(tic, address));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_peek1)
@@ -572,8 +554,6 @@ m3ApiRawFunction(wasmtic_peek1)
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.peek1(tic, address));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_poke)
@@ -660,8 +640,6 @@ m3ApiRawFunction(wasmtic_pmem)
         u32 val = core->api.pmem(tic, address, (u32)value, writeToStorage);
         m3ApiReturn(val);
     }
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_pix)
@@ -679,8 +657,6 @@ m3ApiRawFunction(wasmtic_pix)
     bool getPixel = color < 0;
     u8 pix = core->api.pix(tic, x, y, color, getPixel);
     m3ApiReturn(pix);
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_spr)
@@ -829,8 +805,6 @@ m3ApiRawFunction(wasmtic_print)
         text_width = core->api.print(tic, text, x, y, color, fixed, scale, alt);
     }
     m3ApiReturn(text_width);
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_font)
@@ -865,8 +839,6 @@ m3ApiRawFunction(wasmtic_font)
         text_width = core->api.font(tic, text, x, y, trans_colors, trans_count, char_width, char_height, fixed, scale, alt);
     }
     m3ApiReturn(text_width);
-
-    m3ApiSuccess();
 }
 
 // audio
@@ -1001,8 +973,6 @@ m3ApiRawFunction(wasmtic_time)
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn((float)(core->api.time(tic)));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_tstamp)
@@ -1014,8 +984,6 @@ m3ApiRawFunction(wasmtic_tstamp)
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.tstamp(tic));
-
-    m3ApiSuccess();
 }
 
 m3ApiRawFunction(wasmtic_trace)
@@ -1046,8 +1014,6 @@ m3ApiRawFunction(wasmtic_vbank)
 
     uint8_t previous_bank = (uint8_t)(core->api.vbank(tic, bank));
     m3ApiReturn(previous_bank);
-
-    m3ApiSuccess();
 }
 
 

@@ -178,7 +178,7 @@ void tic_add_script(const tic_script* script)
     if(index < MAX_SUPPORTED_LANGS)
     {
         Scripts[index] = script;
-        qsort(Scripts, index + 1, sizeof Scripts[0], compareScripts);
+        qsort((void*)Scripts, index + 1, sizeof Scripts[0], compareScripts);
     }
 }
 
@@ -196,7 +196,7 @@ const tic_script* tic_get_script(tic_mem* memory)
             return script;
     }
 
-    static const tic_script empty;
+    static const tic_script empty = {0};
 
     return *Scripts ? *Scripts : &empty;
 }
