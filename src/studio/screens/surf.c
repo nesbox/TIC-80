@@ -907,12 +907,6 @@ static void setIdle(void* data)
     surf->anim.movie = resetMovie(&surf->anim.idle);
 }
 
-static void setLeftShow(void* data)
-{
-    Surf* surf = data;
-    surf->anim.movie = resetMovie(&surf->anim.gotodir.show);
-}
-
 static void freeAnim(Surf* surf)
 {
     FREE(surf->anim.show.items);

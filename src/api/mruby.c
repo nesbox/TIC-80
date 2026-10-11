@@ -1578,6 +1578,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Ruby) =
     .keywords           = MRubyKeywords,
     .keywordsCount      = COUNT_OF(MRubyKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "rubymark.tic"},
 };

@@ -242,7 +242,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Lua) =
     .keywords           = LuaKeywords,
     .keywordsCount      = COUNT_OF(LuaKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "luamark.tic"},
 
     .demos = (struct tic_demo[])

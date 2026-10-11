@@ -61,8 +61,11 @@ if(BUILD_WITH_WASM)
 
     target_link_libraries(wasm PRIVATE runtime)
 
+    # wasm3's header carries its own warnings; as a system directory it stays
+    # out of ours, and only our sources are compiled in this target anyway.
+    target_include_directories(wasm SYSTEM PUBLIC ${WASM_DIR})
+
     target_include_directories(wasm
-        PUBLIC ${WASM_DIR}
         PRIVATE
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src

@@ -231,6 +231,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Moon) =
     .keywords           = MoonKeywords,
     .keywordsCount      = COUNT_OF(MoonKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "moonmark.tic"},
 };

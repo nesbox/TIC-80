@@ -1083,7 +1083,7 @@ static const char* const SchemeKeywords [] =
     "cons", "car", "cdr", "set-car!", "set-cdr!", "cadr", "cddr",
     "cdar", "caar", "caadr", "caddr", "cadar", "caaar", "cdadr",
     "cdddr", "caddar", "cadaar", "cdaadr", "cdaddr", "cdadar",
-    "cdaaar", "cddadr", "cddddr", "cdddar", "cddaar", "list?"
+    "cdaaar", "cddadr", "cddddr", "cdddar", "cddaar", "list?",
     "proper-list?", "length", "make-list", "list", "reverse",
     "map", "for-each", "list->vector", "list->string", "list-ref", "null?",
     "not", "number->string", "odd?", "even?", "zero?",
@@ -1244,6 +1244,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Scheme) =
     .keywords               = SchemeKeywords,
     .keywordsCount          = COUNT_OF(SchemeKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "schememark.tic"},
 };

@@ -231,5 +231,5 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Fennel) =
 
     .useStructuredEdition = true,
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
 };

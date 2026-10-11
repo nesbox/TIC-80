@@ -1626,6 +1626,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Python) =
         .keywords = PythonKeywords,
         .keywordsCount = COUNT_OF(PythonKeywords),
 
-        .demo = {DemoRom, sizeof DemoRom},
+        .demo = {DemoRom, sizeof DemoRom, NULL},
         .mark = {MarkRom, sizeof MarkRom, "pythonmark.tic"},
 };

@@ -136,6 +136,8 @@ static const EditorMode Modes[] =
 #undef  APP_MODE
 };
 
+// Only the PRO build banks the editors, so only it needs the list.
+#if defined(TIC80_PRO)
 static const EditorMode BankModes[] =
 {
     TIC_SPRITE_MODE,
@@ -143,6 +145,7 @@ static const EditorMode BankModes[] =
     TIC_SFX_MODE,
     TIC_MUSIC_MODE,
 };
+#endif
 
 #endif
 
@@ -220,7 +223,9 @@ struct Studio
                 s8 music;
             } index;
 
+#if defined(TIC80_PRO)
             s8 indexes[COUNT_OF(BankModes)];
+#endif
         };
     } bank;
 
@@ -1401,7 +1406,7 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
 #if defined(BUILD_EDITORS)
 static void resetBanks(Studio* studio)
 {
-    memset(studio->bank.indexes, 0, sizeof studio->bank.indexes);
+    memset(&studio->bank.index, 0, sizeof studio->bank.index);
 }
 #endif
 

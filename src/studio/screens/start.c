@@ -115,10 +115,10 @@ Start* start_create(const StartDeps* deps)
             .config = deps->config,
             .stages =
             {
-                { reset, .ticks = TIC80_FRAMERATE },
-                { chime },
-                { header, .ticks = TIC80_FRAMERATE },
-                { stop_chime },
+                { .fn = reset, .ticks = TIC80_FRAMERATE },
+                { .fn = chime },
+                { .fn = header, .ticks = TIC80_FRAMERATE },
+                { .fn = stop_chime },
             },
         };
 

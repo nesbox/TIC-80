@@ -2221,6 +2221,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Squirrel) =
     .keywords           = SquirrelKeywords,
     .keywordsCount      = COUNT_OF(SquirrelKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "squirrelmark.tic"},
 };

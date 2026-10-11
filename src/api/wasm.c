@@ -44,7 +44,6 @@ typedef float           f32;
 #include "m3_env.h"
 #include "m3_core.h"
 
-static const char TicCore[] = "_TIC80";
 
 IM3Function BDR_function;
 IM3Function SCN_function;
@@ -144,6 +143,8 @@ static tic_core* getWasmCore(IM3Runtime ctx)
 
 m3ApiRawFunction(wasmtic_line)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (float, x0)
     m3ApiGetArg      (float, y0)
     m3ApiGetArg      (float, x1)
@@ -159,6 +160,8 @@ m3ApiRawFunction(wasmtic_line)
 
 m3ApiRawFunction(wasmtic_circ)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
     m3ApiGetArg      (int32_t, radius)
@@ -175,6 +178,8 @@ m3ApiRawFunction(wasmtic_circ)
 
 m3ApiRawFunction(wasmtic_circb)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
     m3ApiGetArg      (int32_t, radius)
@@ -191,6 +196,8 @@ m3ApiRawFunction(wasmtic_circb)
 
 m3ApiRawFunction(wasmtic_elli)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
     m3ApiGetArg      (int32_t, a)
@@ -208,6 +215,8 @@ m3ApiRawFunction(wasmtic_elli)
 
 m3ApiRawFunction(wasmtic_ellib)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
     m3ApiGetArg      (int32_t, a)
@@ -225,6 +234,8 @@ m3ApiRawFunction(wasmtic_ellib)
 
 m3ApiRawFunction(wasmtic_paint)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
     m3ApiGetArg      (int8_t, color)
@@ -238,6 +249,8 @@ m3ApiRawFunction(wasmtic_paint)
 
 m3ApiRawFunction(wasmtic_rect)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
     m3ApiGetArg      (int32_t, w)
@@ -253,6 +266,8 @@ m3ApiRawFunction(wasmtic_rect)
 
 m3ApiRawFunction(wasmtic_rectb)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
     m3ApiGetArg      (int32_t, w)
@@ -268,6 +283,8 @@ m3ApiRawFunction(wasmtic_rectb)
 
 m3ApiRawFunction(wasmtic_tri)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (float, x1)
     m3ApiGetArg      (float, y1)
     m3ApiGetArg      (float, x2)
@@ -286,6 +303,7 @@ m3ApiRawFunction(wasmtic_tri)
 // ttri x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 [texsrc=0] [trans=-1] [z1 z2 z3 depth]
 m3ApiRawFunction(wasmtic_ttri)
 {
+    (void)_ctx;
     m3ApiGetArg      (float, x1)
     m3ApiGetArg      (float, y1)
     m3ApiGetArg      (float, x2)
@@ -320,6 +338,8 @@ m3ApiRawFunction(wasmtic_ttri)
 
 m3ApiRawFunction(wasmtic_trib)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (float, x1)
     m3ApiGetArg      (float, y1)
     m3ApiGetArg      (float, x2)
@@ -337,6 +357,8 @@ m3ApiRawFunction(wasmtic_trib)
 
 m3ApiRawFunction(wasmtic_cls)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int8_t, color)
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
@@ -350,6 +372,8 @@ m3ApiRawFunction(wasmtic_cls)
 
 m3ApiRawFunction(wasmtic_btn)
 {
+    (void)_ctx;
+    (void)_mem;
     // TODO: should this be boolean, how to deal with
     // this being multi-typed
     m3ApiReturnType  (int32_t)
@@ -368,6 +392,8 @@ m3ApiRawFunction(wasmtic_btn)
 
 m3ApiRawFunction(wasmtic_btnp)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (int32_t)
 
     m3ApiGetArg      (int32_t, index)
@@ -388,6 +414,8 @@ m3ApiRawFunction(wasmtic_btnp)
 
 m3ApiRawFunction(wasmtic_key)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (int32_t)
 
     m3ApiGetArg      (int32_t, index)
@@ -405,6 +433,8 @@ m3ApiRawFunction(wasmtic_key)
 
 m3ApiRawFunction(wasmtic_keyp)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (int32_t)
 
     m3ApiGetArg      (int8_t, index)
@@ -424,6 +454,8 @@ m3ApiRawFunction(wasmtic_keyp)
 
 m3ApiRawFunction(wasmtic_fget)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (int32_t)
 
     m3ApiGetArg      (int32_t, sprite_index);
@@ -438,6 +470,8 @@ m3ApiRawFunction(wasmtic_fget)
 
 m3ApiRawFunction(wasmtic_fset)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, sprite_index);
     m3ApiGetArg      (int8_t, flag);
     m3ApiGetArg      (bool, value);
@@ -451,6 +485,8 @@ m3ApiRawFunction(wasmtic_fset)
 
 m3ApiRawFunction(wasmtic_mget)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (int32_t)
 
     m3ApiGetArg      (int32_t, x);
@@ -465,6 +501,8 @@ m3ApiRawFunction(wasmtic_mget)
 
 m3ApiRawFunction(wasmtic_mset)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, x);
     m3ApiGetArg      (int32_t, y);
     m3ApiGetArg      (int32_t, value);
@@ -479,6 +517,8 @@ m3ApiRawFunction(wasmtic_mset)
 
 m3ApiRawFunction(wasmtic_peek)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (int8_t)
 
     m3ApiGetArg      (int32_t, address)
@@ -493,6 +533,8 @@ m3ApiRawFunction(wasmtic_peek)
 
 m3ApiRawFunction(wasmtic_peek4)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (int8_t)
 
     m3ApiGetArg      (int32_t, address)
@@ -506,6 +548,8 @@ m3ApiRawFunction(wasmtic_peek4)
 
 m3ApiRawFunction(wasmtic_peek2)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (int8_t)
 
     m3ApiGetArg      (int32_t, address)
@@ -519,6 +563,8 @@ m3ApiRawFunction(wasmtic_peek2)
 
 m3ApiRawFunction(wasmtic_peek1)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (int8_t)
 
     m3ApiGetArg      (int32_t, address)
@@ -532,6 +578,8 @@ m3ApiRawFunction(wasmtic_peek1)
 
 m3ApiRawFunction(wasmtic_poke)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, address)
     m3ApiGetArg      (int8_t, value)
     m3ApiGetArg      (int8_t, bits)
@@ -545,6 +593,8 @@ m3ApiRawFunction(wasmtic_poke)
 
 m3ApiRawFunction(wasmtic_poke4)
 {
+    (void)_ctx;
+    (void)_mem;
 
     m3ApiGetArg      (int32_t, address)
     m3ApiGetArg      (int8_t, value)
@@ -558,6 +608,8 @@ m3ApiRawFunction(wasmtic_poke4)
 
 m3ApiRawFunction(wasmtic_poke2)
 {
+    (void)_ctx;
+    (void)_mem;
 
     m3ApiGetArg      (int32_t, address)
     m3ApiGetArg      (int8_t, value)
@@ -571,6 +623,8 @@ m3ApiRawFunction(wasmtic_poke2)
 
 m3ApiRawFunction(wasmtic_poke1)
 {
+    (void)_ctx;
+    (void)_mem;
 
     m3ApiGetArg      (int32_t, address)
     m3ApiGetArg      (int8_t, value)
@@ -584,6 +638,8 @@ m3ApiRawFunction(wasmtic_poke1)
 
 m3ApiRawFunction(wasmtic_pmem)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (uint32_t)
 
     m3ApiGetArg      (int32_t, address)
@@ -610,6 +666,8 @@ m3ApiRawFunction(wasmtic_pmem)
 
 m3ApiRawFunction(wasmtic_pix)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (u8)
 
     m3ApiGetArg      (int32_t, x)
@@ -627,6 +685,7 @@ m3ApiRawFunction(wasmtic_pix)
 
 m3ApiRawFunction(wasmtic_spr)
 {
+    (void)_ctx;
     m3ApiGetArg      (int32_t, index)
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
@@ -658,6 +717,8 @@ m3ApiRawFunction(wasmtic_spr)
 
 m3ApiRawFunction(wasmtic_clip)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
     m3ApiGetArg      (int32_t, w)
@@ -706,6 +767,7 @@ static void wasm_remap(void* data, s32 x, s32 y, RemapResult* result) {
 }
 m3ApiRawFunction(wasmtic_map)
 {
+    (void)_ctx;
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
     m3ApiGetArg      (int32_t, w)
@@ -743,6 +805,7 @@ m3ApiRawFunction(wasmtic_map)
 
 m3ApiRawFunction(wasmtic_print)
 {
+    (void)_ctx;
     m3ApiReturnType  (int32_t)
 
     m3ApiGetArgMem   (const char *, text)
@@ -772,6 +835,7 @@ m3ApiRawFunction(wasmtic_print)
 
 m3ApiRawFunction(wasmtic_font)
 {
+    (void)_ctx;
     m3ApiReturnType  (int32_t)
 
     m3ApiGetArgMem   (const char *, text)
@@ -810,6 +874,8 @@ m3ApiRawFunction(wasmtic_font)
 // id [note] [duration=-1] [channel=0] [volume=15] [speed=0]
 m3ApiRawFunction(wasmtic_sfx)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, sfx_id);
     m3ApiGetArg      (int32_t, note);
     m3ApiGetArg      (int32_t, octave);
@@ -832,6 +898,8 @@ m3ApiRawFunction(wasmtic_sfx)
 
 m3ApiRawFunction(wasmtic_music)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, track);
     m3ApiGetArg      (int32_t, frame);
     m3ApiGetArg      (int32_t, row);
@@ -856,6 +924,8 @@ m3ApiRawFunction(wasmtic_music)
 
 m3ApiRawFunction(wasmtic_memset)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, address);
     m3ApiGetArg      (int32_t, value);
     m3ApiGetArg      (int32_t, length);
@@ -869,6 +939,8 @@ m3ApiRawFunction(wasmtic_memset)
 
 m3ApiRawFunction(wasmtic_memcpy)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, dest);
     m3ApiGetArg      (int32_t, src);
     m3ApiGetArg      (int32_t, length);
@@ -883,6 +955,9 @@ m3ApiRawFunction(wasmtic_memcpy)
 
 m3ApiRawFunction(wasmtic_exit)
 {
+    (void)_ctx;
+    (void)_mem;
+    (void)_sp;
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     core->api.exit(tic);
@@ -892,6 +967,8 @@ m3ApiRawFunction(wasmtic_exit)
 
 m3ApiRawFunction(wasmtic_sync)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiGetArg      (int32_t, mask);
     m3ApiGetArg      (int8_t, bank);
     m3ApiGetArg      (int8_t, tocart);
@@ -917,6 +994,8 @@ m3ApiRawFunction(wasmtic_sync)
 
 m3ApiRawFunction(wasmtic_time)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (float) // 32 bit float
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
@@ -928,6 +1007,8 @@ m3ApiRawFunction(wasmtic_time)
 
 m3ApiRawFunction(wasmtic_tstamp)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType  (uint32_t)
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
@@ -939,6 +1020,7 @@ m3ApiRawFunction(wasmtic_tstamp)
 
 m3ApiRawFunction(wasmtic_trace)
 {
+    (void)_ctx;
     m3ApiGetArgMem(const char*, text);
     m3ApiGetArg(int8_t, color);
 
@@ -955,6 +1037,8 @@ m3ApiRawFunction(wasmtic_trace)
 
 m3ApiRawFunction(wasmtic_vbank)
 {
+    (void)_ctx;
+    (void)_mem;
     m3ApiReturnType(int8_t)
     m3ApiGetArg(int8_t, bank);
 
@@ -971,6 +1055,7 @@ m3ApiRawFunction(wasmtic_vbank)
 
 m3ApiRawFunction(wasmtic_mouse)
 {
+    (void)_ctx;
     struct Mouse {
         int16_t x;
         int16_t y;
@@ -1380,6 +1465,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Wasm) =
     .keywordsCount      = 0,
     .useBinarySection   = true,
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "wasmmark.tic"},
 };

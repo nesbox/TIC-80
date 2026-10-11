@@ -2171,6 +2171,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Wren) =
     .keywords           = WrenKeywords,
     .keywordsCount      = COUNT_OF(WrenKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "wrenmark.tic"},
 };

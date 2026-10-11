@@ -1500,6 +1500,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Janet) =
     .keywords           = JanetKeywords,
     .keywordsCount      = COUNT_OF(JanetKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "janetmark.tic"},
 };

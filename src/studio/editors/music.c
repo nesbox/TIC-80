@@ -469,13 +469,6 @@ static s32 getNote(Music* music)
     return pattern->rows[music->tracker.edit.y].note - NoteStart;
 }
 
-static s32 getOctave(Music* music)
-{
-    tic_track_pattern* pattern = getChannelPattern(music);
-
-    return pattern->rows[music->tracker.edit.y].octave;
-}
-
 static s32 getSfx(Music* music)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
@@ -1336,29 +1329,6 @@ static tic_track_row* getPianoRow(Music* music)
 {
     tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
     return pattern ? &pattern->rows[rowIndex(music, music->piano.edit.y)] : NULL;
-}
-
-static s32 getPianoValue(Music* music)
-{
-    s32 col = music->piano.edit.x / 2;
-    tic_track_row* row = getPianoRow(music);
-
-    switch(col)
-    {
-    case PianoChannel1Column:
-    case PianoChannel2Column:
-    case PianoChannel3Column:
-    case PianoChannel4Column:
-        return getDigit((1 - music->piano.edit.x) & 1, tic_tool_get_pattern_id(getTrack(music), music->piano.edit.y, col));
-
-    case PianoSfxColumn:
-        return row && row->note >= NoteStart ? getDigit((1 - music->piano.edit.x) & 1, tic_tool_get_track_row_sfx(row)) : -1;
-
-    case PianoXYColumn:
-        return row && row->command > tic_music_cmd_empty ? (music->piano.edit.x & 1 ? row->param2 : row->param1) : -1;
-    }
-
-    return -1;
 }
 
 static void setPianoValue(Music* music, char sym)

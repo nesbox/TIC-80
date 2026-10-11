@@ -3610,15 +3610,6 @@ static void processConsoleTab(Console* console)
     scrollConsole(console);
 }
 
-static void toUpperStr(char* str)
-{
-    while(*str)
-    {
-        *str = toupper(*str);
-        str++;
-    }
-}
-
 static bool printUsage(Console* console, const char* command)
 {
     FOR(const Command*, cmd, Commands)

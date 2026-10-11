@@ -1610,6 +1610,6 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Js) =
     .keywords           = JsKeywords,
     .keywordsCount      = COUNT_OF(JsKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom},
+    .demo = {DemoRom, sizeof DemoRom, NULL},
     .mark = {MarkRom, sizeof MarkRom, "jsmark.tic"},
 };
