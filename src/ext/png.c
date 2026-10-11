@@ -29,7 +29,7 @@
 #include <png.h>
 #include "tic_assert.h"
 
-#define EXTRA_CHUNK "caRt"
+#define EXTRA_CHUNK ((png_const_bytep)"caRt")
 #define RGBA_SIZE sizeof(u32)
 
 png_buffer png_create(s32 size)
@@ -228,7 +228,7 @@ png_buffer png_encode(png_buffer cover, png_buffer cart)
 
     const s32 cartBits = cart.size * BITS_IN_BYTE;
     const s32 coverSize = png.width * png.height * RGBA_SIZE - HEADER_SIZE;
-    Header header = {CLAMP(ceildiv(cartBits, coverSize), 1, BITS_IN_BYTE), cart.size};
+    Header header = {.bits = CLAMP(ceildiv(cartBits, coverSize), 1, BITS_IN_BYTE), .size = cart.size};
 
     // only save with steganography if there are enough pixels for the size of the cartidge
     if (coverSize >= cartBits) 

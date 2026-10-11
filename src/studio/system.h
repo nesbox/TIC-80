@@ -176,7 +176,7 @@ void studio_keymapchanged(Studio *studio, tic_layout keyboardLayout);
 bool studio_alive(Studio* studio);
 void studio_exit(Studio* studio);
 void studio_delete(Studio* studio);
-const StudioConfig* studio_config(Studio* studio);
+const StudioConfig* studio_config(const Studio* studio);
 
 Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, tic_layout keyboardLayout);
 #if defined(BUILD_RENDER_CACHE)

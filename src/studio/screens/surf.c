@@ -452,7 +452,7 @@ static void requestCover(Surf* surf, SurfItem* item)
     item->coverLoading = true;
     surf->coversInFlight++;
 
-    CoverLoadingData coverLoadingData = {surf, surf->menu.pos};
+    CoverLoadingData coverLoadingData = {.surf = surf, .pos = surf->menu.pos};
     strcpy(coverLoadingData.hash, hash);
     strcpy(coverLoadingData.cachePath, cachePath);
     tic_fs_dir(surf->fs, coverLoadingData.dir);
@@ -530,7 +530,7 @@ static void initItemsAsync(Surf* surf, fs_done_callback callback, void* calldata
     char dir[TICNAME_MAX];
     tic_fs_dir(surf->fs, dir);
 
-    AddMenuItemData data = { NULL, 0, surf, callback, calldata};
+    AddMenuItemData data = {.surf = surf, .done = callback, .data = calldata};
 
     // The answer says which folder it is for, see addMenuItemsDone.
     strcpy(data.dir, dir);

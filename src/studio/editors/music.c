@@ -1069,26 +1069,26 @@ static void processTrackerKeyboard(Music* music)
 
     static const struct Handler{u8 key; void(*handler)(Music* music); bool select; bool ctrl;} Handlers[] =
     {
-        {tic_key_up,        upRow,          true},
-        {tic_key_down,      downRow,        true},
-        {tic_key_up,        upSfx,          false, true},
-        {tic_key_down,      downSfx,        false, true},
-        {tic_key_left,      leftCol,        true},
-        {tic_key_right,     rightCol,       true},
-        {tic_key_left,      upFrame,        false, true},
-        {tic_key_right,     downFrame,      false, true},
-        {tic_key_home,      goHome,         true},
-        {tic_key_end,       goEnd,          true},
-        {tic_key_pageup,    pageUp,         true},
-        {tic_key_pagedown,  pageDown,       true},
-        {tic_key_tab,       doTab},
-        {tic_key_delete,    delete},
-        {tic_key_backspace, backspace},
-        {tic_key_insert,    insert},
-        {tic_key_f1,        decSemitone,    false, true},
-        {tic_key_f2,        incSemitone,    false, true},
-        {tic_key_f3,        decOctave,      false, true},
-        {tic_key_f4,        incOctave,      false, true},
+        {.key = tic_key_up, .handler = upRow, .select = true},
+        {.key = tic_key_down, .handler = downRow, .select = true},
+        {.key = tic_key_up, .handler = upSfx, .select = false, .ctrl = true},
+        {.key = tic_key_down, .handler = downSfx, .select = false, .ctrl = true},
+        {.key = tic_key_left, .handler = leftCol, .select = true},
+        {.key = tic_key_right, .handler = rightCol, .select = true},
+        {.key = tic_key_left, .handler = upFrame, .select = false, .ctrl = true},
+        {.key = tic_key_right, .handler = downFrame, .select = false, .ctrl = true},
+        {.key = tic_key_home, .handler = goHome, .select = true},
+        {.key = tic_key_end, .handler = goEnd, .select = true},
+        {.key = tic_key_pageup, .handler = pageUp, .select = true},
+        {.key = tic_key_pagedown, .handler = pageDown, .select = true},
+        {.key = tic_key_tab, .handler = doTab},
+        {.key = tic_key_delete, .handler = delete},
+        {.key = tic_key_backspace, .handler = backspace},
+        {.key = tic_key_insert, .handler = insert},
+        {.key = tic_key_f1, .handler = decSemitone, .select = false, .ctrl = true},
+        {.key = tic_key_f2, .handler = incSemitone, .select = false, .ctrl = true},
+        {.key = tic_key_f3, .handler = decOctave, .select = false, .ctrl = true},
+        {.key = tic_key_f4, .handler = incOctave, .select = false, .ctrl = true},
     };
 
     for(const struct Handler *ptr = Handlers, *end = ptr + COUNT_OF(Handlers); ptr < end; ptr++)
@@ -1284,7 +1284,7 @@ static void processPatternKeyboard(Music* music)
 
         if(val >= 0)
         {
-            s32 pattern = setDigit(1 - music->tracker.col & 1, tic_tool_get_pattern_id(getTrack(music),
+            s32 pattern = setDigit((1 - music->tracker.col) & 1, tic_tool_get_pattern_id(getTrack(music),
                 music->frame, channel), val);
 
             if(pattern <= MUSIC_PATTERNS)
@@ -1359,10 +1359,10 @@ static s32 getPianoValue(Music* music)
     case PianoChannel2Column:
     case PianoChannel3Column:
     case PianoChannel4Column:
-        return getDigit(1 - music->piano.edit.x & 1, tic_tool_get_pattern_id(getTrack(music), music->piano.edit.y, col));
+        return getDigit((1 - music->piano.edit.x) & 1, tic_tool_get_pattern_id(getTrack(music), music->piano.edit.y, col));
 
     case PianoSfxColumn:
-        return row && row->note >= NoteStart ? getDigit(1 - music->piano.edit.x & 1, tic_tool_get_track_row_sfx(row)) : -1;
+        return row && row->note >= NoteStart ? getDigit((1 - music->piano.edit.x) & 1, tic_tool_get_track_row_sfx(row)) : -1;
 
     case PianoXYColumn:
         return row && row->command > tic_music_cmd_empty ? (music->piano.edit.x & 1 ? row->param2 : row->param1) : -1;
@@ -1396,7 +1396,7 @@ static void setPianoValue(Music* music, char sym)
 
         if(dec >= 0)
         {
-            s32 pattern = setDigit(1 - music->piano.edit.x & 1,
+            s32 pattern = setDigit((1 - music->piano.edit.x) & 1,
                 tic_tool_get_pattern_id(getTrack(music), music->piano.edit.y, col), dec);
 
             if(pattern <= MUSIC_PATTERNS)
@@ -1418,7 +1418,7 @@ static void setPianoValue(Music* music, char sym)
             default:
                 if(dec >= 0)
                 {
-                    s32 sfx = setDigit(1 - music->piano.edit.x & 1, tic_tool_get_track_row_sfx(row), dec);
+                    s32 sfx = setDigit((1 - music->piano.edit.x) & 1, tic_tool_get_track_row_sfx(row), dec);
                     tic_tool_set_track_row_sfx(row, sfx);
                     updatePianoEditCol(music);
                 }

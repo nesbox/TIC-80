@@ -1554,7 +1554,7 @@ static void onDirCommand(Console* console)
 {
     printLine(console);
 
-    PrintFileNameData data = {console};
+    PrintFileNameData data = {.console = console};
     tic_fs_enum(console->fs, printFilename, onDirDone, MOVE(data));
 }
 
@@ -1970,7 +1970,8 @@ typedef struct
 static void exportSprites(Console* console, const char* filename, tic_tile* base, ExportParams params)
 {
 
-    png_img img = {TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE, malloc(TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE * sizeof(png_rgba))};
+    png_img img = {.width = TIC_SPRITESHEET_SIZE, .height = TIC_SPRITESHEET_SIZE,
+        .data = malloc(TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE * sizeof(png_rgba))};
 
     SCOPE(free(img.data))
     {
@@ -2062,7 +2063,7 @@ static void exportGame(Console* console, const char* name, const char* system, n
 {
     (void)params;
     printLine(console);
-    GameExportData data = {console};
+    GameExportData data = {.console = console};
     strcpy(data.filename, name);
 
     // The directory this build's assets live in: a release asks for its tag
@@ -2469,7 +2470,7 @@ static void onExport_mapimg(Console* console, const char* param, const char* pat
 
     enum{Width = TIC_MAP_WIDTH * TIC_SPRITESIZE, Height = TIC_MAP_HEIGHT * TIC_SPRITESIZE};
 
-    png_img img = {Width, Height, malloc(Width * Height * sizeof(png_rgba))};
+    png_img img = {.width = Width, .height = Height, .data = malloc(Width * Height * sizeof(png_rgba))};
 
     SCOPE(free(img.data))
     {
@@ -2543,7 +2544,8 @@ static void onExport_screen(Console* console, const char* param, const char* nam
     const char* filename = getFilename(name, ".png");
 
 
-    png_img img = {TIC80_WIDTH, TIC80_HEIGHT, malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(png_rgba))};
+    png_img img = {.width = TIC80_WIDTH, .height = TIC80_HEIGHT,
+        .data = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(png_rgba))};
 
     SCOPE(free(img.data))
     {

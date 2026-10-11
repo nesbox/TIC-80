@@ -109,7 +109,7 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
     tic_rect rect = {x, y, Width - Gap, Height - Gap};
 
     tic_sample* effect = getEffect(sfx);
-    tic_rect border = {-1};
+    tic_rect border = {.x = -1};
 
     if(checkMousePos(sfx->studio, &rect))
     {
@@ -920,19 +920,19 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
     typedef struct{s32 note; tic_rect rect; bool white;} PianoBtn;
     static const PianoBtn Buttons[] =
     {
-        {0, WhiteWidthGap * 0, 0, WhiteWidth, WhiteHeight, true},
-        {2, WhiteWidthGap * 1, 0, WhiteWidth, WhiteHeight, true},
-        {4, WhiteWidthGap * 2, 0, WhiteWidth, WhiteHeight, true},
-        {5, WhiteWidthGap * 3, 0, WhiteWidth, WhiteHeight, true},
-        {7, WhiteWidthGap * 4, 0, WhiteWidth, WhiteHeight, true},
-        {9, WhiteWidthGap * 5, 0, WhiteWidth, WhiteHeight, true},
-        {11, WhiteWidthGap * 6, 0, WhiteWidth, WhiteHeight, true},
+        {0, {WhiteWidthGap * 0, 0, WhiteWidth, WhiteHeight}, true},
+        {2, {WhiteWidthGap * 1, 0, WhiteWidth, WhiteHeight}, true},
+        {4, {WhiteWidthGap * 2, 0, WhiteWidth, WhiteHeight}, true},
+        {5, {WhiteWidthGap * 3, 0, WhiteWidth, WhiteHeight}, true},
+        {7, {WhiteWidthGap * 4, 0, WhiteWidth, WhiteHeight}, true},
+        {9, {WhiteWidthGap * 5, 0, WhiteWidth, WhiteHeight}, true},
+        {11, {WhiteWidthGap * 6, 0, WhiteWidth, WhiteHeight}, true},
 
-        {1, WhiteWidthGap * 0 + BlackOffset, 0, BlackWidth, BlackHeight, false},
-        {3, WhiteWidthGap * 1 + BlackOffset, 0, BlackWidth, BlackHeight, false},
-        {6, WhiteWidthGap * 3 + BlackOffset, 0, BlackWidth, BlackHeight, false},
-        {8, WhiteWidthGap * 4 + BlackOffset, 0, BlackWidth, BlackHeight, false},
-        {10, WhiteWidthGap * 5 + BlackOffset, 0, BlackWidth, BlackHeight, false},
+        {1, {WhiteWidthGap * 0 + BlackOffset, 0, BlackWidth, BlackHeight}, false},
+        {3, {WhiteWidthGap * 1 + BlackOffset, 0, BlackWidth, BlackHeight}, false},
+        {6, {WhiteWidthGap * 3 + BlackOffset, 0, BlackWidth, BlackHeight}, false},
+        {8, {WhiteWidthGap * 4 + BlackOffset, 0, BlackWidth, BlackHeight}, false},
+        {10, {WhiteWidthGap * 5 + BlackOffset, 0, BlackWidth, BlackHeight}, false},
     };
 
     tic_sample* effect = getEffect(sfx);

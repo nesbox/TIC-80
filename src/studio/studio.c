@@ -80,6 +80,12 @@
 
 #include "argparse.h"
 
+// argparse's option macros stop at the help string and leave the tail of
+// struct argparse_option to the compiler; the table below spells it out.
+#define OPT_STRING(...)  { ARGPARSE_OPT_STRING, __VA_ARGS__, NULL, 0, 0 }
+#define OPT_INTEGER(...) { ARGPARSE_OPT_INTEGER, __VA_ARGS__, NULL, 0, 0 }
+#define OPT_BOOLEAN(...) { ARGPARSE_OPT_BOOLEAN, __VA_ARGS__, NULL, 0, 0 }
+
 #include <ctype.h>
 
 #define _USE_MATH_DEFINES
@@ -963,7 +969,7 @@ Movie* resetMovie(Movie* movie)
 // The config's own accessors. They sit outside the editors guard on purpose:
 // main.c, rom.c and mainmenu.c read the config in a build with no editors, and
 // a browser-only build linked nowhere with them inside it.
-const StudioConfig* studio_config(Studio* studio)
+const StudioConfig* studio_config(const Studio* studio)
 {
     return &studio->config->data;
 }
@@ -1360,9 +1366,9 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
 
     static MenuItem Answers[] =
     {
-        {"",    NULL},
-        {"(N)O",  confirmNo},
-        {"(Y)ES", confirmYes},
+        {.label = ""},
+        {.label = "(N)O", .handler = confirmNo},
+        {.label = "(Y)ES", .handler = confirmYes},
     };
 
     Answers[1].hotkey = tic_key_n;
@@ -1373,7 +1379,7 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
     SCOPE(free(items))
     {
         for(s32 i = 0; i != rows; ++i)
-            items[i] = (MenuItem){text[i], NULL};
+            items[i] = (MenuItem){.label = text[i]};
 
         memcpy(items + rows, Answers, sizeof Answers);
 
@@ -2480,8 +2486,7 @@ static void blitCursor(Studio* studio)
     tic_mem* tic = studio->tic;
     tic80_mouse* m = &tic->ram->input.mouse;
 
-    if(studio->mouse.idle < CURSOR_HIDE_TICKS
-        && tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT)
+    if(studio->mouse.idle < CURSOR_HIDE_TICKS && tic->input.mouse && !m->relative)
     {
         s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;

@@ -360,24 +360,24 @@ enum
 static const MenuItem OptionMenu[] =
 {
 #if defined(CRT_SHADER_SUPPORT)
-    {"CRT MONITOR",     NULL,   &CrtMonitorOption},
+    {.label = "CRT MONITOR", .option = &CrtMonitorOption},
 #endif
 #if !defined(VSYNC_ALWAYS_ON)
-    {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
+    {.label = "VSYNC", .option = &VSyncOption, .help = "VSYNC needs restart!"},
 #endif
-    {"FULLSCREEN",      NULL,   &FullscreenOption},
-    {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
+    {.label = "FULLSCREEN", .option = &FullscreenOption},
+    {.label = "INTEGER SCALE", .option = &IntegerScaleOption},
 #if defined(BUILD_RENDER_CACHE)
-    {"DRAW CACHE",      NULL,   &DrawCacheOption, "Cache draw calls for CPU saving"},
+    {.label = "DRAW CACHE", .option = &DrawCacheOption, .help = "Cache draw calls for CPU saving"},
 #endif
-    {"VOLUME",          NULL,   &VolumeOption},
+    {.label = "VOLUME", .option = &VolumeOption},
 #if defined(BUILD_EDITORS)
-    {"AUTOSAVE",        NULL,   &AutoSaveOption, "Keep carts loaded from the web"},
-    {"EDITOR OPTIONS", showEditorMenu},
+    {.label = "AUTOSAVE", .option = &AutoSaveOption, .help = "Keep carts loaded from the web"},
+    {.label = "EDITOR OPTIONS", .handler = showEditorMenu},
 #endif
-    {"SETUP GAMEPAD",       showGamepadMenu},
-    {""},
-    {"BACK",            onBackFromOptionsMenu, .back = true},
+    {.label = "SETUP GAMEPAD", .handler = showGamepadMenu},
+    {.label = ""},
+    {.label = "BACK", .handler = onBackFromOptionsMenu, .back = true},
 };
 
 // The menu cursor is an index into the table — a submenu returns to
@@ -408,11 +408,11 @@ enum
 
 static const MenuItem EditorMenu[] =
 {
-    {"TAB SIZE",          NULL,   &TabSizeOption,     "Indentation is your friend"},
-    {"TAB MODE",          NULL,   &TabModeOption,     "Auto uses spaces for python/moonscript"},
-    {"KEYBIND MODE",      NULL,   &KeybindModeOption, "For the cool kids only"},
-    {""},
-    {"BACK",            showOptionsMenu, .back = true},
+    {.label = "TAB SIZE", .option = &TabSizeOption, .help = "Indentation is your friend"},
+    {.label = "TAB MODE", .option = &TabModeOption, .help = "Auto uses spaces for python/moonscript"},
+    {.label = "KEYBIND MODE", .option = &KeybindModeOption, .help = "For the cool kids only"},
+    {.label = ""},
+    {.label = "BACK", .handler = showOptionsMenu, .back = true},
 };
 
 static_assert(COUNT_OF(EditorMenu) == EditorMenu_Back + 1, "EditorMenuCount");
@@ -467,15 +467,15 @@ static void initGameMenu(StudioMainMenu* main)
             while(label)
             {
                 items = realloc(items, sizeof(MenuItem) * ++count);
-                items[count - 1] = (MenuItem){strdup(label), gameMenuHandler};
+                items[count - 1] = (MenuItem){.label = strdup(label), .handler = gameMenuHandler};
 
                 label = strtok(NULL, " ");
             }
 
             count += 2;
             items = realloc(items, sizeof(MenuItem) * count);
-            items[count - 2] = (MenuItem){strdup("")};
-            items[count - 1] = (MenuItem){strdup("BACK"), showMainMenu, .back = true};
+            items[count - 2] = (MenuItem){.label = strdup("")};
+            items[count - 1] = (MenuItem){.label = strdup("BACK"), .handler = showMainMenu, .back = true};
 
             main->items = items;
             main->count = count;
@@ -569,17 +569,17 @@ enum MainMenu
 
 static const MenuItem MainMenu[] =
 {
-    {"GAME MENU",   showGameMenu},
-    {"RESUME GAME", onResumeGame},
-    {"RESET GAME",  onResetGame},
+    {.label = "GAME MENU", .handler = showGameMenu},
+    {.label = "RESUME GAME", .handler = onResumeGame},
+    {.label = "RESET GAME", .handler = onResetGame},
 #if defined(BUILD_EDITORS)
-    {"CLOSE GAME",  onExitGame, NULL, "Press F1 to switch to editor"},
+    {.label = "CLOSE GAME", .handler = onExitGame, .help = "Press F1 to switch to editor"},
 #elif defined(BUILD_SURF)
-    {"CLOSE GAME",  onExitGame},
+    {.label = "CLOSE GAME", .handler = onExitGame},
 #endif
-    {"OPTIONS",     showOptionsMenu},
-    {""},
-    {"QUIT TIC-80", onExitStudio},
+    {.label = "OPTIONS", .handler = showOptionsMenu},
+    {.label = ""},
+    {.label = "QUIT TIC-80", .handler = onExitStudio},
 };
 
 static_assert(COUNT_OF(MainMenu) == MainMenu_Quit + 1, "MainMenuCount");
@@ -654,8 +654,8 @@ static void assignMapping(void* data, s32 pos)
 
     static const MenuItem AssignKeyMenu[] =
     {
-        {"Please, press a key you want"},
-        {str},
+        {.label = "Please, press a key you want"},
+        {.label = str},
     };
 
     sprintf(str, Fmt, ButtonLabels[main->gamepads.key]);
@@ -727,23 +727,23 @@ static void initGamepadMenu(StudioMainMenu* main)
 {
     static const MenuItem GamepadMenu[] =
     {
-        {"GAMEPAD", NULL, &GamepadOption},
-        {""},
+        {.label = "GAMEPAD", .option = &GamepadOption},
+        {.label = ""},
 
-        {MappingItems[0], assignMapping},
-        {MappingItems[1], assignMapping},
-        {MappingItems[2], assignMapping},
-        {MappingItems[3], assignMapping},
-        {MappingItems[4], assignMapping},
-        {MappingItems[5], assignMapping},
-        {MappingItems[6], assignMapping},
-        {MappingItems[7], assignMapping},
+        {.label = MappingItems[0], .handler = assignMapping},
+        {.label = MappingItems[1], .handler = assignMapping},
+        {.label = MappingItems[2], .handler = assignMapping},
+        {.label = MappingItems[3], .handler = assignMapping},
+        {.label = MappingItems[4], .handler = assignMapping},
+        {.label = MappingItems[5], .handler = assignMapping},
+        {.label = MappingItems[6], .handler = assignMapping},
+        {.label = MappingItems[7], .handler = assignMapping},
 
-        {""},
-        {"SAVE MAPPING",        saveGamepadMenu},
-        {"CLEAR MAPPING",       clearGamepadMenu},
-        {"RESET TO DEFAULTS",   resetGamepadMenu},
-        {"BACK",                showOptionsMenu, .back = true},
+        {.label = ""},
+        {.label = "SAVE MAPPING", .handler = saveGamepadMenu},
+        {.label = "CLEAR MAPPING", .handler = clearGamepadMenu},
+        {.label = "RESET TO DEFAULTS", .handler = resetGamepadMenu},
+        {.label = "BACK", .handler = showOptionsMenu, .back = true},
     };
 
     static_assert(COUNT_OF(GamepadMenu) == GamepadMenu_Back + 1, "GamepadMenuCount");

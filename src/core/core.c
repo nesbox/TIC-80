@@ -760,7 +760,7 @@ static inline void border(tic_mem* memory, s32 row, void* data)
 
 void tic_core_blit(tic_mem* tic)
 {
-    tic_core_blit_ex(tic, (tic_blit_callback){scanline, border, NULL});
+    tic_core_blit_ex(tic, (tic_blit_callback){.scanline = scanline, .border = border, .menu = NULL});
 }
 
 #if defined(BUILD_RENDER_CACHE)

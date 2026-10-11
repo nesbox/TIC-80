@@ -732,7 +732,7 @@ static inline double edgeFn(const Vec2* a, const Vec2* b, const Vec2* c)
 
 static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
 {
-    ShaderAttr a = {data, v0, v1, v2};
+    ShaderAttr a = {.data = data, .v = {v0, v1, v2}};
 
     tic_core* core = (tic_core*)tic;
     const struct ClipRect* clip = &core->state.clip;
@@ -762,7 +762,7 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     {
         // pixel center
         const double Center = 0.5 - FLT_EPSILON;
-        Vec2 p = {min.x + Center, min.y + Center};
+        Vec2 p = {{min.x + Center, min.y + Center}};
 
         s32 c = (i + 1) % 3, n = (i + 2) % 3;
 
@@ -800,9 +800,9 @@ void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3,
 {
     color = mapColor(tic, color);
     drawTri(tic,
-        &(Vec2){x1, y1},
-        &(Vec2){x2, y2},
-        &(Vec2){x3, y3},
+        &(Vec2){{x1, y1}},
+        &(Vec2){{x2, y2}},
+        &(Vec2){{x3, y3}},
         triColorShader, &color);
 }
 
@@ -946,9 +946,9 @@ void tic_api_ttri(tic_mem* tic,
 
     TexVert t[] =
     {
-        {x1, y1, u1, v1, z1},
-        {x2, y2, u2, v2, z2},
-        {x3, y3, u3, v3, z3},
+        {._ = {{x1, y1}}, .d = {{u1, v1, z1}}},
+        {._ = {{x2, y2}}, .d = {{u2, v2, z2}}},
+        {._ = {{x3, y3}}, .d = {{u3, v3, z3}}},
     };
 
     if(depth)

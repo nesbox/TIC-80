@@ -877,7 +877,7 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
                             SQObjectType type = sq_gettype(vm, 10);
                             if (type & (OT_CLOSURE|OT_NATIVECLOSURE|OT_INSTANCE))
                             {
-                                RemapData data = {vm};
+                                RemapData data = {.vm = vm};
                                 sq_resetobject(&data.reg);
                                 sq_getstackobj(vm, 10, &data.reg);
                                 sq_addref(vm, &data.reg);
