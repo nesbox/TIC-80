@@ -1774,7 +1774,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                 if(x >= 0 && x < TIC_SPRITESHEET_SIZE && y >= 0 && y < TIC_SPRITESHEET_SIZE)
                     switch (bpp) {
                         case 4:
-                            tic_tilesheet_setflatpix(base, x, y, tic_nearest_color(pal->colors,
+                            tic_tilesheet_setflatpix(base, x, y, (u8)tic_nearest_color(pal->colors,
                                (tic_rgb*)(img.pixels + i + j * img.width), TIC_PALETTE_SIZE));
                             break;
                         case 2:

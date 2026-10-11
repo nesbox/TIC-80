@@ -1125,7 +1125,9 @@ void StaticInitMiniScript() {
     MiniScript::hostInfo = "https://tic80.com/";
 
     auto f = Intrinsic::Create("tic80");
-    f.set_Code(INTRINSIC_LAMBDA {
+    // The one intrinsic whose lambda never reads the context, so the Context
+    // goes unnamed — the macro every other one uses names it for them.
+    f.set_Code([](MiniScript::Context, MiniScript::IntrinsicResult) -> MiniScript::IntrinsicResult {
         static ValueDict tic80Module;
         static Value tic80ModuleValue;
 
