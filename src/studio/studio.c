@@ -495,7 +495,7 @@ const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* f
         else
             for(s32 i = 0; i < COUNT_OF(BankModes); i++)
                 if(BankModes[i] == TIC_MUSIC_MODE)
-                    studio->bank.indexes[i] = bank;
+                    studio->bank.indexes[i] = (s8)bank;
 #endif
         const tic_sfx* sfx = getSfxSrc(studio);
         const tic_music* music = getMusicSrc(studio);
@@ -740,14 +740,14 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
                 {
                     if(studio->bank.chained)
                         memset(studio->bank.indexes, i, sizeof studio->bank.indexes);
-                    else studio->bank.indexes[mode] = i;
+                    else studio->bank.indexes[mode] = (s8)i;
                 }
             }
 
             if(i == studio->bank.indexes[mode])
                 tic_api_rect(tic, btnRect.x, btnRect.y, btnRect.w, btnRect.h, tic_color_red);
 
-            tic_api_print(tic, (char[]){'0' + i, '\0'}, btnRect.x+1, btnRect.y+1,
+            tic_api_print(tic, (char[]){(char)('0' + i), '\0'}, btnRect.x+1, btnRect.y+1,
                 i == studio->bank.indexes[mode]
                     ? tic_color_white
                     : hover
@@ -903,7 +903,7 @@ static inline float animEffect(AnimEffect effect, float x)
     case AnimEaseInOutCirc:
         return x < 0.5
             ? (float)((1 - sqrt(1 - pow(2 * x, 2))) / 2)
-            : (sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2;
+            : (float)((sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2);
 
     case AnimEaseInBack:
         return c3 * x * x * x - c1 * x * x;
@@ -914,7 +914,7 @@ static inline float animEffect(AnimEffect effect, float x)
     case AnimEaseInOutBack:
         return x < 0.5
             ? (float)((pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2)) / 2)
-            : (pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2;
+            : (float)((pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2);
 
     case AnimEaseInElastic:
         return (float)(x == 0
@@ -1831,7 +1831,7 @@ static void switchBank(Studio* studio, s32 bank)
         {
             if(studio->bank.chained)
                 memset(studio->bank.indexes, bank, sizeof studio->bank.indexes);
-            else studio->bank.indexes[i] = bank;
+            else studio->bank.indexes[i] = (s8)bank;
             break;
         }
 }

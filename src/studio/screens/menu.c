@@ -370,7 +370,7 @@ void studio_menu_anim_scanline(tic_mem* tic, s32 row, void* data)
     s32 val = dir * (TIC80_WIDTH - row * 7 / 2);
     tic_rgb* dst = tic->ram->vram.palette.colors + BG_ANIM_COLOR;
 
-    memcpy(dst, &(tic_rgb){val * 3 / 4, (u8)(val * 4 / 5), (u8)(val)}, sizeof(tic_rgb));
+    memcpy(dst, &(tic_rgb){(u8)(val * 3 / 4), (u8)(val * 4 / 5), (u8)(val)}, sizeof(tic_rgb));
 }
 
 static void drawCursor(Menu* menu, s32 x, s32 y)

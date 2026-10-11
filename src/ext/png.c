@@ -242,7 +242,7 @@ png_buffer png_encode(png_buffer cover, png_buffer cart)
             bitcpy(dst, i << 3, cart.data, i * header.bits, header.bits);
 
         for (s32 i = end; i < coverSize; i++)
-            bitcpy(dst, i << 3, (const u8[]){rand()}, 0, header.bits);
+            bitcpy(dst, i << 3, (const u8[]){(u8)rand()}, 0, header.bits);
     }
 
     png_buffer out = png_write(png, cart);

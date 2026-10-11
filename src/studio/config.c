@@ -56,7 +56,7 @@ static void readConfig(Config* config)
 
         s32 theme = json_object("CODE_THEME", 0);
 
-#define CODE_COLOR_DEF(VAR) config->data.theme.code.VAR = json_int(#VAR, theme);
+#define CODE_COLOR_DEF(VAR) config->data.theme.code.VAR = (u8)json_int(#VAR, theme);
         CODE_COLORS_LIST(CODE_COLOR_DEF)
 #undef  CODE_COLOR_DEF
 

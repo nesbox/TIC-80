@@ -795,7 +795,7 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
             tic_api_pix(tic, rect.x + 3, rect.y + 1, tic_color_white, false);
         }
 
-        tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x + (Size+2), rect.y, tic_color_light_grey, false, 1, true);
+        tic_api_print(tic, (char[]){(char)('0' + i), '\0'}, rect.x + (Size+2), rect.y, tic_color_light_grey, false, 1, true);
     }
 
     // draw flags editbox
@@ -893,7 +893,7 @@ static void drawBitMode(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
         else if (over)
             tic_api_rect(tic, rect.x+1, rect.y+1, SizeX-2, SizeY-2, tic_color_light_grey);
 
-        tic_api_print(tic, (char[]){'0' + mode, '\0'}, rect.x - 4, rect.y, label_color, false, 1, true);
+        tic_api_print(tic, (char[]){(char)('0' + mode), '\0'}, rect.x - 4, rect.y, label_color, false, 1, true);
     }
 }
 
@@ -2010,7 +2010,7 @@ void spriteBand(void* app, Toolbar* tb)
             static char tip[sizeof "PAGE " + sizeof "-2147483648"];
             sprintf(tip, "PAGE %i", page + 1);
 
-            PageTab tab = {{'1' + page, '\0'}, page == sprite->blit.page};
+            PageTab tab = {{(char)('1' + page), '\0'}, page == sprite->blit.page};
 
             ToolbarButton button =
             {

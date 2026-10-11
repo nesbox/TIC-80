@@ -568,10 +568,10 @@ static void initGPU()
         GPU_SetInitWindow(SDL_GetWindowID(platform.window));
 
         GPU_SetPreInitFlags(vsync ? GPU_INIT_ENABLE_VSYNC : GPU_INIT_DISABLE_VSYNC);
-        platform.screen.renderer.gpu = GPU_Init(w, h, GPU_DEFAULT_INIT_FLAGS);
+        platform.screen.renderer.gpu = GPU_Init((Uint16)w, (Uint16)h, GPU_DEFAULT_INIT_FLAGS);
 
-        GPU_SetWindowResolution(w, h);
-        GPU_SetVirtualResolution(platform.screen.renderer.gpu, w, h);
+        GPU_SetWindowResolution((Uint16)w, (Uint16)h);
+        GPU_SetVirtualResolution(platform.screen.renderer.gpu, (Uint16)w, (Uint16)h);
 
         platform.screen.texture.gpu = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_RGBA);
         GPU_SetAnchor(platform.screen.texture.gpu, 0, 0);
@@ -684,7 +684,7 @@ static void processMouse()
     }
     else
     {
-        input->mouse.x = input->mouse.y = -1;
+        input->mouse.x = input->mouse.y = (u8)-1;
 
         if(platform.mouse.focus)
         {
@@ -1333,8 +1333,8 @@ static void pollEvents()
                     {
                         s32 w, h;
                         SDL_GetWindowSize(platform.window, &w, &h);
-                        GPU_SetWindowResolution(w, h);
-                        GPU_SetVirtualResolution(platform.screen.renderer.gpu, w, h);
+                        GPU_SetWindowResolution((Uint16)w, (Uint16)h);
+                        GPU_SetVirtualResolution(platform.screen.renderer.gpu, (Uint16)w, (Uint16)h);
                     }
 #endif
 

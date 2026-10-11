@@ -130,7 +130,7 @@ inline s32 tic_blit_calc_segment(const tic_blit* blit)
 inline void tic_blit_update_bpp(tic_blit* blit, tic_bpp bpp)
 {
     blit->mode = bpp;
-    blit->pages = 4 / bpp;
+    blit->pages = (u8)(4 / bpp);
     blit->page %= blit->pages;
 }
 

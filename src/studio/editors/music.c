@@ -739,7 +739,7 @@ static void copyTrackerToClipboard(Music* music, bool cut)
             rect.h = 1;
         }
 
-        ClipboardHeader header = {rect.h};
+        ClipboardHeader header = {(u8)rect.h};
 
         enum{RowSize = sizeof(tic_track_pattern) / MUSIC_PATTERN_ROWS, HeaderSize = sizeof(ClipboardHeader)};
 
@@ -1398,8 +1398,8 @@ static void setPianoValue(Music* music, char sym)
             case '+':
             case '-':
                 if(music->piano.edit.x & 1)
-                    row->param2 += delta;
-                else row->param1 += delta;
+                    row->param2 += (u8)delta;
+                else row->param1 += (u8)delta;
                 break;
             default:
                 if(hex >= 0)
@@ -2058,7 +2058,7 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
         tic_api_rect(tic, x + c * ColWidth, y + 1,
             ColWidth, MUSIC_FRAMES * TIC_FONT_HEIGHT + (Header - 1), c & 1 ? tic_color_black : tic_color_dark_grey);
 
-        tic_api_print(tic, (char[]){'1' + c, '\0'}, x + (ColWidth - (TIC_ALTFONT_WIDTH - 1)) / 2 + c * ColWidth, y + 2,
+        tic_api_print(tic, (char[]){(char)('1' + c), '\0'}, x + (ColWidth - (TIC_ALTFONT_WIDTH - 1)) / 2 + c * ColWidth, y + 2,
             tic_color_grey, true, 1, true);
 
         for(s32 i = 0; i < MUSIC_FRAMES; i++)
@@ -2353,7 +2353,7 @@ static void drawPianoOctaveStatus(Music* music, s32 x, s32 y, s32 xpos, s32 ypos
             showTooltip(music->studio, "set octave");
 
             tic_api_print(tic, "12345678", xpos, ypos, tic_color_dark_grey, true, 1, true);
-            tic_api_print(tic, (char[]){octave + '1', '\0'}, xpos + octave * OctaveWidth, ypos, tic_color_yellow, true, 1, true);
+            tic_api_print(tic, (char[]){(char)(octave + '1'), '\0'}, xpos + octave * OctaveWidth, ypos, tic_color_yellow, true, 1, true);
         }
     }
 }
@@ -2629,8 +2629,8 @@ static void drawPianoXYColumn(Music* music, s32 x, s32 y)
                         s32 step = getStep(music);
                         s32 delta = left ? +step : -step;
                         if(music->piano.edit.x & 1)
-                            row->param2 += delta;
-                        else row->param1 += delta;
+                            row->param2 += (u8)delta;
+                        else row->param1 += (u8)delta;
 
                         history_add(music->history);
                     }

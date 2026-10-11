@@ -1003,15 +1003,15 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
 #if defined(TIC80_PRO)
                 if(tic_tool_is_project(path))
                 {
-                    void* buf = tic_fs_load(console->fs, path, &size);
+                    void* cartData = tic_fs_load(console->fs, path, &size);
 
-                    if(buf) SCOPE(free(buf))
+                    if(cartData) SCOPE(free(cartData))
                     {
                         tic_cartridge* cart = newCart();
 
                         SCOPE(free(cart))
                         {
-                            tic_project_load(path, buf, size, cart);
+                            tic_project_load(path, cartData, size, cart);
                             tic_tool_load_section(console->tic, cart, section);
                             onCartLoaded(console, path, section);
                         }

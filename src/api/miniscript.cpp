@@ -1186,7 +1186,7 @@ static void closeMiniScript(tic_mem *tic) {
     }
 }
 
-static void callMiniScriptBoot(tic_mem *tic) {
+static void callMiniScriptBoot(tic_mem *) {
     // Do nothing. The harness will call `BOOT` before it first calls `TIC`,
     // assuming `BOOT` exists.
 }
@@ -1263,17 +1263,17 @@ static void callMiniScriptCallback(tic_mem *tic, Value name, s32 arg) {
     }
 }
 
-static void callMiniScriptScanline(tic_mem *tic, s32 row, void* data) {
+static void callMiniScriptScanline(tic_mem *tic, s32 row, void*) {
     static Value name = Value::make_string("SCN");
     callMiniScriptCallback(tic, name, row);
 }
 
-static void callMiniScriptBorder(tic_mem *tic, s32 row, void* data) {
+static void callMiniScriptBorder(tic_mem *tic, s32 row, void*) {
     static Value name = Value::make_string("BDR");
     callMiniScriptCallback(tic, name, row);
 }
 
-static void callMiniScriptMenu(tic_mem *tic, s32 index, void* data) {
+static void callMiniScriptMenu(tic_mem *tic, s32 index, void*) {
     static Value name = Value::make_string("MENU");
     callMiniScriptCallback(tic, name, index);
 }

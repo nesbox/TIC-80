@@ -207,7 +207,7 @@ void mapBand(void* app, Toolbar* tb)
                 static char tip[sizeof "PAGE " + sizeof "-2147483648"];
                 sprintf(tip, "PAGE %i", i);
 
-                PageTab tab = {{'1' + i, '\0'}, i == map->sheet.blit.page};
+                PageTab tab = {{(char)('1' + i), '\0'}, i == map->sheet.blit.page};
 
                 ToolbarButton button =
                 {
@@ -1251,7 +1251,7 @@ static void tick(Map* map)
             s32 screenScrollY = map->scroll.y % TIC80_HEIGHT;
 
             tic_api_line(tic, 0, (float)(TIC80_HEIGHT - screenScrollY), TIC80_WIDTH, (float)(TIC80_HEIGHT - screenScrollY), tic_color_grey);
-            tic_api_line(tic, TIC80_WIDTH - screenScrollX, 0, (float)(TIC80_WIDTH - screenScrollX), TIC80_HEIGHT, tic_color_grey);
+            tic_api_line(tic, (float)(TIC80_WIDTH - screenScrollX), 0, (float)(TIC80_WIDTH - screenScrollX), TIC80_HEIGHT, tic_color_grey);
         }
         tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 

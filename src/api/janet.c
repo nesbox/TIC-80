@@ -416,7 +416,7 @@ static Janet janet_spr(int32_t argc, Janet* argv)
 
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     core->api.spr(tic, index, x, y, w, h,
-                colorkey.colors, colorkey.count,
+                colorkey.colors, (u8)colorkey.count,
                 scale, flip, rotate);
 
     return janet_wrap_nil();
@@ -535,14 +535,14 @@ static Janet janet_map(int32_t argc, Janet* argv)
     if (argc < 9)
     {
         core->api.map(tic, x, y, w, h, sx, sy,
-                    colorkey.colors, colorkey.count,
+                    colorkey.colors, (u8)colorkey.count,
                     scale, NULL, NULL);
     }
     else
     {
         JanetFunction *remap = janet_getfunction(argv, 8);
         core->api.map(tic, x, y, w, h, sx, sy,
-                    colorkey.colors, colorkey.count,
+                    colorkey.colors, (u8)colorkey.count,
                     scale,
                     remapCallback, remap);
     }

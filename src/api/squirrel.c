@@ -1868,23 +1868,23 @@ static bool initSquirrel(tic_mem* tic, const char* code)
     initAPI(core);
 
     {
-        HSQUIRRELVM vm = core->currentVM;
+        HSQUIRRELVM current = core->currentVM;
 
-        sq_settop(vm, 0);
+        sq_settop(current, 0);
 
-        if((SQ_FAILED(sq_compilebuffer(vm, code, strlen(code), "squirrel", SQTrue))) ||
-            (sq_pushroottable(vm), false) ||
-            (SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue))))
+        if((SQ_FAILED(sq_compilebuffer(current, code, strlen(code), "squirrel", SQTrue))) ||
+            (sq_pushroottable(current), false) ||
+            (SQ_FAILED(sq_call(current, 1, SQFalse, SQTrue))))
         {
-            sq_getlasterror(vm);
-            sq_tostring(vm, -1);
+            sq_getlasterror(current);
+            sq_tostring(current, -1);
             const SQChar* errorString = "unknown error";
-            sq_getstring(vm, -1, &errorString);
+            sq_getstring(current, -1, &errorString);
 
             if (core->data)
                 core->data->error(core->data->data, errorString);
 
-            sq_pop(vm, 2); // error and error string
+            sq_pop(current, 2); // error and error string
 
             return false;
         }
