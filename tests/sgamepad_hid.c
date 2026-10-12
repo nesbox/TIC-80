@@ -174,17 +174,18 @@ static void testPS4Sticks(void)
 
     assert(centered.right_x == 0.0f && centered.right_y == 0.0f);
 
-    // Hard left, and hard up: the pad sends y up as the larger value, and the
-    // machine reads up as negative, so the axis comes back negated.
-    ps4_state(report, 0x08, 0x7F, 0x7F, 0x00, 0xFF);
+    // Hard left and hard up: the pad sends up as the *smaller* value, and
+    // both the machine and SDL read up as negative, so the axis comes back
+    // the way it arrived.
+    ps4_state(report, 0x08, 0x7F, 0x7F, 0x00, 0x00);
 
     const sgamepad_hid_state pushed = read_ps4(report, sizeof report);
 
     assert(pushed.right_x == -1.0f);
     assert(pushed.right_y < -0.99f);
 
-    // Hard right, and hard down.
-    ps4_state(report, 0x08, 0x7F, 0x7F, 0xFF, 0x00);
+    // Hard right and hard down, which is the larger value.
+    ps4_state(report, 0x08, 0x7F, 0x7F, 0xFF, 0xFF);
 
     const sgamepad_hid_state other = read_ps4(report, sizeof report);
 
@@ -200,12 +201,12 @@ static void testPS4LeftStick(void)
 {
     uint8_t report[PS4_USB_REPORT_SIZE];
 
-    // Hard left, hard up — the pad's y growing upwards, so the stick is read
-    // as the direction pad's left and up.
-    ps4_state(report, 0x08, 0x00, 0xFF, 0x7F, 0x7F);
+    // Hard left, hard up — the pad sends up as the smaller value, so the
+    // stick is read as the direction pad's left and up.
+    ps4_state(report, 0x08, 0x00, 0x00, 0x7F, 0x7F);
     assert(buttons(read_ps4(report, sizeof report)) == (LEFT | UP));
 
-    ps4_state(report, 0x08, 0xFF, 0x00, 0x7F, 0x7F);
+    ps4_state(report, 0x08, 0xFF, 0xFF, 0x7F, 0x7F);
     assert(buttons(read_ps4(report, sizeof report)) == (RIGHT | DOWN));
 
     // A stick inside the threshold is no direction — which is why the resting
@@ -216,6 +217,10 @@ static void testPS4LeftStick(void)
 
     assert(buttons(centered) == 0);
     assert(centered.right_x < 0.01f && centered.right_x > -0.01f);
+
+    // The state report is not the enhanced state: a pad answering with this
+    // one is a pad the keepalive would change rather than keep alive.
+    assert(!centered.enhanced);
 
     // And the stick adds to the direction pad rather than replacing it: the
     // hat says nothing while the stick is hard left, and both come out.
@@ -270,6 +275,11 @@ static void testPS4Bluetooth(void)
     assert(sgamepad_hid_ps4_report(report, sizeof report, &state));
     assert(buttons(state) == (A | UP));
 
+    // A pad sending this band is in its enhanced mode, which is the state the
+    // keepalive is for: without this a Bluetooth DualShock 4 is never asked to
+    // keep talking, and the stream stalls.
+    assert(state.enhanced);
+
     // A report whose CRC does not add up is not one the pad sent: it is
     // dropped rather than read as buttons nobody pressed.
     report[40] ^= 0xFF;
@@ -314,7 +324,7 @@ static void testPS5DualSense(void)
     assert(buttons(read_ps5(report, sizeof report)) == Y);
 
     // Down on the hat, and the right stick hard right and hard down.
-    ps5_state(report, 0x04, 0x00, 0x80, 0x80, 0xFF, 0x00);
+    ps5_state(report, 0x04, 0x00, 0x80, 0x80, 0xFF, 0xFF);
 
     const sgamepad_hid_state state = read_ps5(report, sizeof report);
 
@@ -337,7 +347,7 @@ static void testPS5SimpleReport(void)
     ps4_state(report, 0x20 | 0x08, 0x80, 0x80, 0x80, 0x80);
     assert(buttons(read_ps5(report, 10)) == A);
 
-    ps4_state(report, 0x08, 0x80, 0x80, 0xFF, 0x00);
+    ps4_state(report, 0x08, 0x80, 0x80, 0xFF, 0xFF);
 
     const sgamepad_hid_state state = read_ps5(report, 10);
 
@@ -436,10 +446,10 @@ static void testSwitchFaceButtons(void)
     // The pad names its buttons the other way round from where they sit: `b`
     // is the bottom one and `a` the right one, and the machine reads positions.
     static const struct { uint8_t byte; unsigned expected; } Cases[] = {
-        { 0x01, A },                        // the bottom one, which the pad names `b`
-        { 0x02, B },                        // the right one, which the pad names `a`
-        { 0x04, Y },                        // the left one, which the pad names `y`
-        { 0x08, X },                        // the top one, which the pad names `x`
+        { 0x01, A },                        // the bottom one
+        { 0x02, B },                        // the right one
+        { 0x04, X },                        // the left one
+        { 0x08, Y },                        // the top one
         { 0x40, 0 },                        // a shoulder: read, and no bit
         { 0x80, 0 },                        // the other one
     };
@@ -483,8 +493,8 @@ static void testSwitchHatAndSticks(void)
     assert(buttons(centered) == 0);
     assert(centered.right_x == 0.0f && centered.right_y == 0.0f);
 
-    // A stick held hard right and down, where the pad's y grows upwards.
-    switch_state(report, 0x00, 0x00, 0x08, 0x8000, 0x8000, 0xFFFF, 0x0000);
+    // A stick held hard right and down, which the pad sends as the larger y.
+    switch_state(report, 0x00, 0x00, 0x08, 0x8000, 0x8000, 0xFFFF, 0xFFFF);
 
     const sgamepad_hid_state pushed = read_switch(report, sizeof report);
 
