@@ -552,8 +552,12 @@ static void _sgamepad_hid_close(_sgamepad_hid_device* pad)
     if (pad->out)
         CloseHandle(pad->out);
 
-    CloseHandle(pad->file);
-    CloseHandle(pad->overlapped.hEvent);
+    if (pad->file)
+        CloseHandle(pad->file);
+
+    if (pad->overlapped.hEvent)
+        CloseHandle(pad->overlapped.hEvent);
+
     memset(pad, 0, sizeof *pad);
 }
 
