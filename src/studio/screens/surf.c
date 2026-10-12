@@ -352,7 +352,9 @@ static void updateMenuItemCover(Surf* surf, s32 pos, const u8* cover, s32 size)
 
     if(image)
     {
-        item->cover = malloc(sizeof(tic_screen));
+        // zeroed: the cover is poked a nibble at a time, and a poke reads the
+        // byte around the nibble it writes
+        item->cover = calloc(1, sizeof(tic_screen));
         item->palette = malloc(sizeof(tic_palette));
 
         if(image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT && image->colors <= TIC_PALETTE_SIZE)
