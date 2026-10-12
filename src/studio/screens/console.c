@@ -3460,7 +3460,7 @@ static s32 createRamTable(char* buf)
 
     ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
 
-    return (s32)(strlen(buf));
+    return (s32)(ptr - buf);
 }
 
 static s32 createVRamTable(char* buf)
@@ -3477,7 +3477,7 @@ static s32 createVRamTable(char* buf)
 
     ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
 
-    return (s32)(strlen(buf));
+    return (s32)(ptr - buf);
 }
 
 static s32 createKeysTable(char* buf)
@@ -3494,7 +3494,7 @@ static s32 createKeysTable(char* buf)
 
     ptr += sprintf(ptr, "\n+----+------------+ +----+------------+\n");
 
-    return (s32)(strlen(buf));
+    return (s32)(ptr - buf);
 }
 
 static s32 createButtonsTable(char* buf)
@@ -3510,7 +3510,7 @@ static s32 createButtonsTable(char* buf)
 
     ptr += sprintf(ptr, "\n+--------+----+----+----+----+\n");
 
-    return (s32)(strlen(buf));
+    return (s32)(ptr - buf);
 }
 
 static s32 createRamTableMd(char* buf)
@@ -3521,7 +3521,7 @@ static s32 createRamTableMd(char* buf)
     for(const RamRow *row = RamRows, *end = row + COUNT_OF(RamRows) - 1; row < end; row++)
         ptr += sprintf(ptr, "| %05X | %s | %i |\n", row->addr, row->info, (row + 1)->addr - row->addr);
 
-    return (s32)(strlen(buf));
+    return (s32)(ptr - buf);
 }
 
 static s32 createVRamTableMd(char* buf)
@@ -3532,7 +3532,7 @@ static s32 createVRamTableMd(char* buf)
     for(const RamRow *row = VRamRows, *end = row + COUNT_OF(VRamRows) - 1; row < end; row++)
         ptr += sprintf(ptr, "| %05X | %s | %i |\n", row->addr, row->info, (row + 1)->addr - row->addr);
 
-    return (s32)(strlen(buf));
+    return (s32)(ptr - buf);
 }
 
 static s32 createButtonsTableMd(char* buf)
@@ -3544,7 +3544,7 @@ static s32 createButtonsTableMd(char* buf)
     for(const char **it = ButtonActions, **end = it + COUNT_OF(ButtonActions); it < end; ++it, ++id)
         ptr += sprintf(ptr, "| %s | %d | %d | %d | %d |\n", *it, id, id + 8, id + 16, id + 24);
 
-    return (s32)(strlen(buf));
+    return (s32)(ptr - buf);
 }
 
 static s32 createKeysTableMd(char* buf)
@@ -3555,7 +3555,7 @@ static s32 createKeysTableMd(char* buf)
     for(const KeyRow *row = KeyRows, *alt = row + COUNT_OF(KeyRows) / 2, *end = alt; row != end; ++row, ++alt)
         ptr += sprintf(ptr, "| %d | %s | %d | %s |\n", row->code, row->key, alt->code, alt->key);
 
-    return (s32)(strlen(buf));
+    return (s32)(ptr - buf);
 }
 
 static void printMdCell(char** ptr, const char* str)
@@ -4150,7 +4150,10 @@ static CommandDesc parseCommand(const char* input)
     CommandDesc desc = {.src = strdup(input),
                         .command = strdup(input)};
 
-    char* token = strtok(desc.command, " ");
+    // the first token is the command's own name: strtok keeps the rest
+    strtok(desc.command, " ");
+
+    char* token;
 
     while((token = strtok(NULL, " ")))
     {

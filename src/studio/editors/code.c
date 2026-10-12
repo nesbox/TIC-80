@@ -2100,7 +2100,6 @@ static char** getLines(Code* code, int lines)
         --end;
 
     char* iter = start;
-    iter = start;
 
     char** line_locations = malloc(sizeof(char*) * lines + 1);
     line_locations[0] = start;
