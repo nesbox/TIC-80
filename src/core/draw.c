@@ -655,10 +655,14 @@ static inline float initLine(float* x0, float* x1, float* y0, float* y1)
 
 static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 color)
 {
+    // the counter steps by one and the fraction it starts at is the line's own:
+    // an integer counter would draw a different last pixel
     if(fabs(x0 - x1) < fabs(y0 - y1))
+        // NOLINTNEXTLINE(clang-analyzer-security.FloatLoopCounter): a raster counter, exact at one a step
         for(float t = initLine(&x0, &x1, &y0, &y1); y0 < y1; y0++, x0 += t)
             setPixel((tic_core*)tic, (s32)(x0), (s32)y0, color);
     else
+        // NOLINTNEXTLINE(clang-analyzer-security.FloatLoopCounter): a raster counter, exact at one a step
         for(float t = initLine(&y0, &y1, &x0, &x1); x0 < x1; x0++, y0 += t)
             setPixel((tic_core*)tic, (s32)(x0), (s32)y0, color);
 

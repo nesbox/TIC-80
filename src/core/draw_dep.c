@@ -95,9 +95,11 @@ static void ticTexLine(tic_mem* memory, TexVertDep* v0, TexVertDep* v1)
     if(botY > TIC80_HEIGHT)
         botY = TIC80_HEIGHT;
 
-    for(; y < botY; ++y)
+    // the row is a whole number and the steps are not: y counts rows, and x,
+    // u and v carry the interpolation across them
+    for(s32 row = (s32)y; row < botY; ++row)
     {
-        setSideTexPixel((s32)x, (s32)y, u, v);
+        setSideTexPixel((s32)x, row, u, v);
         x += step_x;
         u += step_u;
         v += step_v;
