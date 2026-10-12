@@ -3903,6 +3903,7 @@ static const struct LangRuntimeVersion
         {"python", TIC_RUNTIME_VERSION_PYTHON},
         {"miniscript", TIC_RUNTIME_VERSION_MINISCRIPT},
         {"forth", TIC_RUNTIME_VERSION_FORTH},
+        {"gravity", TIC_RUNTIME_VERSION_GRAVITY},
         {NULL, NULL},
 };
 

@@ -12,6 +12,7 @@ set(TIC_RT_JANET "unknown")
 set(TIC_RT_PYTHON "unknown")
 set(TIC_RT_MINISCRIPT "unknown")
 set(TIC_RT_FORTH "unknown")
+set(TIC_RT_GRAVITY "unknown")
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/lua/lua.h")
     file(STRINGS "${CMAKE_SOURCE_DIR}/vendor/lua/lua.h" LUA_VERSION_MAJOR_LINE REGEX "^#define LUA_VERSION_MAJOR[ \t]+\"[^\"]+\"")
@@ -152,6 +153,15 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/pforth/csrc/pf_guts.h")
     if(PFORTH_VERSION_LINE)
         string(REGEX REPLACE ".*\"([^\"]+)\".*" "\\1" PFORTH_VERSION "${PFORTH_VERSION_LINE}")
         set(TIC_RT_FORTH "pForth ${PFORTH_VERSION}")
+    endif()
+endif()
+
+if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/gravity/src/shared/gravity_value.h")
+    file(STRINGS "${CMAKE_SOURCE_DIR}/vendor/gravity/src/shared/gravity_value.h" GRAVITY_VERSION_LINE REGEX "^#define GRAVITY_VERSION[^\"]*\"[^\"]+\"")
+
+    if(GRAVITY_VERSION_LINE)
+        string(REGEX REPLACE ".*\"([^\"]+)\".*" "\\1" GRAVITY_VERSION "${GRAVITY_VERSION_LINE}")
+        set(TIC_RT_GRAVITY "Gravity ${GRAVITY_VERSION}")
     endif()
 endif()
 
