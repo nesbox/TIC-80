@@ -74,7 +74,9 @@ struct tic_fs
 #if defined(__EMSCRIPTEN__)
 void syncfs()
 {
-    EM_ASM({ Module.syncFSRequests++; });
+    // clang-format off
+    EM_ASM({Module.syncFSRequests++;});
+    // clang-format on
 }
 #endif
 

@@ -750,12 +750,14 @@ static void learn_layout(sapp_keycode code, uint32_t unicode)
 static void resume_audio(void)
 {
 #if defined(__EMSCRIPTEN__)
+    // clang-format off
     EM_ASM({
         const ctx = Module._saudio_context;
 
-        if(ctx&& ctx.state != = 'running')
-            ctx.resume().catch(function(){});
+        if (ctx && ctx.state !== 'running')
+            ctx.resume().catch(function() {});
     });
+    // clang-format on
 #endif
 }
 
@@ -911,7 +913,9 @@ static void event_cb(const sapp_event* event)
 
         case SAPP_EVENTTYPE_RESIZED:
 #if defined(__EMSCRIPTEN__)
-            EM_ASM(Module.tic80Viewport());
+            // clang-format off
+        EM_ASM(Module.tic80Viewport());
+            // clang-format on
 #endif
             break;
 
@@ -965,15 +969,17 @@ static void frame_cb(void)
     // A file the studio wrote only reaches IndexedDB through a flush, and the
     // studio asks for one per write; taking them here, once a frame, keeps the
     // file system's own write out of the studio's call.
+    // clang-format off
     EM_ASM(
+    {
+        if (!Module.syncing && Module.syncFSRequests)
         {
-            if(!Module.syncing && Module.syncFSRequests)
-            {
-                Module.syncing = true;
-                Module.syncFSRequests = 0;
-                FS.syncfs(false, function() { Module.syncing = false; });
-            }
-        });
+            Module.syncing = true;
+            Module.syncFSRequests = 0;
+            FS.syncfs(false, function() { Module.syncing = false; });
+        }
+    });
+    // clang-format on
 #endif
 }
 
@@ -1022,7 +1028,9 @@ static void init_cb(void)
     sgamepad_setup(&(sgamepad_desc){.deadzone = 0.5f});
 
 #if defined(__EMSCRIPTEN__)
+    // clang-format off
     EM_ASM(Module.tic80Viewport());
+    // clang-format on
 #endif
 
     platform.fullscreen = sapp_is_fullscreen();
@@ -1105,6 +1113,7 @@ int main(int argc, char* argv[])
     const char* url = argc >= 2 ? argv[1] : NULL;
     const char* cart = url ? cart_argument(argv) : NULL;
 
+    // clang-format off
     EM_ASM({
         Module.syncFSRequests = 0;
         Module.syncing = false;
@@ -1138,7 +1147,9 @@ int main(int argc, char* argv[])
                     try { FS.unlink(path); } catch (e) {}
                     FS.mkdirTree(parent);
                 });
-        }); }, getAppFolder(), cart, url);
+        });
+    }, getAppFolder(), cart, url);
+    // clang-format on
 
     return 0;
 }
@@ -1236,7 +1247,9 @@ void tic_sys_open_path(const char* path)
 void tic_sys_open_url(const char* url)
 {
 #if defined(__EMSCRIPTEN__)
+    // clang-format off
     EM_ASM({ window.open(UTF8ToString($0), '_blank'); }, url);
+    // clang-format on
 #else
     TIC_UNUSED(url);
 #endif

@@ -2912,25 +2912,31 @@ EMSCRIPTEN_KEEPALIVE void tic80_add_file(Console* console, const char* name, con
 
 static void onAddCommand(Console* console)
 {
-    EM_ASM_({ Module.showAddPopup(function(filename, rom) {
-                  if(filename == null || rom == null)
-                  {
-                      Module._tic80_add_file($0, 0, 0, 0);
-                  }
-                  else
-                  {
-                      var filePtr = _malloc(filename.length + 1);
-                      stringToUTF8(filename, filePtr, filename.length + 1);
+    // clang-format off
+    EM_ASM_
+    ({
+        Module.showAddPopup(function(filename, rom)
+        {
+            if(filename == null || rom == null)
+            {
+                Module._tic80_add_file($0, 0, 0, 0);
+            }
+            else
+            {
+                var filePtr = _malloc(filename.length + 1);
+                stringToUTF8(filename, filePtr, filename.length + 1);
 
-                      var dataPtr = _malloc(rom.length);
-                      HEAPU8.set(rom, dataPtr);
+                var dataPtr = _malloc(rom.length);
+                HEAPU8.set(rom, dataPtr);
 
-                      Module._tic80_add_file($0, filePtr, dataPtr, rom.length);
+                Module._tic80_add_file($0, filePtr, dataPtr, rom.length);
 
-                      _free(filePtr);
-                      _free(dataPtr);
-                  }
-              }); }, console);
+                _free(filePtr);
+                _free(dataPtr);
+            }
+        });
+    }, console);
+    // clang-format on
 }
 
 static void onGetCommand(Console* console)
@@ -2945,11 +2951,15 @@ static void onGetCommand(Console* console)
             s32 size = 0;
             void* buffer = fs_read(path, &size);
 
-            EM_ASM_({
+            // clang-format off
+            EM_ASM_
+            ({
                 var name = UTF8ToString($0);
                 var blob = new Blob([HEAPU8.subarray($1, $1 + $2)], {type: "application/octet-stream"});
 
-                Module.saveAs(blob, name); }, name, buffer, size);
+                Module.saveAs(blob, name);
+            }, name, buffer, size);
+            // clang-format on
         }
         else
         {

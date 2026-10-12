@@ -1692,8 +1692,12 @@ void tic_sys_open_path(const char* path)
 void tic_sys_open_url(const char* url)
 {
 #if defined(__EMSCRIPTEN__)
+    // clang-format off
     EM_ASM_(
-        {window.open(UTF8ToString($0))}, url);
+    {
+        window.open(UTF8ToString($0))
+    }, url);
+    // clang-format on
 #else
     SDL_OpenURL(url);
 #endif
@@ -2224,15 +2228,20 @@ static void emsGpuTick()
 
     gpuTick();
 
+    // clang-format off
     EM_ASM(
+    {
+        if(!Module.syncing && Module.syncFSRequests)
         {
-            if(!Module.syncing && Module.syncFSRequests)
+            Module.syncing = true;
+            Module.syncFSRequests = 0;
+            FS.syncfs(false, function()
             {
-                Module.syncing = true;
-                Module.syncFSRequests = 0;
-                FS.syncfs(false, function() { Module.syncing = false; });
-            }
-        });
+                Module.syncing = false;
+            });
+        }
+    });
+    // clang-format on
 
     if(!vsync)
     {
@@ -2417,16 +2426,17 @@ static s32 start(s32 argc, char** argv, const char* folder)
 
 static void checkPreloadedFile()
 {
+    // clang-format off
     EM_ASM_(
+    {
+        if(Module.filePreloaded)
         {
-            if(Module.filePreloaded)
-            {
-                _emscripten_cancel_main_loop();
-                var start = Module.startArg;
-                dynCall('iiii', $0, [start.argc, start.argv, start.folder]);
-            }
-        },
-        start);
+            _emscripten_cancel_main_loop();
+            var start = Module.startArg;
+            dynCall('iiii', $0, [start.argc, start.argv, start.folder]);
+        }
+    }, start);
+    // clang-format on
 }
 
 static s32 emsStart(s32 argc, char** argv, const char* folder)
@@ -2445,25 +2455,34 @@ static s32 emsStart(s32 argc, char** argv, const char* folder)
                 argv[1] = path;
             }
 
+            // clang-format off
             EM_ASM_(
-                {
-                    var start = {};
-                    start.argc = $0;
-                    start.argv = $1;
-                    start.folder = $2;
+            {
+                var start = {};
+                start.argc = $0;
+                start.argv = $1;
+                start.folder = $2;
 
-                    Module.startArg = start;
+                Module.startArg = start;
 
-                    var file = PATH_FS.resolve(UTF8ToString($4));
-                    var dir = PATH.dirname(file);
+                var file = PATH_FS.resolve(UTF8ToString($4));
+                var dir = PATH.dirname(file);
 
-                    Module.filePreloaded = false;
+                Module.filePreloaded = false;
 
-                    FS.createPreloadedFile(dir, PATH.basename(file), UTF8ToString($3), true, true, function() { Module.filePreloaded = true; }, function(){}, false, false, function() {
+                FS.createPreloadedFile(dir, PATH.basename(file), UTF8ToString($3), true, true,
+                    function()
+                    {
+                        Module.filePreloaded = true;
+                    },
+                    function(){}, false, false, function()
+                    {
                         try{FS.unlink(file);}catch(e){}
-                        FS.mkdirTree(dir); });
-                },
-                argc, argv, folder, url, argv[1]);
+                        FS.mkdirTree(dir);
+                    });
+
+            }, argc, argv, folder, url, argv[1]);
+            // clang-format on
 
             emscripten_set_main_loop(checkPreloadedFile, 0, 0);
 
@@ -2492,7 +2511,9 @@ s32 main(s32 argc, char** argv)
 
 #if defined(__EMSCRIPTEN__)
 
-    EM_ASM_(
+    // clang-format off
+    EM_ASM_
+    (
         {
             Module.syncFSRequests = 0;
             Module.syncing = false;
@@ -2502,9 +2523,14 @@ s32 main(s32 argc, char** argv)
             FS.mkdirTree(dir);
 
             FS.mount(IDBFS, {}, dir);
-            FS.syncfs(true, function(e) { dynCall('iiii', $1, [$2, $3, $0]); });
-        },
-        folder, emsStart, argc, argv);
+            FS.syncfs(true, function(e)
+            {
+                dynCall('iiii', $1, [$2, $3, $0]);
+            });
+
+         }, folder, emsStart, argc, argv
+    );
+    // clang-format on
 
 #else
 
