@@ -28,6 +28,9 @@ AllowShortLoopsOnASingleLine: false
 SortIncludes: false
 IncludeBlocks: Preserve
 
+# A run of #defines reads as a table; the columns say so, so they stay.
+AlignConsecutiveMacros: Consecutive
+
 # `#endif`, not `#    endif`.
 IndentPPDirectives: None
 
