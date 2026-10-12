@@ -98,7 +98,9 @@ static void unpackState(Code* code, bool pos_undo)
             code->cursor.position = first_change == code->src ? code->src : (first_change - 1);
 
         else
-            code->cursor.position = stored_pos;
+            //a state that stored no cursor leaves the position at the start
+            //rather than null: the editor reads it as a pointer into the text
+            code->cursor.position = stored_pos ? stored_pos : code->src;
     }
 }
 
@@ -2155,6 +2157,11 @@ static void sexpify(Code* code)
         return;
 
     char* pos = code->cursor.position;
+
+    // a cursor that is not in the text has nothing to s-expify
+    if(!pos)
+        return;
+
     char* start = NULL;
     char* end = NULL;
     char* sel = code->cursor.selection;
