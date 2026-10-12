@@ -174,9 +174,9 @@ static void testPS4Sticks(void)
 
     assert(centered.right_x == 0.0f && centered.right_y == 0.0f);
 
-    // Hard left, and hard up on the pad — which the machine reads as y away
-    // from the top of the screen, so negative.
-    ps4_state(report, 0x08, 0x80, 0x80, 0x00, 0xFF);
+    // Hard left, and hard up: the pad sends y up as the larger value, and the
+    // machine reads up as negative, so the axis comes back negated.
+    ps4_state(report, 0x08, 0x7F, 0x7F, 0x00, 0xFF);
 
     const sgamepad_hid_state pushed = read_ps4(report, sizeof report);
 
@@ -184,7 +184,7 @@ static void testPS4Sticks(void)
     assert(pushed.right_y < -0.99f);
 
     // Hard right, and hard down.
-    ps4_state(report, 0x08, 0x80, 0x80, 0xFF, 0x00);
+    ps4_state(report, 0x08, 0x7F, 0x7F, 0xFF, 0x00);
 
     const sgamepad_hid_state other = read_ps4(report, sizeof report);
 
@@ -192,6 +192,42 @@ static void testPS4Sticks(void)
     assert(other.right_y > 0.99f);
 
     puts("ps4 sticks ok");
+}
+
+// The left stick reads into the same four bits as the direction pad, which is
+// how every other backend steers: the machine has one set of direction bits.
+static void testPS4LeftStick(void)
+{
+    uint8_t report[PS4_USB_REPORT_SIZE];
+
+    // Hard left, hard up — the pad's y growing upwards, so the stick is read
+    // as the direction pad's left and up.
+    ps4_state(report, 0x08, 0x00, 0xFF, 0x7F, 0x7F);
+    assert(buttons(read_ps4(report, sizeof report)) == (LEFT | UP));
+
+    ps4_state(report, 0x08, 0xFF, 0x00, 0x7F, 0x7F);
+    assert(buttons(read_ps4(report, sizeof report)) == (RIGHT | DOWN));
+
+    // A stick inside the threshold is no direction — which is why the resting
+    // value every other case uses comes out as nothing.
+    ps4_state(report, 0x08, 0x80, 0x80, 0x7F, 0x7F);
+
+    const sgamepad_hid_state centered = read_ps4(report, sizeof report);
+
+    assert(buttons(centered) == 0);
+    assert(centered.right_x < 0.01f && centered.right_x > -0.01f);
+
+    // And the stick adds to the direction pad rather than replacing it: the
+    // hat says nothing while the stick is hard left, and both come out.
+    ps4_state(report, 0x08, 0x00, 0x80, 0x7F, 0x7F);
+    assert(buttons(read_ps4(report, sizeof report)) == LEFT);
+
+    // The hat on right, the stick on left: the machine reads both, since they
+    // share its four bits.
+    ps4_state(report, 0x02, 0x00, 0x80, 0x7F, 0x7F);
+    assert(buttons(read_ps4(report, sizeof report)) == (LEFT | RIGHT));
+
+    puts("ps4 left stick ok");
 }
 
 // The same packet over Bluetooth: a different report id, the report id again
@@ -206,10 +242,12 @@ static void ps4_bluetooth(uint8_t* report, uint8_t pressed)
 
     // The state packet starts at 3 over Bluetooth — two later than the USB
     // report's, which has only the report id before it. So the sticks take
-    // 4..6 and the buttons start at 7, two past where the USB report has them.
+    // 3..6 and the buttons start at 7, two past where the USB report has them.
+    // Both sticks are centered, so neither of them is a direction.
+    report[3] = 0x80;
     report[4] = 0x80;
     report[5] = 0x80;
-    report[6] = 0x80;
+    report[6] = 0x7F;
     report[7] = pressed;                    // the face buttons and the hat
     report[8] = 0x08;                       // neither shoulder nor trigger is digital
 
@@ -287,6 +325,47 @@ static void testPS5DualSense(void)
     puts("ps5 dualsense ok");
 }
 
+// A DualSense that nothing has brought into enhanced mode sends the simple
+// layout under the same report id: the buttons sit where a DualShock 4 keeps
+// them, not where the DualSense's own layout does. Read as the extended one,
+// its trigger bytes come out as the hat and the face buttons.
+static void testPS5SimpleReport(void)
+{
+    // The same bytes the DualShock 4's test uses, under the DualSense's reader.
+    uint8_t report[PS4_USB_REPORT_SIZE];
+
+    ps4_state(report, 0x20 | 0x08, 0x80, 0x80, 0x80, 0x80);
+    assert(buttons(read_ps5(report, 10)) == A);
+
+    ps4_state(report, 0x08, 0x80, 0x80, 0xFF, 0x00);
+
+    const sgamepad_hid_state state = read_ps5(report, 10);
+
+    assert(buttons(state) == 0);
+    assert(state.right_x > 0.99f);
+    assert(state.right_y > 0.99f);
+
+    // And through a Bluetooth report of the same layout, under the same id:
+    // the state packet still starts at 1, and 78 bytes is what says the
+    // layout is the simple one rather than the extended.
+    uint8_t bluetooth[78];
+
+    memset(bluetooth, 0, sizeof bluetooth);
+
+    bluetooth[0] = 0x01;
+    bluetooth[1] = 0x7F;                    // the left stick centered
+    bluetooth[2] = 0x7F;
+    bluetooth[3] = 0x7F;                    // and the right one
+    bluetooth[4] = 0x7F;
+    bluetooth[5] = 0x40 | 0x08;             // circle, and the hat saying nothing
+
+    const sgamepad_hid_state over_bt = read_ps5(bluetooth, sizeof bluetooth);
+
+    assert(buttons(over_bt) == B);
+
+    puts("ps5 simple report ok");
+}
+
 // Over Bluetooth the report id is 0x31 and the packet starts one byte later
 // than the DualShock 4's, both after the report id and after the HID byte.
 static void testPS5Bluetooth(void)
@@ -297,10 +376,14 @@ static void testPS5Bluetooth(void)
     memset(report, 0, sizeof report);
 
     // The state packet starts at 2 here — the report id, and the byte the
-    // Bluetooth stack puts before it. Its sticks take 2..5, then the counter
-    // and the buttons, whose first byte lands at 9.
+    // Bluetooth stack puts before it. So its four stick axes take 2..5, then
+    // the counter, and the buttons, whose first byte lands at 9.
     report[0] = 0x31;
     report[1] = 0xC0;
+    report[2] = 0x7F;                       // centering the sticks as the
+    report[3] = 0x7F;                       // helpers above do, so no
+    report[4] = 0x7F;                       // direction comes out of them
+    report[5] = 0x7F;
     report[9] = 0x40 | 0x08;                // circle, and the hat saying nothing
     report[10] = 0x01;                      // the mute and function buttons
 
@@ -509,8 +592,11 @@ static void testCrcIsSdls(void)
     puts("crc32 is sdl's ok");
 }
 
-// The keepalive the pad needs over Bluetooth: the magic byte in the report the
-// pad listens on, and — for the DualSense, which checks — a CRC that adds up.
+// The keepalive: the magic byte each pad's output report is recognised by,
+// and no CRC — a packet whose sum adds up is a real effects report, which is
+// a pad being changed rather than one being asked to keep talking. The pads
+// themselves are what a wrong byte here would show, so the shape is what is
+// pinned: this is what SDL sends, byte for byte.
 static void testKeepalive(void)
 {
     uint8_t report[78];
@@ -522,18 +608,13 @@ static void testKeepalive(void)
 
     sgamepad_hid_ps5_keepalive(report, sizeof report);
 
-    // What the DualSense is asked to listen for, and the sum of everything
-    // before the CRC it carries.
     assert(report[0] == 0x31);
     assert(report[1] == 0x02);
 
-    const uint8_t header = 0xA2;
-    const uint32_t crc = sgamepad_hid_crc32(sgamepad_hid_crc32(0, &header, 1), report, 74);
-
-    assert(report[74] == (crc & 0xFF));
-    assert(report[75] == ((crc >> 8) & 0xFF));
-    assert(report[76] == ((crc >> 16) & 0xFF));
-    assert(report[77] == ((crc >> 24) & 0xFF));
+    // Nothing else is set, and in particular no CRC: the last four bytes that
+    // would carry one are zero.
+    for (size_t i = 2; i < sizeof report; i++)
+        assert(report[i] == 0);
 
     puts("keepalive ok");
 }
@@ -544,8 +625,10 @@ int main(void)
     testPS4Hat();
     testPS4BackAndStart();
     testPS4Sticks();
+    testPS4LeftStick();
     testPS4Bluetooth();
     testPS5DualSense();
+    testPS5SimpleReport();
     testPS5Bluetooth();
     testSwitchFaceButtons();
     testSwitchHatAndSticks();
