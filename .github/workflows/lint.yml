@@ -106,6 +106,15 @@ jobs:
       - name: Install clang-tidy
         run: pip install clang-tidy==20.1.0
 
+      # sokol is parsed here, never linked, but parsing it on Linux is
+      # compiling it far enough to need the headers CMake's Linux branch links
+      # against: X11, Xi, Xcursor, GL and asound.
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxi-dev libxcursor-dev libgl1-mesa-dev libasound2-dev
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+
       # The options a real build uses, one platform layer as the tree allows:
       # sokol is the layer the browser and console builds take. A database that
       # leaves a unit unable to find its headers is worse than no checker at
