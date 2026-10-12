@@ -685,7 +685,11 @@ static bool _sgamepad_hid_open(const wchar_t* path)
     if (file == INVALID_HANDLE_VALUE)
         return false;
 
-    HIDD_ATTRIBUTES attributes = { .Size = sizeof attributes };
+    HIDD_ATTRIBUTES attributes;
+
+    memset(&attributes, 0, sizeof attributes);
+
+    attributes.Size = sizeof attributes;
 
     if (!HidD_GetAttributes(file, &attributes))
     {
@@ -762,7 +766,14 @@ static void _sgamepad_hid_scan(void)
 
     for (DWORD i = 0; ; i++)
     {
-        SP_DEVICE_INTERFACE_DATA interface = { .cbSize = sizeof interface };
+        // The fields are set rather than designated: MSVC's C parser does not
+        // take an initializer list here, which is a thing hand-written stubs
+        // for the platform's headers cannot show.
+        SP_DEVICE_INTERFACE_DATA interface;
+
+        memset(&interface, 0, sizeof interface);
+
+        interface.cbSize = sizeof interface;
 
         if (!SetupDiEnumDeviceInterfaces(set, NULL, &guid, i, &interface))
             break;
