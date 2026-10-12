@@ -2166,7 +2166,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
                 setWindowIcon();
                 initGPU();
 
-#if defined(__TIC_ANDROID__)
+#if defined(TOUCH_INPUT_SUPPORT) && defined(__TIC_ANDROID__)
                 // The SDLActivity from SDL v2.32 starts with text input active.
                 // We must explicitly stop it to show our custom keyboard by default.
                 SDL_StopTextInput();
