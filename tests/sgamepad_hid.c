@@ -48,11 +48,13 @@ static sgamepad_hid_state read_switch(const uint8_t* report, size_t length)
 // reader is expected to produce.
 static unsigned buttons(sgamepad_hid_state state)
 {
+    // clang-format off
     return (state.up ? 1u : 0u) | (state.down ? 2u : 0u)
         | (state.left ? 4u : 0u) | (state.right ? 8u : 0u)
         | (state.a ? 16u : 0u) | (state.b ? 32u : 0u)
         | (state.x ? 64u : 0u) | (state.y ? 128u : 0u)
         | (state.back ? 256u : 0u) | (state.start ? 512u : 0u);
+    // clang-format on
 }
 
 #define UP 1u

@@ -410,10 +410,12 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 // shoulder, a trigger, a stick pressed in.
 static bool _sgamepad_use(GCExtendedGamepad* pad, const sgamepad_state* state)
 {
+    // clang-format off
     return _sgamepad_holding(state)
         || pad.leftShoulder.isPressed || pad.rightShoulder.isPressed
         || pad.leftTrigger.isPressed || pad.rightTrigger.isPressed
         || pad.leftThumbstickButton.isPressed || pad.rightThumbstickButton.isPressed;
+    // clang-format on
 }
 
 SGAMEPAD_API_IMPL void sgamepad_record_state(void)
@@ -497,10 +499,12 @@ static float _sgamepad_xinput_thumb(SHORT value)
 // shoulder, a trigger held past the threshold XInput itself uses.
 static bool _sgamepad_xinput_use(const XINPUT_GAMEPAD* pad, const sgamepad_state* state)
 {
+    // clang-format off
     return _sgamepad_holding(state)
         || (pad->wButtons & (XINPUT_GAMEPAD_LEFT_SHOULDER | XINPUT_GAMEPAD_RIGHT_SHOULDER))
         || pad->bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD
         || pad->bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+    // clang-format on
 }
 
 // The HID half. A raw pad is read with overlapped reads: one is left pending
@@ -1043,9 +1047,11 @@ static bool _sgamepad_linux_claimed(int fd)
         || ioctl(fd, EVIOCGBIT(EV_KEY, sizeof keys), keys) < 0)
         return false;
 
+    // clang-format off
     return _sgamepad_linux_bit(abs, ABS_HAT0X) && _sgamepad_linux_bit(abs, ABS_HAT0Y)
         && _sgamepad_linux_bit(keys, BTN_SOUTH) && _sgamepad_linux_bit(keys, BTN_EAST)
         && _sgamepad_linux_bit(keys, BTN_NORTH) && _sgamepad_linux_bit(keys, BTN_WEST);
+    // clang-format on
 }
 
 static void _sgamepad_linux_close(_sgamepad_linux_device* pad)

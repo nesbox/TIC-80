@@ -4170,9 +4170,11 @@ static void onHttpVersionGet(const net_get_data* data)
                 s32 minor = json_int("minor", 0);
                 s32 patch = json_int("patch", 0);
 
+                // clang-format off
                 if((major > TIC_VERSION_MAJOR)
                     || (major == TIC_VERSION_MAJOR && minor > TIC_VERSION_MINOR)
                     || (major == TIC_VERSION_MAJOR && minor == TIC_VERSION_MINOR && patch > TIC_VERSION_REVISION))
+                // clang-format on
                 {
                     char msg[TICNAME_MAX];
                     sprintf(msg, " new version %i.%i.%i available", major, minor, patch);

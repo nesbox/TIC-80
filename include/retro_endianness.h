@@ -50,6 +50,7 @@ static INLINE uint32_t SWAP32(uint32_t x)
 #if defined(_MSC_VER) && _MSC_VER <= 1200
 static INLINE uint64_t SWAP64(uint64_t val)
 {
+  // clang-format off
   return
       ((val & 0x00000000000000ff) << 56)
     | ((val & 0x000000000000ff00) << 40)
@@ -59,10 +60,12 @@ static INLINE uint64_t SWAP64(uint64_t val)
     | ((val & 0x0000ff0000000000) >> 24)
     | ((val & 0x00ff000000000000) >> 40)
     | ((val & 0xff00000000000000) >> 56);
+  // clang-format on
 }
 #else
 static INLINE uint64_t SWAP64(uint64_t val)
 {
+  // clang-format off
   return   ((val & 0x00000000000000ffULL) << 56)
 	 | ((val & 0x000000000000ff00ULL) << 40)
 	 | ((val & 0x0000000000ff0000ULL) << 24)
@@ -71,6 +74,7 @@ static INLINE uint64_t SWAP64(uint64_t val)
 	 | ((val & 0x0000ff0000000000ULL) >> 24)
 	 | ((val & 0x00ff000000000000ULL) >> 40)
          | ((val & 0xff00000000000000ULL) >> 56);
+  // clang-format on
 }
 #endif
 

@@ -2999,6 +2999,7 @@ static void processKeyboard(Code* code)
     bool alt = tic_api_key(tic, tic_key_alt);
 
     bool changedSelection = false;
+    // clang-format off
     if(keyWasPressed(code->studio, tic_key_up)
         || keyWasPressed(code->studio, tic_key_down)
         || keyWasPressed(code->studio, tic_key_left)
@@ -3007,6 +3008,7 @@ static void processKeyboard(Code* code)
         || keyWasPressed(code->studio, tic_key_end)
         || keyWasPressed(code->studio, tic_key_pageup)
         || keyWasPressed(code->studio, tic_key_pagedown))
+    // clang-format on
     {
         changedSelection = true;
         if(!shift) code->cursor.selection = NULL;

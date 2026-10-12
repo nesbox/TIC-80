@@ -99,9 +99,11 @@ static const char* const FennelKeywords [] =
 
 static inline bool fennel_isalnum(char c)
 {
+    // clang-format off
     return isalnum((u8)c) || c == '_' || c == '-' || c == '#' || c == '!'
         || c == '+' || c == '=' || c == '&' || c == '^' || c == '%' || c == '?'
         || c == '$' || c == '>' || c == '<' || c == '*' || c == '/';
+    // clang-format on
 }
 
 static const tic_outline_item* getFennelOutline(const char* code, s32* size)
