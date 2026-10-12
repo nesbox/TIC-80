@@ -53,6 +53,12 @@ if(BUILD_TESTS)
     add_executable(sgamepad-test ${CMAKE_SOURCE_DIR}/tests/sgamepad.c)
     tic80_add_test(sgamepad-test)
 
+    # The Windows readers are pure functions over reports, so what a pad can
+    # only be asked for is asked here instead: a report in, its bits out. No
+    # platform is touched, which is why this runs everywhere the rest do.
+    add_executable(sgamepad-hid-test ${CMAKE_SOURCE_DIR}/tests/sgamepad_hid.c)
+    tic80_add_test(sgamepad-hid-test)
+
     # The studio's sound is a module of its own, and links with the core alone:
     # nothing the test reaches goes near the studio, and its header names only
     # the core, so no build directory is needed here either.

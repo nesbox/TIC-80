@@ -12,7 +12,7 @@
 //
 //     The following defines are used by the implementation to pick a backend:
 //     __EMSCRIPTEN__      the browser's Gamepad API
-//     _WIN32              XInput
+//     _WIN32              XInput, and raw HID for what it does not place
 //     __APPLE__           GameController.framework, which is Objective-C
 //     __linux__           evdev, through /dev/input/event*
 //
@@ -130,6 +130,21 @@ SGAMEPAD_API_DECL void sgamepad_test_device(int index, bool present, sgamepad_st
 
 #include <string.h>
 
+// The headers a Windows build includes; named here so a build without the
+// platform's own can put something else in their place.
+#ifndef SGAMEPAD_WINDOWS_H
+#define SGAMEPAD_WINDOWS_H   <windows.h>
+#endif
+#ifndef SGAMEPAD_XINPUT_H
+#define SGAMEPAD_XINPUT_H    <xinput.h>
+#endif
+#ifndef SGAMEPAD_HIDSDI_H
+#define SGAMEPAD_HIDSDI_H    <hidsdi.h>
+#endif
+#ifndef SGAMEPAD_SETUPAPI_H
+#define SGAMEPAD_SETUPAPI_H  <setupapi.h>
+#endif
+
 #if defined(__EMSCRIPTEN__)
 #include <emscripten/html5.h>
 #elif defined(__APPLE__) && defined(__OBJC__)
@@ -157,9 +172,10 @@ typedef struct
 
 static _sgamepad_t _sgamepad;
 
-// A backend that holds something of the platform's own — Linux, with a file
-// per pad — is told at setup and at shutdown; the others have nothing to do.
-#if defined(__linux__) && !defined(SGAMEPAD_TEST)
+// A backend that holds something of the platform's own — Linux with a file
+// per pad, Windows with a HID handle per pad — is told at setup and at
+// shutdown; the others have nothing to do.
+#if (defined(__linux__) || defined(_WIN32)) && !defined(SGAMEPAD_TEST)
 static void _sgamepad_backend_setup(void);
 static void _sgamepad_backend_shutdown(void);
 #else
@@ -449,8 +465,24 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
-#include <windows.h>
-#include <xinput.h>
+#include SGAMEPAD_WINDOWS_H
+#include SGAMEPAD_XINPUT_H
+#include SGAMEPAD_HIDSDI_H
+#include SGAMEPAD_SETUPAPI_H
+#include <stdlib.h>
+
+// Two things read a pad here. XInput reaches the Xbox family and whatever
+// presents as one, and it is the floor: a pad it places is read there and
+// nowhere else. The pads it does not place — the PlayStation and Switch
+// families, which is what an 8BitDo in its S mode is — are read from the raw
+// HID reports they send, by the readers in sgamepad_hid.h.
+//
+// Those pads are reached by vendor and product id, and only those: a device
+// is claimed when it says it is one of the families the readers know, which is
+// what leaves a wheel, a flight stick or a pad in a vendor mode with a layout
+// of its own unclaimed rather than read as buttons nobody pressed.
+#define SGAMEPAD_HID_IMPL
+#include "sgamepad_hid.h"
 
 // XInput's sticks are signed shorts with y upwards, and the machine's axis is
 // the mouse's: x to the right, y downwards.
@@ -467,6 +499,338 @@ static bool _sgamepad_xinput_use(const XINPUT_GAMEPAD* pad, const sgamepad_state
         || (pad->wButtons & (XINPUT_GAMEPAD_LEFT_SHOULDER | XINPUT_GAMEPAD_RIGHT_SHOULDER))
         || pad->bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD
         || pad->bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+}
+
+// The HID half. A raw pad is read with overlapped reads: one is left pending
+// and looked at once a frame, which is what a HID file wants — a synchronous
+// read would block until the pad next moved.
+
+#define _SGAMEPAD_HID_ARRAY 128      // bytes: more than any input report of these families
+
+// The room the device interface detail takes: its own fixed part, and the
+// widest path a device can be named by.
+#define _SGAMEPAD_HID_PATH          260
+#define _SGAMEPAD_HID_DETAIL_SIZE   (sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W) + _SGAMEPAD_HID_PATH * sizeof(wchar_t))
+
+// The XInput pads take the first slots of the device table, the way XInput
+// numbers them; these take what is left.
+#define _SGAMEPAD_HID_MAX (SGAMEPAD_MAX_DEVICES - XUSER_MAX_COUNT)
+
+typedef struct
+{
+    HANDLE          file;           // the handle the reports are read on, overlapped
+    HANDLE          out;            // a second handle, not overlapped, for the keepalive's writes
+    OVERLAPPED      overlapped;
+    bool            pending;        // a read is outstanding on `overlapped`
+    bool            bluetooth;      // the wire the last report came in on
+    bool            enhanced;       // the pad sends its extended report, so it is one the keepalive is for
+    DWORD           last;           // when a report last arrived, for the Bluetooth keepalive
+    sgamepad_hid_family family;
+    wchar_t         path[_SGAMEPAD_HID_PATH];   // the interface, which is what tells two of them apart
+    uint8_t         report[_SGAMEPAD_HID_ARRAY];
+} _sgamepad_hid_device;
+
+static struct
+{
+    _sgamepad_hid_device devices[_SGAMEPAD_HID_MAX];
+    DWORD scanned;                  // when the devices were last looked for
+} _sgamepad_hid;
+
+// A pad that sends nothing for this long over Bluetooth is stalled rather than
+// idle: PlayStation pads expect the host to ask, and stop streaming without it.
+#define _SGAMEPAD_HID_KEEPALIVE_MS 500
+
+// A pad that arrives takes this long to be noticed: the devices are listed by
+// opening them, which is not a thing to do once a frame once a pad is up.
+#define _SGAMEPAD_HID_SCAN_MS 1000
+
+static void _sgamepad_hid_close(_sgamepad_hid_device* pad)
+{
+    // The file first: closing it is what cancels a read still outstanding, and
+    // the event it waits on has to outlive the wait. A write handle that never
+    // opened is nothing to give back.
+    if (pad->out)
+        CloseHandle(pad->out);
+
+    if (pad->file)
+        CloseHandle(pad->file);
+
+    if (pad->overlapped.hEvent)
+        CloseHandle(pad->overlapped.hEvent);
+
+    memset(pad, 0, sizeof *pad);
+}
+
+// A pad is not there until it answers, so the reads are what say a pad is
+// present: one that comes back with nothing, or with an error, has gone.
+static bool _sgamepad_hid_read(_sgamepad_hid_device* pad)
+{
+    if (!pad->pending)
+    {
+        const HANDLE event = pad->overlapped.hEvent;
+
+        memset(&pad->overlapped, 0, sizeof pad->overlapped);
+
+        pad->overlapped.hEvent = event;
+        pad->pending = true;
+
+        if (!ReadFile(pad->file, pad->report, _SGAMEPAD_HID_ARRAY, NULL, &pad->overlapped)
+            && GetLastError() != ERROR_IO_PENDING)
+        {
+            pad->pending = false;
+            return false;
+        }
+    }
+
+    DWORD bytes = 0;
+
+    if (!GetOverlappedResult(pad->file, &pad->overlapped, &bytes, FALSE))
+        return GetLastError() == ERROR_IO_INCOMPLETE;
+
+    pad->pending = false;
+
+    if (bytes == 0)
+        return true;
+
+    // The report id says which wire the pad is on, and only a Bluetooth one
+    // wants the keepalive: `1` is the state report a cable delivers, and the
+    // bands the Bluetooth stack wraps around it are the others.
+    pad->bluetooth = pad->family == SGAMEPAD_HID_PS4
+        ? (pad->report[0] >= _SGAMEPAD_HID_PS4_BT_STATE_1 && pad->report[0] <= _SGAMEPAD_HID_PS4_BT_STATE_9)
+        : pad->report[0] == _SGAMEPAD_HID_PS5_BT_STATE;
+
+    sgamepad_hid_state state = { 0 };
+
+    bool read = false;
+
+    switch (pad->family)
+    {
+    case SGAMEPAD_HID_PS4:    read = sgamepad_hid_ps4_report(pad->report, bytes, &state); break;
+    case SGAMEPAD_HID_PS5:    read = sgamepad_hid_ps5_report(pad->report, bytes, &state); break;
+    case SGAMEPAD_HID_SWITCH: read = sgamepad_hid_switch_report(pad->report, bytes, &state); break;
+    default: break;
+    }
+
+    // A report the reader does not know is one of the pad's other reports — a
+    // feature reply, a subcommand answer — and not something to read buttons
+    // from. The pad is alive all the same, which is what the stamp says.
+    pad->last = GetTickCount();
+
+    if (!read)
+        return true;
+
+    pad->enhanced = state.enhanced;
+
+    // XInput numbers its own pads from zero, and the four it can reach are the
+    // first four devices: a HID pad takes the slots past them, or the two
+    // writers would spend the frame overwriting each other's entries and only
+    // one pad of the two would ever be seen.
+    _sgamepad_device* device = &_sgamepad.devices[XUSER_MAX_COUNT + (int)(pad - _sgamepad_hid.devices)];
+    sgamepad_state* state_out = &device->state;
+
+    state_out->up = state.up;
+    state_out->down = state.down;
+    state_out->left = state.left;
+    state_out->right = state.right;
+    state_out->a = state.a;
+    state_out->b = state.b;
+    state_out->x = state.x;
+    state_out->y = state.y;
+    state_out->back = state.back;
+    state_out->start = state.start;
+    state_out->right_x = _sgamepad_deadzone(state.right_x);
+    state_out->right_y = _sgamepad_deadzone(state.right_y);
+
+    // A pad that reports at all is in use: these families send while they are
+    // held and go quiet on the table, where XInput's pads answer a poll
+    // whether anyone has picked them up. So the slot is taken on the first
+    // report, which is what the policy asks of a device that shows it is used.
+    device->present = true;
+    device->used = true;
+
+    return true;
+}
+
+// Over Bluetooth a PlayStation pad in its extended report mode stops sending
+// unless the host asks it to go on; SDL sends this when such a pad has been
+// quiet, and only then. A pad in the simple mode streams by itself, and the
+// packet would be the one that moves it out of that mode.
+static void _sgamepad_hid_keepalive(_sgamepad_hid_device* pad)
+{
+    if (pad->family == SGAMEPAD_HID_SWITCH || !pad->bluetooth || !pad->enhanced || !pad->out
+        || GetTickCount() - pad->last < _SGAMEPAD_HID_KEEPALIVE_MS)
+        return;
+
+    uint8_t report[_SGAMEPAD_HID_PS_REPORT_SIZE] = { 0 };
+
+    if (pad->family == SGAMEPAD_HID_PS4)
+        sgamepad_hid_ps4_keepalive(report, sizeof report);
+    else
+        sgamepad_hid_ps5_keepalive(report, sizeof report);
+
+    // The write goes to the handle that was opened for it: this one is not
+    // overlapped, so it completes before it returns, and the caller's buffers
+    // and the read's event are none of its business.
+    DWORD written = 0;
+
+    if (WriteFile(pad->out, report, sizeof report, &written, NULL) && written == sizeof report)
+        pad->last = GetTickCount();
+}
+
+static bool _sgamepad_hid_open(const wchar_t* path)
+{
+    const HANDLE file = CreateFileW(path, GENERIC_READ | GENERIC_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+
+    if (file == INVALID_HANDLE_VALUE)
+        return false;
+
+    HIDD_ATTRIBUTES attributes;
+
+    memset(&attributes, 0, sizeof attributes);
+
+    attributes.Size = sizeof attributes;
+
+    if (!HidD_GetAttributes(file, &attributes))
+    {
+        CloseHandle(file);
+        return false;
+    }
+
+    // The readers take no other device: what is not a Sony or a Nintendo pad
+    // is none of theirs, and is left where XInput may read it.
+    const sgamepad_hid_family family = sgamepad_hid_family_of(attributes.VendorID, attributes.ProductID);
+
+    if (family == SGAMEPAD_HID_NONE)
+    {
+        CloseHandle(file);
+        return false;
+    }
+
+    int slot = -1;
+
+    for (int i = 0; i < _SGAMEPAD_HID_MAX && slot < 0; i++)
+        if (!_sgamepad_hid.devices[i].file)
+            slot = i;
+
+    if (slot < 0)
+    {
+        CloseHandle(file);
+        return false;
+    }
+
+    _sgamepad_hid_device* pad = &_sgamepad_hid.devices[slot];
+
+    memset(pad, 0, sizeof *pad);
+
+    pad->file = file;
+    pad->family = family;
+    pad->last = GetTickCount();
+    pad->overlapped.hEvent = CreateEventW(NULL, TRUE, FALSE, NULL);
+
+    // A second handle for the keepalive's writes, without the overlapped flag:
+    // a write on an overlapped handle can report completion without doing the
+    // I/O, and the keepalive has nowhere to wait for it.
+    pad->out = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL, OPEN_EXISTING, 0, NULL);
+
+    if (pad->out == INVALID_HANDLE_VALUE)
+        pad->out = NULL;
+
+    if (!pad->overlapped.hEvent)
+    {
+        _sgamepad_hid_close(pad);
+        return false;
+    }
+
+    for (int i = 0; i < _SGAMEPAD_HID_PATH - 1 && path[i]; i++)
+        pad->path[i] = path[i];
+
+    return true;
+}
+
+// Looking for the pads means opening every HID device on the machine to read
+// its ids, which is why it happens when one may have come or gone rather than
+// once a frame: at startup, when one stops answering, and on a slow clock.
+static void _sgamepad_hid_scan(void)
+{
+    _sgamepad_hid.scanned = GetTickCount();
+
+    GUID guid;
+    HidD_GetHidGuid(&guid);
+
+    HDEVINFO set = SetupDiGetClassDevsW(&guid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+
+    if (set == INVALID_HANDLE_VALUE)
+        return;
+
+    for (DWORD i = 0; ; i++)
+    {
+        // The fields are set rather than designated: MSVC's C parser does not
+        // take an initializer list here, which is a thing hand-written stubs
+        // for the platform's headers cannot show.
+        SP_DEVICE_INTERFACE_DATA entry;
+
+        memset(&entry, 0, sizeof entry);
+
+        entry.cbSize = sizeof entry;
+
+        if (!SetupDiEnumDeviceInterfaces(set, NULL, &guid, i, &entry))
+            break;
+
+        DWORD size = 0;
+
+        // The call is asked for the room it needs first. It wants one buffer
+        // of that size to write the structure into, and it is taken from the
+        // heap because the structure's alignment is not a byte's.
+        SetupDiGetDeviceInterfaceDetailW(set, &entry, NULL, 0, &size, NULL);
+
+        if (size == 0 || size > _SGAMEPAD_HID_DETAIL_SIZE)
+            continue;
+
+        SP_DEVICE_INTERFACE_DETAIL_DATA_W* detail = calloc(1, size);
+
+        if (!detail)
+            continue;
+
+        detail->cbSize = sizeof *detail;
+
+        if (!SetupDiGetDeviceInterfaceDetailW(set, &entry, detail, size, NULL, NULL))
+        {
+            free(detail);
+            continue;
+        }
+
+        // Where the device is, and nothing about whether it is a pad: the
+        // vendor and product ids are what tell that, and they are read by
+        // opening it — which only happens to one that is not open yet.
+        wchar_t path[_SGAMEPAD_HID_PATH];
+
+        size_t length = 0;
+
+        while (length < _SGAMEPAD_HID_PATH - 1 && detail->DevicePath[length])
+            length++;
+
+        memcpy(path, detail->DevicePath, length * sizeof path[0]);
+        path[length] = 0;
+
+        free(detail);
+
+        bool known = false;
+
+        for (int d = 0; d < _SGAMEPAD_HID_MAX && !known; d++)
+            if (_sgamepad_hid.devices[d].file)
+                known = wcscmp(_sgamepad_hid.devices[d].path, path) == 0;
+
+        if (known)
+            continue;
+
+        // Only a pad the readers know is kept: anything else the call opened
+        // is closed again, which is what leaves a wheel or a keyboard alone.
+        _sgamepad_hid_open(path);
+    }
+
+    SetupDiDestroyDeviceInfoList(set);
 }
 
 SGAMEPAD_API_IMPL void sgamepad_record_state(void)
@@ -510,7 +874,44 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
         device->used = _sgamepad_xinput_use(pad, state);
     }
 
-    _sgamepad_assign((int)XUSER_MAX_COUNT);
+    // The HID pads come after XInput's, and take the device slot past the ones
+    // XInput numbers: a pad XInput places is read there, and one it does not
+    // is read here.
+    bool gone = false;
+
+    for (int i = 0; i < _SGAMEPAD_HID_MAX; i++)
+    {
+        _sgamepad_hid_device* pad = &_sgamepad_hid.devices[i];
+
+        if (!pad->file)
+            continue;
+
+        if (!_sgamepad_hid_read(pad))
+        {
+            _sgamepad_hid_close(pad);
+            gone = true;
+            continue;
+        }
+
+        _sgamepad_hid_keepalive(pad);
+    }
+
+    if (gone || GetTickCount() - _sgamepad_hid.scanned >= _SGAMEPAD_HID_SCAN_MS)
+        _sgamepad_hid_scan();
+
+    _sgamepad_assign(SGAMEPAD_MAX_DEVICES);
+}
+
+static void _sgamepad_backend_setup(void)
+{
+    memset(&_sgamepad_hid, 0, sizeof _sgamepad_hid);
+}
+
+static void _sgamepad_backend_shutdown(void)
+{
+    for (int i = 0; i < _SGAMEPAD_HID_MAX; i++)
+        if (_sgamepad_hid.devices[i].file)
+            _sgamepad_hid_close(&_sgamepad_hid.devices[i]);
 }
 
 #elif defined(__linux__)
