@@ -144,11 +144,15 @@ uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length);
 #define _SGAMEPAD_HID_PS5_SIMPLE_SIZE    10
 
 // The wires carry the pads' sticks as 8-bit values centered on 0x80 and as
-// 16-bit ones centered on 0x8000, and both families send y growing *upwards* —
-// 0 is the stick pushed down, the largest value pushed up. The machine reads y
-// the other way, so the readers negate it, which is what SDL's mapping for
-// these pads leaves to the driver: it does not invert the axis, so what a cart
-// gets is what the pad sent, and that is up-positive.
+// 16-bit ones centered on 0x8000, and both families send y growing *upwards*:
+// the smallest value is the stick held up.
+//
+// What comes out of these is what the machine reads, and that is the same way
+// round — up is negative. It is SDL's way too, so the numbers are SDL's: its
+// own axis convention is up-negative (its SDL_gamecontroller.h says -32768 is
+// up/left), which is what its backends put every platform into. XInput's pads
+// send y upwards as well, and SDL negates them on the way in for exactly the
+// reason nothing here needs to be negated on the way out.
 #define _SGAMEPAD_HID_STICK8_CENTER      0x80
 #define _SGAMEPAD_HID_STICK16_CENTER     0x8000
 
@@ -326,6 +330,12 @@ bool sgamepad_hid_ps4_report(const uint8_t* report, size_t length, sgamepad_hid_
             return false;
 
         packet = report + _SGAMEPAD_HID_PS4_BT_DATA;
+
+        // A DualShock 4 sends this band only once it is in enhanced mode: SDL
+        // asks it there on the way in, and the state report a pad in the
+        // simple mode answers with is the `1` one, whatever the wire. So a
+        // pad reporting here is one the keepalive is for.
+        state->enhanced = true;
     }
     else
     {
@@ -333,9 +343,9 @@ bool sgamepad_hid_ps4_report(const uint8_t* report, size_t length, sgamepad_hid_
     }
 
     state->right_x = _sgamepad_hid_stick8(packet[2]);
-    state->right_y = -_sgamepad_hid_stick8(packet[3]);
+    state->right_y = _sgamepad_hid_stick8(packet[3]);
 
-    _sgamepad_hid_left_stick(_sgamepad_hid_stick8(packet[0]), -_sgamepad_hid_stick8(packet[1]), state);
+    _sgamepad_hid_left_stick(_sgamepad_hid_stick8(packet[0]), _sgamepad_hid_stick8(packet[1]), state);
     _sgamepad_hid_ps_buttons(packet + _SGAMEPAD_HID_PS4_BUTTONS, state);
 
     return true;
@@ -368,7 +378,10 @@ bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_
     }
     else if (report[0] == _SGAMEPAD_HID_PS5_BT_STATE)
     {
-        if (length < _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT + 3 || !_sgamepad_hid_crc_ok(report, length))
+        // The packet starts two bytes in, so the buttons end at the eleventh
+        // byte of the report — a whole Bluetooth one is 78.
+        if (length < _SGAMEPAD_HID_PS5_BT_DATA + _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT + 3
+            || !_sgamepad_hid_crc_ok(report, length))
             return false;
 
         // This report exists only in enhanced mode: a pad in the simple one
@@ -383,9 +396,9 @@ bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_
     }
 
     state->right_x = _sgamepad_hid_stick8(packet[2]);
-    state->right_y = -_sgamepad_hid_stick8(packet[3]);
+    state->right_y = _sgamepad_hid_stick8(packet[3]);
 
-    _sgamepad_hid_left_stick(_sgamepad_hid_stick8(packet[0]), -_sgamepad_hid_stick8(packet[1]), state);
+    _sgamepad_hid_left_stick(_sgamepad_hid_stick8(packet[0]), _sgamepad_hid_stick8(packet[1]), state);
 
     // Past the hat byte the DualSense carries one more byte of buttons than
     // the DualShock 4; what the machine reads of them is the same three.
@@ -405,25 +418,27 @@ bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_h
 
     // The pad names its buttons by the labels printed on them, which is the
     // other way round from where they sit: the one it calls `b` is the bottom
-    // one and the one it calls `a` is on the right. The machine reads
-    // positions, where the bottom button is `a` — so the label is not what is
-    // read here, and the two that swap are the pad's `a` and `b`.
-    state->a = (packet[0] & 0x01) != 0;
-    state->b = (packet[0] & 0x02) != 0;
-    state->y = (packet[0] & 0x04) != 0;
-    state->x = (packet[0] & 0x08) != 0;
+    // one, `a` the right, `y` the left and `x` the top. The machine reads
+    // positions, so all four are read where they are rather than by what the
+    // pad calls them — which is the swap SDL makes when it is asked for
+    // positions, and the one TIC-80's own Switch build makes.
+    state->a = (packet[0] & 0x01) != 0;         // the bottom one
+    state->b = (packet[0] & 0x02) != 0;         // the right one
+    state->x = (packet[0] & 0x04) != 0;         // the left one
+    state->y = (packet[0] & 0x08) != 0;         // the top one
+    // (which is where the pad's own labels put `b`, `a`, `y` and `x`)
 
     state->back = (packet[1] & 0x01) != 0;
     state->start = (packet[1] & 0x02) != 0;
 
     _sgamepad_hid_hat(packet[2], state);
 
-    _sgamepad_hid_left_stick(_sgamepad_hid_stick16(packet + 3), -_sgamepad_hid_stick16(packet + 5), state);
+    _sgamepad_hid_left_stick(_sgamepad_hid_stick16(packet + 3), _sgamepad_hid_stick16(packet + 5), state);
 
     // The two button bytes and the hat, then the sticks: four 16-bit axes,
     // the right pair last.
     state->right_x = _sgamepad_hid_stick16(packet + 7);
-    state->right_y = -_sgamepad_hid_stick16(packet + 9);
+    state->right_y = _sgamepad_hid_stick16(packet + 9);
 
     return true;
 }
