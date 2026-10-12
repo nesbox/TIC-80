@@ -52,8 +52,11 @@ if(BUILD_SOKOL)
 
     elseif(WIN32)
         # xinput comes with the system, and the gamepad backend reads it: an
-        # Xbox-family pad or anything that presents as one.
-        target_link_libraries(sokol PRIVATE d3d11 xinput)
+        # Xbox-family pad or anything that presents as one. The pads it does
+        # not place are read from the raw HID reports they send, which is what
+        # hid — the HID class calls — and setupapi — the device list — are for.
+        # Both come with every Windows SDK, and neither is a redistributable.
+        target_link_libraries(sokol PRIVATE d3d11 xinput hid setupapi)
     elseif(EMSCRIPTEN)
 
     else()

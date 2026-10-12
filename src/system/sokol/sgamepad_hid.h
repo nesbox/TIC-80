@@ -48,10 +48,6 @@ typedef struct
     // The right stick, -1..1 in the machine's axes, centered on zero, with the
     // deadzone still for the layer to apply.
     float   right_x, right_y;
-
-    // A button the machine has no bit for was held — a shoulder, a stick
-    // pressed in. Nothing the machine reads, and use all the same.
-    bool    used;
 } sgamepad_hid_state;
 
 // Which reader reads this device. The vendor and product ids are the ones
@@ -227,11 +223,6 @@ static void _sgamepad_hid_ps_buttons(const uint8_t* buttons, sgamepad_hid_state*
 
     state->back = (buttons[1] & 0x10) != 0;
     state->start = (buttons[1] & 0x20) != 0;
-
-    // A shoulder, a stick pressed in, the guide, the touchpad, the mute: the
-    // machine reads none of them, and any of them is use.
-    state->used = state->used || (buttons[1] & 0x03) != 0
-        || (buttons[1] & 0xC0) != 0 || buttons[2] != 0;
 }
 
 sgamepad_hid_family sgamepad_hid_family_of(uint16_t vendor, uint16_t product)
@@ -370,10 +361,6 @@ bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_h
         state->down = hat == 3 || hat == 4 || hat == 5;
         state->left = hat == 5 || hat == 6 || hat == 7;
     }
-
-    // The shoulders, the sticks pressed in, the capture and home buttons are
-    // the same kind of use as a PlayStation pad's.
-    state->used = state->used || (packet[0] & 0xC0) != 0 || (packet[1] & 0x3C) != 0;
 
     // The two button bytes and the hat, then the sticks: four 16-bit axes,
     // the right pair last.

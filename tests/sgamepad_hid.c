@@ -149,15 +149,11 @@ static void testPS4BackAndStart(void)
     report[6] = 0x20;
     assert(buttons(read_ps4(report, sizeof report)) == START);
 
-    // A shoulder and a stick pressed in are no bit of the machine's, and are
-    // use all the same.
+    // A shoulder and a stick pressed in are no bit of the machine's: they are
+    // read, and read as nothing, rather than as a button nobody pressed.
     ps4_state(report, 0x08, 0x80, 0x80, 0x80, 0x80);
     report[6] = 0x01;
-
-    const sgamepad_hid_state state = read_ps4(report, sizeof report);
-
-    assert(buttons(state) == 0);
-    assert(state.used);
+    assert(buttons(read_ps4(report, sizeof report)) == 0);
 
     puts("ps4 back and start ok");
 }
@@ -302,7 +298,7 @@ static void testPS5Bluetooth(void)
     report[0] = 0x31;
     report[1] = 0xC0;
     report[9] = 0x40 | 0x08;                // circle, and the hat saying nothing
-    report[10] = 0x01;                      // a shoulder held, which is use
+    report[10] = 0x01;                      // the mute and function buttons
 
     const uint8_t header = 0xA1;
     const uint32_t crc = sgamepad_hid_crc32(sgamepad_hid_crc32(0, &header, 1), report, 74);
@@ -314,7 +310,6 @@ static void testPS5Bluetooth(void)
 
     assert(sgamepad_hid_ps5_report(report, sizeof report, &state));
     assert(buttons(state) == B);
-    assert(state.used);
 
     // And a CRC that does not add up is dropped.
     report[30] ^= 0x5A;
@@ -353,13 +348,13 @@ static void testSwitchFaceButtons(void)
 {
     // The pad names its buttons the other way round from where they sit: `b`
     // is the bottom one and `a` the right one, and the machine reads positions.
-    static const struct { uint8_t byte; unsigned expected; bool used; } Cases[] = {
-        { 0x01, A, false },                 // the bottom one, which the pad names `b`
-        { 0x02, B, false },                 // the right one, which the pad names `a`
-        { 0x04, Y, false },                 // the left one, which the pad names `y`
-        { 0x08, X, false },                 // the top one, which the pad names `x`
-        { 0x40, 0, true },                  // the left shoulder: no bit, and use
-        { 0x80, 0, true },                  // the right one
+    static const struct { uint8_t byte; unsigned expected; } Cases[] = {
+        { 0x01, A },                        // the bottom one, which the pad names `b`
+        { 0x02, B },                        // the right one, which the pad names `a`
+        { 0x04, Y },                        // the left one, which the pad names `y`
+        { 0x08, X },                        // the top one, which the pad names `x`
+        { 0x40, 0 },                        // a shoulder: read, and no bit
+        { 0x80, 0 },                        // the other one
     };
 
     for (size_t i = 0; i < sizeof Cases / sizeof Cases[0]; i++)
@@ -368,10 +363,7 @@ static void testSwitchFaceButtons(void)
 
         switch_state(report, Cases[i].byte, 0x00, 0x08, 0x8000, 0x8000, 0x8000, 0x8000);
 
-        const sgamepad_hid_state state = read_switch(report, sizeof report);
-
-        assert(buttons(state) == Cases[i].expected);
-        assert(state.used == Cases[i].used);
+        assert(buttons(read_switch(report, sizeof report)) == Cases[i].expected);
     }
 
     puts("switch face buttons ok");
@@ -389,12 +381,9 @@ static void testSwitchHatAndSticks(void)
     switch_state(report, 0x00, 0x02, 0x08, 0x8000, 0x8000, 0x8000, 0x8000);
     assert(buttons(read_switch(report, sizeof report)) == START);
 
+    // A stick pressed in shares that byte, and reads as nothing either.
     switch_state(report, 0x00, 0x04, 0x08, 0x8000, 0x8000, 0x8000, 0x8000);
-
-    const sgamepad_hid_state pressed_in = read_switch(report, sizeof report);
-
-    assert(buttons(pressed_in) == 0);
-    assert(pressed_in.used);
+    assert(buttons(read_switch(report, sizeof report)) == 0);
 
     // The hat: a direction, both of its bits on the diagonals, and nothing.
     switch_state(report, 0x00, 0x00, 0x01, 0x8000, 0x8000, 0x8000, 0x8000);
