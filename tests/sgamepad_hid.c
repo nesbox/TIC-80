@@ -3,9 +3,13 @@
  * A platform backend can only be checked with the pad in hand, except for this
  * part of it: the report parsing is a pure function, so a table of reports and
  * the bits each must produce covers what the bench would otherwise be the only
- * way to see. The reports are the ones the design names — the Switch ones from
- * the owner's 8BitDo, the PlayStation ones from the virtual DualShock 4 of the
- * bench, over both connections.
+ * way to see.
+ *
+ * The reports are built byte for byte the way SDL's drivers document the pads
+ * sending them, one per family and per connection. What that cannot catch is a
+ * layout SDL documents wrongly — only a pad on the bench can, which is what
+ * the bench tasks are for. Until then these say the readers read what SDL
+ * reads, which is the claim this change makes.
  *
  * Target sgamepad-hid-test in cmake/tests.cmake; `ctest -R sgamepad-hid` runs it.
  */
