@@ -1374,15 +1374,15 @@ RETRO_API size_t retro_get_memory_size(unsigned id)
         return 0;
     }
 
-    tic_mem* tic = (tic_mem*)state->tic;
+    // sizes, so the type is all this needs: a sizeof does not read the pointer
     switch(id)
     {
         case RETRO_MEMORY_SAVE_RAM:
-            return sizeof(tic->ram->persistent.data);
+            return sizeof(((tic_mem*)0)->ram->persistent.data);
         case RETRO_MEMORY_SYSTEM_RAM:
-            return sizeof(tic->ram->data);
+            return sizeof(((tic_mem*)0)->ram->data);
         case RETRO_MEMORY_VIDEO_RAM:
-            return sizeof(tic->ram->vram.data);
+            return sizeof(((tic_mem*)0)->ram->vram.data);
         default:
             return 0;
     }
@@ -1442,10 +1442,13 @@ RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char* code)
         str = end;
     }
 
-    // Finally, set each given code pair.
+    // Finally, set each given code pair: a code with an odd number of values
+    // carries no value for its last index, and an index past the persistent
+    // area is one the script API would have refused.
     tic_mem* tic = (tic_mem*)state->tic;
-    for(u32 i = 0; i < codeIndex; i = i + 2)
+    for(u32 i = 0; i + 1 < codeIndex; i = i + 2)
     {
-        tic->ram->persistent.data[codes[i]] = codes[i + 1];
+        if(codes[i] < TIC_PERSISTENT_SIZE)
+            tic->ram->persistent.data[codes[i]] = codes[i + 1];
     }
 }
