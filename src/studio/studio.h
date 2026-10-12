@@ -88,12 +88,15 @@
 #define PNG_EXT ".png"
 
 #if defined(CRT_SHADER_SUPPORT)
+// clang-format off
 #   define CRT_CMD_PARAM(macro)                                 \
     macro(crt, bool, BOOLEAN, "", "enable CRT monitor effect")
+// clang-format on
 #else
 #   define CRT_CMD_PARAM(macro)
 #endif
 
+// clang-format off
 #define CMD_PARAMS_LIST(macro)                                                              \
     macro(skip,         int,    BOOLEAN,    "",         "skip startup animation")           \
     macro(volume,       s32,    INTEGER,    "=<int>",   "global volume value [0-15]")       \
@@ -107,7 +110,9 @@
     macro(keepcmd,      int,    BOOLEAN,    "",         "re-execute commands on every run") \
     macro(version,      int,    BOOLEAN,    "",         "print program version")            \
     CRT_CMD_PARAM(macro)
+// clang-format on
 
+// clang-format off
 #define SHOW_TOOLTIP(STUDIO, FORMAT, ...)        \
 do{                                              \
     static const char Format[] = FORMAT;         \
@@ -115,6 +120,7 @@ do{                                              \
     snprintf(buf, sizeof buf, Format, __VA_ARGS__); \
     showTooltip(STUDIO, buf);                    \
 }while(0)
+// clang-format on
 
 typedef struct
 {

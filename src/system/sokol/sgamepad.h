@@ -184,8 +184,10 @@ static void _sgamepad_backend_shutdown(void);
 #endif
 
 // The same conditions the backend selection uses: no backend, no helpers.
+// clang-format off
 #if defined(SGAMEPAD_TEST) || defined(__EMSCRIPTEN__) || defined(_WIN32) \
     || (defined(__APPLE__) && defined(__OBJC__)) || defined(__linux__)
+// clang-format on
 
 // What is inside the deadzone reads as nothing.
 static float _sgamepad_deadzone(float value)

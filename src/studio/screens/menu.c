@@ -27,6 +27,7 @@
 #include <math.h>
 #include <string.h>
 
+// clang-format off
 #define ANIM_STATES(macro)  \
     macro(idle)             \
     macro(start)            \
@@ -34,6 +35,7 @@
     macro(down)             \
     macro(close)            \
     macro(back)
+// clang-format on
 
 #define ANIM_MOVIE(name)    Movie name;
 #define ANIM_FREE(name)     FREE(menu->anim.name.items);

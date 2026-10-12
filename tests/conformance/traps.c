@@ -530,9 +530,11 @@ static void trap_textri(tic_mem* tic, float x1, float y1, float x2, float y2, fl
 
 void traps_install(tic_core* core)
 {
+// clang-format off
 #define API_FUNC_DEF(name, ...)         \
     Real_##name = core->api.name;       \
     core->api.name = trap_##name;
+// clang-format on
 
     TIC_API_LIST(API_FUNC_DEF)
 

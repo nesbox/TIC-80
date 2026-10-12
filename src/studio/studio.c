@@ -84,9 +84,11 @@
 // struct argparse_option to the compiler; the table below spells it out. -h
 // is the header's own option, callback and all, so it keeps its full form.
 #undef  OPT_HELP
+// clang-format off
 #define OPT_HELP()       { ARGPARSE_OPT_BOOLEAN, 'h', "help", NULL,           \
                            "show this help message and exit",                 \
                            argparse_help_cb, 0, OPT_NONEG }
+// clang-format on
 #undef  OPT_STRING
 #undef  OPT_INTEGER
 #undef  OPT_BOOLEAN
@@ -121,12 +123,14 @@ typedef struct
 
 // The editors in tab order, expanded into the mode list and the registry
 // entries, so the tabs, the function keys and the number shortcuts agree.
+// clang-format off
 #define EDITOR_APPS(APP)                                                                                            \
     APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard,   codeBand,   false)   \
     APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard, spriteBand, true) \
     APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard,    mapBand,    true)    \
     APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard,    NULL,       false)    \
     APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard,  musicBand,  false)
+// clang-format on
 
 #if defined(BUILD_EDITORS)
 static const EditorMode Modes[] =
@@ -364,10 +368,12 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 
 // The parameters are capitalised: lowercase ones would be substituted inside
 // the `.name =` designators, which is not what an initialiser means.
+// clang-format off
 #define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN, CLIP, BAND, VB1)                 \
     [MODE] = {.name = NAME, .tip = TIP, .icon = ICON, .hotkey = KEY,                   \
               .instance = INST, .tick = TICK, .scanline = SCAN, .clipboard = CLIP,    \
               .band = BAND, .vbank1 = VB1},
+// clang-format on
     EDITOR_APPS(APP_ENTRY)
 #undef  APP_ENTRY
 #endif

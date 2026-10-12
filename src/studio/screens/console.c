@@ -76,6 +76,7 @@
 #define CONSOLE_BUFFER_ROWS         (CONSOLE_BUFFER_SIZE / CONSOLE_BUFFER_WIDTH)
 #define DEFAULT_CHMOD               0755
 
+// clang-format off
 #define HELP_CMD_LIST(macro)    \
     macro(version)              \
     macro(welcome)              \
@@ -90,7 +91,9 @@
     macro(hotkeys)              \
     macro(terms)                \
     macro(license)
+// clang-format on
 
+// clang-format off
 #define IMPORT_CMD_LIST(macro)  \
     macro(binary)               \
     macro(tiles)                \
@@ -98,7 +101,9 @@
     macro(map)                  \
     macro(code)                 \
     macro(screen)
+// clang-format on
 
+// clang-format off
 #define IMPORT_KEYS_LIST(macro) \
     macro(bank)                 \
     macro(x)                    \
@@ -107,7 +112,9 @@
     macro(h)                    \
     macro(vbank)                \
     macro(bpp)
+// clang-format on
 
+// clang-format off
 #define EXPORT_CMD_LIST(macro)  \
     macro(win)                  \
     macro(linux)                \
@@ -124,6 +131,7 @@
     macro(music)                \
     macro(screen)               \
     macro(help)
+// clang-format on
 
 #if defined(TIC80_PRO)
 #   define ALONE_KEY(macro) macro(alone)
@@ -131,11 +139,13 @@
 #   define ALONE_KEY(macro)
 #endif
 
+// clang-format off
 #define EXPORT_KEYS_LIST(macro) \
     macro(bank)                 \
     macro(vbank)                \
     macro(id)                   \
     ALONE_KEY(macro)
+// clang-format on
 
 static const char* WelcomeText =
     "TIC-80 is a fantasy computer for making, playing and sharing tiny games.\n\n"
@@ -2889,6 +2899,7 @@ static const char HelpUsage[] = "help [<text>"
 #define IMPORT_KEYS_DEF(key)    #key"=0 "
 
 #if defined(CAN_ADDGET_FILE)
+// clang-format off
 #define ADDGET_FILE(macro)                                                              \
     macro("add",                                                                        \
         NULL,                                                                           \
@@ -2904,8 +2915,9 @@ static const char HelpUsage[] = "help [<text>"
         "get <file>",                                                                   \
         onGetCommand,                                                                   \
         tabCompleteFiles,                                                               \
-        NULL)                                                                           \
+        NULL)
 
+// clang-format on
 #else
 #define ADDGET_FILE(macro)
 #endif
@@ -2913,12 +2925,15 @@ static const char HelpUsage[] = "help [<text>"
 // macro(name, alt, help, usage, handler, tab-complete for first param, for second param)
 // The browser's command exists only where the browser does.
 #if defined(BUILD_SURF)
+// clang-format off
 #define SURF_CMD(macro)                                                     \
     macro("surf", NULL, "Open carts browser.", NULL, onSurfCommand, NULL, NULL)
+// clang-format on
 #else
 #define SURF_CMD(macro)
 #endif
 
+// clang-format off
 #define COMMANDS_LIST(macro)                                                            \
     macro("help",                                                                       \
         NULL,                                                                           \
@@ -3102,6 +3117,7 @@ static const char HelpUsage[] = "help [<text>"
         NULL,                                                                           \
         NULL)                                                                           \
     ADDGET_FILE(macro)
+// clang-format on
 
 static struct Command
 {
@@ -3129,9 +3145,11 @@ static struct Command
 
 typedef struct Command Command;
 
+// clang-format off
 #define API_LIST(macro)         \
     TIC_CALLBACK_LIST(macro)    \
     TIC_API_LIST(macro)
+// clang-format on
 
 static struct ApiItem {const char* name; const char* def; const char* help;} Api[] =
 {
@@ -3520,6 +3538,7 @@ static void onExport_help(Console* console, const char* param, const char* name,
         // instead of converting them, which took the whole keyboard reference
         // out of the document (and out of the released learn.md).
         ptr += sprintf(ptr, "\n## Hotkeys\n");
+// clang-format off
 #define HOTKEYS_TABLE(title, rowtype, rows)                                            \
         ptr += sprintf(ptr, "\n### " title "\n\n| Keys | Description |\n|---|---|\n"); \
         FOR(const struct rowtype*, row, rows)                                          \
@@ -3530,6 +3549,7 @@ static void onExport_help(Console* console, const char* param, const char* name,
             printMdCell(&ptr, row->info);                                              \
             ptr += sprintf(ptr, " |\n");                                               \
         }
+// clang-format on
         HOTKEYS_TABLE("General", HotkeysRowGeneral, HotkeysTextGeneral)
         HOTKEYS_TABLE("Navigation", HotkeysRowNavigation, HotkeysTextNavigation)
         HOTKEYS_TABLE("Code Editor", HotkeysRowCodeEditor, HotkeysTextCodeEditor)

@@ -88,6 +88,7 @@ static inline bool ctx_resize_buf(net_ctx *ctx, s32 new_size)
     return true;
 }
 
+// clang-format off
 #define NET_EXEC_ERROR_CHECK \
     if (status_code != 200) \
     { \
@@ -107,6 +108,7 @@ static inline bool ctx_resize_buf(net_ctx *ctx, s32 new_size)
     	} \
         return; \
     }
+// clang-format on
 
 static void n3ds_net_execute(net_ctx *ctx, bool ignore_lock)
 {

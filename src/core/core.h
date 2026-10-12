@@ -242,14 +242,18 @@ void tic_core_sound_tick_end(tic_mem* memory);
 #if defined(BUILD_DEPRECATED)
 // mouse cursor is the same in both modes
 // for backward compatibility
+// clang-format off
 #define OVR_COMPAT(CORE, BANK)                                              \
     core->api.vbank(&CORE->memory, BANK),                                     \
     CORE->memory.ram->vram.vars.cursor = CORE->state.vbank.mem.vars.cursor
+// clang-format on
 
+// clang-format off
 #define OVR(CORE)                                   \
     s32 MACROVAR(_bank_) = CORE->state.vbank.id;    \
     OVR_COMPAT(CORE, 1);                            \
     core->api.cls(&CORE->memory, 0);                  \
     SCOPE(OVR_COMPAT(CORE, MACROVAR(_bank_)))
+// clang-format on
 
 #endif

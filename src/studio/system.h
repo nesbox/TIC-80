@@ -73,6 +73,7 @@ bool    tic_sys_keyboard_text(char* text);
 void    tic_sys_update_config();
 void    tic_sys_default_mapping(tic_mapping* mapping);
 
+// clang-format off
 #define CODE_COLORS_LIST(macro) \
     macro(BG)       \
     macro(FG)       \
@@ -82,6 +83,7 @@ void    tic_sys_default_mapping(tic_mapping* mapping);
     macro(API)      \
     macro(COMMENT)  \
     macro(SIGN)
+// clang-format on
 
 enum KeybindMode {
     KEYBIND_STANDARD,

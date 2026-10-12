@@ -46,9 +46,11 @@ struct StudioMainMenu
     struct StudioOptions* options;
 };
 
+// clang-format off
 #define OPTION_VALUES(...)                          \
     .values = (const char*[])__VA_ARGS__,           \
     .count = COUNT_OF(((const char*[])__VA_ARGS__))
+// clang-format on
 
 static void showMainMenu(void* data, s32 pos);
 static void onBackFromOptionsMenu(void* data, s32 pos);

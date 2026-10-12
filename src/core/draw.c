@@ -86,6 +86,7 @@ static inline u8 getPixel(tic_core* core, s32 x, s32 y)
         : tic_api_peek4((tic_mem*)core, y * TIC80_WIDTH + x);
 }
 
+// clang-format off
 #define EARLY_CLIP(x, y, width, height) \
     ( \
         (((y)+(height)-1) < core->state.clip.t) \
@@ -93,6 +94,7 @@ static inline u8 getPixel(tic_core* core, s32 x, s32 y)
         || ((y) >= core->state.clip.b) \
         || ((x) >= core->state.clip.r) \
     )
+// clang-format on
 
 static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 {
@@ -134,6 +136,7 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
     drawVLine(core, x + width - 1, y, height, color);
 }
 
+// clang-format off
 #define DRAW_TILE_BODY(X, Y) do {\
     for(s32 py=sy; py < ey; py++, y++) \
     { \
@@ -145,6 +148,7 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
         } \
     } \
     } while(0)
+// clang-format on
 
 #define REVERT(X) (TIC_SPRITESIZE - 1 - (X))
 

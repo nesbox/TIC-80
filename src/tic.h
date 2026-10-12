@@ -255,6 +255,7 @@ typedef struct
     tic_waveform items[WAVES_COUNT];
 } tic_waveforms;
 
+// clang-format off
 #define MUSIC_CMD_LIST(macro)                                               \
     macro(empty,    0, "")                                                  \
     macro(volume,   M, "master volume for LEFT=X / RIGHT=Y channel")        \
@@ -264,6 +265,7 @@ typedef struct
     macro(pitch,    P, "finepitch UP/DOWN=XY-" DEF2STR(PITCH_DELTA))        \
     macro(vibrato,  V, "vibrato with PERIOD=X and DEPTH=Y")                 \
     macro(delay,    D, "delay triggering a note with TICKS=XY")
+// clang-format on
 
 typedef enum
 {

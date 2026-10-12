@@ -69,7 +69,9 @@
 #define REP9(...) REP8(__VA_ARGS__) __VA_ARGS__
 #define REP10(...) REP9(__VA_ARGS__) __VA_ARGS__
 
+// clang-format off
 #define REP(HUNDREDS,TENS,ONES,...)   \
     REP##HUNDREDS(REP10(REP10(__VA_ARGS__)))  \
     REP##TENS(REP10(__VA_ARGS__))             \
     REP##ONES(__VA_ARGS__)
+// clang-format on

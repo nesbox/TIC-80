@@ -30,15 +30,19 @@
 #define DEPTH	32		// can be: 8, 16 or 32
 
 // really ((green) & 0x3F) << 5, but to have a 0-31 range for all colors
+// clang-format off
 #define COLOR16(red, green, blue)	  (((red) & 0x1F) << 11 \
 					| ((green) & 0x1F) << 6 \
 					| ((blue) & 0x1F))
+// clang-format on
 
 // BGRA (was RGBA with older firmware)
+// clang-format off
 #define COLOR32(blue, green, red, alpha)  (((blue) & 0xFF)       \
 					| ((green) & 0xFF) << 8  \
 					| ((red) & 0xFF)   << 16 \
 					| ((alpha) & 0xFF) << 24)
+// clang-format on
 
 #define BLACK_COLOR	0
 

@@ -170,12 +170,14 @@ bool n3ds_key_touched(touchPosition* pos, const touch_area_t* area)
     && pos->py < (area->y + area->h);
 }
 
+// clang-format off
 #define MAP_BUTTON_KEY(keymask, tickey) \
 	if ((key_held & (keymask)) && !state[(tickey)] && (buffer_pos < TIC80_KEY_BUFFER)) \
 	{ \
 		tic_kbd->keys[buffer_pos++] = (tickey); \
 		state[(tickey)] = true; \
 	}
+// clang-format on
 
 void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic80_input* input) {
 	u32 key_down, key_up, key_held;

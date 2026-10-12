@@ -92,6 +92,7 @@ typedef struct
 //       | CART    | RAM           | INDEX
 //       |---------+---------------+------- - - -
 //       |         |               |
+// clang-format off
 #define TIC_SYNC_LIST(macro) \
     macro(tiles,    tiles,        0) \
     macro(sprites,  sprites,      1) \
@@ -101,6 +102,7 @@ typedef struct
     macro(palette,  vram.palette, 5) \
     macro(flags,    flags,        6) \
     macro(screen,   vram.screen,  7)
+// clang-format on
 
 enum
 {
@@ -116,6 +118,7 @@ enum
 #define BDR_FN  "BDR"
 #define MENU_FN "MENU"
 
+// clang-format off
 #define TIC_CALLBACK_LIST(macro)                                                                                    \
     macro(TIC, TIC_FN "()", "Main function. It's called at " DEF2STR(TIC80_FRAMERATE)                               \
         "fps (" DEF2STR(TIC80_FRAMERATE) " times every second).")                                                   \
@@ -125,6 +128,7 @@ enum
         "for example, to manipulate the palette.")                                                                  \
     macro(BDR, BDR_FN "(row)", "Allows you to execute code between the drawing of each fullscreen scanline, "       \
         "for example, to manipulate the palette.")
+// clang-format on
 
 // API DEFINITION TABLE
 //  macro
@@ -138,6 +142,7 @@ enum
 //      function parameters
 //  )
 
+// clang-format off
 #define TIC_API_LIST(macro)                                                                                             \
     macro(print,                                                                                                        \
         "print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false) -> width",                                    \
@@ -956,6 +961,7 @@ enum
         0,                                                                                                              \
         double,                                                                                                         \
         tic_mem*, s32 startFreq, s32 endFreq)
+// clang-format on
 
 #define TIC_API_DEF(name, _, __, ___, ____, _____, ret, ...) ret tic_api_##name(__VA_ARGS__);
 TIC_API_LIST(TIC_API_DEF)
@@ -1010,6 +1016,8 @@ void tic_core_draw_cache_set_enabled(tic_mem* memory, bool enabled);
 bool tic_core_draw_cache_is_enabled(tic_mem* memory);
 #endif
 
+// clang-format off
 #define VBANK(tic, bank)                                \
     bool MACROVAR(_bank_) = tic_api_vbank(tic, bank);   \
     SCOPE(tic_api_vbank(tic, MACROVAR(_bank_)))
+// clang-format on
