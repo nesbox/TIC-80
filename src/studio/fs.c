@@ -905,7 +905,13 @@ void* tic_fs_load(tic_fs* fs, const char* name, s32* size)
 
         u8* buffer = malloc(*size);
 
-        if(buffer && fread(buffer, *size, 1, file)) ptr = buffer;
+        if(buffer)
+        {
+            if(fread(buffer, *size, 1, file))
+                ptr = buffer;
+            else
+                free(buffer);
+        }
 
         fclose(file);
     }
