@@ -373,9 +373,19 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         }
     }
 
+    // The code is a string, but a cart can fill the buffer it lives in, and
+    // strlen would then read on into the bank behind it: memchr stops at the
+    // buffer's own end, and the chunk lengths come from what it found.
+    const char* terminator = memchr(cart->code.data, 0, TIC_CODE_SIZE);
+    const s32 codeSize = terminator ? (s32)(terminator - cart->code.data) : TIC_CODE_SIZE;
+
     ptr = cart->code.data;
-    for(s32 i = (s32)(strlen(ptr) / TIC_BANK_SIZE); i >= 0; --i, ptr += TIC_BANK_SIZE)
-        buffer = saveFixedChunk(buffer, CHUNK_CODE, ptr, MIN((s32)(strlen(ptr)), TIC_BANK_SIZE), i);
+    s32 codeLeft = codeSize;
+    for(s32 i = codeSize / TIC_BANK_SIZE; i >= 0; --i, ptr += TIC_BANK_SIZE)
+    {
+        buffer = saveFixedChunk(buffer, CHUNK_CODE, ptr, MIN(codeLeft, TIC_BANK_SIZE), i);
+        codeLeft -= TIC_BANK_SIZE;
+    }
 
     if(cart->lang)
         SAVE_CHUNK(CHUNK_LANG, cart->lang, 0);
