@@ -41,13 +41,23 @@ typedef enum
 
 typedef struct
 {
+    // The direction pad, and the left stick pushed past the threshold below:
+    // the machine has one set of direction bits, and every other backend
+    // reads both into it.
     bool    up, down, left, right;
     bool    a, b, x, y;
     bool    back, start;
 
     // The right stick, -1..1 in the machine's axes, centered on zero, with the
-    // deadzone still for the layer to apply.
+    // layer's own deadzone still to be applied.
     float   right_x, right_y;
+
+    // The pad is sending the report it sends once something has asked it to,
+    // rather than the simple one it starts with. Only such a pad wants the
+    // Bluetooth keepalive: the packet that keeps it streaming is the same one
+    // that asks a simple pad to switch, so asking twice is asking for a pad
+    // nobody meant to change.
+    bool    enhanced;
 } sgamepad_hid_state;
 
 // Which reader reads this device. The vendor and product ids are the ones
@@ -62,11 +72,15 @@ bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_
 bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_hid_state* state);
 
 // The host writes one of these to a PlayStation pad on Bluetooth to keep it
-// sending: without it the pad works on a cable and stalls on a couch. The
-// Bluetooth tickle SDL sends, with the magic byte that asks for the CRC and,
-// for the DualSense, the CRC32 of the packet itself. `report` is the whole
-// report the platform writes, report id included, and `length` is its size;
-// SDL's tickle is 78 bytes for both pads.
+// sending: without it such a pad works on a cable and stalls on a couch. The
+// Bluetooth tickle SDL sends, magic byte and all, and *without* a CRC — the
+// sum is what turns it into a real effects report, which is not what asking a
+// pad to keep talking should do to it. Both are 78 bytes, the report the
+// platform writes: `report` is that whole report, id included, and `length` is
+// its size.
+//
+// Send them only to a pad that reports `enhanced`: that is the state SDL
+// tickles, and a pad in the simple one is streaming without being asked.
 void sgamepad_hid_ps4_keepalive(uint8_t* report, size_t length);
 void sgamepad_hid_ps5_keepalive(uint8_t* report, size_t length);
 
@@ -114,16 +128,27 @@ uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length);
 #define _SGAMEPAD_HID_PS5_BT_STATE      0x31
 #define _SGAMEPAD_HID_SWITCH_SIMPLE     0x3F
 
-// What SDL appends the CRC32 to, and what it prepends to it: the HIDP header
-// is part of the sum. `0xA1` is a packet coming in, `0xA2` one going out.
+// What the CRC32 of a packet coming in is summed with: the HIDP header is part
+// of the sum. `0xA1` is the one for a packet coming in, and nothing here sends
+// one, so nothing here needs the `0xA2` that goes with a packet going out.
 #define _SGAMEPAD_HID_CRC_IN             0xA1
-#define _SGAMEPAD_HID_CRC_OUT            0xA2
 
 // The size of a PlayStation report with the CRC at its end.
 #define _SGAMEPAD_HID_PS_REPORT_SIZE     78
 
+// A DualSense sends its state report in one of two layouts, and the size is
+// what says which: the simple one carries the buttons where a DualShock 4
+// keeps them, and the extended one is the DualSense's own. SDL splits on the
+// size the same way — the simple report is 10 bytes on its own, and 78 when
+// the Bluetooth stack has added its header and the CRC.
+#define _SGAMEPAD_HID_PS5_SIMPLE_SIZE    10
+
 // The wires carry the pads' sticks as 8-bit values centered on 0x80 and as
-// 16-bit ones centered on 0x8000, both with y growing upwards.
+// 16-bit ones centered on 0x8000, and both families send y growing *upwards* —
+// 0 is the stick pushed down, the largest value pushed up. The machine reads y
+// the other way, so the readers negate it, which is what SDL's mapping for
+// these pads leaves to the driver: it does not invert the axis, so what a cart
+// gets is what the pad sent, and that is up-positive.
 #define _SGAMEPAD_HID_STICK8_CENTER      0x80
 #define _SGAMEPAD_HID_STICK16_CENTER     0x8000
 
@@ -131,12 +156,14 @@ uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length);
 //: half the range reads as full, which is where the calibrated extents settle.
 #define _SGAMEPAD_HID_STICK16_RANGE      0x4000
 
-// The face buttons a PlayStation pad packs into the high nibble of its first
-// button byte, and the direction pad in the low one — the lower the number,
-// the further clockwise.
 // The direction pad both families send as a nibble, where this is nothing held
 // and the rest count clockwise from up.
 #define _SGAMEPAD_HID_HAT_NONE        0x08
+
+// The share of the left stick's travel that counts as a direction — the share
+// the layer's own deadzone treats as nothing, since the two answer the same
+// question about the same stick.
+#define _SGAMEPAD_HID_THRESHOLD       0.5f
 
 // Where the three button bytes sit in a DualShock 4's state packet, straight
 // after the four stick axes. The DualSense spends two more bytes on triggers
@@ -199,20 +226,35 @@ static float _sgamepad_hid_stick16(const uint8_t* bytes)
     return value > 1.0f ? 1.0f : (value < -1.0f ? -1.0f : value);
 }
 
+// The direction a nibble names, where nothing held is its own value and the
+// rest count clockwise from up; the diagonals set both of their bits.
+static void _sgamepad_hid_hat(uint8_t hat, sgamepad_hid_state* state)
+{
+    if (hat == _SGAMEPAD_HID_HAT_NONE)
+        return;
+
+    state->up = state->up || hat == 7 || hat == 0 || hat == 1;
+    state->right = state->right || hat == 1 || hat == 2 || hat == 3;
+    state->down = state->down || hat == 3 || hat == 4 || hat == 5;
+    state->left = state->left || hat == 5 || hat == 6 || hat == 7;
+}
+
+// The left stick, read into the same four bits as the direction pad: the
+// machine has one set, and a pad steered with the stick steers like one
+// steered with the pad.
+static void _sgamepad_hid_left_stick(float x, float y, sgamepad_hid_state* state)
+{
+    state->left = state->left || x < -_SGAMEPAD_HID_THRESHOLD;
+    state->right = state->right || x > _SGAMEPAD_HID_THRESHOLD;
+    state->up = state->up || y < -_SGAMEPAD_HID_THRESHOLD;
+    state->down = state->down || y > _SGAMEPAD_HID_THRESHOLD;
+}
+
 // Both PlayStation families pack the same three bytes the same way.
 static void _sgamepad_hid_ps_buttons(const uint8_t* buttons, sgamepad_hid_state* state)
 {
-    // The low nibble is a direction, or which of the eight the pad holds; the
-    // diagonals set both of their bits.
-    const uint8_t hat = buttons[0] & 0x0F;
-
-    if (hat != _SGAMEPAD_HID_HAT_NONE)
-    {
-        state->up = hat == 7 || hat == 0 || hat == 1;
-        state->right = hat == 1 || hat == 2 || hat == 3;
-        state->down = hat == 3 || hat == 4 || hat == 5;
-        state->left = hat == 5 || hat == 6 || hat == 7;
-    }
+    // The low nibble is a direction, or which of the eight the pad holds.
+    _sgamepad_hid_hat(buttons[0] & 0x0F, state);
 
     // The high nibble is the face buttons, and the id that reads as `x` on a
     // PlayStation pad is the one where the machine's `y` sits.
@@ -290,10 +332,10 @@ bool sgamepad_hid_ps4_report(const uint8_t* report, size_t length, sgamepad_hid_
         return false;
     }
 
-    // The sticks are centered on 0x80 with y upwards; the machine reads y down.
     state->right_x = _sgamepad_hid_stick8(packet[2]);
     state->right_y = -_sgamepad_hid_stick8(packet[3]);
 
+    _sgamepad_hid_left_stick(_sgamepad_hid_stick8(packet[0]), -_sgamepad_hid_stick8(packet[1]), state);
     _sgamepad_hid_ps_buttons(packet + _SGAMEPAD_HID_PS4_BUTTONS, state);
 
     return true;
@@ -301,21 +343,39 @@ bool sgamepad_hid_ps4_report(const uint8_t* report, size_t length, sgamepad_hid_
 
 bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_state* state)
 {
-    if (length < _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT + 3)
-        return false;
-
     const uint8_t* packet;
+    size_t buttons;
 
     if (report[0] == _SGAMEPAD_HID_PS5_STATE)
     {
+        // Two layouts, and the size is what tells them apart: the simple one
+        // is what a DualSense sends until something brings it into enhanced
+        // mode. Read as the extended one, its trigger bytes come out as the
+        // hat and the face buttons, which is a pad that reads as held up with
+        // nothing else ever pressed.
+        const bool simple = length == _SGAMEPAD_HID_PS5_SIMPLE_SIZE
+            || length == _SGAMEPAD_HID_PS_REPORT_SIZE;
+
+        if (length < (simple ? _SGAMEPAD_HID_PS4_BUTTONS + 3 : _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT + 3))
+            return false;
+
         packet = report + 1;
+        buttons = simple ? _SGAMEPAD_HID_PS4_BUTTONS : _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT;
+
+        // Over a cable the extended layout is the one the pad sends once it is
+        // in enhanced mode; the simple one is the state it starts in.
+        state->enhanced = !simple;
     }
     else if (report[0] == _SGAMEPAD_HID_PS5_BT_STATE)
     {
-        if (!_sgamepad_hid_crc_ok(report, length))
+        if (length < _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT + 3 || !_sgamepad_hid_crc_ok(report, length))
             return false;
 
+        // This report exists only in enhanced mode: a pad in the simple one
+        // sends the state report, whatever the wire.
         packet = report + _SGAMEPAD_HID_PS5_BT_DATA;
+        buttons = _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT;
+        state->enhanced = true;
     }
     else
     {
@@ -325,9 +385,11 @@ bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_
     state->right_x = _sgamepad_hid_stick8(packet[2]);
     state->right_y = -_sgamepad_hid_stick8(packet[3]);
 
+    _sgamepad_hid_left_stick(_sgamepad_hid_stick8(packet[0]), -_sgamepad_hid_stick8(packet[1]), state);
+
     // Past the hat byte the DualSense carries one more byte of buttons than
     // the DualShock 4; what the machine reads of them is the same three.
-    _sgamepad_hid_ps_buttons(packet + _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT, state);
+    _sgamepad_hid_ps_buttons(packet + buttons, state);
 
     return true;
 }
@@ -341,26 +403,22 @@ bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_h
 
     const uint8_t* packet = report + 1;
 
-    // The pad names its buttons the other way round from where they sit: `b`
-    // is the bottom one and `a` the right one. The machine reads positions,
-    // which is what SDL's ids are, so its mapping is the one ported here.
+    // The pad names its buttons by the labels printed on them, which is the
+    // other way round from where they sit: the one it calls `b` is the bottom
+    // one and the one it calls `a` is on the right. The machine reads
+    // positions, where the bottom button is `a` — so the label is not what is
+    // read here, and the two that swap are the pad's `a` and `b`.
     state->a = (packet[0] & 0x01) != 0;
     state->b = (packet[0] & 0x02) != 0;
-    state->x = (packet[0] & 0x08) != 0;
     state->y = (packet[0] & 0x04) != 0;
+    state->x = (packet[0] & 0x08) != 0;
 
     state->back = (packet[1] & 0x01) != 0;
     state->start = (packet[1] & 0x02) != 0;
 
-    const uint8_t hat = packet[2];
+    _sgamepad_hid_hat(packet[2], state);
 
-    if (hat != _SGAMEPAD_HID_HAT_NONE)
-    {
-        state->up = hat == 7 || hat == 0 || hat == 1;
-        state->right = hat == 1 || hat == 2 || hat == 3;
-        state->down = hat == 3 || hat == 4 || hat == 5;
-        state->left = hat == 5 || hat == 6 || hat == 7;
-    }
+    _sgamepad_hid_left_stick(_sgamepad_hid_stick16(packet + 3), -_sgamepad_hid_stick16(packet + 5), state);
 
     // The two button bytes and the hat, then the sticks: four 16-bit axes,
     // the right pair last.
@@ -390,19 +448,11 @@ void sgamepad_hid_ps5_keepalive(uint8_t* report, size_t length)
 
     memset(report, 0, _SGAMEPAD_HID_PS_REPORT_SIZE);
 
-    // The DualSense asks for the same in its own effects report, and its byte
-    // is the one SDL writes. The CRC goes over the packet without it.
+    // The DualSense's effects report with its magic byte and no CRC: the sum
+    // is what makes this a real effects report, and a real one leaves the pad
+    // changed. Sent as the pad's tickle rather than as an effect.
     report[0] = _SGAMEPAD_HID_PS5_BT_STATE;
     report[1] = 0x02;
-
-    const uint8_t header = _SGAMEPAD_HID_CRC_OUT;
-    const uint32_t crc = sgamepad_hid_crc32(sgamepad_hid_crc32(0, &header, 1),
-        report, _SGAMEPAD_HID_PS_REPORT_SIZE - 4);
-
-    report[_SGAMEPAD_HID_PS_REPORT_SIZE - 4] = (uint8_t)(crc);
-    report[_SGAMEPAD_HID_PS_REPORT_SIZE - 3] = (uint8_t)(crc >> 8);
-    report[_SGAMEPAD_HID_PS_REPORT_SIZE - 2] = (uint8_t)(crc >> 16);
-    report[_SGAMEPAD_HID_PS_REPORT_SIZE - 1] = (uint8_t)(crc >> 24);
 }
 
 #endif /* SGAMEPAD_HID_IMPL */
