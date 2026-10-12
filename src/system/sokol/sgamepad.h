@@ -769,13 +769,13 @@ static void _sgamepad_hid_scan(void)
         // The fields are set rather than designated: MSVC's C parser does not
         // take an initializer list here, which is a thing hand-written stubs
         // for the platform's headers cannot show.
-        SP_DEVICE_INTERFACE_DATA interface;
+        SP_DEVICE_INTERFACE_DATA entry;
 
-        memset(&interface, 0, sizeof interface);
+        memset(&entry, 0, sizeof entry);
 
-        interface.cbSize = sizeof interface;
+        entry.cbSize = sizeof entry;
 
-        if (!SetupDiEnumDeviceInterfaces(set, NULL, &guid, i, &interface))
+        if (!SetupDiEnumDeviceInterfaces(set, NULL, &guid, i, &entry))
             break;
 
         DWORD size = 0;
@@ -783,7 +783,7 @@ static void _sgamepad_hid_scan(void)
         // The call is asked for the room it needs first. It wants one buffer
         // of that size to write the structure into, and it is taken from the
         // heap because the structure's alignment is not a byte's.
-        SetupDiGetDeviceInterfaceDetailW(set, &interface, NULL, 0, &size, NULL);
+        SetupDiGetDeviceInterfaceDetailW(set, &entry, NULL, 0, &size, NULL);
 
         if (size == 0 || size > _SGAMEPAD_HID_DETAIL_SIZE)
             continue;
@@ -795,7 +795,7 @@ static void _sgamepad_hid_scan(void)
 
         detail->cbSize = sizeof *detail;
 
-        if (!SetupDiGetDeviceInterfaceDetailW(set, &interface, detail, size, NULL, NULL))
+        if (!SetupDiGetDeviceInterfaceDetailW(set, &entry, detail, size, NULL, NULL))
         {
             free(detail);
             continue;
