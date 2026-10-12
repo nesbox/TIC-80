@@ -1444,7 +1444,7 @@ RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char* code)
 
     // Finally, set each given code pair: a code with an odd number of values
     // carries no value for its last index, and an index past the persistent
-    // area is one the script API would have refused.
+    // area is one the script bindings refuse before they call pmem.
     tic_mem* tic = (tic_mem*)state->tic;
     for(u32 i = 0; i + 1 < codeIndex; i = i + 2)
     {
