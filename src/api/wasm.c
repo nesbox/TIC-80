@@ -113,6 +113,11 @@ M3Result wasm_load(IM3Runtime runtime, const char* fn)
 
         if(!result)
             result = m3_LoadModule(runtime, module);
+
+        // the module reads its code out of this buffer and keeps it while it
+        // is loaded; on either error it is freed or unlinked and reads nothing
+        if(result)
+            free(wasm);
     }
 
 done:
