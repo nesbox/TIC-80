@@ -109,7 +109,7 @@ jobs:
       # sokol is parsed here, never linked, but parsing it on Linux is
       # compiling it far enough to need the headers CMake's Linux branch links
       # against: X11, Xi, Xcursor, GL and asound.
-      - name: Install
+      - name: Install the headers sokol is parsed against
         run: |
           sudo apt-get update
           sudo apt-get install -y libx11-dev libxi-dev libxcursor-dev libgl1-mesa-dev libasound2-dev
@@ -132,9 +132,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The project's own translation units. The vendored trees and src/ext
-          # are nobody's to hold to this, and what the database does not carry
-          # is named in openspec/specs/static-analysis/spec.md.
+          # The project's own translation units: the vendored trees and src/ext
+          # are nobody's to hold to this. The number printed below is the whole
+          # of what is checked — the 3DS, Switch and baremetalpi sources need
+          # SDKs a runner has not, the SDL layer is not the layer this
+          # configuration takes, and draw_cache.c and python_outline.c need
+          # build options it does not turn on.
           files=()
           while IFS= read -r f; do files+=("$f"); done < <(jq -r '.[].file' build-tidy/compile_commands.json |
             sort -u | grep -E '/(src|tests)/' | grep -vE '/(vendor|src/ext)/')
