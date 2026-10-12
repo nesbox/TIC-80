@@ -88,7 +88,7 @@ static png_buffer getRawCartFromPng(png_buffer buffer)
 
     if(zip.size)
     {
-        png_buffer buf = png_create(sizeof(tic_cartridge));
+        png_buffer buf = png_create(TIC_CART_SAVE_SIZE);
 
         buf.size = tic_tool_unzip(buf.data, buf.size, zip.data, zip.size);
         free(zip.data);

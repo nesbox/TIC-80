@@ -827,11 +827,11 @@ static void* getDemoCart(Console* console, const tic_script* script, s32* size)
             return data;
     }
 
-    u8* data = calloc(1, sizeof(tic_cartridge));
+    u8* data = calloc(1, TIC_CART_SAVE_SIZE);
 
     if(data)
     {
-        *size = tic_tool_unzip(data, sizeof(tic_cartridge), script->demo.data, script->demo.size);
+        *size = tic_tool_unzip(data, TIC_CART_SAVE_SIZE, script->demo.data, script->demo.size);
 
         if(*size)
             tic_fs_saveroot(console->fs, path, data, *size, false);
@@ -1672,7 +1672,7 @@ static void onClsCommand(Console* console)
 static void onInstallDemosCommand(Console* console)
 {
     tic_fs* fs = console->fs;
-    u8* data = (u8*)newCart();
+    u8* data = malloc(TIC_CART_SAVE_SIZE);
 
     SCOPE(free(data))
     {
@@ -1682,7 +1682,7 @@ static void onInstallDemosCommand(Console* console)
         {
             for(const struct tic_demo* demo = ln->demos; demo && demo->data; demo++)
             {
-                tic_fs_save(fs, demo->name, data, tic_tool_unzip(data, sizeof(tic_cartridge), demo->data, demo->size), true);
+                tic_fs_save(fs, demo->name, data, tic_tool_unzip(data, TIC_CART_SAVE_SIZE, demo->data, demo->size), true);
                 printFront(console, demo->name);
                 printLine(console);
             }
@@ -1698,7 +1698,7 @@ static void onInstallDemosCommand(Console* console)
             // having a Mark is not mandatory
             if(ln->mark.data != NULL)
             {
-                tic_fs_save(fs, ln->mark.name, data, tic_tool_unzip(data, sizeof(tic_cartridge), ln->mark.data, ln->mark.size), true);
+                tic_fs_save(fs, ln->mark.name, data, tic_tool_unzip(data, TIC_CART_SAVE_SIZE, ln->mark.data, ln->mark.size), true);
                 printFront(console, Bunny);
                 printFront(console, "/");
                 printFront(console, ln->mark.name);
@@ -2065,7 +2065,7 @@ typedef struct
 static void exportSprites(Console* console, const char* filename, tic_tile* base, ExportParams params)
 {
 
-    png_img img = {.width = TIC_SPRITESHEET_SIZE, .height = TIC_SPRITESHEET_SIZE, .data = malloc(TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE * sizeof(png_rgba))};
+    png_img img = {.width = TIC_SPRITESHEET_SIZE, .height = TIC_SPRITESHEET_SIZE, .pixels = malloc(TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE * sizeof(png_rgba))};
 
     SCOPE(free(img.data))
     {
@@ -2413,7 +2413,7 @@ static void onHtmlPageGet(const net_get_data* data)
                 if(zip_entry_open(zip, "index.html") != 0 || zip_entry_write(zip, page, strlen(page)) != 0 || zip_entry_close(zip) != 0)
                     errorOccurred = true;
 
-                void* cart = newCart();
+                void* cart = malloc(TIC_CART_SAVE_SIZE);
 
                 SCOPE(free(cart))
                 {
@@ -2578,7 +2578,7 @@ static void onExport_mapimg(Console* console, const char* param, const char* pat
         Height = TIC_MAP_HEIGHT * TIC_SPRITESIZE
     };
 
-    png_img img = {.width = Width, .height = Height, .data = malloc(Width * Height * sizeof(png_rgba))};
+    png_img img = {.width = Width, .height = Height, .pixels = malloc(Width * Height * sizeof(png_rgba))};
 
     SCOPE(free(img.data))
     {
@@ -2653,7 +2653,7 @@ static void onExport_screen(Console* console, const char* param, const char* nam
     (void)param;
     const char* filename = getFilename(name, ".png");
 
-    png_img img = {.width = TIC80_WIDTH, .height = TIC80_HEIGHT, .data = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(png_rgba))};
+    png_img img = {.width = TIC80_WIDTH, .height = TIC80_HEIGHT, .pixels = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(png_rgba))};
 
     SCOPE(free(img.data))
     {

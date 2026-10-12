@@ -115,18 +115,18 @@ static void setDefault(Config* config)
 #include "../build/assets/config.tic.dat"
             };
 
-        u8* data = malloc(sizeof(tic_cartridge));
+        u8* data = malloc(TIC_CART_SAVE_SIZE);
 
         SCOPE(free(data))
         {
-            update(config, data, tic_tool_unzip(data, sizeof(tic_cartridge), ConfigZip, sizeof ConfigZip));
+            update(config, data, tic_tool_unzip(data, TIC_CART_SAVE_SIZE, ConfigZip, sizeof ConfigZip));
         }
     }
 }
 
 static void saveConfig(Config* config, bool overwrite)
 {
-    u8* buffer = malloc(sizeof(tic_cartridge));
+    u8* buffer = malloc(TIC_CART_SAVE_SIZE);
 
     if(buffer)
     {

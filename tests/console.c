@@ -138,7 +138,7 @@ static void putCart(Host* host, const char* name)
     // A cart that is not all zeroes, so there is something to save at all.
     tic_tool_poke4(host->tic->cart.bank0.tiles.data[0].data, 0, 42);
 
-    u8 buffer[sizeof(tic_cartridge)];
+    u8 buffer[TIC_CART_SAVE_SIZE];
     s32 size = tic_cart_save(&host->tic->cart, buffer);
 
     assert(size > 0);
