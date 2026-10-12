@@ -83,31 +83,40 @@ M3Result wasm_load(IM3Runtime runtime, const char* fn)
 
     if(fsize < 8)
     {
-        return "file is too small";
+        result = "file is too small";
+        goto done;
     }
     else if(fsize > 10 * 1024 * 1024)
     {
-        return "file too big";
+        result = "file too big";
+        goto done;
     }
 
     wasm = (u8*)malloc(fsize);
     if(!wasm)
     {
-        return "cannot allocate memory for wasm binary";
+        result = "cannot allocate memory for wasm binary";
+        goto done;
     }
 
     if(fread(wasm, 1, fsize, f) != fsize)
     {
-        return "cannot read file";
+        free(wasm);
+        result = "cannot read file";
+        goto done;
     }
+
+    {
+        IM3Module module;
+
+        result = m3_ParseModule(runtime->environment, &module, wasm, fsize);
+
+        if(!result)
+            result = m3_LoadModule(runtime, module);
+    }
+
+done:
     fclose(f);
-
-    IM3Module module;
-    result = m3_ParseModule(runtime->environment, &module, wasm, fsize);
-    if(result) return result;
-
-    result = m3_LoadModule(runtime, module);
-    if(result) return result;
 
     return result;
 }
@@ -834,9 +843,11 @@ m3ApiRawFunction(wasmtic_map)
     tic_mem* tic = (tic_mem*)core;
     // depends on their only being 1 module, which SHOULD:tm: be true
     struct RemapInfo info = {.mem = _mem, .core = (tic_core*)tic};
-    if(map_data_ptr > 0)
+    // an offset that does not land on a map leaves the call without a remapper
+    struct MapData* map_data = map_data_ptr > 0 ? (struct MapData*)m3ApiOffsetToPtr(map_data_ptr) : NULL;
+
+    if(map_data)
     {
-        struct MapData* map_data = (struct MapData*)m3ApiOffsetToPtr(map_data_ptr);
         m3_GetTableFunction(&info.fun, runtime->modules, map_data->func_index);
         info.data = map_data->user_data;
         info.wasm_result = (RemapResult*)m3ApiOffsetToPtr(map_data->res_ptr);
@@ -863,7 +874,7 @@ m3ApiRawFunction(wasmtic_map)
         scale = 1;
     }
 
-    core->api.map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, map_data_ptr > 0 ? &wasm_remap : NULL, map_data_ptr > 0 ? &info : NULL);
+    core->api.map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, map_data ? &wasm_remap : NULL, map_data ? &info : NULL);
 
     m3ApiSuccess();
 }
