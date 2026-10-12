@@ -34,9 +34,9 @@
 typedef enum
 {
     SGAMEPAD_HID_NONE = 0,
-    SGAMEPAD_HID_PS4,           // DualShock 4, over USB or Bluetooth
-    SGAMEPAD_HID_PS5,           // DualSense and DualSense Edge
-    SGAMEPAD_HID_SWITCH,        // Switch Pro, Joy-Con, and pads presenting as one
+    SGAMEPAD_HID_PS4,    // DualShock 4, over USB or Bluetooth
+    SGAMEPAD_HID_PS5,    // DualSense and DualSense Edge
+    SGAMEPAD_HID_SWITCH, // Switch Pro, Joy-Con, and pads presenting as one
 } sgamepad_hid_family;
 
 typedef struct
@@ -44,20 +44,20 @@ typedef struct
     // The direction pad, and the left stick pushed past the threshold below:
     // the machine has one set of direction bits, and every other backend
     // reads both into it.
-    bool    up, down, left, right;
-    bool    a, b, x, y;
-    bool    back, start;
+    bool up, down, left, right;
+    bool a, b, x, y;
+    bool back, start;
 
     // The right stick, -1..1 in the machine's axes, centered on zero, with the
     // layer's own deadzone still to be applied.
-    float   right_x, right_y;
+    float right_x, right_y;
 
     // The pad is sending the report it sends once something has asked it to,
     // rather than the simple one it starts with. Only such a pad wants the
     // Bluetooth keepalive: the packet that keeps it streaming is the same one
     // that asks a simple pad to switch, so asking twice is asking for a pad
     // nobody meant to change.
-    bool    enhanced;
+    bool enhanced;
 } sgamepad_hid_state;
 
 // Which reader reads this device. The vendor and product ids are the ones
@@ -103,45 +103,45 @@ uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length);
 
 // The vendor and product ids of the pads the readers know, as SDL's drivers
 // and its usb_ids.h spell them.
-#define _SGAMEPAD_HID_SONY          0x054C
-#define _SGAMEPAD_HID_NINTENDO      0x057E
+#define _SGAMEPAD_HID_SONY     0x054C
+#define _SGAMEPAD_HID_NINTENDO 0x057E
 
 #define _SGAMEPAD_HID_SONY_DS4      0x05C4
 #define _SGAMEPAD_HID_SONY_DS4_SLIM 0x09CC
-#define _SGAMEPAD_HID_SONY_DS4_PRO  0x05C5  // the officially licensed third-party pad
+#define _SGAMEPAD_HID_SONY_DS4_PRO  0x05C5 // the officially licensed third-party pad
 #define _SGAMEPAD_HID_SONY_DS5      0x0CE6
 #define _SGAMEPAD_HID_SONY_DS5_EDGE 0x0DF2
 
-#define _SGAMEPAD_HID_SWITCH_PRO    0x2009
-#define _SGAMEPAD_HID_SWITCH_LEFT   0x2006
-#define _SGAMEPAD_HID_SWITCH_RIGHT  0x2007
-#define _SGAMEPAD_HID_SWITCH_PAIR   0x2008
-#define _SGAMEPAD_HID_SWITCH_GRIP   0x200E
+#define _SGAMEPAD_HID_SWITCH_PRO   0x2009
+#define _SGAMEPAD_HID_SWITCH_LEFT  0x2006
+#define _SGAMEPAD_HID_SWITCH_RIGHT 0x2007
+#define _SGAMEPAD_HID_SWITCH_PAIR  0x2008
+#define _SGAMEPAD_HID_SWITCH_GRIP  0x200E
 
 // The report ids. The PlayStation state reports are `1` over USB and `0x11`
 // over Bluetooth for the DualShock 4 — SDL accepts the whole `0x11`..`0x19`
 // band — and `1` and `0x31` for the DualSense.
-#define _SGAMEPAD_HID_PS4_USB_STATE     0x01
-#define _SGAMEPAD_HID_PS4_BT_STATE_1    0x11
-#define _SGAMEPAD_HID_PS4_BT_STATE_9    0x19
-#define _SGAMEPAD_HID_PS5_STATE         0x01
-#define _SGAMEPAD_HID_PS5_BT_STATE      0x31
-#define _SGAMEPAD_HID_SWITCH_SIMPLE     0x3F
+#define _SGAMEPAD_HID_PS4_USB_STATE  0x01
+#define _SGAMEPAD_HID_PS4_BT_STATE_1 0x11
+#define _SGAMEPAD_HID_PS4_BT_STATE_9 0x19
+#define _SGAMEPAD_HID_PS5_STATE      0x01
+#define _SGAMEPAD_HID_PS5_BT_STATE   0x31
+#define _SGAMEPAD_HID_SWITCH_SIMPLE  0x3F
 
 // What the CRC32 of a packet coming in is summed with: the HIDP header is part
 // of the sum. `0xA1` is the one for a packet coming in, and nothing here sends
 // one, so nothing here needs the `0xA2` that goes with a packet going out.
-#define _SGAMEPAD_HID_CRC_IN             0xA1
+#define _SGAMEPAD_HID_CRC_IN 0xA1
 
 // The size of a PlayStation report with the CRC at its end.
-#define _SGAMEPAD_HID_PS_REPORT_SIZE     78
+#define _SGAMEPAD_HID_PS_REPORT_SIZE 78
 
 // A DualSense sends its state report in one of two layouts, and the size is
 // what says which: the simple one carries the buttons where a DualShock 4
 // keeps them, and the extended one is the DualSense's own. SDL splits on the
 // size the same way — the simple report is 10 bytes on its own, and 78 when
 // the Bluetooth stack has added its header and the CRC.
-#define _SGAMEPAD_HID_PS5_SIMPLE_SIZE    10
+#define _SGAMEPAD_HID_PS5_SIMPLE_SIZE 10
 
 // The wires carry the pads' sticks as 8-bit values centered on 0x80 and as
 // 16-bit ones centered on 0x8000, and both families send y growing *upwards*:
@@ -153,40 +153,40 @@ uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length);
 // up/left), which is what its backends put every platform into. XInput's pads
 // send y upwards as well, and SDL negates them on the way in for exactly the
 // reason nothing here needs to be negated on the way out.
-#define _SGAMEPAD_HID_STICK8_CENTER      0x80
-#define _SGAMEPAD_HID_STICK16_CENTER     0x8000
+#define _SGAMEPAD_HID_STICK8_CENTER  0x80
+#define _SGAMEPAD_HID_STICK16_CENTER 0x8000
 
 // A 16-bit stick is read in the share of its travel SDL's own writers give it
 //: half the range reads as full, which is where the calibrated extents settle.
-#define _SGAMEPAD_HID_STICK16_RANGE      0x4000
+#define _SGAMEPAD_HID_STICK16_RANGE 0x4000
 
 // The direction pad both families send as a nibble, where this is nothing held
 // and the rest count clockwise from up.
-#define _SGAMEPAD_HID_HAT_NONE        0x08
+#define _SGAMEPAD_HID_HAT_NONE 0x08
 
 // The share of the left stick's travel that counts as a direction — the share
 // the layer's own deadzone treats as nothing, since the two answer the same
 // question about the same stick.
-#define _SGAMEPAD_HID_THRESHOLD       0.5f
+#define _SGAMEPAD_HID_THRESHOLD 0.5f
 
 // Where the three button bytes sit in a DualShock 4's state packet, straight
 // after the four stick axes. The DualSense spends two more bytes on triggers
 // and a counter before its own, which is why the two are separate.
-#define _SGAMEPAD_HID_PS4_BUTTONS        4
+#define _SGAMEPAD_HID_PS4_BUTTONS 4
 
 // The DualSense spends more of its report on the same buttons.
 #define _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT 7
 
 // Where the Bluetooth report puts what the USB one starts with: one byte
 // saying whether HID data is present, and the report id before it.
-#define _SGAMEPAD_HID_PS4_BT_DATA        3
-#define _SGAMEPAD_HID_PS5_BT_DATA        2
+#define _SGAMEPAD_HID_PS4_BT_DATA 3
+#define _SGAMEPAD_HID_PS5_BT_DATA 2
 
 // The reflected polynomial summed a byte at a time, which is what SDL's own
 // crc32 does — the packets carry the sum this makes, not a library's.
 static uint32_t _sgamepad_hid_crc32_byte(uint32_t r)
 {
-    for (int i = 0; i < 8; i++)
+    for(int i = 0; i < 8; i++)
         r = (r & 1 ? 0 : 0xEDB88320u) ^ r >> 1;
 
     return r ^ 0xFF000000u;
@@ -194,7 +194,7 @@ static uint32_t _sgamepad_hid_crc32_byte(uint32_t r)
 
 uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length)
 {
-    for (size_t i = 0; i < length; i++)
+    for(size_t i = 0; i < length; i++)
         crc = _sgamepad_hid_crc32_byte((uint8_t)crc ^ data[i]) ^ crc >> 8;
 
     return crc;
@@ -205,10 +205,7 @@ uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length)
 static bool _sgamepad_hid_crc_ok(const uint8_t* report, size_t length)
 {
     const uint8_t header = _SGAMEPAD_HID_CRC_IN;
-    const uint32_t packet = (uint32_t)report[length - 4]
-        | (uint32_t)report[length - 3] << 8
-        | (uint32_t)report[length - 2] << 16
-        | (uint32_t)report[length - 1] << 24;
+    const uint32_t packet = (uint32_t)report[length - 4] | (uint32_t)report[length - 3] << 8 | (uint32_t)report[length - 2] << 16 | (uint32_t)report[length - 1] << 24;
 
     return sgamepad_hid_crc32(sgamepad_hid_crc32(0, &header, 1), report, length - 4) == packet;
 }
@@ -234,7 +231,7 @@ static float _sgamepad_hid_stick16(const uint8_t* bytes)
 // rest count clockwise from up; the diagonals set both of their bits.
 static void _sgamepad_hid_hat(uint8_t hat, sgamepad_hid_state* state)
 {
-    if (hat == _SGAMEPAD_HID_HAT_NONE)
+    if(hat == _SGAMEPAD_HID_HAT_NONE)
         return;
 
     state->up = state->up || hat == 7 || hat == 0 || hat == 1;
@@ -273,36 +270,36 @@ static void _sgamepad_hid_ps_buttons(const uint8_t* buttons, sgamepad_hid_state*
 
 sgamepad_hid_family sgamepad_hid_family_of(uint16_t vendor, uint16_t product)
 {
-    if (vendor == _SGAMEPAD_HID_SONY)
+    if(vendor == _SGAMEPAD_HID_SONY)
     {
-        switch (product)
+        switch(product)
         {
-        case _SGAMEPAD_HID_SONY_DS4:
-        case _SGAMEPAD_HID_SONY_DS4_SLIM:
-        case _SGAMEPAD_HID_SONY_DS4_PRO:
-            return SGAMEPAD_HID_PS4;
+            case _SGAMEPAD_HID_SONY_DS4:
+            case _SGAMEPAD_HID_SONY_DS4_SLIM:
+            case _SGAMEPAD_HID_SONY_DS4_PRO:
+                return SGAMEPAD_HID_PS4;
 
-        case _SGAMEPAD_HID_SONY_DS5:
-        case _SGAMEPAD_HID_SONY_DS5_EDGE:
-            return SGAMEPAD_HID_PS5;
+            case _SGAMEPAD_HID_SONY_DS5:
+            case _SGAMEPAD_HID_SONY_DS5_EDGE:
+                return SGAMEPAD_HID_PS5;
 
-        default:
-            break;
+            default:
+                break;
         }
     }
-    else if (vendor == _SGAMEPAD_HID_NINTENDO)
+    else if(vendor == _SGAMEPAD_HID_NINTENDO)
     {
-        switch (product)
+        switch(product)
         {
-        case _SGAMEPAD_HID_SWITCH_PRO:
-        case _SGAMEPAD_HID_SWITCH_LEFT:
-        case _SGAMEPAD_HID_SWITCH_RIGHT:
-        case _SGAMEPAD_HID_SWITCH_PAIR:
-        case _SGAMEPAD_HID_SWITCH_GRIP:
-            return SGAMEPAD_HID_SWITCH;
+            case _SGAMEPAD_HID_SWITCH_PRO:
+            case _SGAMEPAD_HID_SWITCH_LEFT:
+            case _SGAMEPAD_HID_SWITCH_RIGHT:
+            case _SGAMEPAD_HID_SWITCH_PAIR:
+            case _SGAMEPAD_HID_SWITCH_GRIP:
+                return SGAMEPAD_HID_SWITCH;
 
-        default:
-            break;
+            default:
+                break;
         }
     }
 
@@ -313,20 +310,20 @@ bool sgamepad_hid_ps4_report(const uint8_t* report, size_t length, sgamepad_hid_
 {
     // A state packet holds the sticks, the buttons, the triggers and the
     // timestamp before anything the reader is after.
-    if (length < _SGAMEPAD_HID_PS4_BUTTONS + 3)
+    if(length < _SGAMEPAD_HID_PS4_BUTTONS + 3)
         return false;
 
     const uint8_t* packet;
 
-    if (report[0] == _SGAMEPAD_HID_PS4_USB_STATE)
+    if(report[0] == _SGAMEPAD_HID_PS4_USB_STATE)
     {
         packet = report + 1;
     }
-    else if (report[0] >= _SGAMEPAD_HID_PS4_BT_STATE_1 && report[0] <= _SGAMEPAD_HID_PS4_BT_STATE_9)
+    else if(report[0] >= _SGAMEPAD_HID_PS4_BT_STATE_1 && report[0] <= _SGAMEPAD_HID_PS4_BT_STATE_9)
     {
         // Over Bluetooth the packet carries a CRC over its whole length, and
         // says in the byte before the report whether it holds HID data at all.
-        if (length != _SGAMEPAD_HID_PS_REPORT_SIZE || !(report[1] & 0x80) || !_sgamepad_hid_crc_ok(report, length))
+        if(length != _SGAMEPAD_HID_PS_REPORT_SIZE || !(report[1] & 0x80) || !_sgamepad_hid_crc_ok(report, length))
             return false;
 
         packet = report + _SGAMEPAD_HID_PS4_BT_DATA;
@@ -356,17 +353,16 @@ bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_
     const uint8_t* packet;
     size_t buttons;
 
-    if (report[0] == _SGAMEPAD_HID_PS5_STATE)
+    if(report[0] == _SGAMEPAD_HID_PS5_STATE)
     {
         // Two layouts, and the size is what tells them apart: the simple one
         // is what a DualSense sends until something brings it into enhanced
         // mode. Read as the extended one, its trigger bytes come out as the
         // hat and the face buttons, which is a pad that reads as held up with
         // nothing else ever pressed.
-        const bool simple = length == _SGAMEPAD_HID_PS5_SIMPLE_SIZE
-            || length == _SGAMEPAD_HID_PS_REPORT_SIZE;
+        const bool simple = length == _SGAMEPAD_HID_PS5_SIMPLE_SIZE || length == _SGAMEPAD_HID_PS_REPORT_SIZE;
 
-        if (length < (simple ? _SGAMEPAD_HID_PS4_BUTTONS + 3 : _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT + 3))
+        if(length < (simple ? _SGAMEPAD_HID_PS4_BUTTONS + 3 : _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT + 3))
             return false;
 
         packet = report + 1;
@@ -376,12 +372,11 @@ bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_
         // in enhanced mode; the simple one is the state it starts in.
         state->enhanced = !simple;
     }
-    else if (report[0] == _SGAMEPAD_HID_PS5_BT_STATE)
+    else if(report[0] == _SGAMEPAD_HID_PS5_BT_STATE)
     {
         // The packet starts two bytes in, so the buttons end at the eleventh
         // byte of the report — a whole Bluetooth one is 78.
-        if (length < _SGAMEPAD_HID_PS5_BT_DATA + _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT + 3
-            || !_sgamepad_hid_crc_ok(report, length))
+        if(length < _SGAMEPAD_HID_PS5_BT_DATA + _SGAMEPAD_HID_PS5_BUTTONS_AND_HAT + 3 || !_sgamepad_hid_crc_ok(report, length))
             return false;
 
         // This report exists only in enhanced mode: a pad in the simple one
@@ -411,7 +406,7 @@ bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_h
 {
     // The simple report is the only one read: the buttons, the hat and the
     // sticks, with no mode command and no calibration to ask for.
-    if (report[0] != _SGAMEPAD_HID_SWITCH_SIMPLE || length < 12)
+    if(report[0] != _SGAMEPAD_HID_SWITCH_SIMPLE || length < 12)
         return false;
 
     const uint8_t* packet = report + 1;
@@ -422,10 +417,10 @@ bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_h
     // positions, so all four are read where they are rather than by what the
     // pad calls them — which is the swap SDL makes when it is asked for
     // positions, and the one TIC-80's own Switch build makes.
-    state->a = (packet[0] & 0x01) != 0;         // the bottom one
-    state->b = (packet[0] & 0x02) != 0;         // the right one
-    state->x = (packet[0] & 0x04) != 0;         // the left one
-    state->y = (packet[0] & 0x08) != 0;         // the top one
+    state->a = (packet[0] & 0x01) != 0; // the bottom one
+    state->b = (packet[0] & 0x02) != 0; // the right one
+    state->x = (packet[0] & 0x04) != 0; // the left one
+    state->y = (packet[0] & 0x08) != 0; // the top one
     // (which is where the pad's own labels put `b`, `a`, `y` and `x`)
 
     state->back = (packet[1] & 0x01) != 0;
@@ -445,7 +440,7 @@ bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_h
 
 void sgamepad_hid_ps4_keepalive(uint8_t* report, size_t length)
 {
-    if (length < _SGAMEPAD_HID_PS_REPORT_SIZE)
+    if(length < _SGAMEPAD_HID_PS_REPORT_SIZE)
         return;
 
     memset(report, 0, _SGAMEPAD_HID_PS_REPORT_SIZE);
@@ -458,7 +453,7 @@ void sgamepad_hid_ps4_keepalive(uint8_t* report, size_t length)
 
 void sgamepad_hid_ps5_keepalive(uint8_t* report, size_t length)
 {
-    if (length < _SGAMEPAD_HID_PS_REPORT_SIZE)
+    if(length < _SGAMEPAD_HID_PS_REPORT_SIZE)
         return;
 
     memset(report, 0, _SGAMEPAD_HID_PS_REPORT_SIZE);

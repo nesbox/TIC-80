@@ -49,7 +49,7 @@ struct Sprite
     u8 color2;
     u8 size;
     u8 brushSize;
-    u16 x,y;
+    u16 x, y;
     bool advanced;
     bool hexindex;
 
@@ -117,4 +117,3 @@ extern const ClipboardOps SpriteClipboard;
 void spriteBand(void*, Toolbar*);
 void initSprite(Sprite*, Studio* studio, tic_tiles* src);
 void freeSprite(Sprite*);
-

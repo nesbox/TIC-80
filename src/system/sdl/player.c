@@ -26,20 +26,20 @@
 #include <tic80.h>
 
 #if defined(__APPLE__)
-# if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
-#    error SDL for Mac OS X only supports deploying on 10.6 and above.
-# endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
+#error SDL for Mac OS X only supports deploying on 10.6 and above.
+#endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
 #endif
 
-#define TIC80_WINDOW_SCALE 3
-#define TIC80_WINDOW_TITLE "TIC-80"
-#define TIC80_DEFAULT_CART "cart.tic"
+#define TIC80_WINDOW_SCALE    3
+#define TIC80_WINDOW_TITLE    "TIC-80"
+#define TIC80_DEFAULT_CART    "cart.tic"
 #define TIC80_EXECUTABLE_NAME "player-sdl"
 
 static struct
 {
     s32 remaining;
-    SDL_mutex *mutex;
+    SDL_mutex* mutex;
     bool quit;
 } state = {0};
 
@@ -66,7 +66,7 @@ static void audioCallback(void* userdata, u8* stream, s32 len)
 
         while(len--)
         {
-            if (state.remaining <= 0)
+            if(state.remaining <= 0)
             {
                 tic80_sound(tic);
                 state.remaining = tic->samples.count * TIC80_SAMPLESIZE;
@@ -108,14 +108,14 @@ s32 runCart(void* cart, s32 size)
             state.mutex = SDL_CreateMutex();
 
             SDL_AudioSpec want =
-            {
-                .freq = TIC80_SAMPLERATE,
-                .format = AUDIO_S16,
-                .channels = TIC80_SAMPLE_CHANNELS,
-                .callback = audioCallback,
-                .samples = 1024,
-                .userdata = tic,
-            };
+                {
+                    .freq = TIC80_SAMPLERATE,
+                    .format = AUDIO_S16,
+                    .channels = TIC80_SAMPLE_CHANNELS,
+                    .callback = audioCallback,
+                    .samples = 1024,
+                    .userdata = tic,
+                };
 
             audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, 0);
         }
@@ -133,16 +133,16 @@ s32 runCart(void* cart, s32 size)
             {
                 switch(event.type)
                 {
-                case SDL_QUIT:
-                    state.quit = true;
-                    break;
-                case SDL_KEYUP:
-                    // Quit when pressing the escape button.
-                    if(event.key.keysym.sym == SDLK_ESCAPE)
-                    {
+                    case SDL_QUIT:
                         state.quit = true;
-                    }
-                    break;
+                        break;
+                    case SDL_KEYUP:
+                        // Quit when pressing the escape button.
+                        if(event.key.keysym.sym == SDLK_ESCAPE)
+                        {
+                            state.quit = true;
+                        }
+                        break;
                 }
             }
 
@@ -151,21 +151,21 @@ s32 runCart(void* cart, s32 size)
                 const uint8_t* keyboard = SDL_GetKeyboardState(NULL);
 
                 static const SDL_Scancode Keys[] =
-                {
-                    SDL_SCANCODE_UP,
-                    SDL_SCANCODE_DOWN,
-                    SDL_SCANCODE_LEFT,
-                    SDL_SCANCODE_RIGHT,
+                    {
+                        SDL_SCANCODE_UP,
+                        SDL_SCANCODE_DOWN,
+                        SDL_SCANCODE_LEFT,
+                        SDL_SCANCODE_RIGHT,
 
-                    SDL_SCANCODE_Z,
-                    SDL_SCANCODE_X,
-                    SDL_SCANCODE_A,
-                    SDL_SCANCODE_S,
-                };
+                        SDL_SCANCODE_Z,
+                        SDL_SCANCODE_X,
+                        SDL_SCANCODE_A,
+                        SDL_SCANCODE_S,
+                    };
 
-                for (u32 i = 0; i < SDL_arraysize(Keys); i++)
+                for(u32 i = 0; i < SDL_arraysize(Keys); i++)
                 {
-                    if (keyboard[Keys[i]])
+                    if(keyboard[Keys[i]])
                     {
                         input.gamepads.first.data |= (1 << i);
                     }
@@ -227,7 +227,7 @@ s32 runCart(void* cart, s32 size)
     return output;
 }
 
-s32 main(s32 argc, char **argv)
+s32 main(s32 argc, char** argv)
 {
     const char* executable = argc > 0 ? argv[0] : TIC80_EXECUTABLE_NAME;
     const char* input = (argc > 1) ? argv[1] : TIC80_DEFAULT_CART;
@@ -257,7 +257,8 @@ s32 main(s32 argc, char **argv)
     if(cart) fread(cart, size, 1, file);
     fclose(file);
 
-    if (!cart) {
+    if(!cart)
+    {
         fprintf(stderr, "Error reading %s.\n", input);
         return 1;
     }

@@ -24,9 +24,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_LANGS   16      // MAX_SUPPORTED_LANGS, src/script.c
+#define MAX_LANGS    16 // MAX_SUPPORTED_LANGS, src/script.c
 #define MAX_SECTIONS 512
-#define TEXT_MAX    1024
+#define TEXT_MAX     1024
 
 typedef struct
 {
@@ -95,7 +95,7 @@ static Lang* Current;
 
 void api_record(const char* format, ...)
 {
-    if (!Current)
+    if(!Current)
         return;
 
     char line[TEXT_MAX];
@@ -112,15 +112,15 @@ static char* readFile(const char* path, s32* size)
 {
     FILE* file = fopen(path, "rb");
 
-    if (!file)
+    if(!file)
         return NULL;
 
     long length = -1;
 
-    if (fseek(file, 0, SEEK_END) == 0)
+    if(fseek(file, 0, SEEK_END) == 0)
         length = ftell(file);
 
-    if (length < 0 || fseek(file, 0, SEEK_SET) != 0)
+    if(length < 0 || fseek(file, 0, SEEK_SET) != 0)
     {
         fclose(file);
         return NULL;
@@ -140,7 +140,7 @@ static void copySanitized(char* dst, s32 size, const char* src)
 {
     s32 i = 0;
 
-    for (; src[i] && i < size - 1; i++)
+    for(; src[i] && i < size - 1; i++)
         dst[i] = isprint((unsigned char)src[i]) ? src[i] : ' ';
 
     dst[i] = '\0';
@@ -183,7 +183,7 @@ static void runProbes(Lang* lang, const char* source, s32 size)
 {
     tic_mem* tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
 
-    if (size > (s32)sizeof(tic->cart.code.data))
+    if(size > (s32)sizeof(tic->cart.code.data))
     {
         lang->failed = true;
         snprintf(lang->error, sizeof lang->error, "the probe file is bigger than the code section");
@@ -197,14 +197,14 @@ static void runProbes(Lang* lang, const char* source, s32 size)
         Current = lang;
 
         tic_tick_data data =
-        {
-            .error = onError,
-            .trace = onTrace,
-            .exit = onExit,
-            .counter = counter,
-            .freq = freq,
-            .data = lang,
-        };
+            {
+                .error = onError,
+                .trace = onTrace,
+                .exit = onExit,
+                .counter = counter,
+                .freq = freq,
+                .data = lang,
+            };
 
         tic_core_tick_start(tic);
         tic_core_tick(tic, &data);
@@ -221,17 +221,17 @@ static const char* markerOf(const char* line)
 {
     static char marker[128];
 
-    if (strncmp(line, "trace(\"#", 8) != 0)
+    if(strncmp(line, "trace(\"#", 8) != 0)
         return NULL;
 
     const char* end = strchr(line + 8, '"');
 
-    if (!end)
+    if(!end)
         return NULL;
 
     s32 len = end - (line + 7);
 
-    if (len > (s32)sizeof marker - 1)
+    if(len > (s32)sizeof marker - 1)
         len = sizeof marker - 1;
 
     memcpy(marker, line + 7, len);
@@ -244,14 +244,14 @@ static s32 parseSections(const Lines* lines, Section* sections, s32 max)
 {
     s32 count = 0;
 
-    for (s32 i = 0; i < lines->count; i++)
+    for(s32 i = 0; i < lines->count; i++)
     {
         const char* marker = markerOf(lines->items[i]);
 
-        if (!marker)
+        if(!marker)
             continue;
 
-        if (count >= max)
+        if(count >= max)
             break;
 
         Section* section = &sections[count++];
@@ -261,14 +261,14 @@ static s32 parseSections(const Lines* lines, Section* sections, s32 max)
         const char* slash = strchr(start, '/');
         s32 len = slash ? (s32)(slash - start) : (s32)strlen(start);
 
-        if (len > (s32)sizeof section->api - 1)
+        if(len > (s32)sizeof section->api - 1)
             len = sizeof section->api - 1;
 
         memcpy(section->api, start, len);
         section->api[len] = '\0';
 
         s32 end = i + 1;
-        while (end < lines->count && !markerOf(lines->items[end]))
+        while(end < lines->count && !markerOf(lines->items[end]))
             end++;
 
         section->first = i + 1;
@@ -281,8 +281,8 @@ static s32 parseSections(const Lines* lines, Section* sections, s32 max)
 
 static Section* findSection(Section* sections, s32 count, const char* marker)
 {
-    for (s32 i = 0; i < count; i++)
-        if (strcmp(sections[i].marker, marker) == 0)
+    for(s32 i = 0; i < count; i++)
+        if(strcmp(sections[i].marker, marker) == 0)
             return &sections[i];
 
     return NULL;
@@ -291,8 +291,7 @@ static Section* findSection(Section* sections, s32 count, const char* marker)
 // "nil" four ways and the numbers: lua prints 14 significant digits, js 17.
 static bool isNilToken(const char* token)
 {
-    return strcmp(token, "nil") == 0 || strcmp(token, "undefined") == 0
-        || strcmp(token, "none") == 0 || strcmp(token, "null") == 0;
+    return strcmp(token, "nil") == 0 || strcmp(token, "undefined") == 0 || strcmp(token, "none") == 0 || strcmp(token, "null") == 0;
 }
 
 static bool tokenEqual(const char* a, const char* aEnd, const char* b, const char* bEnd)
@@ -301,12 +300,14 @@ static bool tokenEqual(const char* a, const char* aEnd, const char* b, const cha
     s32 alen = aEnd - a;
     s32 blen = bEnd - b;
 
-    if (alen < (s32)sizeof ta && blen < (s32)sizeof tb)
+    if(alen < (s32)sizeof ta && blen < (s32)sizeof tb)
     {
-        memcpy(ta, a, alen); ta[alen] = '\0';
-        memcpy(tb, b, blen); tb[blen] = '\0';
+        memcpy(ta, a, alen);
+        ta[alen] = '\0';
+        memcpy(tb, b, blen);
+        tb[blen] = '\0';
 
-        if (isNilToken(ta) && isNilToken(tb))
+        if(isNilToken(ta) && isNilToken(tb))
             return true;
 
         char* ea;
@@ -314,9 +315,9 @@ static bool tokenEqual(const char* a, const char* aEnd, const char* b, const cha
         double na = strtod(ta, &ea);
         double nb = strtod(tb, &eb);
 
-        if (ea != ta && !*ea && eb != tb && !*eb)
+        if(ea != ta && !*ea && eb != tb && !*eb)
         {
-            if (na == nb || (isnan(na) && isnan(nb)))   // equal, infinities and NaNs included
+            if(na == nb || (isnan(na) && isnan(nb))) // equal, infinities and NaNs included
                 return true;
 
             return fabs(na - nb) <= 1e-9 * fmax(1.0, fmax(fabs(na), fabs(nb)));
@@ -328,21 +329,25 @@ static bool tokenEqual(const char* a, const char* aEnd, const char* b, const cha
 
 static bool lineEqual(const char* ref, const char* got)
 {
-    while (*ref || *got)
+    while(*ref || *got)
     {
-        while (isspace((unsigned char)*ref)) ref++;
-        while (isspace((unsigned char)*got)) got++;
+        while(isspace((unsigned char)*ref))
+            ref++;
+        while(isspace((unsigned char)*got))
+            got++;
 
-        if (!*ref || !*got)
+        if(!*ref || !*got)
             return !*ref && !*got;
 
         const char* refEnd = ref;
-        while (*refEnd && !isspace((unsigned char)*refEnd)) refEnd++;
+        while(*refEnd && !isspace((unsigned char)*refEnd))
+            refEnd++;
 
         const char* gotEnd = got;
-        while (*gotEnd && !isspace((unsigned char)*gotEnd)) gotEnd++;
+        while(*gotEnd && !isspace((unsigned char)*gotEnd))
+            gotEnd++;
 
-        if (!tokenEqual(ref, refEnd, got, gotEnd))
+        if(!tokenEqual(ref, refEnd, got, gotEnd))
             return false;
 
         ref = refEnd;
@@ -354,11 +359,11 @@ static bool lineEqual(const char* ref, const char* got)
 
 static bool sectionEqual(const Lines* refLines, const Section* ref, const Lines* gotLines, const Section* got)
 {
-    if (ref->count != got->count)
+    if(ref->count != got->count)
         return false;
 
-    for (s32 i = 0; i < ref->count; i++)
-        if (!lineEqual(refLines->items[ref->first + i], gotLines->items[got->first + i]))
+    for(s32 i = 0; i < ref->count; i++)
+        if(!lineEqual(refLines->items[ref->first + i], gotLines->items[got->first + i]))
             return false;
 
     return true;
@@ -367,9 +372,9 @@ static bool sectionEqual(const Lines* refLines, const Section* ref, const Lines*
 // A markdown table cell: a pipe in a trace line would end the column.
 static void printCell(const char* text)
 {
-    for (; *text; text++)
+    for(; *text; text++)
     {
-        if (*text == '|')
+        if(*text == '|')
             putchar('\\');
 
         putchar(*text);
@@ -380,9 +385,9 @@ static void joinLines(const Lines* lines, s32 first, s32 count, char* out, s32 s
 {
     out[0] = '\0';
 
-    for (s32 i = 0; i < count; i++)
+    for(s32 i = 0; i < count; i++)
     {
-        if (i)
+        if(i)
             strncat(out, " / ", size - strlen(out) - 1);
 
         strncat(out, lines->items[first + i], size - strlen(out) - 1);
@@ -391,8 +396,8 @@ static void joinLines(const Lines* lines, s32 first, s32 count, char* out, s32 s
 
 static s32 apiIndex(const char* api)
 {
-    for (s32 i = 0; i < ApiCount; i++)
-        if (strcmp(Apis[i], api) == 0)
+    for(s32 i = 0; i < ApiCount; i++)
+        if(strcmp(Apis[i], api) == 0)
             return i;
 
     Apis = realloc(Apis, sizeof(char*) * (ApiCount + 1));
@@ -403,7 +408,7 @@ static s32 apiIndex(const char* api)
 
     ApiCells = realloc(ApiCells, sizeof(s32) * (ApiCount + 1) * LangCount);
 
-    for (s32 l = 0; l < LangCount; l++)
+    for(s32 l = 0; l < LangCount; l++)
         ApiCells[ApiCount * LangCount + l] = 0;
 
     return ApiCount++;
@@ -418,7 +423,7 @@ static void addDivergence(s32 lang, s32 api, const char* marker, const char* ref
     snprintf(div->api, sizeof div->api, "%s", marker + 1);
     {
         char* slash = strchr(div->api, '/');
-        if (slash) *slash = '\0';
+        if(slash) *slash = '\0';
     }
     snprintf(div->marker, sizeof div->marker, "%s", marker);
     snprintf(div->ref, sizeof div->ref, "%s", ref);
@@ -437,9 +442,9 @@ int main(int argc, char** argv)
     const char* dir = "tests/conformance/probes";
     bool dump = false;
 
-    for (s32 i = 1; i < argc; i++)
+    for(s32 i = 1; i < argc; i++)
     {
-        if (strcmp(argv[i], "--dump") == 0)
+        if(strcmp(argv[i], "--dump") == 0)
             dump = true;
         else
             dir = argv[i];
@@ -447,7 +452,7 @@ int main(int argc, char** argv)
 
     FOREACH_LANG(script)
     {
-        if (LangCount >= MAX_LANGS)
+        if(LangCount >= MAX_LANGS)
             break;
 
         Lang* lang = &Langs[LangCount++];
@@ -457,7 +462,7 @@ int main(int argc, char** argv)
         s32 size = 0;
         char* source = readFile(lang->path, &size);
 
-        if (!source)
+        if(!source)
             continue;
 
         lang->hasFile = true;
@@ -465,7 +470,7 @@ int main(int argc, char** argv)
         free(source);
     }
 
-    if (LangCount == 0)
+    if(LangCount == 0)
     {
         fprintf(stderr, "no languages compiled in: build with -DBUILD_STATIC=ON\n");
         return 2;
@@ -473,50 +478,50 @@ int main(int argc, char** argv)
 
     Lang* ref = NULL;
 
-    for (s32 i = 0; i < LangCount; i++)
-        if (strcmp(Langs[i].script->name, "lua") == 0)
+    for(s32 i = 0; i < LangCount; i++)
+        if(strcmp(Langs[i].script->name, "lua") == 0)
             ref = &Langs[i];
 
-    if (!ref || !langMeasured(ref))
+    if(!ref || !langMeasured(ref))
     {
         fprintf(stderr, "no lua reference: %s\n",
-            ref && ref->failed ? ref->error : "tests/conformance/probes/lua.lua is missing");
+                ref && ref->failed ? ref->error : "tests/conformance/probes/lua.lua is missing");
         return 2;
     }
 
     Section refSections[MAX_SECTIONS];
     s32 refCount = parseSections(&ref->lines, refSections, MAX_SECTIONS);
 
-    if (refCount == 0)
+    if(refCount == 0)
     {
         fprintf(stderr, "the lua reference produced no probes: %s\n", ref->path);
         return 2;
     }
 
-    for (s32 i = 0; i < refCount; i++)
+    for(s32 i = 0; i < refCount; i++)
     {
         // Two statements: apiIndex may realloc the table under ApiProbes.
         s32 api = apiIndex(refSections[i].api);
         ApiProbes[api]++;
     }
 
-    for (s32 l = 0; l < LangCount; l++)
+    for(s32 l = 0; l < LangCount; l++)
     {
         Lang* lang = &Langs[l];
 
-        if (lang == ref || !langMeasured(lang))
+        if(lang == ref || !langMeasured(lang))
             continue;
 
         Section sections[MAX_SECTIONS];
         s32 count = parseSections(&lang->lines, sections, MAX_SECTIONS);
 
-        for (s32 i = 0; i < refCount; i++)
+        for(s32 i = 0; i < refCount; i++)
         {
             Section* refSection = &refSections[i];
             Section* gotSection = findSection(sections, count, refSection->marker);
             s32 api = apiIndex(refSection->api);
 
-            if (gotSection && sectionEqual(&ref->lines, refSection, &lang->lines, gotSection))
+            if(gotSection && sectionEqual(&ref->lines, refSection, &lang->lines, gotSection))
                 continue;
 
             char refText[TEXT_MAX];
@@ -524,18 +529,18 @@ int main(int argc, char** argv)
 
             joinLines(&ref->lines, refSection->first, refSection->count, refText, sizeof refText);
 
-            if (gotSection)
+            if(gotSection)
                 joinLines(&lang->lines, gotSection->first, gotSection->count, gotText, sizeof gotText);
 
             addDivergence(l, api, refSection->marker, refText, gotText);
         }
 
         // A marker the reference never traced is a probe only this language ran.
-        for (s32 i = 0; i < count; i++)
+        for(s32 i = 0; i < count; i++)
         {
             Section* section = &sections[i];
 
-            if (findSection(refSections, refCount, section->marker))
+            if(findSection(refSections, refCount, section->marker))
                 continue;
 
             char gotText[TEXT_MAX];
@@ -552,49 +557,49 @@ int main(int argc, char** argv)
         printf("API conformance — reference: lua, %d probes, %d apis\n\n", probes, ApiCount);
         printf("| api | probes |");
 
-        for (s32 l = 0; l < LangCount; l++)
-            if (langMeasured(&Langs[l]))
+        for(s32 l = 0; l < LangCount; l++)
+            if(langMeasured(&Langs[l]))
                 printf(" %s |", Langs[l].script->name);
 
         printf("\n| --- | --- |");
 
-        for (s32 l = 0; l < LangCount; l++)
-            if (langMeasured(&Langs[l]))
+        for(s32 l = 0; l < LangCount; l++)
+            if(langMeasured(&Langs[l]))
                 printf(" --- |");
 
         printf("\n");
 
-        for (s32 i = 0; i < ApiCount; i++)
+        for(s32 i = 0; i < ApiCount; i++)
         {
             // No reference probes: the row is a section only some other
             // language traced, and the reference columns have nothing to say.
-            if (ApiProbes[i])
+            if(ApiProbes[i])
                 printf("| %s | %d |", Apis[i], ApiProbes[i]);
             else
                 printf("| %s | - |", Apis[i]);
 
-            for (s32 l = 0; l < LangCount; l++)
+            for(s32 l = 0; l < LangCount; l++)
             {
-                if (!langMeasured(&Langs[l]))
+                if(!langMeasured(&Langs[l]))
                     continue;
 
-                if (&Langs[l] == ref)
+                if(&Langs[l] == ref)
                 {
-                    if (ApiProbes[i])
+                    if(ApiProbes[i])
                         printf(" ✅ |");
                     else
                         printf(" - |");
                 }
-                else if (ApiProbes[i] == 0)
+                else if(ApiProbes[i] == 0)
                 {
                     // The reference never probed this api: a language with no
                     // divergence here has nothing to report, not a pass.
-                    if (ApiCells[i * LangCount + l])
+                    if(ApiCells[i * LangCount + l])
                         printf(" 🔴 %d |", ApiCells[i * LangCount + l]);
                     else
                         printf(" - |");
                 }
-                else if (ApiCells[i * LangCount + l] == 0)
+                else if(ApiCells[i * LangCount + l] == 0)
                     printf(" ✅ |");
                 else
                     printf(" 🔴 %d |", ApiCells[i * LangCount + l]);
@@ -605,19 +610,19 @@ int main(int argc, char** argv)
 
         printf("\n");
 
-        for (s32 l = 0; l < LangCount; l++)
+        for(s32 l = 0; l < LangCount; l++)
         {
-            if (&Langs[l] == ref || !langMeasured(&Langs[l]))
+            if(&Langs[l] == ref || !langMeasured(&Langs[l]))
                 continue;
 
             s32 divergences = 0;
 
-            for (s32 i = 0; i < ApiCount; i++)
+            for(s32 i = 0; i < ApiCount; i++)
                 divergences += ApiCells[i * LangCount + l];
 
             // A count, not a ratio: a language-only section is a divergence the
             // reference's probe count does not know about.
-            if (divergences)
+            if(divergences)
                 printf("- **%s: 🔴 %d divergences**\n", Langs[l].script->name, divergences);
             else
                 printf("- **%s: ✅ no divergences**\n", Langs[l].script->name);
@@ -625,21 +630,21 @@ int main(int argc, char** argv)
     }
 
     // The divergences in full: one table per language.
-    for (s32 l = 0; l < LangCount; l++)
+    for(s32 l = 0; l < LangCount; l++)
     {
         bool header = false;
 
-        for (s32 i = 0; i < DivCount; i++)
+        for(s32 i = 0; i < DivCount; i++)
         {
             Divergence* div = &Divs[i];
 
-            if (div->lang != l)
+            if(div->lang != l)
                 continue;
 
-            if (!header)
+            if(!header)
             {
                 printf("\n**%s — divergences**\n\n| probe | lua | %s |\n| --- | --- | --- |\n",
-                    Langs[l].script->name, Langs[l].script->name);
+                       Langs[l].script->name, Langs[l].script->name);
                 header = true;
             }
 
@@ -654,16 +659,16 @@ int main(int argc, char** argv)
     }
 
     // --dump: every line a measured language traced, for reading a probe by eye.
-    if (dump)
+    if(dump)
     {
-        for (s32 l = 0; l < LangCount; l++)
+        for(s32 l = 0; l < LangCount; l++)
         {
-            if (!langMeasured(&Langs[l]))
+            if(!langMeasured(&Langs[l]))
                 continue;
 
             printf("\n== %s ==\n", Langs[l].script->name);
 
-            for (s32 i = 0; i < Langs[l].lines.count; i++)
+            for(s32 i = 0; i < Langs[l].lines.count; i++)
                 printf("%s\n", Langs[l].lines.items[i]);
         }
     }
@@ -672,26 +677,26 @@ int main(int argc, char** argv)
     {
         bool any = false;
 
-        for (s32 l = 0; l < LangCount; l++)
+        for(s32 l = 0; l < LangCount; l++)
         {
             Lang* lang = &Langs[l];
 
-            if (langMeasured(lang))
+            if(langMeasured(lang))
                 continue;
 
             printf("%s%s (%s)", any ? ", " : "\nNot measured: ", lang->script->name,
-                lang->failed ? lang->error : "no probe file");
+                   lang->failed ? lang->error : "no probe file");
             any = true;
         }
 
-        if (any)
+        if(any)
             printf("\n");
     }
 
     // A probe file that did not run is a broken measurement, whatever the
     // rest of the table says.
-    for (s32 l = 0; l < LangCount; l++)
-        if (Langs[l].hasFile && Langs[l].failed)
+    for(s32 l = 0; l < LangCount; l++)
+        if(Langs[l].hasFile && Langs[l].failed)
             return 2;
 
     return 0;

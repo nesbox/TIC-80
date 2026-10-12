@@ -22,7 +22,7 @@ extern kiss_fftr_cfg fftcfg;
 
 static void tone(float amplitude)
 {
-    for (int i = 0; i < FFT_SIZE * 2; i++)
+    for(int i = 0; i < FFT_SIZE * 2; i++)
         sampleBuf[AUDIO_BUFFER_SIZE - FFT_SIZE * 2 + i] = amplitude * sinf(2.0f * 3.14159265358979323846f * 32 * i / (FFT_SIZE * 2));
     FFT_GetFFT(fftData);
 }
@@ -51,19 +51,19 @@ int main(void)
     tone(0.5f);
     near(tic_api_fftr(NULL, 32, -1), raw * 2.0);
     near(tic_api_fftrs(NULL, 32, -1), raw * (0.4 * 0.6 + 2.0 * 0.4));
-    for (int i = 0; i < FFT_SIZE; i++)
+    for(int i = 0; i < FFT_SIZE; i++)
     {
         fftRawData[i] = fftData[i] = i + 1;
         fftRawSmoothingData[i] = fftSmoothingData[i] = (i + 1) * 0.5f;
     }
     near(tic_api_fftr(NULL, 1, 3), 9);
     near(tic_api_fftrs(NULL, 1, 3), 4.5);
-    const int ranges[][2] = {{-2,-1},{1024,-1},{-5,3},{1022,1100},{5,3},{1025,5},{2,-2},{-3,-2}};
-    for (unsigned i = 0; i < sizeof ranges / sizeof *ranges; i++)
+    const int ranges[][2] = {{-2, -1}, {1024, -1}, {-5, 3}, {1022, 1100}, {5, 3}, {1025, 5}, {2, -2}, {-3, -2}};
+    for(unsigned i = 0; i < sizeof ranges / sizeof *ranges; i++)
     {
         int start = ranges[i][0], end = ranges[i][1];
-        near(tic_api_fftr(NULL,start,end), tic_api_fft(NULL,start,end));
-        near(tic_api_fftrs(NULL,start,end), tic_api_ffts(NULL,start,end));
+        near(tic_api_fftr(NULL, start, end), tic_api_fft(NULL, start, end));
+        near(tic_api_fftrs(NULL, start, end), tic_api_ffts(NULL, start, end));
     }
     fftEnabled = false;
     assert(tic_api_fftr(NULL, 0, 1023) == 0);

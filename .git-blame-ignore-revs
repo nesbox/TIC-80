@@ -1,0 +1,11 @@
+# Commits whose changes are formatting and nothing else. Blame walks past them
+# and attributes the surrounding lines to the commit that wrote them.
+#
+# git reads this only when told to:
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub's blame view applies it on its own.
+#
+# A rebase rewrites the hash below, and this file has to be updated with it.
+
+# format: the tree goes through clang-format, once
+84a1731931d4515370336f59b73f4cef88167d8b

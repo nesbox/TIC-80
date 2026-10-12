@@ -22,7 +22,7 @@
 
 static sgamepad_hid_state read_ps4(const uint8_t* report, size_t length)
 {
-    sgamepad_hid_state state = { 0 };
+    sgamepad_hid_state state = {0};
 
     assert(sgamepad_hid_ps4_report(report, length, &state));
     return state;
@@ -30,7 +30,7 @@ static sgamepad_hid_state read_ps4(const uint8_t* report, size_t length)
 
 static sgamepad_hid_state read_ps5(const uint8_t* report, size_t length)
 {
-    sgamepad_hid_state state = { 0 };
+    sgamepad_hid_state state = {0};
 
     assert(sgamepad_hid_ps5_report(report, length, &state));
     return state;
@@ -38,7 +38,7 @@ static sgamepad_hid_state read_ps5(const uint8_t* report, size_t length)
 
 static sgamepad_hid_state read_switch(const uint8_t* report, size_t length)
 {
-    sgamepad_hid_state state = { 0 };
+    sgamepad_hid_state state = {0};
 
     assert(sgamepad_hid_switch_report(report, length, &state));
     return state;
@@ -48,22 +48,24 @@ static sgamepad_hid_state read_switch(const uint8_t* report, size_t length)
 // reader is expected to produce.
 static unsigned buttons(sgamepad_hid_state state)
 {
+    // clang-format off
     return (state.up ? 1u : 0u) | (state.down ? 2u : 0u)
         | (state.left ? 4u : 0u) | (state.right ? 8u : 0u)
         | (state.a ? 16u : 0u) | (state.b ? 32u : 0u)
         | (state.x ? 64u : 0u) | (state.y ? 128u : 0u)
         | (state.back ? 256u : 0u) | (state.start ? 512u : 0u);
+    // clang-format on
 }
 
-#define UP 1u
-#define DOWN 2u
-#define LEFT 4u
+#define UP    1u
+#define DOWN  2u
+#define LEFT  4u
 #define RIGHT 8u
-#define A 16u
-#define B 32u
-#define X 64u
-#define Y 128u
-#define BACK 256u
+#define A     16u
+#define B     32u
+#define X     64u
+#define Y     128u
+#define BACK  256u
 #define START 512u
 
 // ---------------------------------------------------------------- PlayStation
@@ -76,26 +78,30 @@ static void ps4_state(uint8_t* report, uint8_t buttons, uint8_t lx, uint8_t ly, 
 {
     memset(report, 0, PS4_USB_REPORT_SIZE);
 
-    report[0] = 0x01;                       // the USB state report id
-    report[1] = lx;                         // the four stick axes, then three
-    report[2] = ly;                         // bytes of buttons — the hat and
-    report[3] = rx;                         // the face buttons in the first,
-    report[4] = ry;                         // the shoulders and start in the
-    report[5] = buttons;                    // second, the rest in the third
-    report[6] = 0x08;                       // neither shoulder nor trigger is digital
+    report[0] = 0x01;    // the USB state report id
+    report[1] = lx;      // the four stick axes, then three
+    report[2] = ly;      // bytes of buttons — the hat and
+    report[3] = rx;      // the face buttons in the first,
+    report[4] = ry;      // the shoulders and start in the
+    report[5] = buttons; // second, the rest in the third
+    report[6] = 0x08;    // neither shoulder nor trigger is digital
 }
 
 // The face buttons, which sit in the high nibble of the first button byte.
 static void testPS4FaceButtons(void)
 {
-    static const struct { uint8_t byte; unsigned expected; } Cases[] = {
-        { 0x20, A },                        // the bottom one, `cross`
-        { 0x40, B },                        // the right one, `circle`
-        { 0x10, X },                        // the left one, `square`
-        { 0x80, Y },                        // the top one, `triangle`
+    static const struct
+    {
+        uint8_t byte;
+        unsigned expected;
+    } Cases[] = {
+        {0x20, A}, // the bottom one, `cross`
+        {0x40, B}, // the right one, `circle`
+        {0x10, X}, // the left one, `square`
+        {0x80, Y}, // the top one, `triangle`
     };
 
-    for (size_t i = 0; i < sizeof Cases / sizeof Cases[0]; i++)
+    for(size_t i = 0; i < sizeof Cases / sizeof Cases[0]; i++)
     {
         uint8_t report[PS4_USB_REPORT_SIZE];
 
@@ -114,19 +120,23 @@ static void testPS4FaceButtons(void)
 // the diagonals, and `8` for nothing.
 static void testPS4Hat(void)
 {
-    static const struct { uint8_t hat; unsigned expected; } Cases[] = {
-        { 0x00, UP },
-        { 0x01, UP | RIGHT },
-        { 0x02, RIGHT },
-        { 0x03, RIGHT | DOWN },
-        { 0x04, DOWN },
-        { 0x05, DOWN | LEFT },
-        { 0x06, LEFT },
-        { 0x07, UP | LEFT },
-        { 0x08, 0 },
+    static const struct
+    {
+        uint8_t hat;
+        unsigned expected;
+    } Cases[] = {
+        {0x00, UP},
+        {0x01, UP | RIGHT},
+        {0x02, RIGHT},
+        {0x03, RIGHT | DOWN},
+        {0x04, DOWN},
+        {0x05, DOWN | LEFT},
+        {0x06, LEFT},
+        {0x07, UP | LEFT},
+        {0x08, 0},
     };
 
-    for (size_t i = 0; i < sizeof Cases / sizeof Cases[0]; i++)
+    for(size_t i = 0; i < sizeof Cases / sizeof Cases[0]; i++)
     {
         uint8_t report[PS4_USB_REPORT_SIZE];
 
@@ -241,9 +251,9 @@ static void ps4_bluetooth(uint8_t* report, uint8_t pressed)
 {
     memset(report, 0, 78);
 
-    report[0] = 0x11;                       // the Bluetooth state report id
-    report[1] = 0xC0;                       // HID data is present in this one
-    report[2] = 0x11;                       // the report id again
+    report[0] = 0x11; // the Bluetooth state report id
+    report[1] = 0xC0; // HID data is present in this one
+    report[2] = 0x11; // the report id again
 
     // The state packet starts at 3 over Bluetooth — two later than the USB
     // report's, which has only the report id before it. So the sticks take
@@ -253,8 +263,8 @@ static void ps4_bluetooth(uint8_t* report, uint8_t pressed)
     report[4] = 0x80;
     report[5] = 0x80;
     report[6] = 0x7F;
-    report[7] = pressed;                    // the face buttons and the hat
-    report[8] = 0x08;                       // neither shoulder nor trigger is digital
+    report[7] = pressed; // the face buttons and the hat
+    report[8] = 0x08;    // neither shoulder nor trigger is digital
 
     const uint8_t header = 0xA1;
     const uint32_t crc = sgamepad_hid_crc32(sgamepad_hid_crc32(0, &header, 1), report, 74);
@@ -268,9 +278,9 @@ static void ps4_bluetooth(uint8_t* report, uint8_t pressed)
 static void testPS4Bluetooth(void)
 {
     uint8_t report[78];
-    sgamepad_hid_state state = { 0 };
+    sgamepad_hid_state state = {0};
 
-    ps4_bluetooth(report, 0x20);            // cross, and the hat saying up
+    ps4_bluetooth(report, 0x20); // cross, and the hat saying up
 
     assert(sgamepad_hid_ps4_report(report, sizeof report, &state));
     assert(buttons(state) == (A | UP));
@@ -299,14 +309,14 @@ static void ps5_state(uint8_t* report, uint8_t hat, uint8_t face, uint8_t lx, ui
 {
     memset(report, 0, PS5_USB_REPORT_SIZE);
 
-    report[0] = 0x01;                       // the USB state report id
+    report[0] = 0x01; // the USB state report id
     report[1] = lx;
     report[2] = ly;
     report[3] = rx;
     report[4] = ry;
-    report[6] = 0;                          // the counter
-    report[8] = hat | face;                 // the buttons and the hat, one byte later than the DualShock 4
-    report[9] = 0x01;                       // a shoulder held, and nothing the machine reads
+    report[6] = 0;          // the counter
+    report[8] = hat | face; // the buttons and the hat, one byte later than the DualShock 4
+    report[9] = 0x01;       // a shoulder held, and nothing the machine reads
 }
 
 static void testPS5DualSense(void)
@@ -363,11 +373,11 @@ static void testPS5SimpleReport(void)
     memset(bluetooth, 0, sizeof bluetooth);
 
     bluetooth[0] = 0x01;
-    bluetooth[1] = 0x7F;                    // the left stick centered
+    bluetooth[1] = 0x7F; // the left stick centered
     bluetooth[2] = 0x7F;
-    bluetooth[3] = 0x7F;                    // and the right one
+    bluetooth[3] = 0x7F; // and the right one
     bluetooth[4] = 0x7F;
-    bluetooth[5] = 0x40 | 0x08;             // circle, and the hat saying nothing
+    bluetooth[5] = 0x40 | 0x08; // circle, and the hat saying nothing
 
     const sgamepad_hid_state over_bt = read_ps5(bluetooth, sizeof bluetooth);
 
@@ -381,7 +391,7 @@ static void testPS5SimpleReport(void)
 static void testPS5Bluetooth(void)
 {
     uint8_t report[78];
-    sgamepad_hid_state state = { 0 };
+    sgamepad_hid_state state = {0};
 
     memset(report, 0, sizeof report);
 
@@ -390,12 +400,12 @@ static void testPS5Bluetooth(void)
     // the counter, and the buttons, whose first byte lands at 9.
     report[0] = 0x31;
     report[1] = 0xC0;
-    report[2] = 0x7F;                       // centering the sticks as the
-    report[3] = 0x7F;                       // helpers above do, so no
-    report[4] = 0x7F;                       // direction comes out of them
+    report[2] = 0x7F; // centering the sticks as the
+    report[3] = 0x7F; // helpers above do, so no
+    report[4] = 0x7F; // direction comes out of them
     report[5] = 0x7F;
-    report[9] = 0x40 | 0x08;                // circle, and the hat saying nothing
-    report[10] = 0x01;                      // the mute and function buttons
+    report[9] = 0x40 | 0x08; // circle, and the hat saying nothing
+    report[10] = 0x01;       // the mute and function buttons
 
     const uint8_t header = 0xA1;
     const uint32_t crc = sgamepad_hid_crc32(sgamepad_hid_crc32(0, &header, 1), report, 74);
@@ -432,9 +442,9 @@ static void switch_state(uint8_t* report, uint8_t low, uint8_t high, uint8_t hat
     report[2] = high;
     report[3] = hat;
 
-    const uint16_t sticks[4] = { lx, ly, rx, ry };
+    const uint16_t sticks[4] = {lx, ly, rx, ry};
 
-    for (size_t i = 0; i < 4; i++)
+    for(size_t i = 0; i < 4; i++)
     {
         report[4 + i * 2] = (uint8_t)(sticks[i]);
         report[5 + i * 2] = (uint8_t)(sticks[i] >> 8);
@@ -445,16 +455,20 @@ static void testSwitchFaceButtons(void)
 {
     // The pad names its buttons the other way round from where they sit: `b`
     // is the bottom one and `a` the right one, and the machine reads positions.
-    static const struct { uint8_t byte; unsigned expected; } Cases[] = {
-        { 0x01, A },                        // the bottom one
-        { 0x02, B },                        // the right one
-        { 0x04, X },                        // the left one
-        { 0x08, Y },                        // the top one
-        { 0x40, 0 },                        // a shoulder: read, and no bit
-        { 0x80, 0 },                        // the other one
+    static const struct
+    {
+        uint8_t byte;
+        unsigned expected;
+    } Cases[] = {
+        {0x01, A}, // the bottom one
+        {0x02, B}, // the right one
+        {0x04, X}, // the left one
+        {0x08, Y}, // the top one
+        {0x40, 0}, // a shoulder: read, and no bit
+        {0x80, 0}, // the other one
     };
 
-    for (size_t i = 0; i < sizeof Cases / sizeof Cases[0]; i++)
+    for(size_t i = 0; i < sizeof Cases / sizeof Cases[0]; i++)
     {
         uint8_t report[12];
 
@@ -512,9 +526,9 @@ static void testUnknownReports(void)
 
     memset(report, 0, sizeof report);
 
-    report[0] = 0x30;                       // the Switch full report, which is not read here
+    report[0] = 0x30; // the Switch full report, which is not read here
 
-    sgamepad_hid_state state = { 0 };
+    sgamepad_hid_state state = {0};
 
     assert(!sgamepad_hid_switch_report(report, 12, &state));
     assert(!sgamepad_hid_switch_report(report, 3, &state));
@@ -557,7 +571,7 @@ static void testFamilies(void)
 // computes what the pads' packets carry.
 static uint32_t sdl_crc32_for_byte(uint32_t r)
 {
-    for (int i = 0; i < 8; i++)
+    for(int i = 0; i < 8; i++)
         r = (r & 1 ? 0 : 0xEDB88320u) ^ r >> 1;
 
     return r ^ 0xFF000000u;
@@ -565,7 +579,7 @@ static uint32_t sdl_crc32_for_byte(uint32_t r)
 
 static uint32_t sdl_crc32(uint32_t crc, const uint8_t* data, size_t length)
 {
-    for (size_t i = 0; i < length; i++)
+    for(size_t i = 0; i < length; i++)
         crc = sdl_crc32_for_byte((uint8_t)crc ^ data[i]) ^ crc >> 8;
 
     return crc;
@@ -575,20 +589,19 @@ static void testCrcIsSdls(void)
 {
     uint8_t data[256];
 
-    for (size_t i = 0; i < sizeof data; i++)
+    for(size_t i = 0; i < sizeof data; i++)
         data[i] = (uint8_t)(i * 7 + 3);
 
     // Every length, and then with the one-byte header the Bluetooth packets
     // sum the coming-in header over.
-    for (size_t length = 0; length <= sizeof data; length++)
+    for(size_t length = 0; length <= sizeof data; length++)
         assert(sgamepad_hid_crc32(0, data, length) == sdl_crc32(0, data, length));
 
-    for (int header = 0; header < 256; header++)
+    for(int header = 0; header < 256; header++)
     {
         const uint8_t byte = (uint8_t)header;
 
-        assert(sgamepad_hid_crc32(sgamepad_hid_crc32(0, &byte, 1), data, 74)
-            == sdl_crc32(sdl_crc32(0, &byte, 1), data, 74));
+        assert(sgamepad_hid_crc32(sgamepad_hid_crc32(0, &byte, 1), data, 74) == sdl_crc32(sdl_crc32(0, &byte, 1), data, 74));
     }
 
     // And a value to pin, so a rewrite of the loop has something to be wrong
@@ -623,7 +636,7 @@ static void testKeepalive(void)
 
     // Nothing else is set, and in particular no CRC: the last four bytes that
     // would carry one are zero.
-    for (size_t i = 2; i < sizeof report; i++)
+    for(size_t i = 2; i < sizeof report; i++)
         assert(report[i] == 0);
 
     puts("keepalive ok");

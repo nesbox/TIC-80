@@ -38,12 +38,12 @@ void boot_init(Boot* boot, Studio* studio, const char* cart)
         void* data = fs_read(cart, &size);
 
         if(data) SCOPE(free(data))
-        {
-            tic_cart_load(&tic->cart, data, size);
-            tic_api_reset(tic);
-            boot->cart = true;
-            studioRomLoaded(studio);
-        }
+            {
+                tic_cart_load(&tic->cart, data, size);
+                tic_api_reset(tic);
+                boot->cart = true;
+                studioRomLoaded(studio);
+            }
     }
 
 #else
@@ -57,18 +57,18 @@ void boot_init(Boot* boot, Studio* studio, const char* cart)
         u8* app = fs_read(appPath, &appSize);
 
         if(app) SCOPE(free(app))
-        {
-            s32 dataSize = 0;
-            u8* data = embed_find_cart(app, appSize, &dataSize);
-
-            if(data) SCOPE(free(data))
             {
-                tic_cart_load(&tic->cart, data, dataSize);
-                tic_api_reset(tic);
-                boot->cart = true;
-                studioRomLoaded(studio);
+                s32 dataSize = 0;
+                u8* data = embed_find_cart(app, appSize, &dataSize);
+
+                if(data) SCOPE(free(data))
+                    {
+                        tic_cart_load(&tic->cart, data, dataSize);
+                        tic_api_reset(tic);
+                        boot->cart = true;
+                        studioRomLoaded(studio);
+                    }
             }
-        }
     }
 
 #endif

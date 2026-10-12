@@ -60,11 +60,11 @@ typedef struct
 
 } net_get_data;
 
-typedef void(*net_get_callback)(const net_get_data*);
+typedef void (*net_get_callback)(const net_get_data*);
 
 tic_net* tic_net_create(const char* host);
 
 void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata);
 void tic_net_close(tic_net* net);
-void tic_net_start(tic_net *net);
-void tic_net_end(tic_net *net);
+void tic_net_start(tic_net* net);
+void tic_net_end(tic_net* net);

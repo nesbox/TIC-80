@@ -18,5 +18,3 @@ void tic_core_draw_cache_hook_api(tic_core* core);
 bool tic_core_draw_cache_has_invalidated(tic_core* core);
 
 #endif
-
-

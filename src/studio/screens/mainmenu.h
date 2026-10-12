@@ -24,6 +24,6 @@
 
 typedef struct StudioMainMenu StudioMainMenu;
 
-StudioMainMenu* studio_mainmenu_init(Menu *menu, Config *config);
+StudioMainMenu* studio_mainmenu_init(Menu* menu, Config* config);
 bool studio_mainmenu_keyboard(StudioMainMenu* menu);
 void studio_mainmenu_free(StudioMainMenu* menu);

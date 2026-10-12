@@ -30,57 +30,62 @@
 #include <string.h>
 #include <curl/curl.h>
 
-#define STR(s) TO_STRING(s)
-#define TO_STRING(s) #s
+#define STR(s)             TO_STRING(s)
+#define TO_STRING(s)       #s
 #define TIC_VERSION_STRING STR(TIC_VERSION_MAJOR) "." STR(TIC_VERSION_MINOR) "." STR(TIC_VERSION_REVISION)
 
 #define URL_SIZE 2048
 
-typedef enum {
+typedef enum
+{
     RS_RUNNING = 0,
     RS_OK,
     RS_ERROR,
 } req_state;
 
-typedef struct {
-    tic_net *net;
+typedef struct
+{
+    tic_net* net;
 
-    char url[URL_SIZE * 2];   // the host and the request are each URL_SIZE long
+    char url[URL_SIZE * 2]; // the host and the request are each URL_SIZE long
     volatile req_state state;
 
     // for callback
     net_get_callback callback;
-    void *calldata;
+    void* calldata;
 
     // for progress function
     curl_off_t lastruntime;
-    CURL *curl;
+    CURL* curl;
 
     // for write function
-    char *buffer;
+    char* buffer;
     size_t size;
 } net_ctx;
 
-struct tic_net {
+struct tic_net
+{
     char host[URL_SIZE];
     Mutex lock;
     Thread thread;
     UEvent poll_event, exit_event;
-    CURLM *curl_multi;
+    CURLM* curl_multi;
     bool close_sockets;
 
-    net_ctx **requests;
+    net_ctx** requests;
     size_t count;
 };
 
-static size_t switch_write_cb(void *contents, size_t size, size_t nmemb, void *userp) {
-    net_ctx *ctx = (net_ctx *)userp;
+static size_t switch_write_cb(void* contents, size_t size, size_t nmemb, void* userp)
+{
+    net_ctx* ctx = (net_ctx*)userp;
 
     size_t realsize = size * nmemb;
     size_t old_size = ctx->size;
 
     ctx->buffer = realloc(ctx->buffer, ctx->size + realsize + 1);
-    if(!ctx->buffer) {
+    if(!ctx->buffer)
+    {
         printf("out of memory!\n");
         return 0; // signal error
     }
@@ -93,20 +98,25 @@ static size_t switch_write_cb(void *contents, size_t size, size_t nmemb, void *u
     return realsize;
 }
 
-static int switch_xferinfo_cb(void *userp, curl_off_t dltotal, curl_off_t dlnow,
-    curl_off_t ultotal, curl_off_t ulnow) {
-    (void)ultotal; (void)ulnow;
-    net_ctx *ctx = (net_ctx *)userp;
+static int switch_xferinfo_cb(void* userp, curl_off_t dltotal, curl_off_t dlnow,
+                              curl_off_t ultotal, curl_off_t ulnow)
+{
+    (void)ultotal;
+    (void)ulnow;
+    net_ctx* ctx = (net_ctx*)userp;
 
     // no size yet
-    if (!dltotal) return 0;
+    if(!dltotal) return 0;
 
     curl_off_t curtime;
     curl_easy_getinfo(ctx->curl, CURLINFO_TOTAL_TIME_T, &curtime);
-    if((curtime - ctx->lastruntime) >= 100000U) { // every 100ms
+    if((curtime - ctx->lastruntime) >= 100000U)
+    { // every 100ms
         ctx->lastruntime = curtime;
-        if (ctx->callback != NULL) {
-            if (mutexTryLock(&ctx->net->lock)) {
+        if(ctx->callback != NULL)
+        {
+            if(mutexTryLock(&ctx->net->lock))
+            {
                 // send progress
                 net_get_data getData = {
                     .type = net_get_progress,
@@ -126,48 +136,61 @@ static int switch_xferinfo_cb(void *userp, curl_off_t dltotal, curl_off_t dlnow,
     return 0;
 }
 
-static void switch_worker_thread(void *userp) {
-    tic_net* net = (tic_net *)userp;
+static void switch_worker_thread(void* userp)
+{
+    tic_net* net = (tic_net*)userp;
 
     Result rc;
     int idx;
-    while(1) {
+    while(1)
+    {
         // wait until something to do
         rc = waitMulti(&idx, -1, waiterForUEvent(&net->poll_event), waiterForUEvent(&net->exit_event));
-        if(R_FAILED(rc)) {
+        if(R_FAILED(rc))
+        {
             continue;
         }
 
-        if(idx == 1) { // exit_event
+        if(idx == 1)
+        { // exit_event
             break;
         }
 
         ueventClear(&net->poll_event);
 
         int still_running = 1;
-        while(still_running) {
+        while(still_running)
+        {
             CURLMcode mc = curl_multi_perform(net->curl_multi, &still_running);
 
-            if(still_running) {
+            if(still_running)
+            {
                 mc = curl_multi_poll(net->curl_multi, NULL, 0, 1000, NULL);
-                if(mc != CURLM_OK) {
+                if(mc != CURLM_OK)
+                {
                     printf("curl_multi failed, code %d.\n", mc);
                     break;
                 }
             }
 
-            CURLMsg *msg;
+            CURLMsg* msg;
             int msgs_left;
-            while((msg = curl_multi_info_read(net->curl_multi, &msgs_left)) != NULL) {
-                if(msg->msg == CURLMSG_DONE) { // request done
-                    CURL *curl = msg->easy_handle;
+            while((msg = curl_multi_info_read(net->curl_multi, &msgs_left)) != NULL)
+            {
+                if(msg->msg == CURLMSG_DONE)
+                { // request done
+                    CURL* curl = msg->easy_handle;
 
-                    net_ctx *ctx = NULL;
+                    net_ctx* ctx = NULL;
                     curl_easy_getinfo(curl, CURLINFO_PRIVATE, &ctx);
-                    if(ctx) {
-                        if(msg->data.result == CURLE_OK) { // all ok
+                    if(ctx)
+                    {
+                        if(msg->data.result == CURLE_OK)
+                        { // all ok
                             ctx->state = RS_OK;
-                        } else { // some error happened
+                        }
+                        else
+                        { // some error happened
                             // TODO: maybe publish msg->data.result
                             ctx->state = RS_ERROR;
                         }
@@ -181,7 +204,8 @@ static void switch_worker_thread(void *userp) {
     }
 }
 
-tic_net* tic_net_create(const char* host) {
+tic_net* tic_net_create(const char* host)
+{
     tic_net* net = NEW(tic_net);
     memset(net, 0, sizeof(tic_net));
 
@@ -193,12 +217,18 @@ tic_net* tic_net_create(const char* host) {
     ueventCreate(&net->exit_event, false);
 
     Result rc = socketInitializeDefault();
-    if (R_SUCCEEDED(rc)) {
+    if(R_SUCCEEDED(rc))
+    {
         net->close_sockets = true;
-    } else {
-        if(R_VALUE(rc) == MAKERESULT(Module_Libnx, LibnxError_AlreadyInitialized)) {
+    }
+    else
+    {
+        if(R_VALUE(rc) == MAKERESULT(Module_Libnx, LibnxError_AlreadyInitialized))
+        {
             net->close_sockets = false; // we use nxlink currently
-        } else {
+        }
+        else
+        {
             printf("socket init fail!\n");
             return NULL;
         }
@@ -206,16 +236,19 @@ tic_net* tic_net_create(const char* host) {
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
     net->curl_multi = curl_multi_init();
-    if(!net->curl_multi) {
+    if(!net->curl_multi)
+    {
         printf("curl init fail!\n");
         return NULL;
     }
     curl_multi_setopt(net->curl_multi, CURLMOPT_MAXCONNECTS, 8L);
 
     rc = threadCreate(&net->thread, switch_worker_thread, (void*)net, NULL, 0x10000, 0x2B, -2);
-    if (R_SUCCEEDED(rc)) {
+    if(R_SUCCEEDED(rc))
+    {
         rc = threadStart(&net->thread);
-        if (R_FAILED(rc)) {
+        if(R_FAILED(rc))
+        {
             printf("thread init fail!\n");
             return NULL;
         }
@@ -224,8 +257,9 @@ tic_net* tic_net_create(const char* host) {
     return net;
 }
 
-void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata) {
-    net_ctx *ctx = NEW(net_ctx);
+void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+{
+    net_ctx* ctx = NEW(net_ctx);
     memset(ctx, 0, sizeof(*ctx));
 
     ctx->net = net;
@@ -243,12 +277,13 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
 
     // queue transfer
     ctx->curl = curl_easy_init();
-    if (ctx->curl) {
+    if(ctx->curl)
+    {
         curl_easy_setopt(ctx->curl, CURLOPT_URL, ctx->url);
         curl_easy_setopt(ctx->curl, CURLOPT_PRIVATE, ctx);
         curl_easy_setopt(ctx->curl, CURLOPT_USERAGENT, "tic-80-switch/" TIC_VERSION_STRING);
         curl_easy_setopt(ctx->curl, CURLOPT_CONNECTTIMEOUT_MS, 3000L); // 3s
-        curl_easy_setopt(ctx->curl, CURLOPT_FOLLOWLOCATION, 1L); // CURLFOLLOW_ALL
+        curl_easy_setopt(ctx->curl, CURLOPT_FOLLOWLOCATION, 1L);       // CURLFOLLOW_ALL
         curl_easy_setopt(ctx->curl, CURLOPT_WRITEFUNCTION, switch_write_cb);
         curl_easy_setopt(ctx->curl, CURLOPT_WRITEDATA, ctx);
         curl_easy_setopt(ctx->curl, CURLOPT_XFERINFOFUNCTION, switch_xferinfo_cb);
@@ -264,7 +299,8 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
     net->requests[net->count++] = ctx;
 }
 
-void tic_net_close(tic_net* net) {
+void tic_net_close(tic_net* net)
+{
     // close thread
     ueventSignal(&net->exit_event);
     curl_multi_wakeup(net->curl_multi);
@@ -274,11 +310,14 @@ void tic_net_close(tic_net* net) {
     curl_multi_cleanup(net->curl_multi);
     curl_global_cleanup();
 
-    for(size_t i = 0; i < net->count; i++) {
-        net_ctx *ctx = net->requests[i];
-        if(ctx) {
+    for(size_t i = 0; i < net->count; i++)
+    {
+        net_ctx* ctx = net->requests[i];
+        if(ctx)
+        {
             // reset buffer
-            if(ctx->buffer != NULL) {
+            if(ctx->buffer != NULL)
+            {
                 free(ctx->buffer);
                 ctx->buffer = NULL;
                 ctx->size = 0;
@@ -289,37 +328,47 @@ void tic_net_close(tic_net* net) {
     if(net->requests)
         free(net->requests);
 
-    if(net->close_sockets) {
+    if(net->close_sockets)
+    {
         socketExit();
     }
     free(net);
 }
 
-void tic_net_start(tic_net *net) {
+void tic_net_start(tic_net* net)
+{
     mutexLock(&net->lock);
 }
 
-void tic_net_end(tic_net *net) {
-    if(!net->requests) {
+void tic_net_end(tic_net* net)
+{
+    if(!net->requests)
+    {
         mutexUnlock(&net->lock);
         return;
     }
 
     // handle finished requests
-    for(size_t i = 0; i < net->count; i++) {
-        net_ctx *ctx = net->requests[i];
-        if(ctx && ctx->state != RS_RUNNING) {
-            if(ctx->callback != NULL) {
+    for(size_t i = 0; i < net->count; i++)
+    {
+        net_ctx* ctx = net->requests[i];
+        if(ctx && ctx->state != RS_RUNNING)
+        {
+            if(ctx->callback != NULL)
+            {
                 net_get_data getData = {
                     .calldata = ctx->calldata,
                     .url = ctx->url,
                 };
 
-                if(ctx->state == RS_OK) {
+                if(ctx->state == RS_OK)
+                {
                     getData.type = net_get_done;
                     getData.done.data = (u8*)ctx->buffer;
                     getData.done.size = ctx->size;
-                } else {
+                }
+                else
+                {
                     getData.type = net_get_error;
                     getData.error.code = -1;
                 }
@@ -327,7 +376,8 @@ void tic_net_end(tic_net *net) {
             }
 
             // reset buffer
-            if(ctx->buffer != NULL) {
+            if(ctx->buffer != NULL)
+            {
                 free(ctx->buffer);
                 ctx->buffer = NULL;
                 ctx->size = 0;

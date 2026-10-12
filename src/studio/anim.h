@@ -63,14 +63,14 @@ typedef struct
     s32 end;
     s32 time;
 
-    s32 *value;
+    s32* value;
 
     AnimEffect effect;
 } Anim;
 
 typedef struct
 {
-    void(*done)(void *data);
+    void (*done)(void* data);
 
     s32 time;
     s32 tick;
@@ -79,6 +79,7 @@ typedef struct
     Anim* items;
 } Movie;
 
+// clang-format off
 #define MOVIE_DEF(TIME, DONE, ...)              \
 {                                               \
     .time = TIME,                               \
@@ -86,6 +87,7 @@ typedef struct
     .count = COUNT_OF(((Anim[])__VA_ARGS__)),   \
     .items = MOVE((Anim[])__VA_ARGS__),         \
 }
+// clang-format on
 
 void processAnim(Movie* movie, void* data);
 Movie* resetMovie(Movie* movie);

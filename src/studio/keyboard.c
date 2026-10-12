@@ -52,16 +52,19 @@ char keyboard_text(tic_mem* tic)
 
 #ifdef KEYBOARD_LAYOUT_ES
         // US KEYS:                     " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789'!`+cn'o,.- ";
-        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ=!\" $%&/()??^*CN\"a;:_ ";
-        static const char Alt[] =       "                            |@#        []} {\\    ";
+        static const char Symbols[] = " abcdefghijklmnopqrstuvwxyz0123456789'!`+cn'o,.- ";
+        static const char Shift[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ=!\" $%&/()??^*CN\"a;:_ ";
+        static const char Alt[] = "                            |@#        []} {\\    ";
 #else
-        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
-        static const char Alt[] =       "                                                  ";
+        static const char Symbols[] = " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
+        static const char Shift[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+        static const char Alt[] = "                                                  ";
 #endif
 
-        enum{Count = sizeof Symbols};
+        enum
+        {
+            Count = sizeof Symbols
+        };
 
         for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
         {
@@ -73,11 +76,11 @@ char keyboard_text(tic_mem* tic)
                 bool shift = tic_api_key(tic, tic_key_shift);
                 bool alt = tic_api_key(tic, tic_key_alt);
 
-                if (caps && key >= tic_key_a && key <= tic_key_z) shift = !shift;
+                if(caps && key >= tic_key_a && key <= tic_key_z) shift = !shift;
 
                 return shift ? Shift[key]
-                    : alt ? Alt[key]
-                    : Symbols[key];
+                       : alt ? Alt[key]
+                             : Symbols[key];
             }
         }
 
@@ -94,14 +97,19 @@ ClipboardEvent keyboard_clipboard(tic_mem* tic)
 
     if(ctrl)
     {
-        if(keyboard_pressed(tic, tic_key_insert) || keyboard_pressed(tic, tic_key_c)) return TIC_CLIPBOARD_COPY;
-        else if(keyboard_pressed(tic, tic_key_x)) return TIC_CLIPBOARD_CUT;
-        else if(keyboard_pressed(tic, tic_key_v)) return TIC_CLIPBOARD_PASTE;
+        if(keyboard_pressed(tic, tic_key_insert) || keyboard_pressed(tic, tic_key_c))
+            return TIC_CLIPBOARD_COPY;
+        else if(keyboard_pressed(tic, tic_key_x))
+            return TIC_CLIPBOARD_CUT;
+        else if(keyboard_pressed(tic, tic_key_v))
+            return TIC_CLIPBOARD_PASTE;
     }
     else if(shift)
     {
-        if(keyboard_pressed(tic, tic_key_delete)) return TIC_CLIPBOARD_CUT;
-        else if(keyboard_pressed(tic, tic_key_insert)) return TIC_CLIPBOARD_PASTE;
+        if(keyboard_pressed(tic, tic_key_delete))
+            return TIC_CLIPBOARD_CUT;
+        else if(keyboard_pressed(tic, tic_key_insert))
+            return TIC_CLIPBOARD_PASTE;
     }
 
     return TIC_CLIPBOARD_NONE;

@@ -21,9 +21,9 @@ static const tic_script* script;
  * not terminated at item->size -- so compare against the length too. */
 static bool has(const tic_outline_item* items, s32 count, const char* name)
 {
-    for (s32 i = 0; i < count; i++)
-        if (items[i].size == (s32)strlen(name) &&
-            strncmp(items[i].pos, name, items[i].size) == 0)
+    for(s32 i = 0; i < count; i++)
+        if(items[i].size == (s32)strlen(name) &&
+           strncmp(items[i].pos, name, items[i].size) == 0)
             return true;
 
     return false;
@@ -34,13 +34,13 @@ static void outline(const char* code, s32 expected, const char* first, ...)
     s32 count = -1;
     const tic_outline_item* items = script->getOutline(code, &count);
 
-    if (count != expected)
+    if(count != expected)
     {
         fprintf(stderr, "expected %d items, got %d, for:\n%s\n", expected, count, code);
         assert(false);
     }
 
-    if (first && !has(items, count, first))
+    if(first && !has(items, count, first))
     {
         fprintf(stderr, "missing '%s' in outline of:\n%s\n", first, code);
         assert(false);
@@ -52,7 +52,7 @@ int main(int argc, char** argv)
     assert(argc == 2 && "usage: python-outline-test <path to python.so>");
 
     void* module = dlopen(argv[1], RTLD_NOW);
-    if (!module)
+    if(!module)
     {
         fprintf(stderr, "dlopen: %s\n", dlerror());
         return 1;

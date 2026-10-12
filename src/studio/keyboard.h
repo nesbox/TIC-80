@@ -27,7 +27,7 @@
 
 // How long a key is held before it repeats, and how fast it repeats after that:
 // the one place the studio's own feel is spelled.
-#define KEYBOARD_HOLD 20
+#define KEYBOARD_HOLD   20
 #define KEYBOARD_PERIOD 3
 
 // The gesture the keys ask for, which `keyboard_clipboard` answers with.

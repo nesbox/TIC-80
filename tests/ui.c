@@ -15,7 +15,12 @@ static void fillTile(tic_tile* tile, u8 value)
 
 static void testIcon(tic_mem* tic)
 {
-    enum {Id = 5, X = 10, Y = 20};
+    enum
+    {
+        Id = 5,
+        X = 10,
+        Y = 20
+    };
 
     fillTile(&Tiles.data[Id], 1);
     ui_icon(tic, &Tiles, Id, X, Y, tic_color_red);

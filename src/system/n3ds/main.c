@@ -36,12 +36,13 @@
 #include "utils.h"
 
 // #define RENDER_CONSOLE_TOP
-#define AUDIO_FREQ 44100
+#define AUDIO_FREQ   44100
 #define AUDIO_BLOCKS 4
 
-typedef struct {
-	float x, y, z;
-	float u, v, opa;
+typedef struct
+{
+    float x, y, z;
+    float u, v, opa;
 } texture_vertex;
 
 static struct
@@ -66,12 +67,13 @@ static struct
         bool on_bottom;
         bool wide_mode;
 
-	texture_vertex *vbuf;
-	int vbuf_pos;
-	int vbuf_size;
+        texture_vertex* vbuf;
+        int vbuf_pos;
+        int vbuf_size;
     } render;
 
-    struct {
+    struct
+    {
         int x, y;
         int width, height;
     } screen_size;
@@ -93,39 +95,39 @@ static struct
 #define N3DS_SCALED_MODE_COUNT 3
 
 static const char n3ds_shader_shbin[289] = {
-	0x44, 0x56, 0x4c, 0x42, 0x01, 0x00, 0x00, 0x00, 0xa0, 0x00, 0x00,
-	0x00, 0x44, 0x56, 0x4c, 0x50, 0x00, 0x00, 0x00, 0x00, 0x28, 0x00,
-	0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x54, 0x00, 0x00, 0x00, 0x08,
-	0x00, 0x00, 0x00, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x4e, 0x01, 0xf0, 0x07, 0x4e, 0x02, 0x10, 0x20, 0x4e, 0x01, 0xf0,
-	0x27, 0x4e, 0x03, 0x08, 0x02, 0x08, 0x04, 0x18, 0x02, 0x08, 0x05,
-	0x28, 0x02, 0x08, 0x06, 0x38, 0x02, 0x08, 0x07, 0x10, 0x20, 0x4c,
-	0x07, 0x10, 0x41, 0x4c, 0x00, 0x00, 0x00, 0x88, 0x6e, 0x03, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0xa1, 0x0a, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x4e, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68,
-	0xc3, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0xc3, 0x06, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x62, 0xc3, 0x06, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x61, 0xc3, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6f, 0x03,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x44, 0x56, 0x4c, 0x45, 0x02,
-	0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00,
-	0x00, 0x01, 0x00, 0x00, 0x00, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x54, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x6c,
-	0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x74, 0x00, 0x00, 0x00,
-	0x0b, 0x00, 0x00, 0x00, 0x02, 0x00, 0x5f, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0x00,
-	0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x03,
-	0x00, 0x01, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x02, 0x00, 0x02, 0x00,
-	0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x13,
-	0x00, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e,
-	0x00, 0x00, 0x00
-};
+    0x44, 0x56, 0x4c, 0x42, 0x01, 0x00, 0x00, 0x00, 0xa0, 0x00, 0x00,
+    0x00, 0x44, 0x56, 0x4c, 0x50, 0x00, 0x00, 0x00, 0x00, 0x28, 0x00,
+    0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x54, 0x00, 0x00, 0x00, 0x08,
+    0x00, 0x00, 0x00, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x4e, 0x01, 0xf0, 0x07, 0x4e, 0x02, 0x10, 0x20, 0x4e, 0x01, 0xf0,
+    0x27, 0x4e, 0x03, 0x08, 0x02, 0x08, 0x04, 0x18, 0x02, 0x08, 0x05,
+    0x28, 0x02, 0x08, 0x06, 0x38, 0x02, 0x08, 0x07, 0x10, 0x20, 0x4c,
+    0x07, 0x10, 0x41, 0x4c, 0x00, 0x00, 0x00, 0x88, 0x6e, 0x03, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0xa1, 0x0a, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x4e, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68,
+    0xc3, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x64, 0xc3, 0x06, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x62, 0xc3, 0x06, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x61, 0xc3, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6f, 0x03,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x44, 0x56, 0x4c, 0x45, 0x02,
+    0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00,
+    0x00, 0x01, 0x00, 0x00, 0x00, 0x54, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x54, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x6c,
+    0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x74, 0x00, 0x00, 0x00,
+    0x0b, 0x00, 0x00, 0x00, 0x02, 0x00, 0x5f, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0x00,
+    0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x03,
+    0x00, 0x01, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x02, 0x00, 0x02, 0x00,
+    0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x13,
+    0x00, 0x70, 0x72, 0x6f, 0x6a, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e,
+    0x00, 0x00, 0x00};
 
 static const int n3ds_shader_shbin_length = 289;
 
-static void n3ds_vbuf_init(void) {
-    C3D_BufInfo *bufInfo;
+static void n3ds_vbuf_init(void)
+{
+    C3D_BufInfo* bufInfo;
     platform.render.vbuf_pos = 0;
     platform.render.vbuf_size = 6 * 160;
     platform.render.vbuf = linearAlloc(sizeof(texture_vertex) * platform.render.vbuf_size);
@@ -135,17 +137,20 @@ static void n3ds_vbuf_init(void) {
     BufInfo_Add(bufInfo, platform.render.vbuf, sizeof(texture_vertex), 2, 0x10);
 }
 
-static void n3ds_vbuf_exit(void) {
+static void n3ds_vbuf_exit(void)
+{
     linearFree(platform.render.vbuf);
     platform.render.vbuf_size = 0;
 }
 
-static int n3ds_vbuf_clear(void) {
+static int n3ds_vbuf_clear(void)
+{
     platform.render.vbuf_pos = 0;
     return 0;
 }
 
-static int n3ds_vbuf_append(float x, float y, float z, float u, float v, float opa) {
+static int n3ds_vbuf_append(float x, float y, float z, float u, float v, float opa)
+{
     int pos = platform.render.vbuf_pos++;
     platform.render.vbuf[pos].x = x;
     platform.render.vbuf[pos].y = y;
@@ -179,7 +184,7 @@ char* tic_sys_clipboard_get()
 
 void tic_sys_clipboard_free(const char* text)
 {
-    free((void*) text);
+    free((void*)text);
 }
 
 u64 tic_sys_counter_get()
@@ -204,7 +209,8 @@ bool tic_sys_fullscreen_get()
 
 void tic_sys_message(const char* title, const char* message)
 {
-    (void)title; (void)message;
+    (void)title;
+    (void)message;
 }
 
 void tic_sys_title(const char* title)
@@ -212,8 +218,14 @@ void tic_sys_title(const char* title)
     (void)title;
 }
 
-void tic_sys_open_path(const char* path) {(void)path;}
-void tic_sys_open_url(const char* url) {(void)url;}
+void tic_sys_open_path(const char* path)
+{
+    (void)path;
+}
+void tic_sys_open_url(const char* url)
+{
+    (void)url;
+}
 
 void tic_sys_preseed()
 {
@@ -223,13 +235,11 @@ void tic_sys_preseed()
 
 void tic_sys_update_config()
 {
-
 }
 
 void tic_sys_default_mapping(tic_mapping* mapping)
 {
-    *mapping = (tic_mapping)
-    {{
+    *mapping = (tic_mapping){{
         tic_key_up,
         tic_key_down,
         tic_key_left,
@@ -248,15 +258,19 @@ bool tic_sys_keyboard_text(char* text)
     return false;
 }
 
-static void update_screen_size(void) {
+static void update_screen_size(void)
+{
     int scr_width = platform.render.on_bottom ? 320 : 400;
 
-    if (platform.render.scaled > 0) {
+    if(platform.render.scaled > 0)
+    {
         float sw = platform.render.on_bottom ? 320.0f : (platform.render.scaled == 2 ? 400.0f : 384.0f);
         float sh = TIC80_FULLHEIGHT * sw / TIC80_FULLWIDTH;
-        platform.screen_size.width = (int) (sw + 0.5f);
-        platform.screen_size.height = (int) (sh + 0.5f);
-    } else {
+        platform.screen_size.width = (int)(sw + 0.5f);
+        platform.screen_size.height = (int)(sh + 0.5f);
+    }
+    else
+    {
         platform.screen_size.width = TIC80_FULLWIDTH;
         platform.screen_size.height = TIC80_FULLHEIGHT;
     }
@@ -268,11 +282,12 @@ static void update_screen_size(void) {
 static void n3ds_draw_init(void)
 {
     u8 consoleModelId = 3;
-    C3D_TexEnv *texEnv;
+    C3D_TexEnv* texEnv;
 
     platform.render.wide_mode = false;
     CFGU_GetSystemModel(&consoleModelId);
-    if (consoleModelId != 3) { // O2DS
+    if(consoleModelId != 3)
+    { // O2DS
         gfxSetWide(true);
         platform.render.wide_mode = true;
     }
@@ -284,9 +299,9 @@ static void n3ds_draw_init(void)
     C3D_RenderTargetClear(platform.render.target_top, C3D_CLEAR_ALL, 0, 0);
     C3D_RenderTargetClear(platform.render.target_bottom, C3D_CLEAR_ALL, 0, 0);
     C3D_RenderTargetSetOutput(platform.render.target_top, GFX_TOP, GFX_LEFT,
-        GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGB8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8));
+                              GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGB8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8));
     C3D_RenderTargetSetOutput(platform.render.target_bottom, GFX_BOTTOM, GFX_LEFT,
-        GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGB8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8));
+                              GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGB8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGB8));
 
     platform.render.tic_buf = linearAlloc(256 * 256 * 4);
     C3D_TexInitVRAM(&platform.render.tic_tex, 256, 256, GPU_RGBA8); // 256KB
@@ -311,7 +326,7 @@ static void n3ds_draw_init(void)
     C3D_DepthTest(false, GPU_GEQUAL, GPU_WRITE_ALL);
     C3D_CullFace(GPU_CULL_NONE);
 
-    platform.render.shader_dvlb = DVLB_ParseFile((u32 *) n3ds_shader_shbin, n3ds_shader_shbin_length);
+    platform.render.shader_dvlb = DVLB_ParseFile((u32*)n3ds_shader_shbin, n3ds_shader_shbin_length);
     shaderProgramInit(&(platform.render.shader_program));
     shaderProgramSetVsh(&(platform.render.shader_program), &(platform.render.shader_dvlb->DVLE[0]));
     platform.render.shader_proj_mtx_loc = shaderInstanceGetUniformLocation(platform.render.shader_program.vertexShader, "projection");
@@ -343,25 +358,26 @@ static void n3ds_draw_exit(void)
     C3D_Fini();
 }
 
-void n3ds_draw_texture(C3D_Tex *tex, int x, int y, int tx, int ty, int width, int height, int twidth, int theight,
-int tgtheight,
-float cmul) {
+void n3ds_draw_texture(C3D_Tex* tex, int x, int y, int tx, int ty, int width, int height, int twidth, int theight,
+                       int tgtheight,
+                       float cmul)
+{
     float txmin, tymin, txmax, tymax;
     int pos;
-    txmin = (float) tx / tex->width;
-    tymax = (float) ty / tex->height;
-    txmax = (float) (tx+twidth) / tex->width;
-    tymin = (float) (ty+theight) / tex->height;
+    txmin = (float)tx / tex->width;
+    tymax = (float)ty / tex->height;
+    txmax = (float)(tx + twidth) / tex->width;
+    tymin = (float)(ty + theight) / tex->height;
 
     C3D_TexBind(0, tex);
 
-    pos = n3ds_vbuf_append((float) x, (float) tgtheight - y - height, 0.0f, (float) txmin, (float) tymin, cmul);
-    n3ds_vbuf_append((float) x + width, (float) tgtheight - y - height, 0.0f, (float) txmax, (float) tymin, cmul);
-    n3ds_vbuf_append((float) x + width, (float) tgtheight - y, 0.0f, (float) txmax, (float) tymax, cmul);
+    pos = n3ds_vbuf_append((float)x, (float)tgtheight - y - height, 0.0f, (float)txmin, (float)tymin, cmul);
+    n3ds_vbuf_append((float)x + width, (float)tgtheight - y - height, 0.0f, (float)txmax, (float)tymin, cmul);
+    n3ds_vbuf_append((float)x + width, (float)tgtheight - y, 0.0f, (float)txmax, (float)tymax, cmul);
 
-    n3ds_vbuf_append((float) x, (float) tgtheight - y - height, 0.0f, (float) txmin, (float) tymin, cmul);
-    n3ds_vbuf_append((float) x, (float) tgtheight - y, 0.0f, (float) txmin, (float) tymax, cmul);
-    n3ds_vbuf_append((float) x + width, (float) tgtheight - y, 0.0f, (float) txmax, (float) tymax, cmul);
+    n3ds_vbuf_append((float)x, (float)tgtheight - y - height, 0.0f, (float)txmin, (float)tymin, cmul);
+    n3ds_vbuf_append((float)x, (float)tgtheight - y, 0.0f, (float)txmin, (float)tymax, cmul);
+    n3ds_vbuf_append((float)x + width, (float)tgtheight - y, 0.0f, (float)txmax, (float)tymax, cmul);
 
     C3D_DrawArrays(GPU_TRIANGLES, pos, 6);
 }
@@ -370,17 +386,19 @@ float cmul) {
 
 static void n3ds_copy_frame(void)
 {
-    u32 *in = studio_mem(platform.studio)->product.screen;
+    u32* in = studio_mem(platform.studio)->product.screen;
 
-    if (platform.render.scaled >= 1) {
+    if(platform.render.scaled >= 1)
+    {
         // pad border 1 pixel lower to minimize glitches in "linear" scaling mode
         memcpy(
             in + (FRAME_PITCH * TIC80_FULLHEIGHT),
             in + (FRAME_PITCH * (TIC80_FULLHEIGHT - 1)),
-            FRAME_PITCH
-        );
+            FRAME_PITCH);
         GSPGPU_FlushDataCache(in, (TIC80_FULLHEIGHT + 1) * FRAME_PITCH);
-    } else {
+    }
+    else
+    {
         GSPGPU_FlushDataCache(in, TIC80_FULLHEIGHT * FRAME_PITCH);
     }
 
@@ -388,12 +406,11 @@ static void n3ds_copy_frame(void)
         in, GX_BUFFER_DIM(256, 256),
         platform.render.tic_tex.data, GX_BUFFER_DIM(256, 256),
         (GX_TRANSFER_FLIP_VERT(1) | GX_TRANSFER_OUT_TILED(1) | GX_TRANSFER_RAW_COPY(0) |
-        GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGBA8) |
-        GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO))
-    );
+         GX_TRANSFER_IN_FORMAT(GX_TRANSFER_FMT_RGBA8) | GX_TRANSFER_OUT_FORMAT(GX_TRANSFER_FMT_RGBA8) |
+         GX_TRANSFER_SCALING(GX_TRANSFER_SCALE_NO)));
 }
 
-static inline void n3ds_clear_border(C3D_RenderTarget *target)
+static inline void n3ds_clear_border(C3D_RenderTarget* target)
 {
     C3D_RenderTargetClear(target, C3D_CLEAR_ALL, studio_mem(platform.studio)->product.screen[0] >> 8, 0);
 }
@@ -401,28 +418,29 @@ static inline void n3ds_clear_border(C3D_RenderTarget *target)
 static void n3ds_draw_screen(int scale_multiplier)
 {
     n3ds_draw_texture((scale_multiplier > 1) ? &platform.render.tic_scaler_tex : &platform.render.tic_tex,
-        platform.screen_size.x, platform.screen_size.y,
-        0, 0,
-        platform.screen_size.width, platform.screen_size.height,
-        TIC80_FULLWIDTH * scale_multiplier, TIC80_FULLHEIGHT * scale_multiplier,
-        240, 1.0f);
+                      platform.screen_size.x, platform.screen_size.y,
+                      0, 0,
+                      platform.screen_size.width, platform.screen_size.height,
+                      TIC80_FULLWIDTH * scale_multiplier, TIC80_FULLHEIGHT * scale_multiplier,
+                      240, 1.0f);
 }
 
 static void n3ds_draw_frame(void)
 {
     int scale_multiplier = (platform.render.scaled > 0) ? 3 : 1;
 
-    if (scale_multiplier > 1) {
+    if(scale_multiplier > 1)
+    {
         // prescale
         C3D_FrameDrawOn(platform.render.target_scaler);
         C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, platform.render.shader_proj_mtx_loc, &platform.render.proj_scaler);
 
         n3ds_draw_texture(&platform.render.tic_tex,
-            0, 0,
-            0, 0,
-            TIC80_FULLWIDTH * scale_multiplier, TIC80_FULLHEIGHT * scale_multiplier,
-            TIC80_FULLWIDTH, TIC80_FULLHEIGHT,
-            512, 1.0f);
+                          0, 0,
+                          0, 0,
+                          TIC80_FULLWIDTH * scale_multiplier, TIC80_FULLHEIGHT * scale_multiplier,
+                          TIC80_FULLWIDTH, TIC80_FULLHEIGHT,
+                          512, 1.0f);
     }
 
 #ifndef RENDER_CONSOLE_TOP
@@ -431,7 +449,8 @@ static void n3ds_draw_frame(void)
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, platform.render.shader_proj_mtx_loc, &platform.render.proj_top);
     n3ds_clear_border(platform.render.target_top);
 
-    if (!platform.render.on_bottom) {
+    if(!platform.render.on_bottom)
+    {
         n3ds_draw_screen(scale_multiplier);
     }
 #endif
@@ -440,10 +459,13 @@ static void n3ds_draw_frame(void)
     C3D_FrameDrawOn(platform.render.target_bottom);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, platform.render.shader_proj_mtx_loc, &platform.render.proj_bottom);
 
-    if (platform.render.on_bottom) {
+    if(platform.render.on_bottom)
+    {
         n3ds_clear_border(platform.render.target_bottom);
         n3ds_draw_screen(scale_multiplier);
-    } else if (platform.keyboard.render_dirty) {
+    }
+    else if(platform.keyboard.render_dirty)
+    {
         n3ds_keyboard_draw(&platform.keyboard);
         platform.keyboard.render_dirty = false;
     }
@@ -489,13 +511,15 @@ void n3ds_sound_exit(void)
     linearFree(platform.audio.buffer);
 }
 
-static void audio_update(void) {
+static void audio_update(void)
+{
     studio_sound(platform.studio);
 
-    ndspWaveBuf *wave_buf = &platform.audio.ndspBuf[platform.audio.curr_block];
+    ndspWaveBuf* wave_buf = &platform.audio.ndspBuf[platform.audio.curr_block];
 
-    if (wave_buf->status == NDSP_WBUF_DONE) {
-        s16 *audio_ptr = wave_buf->data_pcm16;
+    if(wave_buf->status == NDSP_WBUF_DONE)
+    {
+        s16* audio_ptr = wave_buf->data_pcm16;
         memcpy(audio_ptr, studio_mem(platform.studio)->product.samples.buffer, platform.audio.buffer_size);
         DSP_FlushDataCache(audio_ptr, platform.audio.buffer_size);
 
@@ -504,30 +528,25 @@ static void audio_update(void) {
     }
 }
 
-static void touch_update(void) {
-	u32 key_held = hidKeysHeld();
+static void touch_update(void)
+{
+    u32 key_held = hidKeysHeld();
     touchPosition touch;
 
-    tic80_input *input = &platform.input;
-    tic80_mouse *mouse = &input->mouse;
+    tic80_input* input = &platform.input;
+    tic80_mouse* mouse = &input->mouse;
 
-    if (key_held & KEY_TOUCH)
+    if(key_held & KEY_TOUCH)
     {
         hidTouchRead(&touch);
-        if (
-            touch.px >= platform.screen_size.x
-            && touch.py >= platform.screen_size.y
-            && touch.px < (platform.screen_size.x + platform.screen_size.width)
-            && touch.py < (platform.screen_size.y + platform.screen_size.height)
-        ) {
-            int tic80_x = (int) ((touch.px - platform.screen_size.x) * TIC80_FULLWIDTH / platform.screen_size.width);
-            int tic80_y = (int) ((touch.py - platform.screen_size.y) * TIC80_FULLHEIGHT / platform.screen_size.height);
-            if (
-                tic80_x >= 0
-                && tic80_y >= 0
-                && tic80_x < (TIC80_FULLWIDTH)
-                && tic80_y < (TIC80_FULLHEIGHT)
-            ) {
+        if(
+            touch.px >= platform.screen_size.x && touch.py >= platform.screen_size.y && touch.px < (platform.screen_size.x + platform.screen_size.width) && touch.py < (platform.screen_size.y + platform.screen_size.height))
+        {
+            int tic80_x = (int)((touch.px - platform.screen_size.x) * TIC80_FULLWIDTH / platform.screen_size.width);
+            int tic80_y = (int)((touch.py - platform.screen_size.y) * TIC80_FULLHEIGHT / platform.screen_size.height);
+            if(
+                tic80_x >= 0 && tic80_y >= 0 && tic80_x < (TIC80_FULLWIDTH) && tic80_y < (TIC80_FULLHEIGHT))
+            {
                 mouse->x = tic80_x;
                 mouse->y = tic80_y;
                 mouse->left = true;
@@ -536,35 +555,43 @@ static void touch_update(void) {
     }
 }
 
-static void keyboard_update(void) {
+static void keyboard_update(void)
+{
     hidScanInput();
 
     platform.input.mouse.btns = 0;
-    if (!platform.render.on_bottom) {
+    if(!platform.render.on_bottom)
+    {
         n3ds_keyboard_update(&platform.keyboard, &platform.input);
-    } else {
+    }
+    else
+    {
         touch_update();
     }
     n3ds_gamepad_update(&platform.keyboard, &platform.input);
 
     u32 kup = hidKeysUp();
-    if (kup & KEY_SELECT) {
+    if(kup & KEY_SELECT)
+    {
         platform.render.scaled = (platform.render.scaled + 1) % N3DS_SCALED_MODE_COUNT;
         update_screen_size();
     }
-    if (kup & (KEY_L | KEY_R)) {
+    if(kup & (KEY_L | KEY_R))
+    {
         platform.render.on_bottom = !platform.render.on_bottom;
         platform.keyboard.render_dirty = true;
         update_screen_size();
     }
 }
 
-int main(int argc, char **argv) {
-    char *backup_argv[] = { "/3ds/tic80/tic80.3dsx", 0 };
+int main(int argc, char** argv)
+{
+    char* backup_argv[] = {"/3ds/tic80/tic80.3dsx", 0};
     int argc_used = argc;
-    char **argv_used = argv;
+    char** argv_used = argv;
 
-    if (argc_used <= 0 || argv_used[0] == NULL || argv_used[0][0] == '\0') {
+    if(argc_used <= 0 || argv_used[0] == NULL || argv_used[0][0] == '\0')
+    {
         mkdir("/3ds/tic80", S_IRWXU | S_IRWXG | S_IRWXO);
         argc_used = 1;
         argv_used = backup_argv;
@@ -581,7 +608,7 @@ int main(int argc, char **argv) {
     romfsInit();
 
     memset(&platform, 0, sizeof(platform));
-   
+
     n3ds_draw_init();
     n3ds_keyboard_init(&platform.keyboard);
 
@@ -589,7 +616,8 @@ int main(int argc, char **argv) {
 
     n3ds_sound_init(AUDIO_FREQ);
 
-    while (aptMainLoop() && !studio_alive(platform.studio)) {
+    while(aptMainLoop() && !studio_alive(platform.studio))
+    {
         u32 start_frame = C3D_FrameCounter(0);
 
         keyboard_update();
@@ -609,7 +637,7 @@ int main(int argc, char **argv) {
     }
 
     n3ds_sound_exit();
-    
+
     studio_delete(platform.studio);
 
     n3ds_keyboard_free(&platform.keyboard);

@@ -24,18 +24,18 @@
 
 class CCharGenerator
 {
-public:
-	CCharGenerator (void);
-	~CCharGenerator (void);
+  public:
+    CCharGenerator(void);
+    ~CCharGenerator(void);
 
-	unsigned GetCharWidth (void) const;
-	unsigned GetCharHeight (void) const;
-	unsigned GetUnderline (void) const;
+    unsigned GetCharWidth(void) const;
+    unsigned GetCharHeight(void) const;
+    unsigned GetUnderline(void) const;
 
-	boolean GetPixel (char chAscii, unsigned nPosX, unsigned nPosY) const;
+    boolean GetPixel(char chAscii, unsigned nPosX, unsigned nPosY) const;
 
-private:
-	unsigned m_nCharWidth;
+  private:
+    unsigned m_nCharWidth;
 };
 
 #endif

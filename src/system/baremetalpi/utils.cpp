@@ -1,45 +1,45 @@
 #include "utils.h"
 
+#define MAXBUFLEN (1024 * 1024)
 
-#define MAXBUFLEN (1024*1024)
-
-
-extern "C" {
-
-// this functions are absent for circle-stdlib for some reason
-// (maybe i can't link properly). Since they shouldn't be used
-// too much, i'll put some stub here. Chmod is ok since we're on
-// fat anyway, symlink won't work either. ftruncate could break
-// something
-
-int chmod (const char *filename, mode_t mode)
+extern "C"
 {
-    (void)filename; (void)mode;
-dbg("called chmod\n");
-	return -1;
+
+    // this functions are absent for circle-stdlib for some reason
+    // (maybe i can't link properly). Since they shouldn't be used
+    // too much, i'll put some stub here. Chmod is ok since we're on
+    // fat anyway, symlink won't work either. ftruncate could break
+    // something
+
+    int chmod(const char* filename, mode_t mode)
+    {
+        (void)filename;
+        (void)mode;
+        dbg("called chmod\n");
+        return -1;
+    }
+
+    int symlink(const char* target, const char* linkpath)
+    {
+        (void)target;
+        (void)linkpath;
+        dbg("called symlink\n");
+
+        return -1;
+    }
 }
 
-int symlink(const char *target, const char *linkpath)
+char* strdup(const char* s)
 {
-    (void)target; (void)linkpath;
-dbg("called symlink\n");
-
-	return -1;
-}
-}
-
-char *strdup (const char *s) {
-    char *d = (char*)malloc (strlen (s) + 1);   // Space for length plus nul
-    if (d == NULL) return NULL;          // No memory
-    strcpy (d,s);                        // Copy the characters
-    return d;                            // Return the new string
+    char* d = (char*)malloc(strlen(s) + 1); // Space for length plus nul
+    if(d == NULL) return NULL;              // No memory
+    strcpy(d, s);                           // Copy the characters
+    return d;                               // Return the new string
 }
 
-
-
-void* loadFile(const char *filename, u32* size)
+void* loadFile(const char* filename, u32* size)
 {
-/*
+    /*
   // slow way to load a file since we don't have fseek
 /  char source[MAXBUFLEN];
   FILE *fp = fopen(filename, "rb");
@@ -62,6 +62,5 @@ void* loadFile(const char *filename, u32* size)
     return NULL;
   }
 */
-return NULL;
+    return NULL;
 }
-

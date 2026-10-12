@@ -31,48 +31,50 @@
 #define TIC_VERSION_POST ""
 #endif
 
-#define TIC_VERSION DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_REVISION) TIC_VERSION_STATUS TIC_VERSION_BUILD TIC_VERSION_POST " (" TIC_VERSION_HASH ")"
-#define TIC_PACKAGE "com.nesbox.tic"
-#define TIC_NAME "TIC-80"
+#define TIC_VERSION   DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_REVISION) TIC_VERSION_STATUS TIC_VERSION_BUILD TIC_VERSION_POST " (" TIC_VERSION_HASH ")"
+#define TIC_PACKAGE   "com.nesbox.tic"
+#define TIC_NAME      "TIC-80"
 #define TIC_NAME_FULL TIC_NAME " tiny computer"
-#define TIC_TITLE TIC_NAME_FULL " " TIC_VERSION
+#define TIC_TITLE     TIC_NAME_FULL " " TIC_VERSION
 // A dev snapshot talks to the dev site — it runs the same code from the
 // same branch, its data is disposable, and testing there cannot touch the
 // real catalogue. A release talks to production.
 #if TIC_VERSION_IS_RELEASE
-    #define TIC_HOST "tic80.com"
+#define TIC_HOST "tic80.com"
 #else
-    #define TIC_HOST "dev.tic80.com"
+#define TIC_HOST "dev.tic80.com"
 #endif
 #if defined(__TIC_WIN7__)
-    #define TIC_WEBSITE_PROTOCOL "http://"
+#define TIC_WEBSITE_PROTOCOL "http://"
 #else
-    #define TIC_WEBSITE_PROTOCOL "https://"
+#define TIC_WEBSITE_PROTOCOL "https://"
 #endif
-#define TIC_WEBSITE TIC_WEBSITE_PROTOCOL TIC_HOST
+#define TIC_WEBSITE   TIC_WEBSITE_PROTOCOL TIC_HOST
 #define TIC_COPYRIGHT TIC_WEBSITE " (C) 2017-" TIC_VERSION_YEAR
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void    tic_sys_clipboard_set(const char* text);
-bool    tic_sys_clipboard_has();
-char*   tic_sys_clipboard_get();
-void    tic_sys_clipboard_free(const char* text);
-u64     tic_sys_counter_get();
-u64     tic_sys_freq_get();
-bool    tic_sys_fullscreen_get();
-void    tic_sys_fullscreen_set(bool value);
-void    tic_sys_message(const char* title, const char* message);
-void    tic_sys_title(const char* title);
-void    tic_sys_open_path(const char* path);
-void    tic_sys_open_url(const char* path);
-void    tic_sys_preseed();
-bool    tic_sys_keyboard_text(char* text);
-void    tic_sys_update_config();
-void    tic_sys_default_mapping(tic_mapping* mapping);
+    void tic_sys_clipboard_set(const char* text);
+    bool tic_sys_clipboard_has();
+    char* tic_sys_clipboard_get();
+    void tic_sys_clipboard_free(const char* text);
+    u64 tic_sys_counter_get();
+    u64 tic_sys_freq_get();
+    bool tic_sys_fullscreen_get();
+    void tic_sys_fullscreen_set(bool value);
+    void tic_sys_message(const char* title, const char* message);
+    void tic_sys_title(const char* title);
+    void tic_sys_open_path(const char* path);
+    void tic_sys_open_url(const char* path);
+    void tic_sys_preseed();
+    bool tic_sys_keyboard_text(char* text);
+    void tic_sys_update_config();
+    void tic_sys_default_mapping(tic_mapping* mapping);
 
+    // clang-format off
 #define CODE_COLORS_LIST(macro) \
     macro(BG)       \
     macro(FG)       \
@@ -82,105 +84,108 @@ void    tic_sys_default_mapping(tic_mapping* mapping);
     macro(API)      \
     macro(COMMENT)  \
     macro(SIGN)
+    // clang-format on
 
-enum KeybindMode {
-    KEYBIND_STANDARD,
-    KEYBIND_EMACS,
-    KEYBIND_VI
-};
-
-enum TabMode {
-    TAB_AUTO,
-    TAB_TAB,
-    TAB_SPACE
-};
-
-typedef struct
-{
-    struct
+    enum KeybindMode
     {
-        struct
-        {
-#define     CODE_COLOR_DEF(VAR) u8 VAR;
-            CODE_COLORS_LIST(CODE_COLOR_DEF)
-#undef      CODE_COLOR_DEF
+        KEYBIND_STANDARD,
+        KEYBIND_EMACS,
+        KEYBIND_VI
+    };
 
-            u8 select;
-            u8 cursor;
-            bool shadow;
-            bool altFont;
-            bool altCaret;
-            bool matchDelimiters;
-            bool autoDelimiters;
+    enum TabMode
+    {
+        TAB_AUTO,
+        TAB_TAB,
+        TAB_SPACE
+    };
 
-        } code;
-
+    typedef struct
+    {
         struct
         {
             struct
             {
-                u8 alpha;
-            } touch;
+#define CODE_COLOR_DEF(VAR) u8 VAR;
+                CODE_COLORS_LIST(CODE_COLOR_DEF)
+#undef CODE_COLOR_DEF
 
-        } gamepad;
+                u8 select;
+                u8 cursor;
+                bool shadow;
+                bool altFont;
+                bool altCaret;
+                bool matchDelimiters;
+                bool autoDelimiters;
 
-    } theme;
+            } code;
 
-    bool checkNewVersion;
-    bool cli;
-    bool soft;
-    bool trim;
+            struct
+            {
+                struct
+                {
+                    u8 alpha;
+                } touch;
 
-    struct StudioOptions
-    {
+            } gamepad;
+
+        } theme;
+
+        bool checkNewVersion;
+        bool cli;
+        bool soft;
+        bool trim;
+
+        struct StudioOptions
+        {
 #if defined(CRT_SHADER_SUPPORT)
-        bool crt;
+            bool crt;
 #endif
 
-        bool fullscreen;
-        bool vsync;
-        bool integerScale;
+            bool fullscreen;
+            bool vsync;
+            bool integerScale;
 #if defined(BUILD_RENDER_CACHE)
-        bool drawCache;
+            bool drawCache;
 #endif
-        s32 volume;
-        bool autosave;
-        tic_mapping mapping;
+            s32 volume;
+            bool autosave;
+            tic_mapping mapping;
 #if defined(BUILD_EDITORS)
-        enum KeybindMode keybindMode;
-        enum TabMode tabMode;
-        s32 tabSize;
+            enum KeybindMode keybindMode;
+            enum TabMode tabMode;
+            s32 tabSize;
 #endif
-    } options;
+        } options;
 
-    const tic_cartridge* cart;
+        const tic_cartridge* cart;
 
-    s32 uiScale;
+        s32 uiScale;
 
-    int fft;
-    int fftcaptureplaybackdevices;
-    const char *fftdevice;
+        int fft;
+        int fftcaptureplaybackdevices;
+        const char* fftdevice;
 
-    tic_layout keyboardLayout;
-} StudioConfig;
+        tic_layout keyboardLayout;
+    } StudioConfig;
 
-typedef struct Studio Studio;
+    typedef struct Studio Studio;
 
-void setJustSwitchedToCodeMode(Studio* studio, bool value);
-bool hasJustSwitchedToCodeMode(Studio* studio);
-const tic_mem* studio_mem(Studio* studio);
-void studio_tick(Studio* studio, tic80_input input);
-void studio_sound(Studio* studio);
-void studio_load(Studio* studio, const char* file);
-void studio_keymapchanged(Studio *studio, tic_layout keyboardLayout);
-bool studio_alive(Studio* studio);
-void studio_exit(Studio* studio);
-void studio_delete(Studio* studio);
-const StudioConfig* studio_config(const Studio* studio);
+    void setJustSwitchedToCodeMode(Studio* studio, bool value);
+    bool hasJustSwitchedToCodeMode(Studio* studio);
+    const tic_mem* studio_mem(Studio* studio);
+    void studio_tick(Studio* studio, tic80_input input);
+    void studio_sound(Studio* studio);
+    void studio_load(Studio* studio, const char* file);
+    void studio_keymapchanged(Studio* studio, tic_layout keyboardLayout);
+    bool studio_alive(Studio* studio);
+    void studio_exit(Studio* studio);
+    void studio_delete(Studio* studio);
+    const StudioConfig* studio_config(const Studio* studio);
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, tic_layout keyboardLayout);
+    Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, tic_layout keyboardLayout);
 #if defined(BUILD_RENDER_CACHE)
-bool studio_is_dirty(Studio* studio);
+    bool studio_is_dirty(Studio* studio);
 #endif
 
 #ifdef __cplusplus

@@ -27,33 +27,42 @@
 #ifdef DEBUG
 static int nxlink_sock = -1;
 
-static void nxlink_init() {
-	socketInitializeDefault();
-	nxlink_sock = nxlinkStdio();
-	if (nxlink_sock >= 0)
-		printf("nxlink activated...\n");
+static void nxlink_init()
+{
+    socketInitializeDefault();
+    nxlink_sock = nxlinkStdio();
+    if(nxlink_sock >= 0)
+        printf("nxlink activated...\n");
 }
 
-static void nxlink_exit() {
-	if (nxlink_sock >= 0) {
-		close(nxlink_sock);
-		nxlink_sock = -1;
-	}
-	socketExit();
+static void nxlink_exit()
+{
+    if(nxlink_sock >= 0)
+    {
+        close(nxlink_sock);
+        nxlink_sock = -1;
+    }
+    socketExit();
 }
 #else
-static void nxlink_init() {}
-static void nxlink_exit() {}
+static void nxlink_init()
+{
+}
+static void nxlink_exit()
+{
+}
 #endif
 
 // these hooks are called by libnx
 
-void userAppInit() {
-	nxlink_init(); // enable debug log over network
-	romfsInit(); // can be used for engine data or a shipped game
+void userAppInit()
+{
+    nxlink_init(); // enable debug log over network
+    romfsInit();   // can be used for engine data or a shipped game
 }
 
-void userAppExit() {
-	romfsExit();
-	nxlink_exit();
+void userAppExit()
+{
+    romfsExit();
+    nxlink_exit();
 }

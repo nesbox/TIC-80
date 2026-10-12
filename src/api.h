@@ -26,14 +26,19 @@
 #include "tic.h"
 #include "time.h"
 
-typedef struct { u8 index; tic_flip flip; tic_rotate rotate; } RemapResult;
-typedef void(*RemapFunc)(void*, s32 x, s32 y, RemapResult* result);
+typedef struct
+{
+    u8 index;
+    tic_flip flip;
+    tic_rotate rotate;
+} RemapResult;
+typedef void (*RemapFunc)(void*, s32 x, s32 y, RemapResult* result);
 
-typedef void(*TraceOutput)(void*, const char*, u8 color);
-typedef void(*ErrorOutput)(void*, const char*);
-typedef void(*ExitCallback)(void*);
-typedef u64(*CounterCallback)(void*);
-typedef u64(*FreqCallback)(void*);
+typedef void (*TraceOutput)(void*, const char*, u8 color);
+typedef void (*ErrorOutput)(void*, const char*);
+typedef void (*ExitCallback)(void*);
+typedef u64 (*CounterCallback)(void*);
+typedef u64 (*FreqCallback)(void*);
 
 typedef struct
 {
@@ -49,12 +54,12 @@ typedef struct
 } tic_tick_data;
 
 typedef struct tic_mem tic_mem;
-typedef void(*tic_tick)(tic_mem* memory);
-typedef void(*tic_boot)(tic_mem* memory);
-typedef void(*tic_scanline)(tic_mem* memory, s32 row, void* data);
-typedef void(*tic_border)(tic_mem* memory, s32 row, void* data);
-typedef void(*tic_gamemenu)(tic_mem* memory, s32 index, void* data);
-typedef bool(*tic_lang_isalnum)(char c);
+typedef void (*tic_tick)(tic_mem* memory);
+typedef void (*tic_boot)(tic_mem* memory);
+typedef void (*tic_scanline)(tic_mem* memory, s32 row, void* data);
+typedef void (*tic_border)(tic_mem* memory, s32 row, void* data);
+typedef void (*tic_gamemenu)(tic_mem* memory, s32 index, void* data);
+typedef bool (*tic_lang_isalnum)(char c);
 
 typedef struct
 {
@@ -64,9 +69,9 @@ typedef struct
 
 typedef struct
 {
-    tic_scanline    scanline;
-    tic_border      border;
-    tic_gamemenu    menu;
+    tic_scanline scanline;
+    tic_border border;
+    tic_gamemenu menu;
     void* data;
 } tic_blit_callback;
 
@@ -92,6 +97,7 @@ typedef struct
 //       | CART    | RAM           | INDEX
 //       |---------+---------------+------- - - -
 //       |         |               |
+// clang-format off
 #define TIC_SYNC_LIST(macro) \
     macro(tiles,    tiles,        0) \
     macro(sprites,  sprites,      1) \
@@ -101,6 +107,7 @@ typedef struct
     macro(palette,  vram.palette, 5) \
     macro(flags,    flags,        6) \
     macro(screen,   vram.screen,  7)
+// clang-format on
 
 enum
 {
@@ -116,6 +123,7 @@ enum
 #define BDR_FN  "BDR"
 #define MENU_FN "MENU"
 
+// clang-format off
 #define TIC_CALLBACK_LIST(macro)                                                                                    \
     macro(TIC, TIC_FN "()", "Main function. It's called at " DEF2STR(TIC80_FRAMERATE)                               \
         "fps (" DEF2STR(TIC80_FRAMERATE) " times every second).")                                                   \
@@ -125,6 +133,7 @@ enum
         "for example, to manipulate the palette.")                                                                  \
     macro(BDR, BDR_FN "(row)", "Allows you to execute code between the drawing of each fullscreen scanline, "       \
         "for example, to manipulate the palette.")
+// clang-format on
 
 // API DEFINITION TABLE
 //  macro
@@ -138,6 +147,7 @@ enum
 //      function parameters
 //  )
 
+// clang-format off
 #define TIC_API_LIST(macro)                                                                                             \
     macro(print,                                                                                                        \
         "print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false) -> width",                                    \
@@ -956,6 +966,7 @@ enum
         0,                                                                                                              \
         double,                                                                                                         \
         tic_mem*, s32 startFreq, s32 endFreq)
+// clang-format on
 
 #define TIC_API_DEF(name, _, __, ___, ____, _____, ret, ...) ret tic_api_##name(__VA_ARGS__);
 TIC_API_LIST(TIC_API_DEF)
@@ -963,11 +974,11 @@ TIC_API_LIST(TIC_API_DEF)
 
 struct tic_mem
 {
-    tic80           product;
-    tic_ram*        ram;
-    tic_cartridge   cart;
+    tic80 product;
+    tic_ram* ram;
+    tic_cartridge cart;
 
-    tic_ram*        base_ram;
+    tic_ram* base_ram;
 
     char saveid[TIC_SAVEID_SIZE];
 
@@ -976,15 +987,15 @@ struct tic_mem
         struct
         {
 #if RETRO_IS_BIG_ENDIAN
-            u8 padded:5;
-            u8 keyboard:1;
-            u8 mouse:1;
-            u8 gamepad:1;
+            u8 padded : 5;
+            u8 keyboard : 1;
+            u8 mouse : 1;
+            u8 gamepad : 1;
 #else
-            u8 gamepad:1;
-            u8 mouse:1;
-            u8 keyboard:1;
-            u8 padded:5;
+            u8 gamepad : 1;
+            u8 mouse : 1;
+            u8 keyboard : 1;
+            u8 padded : 5;
 #endif
         };
 
@@ -1010,6 +1021,8 @@ void tic_core_draw_cache_set_enabled(tic_mem* memory, bool enabled);
 bool tic_core_draw_cache_is_enabled(tic_mem* memory);
 #endif
 
+// clang-format off
 #define VBANK(tic, bank)                                \
     bool MACROVAR(_bank_) = tic_api_vbank(tic, bank);   \
     SCOPE(tic_api_vbank(tic, MACROVAR(_bank_)))
+// clang-format on

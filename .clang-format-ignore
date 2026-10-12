@@ -1,0 +1,24 @@
+# Files clang-format leaves alone. Read by the binary itself (18 and later), so
+# CI and an editor's format-on-save work from this same list.
+
+# sokol-shdc output: "machine generated, don't edit!" — the next shader build
+# writes these again.
+src/system/sokol/crt.h
+src/system/sokol/blit.h
+
+# Third-party files that live inside src/.
+src/ext/miniaudio.h
+src/ext/msf_gif.h
+src/ext/kiss_fft.c
+src/ext/kiss_fft.h
+src/ext/kiss_fftr.c
+src/ext/kiss_fftr.h
+src/ext/kiss_fft_log.h
+src/ext/_kiss_fft_guts.h
+src/ext/md5.c
+src/ext/md5.h
+
+# Vendored libretro, headers and all.
+src/system/libretro/libretro-common/**
+src/system/libretro/libretro_core_options.h
+src/system/libretro/libretro_core_options_intl.h

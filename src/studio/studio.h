@@ -42,24 +42,24 @@
 
 #if defined(BUILD_RENDER_CACHE)
 // Redirect studio drawing calls through the core API pointers to benefit from the draw cache
-#define tic_api_cls(tic, ...) (((tic_core*)(tic))->api.cls(tic, __VA_ARGS__))
-#define tic_api_clip(tic, ...) (((tic_core*)(tic))->api.clip(tic, __VA_ARGS__))
+#define tic_api_cls(tic, ...)   (((tic_core*)(tic))->api.cls(tic, __VA_ARGS__))
+#define tic_api_clip(tic, ...)  (((tic_core*)(tic))->api.clip(tic, __VA_ARGS__))
 #define tic_api_print(tic, ...) (((tic_core*)(tic))->api.print(tic, __VA_ARGS__))
-#define tic_api_font(tic, ...) (((tic_core*)(tic))->api.font(tic, __VA_ARGS__))
-#define tic_api_pix(tic, ...) (((tic_core*)(tic))->api.pix(tic, __VA_ARGS__))
-#define tic_api_rect(tic, ...) (((tic_core*)(tic))->api.rect(tic, __VA_ARGS__))
+#define tic_api_font(tic, ...)  (((tic_core*)(tic))->api.font(tic, __VA_ARGS__))
+#define tic_api_pix(tic, ...)   (((tic_core*)(tic))->api.pix(tic, __VA_ARGS__))
+#define tic_api_rect(tic, ...)  (((tic_core*)(tic))->api.rect(tic, __VA_ARGS__))
 #define tic_api_rectb(tic, ...) (((tic_core*)(tic))->api.rectb(tic, __VA_ARGS__))
-#define tic_api_line(tic, ...) (((tic_core*)(tic))->api.line(tic, __VA_ARGS__))
-#define tic_api_circ(tic, ...) (((tic_core*)(tic))->api.circ(tic, __VA_ARGS__))
+#define tic_api_line(tic, ...)  (((tic_core*)(tic))->api.line(tic, __VA_ARGS__))
+#define tic_api_circ(tic, ...)  (((tic_core*)(tic))->api.circ(tic, __VA_ARGS__))
 #define tic_api_circb(tic, ...) (((tic_core*)(tic))->api.circb(tic, __VA_ARGS__))
-#define tic_api_elli(tic, ...) (((tic_core*)(tic))->api.elli(tic, __VA_ARGS__))
+#define tic_api_elli(tic, ...)  (((tic_core*)(tic))->api.elli(tic, __VA_ARGS__))
 #define tic_api_ellib(tic, ...) (((tic_core*)(tic))->api.ellib(tic, __VA_ARGS__))
 #define tic_api_paint(tic, ...) (((tic_core*)(tic))->api.paint(tic, __VA_ARGS__))
-#define tic_api_tri(tic, ...) (((tic_core*)(tic))->api.tri(tic, __VA_ARGS__))
-#define tic_api_trib(tic, ...) (((tic_core*)(tic))->api.trib(tic, __VA_ARGS__))
-#define tic_api_ttri(tic, ...) (((tic_core*)(tic))->api.ttri(tic, __VA_ARGS__))
-#define tic_api_spr(tic, ...) (((tic_core*)(tic))->api.spr(tic, __VA_ARGS__))
-#define tic_api_map(tic, ...) (((tic_core*)(tic))->api.map(tic, __VA_ARGS__))
+#define tic_api_tri(tic, ...)   (((tic_core*)(tic))->api.tri(tic, __VA_ARGS__))
+#define tic_api_trib(tic, ...)  (((tic_core*)(tic))->api.trib(tic, __VA_ARGS__))
+#define tic_api_ttri(tic, ...)  (((tic_core*)(tic))->api.ttri(tic, __VA_ARGS__))
+#define tic_api_spr(tic, ...)   (((tic_core*)(tic))->api.spr(tic, __VA_ARGS__))
+#define tic_api_map(tic, ...)   (((tic_core*)(tic))->api.map(tic, __VA_ARGS__))
 #endif
 
 #ifdef BAREMETALPI
@@ -70,30 +70,33 @@
 #define TIC_LOCAL ".local/"
 #endif
 #define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_HASH "/"
-#define TIC_CACHE TIC_LOCAL "cache/"
+#define TIC_CACHE         TIC_LOCAL "cache/"
 
-#define TOOLBAR_SIZE 7
-#define STUDIO_TEXT_WIDTH (TIC_FONT_WIDTH)
-#define STUDIO_TEXT_HEIGHT (TIC_FONT_HEIGHT+1)
-#define STUDIO_TEXT_BUFFER_WIDTH (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
+#define TOOLBAR_SIZE              7
+#define STUDIO_TEXT_WIDTH         (TIC_FONT_WIDTH)
+#define STUDIO_TEXT_HEIGHT        (TIC_FONT_HEIGHT + 1)
+#define STUDIO_TEXT_BUFFER_WIDTH  (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
 #define STUDIO_TEXT_BUFFER_HEIGHT (TIC80_HEIGHT / STUDIO_TEXT_HEIGHT)
-#define STUDIO_TEXT_BUFFER_SIZE (STUDIO_TEXT_BUFFER_WIDTH * STUDIO_TEXT_BUFFER_HEIGHT)
-#define STUDIO_ANIM_TIME 8
+#define STUDIO_TEXT_BUFFER_SIZE   (STUDIO_TEXT_BUFFER_WIDTH * STUDIO_TEXT_BUFFER_HEIGHT)
+#define STUDIO_ANIM_TIME          8
 
 #define TIC_COLOR_BG tic_color_black
 
-#define CONFIG_TIC "config.tic"
+#define CONFIG_TIC      "config.tic"
 #define CONFIG_TIC_PATH TIC_LOCAL_VERSION CONFIG_TIC
 
 #define PNG_EXT ".png"
 
 #if defined(CRT_SHADER_SUPPORT)
+// clang-format off
 #   define CRT_CMD_PARAM(macro)                                 \
     macro(crt, bool, BOOLEAN, "", "enable CRT monitor effect")
+// clang-format on
 #else
-#   define CRT_CMD_PARAM(macro)
+#define CRT_CMD_PARAM(macro)
 #endif
 
+// clang-format off
 #define CMD_PARAMS_LIST(macro)                                                              \
     macro(skip,         int,    BOOLEAN,    "",         "skip startup animation")           \
     macro(volume,       s32,    INTEGER,    "=<int>",   "global volume value [0-15]")       \
@@ -107,7 +110,9 @@
     macro(keepcmd,      int,    BOOLEAN,    "",         "re-execute commands on every run") \
     macro(version,      int,    BOOLEAN,    "",         "print program version")            \
     CRT_CMD_PARAM(macro)
+// clang-format on
 
+// clang-format off
 #define SHOW_TOOLTIP(STUDIO, FORMAT, ...)        \
 do{                                              \
     static const char Format[] = FORMAT;         \
@@ -115,17 +120,18 @@ do{                                              \
     snprintf(buf, sizeof buf, Format, __VA_ARGS__); \
     showTooltip(STUDIO, buf);                    \
 }while(0)
+// clang-format on
 
 typedef struct
 {
-    char *cart;
+    char* cart;
 #define CMD_PARAMS_DEF(name, ctype, type, post, help) ctype name;
     CMD_PARAMS_LIST(CMD_PARAMS_DEF)
-#undef  CMD_PARAMS_DEF
+#undef CMD_PARAMS_DEF
 
 #if defined(BUILD_EDITORS)
-    const char *codeexport;
-    const char *codeimport;
+    const char* codeexport;
+    const char* codeimport;
     s32 delay;
     s32 lowerlimit;
     s32 upperlimit;
@@ -134,7 +140,7 @@ typedef struct
     int fft;
     int fftlist;
     int fftcaptureplaybackdevices;
-    const char *fftdevice;
+    const char* fftdevice;
 #endif
 } StartArgs;
 
@@ -189,64 +195,64 @@ typedef enum
 
 enum
 {
-    tic_icon_cut        = 80,
-    tic_icon_copy       = 81,
-    tic_icon_paste      = 82,
-    tic_icon_undo       = 83,
-    tic_icon_redo       = 84,
-    tic_icon_bank       = 85,
-    tic_icon_pin        = 86,
-    tic_icon_tab        = 87,
-    tic_icon_code       = 88,
-    tic_icon_sprite     = 89,
-    tic_icon_map        = 90,
-    tic_icon_sfx        = 91,
-    tic_icon_music      = 92,
-    tic_icon_rec        = 93,
-    tic_icon_rec2       = 94,
-    tic_icon_bookmark   = 95,
-    tic_icon_shadow     = 96,
-    tic_icon_shadow2    = 97,
-    tic_icon_run        = 98,
-    tic_icon_hand       = 99,
-    tic_icon_find       = 100,
-    tic_icon_goto       = 101,
-    tic_icon_outline    = 102,
-    tic_icon_world      = 103,
-    tic_icon_grid       = 104,
-    tic_icon_down       = 105,
-    tic_icon_up         = 106,
-    tic_icon_fill       = 107,
-    tic_icon_select     = 108,
-    tic_icon_pen        = 109,
-    tic_icon_tiles      = 110,
-    tic_icon_sprites    = 111,
-    tic_icon_left       = 112,
-    tic_icon_right      = 113,
-    tic_icon_piano      = 114,
-    tic_icon_tracker    = 115,
-    tic_icon_follow     = 116,
-    tic_icon_sustain    = 117,
-    tic_icon_playnow    = 118,
-    tic_icon_playframe  = 119,
-    tic_icon_stop       = 120,
-    tic_icon_rgb        = 121,
-    tic_icon_tinyleft   = 122,
-    tic_icon_pos        = 123,
-    tic_icon_tinyright  = 124,
-    tic_icon_bigup      = 125,
-    tic_icon_bigdown    = 126,
-    tic_icon_bigleft    = 127,
-    tic_icon_bigright   = 128,
-    tic_icon_fliphorz   = 129,
-    tic_icon_flipvert   = 130,
-    tic_icon_rotate     = 131,
-    tic_icon_erase      = 132,
-    tic_icon_bigpen     = 133,
-    tic_icon_bigpicker  = 134,
-    tic_icon_bigselect  = 135,
-    tic_icon_bigfill    = 136,
-    tic_icon_loop       = 137,
+    tic_icon_cut = 80,
+    tic_icon_copy = 81,
+    tic_icon_paste = 82,
+    tic_icon_undo = 83,
+    tic_icon_redo = 84,
+    tic_icon_bank = 85,
+    tic_icon_pin = 86,
+    tic_icon_tab = 87,
+    tic_icon_code = 88,
+    tic_icon_sprite = 89,
+    tic_icon_map = 90,
+    tic_icon_sfx = 91,
+    tic_icon_music = 92,
+    tic_icon_rec = 93,
+    tic_icon_rec2 = 94,
+    tic_icon_bookmark = 95,
+    tic_icon_shadow = 96,
+    tic_icon_shadow2 = 97,
+    tic_icon_run = 98,
+    tic_icon_hand = 99,
+    tic_icon_find = 100,
+    tic_icon_goto = 101,
+    tic_icon_outline = 102,
+    tic_icon_world = 103,
+    tic_icon_grid = 104,
+    tic_icon_down = 105,
+    tic_icon_up = 106,
+    tic_icon_fill = 107,
+    tic_icon_select = 108,
+    tic_icon_pen = 109,
+    tic_icon_tiles = 110,
+    tic_icon_sprites = 111,
+    tic_icon_left = 112,
+    tic_icon_right = 113,
+    tic_icon_piano = 114,
+    tic_icon_tracker = 115,
+    tic_icon_follow = 116,
+    tic_icon_sustain = 117,
+    tic_icon_playnow = 118,
+    tic_icon_playframe = 119,
+    tic_icon_stop = 120,
+    tic_icon_rgb = 121,
+    tic_icon_tinyleft = 122,
+    tic_icon_pos = 123,
+    tic_icon_tinyright = 124,
+    tic_icon_bigup = 125,
+    tic_icon_bigdown = 126,
+    tic_icon_bigleft = 127,
+    tic_icon_bigright = 128,
+    tic_icon_fliphorz = 129,
+    tic_icon_flipvert = 130,
+    tic_icon_rotate = 131,
+    tic_icon_erase = 132,
+    tic_icon_bigpen = 133,
+    tic_icon_bigpicker = 134,
+    tic_icon_bigselect = 135,
+    tic_icon_bigfill = 136,
+    tic_icon_loop = 137,
 };
 
 void setCursor(Studio* studio, tic_cursor id);
@@ -290,7 +296,7 @@ ClipboardEvent getClipboardEvent(Studio* studio);
 
 void showTooltip(Studio* studio, const char* text);
 
-typedef void(*ConfirmCallback)(Studio* studio, bool yes, void* data);
+typedef void (*ConfirmCallback)(Studio* studio, bool yes, void* data);
 void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback callback, void* data);
 void confirmLoadCart(Studio* studio, ConfirmCallback callback, void* data);
 

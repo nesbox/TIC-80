@@ -33,16 +33,16 @@
 #else
 static INLINE uint16_t SWAP16(uint16_t x)
 {
-  return ((x & 0x00ff) << 8) |
-         ((x & 0xff00) >> 8);
+    return ((x & 0x00ff) << 8) |
+           ((x & 0xff00) >> 8);
 }
 
 static INLINE uint32_t SWAP32(uint32_t x)
 {
-  return ((x & 0x000000ff) << 24) |
-         ((x & 0x0000ff00) <<  8) |
-         ((x & 0x00ff0000) >>  8) |
-         ((x & 0xff000000) >> 24);
+    return ((x & 0x000000ff) << 24) |
+           ((x & 0x0000ff00) << 8) |
+           ((x & 0x00ff0000) >> 8) |
+           ((x & 0xff000000) >> 24);
 }
 
 #endif
@@ -50,6 +50,7 @@ static INLINE uint32_t SWAP32(uint32_t x)
 #if defined(_MSC_VER) && _MSC_VER <= 1200
 static INLINE uint64_t SWAP64(uint64_t val)
 {
+    // clang-format off
   return
       ((val & 0x00000000000000ff) << 56)
     | ((val & 0x000000000000ff00) << 40)
@@ -59,10 +60,12 @@ static INLINE uint64_t SWAP64(uint64_t val)
     | ((val & 0x0000ff0000000000) >> 24)
     | ((val & 0x00ff000000000000) >> 40)
     | ((val & 0xff00000000000000) >> 56);
+    // clang-format on
 }
 #else
 static INLINE uint64_t SWAP64(uint64_t val)
 {
+    // clang-format off
   return   ((val & 0x00000000000000ffULL) << 56)
 	 | ((val & 0x000000000000ff00ULL) << 40)
 	 | ((val & 0x0000000000ff0000ULL) << 24)
@@ -71,19 +74,19 @@ static INLINE uint64_t SWAP64(uint64_t val)
 	 | ((val & 0x0000ff0000000000ULL) >> 24)
 	 | ((val & 0x00ff000000000000ULL) >> 40)
          | ((val & 0xff00000000000000ULL) >> 56);
+    // clang-format on
 }
 #endif
 
-
-#if defined (LSB_FIRST) || defined (MSB_FIRST)
-#  warning Defining MSB_FIRST and LSB_FIRST in compile options is deprecated
-#  undef LSB_FIRST
-#  undef MSB_FIRST
+#if defined(LSB_FIRST) || defined(MSB_FIRST)
+#warning Defining MSB_FIRST and LSB_FIRST in compile options is deprecated
+#undef LSB_FIRST
+#undef MSB_FIRST
 #endif
 
 #ifdef _MSC_VER
 /* MSVC pre-defines macros depending on target arch */
-#if defined (_M_IX86) || defined (_M_AMD64) || defined (_M_ARM) || defined (_M_ARM64)
+#if defined(_M_IX86) || defined(_M_AMD64) || defined(_M_ARM) || defined(_M_ARM64)
 #define LSB_FIRST 1
 #elif _M_PPC
 #define MSB_FIRST 1
@@ -102,25 +105,24 @@ static INLINE uint64_t SWAP64(uint64_t val)
 #endif
 
 #if defined(MSB_FIRST) && defined(LSB_FIRST)
-#  error "Bug in LSB_FIRST/MSB_FIRST definition"
+#error "Bug in LSB_FIRST/MSB_FIRST definition"
 #endif
 
 #if !defined(MSB_FIRST) && !defined(LSB_FIRST)
-#  error "Bug in LSB_FIRST/MSB_FIRST definition"
+#error "Bug in LSB_FIRST/MSB_FIRST definition"
 #endif
 
 #ifdef MSB_FIRST
-#  define RETRO_IS_BIG_ENDIAN 1
-#  define RETRO_IS_LITTLE_ENDIAN 0
+#define RETRO_IS_BIG_ENDIAN    1
+#define RETRO_IS_LITTLE_ENDIAN 0
 /* For compatibility */
-#  define WORDS_BIGENDIAN 1
+#define WORDS_BIGENDIAN 1
 #else
-#  define RETRO_IS_BIG_ENDIAN 0
-#  define RETRO_IS_LITTLE_ENDIAN 1
+#define RETRO_IS_BIG_ENDIAN    0
+#define RETRO_IS_LITTLE_ENDIAN 1
 /* For compatibility */
-#  undef WORDS_BIGENDIAN
+#undef WORDS_BIGENDIAN
 #endif
-
 
 /**
  * is_little_endian:
@@ -236,9 +238,9 @@ static INLINE uint64_t SWAP64(uint64_t val)
  * Write data to address. Endian-safe. Byteswaps the data
  * first if necessary before storing it.
  **/
-static INLINE void store32be(uint32_t *addr, uint32_t data)
+static INLINE void store32be(uint32_t* addr, uint32_t data)
 {
-   *addr = swap_if_little32(data);
+    *addr = swap_if_little32(data);
 }
 
 /**
@@ -249,9 +251,9 @@ static INLINE void store32be(uint32_t *addr, uint32_t data)
  *
  * Returns: value from address, byte-swapped if necessary.
  **/
-static INLINE uint32_t load32be(const uint32_t *addr)
+static INLINE uint32_t load32be(const uint32_t* addr)
 {
-   return swap_if_little32(*addr);
+    return swap_if_little32(*addr);
 }
 
 /**
@@ -386,11 +388,11 @@ static INLINE uint32_t load32be(const uint32_t *addr)
 
 #define retro_be_to_cpu64(val) swap_if_little64(val)
 
-#ifdef  __GNUC__
+#ifdef __GNUC__
 /* This attribute means that the same memory may be referred through
    pointers to different size of the object (aliasing). E.g. that u8 *
    and u32 * may actually be pointing to the same object.  */
-#define MAY_ALIAS  __attribute__((__may_alias__))
+#define MAY_ALIAS __attribute__((__may_alias__))
 #else
 #define MAY_ALIAS
 #endif
@@ -398,15 +400,15 @@ static INLINE uint32_t load32be(const uint32_t *addr)
 #pragma pack(push, 1)
 struct retro_unaligned_uint16_s
 {
-  uint16_t val;
+    uint16_t val;
 } MAY_ALIAS;
 struct retro_unaligned_uint32_s
 {
-  uint32_t val;
+    uint32_t val;
 } MAY_ALIAS;
 struct retro_unaligned_uint64_s
 {
-  uint64_t val;
+    uint64_t val;
 } MAY_ALIAS;
 #pragma pack(pop)
 
@@ -415,9 +417,9 @@ typedef struct retro_unaligned_uint32_s retro_unaligned_uint32_t;
 typedef struct retro_unaligned_uint64_s retro_unaligned_uint64_t;
 
 /* L-value references to unaligned pointers.  */
-#define retro_unaligned16(p) (((retro_unaligned_uint16_t *)p)->val)
-#define retro_unaligned32(p) (((retro_unaligned_uint32_t *)p)->val)
-#define retro_unaligned64(p) (((retro_unaligned_uint64_t *)p)->val)
+#define retro_unaligned16(p) (((retro_unaligned_uint16_t*)p)->val)
+#define retro_unaligned32(p) (((retro_unaligned_uint32_t*)p)->val)
+#define retro_unaligned64(p) (((retro_unaligned_uint64_t*)p)->val)
 
 /**
  * retro_get_unaligned_16be:
@@ -428,8 +430,9 @@ typedef struct retro_unaligned_uint64_s retro_unaligned_uint64_t;
  * Returns: Native representation of big-endian val.
  **/
 
-static INLINE uint16_t retro_get_unaligned_16be(void *addr) {
-  return retro_be_to_cpu16(retro_unaligned16(addr));
+static INLINE uint16_t retro_get_unaligned_16be(void* addr)
+{
+    return retro_be_to_cpu16(retro_unaligned16(addr));
 }
 
 /**
@@ -441,8 +444,9 @@ static INLINE uint16_t retro_get_unaligned_16be(void *addr) {
  * Returns: Native representation of big-endian val.
  **/
 
-static INLINE uint32_t retro_get_unaligned_32be(void *addr) {
-  return retro_be_to_cpu32(retro_unaligned32(addr));
+static INLINE uint32_t retro_get_unaligned_32be(void* addr)
+{
+    return retro_be_to_cpu32(retro_unaligned32(addr));
 }
 
 /**
@@ -454,8 +458,9 @@ static INLINE uint32_t retro_get_unaligned_32be(void *addr) {
  * Returns: Native representation of big-endian val.
  **/
 
-static INLINE uint64_t retro_get_unaligned_64be(void *addr) {
-  return retro_be_to_cpu64(retro_unaligned64(addr));
+static INLINE uint64_t retro_get_unaligned_64be(void* addr)
+{
+    return retro_be_to_cpu64(retro_unaligned64(addr));
 }
 
 /**
@@ -467,8 +472,9 @@ static INLINE uint64_t retro_get_unaligned_64be(void *addr) {
  * Returns: Native representation of little-endian val.
  **/
 
-static INLINE uint16_t retro_get_unaligned_16le(void *addr) {
-  return retro_le_to_cpu16(retro_unaligned16(addr));
+static INLINE uint16_t retro_get_unaligned_16le(void* addr)
+{
+    return retro_le_to_cpu16(retro_unaligned16(addr));
 }
 
 /**
@@ -480,8 +486,9 @@ static INLINE uint16_t retro_get_unaligned_16le(void *addr) {
  * Returns: Native representation of little-endian val.
  **/
 
-static INLINE uint32_t retro_get_unaligned_32le(void *addr) {
-  return retro_le_to_cpu32(retro_unaligned32(addr));
+static INLINE uint32_t retro_get_unaligned_32le(void* addr)
+{
+    return retro_le_to_cpu32(retro_unaligned32(addr));
 }
 
 /**
@@ -493,8 +500,9 @@ static INLINE uint32_t retro_get_unaligned_32le(void *addr) {
  * Returns: Native representation of little-endian val.
  **/
 
-static INLINE uint64_t retro_get_unaligned_64le(void *addr) {
-  return retro_le_to_cpu64(retro_unaligned64(addr));
+static INLINE uint64_t retro_get_unaligned_64le(void* addr)
+{
+    return retro_le_to_cpu64(retro_unaligned64(addr));
 }
 
 /**
@@ -506,8 +514,9 @@ static INLINE uint64_t retro_get_unaligned_64le(void *addr) {
  *
  **/
 
-static INLINE void retro_set_unaligned_16le(void *addr, uint16_t v) {
-  retro_unaligned16(addr) = retro_cpu_to_le16(v);
+static INLINE void retro_set_unaligned_16le(void* addr, uint16_t v)
+{
+    retro_unaligned16(addr) = retro_cpu_to_le16(v);
 }
 
 /**
@@ -519,8 +528,9 @@ static INLINE void retro_set_unaligned_16le(void *addr, uint16_t v) {
  *
  **/
 
-static INLINE void retro_set_unaligned_32le(void *addr, uint32_t v) {
-  retro_unaligned32(addr) = retro_cpu_to_le32(v);
+static INLINE void retro_set_unaligned_32le(void* addr, uint32_t v)
+{
+    retro_unaligned32(addr) = retro_cpu_to_le32(v);
 }
 
 /**
@@ -532,8 +542,9 @@ static INLINE void retro_set_unaligned_32le(void *addr, uint32_t v) {
  *
  **/
 
-static INLINE void retro_set_unaligned_64le(void *addr, uint64_t v) {
-  retro_unaligned64(addr) = retro_cpu_to_le64(v);
+static INLINE void retro_set_unaligned_64le(void* addr, uint64_t v)
+{
+    retro_unaligned64(addr) = retro_cpu_to_le64(v);
 }
 
 /**
@@ -545,8 +556,9 @@ static INLINE void retro_set_unaligned_64le(void *addr, uint64_t v) {
  *
  **/
 
-static INLINE void retro_set_unaligned_16be(void *addr, uint16_t v) {
-  retro_unaligned16(addr) = retro_cpu_to_be16(v);
+static INLINE void retro_set_unaligned_16be(void* addr, uint16_t v)
+{
+    retro_unaligned16(addr) = retro_cpu_to_be16(v);
 }
 
 /**
@@ -558,8 +570,9 @@ static INLINE void retro_set_unaligned_16be(void *addr, uint16_t v) {
  *
  **/
 
-static INLINE void retro_set_unaligned_32be(void *addr, uint32_t v) {
-  retro_unaligned32(addr) = retro_cpu_to_be32(v);
+static INLINE void retro_set_unaligned_32be(void* addr, uint32_t v)
+{
+    retro_unaligned32(addr) = retro_cpu_to_be32(v);
 }
 
 /**
@@ -571,9 +584,9 @@ static INLINE void retro_set_unaligned_32be(void *addr, uint32_t v) {
  *
  **/
 
-static INLINE void retro_set_unaligned_64be(void *addr, uint64_t v) {
-  retro_unaligned64(addr) = retro_cpu_to_be64(v);
+static INLINE void retro_set_unaligned_64be(void* addr, uint64_t v)
+{
+    retro_unaligned64(addr) = retro_cpu_to_be64(v);
 }
-
 
 #endif

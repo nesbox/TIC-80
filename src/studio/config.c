@@ -58,7 +58,7 @@ static void readConfig(Config* config)
 
 #define CODE_COLOR_DEF(VAR) config->data.theme.code.VAR = (u8)json_int(#VAR, theme);
         CODE_COLORS_LIST(CODE_COLOR_DEF)
-#undef  CODE_COLOR_DEF
+#undef CODE_COLOR_DEF
 
         config->data.theme.code.select = (u8)(json_int("SELECT", theme));
         config->data.theme.code.cursor = (u8)(json_int("CURSOR", theme));
@@ -68,7 +68,6 @@ static void readConfig(Config* config)
         config->data.theme.code.altCaret = json_bool("ALT_CARET", theme);
         config->data.theme.code.matchDelimiters = json_bool("MATCH_DELIMITERS", theme);
         config->data.theme.code.autoDelimiters = json_bool("AUTO_DELIMITERS", theme);
-
     }
 }
 
@@ -82,40 +81,39 @@ static void update(Config* config, const u8* buffer, s32 size)
 
 static void setDefault(Config* config)
 {
-    config->data = (StudioConfig)
-    {
+    config->data = (StudioConfig){
         .cart = config->cart,
         .uiScale = 4,
         .options =
-        {
+            {
 #if defined(CRT_SHADER_SUPPORT)
-            // Off unless a player turns it on: it costs a fragment shader per
-            // output pixel, and not every machine holds the frame rate.
-            .crt            = false,
+                // Off unless a player turns it on: it costs a fragment shader per
+                // output pixel, and not every machine holds the frame rate.
+                .crt = false,
 #endif
-            .volume         = MAX_VOLUME,
-            .vsync          = DEFAULT_VSYNC,
-            .fullscreen     = false,
-            .integerScale   = INTEGER_SCALE_DEFAULT,
+                .volume = MAX_VOLUME,
+                .vsync = DEFAULT_VSYNC,
+                .fullscreen = false,
+                .integerScale = INTEGER_SCALE_DEFAULT,
 #if defined(BUILD_RENDER_CACHE)
-            .drawCache      = true,
+                .drawCache = true,
 #endif
-            .autosave       = false,
+                .autosave = false,
 #if defined(BUILD_EDITORS)
-            .keybindMode    = KEYBIND_STANDARD,
-            .tabMode        = TAB_AUTO,
-            .tabSize        = 1,
+                .keybindMode = KEYBIND_STANDARD,
+                .tabMode = TAB_AUTO,
+                .tabSize = 1,
 #endif
-        },
+            },
     };
 
     tic_sys_default_mapping(&config->data.options.mapping);
 
     {
         static const u8 ConfigZip[] =
-        {
-            #include "../build/assets/config.tic.dat"
-        };
+            {
+#include "../build/assets/config.tic.dat"
+            };
 
         u8* data = malloc(sizeof(tic_cartridge));
 
@@ -172,13 +170,13 @@ static void loadOptions(Config* config)
     u8* data = (u8*)tic_fs_loadroot(config->fs, OptionsJsonPath, &size);
 
     if(data) SCOPE(free(data))
-    {
-        string json;
-        snprintf(json.data, sizeof json, "%.*s", size, data);
-
-        if(json_parse(json.data, (s32)(strlen(json.data))))
         {
-            struct StudioOptions* options = &config->data.options;
+            string json;
+            snprintf(json.data, sizeof json, "%.*s", size, data);
+
+            if(json_parse(json.data, (s32)(strlen(json.data))))
+            {
+                struct StudioOptions* options = &config->data.options;
 
             // Every key this file does not carry keeps the value the player
             // already has — the one from the config above, or the default.
@@ -190,55 +188,55 @@ static void loadOptions(Config* config)
             // a value to fall back to — passing the current volume there
             // walked the scan past its own key and read the zero anyway.
 #if defined(CRT_SHADER_SUPPORT)
-            if (json_has("crt", 0))
-                options->crt = json_bool("crt", 0);
+                if(json_has("crt", 0))
+                    options->crt = json_bool("crt", 0);
 #endif
-            if (json_has("fullscreen", 0))
-                options->fullscreen = json_bool("fullscreen", 0);
+                if(json_has("fullscreen", 0))
+                    options->fullscreen = json_bool("fullscreen", 0);
 
-            if (json_has("vsync", 0))
-                options->vsync = json_bool("vsync", 0);
+                if(json_has("vsync", 0))
+                    options->vsync = json_bool("vsync", 0);
 
-            if (json_has("integerScale", 0))
-                options->integerScale = json_bool("integerScale", 0);
+                if(json_has("integerScale", 0))
+                    options->integerScale = json_bool("integerScale", 0);
 
 #if defined(BUILD_RENDER_CACHE)
-            if (json_has("drawCache", 0))
-                options->drawCache = json_bool("drawCache", 0);
+                if(json_has("drawCache", 0))
+                    options->drawCache = json_bool("drawCache", 0);
 #endif
 
-            if (json_has("volume", 0))
-                options->volume = json_int("volume", 0);
+                if(json_has("volume", 0))
+                    options->volume = json_int("volume", 0);
 
-            if (json_has("autosave", 0))
-                options->autosave = json_bool("autosave", 0);
+                if(json_has("autosave", 0))
+                    options->autosave = json_bool("autosave", 0);
 
-            // Two bounds matter here: a file without "mapping" used to read
-            // the whole document (a missing key resolves to token 0, the root
-            // object), and the decoder writes one byte per two characters of
-            // its input without knowing how big the option is — so the length
-            // is capped at what the mapping can hold.
-            string mapping;
-            if (json_has("mapping", 0))
-            {
-                json_string("mapping", 0, mapping.data, sizeof mapping);
-                tic_tool_str2buf(mapping.data,
-                    MIN((s32)strlen(mapping.data), (s32)sizeof options->mapping * 2),
-                    &options->mapping, false);
-            }
+                // Two bounds matter here: a file without "mapping" used to read
+                // the whole document (a missing key resolves to token 0, the root
+                // object), and the decoder writes one byte per two characters of
+                // its input without knowing how big the option is — so the length
+                // is capped at what the mapping can hold.
+                string mapping;
+                if(json_has("mapping", 0))
+                {
+                    json_string("mapping", 0, mapping.data, sizeof mapping);
+                    tic_tool_str2buf(mapping.data,
+                                     MIN((s32)strlen(mapping.data), (s32)sizeof options->mapping * 2),
+                                     &options->mapping, false);
+                }
 
 #if defined(BUILD_EDITORS)
-            if (json_has("keybindMode", 0))
-                options->keybindMode = json_int("keybindMode", 0);
+                if(json_has("keybindMode", 0))
+                    options->keybindMode = json_int("keybindMode", 0);
 
-            if (json_has("tabMode", 0))
-                options->tabMode = json_int("tabMode", 0);
+                if(json_has("tabMode", 0))
+                    options->tabMode = json_int("tabMode", 0);
 
-            if (json_has("tabSize", 0))
-                options->tabSize = json_int("tabSize", 0);
+                if(json_has("tabSize", 0))
+                    options->tabSize = json_int("tabSize", 0);
 #endif
+            }
         }
-    }
 }
 
 static string data2str(const void* data, s32 size)
@@ -260,7 +258,7 @@ static void saveOptions(Config* config)
     // the mapping alone can fill a string, and the JSON wraps it in more
     char buf[sizeof(string) * 2];
     sprintf(buf,
-        "{ "
+            "{ "
 #if defined(CRT_SHADER_SUPPORT)
             "\"crt\":%s, "
 #endif
@@ -279,36 +277,34 @@ static void saveOptions(Config* config)
             "\"tabMode\":%i, "
             "\"tabSize\":%i"
 #endif
-        " }"
-        ,
+            " }",
 #if defined(CRT_SHADER_SUPPORT)
-        bool2str(options->crt),
+            bool2str(options->crt),
 #endif
-        bool2str(options->fullscreen),
-        bool2str(options->vsync),
-        bool2str(options->integerScale),
+            bool2str(options->fullscreen),
+            bool2str(options->vsync),
+            bool2str(options->integerScale),
 #if defined(BUILD_RENDER_CACHE)
-        bool2str(options->drawCache),
+            bool2str(options->drawCache),
 #endif
-        options->volume,
-        bool2str(options->autosave),
-        data2str(&options->mapping, sizeof options->mapping).data
+            options->volume,
+            bool2str(options->autosave),
+            data2str(&options->mapping, sizeof options->mapping).data
 
 #if defined(BUILD_EDITORS)
-        ,
-        options->keybindMode,
-        options->tabMode,
-        options->tabSize
+            ,
+            options->keybindMode,
+            options->tabMode,
+            options->tabSize
 #endif
-        );
+    );
 
     tic_fs_saveroot(config->fs, OptionsJsonPath, buf, (s32)(strlen(buf)), true);
 }
 
 void initConfig(Config* config, Studio* studio, tic_fs* fs)
 {
-    *config = (Config)
-    {
+    *config = (Config){
         .studio = studio,
         .tic = getMemory(studio),
         .cart = realloc(config->cart, sizeof(tic_cartridge)),
@@ -331,7 +327,8 @@ void initConfig(Config* config, Studio* studio, tic_fs* fs)
 
             free(data);
         }
-        else saveConfig(config, false);
+        else
+            saveConfig(config, false);
     }
 
     loadOptions(config);

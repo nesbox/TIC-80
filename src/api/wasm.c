@@ -35,8 +35,8 @@ typedef int8_t i8;
 typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
-typedef double          f64;
-typedef float           f32;
+typedef double f64;
+typedef float f32;
 
 #include "wasm3.h"
 #include "m3_exec_defs.h"
@@ -44,62 +44,70 @@ typedef float           f32;
 #include "m3_env.h"
 #include "m3_core.h"
 
-
 IM3Function BDR_function;
 IM3Function SCN_function;
 IM3Function TIC_function;
 IM3Function BOOT_function;
 IM3Function MENU_function;
 
-#define FATAL(msg, ...) { printf("Error: [Fatal] " msg "\n", ##__VA_ARGS__); goto _onfatal; }
-#define WASM_STACK_SIZE 64*1024
+#define FATAL(msg, ...)                                    \
+    {                                                      \
+        printf("Error: [Fatal] " msg "\n", ##__VA_ARGS__); \
+        goto _onfatal;                                     \
+    }
+#define WASM_STACK_SIZE 64 * 1024
 
-static
-M3Result SuppressLookupFailure (M3Result i_result)
+static M3Result SuppressLookupFailure(M3Result i_result)
 {
-    if (i_result == m3Err_functionLookupFailed)
+    if(i_result == m3Err_functionLookupFailed)
         return m3Err_none;
     else
         return i_result;
 }
 
-M3Result wasm_load  (IM3Runtime runtime, const char* fn)
+M3Result wasm_load(IM3Runtime runtime, const char* fn)
 {
     M3Result result = m3Err_none;
 
     u8* wasm = NULL;
     u32 fsize = 0;
 
-    FILE* f = fopen (fn, "rb");
-    if (!f) {
+    FILE* f = fopen(fn, "rb");
+    if(!f)
+    {
         return "cannot open file";
     }
-    fseek (f, 0, SEEK_END);
+    fseek(f, 0, SEEK_END);
     fsize = ftell(f);
-    fseek (f, 0, SEEK_SET);
+    fseek(f, 0, SEEK_SET);
 
-    if (fsize < 8) {
+    if(fsize < 8)
+    {
         return "file is too small";
-    } else if (fsize > 10*1024*1024) {
+    }
+    else if(fsize > 10 * 1024 * 1024)
+    {
         return "file too big";
     }
 
-    wasm = (u8*) malloc(fsize);
-    if (!wasm) {
+    wasm = (u8*)malloc(fsize);
+    if(!wasm)
+    {
         return "cannot allocate memory for wasm binary";
     }
 
-    if (fread (wasm, 1, fsize, f) != fsize) {
+    if(fread(wasm, 1, fsize, f) != fsize)
+    {
         return "cannot read file";
     }
-    fclose (f);
+    fclose(f);
 
     IM3Module module;
-    result = m3_ParseModule (runtime->environment, &module, wasm, fsize);
-    if (result) return result;
+    result = m3_ParseModule(runtime->environment, &module, wasm, fsize);
+    if(result) return result;
 
-    result = m3_LoadModule (runtime, module);
-    if (result) return result;
+    result = m3_LoadModule(runtime, module);
+    if(result) return result;
 
     return result;
 }
@@ -123,15 +131,18 @@ M3Result wasm_dump(IM3Runtime runtime)
 {
     uint32_t len;
     uint8_t* mem = m3_GetMemory(runtime, &len, 0);
-    if (mem) {
-        FILE* f = fopen ("wasm3_dump.bin", "wb");
-        if (!f) {
+    if(mem)
+    {
+        FILE* f = fopen("wasm3_dump.bin", "wb");
+        if(!f)
+        {
             return "cannot open file";
         }
-        if (fwrite (mem, 1, len, f) != len) {
+        if(fwrite(mem, 1, len, f) != len)
+        {
             return "cannot write file";
         }
-        fclose (f);
+        fclose(f);
     }
     return m3Err_none;
 }
@@ -145,13 +156,14 @@ m3ApiRawFunction(wasmtic_line)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (float, x0)
-    m3ApiGetArg      (float, y0)
-    m3ApiGetArg      (float, x1)
-    m3ApiGetArg      (float, y1)
-    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg(float, x0)
+        m3ApiGetArg(float, y0)
+            m3ApiGetArg(float, x1)
+                m3ApiGetArg(float, y1)
+                    m3ApiGetArg(int8_t, color)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                        tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.line(tic, x0, y0, x1, y1, color);
 
@@ -162,15 +174,16 @@ m3ApiRawFunction(wasmtic_circ)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int32_t, radius)
-    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg(int32_t, x)
+        m3ApiGetArg(int32_t, y)
+            m3ApiGetArg(int32_t, radius)
+                m3ApiGetArg(int8_t, color)
 
-    if (radius >= 0)
+                    if(radius >= 0)
     {
-      tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
-      core->api.circ(tic, x, y, radius, color);
+        tic_core* core = getWasmCore(runtime);
+        tic_mem* tic = (tic_mem*)core;
+        core->api.circ(tic, x, y, radius, color);
     }
 
     m3ApiSuccess();
@@ -180,15 +193,16 @@ m3ApiRawFunction(wasmtic_circb)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int32_t, radius)
-    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg(int32_t, x)
+        m3ApiGetArg(int32_t, y)
+            m3ApiGetArg(int32_t, radius)
+                m3ApiGetArg(int8_t, color)
 
-    if (radius >= 0)
+                    if(radius >= 0)
     {
-      tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
-      core->api.circb(tic, x, y, radius, color);
+        tic_core* core = getWasmCore(runtime);
+        tic_mem* tic = (tic_mem*)core;
+        core->api.circb(tic, x, y, radius, color);
     }
 
     m3ApiSuccess();
@@ -198,16 +212,17 @@ m3ApiRawFunction(wasmtic_elli)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int32_t, a)
-    m3ApiGetArg      (int32_t, b)
-    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg(int32_t, x)
+        m3ApiGetArg(int32_t, y)
+            m3ApiGetArg(int32_t, a)
+                m3ApiGetArg(int32_t, b)
+                    m3ApiGetArg(int8_t, color)
 
-    if (a >= 0 && b >= 0)
+                        if(a >= 0 && b >= 0)
     {
-      tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
-      core->api.elli(tic, x, y, a, b, color);
+        tic_core* core = getWasmCore(runtime);
+        tic_mem* tic = (tic_mem*)core;
+        core->api.elli(tic, x, y, a, b, color);
     }
 
     m3ApiSuccess();
@@ -217,16 +232,17 @@ m3ApiRawFunction(wasmtic_ellib)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int32_t, a)
-    m3ApiGetArg      (int32_t, b)
-    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg(int32_t, x)
+        m3ApiGetArg(int32_t, y)
+            m3ApiGetArg(int32_t, a)
+                m3ApiGetArg(int32_t, b)
+                    m3ApiGetArg(int8_t, color)
 
-    if (a >= 0 && b >= 0)
+                        if(a >= 0 && b >= 0)
     {
-      tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
-      core->api.ellib(tic, x, y, a, b, color);
+        tic_core* core = getWasmCore(runtime);
+        tic_mem* tic = (tic_mem*)core;
+        core->api.ellib(tic, x, y, a, b, color);
     }
 
     m3ApiSuccess();
@@ -236,12 +252,13 @@ m3ApiRawFunction(wasmtic_paint)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int8_t, color)
-    m3ApiGetArg      (int8_t, bordercolor)
+    m3ApiGetArg(int32_t, x)
+        m3ApiGetArg(int32_t, y)
+            m3ApiGetArg(int8_t, color)
+                m3ApiGetArg(int8_t, bordercolor)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
     core->api.paint(tic, x, y, color, bordercolor);
 
     m3ApiSuccess();
@@ -251,13 +268,14 @@ m3ApiRawFunction(wasmtic_rect)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int32_t, w)
-    m3ApiGetArg      (int32_t, h)
-    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg(int32_t, x)
+        m3ApiGetArg(int32_t, y)
+            m3ApiGetArg(int32_t, w)
+                m3ApiGetArg(int32_t, h)
+                    m3ApiGetArg(int8_t, color)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                        tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.rect(tic, x, y, w, h, color);
 
@@ -268,13 +286,14 @@ m3ApiRawFunction(wasmtic_rectb)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int32_t, w)
-    m3ApiGetArg      (int32_t, h)
-    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg(int32_t, x)
+        m3ApiGetArg(int32_t, y)
+            m3ApiGetArg(int32_t, w)
+                m3ApiGetArg(int32_t, h)
+                    m3ApiGetArg(int8_t, color)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                        tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.rectb(tic, x, y, w, h, color);
 
@@ -285,15 +304,16 @@ m3ApiRawFunction(wasmtic_tri)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (float, x1)
-    m3ApiGetArg      (float, y1)
-    m3ApiGetArg      (float, x2)
-    m3ApiGetArg      (float, y2)
-    m3ApiGetArg      (float, x3)
-    m3ApiGetArg      (float, y3)
-    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg(float, x1)
+        m3ApiGetArg(float, y1)
+            m3ApiGetArg(float, x2)
+                m3ApiGetArg(float, y2)
+                    m3ApiGetArg(float, x3)
+                        m3ApiGetArg(float, y3)
+                            m3ApiGetArg(int8_t, color)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                                tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.tri(tic, x1, y1, x2, y2, x3, y3, color);
 
@@ -304,51 +324,52 @@ m3ApiRawFunction(wasmtic_tri)
 m3ApiRawFunction(wasmtic_ttri)
 {
     (void)_ctx;
-    m3ApiGetArg      (float, x1)
-    m3ApiGetArg      (float, y1)
-    m3ApiGetArg      (float, x2)
-    m3ApiGetArg      (float, y2)
-    m3ApiGetArg      (float, x3)
-    m3ApiGetArg      (float, y3)
-    m3ApiGetArg      (float, u1)
-    m3ApiGetArg      (float, v1)
-    m3ApiGetArg      (float, u2)
-    m3ApiGetArg      (float, v2)
-    m3ApiGetArg      (float, u3)
-    m3ApiGetArg      (float, v3)
-    m3ApiGetArg      (int32_t, texsrc)
-    m3ApiGetArgMem   (u8*, trans_colors)
-    m3ApiGetArg      (int8_t, colorCount)
-    m3ApiGetArg      (float, z1)
-    m3ApiGetArg      (float, z2)
-    m3ApiGetArg      (float, z3)
-    m3ApiGetArg      (bool, depth)
-    if (trans_colors == NULL) {
+    m3ApiGetArg(float, x1)
+        m3ApiGetArg(float, y1)
+            m3ApiGetArg(float, x2)
+                m3ApiGetArg(float, y2)
+                    m3ApiGetArg(float, x3)
+                        m3ApiGetArg(float, y3)
+                            m3ApiGetArg(float, u1)
+                                m3ApiGetArg(float, v1)
+                                    m3ApiGetArg(float, u2)
+                                        m3ApiGetArg(float, v2)
+                                            m3ApiGetArg(float, u3)
+                                                m3ApiGetArg(float, v3)
+                                                    m3ApiGetArg(int32_t, texsrc)
+                                                        m3ApiGetArgMem(u8*, trans_colors)
+                                                            m3ApiGetArg(int8_t, colorCount)
+                                                                m3ApiGetArg(float, z1)
+                                                                    m3ApiGetArg(float, z2)
+                                                                        m3ApiGetArg(float, z3)
+                                                                            m3ApiGetArg(bool, depth) if(trans_colors == NULL)
+    {
         colorCount = 0;
     }
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.ttri(tic, x1, y1, x2, y2, x3, y3,
-        u1, v1, u2, v2, u3, v3, texsrc, trans_colors, colorCount, z1, z2, z3, depth);
+                   u1, v1, u2, v2, u3, v3, texsrc, trans_colors, colorCount, z1, z2, z3, depth);
 
     m3ApiSuccess();
 }
-
 
 m3ApiRawFunction(wasmtic_trib)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (float, x1)
-    m3ApiGetArg      (float, y1)
-    m3ApiGetArg      (float, x2)
-    m3ApiGetArg      (float, y2)
-    m3ApiGetArg      (float, x3)
-    m3ApiGetArg      (float, y3)
-    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg(float, x1)
+        m3ApiGetArg(float, y1)
+            m3ApiGetArg(float, x2)
+                m3ApiGetArg(float, y2)
+                    m3ApiGetArg(float, x3)
+                        m3ApiGetArg(float, y3)
+                            m3ApiGetArg(int8_t, color)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                                tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.trib(tic, x1, y1, x2, y2, x3, y3, color);
 
@@ -359,9 +380,10 @@ m3ApiRawFunction(wasmtic_cls)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg(int8_t, color)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+        tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     color = (color == -1) ? 0 : color;
 
@@ -376,34 +398,34 @@ m3ApiRawFunction(wasmtic_btn)
     (void)_mem;
     // TODO: should this be boolean, how to deal with
     // this being multi-typed
-    m3ApiReturnType  (int32_t)
+    m3ApiReturnType(int32_t)
 
-    m3ApiGetArg      (int32_t, index)
+        m3ApiGetArg(int32_t, index)
 
-    tic_core* core = getWasmCore(runtime);
+            tic_core* core = getWasmCore(runtime);
 
     // -1 is a default placeholder here for `id`, but one that `core->api.btn` already understands, so
     // it just gets passed straight thru
 
-    m3ApiReturn(core->api.btn((tic_mem *)core, index));
+    m3ApiReturn(core->api.btn((tic_mem*)core, index));
 }
 
 m3ApiRawFunction(wasmtic_btnp)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (int32_t)
+    m3ApiReturnType(int32_t)
 
-    m3ApiGetArg      (int32_t, index)
-    m3ApiGetArg      (int32_t, hold)
-    m3ApiGetArg      (int32_t, period)
+        m3ApiGetArg(int32_t, index)
+            m3ApiGetArg(int32_t, hold)
+                m3ApiGetArg(int32_t, period)
 
-    tic_core* core = getWasmCore(runtime);
+                    tic_core* core = getWasmCore(runtime);
 
     // -1 is the "default" placeholder for index, hold, and period but the TIC side API
     // knows this so we don't need to do any transaction, we can just pass the -1 values
     // straight thru
-    
+
     u32 pressed = core->api.btnp((tic_mem*)core, index, hold, period);
     m3ApiReturn((int32_t)(pressed ? 1 : 0));
 }
@@ -412,48 +434,51 @@ m3ApiRawFunction(wasmtic_key)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (int32_t)
+    m3ApiReturnType(int32_t)
 
-    m3ApiGetArg      (int32_t, index)
+        m3ApiGetArg(int32_t, index)
 
-    if (index == -1) {
+            if(index == -1)
+    {
         index = tic_key_unknown;
     }
 
     tic_core* core = getWasmCore(runtime);
 
-    m3ApiReturn(core->api.key((tic_mem *)core, (tic_key)(index)));
+    m3ApiReturn(core->api.key((tic_mem*)core, (tic_key)(index)));
 }
 
 m3ApiRawFunction(wasmtic_keyp)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (int32_t)
+    m3ApiReturnType(int32_t)
 
-    m3ApiGetArg      (int8_t, index)
-    m3ApiGetArg      (int32_t, hold)
-    m3ApiGetArg      (int32_t, period)
+        m3ApiGetArg(int8_t, index)
+            m3ApiGetArg(int32_t, hold)
+                m3ApiGetArg(int32_t, period)
 
-    if (index == -1) {
+                    if(index == -1)
+    {
         index = tic_key_unknown;
     }
 
     tic_core* core = getWasmCore(runtime);
 
-    m3ApiReturn(core->api.keyp((tic_mem *)core, index, hold, period));
+    m3ApiReturn(core->api.keyp((tic_mem*)core, index, hold, period));
 }
 
 m3ApiRawFunction(wasmtic_fget)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (int32_t)
+    m3ApiReturnType(int32_t)
 
-    m3ApiGetArg      (int32_t, sprite_index);
-    m3ApiGetArg      (int8_t, flag);
+        m3ApiGetArg(int32_t, sprite_index);
+    m3ApiGetArg(int8_t, flag);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.fget(tic, sprite_index, flag) ? 1 : 0);
 }
@@ -462,11 +487,12 @@ m3ApiRawFunction(wasmtic_fset)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, sprite_index);
-    m3ApiGetArg      (int8_t, flag);
-    m3ApiGetArg      (bool, value);
+    m3ApiGetArg(int32_t, sprite_index);
+    m3ApiGetArg(int8_t, flag);
+    m3ApiGetArg(bool, value);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.fset(tic, sprite_index, flag, value);
 
@@ -477,12 +503,13 @@ m3ApiRawFunction(wasmtic_mget)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (int32_t)
+    m3ApiReturnType(int32_t)
 
-    m3ApiGetArg      (int32_t, x);
-    m3ApiGetArg      (int32_t, y);
+        m3ApiGetArg(int32_t, x);
+    m3ApiGetArg(int32_t, y);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.mget(tic, x, y));
 }
@@ -491,28 +518,29 @@ m3ApiRawFunction(wasmtic_mset)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, x);
-    m3ApiGetArg      (int32_t, y);
-    m3ApiGetArg      (int32_t, value);
+    m3ApiGetArg(int32_t, x);
+    m3ApiGetArg(int32_t, y);
+    m3ApiGetArg(int32_t, value);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.mset(tic, x, y, (u8)(value));
 
     m3ApiSuccess();
 }
 
-
 m3ApiRawFunction(wasmtic_peek)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (int8_t)
+    m3ApiReturnType(int8_t)
 
-    m3ApiGetArg      (int32_t, address)
-    m3ApiGetArg      (int8_t, bits)
+        m3ApiGetArg(int32_t, address)
+            m3ApiGetArg(int8_t, bits)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.peek(tic, address, bits));
 }
@@ -521,11 +549,12 @@ m3ApiRawFunction(wasmtic_peek4)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (int8_t)
+    m3ApiReturnType(int8_t)
 
-    m3ApiGetArg      (int32_t, address)
+        m3ApiGetArg(int32_t, address)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+            tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.peek4(tic, address));
 }
@@ -534,11 +563,12 @@ m3ApiRawFunction(wasmtic_peek2)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (int8_t)
+    m3ApiReturnType(int8_t)
 
-    m3ApiGetArg      (int32_t, address)
+        m3ApiGetArg(int32_t, address)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+            tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.peek2(tic, address));
 }
@@ -547,11 +577,12 @@ m3ApiRawFunction(wasmtic_peek1)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (int8_t)
+    m3ApiReturnType(int8_t)
 
-    m3ApiGetArg      (int32_t, address)
+        m3ApiGetArg(int32_t, address)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+            tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.peek1(tic, address));
 }
@@ -560,11 +591,12 @@ m3ApiRawFunction(wasmtic_poke)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, address)
-    m3ApiGetArg      (int8_t, value)
-    m3ApiGetArg      (int8_t, bits)
+    m3ApiGetArg(int32_t, address)
+        m3ApiGetArg(int8_t, value)
+            m3ApiGetArg(int8_t, bits)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.poke(tic, address, value, bits);
 
@@ -576,10 +608,11 @@ m3ApiRawFunction(wasmtic_poke4)
     (void)_ctx;
     (void)_mem;
 
-    m3ApiGetArg      (int32_t, address)
-    m3ApiGetArg      (int8_t, value)
+    m3ApiGetArg(int32_t, address)
+        m3ApiGetArg(int8_t, value)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+            tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.poke4(tic, address, value);
 
@@ -591,10 +624,11 @@ m3ApiRawFunction(wasmtic_poke2)
     (void)_ctx;
     (void)_mem;
 
-    m3ApiGetArg      (int32_t, address)
-    m3ApiGetArg      (int8_t, value)
+    m3ApiGetArg(int32_t, address)
+        m3ApiGetArg(int8_t, value)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+            tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.poke2(tic, address, value);
 
@@ -606,10 +640,11 @@ m3ApiRawFunction(wasmtic_poke1)
     (void)_ctx;
     (void)_mem;
 
-    m3ApiGetArg      (int32_t, address)
-    m3ApiGetArg      (int8_t, value)
+    m3ApiGetArg(int32_t, address)
+        m3ApiGetArg(int8_t, value)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+            tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.poke1(tic, address, value);
 
@@ -620,23 +655,27 @@ m3ApiRawFunction(wasmtic_pmem)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (uint32_t)
+    m3ApiReturnType(uint32_t)
 
-    m3ApiGetArg      (int32_t, address)
-    m3ApiGetArg      (int64_t, value)
-    bool writeToStorage = true;
+        m3ApiGetArg(int32_t, address)
+            m3ApiGetArg(int64_t, value) bool writeToStorage = true;
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     // read value
-    if (value == -1) {
+    if(value == -1)
+    {
         writeToStorage = false;
     };
 
     // TODO: this should move into core->api.pmem, should it not?
-    if (address < 0 || address >= (s32)TIC_PERSISTENT_SIZE) {
+    if(address < 0 || address >= (s32)TIC_PERSISTENT_SIZE)
+    {
         m3ApiReturn(0);
-    }  else {
+    }
+    else
+    {
         u32 val = core->api.pmem(tic, address, (u32)value, writeToStorage);
         m3ApiReturn(val);
     }
@@ -646,13 +685,14 @@ m3ApiRawFunction(wasmtic_pix)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (u8)
+    m3ApiReturnType(u8)
 
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int8_t, color)
+        m3ApiGetArg(int32_t, x)
+            m3ApiGetArg(int32_t, y)
+                m3ApiGetArg(int8_t, color)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     bool getPixel = color < 0;
     u8 pix = core->api.pix(tic, x, y, color, getPixel);
@@ -662,31 +702,46 @@ m3ApiRawFunction(wasmtic_pix)
 m3ApiRawFunction(wasmtic_spr)
 {
     (void)_ctx;
-    m3ApiGetArg      (int32_t, index)
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArgMem   (u8*, trans_colors)
-    m3ApiGetArg      (int8_t, colorCount)
-    if (trans_colors == NULL) {
+    m3ApiGetArg(int32_t, index)
+        m3ApiGetArg(int32_t, x)
+            m3ApiGetArg(int32_t, y)
+                m3ApiGetArgMem(u8*, trans_colors)
+                    m3ApiGetArg(int8_t, colorCount) if(trans_colors == NULL)
+    {
         colorCount = 0;
     }
-    m3ApiGetArg      (int32_t, scale)
-    m3ApiGetArg      (int32_t, flip)
-    m3ApiGetArg      (int32_t, rotate)
-    m3ApiGetArg      (int32_t, w)
-    m3ApiGetArg      (int32_t, h)
+    m3ApiGetArg(int32_t, scale)
+        m3ApiGetArg(int32_t, flip)
+            m3ApiGetArg(int32_t, rotate)
+                m3ApiGetArg(int32_t, w)
+                    m3ApiGetArg(int32_t, h)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
-
+                        tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     // defaults
-    if (scale == -1) { scale = 1; }
-    if (flip == -1) { flip = 0; }
-    if (rotate == -1) { rotate = 0; }
-    if (w == -1) { w = 1; }
-    if (h == -1) { h = 1; }
+    if(scale == -1)
+    {
+        scale = 1;
+    }
+    if(flip == -1)
+    {
+        flip = 0;
+    }
+    if(rotate == -1)
+    {
+        rotate = 0;
+    }
+    if(w == -1)
+    {
+        w = 1;
+    }
+    if(h == -1)
+    {
+        h = 1;
+    }
 
-    core->api.spr(tic, index, x, y, w, h, trans_colors, colorCount, scale, flip, rotate) ;
+    core->api.spr(tic, index, x, y, w, h, trans_colors, colorCount, scale, flip, rotate);
 
     m3ApiSuccess();
 }
@@ -695,46 +750,63 @@ m3ApiRawFunction(wasmtic_clip)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int32_t, w)
-    m3ApiGetArg      (int32_t, h)
+    m3ApiGetArg(int32_t, x)
+        m3ApiGetArg(int32_t, y)
+            m3ApiGetArg(int32_t, w)
+                m3ApiGetArg(int32_t, h)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     // defaults
-    if (x == -1) { x = 0; }
-    if (y == -1) { y = 0; }
-    if (w == -1) { w = TIC80_WIDTH; }
-    if (h == -1) { h = TIC80_HEIGHT; }
+    if(x == -1)
+    {
+        x = 0;
+    }
+    if(y == -1)
+    {
+        y = 0;
+    }
+    if(w == -1)
+    {
+        w = TIC80_WIDTH;
+    }
+    if(h == -1)
+    {
+        h = TIC80_HEIGHT;
+    }
 
     core->api.clip(tic, x, y, w, h);
 
     m3ApiSuccess();
 }
 
-struct MapData {
+struct MapData
+{
     int32_t func_index;
     uint32_t user_data;
     uint32_t res_ptr;
 };
-struct RemapInfo {
+struct RemapInfo
+{
     uint32_t data;
     IM3Function fun;
     tic_core* core;
     uint8_t* mem;
     RemapResult* wasm_result;
 };
-static void wasm_remap(void* data, s32 x, s32 y, RemapResult* result) {
-    if (data == NULL) return;
-    struct RemapInfo* rdata = (struct RemapInfo*) data;
+static void wasm_remap(void* data, s32 x, s32 y, RemapResult* result)
+{
+    if(data == NULL) return;
+    struct RemapInfo* rdata = (struct RemapInfo*)data;
     IM3Function fun = rdata->fun;
     // : )
     uint8_t* _mem = rdata->mem;
 
     *rdata->wasm_result = *result;
     M3Result res = m3_CallV(fun, rdata->data, x, y, m3ApiPtrToOffset(rdata->wasm_result));
-    if (res) {
+    if(res)
+    {
         rdata->core->data->error(rdata->core->data->data, res);
         return;
     }
@@ -744,35 +816,52 @@ static void wasm_remap(void* data, s32 x, s32 y, RemapResult* result) {
 m3ApiRawFunction(wasmtic_map)
 {
     (void)_ctx;
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int32_t, w)
-    m3ApiGetArg      (int32_t, h)
-    m3ApiGetArg      (int32_t, sx)
-    m3ApiGetArg      (int32_t, sy)
-    m3ApiGetArgMem   (u8*, trans_colors)
-    m3ApiGetArg      (int8_t, colorCount)
-    if (trans_colors == NULL) {
+    m3ApiGetArg(int32_t, x)
+        m3ApiGetArg(int32_t, y)
+            m3ApiGetArg(int32_t, w)
+                m3ApiGetArg(int32_t, h)
+                    m3ApiGetArg(int32_t, sx)
+                        m3ApiGetArg(int32_t, sy)
+                            m3ApiGetArgMem(u8*, trans_colors)
+                                m3ApiGetArg(int8_t, colorCount) if(trans_colors == NULL)
+    {
         colorCount = 0;
-    }    m3ApiGetArg      (int8_t, scale)
-    m3ApiGetArg      (i32, map_data_ptr)
+    }
+    m3ApiGetArg(int8_t, scale)
+        m3ApiGetArg(i32, map_data_ptr)
 
-
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+            tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
     // depends on their only being 1 module, which SHOULD:tm: be true
-    struct RemapInfo info = { .mem = _mem, .core = (tic_core*)tic };
-    if (map_data_ptr > 0) {
+    struct RemapInfo info = {.mem = _mem, .core = (tic_core*)tic};
+    if(map_data_ptr > 0)
+    {
         struct MapData* map_data = (struct MapData*)m3ApiOffsetToPtr(map_data_ptr);
         m3_GetTableFunction(&info.fun, runtime->modules, map_data->func_index);
         info.data = map_data->user_data;
         info.wasm_result = (RemapResult*)m3ApiOffsetToPtr(map_data->res_ptr);
     }
     // defaults
-    if (x == -1) { x = 0; }
-    if (y == -1) { y = 0; }
-    if (w == -1) { w = 30; }
-    if (h == -1) { h = 17; }
-    if (scale == -1) { scale = 1; }
+    if(x == -1)
+    {
+        x = 0;
+    }
+    if(y == -1)
+    {
+        y = 0;
+    }
+    if(w == -1)
+    {
+        w = 30;
+    }
+    if(h == -1)
+    {
+        h = 17;
+    }
+    if(scale == -1)
+    {
+        scale = 1;
+    }
 
     core->api.map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, map_data_ptr > 0 ? &wasm_remap : NULL, map_data_ptr > 0 ? &info : NULL);
 
@@ -782,26 +871,30 @@ m3ApiRawFunction(wasmtic_map)
 m3ApiRawFunction(wasmtic_print)
 {
     (void)_ctx;
-    m3ApiReturnType  (int32_t)
+    m3ApiReturnType(int32_t)
 
-    m3ApiGetArgMem   (const char *, text)
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int8_t, color)
-    // optional arguments, but we'll force people to pass them all
-    // let the pre-language APIs deal with simplifying
-    m3ApiGetArg      (int8_t, fixed)
-    m3ApiGetArg      (int8_t, scale)
-    m3ApiGetArg      (int8_t, alt)
+        m3ApiGetArgMem(const char*, text)
+            m3ApiGetArg(int32_t, x)
+                m3ApiGetArg(int32_t, y)
+                    m3ApiGetArg(int8_t, color)
+        // optional arguments, but we'll force people to pass them all
+        // let the pre-language APIs deal with simplifying
+        m3ApiGetArg(int8_t, fixed)
+            m3ApiGetArg(int8_t, scale)
+                m3ApiGetArg(int8_t, alt)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     // TODO: how to deal with defaults when we can't pass -1 as a bool?
 
     int32_t text_width;
-    if (scale==0) {
+    if(scale == 0)
+    {
         text_width = 0;
-    } else {
+    }
+    else
+    {
         text_width = core->api.print(tic, text, x, y, color, fixed, scale, alt);
     }
     m3ApiReturn(text_width);
@@ -810,32 +903,45 @@ m3ApiRawFunction(wasmtic_print)
 m3ApiRawFunction(wasmtic_font)
 {
     (void)_ctx;
-    m3ApiReturnType  (int32_t)
+    m3ApiReturnType(int32_t)
 
-    m3ApiGetArgMem   (const char *, text)
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArgMem   (u8*, trans_colors)
-    m3ApiGetArg      (int8_t, trans_count)
-    if (trans_colors == NULL) {
+        m3ApiGetArgMem(const char*, text)
+            m3ApiGetArg(int32_t, x)
+                m3ApiGetArg(int32_t, y)
+                    m3ApiGetArgMem(u8*, trans_colors)
+                        m3ApiGetArg(int8_t, trans_count) if(trans_colors == NULL)
+    {
         trans_count = 0;
     }
-    m3ApiGetArg      (int8_t, char_width)
-    m3ApiGetArg      (int8_t, char_height)
-    m3ApiGetArg      (bool, fixed)
-    m3ApiGetArg      (int8_t, scale)
-    m3ApiGetArg      (bool, alt)
+    m3ApiGetArg(int8_t, char_width)
+        m3ApiGetArg(int8_t, char_height)
+            m3ApiGetArg(bool, fixed)
+                m3ApiGetArg(int8_t, scale)
+                    m3ApiGetArg(bool, alt)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+                        tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
-    if (scale == -1) { scale = 1; }
-    if (char_width == -1 ) { char_width = TIC_SPRITESIZE; }
-    if (char_height == -1 ) { char_height = TIC_SPRITESIZE; }
+    if(scale == -1)
+    {
+        scale = 1;
+    }
+    if(char_width == -1)
+    {
+        char_width = TIC_SPRITESIZE;
+    }
+    if(char_height == -1)
+    {
+        char_height = TIC_SPRITESIZE;
+    }
 
     int32_t text_width;
-    if (scale==0) {
+    if(scale == 0)
+    {
         text_width = 0;
-    } else {
+    }
+    else
+    {
         text_width = core->api.font(tic, text, x, y, trans_colors, trans_count, char_width, char_height, fixed, scale, alt);
     }
     m3ApiReturn(text_width);
@@ -848,18 +954,19 @@ m3ApiRawFunction(wasmtic_sfx)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, sfx_id);
-    m3ApiGetArg      (int32_t, note);
-    m3ApiGetArg      (int32_t, octave);
-    m3ApiGetArg      (int32_t, duration);
-    m3ApiGetArg      (int32_t, channel);
-    m3ApiGetArg      (int32_t, volumeLeft);
-    m3ApiGetArg      (int32_t, volumeRight);
-    m3ApiGetArg      (int32_t, speed);
+    m3ApiGetArg(int32_t, sfx_id);
+    m3ApiGetArg(int32_t, note);
+    m3ApiGetArg(int32_t, octave);
+    m3ApiGetArg(int32_t, duration);
+    m3ApiGetArg(int32_t, channel);
+    m3ApiGetArg(int32_t, volumeLeft);
+    m3ApiGetArg(int32_t, volumeRight);
+    m3ApiGetArg(int32_t, speed);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
-    if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
+    if(channel >= 0 && channel < TIC_SOUND_CHANNELS)
     {
         core->api.sfx(tic, sfx_id, note, octave, duration, channel, volumeLeft & 0xf, volumeRight & 0xf, speed);
     }
@@ -867,20 +974,20 @@ m3ApiRawFunction(wasmtic_sfx)
     m3ApiSuccess();
 }
 
-
 m3ApiRawFunction(wasmtic_music)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, track);
-    m3ApiGetArg      (int32_t, frame);
-    m3ApiGetArg      (int32_t, row);
-    m3ApiGetArg      (bool, loop);
-    m3ApiGetArg      (bool, sustain);
-    m3ApiGetArg      (int32_t, tempo);
-    m3ApiGetArg      (int32_t, speed);
+    m3ApiGetArg(int32_t, track);
+    m3ApiGetArg(int32_t, frame);
+    m3ApiGetArg(int32_t, row);
+    m3ApiGetArg(bool, loop);
+    m3ApiGetArg(bool, sustain);
+    m3ApiGetArg(int32_t, tempo);
+    m3ApiGetArg(int32_t, speed);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     // TODO: defaults... how with bool vs int
 
@@ -898,11 +1005,12 @@ m3ApiRawFunction(wasmtic_memset)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, address);
-    m3ApiGetArg      (int32_t, value);
-    m3ApiGetArg      (int32_t, length);
+    m3ApiGetArg(int32_t, address);
+    m3ApiGetArg(int32_t, value);
+    m3ApiGetArg(int32_t, length);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.memset(tic, address, (u8)(value), length);
 
@@ -913,24 +1021,25 @@ m3ApiRawFunction(wasmtic_memcpy)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, dest);
-    m3ApiGetArg      (int32_t, src);
-    m3ApiGetArg      (int32_t, length);
+    m3ApiGetArg(int32_t, dest);
+    m3ApiGetArg(int32_t, src);
+    m3ApiGetArg(int32_t, length);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.memcpy(tic, dest, src, length);
 
     m3ApiSuccess();
 }
 
-
 m3ApiRawFunction(wasmtic_exit)
 {
     (void)_ctx;
     (void)_mem;
     (void)_sp;
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.exit(tic);
 
@@ -941,24 +1050,27 @@ m3ApiRawFunction(wasmtic_sync)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiGetArg      (int32_t, mask);
-    m3ApiGetArg      (int8_t, bank);
-    m3ApiGetArg      (int8_t, tocart);
+    m3ApiGetArg(int32_t, mask);
+    m3ApiGetArg(int8_t, bank);
+    m3ApiGetArg(int8_t, tocart);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     bool toCart;
 
-    if (mask == -1) {
+    if(mask == -1)
+    {
         mask = 0;
     }
-    if (bank == -1) {
+    if(bank == -1)
+    {
         bank = 0;
     }
     toCart = (tocart == -1 || tocart == 0) ? false : true;
 
     // TODO: how to throw error if bank out of bounds?
-    if (bank >=0 && bank < TIC_BANKS)
+    if(bank >= 0 && bank < TIC_BANKS)
         core->api.sync(tic, mask, bank, toCart);
 
     m3ApiSuccess();
@@ -968,9 +1080,10 @@ m3ApiRawFunction(wasmtic_time)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (float) // 32 bit float
+    m3ApiReturnType(float) // 32 bit float
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+        tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn((float)(core->api.time(tic)));
 }
@@ -979,9 +1092,10 @@ m3ApiRawFunction(wasmtic_tstamp)
 {
     (void)_ctx;
     (void)_mem;
-    m3ApiReturnType  (uint32_t)
+    m3ApiReturnType(uint32_t)
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+        tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.tstamp(tic));
 }
@@ -992,9 +1106,11 @@ m3ApiRawFunction(wasmtic_trace)
     m3ApiGetArgMem(const char*, text);
     m3ApiGetArg(int8_t, color);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
-    if (color == -1) {
+    if(color == -1)
+    {
         color = 15;
     }
 
@@ -1008,21 +1124,22 @@ m3ApiRawFunction(wasmtic_vbank)
     (void)_ctx;
     (void)_mem;
     m3ApiReturnType(int8_t)
-    m3ApiGetArg(int8_t, bank);
+        m3ApiGetArg(int8_t, bank);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     uint8_t previous_bank = (uint8_t)(core->api.vbank(tic, bank));
     m3ApiReturn(previous_bank);
 }
-
 
 // input
 
 m3ApiRawFunction(wasmtic_mouse)
 {
     (void)_ctx;
-    struct Mouse {
+    struct Mouse
+    {
         int16_t x;
         int16_t y;
         int8_t scrollx;
@@ -1034,7 +1151,8 @@ m3ApiRawFunction(wasmtic_mouse)
 
     m3ApiGetArgMem(struct Mouse*, mouse_ptr_addy);
 
-    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
 
     struct Mouse* mouse_data = mouse_ptr_addy;
     const tic80_mouse* mouse = &tic->ram->input.mouse;
@@ -1052,76 +1170,74 @@ m3ApiRawFunction(wasmtic_mouse)
     m3ApiSuccess();
 }
 
-
-
 M3Result linkTicAPI(IM3Module module)
 {
     M3Result result = m3Err_none;
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "btn",     "i(i)",          &wasmtic_btn)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "btnp",    "i(iii)",        &wasmtic_btnp)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "clip",    "v(iiii)",       &wasmtic_clip)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "cls",     "v(i)",          &wasmtic_cls)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "circ",    "v(iiii)",       &wasmtic_circ)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "circb",   "v(iiii)",       &wasmtic_circb)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "elli",    "v(iiiii)",      &wasmtic_elli)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "ellib",   "v(iiiii)",      &wasmtic_ellib)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "exit",    "v()",           &wasmtic_exit)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "fget",    "i(ii)",         &wasmtic_fget)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "fset",    "v(iii)",        &wasmtic_fset)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "font",    "i(*iiiiiiiii)", &wasmtic_font)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "key",     "i(i)",          &wasmtic_key)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "keyp",    "i(iii)",        &wasmtic_keyp)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "line",    "v(ffffi)",      &wasmtic_line)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "btn", "i(i)", &wasmtic_btn)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "btnp", "i(iii)", &wasmtic_btnp)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "clip", "v(iiii)", &wasmtic_clip)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "cls", "v(i)", &wasmtic_cls)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "circ", "v(iiii)", &wasmtic_circ)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "circb", "v(iiii)", &wasmtic_circb)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "elli", "v(iiiii)", &wasmtic_elli)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "ellib", "v(iiiii)", &wasmtic_ellib)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "exit", "v()", &wasmtic_exit)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "fget", "i(ii)", &wasmtic_fget)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "fset", "v(iii)", &wasmtic_fset)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "font", "i(*iiiiiiiii)", &wasmtic_font)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "key", "i(i)", &wasmtic_key)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "keyp", "i(iii)", &wasmtic_keyp)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "line", "v(ffffi)", &wasmtic_line)));
     // TODO: needs a lot of help for all the optional arguments
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiiii)", &wasmtic_map)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memcpy",  "v(iii)",        &wasmtic_memcpy)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memset",  "v(iii)",        &wasmtic_memset)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mget",    "i(ii)",         &wasmtic_mget)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mset",    "v(iii)",        &wasmtic_mset)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mouse",   "v(*)",          &wasmtic_mouse)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "music",   "v(iiiiiii)",    &wasmtic_music)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "paint",   "v(iiii)",       &wasmtic_paint)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "pix",     "i(iii)",        &wasmtic_pix)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek",    "i(ii)",         &wasmtic_peek)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek4",   "i(i)",          &wasmtic_peek4)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek2",   "i(i)",          &wasmtic_peek2)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek1",   "i(i)",          &wasmtic_peek1)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "pmem",    "i(iI)",         &wasmtic_pmem)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke",    "v(iii)",        &wasmtic_poke)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke4",   "v(ii)",         &wasmtic_poke4)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke2",   "v(ii)",         &wasmtic_poke2)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke1",   "v(ii)",         &wasmtic_poke1)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "print",   "i(*iiiiii)",    &wasmtic_print)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "rect",    "v(iiiii)",      &wasmtic_rect)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "rectb",   "v(iiiii)",      &wasmtic_rectb)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "sfx",     "v(iiiiiiii)",   &wasmtic_sfx)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "spr",     "v(iiiiiiiiii)", &wasmtic_spr)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "sync",    "v(iii)",        &wasmtic_sync)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "time",    "f()",           &wasmtic_time)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tstamp",  "i()",           &wasmtic_tstamp)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trace",   "v(*i)",         &wasmtic_trace)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tri",     "v(ffffffi)",    &wasmtic_tri)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trib",    "v(ffffffi)",    &wasmtic_trib)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "ttri",  "v(ffffffffffffiiifffi)",    &wasmtic_ttri)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "vbank",   "i(i)",          &wasmtic_vbank)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "map", "v(iiiiiiiiii)", &wasmtic_map)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "memcpy", "v(iii)", &wasmtic_memcpy)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "memset", "v(iii)", &wasmtic_memset)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "mget", "i(ii)", &wasmtic_mget)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "mset", "v(iii)", &wasmtic_mset)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "mouse", "v(*)", &wasmtic_mouse)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "music", "v(iiiiiii)", &wasmtic_music)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "paint", "v(iiii)", &wasmtic_paint)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "pix", "i(iii)", &wasmtic_pix)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "peek", "i(ii)", &wasmtic_peek)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "peek4", "i(i)", &wasmtic_peek4)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "peek2", "i(i)", &wasmtic_peek2)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "peek1", "i(i)", &wasmtic_peek1)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "pmem", "i(iI)", &wasmtic_pmem)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "poke", "v(iii)", &wasmtic_poke)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "poke4", "v(ii)", &wasmtic_poke4)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "poke2", "v(ii)", &wasmtic_poke2)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "poke1", "v(ii)", &wasmtic_poke1)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "print", "i(*iiiiii)", &wasmtic_print)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "rect", "v(iiiii)", &wasmtic_rect)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "rectb", "v(iiiii)", &wasmtic_rectb)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "sfx", "v(iiiiiiii)", &wasmtic_sfx)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "spr", "v(iiiiiiiiii)", &wasmtic_spr)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "sync", "v(iii)", &wasmtic_sync)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "time", "f()", &wasmtic_time)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "tstamp", "i()", &wasmtic_tstamp)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "trace", "v(*i)", &wasmtic_trace)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "tri", "v(ffffffi)", &wasmtic_tri)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "trib", "v(ffffffi)", &wasmtic_trib)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "ttri", "v(ffffffffffffiiifffi)", &wasmtic_ttri)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "vbank", "i(i)", &wasmtic_vbank)));
 
 _catch:
-  return result;
+    return result;
 }
 
-void deinitWasmRuntime( IM3Runtime runtime )
+void deinitWasmRuntime(IM3Runtime runtime)
 {
     dbg("Denitializing wasm runtime\n");
-    if (runtime == NULL)
+    if(runtime == NULL)
     {
         printf("WARNING deinitWasm of null");
         return;
     }
-    IM3Environment env = runtime -> environment;
+    IM3Environment env = runtime->environment;
     printf("deiniting env %p\n", env);
 
-    m3_FreeRuntime (runtime);
-    m3_FreeEnvironment (env);
+    m3_FreeRuntime(runtime);
+    m3_FreeEnvironment(env);
 }
 
 static void closeWasm(tic_mem* tic)
@@ -1142,7 +1258,7 @@ static void closeWasm(tic_mem* tic)
         // for an entirely different VM.  This sequencing matters a lot
         // less if one assumes (like before) that all the VMs share a
         // common memory area.
-        u8* low_ram =  (u8*)core->memory.base_ram;
+        u8* low_ram = (u8*)core->memory.base_ram;
         u8* wasm_ram = m3_GetMemory(core->currentVM, NULL, 0);
         memcpy(low_ram, wasm_ram, TIC_RAM_SIZE);
         deinitWasmRuntime(core->currentVM);
@@ -1162,7 +1278,6 @@ static void closeWasm(tic_mem* tic)
 //     return ForceExitCounter++ > 1000 ? tick->forceExit && tick->forceExit(tick->data) : false;
 // }
 
-
 static bool initWasm(tic_mem* tic, const char* code)
 {
     (void)code;
@@ -1170,13 +1285,13 @@ static bool initWasm(tic_mem* tic, const char* code)
     tic_core* core = (tic_core*)tic;
     dbg("Initializing WASM3 runtime %p\n", core);
 
-    IM3Environment env = m3_NewEnvironment ();
+    IM3Environment env = m3_NewEnvironment();
     if(!env)
     {
         core->data->error(core->data->data, "Unable to init WASM env");
         return false;
     }
-    IM3Runtime runtime = m3_NewRuntime (env, WASM_STACK_SIZE, core);
+    IM3Runtime runtime = m3_NewRuntime(env, WASM_STACK_SIZE, core);
     if(!runtime)
     {
         core->data->error(core->data->data, "Unable to init WASM runtime");
@@ -1186,7 +1301,7 @@ static bool initWasm(tic_mem* tic, const char* code)
     runtime->memory.maxPages = TIC_WASM_PAGE_COUNT;
     ResizeMemory(runtime, TIC_WASM_PAGE_COUNT);
 
-    u8* low_ram =  (u8*)core->memory.ram;
+    u8* low_ram = (u8*)core->memory.ram;
     u8* wasm_ram = m3_GetMemory(runtime, NULL, 0);
     memcpy(wasm_ram, low_ram, TIC_RAM_SIZE);
     core->memory.ram = (tic_ram*)wasm_ram;
@@ -1213,33 +1328,35 @@ static bool initWasm(tic_mem* tic, const char* code)
     int fsize = tic->cart.binary.size;
 
     IM3Module module;
-    M3Result result = m3_ParseModule (runtime->environment, &module, wasmcode, fsize);
+    M3Result result = m3_ParseModule(runtime->environment, &module, wasmcode, fsize);
 
-    if (result){
-        core->data->error(core->data->data, result);
-        return false;
-    }
-
-    result = m3_LoadModule (runtime, module);
-    if (result){
-        core->data->error(core->data->data, result);
-        return false;
-    }
-
-    result = linkTicAPI(runtime->modules);
-    if (result)
+    if(result)
     {
         core->data->error(core->data->data, result);
         return false;
     }
 
-    m3_FindFunction (&BDR_function, runtime, BDR_FN);
-    m3_FindFunction (&SCN_function, runtime, SCN_FN);
-    m3_FindFunction (&BOOT_function, runtime, BOOT_FN);
-    m3_FindFunction (&MENU_function, runtime, MENU_FN);
-    result = m3_FindFunction (&TIC_function, runtime, TIC_FN);
+    result = m3_LoadModule(runtime, module);
+    if(result)
+    {
+        core->data->error(core->data->data, result);
+        return false;
+    }
 
-    if (result)
+    result = linkTicAPI(runtime->modules);
+    if(result)
+    {
+        core->data->error(core->data->data, result);
+        return false;
+    }
+
+    m3_FindFunction(&BDR_function, runtime, BDR_FN);
+    m3_FindFunction(&SCN_function, runtime, SCN_FN);
+    m3_FindFunction(&BOOT_function, runtime, BOOT_FN);
+    m3_FindFunction(&MENU_function, runtime, MENU_FN);
+    result = m3_FindFunction(&TIC_function, runtime, TIC_FN);
+
+    if(result)
     {
         core->data->error(core->data->data, "Error: WASM must export a TIC function.");
         return false;
@@ -1256,7 +1373,10 @@ static void callWasmTick(tic_mem* tic)
 
     IM3Runtime runtime = core->currentVM;
 
-    if(!runtime) { return; }
+    if(!runtime)
+    {
+        return;
+    }
 
     M3Result res = m3_CallV(TIC_function);
     if(res)
@@ -1276,8 +1396,14 @@ static void callWasmBoot(tic_mem* tic)
 
     IM3Runtime runtime = core->currentVM;
 
-    if(!runtime) { return; }
-    if (BOOT_function == NULL) { return; }
+    if(!runtime)
+    {
+        return;
+    }
+    if(BOOT_function == NULL)
+    {
+        return;
+    }
 
     M3Result res = m3_CallV(BOOT_function);
     if(res)
@@ -1293,8 +1419,14 @@ static void callWasmIntFunc(tic_mem* tic, IM3Function func, s32 value, void* dat
 
     IM3Runtime runtime = core->currentVM;
 
-    if(!runtime) { return; }
-    if (func == NULL) { return; }
+    if(!runtime)
+    {
+        return;
+    }
+    if(func == NULL)
+    {
+        return;
+    }
 
     M3Result res = m3_CallV(func, value);
     if(res)
@@ -1318,11 +1450,17 @@ static void callWasmMenu(tic_mem* tic, s32 index, void* data)
     callWasmIntFunc(tic, MENU_function, index, data);
 }
 
-static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
+static inline bool isalnum_(char c)
+{
+    return isalnum((u8)c) || c == '_';
+}
 
 static const tic_outline_item* getWasmOutline(const char* code, s32* size)
 {
-    enum{Size = sizeof(tic_outline_item)};
+    enum
+    {
+        Size = sizeof(tic_outline_item)
+    };
 
     *size = 0;
 
@@ -1353,13 +1491,15 @@ static const tic_outline_item* getWasmOutline(const char* code, s32* size)
             {
                 char c = *ptr;
 
-                if(isalnum_(c));
+                if(isalnum_(c))
+                    ;
                 else if(c == '(')
                 {
                     end = ptr;
                     break;
                 }
-                else break;
+                else
+                    break;
 
                 ptr++;
             }
@@ -1374,63 +1514,65 @@ static const tic_outline_item* getWasmOutline(const char* code, s32* size)
                 (*size)++;
             }
         }
-        else break;
+        else
+            break;
     }
 
     return items;
 }
 
-void evalWasm(tic_mem* tic, const char* code) {
+void evalWasm(tic_mem* tic, const char* code)
+{
     (void)code;
     (void)tic;
     printf("TODO: Wasm eval not yet implemented\n.");
 }
 
 static const u8 DemoRom[] =
-{
-    #include "../build/assets/wasmdemo.tic.dat"
+    {
+#include "../build/assets/wasmdemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
-{
-    #include "../build/assets/wasmmark.tic.dat"
+    {
+#include "../build/assets/wasmmark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Wasm) =
-{
-    .id                 = 17,
-    .name               = "wasm",
-    .fileExtension      = ".wasmp",
-    .projectComment     = "--",
     {
-      .init               = initWasm,
-      .close              = closeWasm,
-      .tick               = callWasmTick,
-      .boot               = callWasmBoot,
+        .id = 17,
+        .name = "wasm",
+        .fileExtension = ".wasmp",
+        .projectComment = "--",
+        {
+            .init = initWasm,
+            .close = closeWasm,
+            .tick = callWasmTick,
+            .boot = callWasmBoot,
 
-      .callback           =
-      {
-        .scanline       = callWasmScanline,
-        .border         = callWasmBorder,
-        .menu           = callWasmMenu,
-      },
-    },
+            .callback =
+                {
+                    .scanline = callWasmScanline,
+                    .border = callWasmBorder,
+                    .menu = callWasmMenu,
+                },
+        },
 
-    .getOutline         = getWasmOutline,
-    .eval               = evalWasm,
+        .getOutline = getWasmOutline,
+        .eval = evalWasm,
 
-    .blockCommentStart  = "(;",
-    .blockCommentEnd    = ";)",
-    .blockCommentStart2 = NULL,
-    .blockCommentEnd2   = NULL,
-    .blockStringStart   = "**",
-    .blockStringEnd     = "**",
-    .singleComment      = "--",
+        .blockCommentStart = "(;",
+        .blockCommentEnd = ";)",
+        .blockCommentStart2 = NULL,
+        .blockCommentEnd2 = NULL,
+        .blockStringStart = "**",
+        .blockStringEnd = "**",
+        .singleComment = "--",
 
-    .keywords           = NULL,
-    .keywordsCount      = 0,
-    .useBinarySection   = true,
+        .keywords = NULL,
+        .keywordsCount = 0,
+        .useBinarySection = true,
 
-    .demo = {DemoRom, sizeof DemoRom, NULL},
-    .mark = {MarkRom, sizeof MarkRom, "wasmmark.tic"},
+        .demo = {DemoRom, sizeof DemoRom, NULL},
+        .mark = {MarkRom, sizeof MarkRom, "wasmmark.tic"},
 };

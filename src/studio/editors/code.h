@@ -62,10 +62,10 @@ struct Code
     {
         struct
         {
-            u8 syntax:3;
-            u8 bookmark:1;
-            u8 cursor:1;
-            u8 temp:3;
+            u8 syntax : 3;
+            u8 bookmark : 1;
+            u8 cursor : 1;
+            u8 temp : 3;
         };
 
         char sym;
@@ -76,7 +76,7 @@ struct Code
         char line[STUDIO_TEXT_BUFFER_WIDTH + sizeof "-2147483648"];
         char size[STUDIO_TEXT_BUFFER_WIDTH];
         tic_color color;
-    }status;
+    } status;
 
     u32 tickCounter;
 
@@ -133,9 +133,9 @@ struct Code
 
     } anim;
 
-    void(*tick)(Code*);
-    void(*escape)(Code*);
-    void(*update)(Code*);
+    void (*tick)(Code*);
+    void (*escape)(Code*);
+    void (*update)(Code*);
 };
 
 extern const ClipboardOps CodeClipboard;

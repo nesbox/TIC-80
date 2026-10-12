@@ -36,4 +36,4 @@ void luaapi_scn(tic_mem* tic, s32 row, void* data);
 void luaapi_bdr(tic_mem* tic, s32 row, void* data);
 void luaapi_menu(tic_mem* tic, s32 index, void* data);
 void luaapi_close(tic_mem* tic);
-void luaapi_open(lua_State *lua);
+void luaapi_open(lua_State* lua);

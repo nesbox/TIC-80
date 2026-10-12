@@ -32,14 +32,14 @@
 
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
-static WrenHandle* game_class       = NULL;
-static WrenHandle* new_handle       = NULL;
-static WrenHandle* update_handle    = NULL;
-static WrenHandle* boot_handle      = NULL;
-static WrenHandle* scanline_handle  = NULL;
-static WrenHandle* border_handle    = NULL;
-static WrenHandle* menu_handle      = NULL;
-static WrenHandle* overline_handle  = NULL;
+static WrenHandle* game_class = NULL;
+static WrenHandle* new_handle = NULL;
+static WrenHandle* update_handle = NULL;
+static WrenHandle* boot_handle = NULL;
+static WrenHandle* scanline_handle = NULL;
+static WrenHandle* border_handle = NULL;
+static WrenHandle* menu_handle = NULL;
+static WrenHandle* overline_handle = NULL;
 
 static bool loaded = false;
 
@@ -78,14 +78,14 @@ class TIC {\n\
     "
 
 #if defined(BUILD_DEPRECATED)
-    "\
+                                  "\
     foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)\n\
     foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src)\n\
     foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color)\n\
     "
 #endif
 
-    "\
+                                  "\
     foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)\n\
     foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src)\n\
     foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color)\n\
@@ -249,7 +249,7 @@ static void closeWren(tic_mem* tic)
     if(core->currentVM)
     {
         // release handles
-        if (loaded)
+        if(loaded)
         {
             wrenReleaseHandle(core->currentVM, new_handle);
             wrenReleaseHandle(core->currentVM, update_handle);
@@ -258,7 +258,7 @@ static void closeWren(tic_mem* tic)
             wrenReleaseHandle(core->currentVM, border_handle);
             wrenReleaseHandle(core->currentVM, menu_handle);
             wrenReleaseHandle(core->currentVM, overline_handle);
-            if (game_class != NULL)
+            if(game_class != NULL)
             {
                 wrenReleaseHandle(core->currentVM, game_class);
             }
@@ -266,7 +266,6 @@ static void closeWren(tic_mem* tic)
 
         wrenFreeVM(core->currentVM);
         core->currentVM = NULL;
-
     }
     loaded = false;
 }
@@ -298,7 +297,8 @@ static void wren_mgeti(WrenVM* vm)
         return;
     }
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
     wrenSetSlotDouble(vm, 0, *(tic->ram->map.data + index));
 }
 
@@ -314,16 +314,15 @@ static void wren_btn(WrenVM* vm)
 
     s32 top = wrenGetSlotCount(vm);
 
-    if (top == 1)
+    if(top == 1)
     {
         wrenSetSlotDouble(vm, 0, core->api.btn(tic, -1));
     }
-    else if (top == 2)
+    else if(top == 2)
     {
         bool pressed = core->api.btn(tic, getWrenNumber(vm, 1) & 0x1f);
         wrenSetSlotBool(vm, 0, pressed);
     }
-
 }
 
 static void wren_btnp(WrenVM* vm)
@@ -333,7 +332,7 @@ static void wren_btnp(WrenVM* vm)
 
     s32 top = wrenGetSlotCount(vm);
 
-    if (top == 1)
+    if(top == 1)
     {
         wrenSetSlotBool(vm, 0, core->api.btnp(tic, -1, -1, -1));
     }
@@ -343,7 +342,7 @@ static void wren_btnp(WrenVM* vm)
 
         wrenSetSlotBool(vm, 0, core->api.btnp(tic, index, -1, -1));
     }
-    else if (top == 4)
+    else if(top == 4)
     {
         s32 index = getWrenNumber(vm, 1) & 0xf;
         u32 hold = getWrenNumber(vm, 2);
@@ -360,11 +359,11 @@ static void wren_key(WrenVM* vm)
 
     s32 top = wrenGetSlotCount(vm);
 
-    if (top == 1)
+    if(top == 1)
     {
         wrenSetSlotBool(vm, 0, core->api.key(tic, tic_key_unknown));
     }
-    else if (top == 2)
+    else if(top == 2)
     {
         tic_key key = (tic_key)(getWrenNumber(vm, 1));
 
@@ -385,7 +384,7 @@ static void wren_keyp(WrenVM* vm)
 
     s32 top = wrenGetSlotCount(vm);
 
-    if (top == 1)
+    if(top == 1)
     {
         wrenSetSlotBool(vm, 0, core->api.keyp(tic, tic_key_unknown, -1, -1));
     }
@@ -413,7 +412,6 @@ static void wren_keyp(WrenVM* vm)
         }
     }
 }
-
 
 static void wren_mouse(WrenVM* vm)
 {
@@ -448,7 +446,8 @@ static void wren_mouse(WrenVM* vm)
 
 static void wren_print(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     const char* text = wrenGetSlotString(vm, 1);
 
@@ -476,13 +475,14 @@ static void wren_print(WrenVM* vm)
 
 static void wren_font(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
     if(top > 1)
     {
         const char* text = NULL;
-        if (isString(vm, 1))
+        if(isString(vm, 1))
         {
             text = wrenGetSlotString(vm, 1);
         }
@@ -541,7 +541,8 @@ static void wren_font(WrenVM* vm)
 
 static void wren_trace(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     const char* text = wrenGetSlotString(vm, 1);
     u8 color = (u8)getWrenNumber(vm, 2);
@@ -577,7 +578,7 @@ static void wren_spr(WrenVM* vm)
             {
                 if(isList(vm, 4))
                 {
-                    wrenEnsureSlots(vm, top+1);
+                    wrenEnsureSlots(vm, top + 1);
                     s32 list_count = wrenGetListCount(vm, 4);
                     for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
                     {
@@ -628,7 +629,8 @@ static void wren_spr(WrenVM* vm)
         }
     }
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.spr(tic, index, x, y, w, h, colors, (u8)(count), scale, flip, rotate);
 }
@@ -646,7 +648,7 @@ static void wren_spr_internal(WrenVM* vm)
 
     if(isList(vm, 4))
     {
-        wrenEnsureSlots(vm, top+1);
+        wrenEnsureSlots(vm, top + 1);
         s32 list_count = wrenGetListCount(vm, 4);
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
@@ -677,7 +679,8 @@ static void wren_spr_internal(WrenVM* vm)
     s32 flip = getWrenNumber(vm, 6);
     s32 rotate = getWrenNumber(vm, 7);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.spr(tic, index, x, y, 1, 1, colors, (u8)(count), scale, flip, rotate);
 }
@@ -715,7 +718,7 @@ static void wren_map(WrenVM* vm)
                 {
                     if(isList(vm, 7))
                     {
-                        wrenEnsureSlots(vm, top+1);
+                        wrenEnsureSlots(vm, top + 1);
                         s32 list_count = wrenGetListCount(vm, 7);
                         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
                         {
@@ -751,7 +754,8 @@ static void wren_map(WrenVM* vm)
         }
     }
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, NULL, NULL);
 }
@@ -762,7 +766,8 @@ static void wren_mset(WrenVM* vm)
     s32 y = getWrenNumber(vm, 2);
     u8 value = (u8)(getWrenNumber(vm, 3));
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.mset(tic, x, y, value);
 }
@@ -772,7 +777,8 @@ static void wren_mget(WrenVM* vm)
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     u8 value = core->api.mget(tic, x, y);
     wrenSetSlotDouble(vm, 0, value);
@@ -790,9 +796,9 @@ static void wren_ttri_depth(WrenVM* vm)
 
     depth.on = false;
 
-    if (top == 4)
+    if(top == 4)
     {
-        for (s32 i = 0; i < COUNT_OF(depth.z); i++)
+        for(s32 i = 0; i < COUNT_OF(depth.z); i++)
             depth.z[i] = (float)wrenGetSlotDouble(vm, i + 1);
 
         depth.on = true;
@@ -805,28 +811,29 @@ static void wren_ttri(WrenVM* vm)
 
     float pt[12];
 
-    for (s32 i = 0; i < COUNT_OF(pt); i++)
+    for(s32 i = 0; i < COUNT_OF(pt); i++)
     {
         pt[i] = (float)wrenGetSlotDouble(vm, i + 1);
     }
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
     tic_texture_src src = tic_tiles_texture;
 
     //  check for texture source
-    if (top > 13)
+    if(top > 13)
     {
         src = getWrenNumber(vm, 13);
     }
 
     //  check for chroma
-    if (top > 14)
+    if(top > 14)
     {
         if(isList(vm, 14))
         {
-            wrenEnsureSlots(vm, top+1);
+            wrenEnsureSlots(vm, top + 1);
             s32 list_count = wrenGetListCount(vm, 14);
             for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
             {
@@ -855,15 +862,15 @@ static void wren_ttri(WrenVM* vm)
     }
 
     core->api.ttri(tic,
-        pt[0], pt[1],   //  xy 1
-        pt[2], pt[3],   //  xy 2
-        pt[4], pt[5],   //  xy 3
-        pt[6], pt[7],   //  uv 1
-        pt[8], pt[9],   //  uv 2
-        pt[10], pt[11], //  uv 3
-        src,            // texture source
-        colors, count,  // chroma
-        depth.z[0], depth.z[1], depth.z[2], depth.on); // depth
+                   pt[0], pt[1],                                  //  xy 1
+                   pt[2], pt[3],                                  //  xy 2
+                   pt[4], pt[5],                                  //  xy 3
+                   pt[6], pt[7],                                  //  uv 1
+                   pt[8], pt[9],                                  //  uv 2
+                   pt[10], pt[11],                                //  uv 3
+                   src,                                           // texture source
+                   colors, count,                                 // chroma
+                   depth.z[0], depth.z[1], depth.z[2], depth.on); // depth
 }
 
 #if defined(BUILD_DEPRECATED)
@@ -874,7 +881,7 @@ static void wren_textri(WrenVM* vm)
 
     float pt[12];
 
-    for (s32 i = 0; i < COUNT_OF(pt); i++)
+    for(s32 i = 0; i < COUNT_OF(pt); i++)
     {
         pt[i] = (float)wrenGetSlotDouble(vm, i + 1);
     }
@@ -886,17 +893,17 @@ static void wren_textri(WrenVM* vm)
     tic_texture_src src = tic_tiles_texture;
 
     //  check for texture source
-    if (top > 13)
+    if(top > 13)
     {
         src = getWrenNumber(vm, 13);
     }
 
     //  check for chroma
-    if (top > 14)
+    if(top > 14)
     {
         if(isList(vm, 14))
         {
-            wrenEnsureSlots(vm, top+1);
+            wrenEnsureSlots(vm, top + 1);
             s32 list_count = wrenGetListCount(vm, 14);
             for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
             {
@@ -925,14 +932,14 @@ static void wren_textri(WrenVM* vm)
     }
 
     core->api.textri(tic,
-        pt[0], pt[1],   //  xy 1
-        pt[2], pt[3],   //  xy 2
-        pt[4], pt[5],   //  xy 3
-        pt[6], pt[7],   //  uv 1
-        pt[8], pt[9],   //  uv 2
-        pt[10], pt[11], //  uv 3
-        src,            // texture source
-        colors, count);
+                     pt[0], pt[1],   //  xy 1
+                     pt[2], pt[3],   //  xy 2
+                     pt[4], pt[5],   //  xy 3
+                     pt[6], pt[7],   //  uv 1
+                     pt[8], pt[9],   //  uv 2
+                     pt[10], pt[11], //  uv 3
+                     src,            // texture source
+                     colors, count);
 }
 
 #endif
@@ -944,7 +951,8 @@ static void wren_pix(WrenVM* vm)
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     if(top > 3)
     {
@@ -965,7 +973,8 @@ static void wren_line(WrenVM* vm)
     float y1 = (float)wrenGetSlotDouble(vm, 4);
     s32 color = getWrenNumber(vm, 5);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.line(tic, x0, y0, x1, y1, (u8)(color));
 }
@@ -977,7 +986,8 @@ static void wren_circ(WrenVM* vm)
     s32 radius = getWrenNumber(vm, 3);
     s32 color = getWrenNumber(vm, 4);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.circ(tic, x, y, radius, (u8)(color));
 }
@@ -989,7 +999,8 @@ static void wren_circb(WrenVM* vm)
     s32 radius = getWrenNumber(vm, 3);
     s32 color = getWrenNumber(vm, 4);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.circb(tic, x, y, radius, (u8)(color));
 }
@@ -1002,7 +1013,8 @@ static void wren_elli(WrenVM* vm)
     s32 b = getWrenNumber(vm, 4);
     s32 color = getWrenNumber(vm, 5);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.elli(tic, x, y, a, b, (u8)(color));
 }
@@ -1015,7 +1027,8 @@ static void wren_ellib(WrenVM* vm)
     s32 b = getWrenNumber(vm, 4);
     s32 color = getWrenNumber(vm, 5);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.ellib(tic, x, y, a, b, (u8)(color));
 }
@@ -1028,7 +1041,8 @@ static void wren_paint(WrenVM* vm)
     s32 color = getWrenNumber(vm, 3);
     s32 bordercolor = top > 4 ? getWrenNumber(vm, 4) : -1;
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.paint(tic, x, y, (u8)(color), (u8)(bordercolor));
 }
@@ -1041,7 +1055,8 @@ static void wren_rect(WrenVM* vm)
     s32 h = getWrenNumber(vm, 4);
     s32 color = getWrenNumber(vm, 5);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.rect(tic, x, y, w, h, (u8)(color));
 }
@@ -1054,7 +1069,8 @@ static void wren_rectb(WrenVM* vm)
     s32 h = getWrenNumber(vm, 4);
     s32 color = getWrenNumber(vm, 5);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.rectb(tic, x, y, w, h, (u8)(color));
 }
@@ -1070,7 +1086,8 @@ static void wren_tri(WrenVM* vm)
 
     s32 color = getWrenNumber(vm, 7);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
 }
@@ -1086,7 +1103,8 @@ static void wren_trib(WrenVM* vm)
 
     s32 color = getWrenNumber(vm, 7);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
 }
@@ -1095,7 +1113,8 @@ static void wren_cls(WrenVM* vm)
 {
     s32 top = wrenGetSlotCount(vm);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.cls(tic, top == 1 ? 0 : (u8)(getWrenNumber(vm, 1)));
 }
@@ -1104,7 +1123,8 @@ static void wren_clip(WrenVM* vm)
 {
     s32 top = wrenGetSlotCount(vm);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     if(top == 1)
     {
@@ -1123,7 +1143,8 @@ static void wren_clip(WrenVM* vm)
 
 static void wren_peek(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
     s32 bits = BITS_IN_BYTE;
@@ -1136,7 +1157,8 @@ static void wren_peek(WrenVM* vm)
 
 static void wren_poke(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
     u8 value = getWrenNumber(vm, 2) & 0xff;
@@ -1149,7 +1171,8 @@ static void wren_poke(WrenVM* vm)
 
 static void wren_peek1(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
 
@@ -1158,7 +1181,8 @@ static void wren_peek1(WrenVM* vm)
 
 static void wren_poke1(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
     u8 value = (u8)(getWrenNumber(vm, 2));
@@ -1168,7 +1192,8 @@ static void wren_poke1(WrenVM* vm)
 
 static void wren_peek2(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
 
@@ -1177,7 +1202,8 @@ static void wren_peek2(WrenVM* vm)
 
 static void wren_poke2(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
     u8 value = (u8)(getWrenNumber(vm, 2));
@@ -1187,7 +1213,8 @@ static void wren_poke2(WrenVM* vm)
 
 static void wren_peek4(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
 
@@ -1196,7 +1223,8 @@ static void wren_peek4(WrenVM* vm)
 
 static void wren_poke4(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 address = getWrenNumber(vm, 1);
     u8 value = (u8)(getWrenNumber(vm, 2));
@@ -1210,7 +1238,8 @@ static void wren_memcpy(WrenVM* vm)
     s32 src = getWrenNumber(vm, 2);
     s32 size = getWrenNumber(vm, 3);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.memcpy(tic, dest, src, size);
 }
@@ -1221,7 +1250,8 @@ static void wren_memset(WrenVM* vm)
     u8 value = (u8)(getWrenNumber(vm, 2));
     s32 size = getWrenNumber(vm, 3);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     core->api.memset(tic, dest, value, size);
 }
@@ -1229,7 +1259,8 @@ static void wren_memset(WrenVM* vm)
 static void wren_pmem(WrenVM* vm)
 {
     s32 top = wrenGetSlotCount(vm);
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     u32 index = getWrenNumber(vm, 1);
 
@@ -1244,14 +1275,16 @@ static void wren_pmem(WrenVM* vm)
 
         wrenSetSlotDouble(vm, 0, val);
     }
-    else wrenError(vm, "invalid persistent tic index\n");
+    else
+        wrenError(vm, "invalid persistent tic index\n");
 }
 
 static void wren_sfx(WrenVM* vm)
 {
     s32 top = wrenGetSlotCount(vm);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 index = getWrenNumber(vm, 1);
 
@@ -1265,7 +1298,7 @@ static void wren_sfx(WrenVM* vm)
         s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
         s32 speed = SFX_DEF_SPEED;
 
-        if (index >= 0)
+        if(index >= 0)
         {
             tic_sample* effect = tic->ram->sfx.samples.data + index;
 
@@ -1312,7 +1345,8 @@ static void wren_sfx(WrenVM* vm)
                                     volumes[i] = getWrenNumber(vm, top);
                             }
                         }
-                        else volumes[0] = volumes[1] = getWrenNumber(vm, 5);
+                        else
+                            volumes[0] = volumes[1] = getWrenNumber(vm, 5);
 
                         if(top > 6)
                         {
@@ -1323,20 +1357,23 @@ static void wren_sfx(WrenVM* vm)
             }
         }
 
-        if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
+        if(channel >= 0 && channel < TIC_SOUND_CHANNELS)
         {
             core->api.sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
         }
-        else wrenError(vm, "unknown channel\n");
+        else
+            wrenError(vm, "unknown channel\n");
     }
-    else wrenError(vm, "unknown sfx index\n");
+    else
+        wrenError(vm, "unknown sfx index\n");
 }
 
 static void wren_music(WrenVM* vm)
 {
     s32 top = wrenGetSlotCount(vm);
 
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 track = -1;
     s32 frame = -1;
@@ -1372,11 +1409,11 @@ static void wren_music(WrenVM* vm)
                     {
                         sustain = wrenGetSlotBool(vm, 5);
 
-                        if (top > 6)
+                        if(top > 6)
                         {
                             tempo = getWrenNumber(vm, 6);
 
-                            if (top > 7)
+                            if(top > 7)
                             {
                                 speed = getWrenNumber(vm, 7);
                             }
@@ -1392,14 +1429,16 @@ static void wren_music(WrenVM* vm)
 
 static void wren_time(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     wrenSetSlotDouble(vm, 0, core->api.time(tic));
 }
 
 static void wren_tstamp(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     wrenSetSlotDouble(vm, 0, core->api.tstamp(tic));
 }
@@ -1419,7 +1458,8 @@ static void wren_vbank(WrenVM* vm)
 
 static void wren_sync(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     bool toCart = false;
     u32 mask = 0;
@@ -1444,7 +1484,8 @@ static void wren_sync(WrenVM* vm)
 
     if(bank >= 0 && bank < TIC_BANKS)
         core->api.sync(tic, mask, bank, toCart);
-    else wrenError(vm, "sync() error, invalid bank");
+    else
+        wrenError(vm, "sync() error, invalid bank");
 }
 
 static void wren_reset(WrenVM* vm)
@@ -1456,13 +1497,15 @@ static void wren_reset(WrenVM* vm)
 
 static void wren_exit(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
     core->api.exit(tic);
 }
 
 static void wren_fget(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 top = wrenGetSlotCount(vm);
 
@@ -1483,7 +1526,8 @@ static void wren_fget(WrenVM* vm)
 
 static void wren_fset(WrenVM* vm)
 {
-    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
     if(top > 1)
@@ -1512,7 +1556,7 @@ static void wren_vqt(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double bin = getWrenNumber(vm, 1);
 
@@ -1529,7 +1573,7 @@ static void wren_vqts(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double bin = getWrenNumber(vm, 1);
 
@@ -1546,7 +1590,7 @@ static void wren_vqtr(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double bin = getWrenNumber(vm, 1);
 
@@ -1563,7 +1607,7 @@ static void wren_vqtrs(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double bin = getWrenNumber(vm, 1);
 
@@ -1580,7 +1624,7 @@ static void wren_vqtw(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double bin = getWrenNumber(vm, 1);
 
@@ -1597,7 +1641,7 @@ static void wren_vqtsw(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double bin = getWrenNumber(vm, 1);
 
@@ -1614,7 +1658,7 @@ static void wren_vqtrw(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double bin = getWrenNumber(vm, 1);
 
@@ -1631,7 +1675,7 @@ static void wren_vqtrsw(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double bin = getWrenNumber(vm, 1);
 
@@ -1648,12 +1692,12 @@ static void wren_fft(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double start_freq = getWrenNumber(vm, 1);
         double end_freq = -1;
 
-        if (top > 2)
+        if(top > 2)
             end_freq = getWrenNumber(vm, 2);
 
         wrenSetSlotDouble(vm, 0, core->api.fft(tic, (s32)(start_freq), (s32)end_freq));
@@ -1669,12 +1713,12 @@ static void wren_fftr(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double start_freq = getWrenNumber(vm, 1);
         double end_freq = -1;
 
-        if (top > 2)
+        if(top > 2)
             end_freq = getWrenNumber(vm, 2);
 
         wrenSetSlotDouble(vm, 0, core->api.fftr(tic, (s32)(start_freq), (s32)end_freq));
@@ -1690,12 +1734,12 @@ static void wren_fftrs(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double start_freq = getWrenNumber(vm, 1);
         double end_freq = -1;
 
-        if (top > 2)
+        if(top > 2)
             end_freq = getWrenNumber(vm, 2);
 
         wrenSetSlotDouble(vm, 0, core->api.fftrs(tic, (s32)(start_freq), (s32)end_freq));
@@ -1711,12 +1755,12 @@ static void wren_ffts(WrenVM* vm)
     tic_mem* tic = (tic_mem*)core;
     s32 top = wrenGetSlotCount(vm);
 
-    if (top > 1)
+    if(top > 1)
     {
         double start_freq = getWrenNumber(vm, 1);
         double end_freq = -1;
 
-        if (top > 2)
+        if(top > 2)
             end_freq = getWrenNumber(vm, 2);
 
         wrenSetSlotDouble(vm, 0, core->api.ffts(tic, (s32)(start_freq), (s32)end_freq));
@@ -1728,136 +1772,136 @@ static void wren_ffts(WrenVM* vm)
 
 static WrenForeignMethodFn foreignTicMethods(const char* signature)
 {
-    if (strcmp(signature, "static TIC.btn()"                    ) == 0) return wren_btn;
-    if (strcmp(signature, "static TIC.btn(_)"                   ) == 0) return wren_btn;
-    if (strcmp(signature, "static TIC.btnp(_)"                  ) == 0) return wren_btnp;
-    if (strcmp(signature, "static TIC.btnp(_,_,_)"              ) == 0) return wren_btnp;
-    if (strcmp(signature, "static TIC.key(_)"                   ) == 0) return wren_key;
-    if (strcmp(signature, "static TIC.keyp(_)"                  ) == 0) return wren_keyp;
-    if (strcmp(signature, "static TIC.keyp(_,_,_)"              ) == 0) return wren_keyp;
-    if (strcmp(signature, "static TIC.mouse()"                  ) == 0) return wren_mouse;
+    if(strcmp(signature, "static TIC.btn()") == 0) return wren_btn;
+    if(strcmp(signature, "static TIC.btn(_)") == 0) return wren_btn;
+    if(strcmp(signature, "static TIC.btnp(_)") == 0) return wren_btnp;
+    if(strcmp(signature, "static TIC.btnp(_,_,_)") == 0) return wren_btnp;
+    if(strcmp(signature, "static TIC.key(_)") == 0) return wren_key;
+    if(strcmp(signature, "static TIC.keyp(_)") == 0) return wren_keyp;
+    if(strcmp(signature, "static TIC.keyp(_,_,_)") == 0) return wren_keyp;
+    if(strcmp(signature, "static TIC.mouse()") == 0) return wren_mouse;
 
-    if (strcmp(signature, "static TIC.font(_)"                  ) == 0) return wren_font;
-    if (strcmp(signature, "static TIC.font(_,_,_)"              ) == 0) return wren_font;
-    if (strcmp(signature, "static TIC.font(_,_,_,_)"            ) == 0) return wren_font;
-    if (strcmp(signature, "static TIC.font(_,_,_,_,_,_)"        ) == 0) return wren_font;
-    if (strcmp(signature, "static TIC.font(_,_,_,_,_,_,_)"      ) == 0) return wren_font;
-    if (strcmp(signature, "static TIC.font(_,_,_,_,_,_,_,_)"    ) == 0) return wren_font;
+    if(strcmp(signature, "static TIC.font(_)") == 0) return wren_font;
+    if(strcmp(signature, "static TIC.font(_,_,_)") == 0) return wren_font;
+    if(strcmp(signature, "static TIC.font(_,_,_,_)") == 0) return wren_font;
+    if(strcmp(signature, "static TIC.font(_,_,_,_,_,_)") == 0) return wren_font;
+    if(strcmp(signature, "static TIC.font(_,_,_,_,_,_,_)") == 0) return wren_font;
+    if(strcmp(signature, "static TIC.font(_,_,_,_,_,_,_,_)") == 0) return wren_font;
 
-    if (strcmp(signature, "static TIC.spr(_)"                   ) == 0) return wren_spr;
-    if (strcmp(signature, "static TIC.spr(_,_,_)"               ) == 0) return wren_spr;
-    if (strcmp(signature, "static TIC.spr(_,_,_,_)"             ) == 0) return wren_spr;
-    if (strcmp(signature, "static TIC.spr(_,_,_,_,_)"           ) == 0) return wren_spr;
-    if (strcmp(signature, "static TIC.spr(_,_,_,_,_,_)"         ) == 0) return wren_spr;
-    if (strcmp(signature, "static TIC.spr(_,_,_,_,_,_,_)"       ) == 0) return wren_spr;
-    if (strcmp(signature, "static TIC.spr(_,_,_,_,_,_,_,_,_)"   ) == 0) return wren_spr;
+    if(strcmp(signature, "static TIC.spr(_)") == 0) return wren_spr;
+    if(strcmp(signature, "static TIC.spr(_,_,_)") == 0) return wren_spr;
+    if(strcmp(signature, "static TIC.spr(_,_,_,_)") == 0) return wren_spr;
+    if(strcmp(signature, "static TIC.spr(_,_,_,_,_)") == 0) return wren_spr;
+    if(strcmp(signature, "static TIC.spr(_,_,_,_,_,_)") == 0) return wren_spr;
+    if(strcmp(signature, "static TIC.spr(_,_,_,_,_,_,_)") == 0) return wren_spr;
+    if(strcmp(signature, "static TIC.spr(_,_,_,_,_,_,_,_,_)") == 0) return wren_spr;
 
-    if (strcmp(signature, "static TIC.map()"                    ) == 0) return wren_map;
-    if (strcmp(signature, "static TIC.map(_,_)"                 ) == 0) return wren_map;
-    if (strcmp(signature, "static TIC.map(_,_,_,_)"             ) == 0) return wren_map;
-    if (strcmp(signature, "static TIC.map(_,_,_,_,_,_)"         ) == 0) return wren_map;
-    if (strcmp(signature, "static TIC.map(_,_,_,_,_,_,_)"       ) == 0) return wren_map;
-    if (strcmp(signature, "static TIC.map(_,_,_,_,_,_,_,_)"     ) == 0) return wren_map;
+    if(strcmp(signature, "static TIC.map()") == 0) return wren_map;
+    if(strcmp(signature, "static TIC.map(_,_)") == 0) return wren_map;
+    if(strcmp(signature, "static TIC.map(_,_,_,_)") == 0) return wren_map;
+    if(strcmp(signature, "static TIC.map(_,_,_,_,_,_)") == 0) return wren_map;
+    if(strcmp(signature, "static TIC.map(_,_,_,_,_,_,_)") == 0) return wren_map;
+    if(strcmp(signature, "static TIC.map(_,_,_,_,_,_,_,_)") == 0) return wren_map;
 
-    if (strcmp(signature, "static TIC.mset(_,_)"                ) == 0) return wren_mset;
-    if (strcmp(signature, "static TIC.mset(_,_,_)"              ) == 0) return wren_mset;
-    if (strcmp(signature, "static TIC.mget(_,_)"                ) == 0) return wren_mget;
+    if(strcmp(signature, "static TIC.mset(_,_)") == 0) return wren_mset;
+    if(strcmp(signature, "static TIC.mset(_,_,_)") == 0) return wren_mset;
+    if(strcmp(signature, "static TIC.mget(_,_)") == 0) return wren_mget;
 
 #if defined(BUILD_DEPRECATED)
-    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_)"      ) == 0) return wren_textri;
-    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_)"    ) == 0) return wren_textri;
-    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"  ) == 0) return wren_textri;
+    if(strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_)") == 0) return wren_textri;
+    if(strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_)") == 0) return wren_textri;
+    if(strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)") == 0) return wren_textri;
 #endif
 
-    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_)"        ) == 0) return wren_ttri;
-    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_)"      ) == 0) return wren_ttri;
-    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"    ) == 0) return wren_ttri;
-    if (strcmp(signature, "static TIC.ttri_depth()"             ) == 0) return wren_ttri_depth;
-    if (strcmp(signature, "static TIC.ttri_depth(_,_,_)"        ) == 0) return wren_ttri_depth;
+    if(strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_)") == 0) return wren_ttri;
+    if(strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_)") == 0) return wren_ttri;
+    if(strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)") == 0) return wren_ttri;
+    if(strcmp(signature, "static TIC.ttri_depth()") == 0) return wren_ttri_depth;
+    if(strcmp(signature, "static TIC.ttri_depth(_,_,_)") == 0) return wren_ttri_depth;
 
-    if (strcmp(signature, "static TIC.pix(_,_)"                 ) == 0) return wren_pix;
-    if (strcmp(signature, "static TIC.pix(_,_,_)"               ) == 0) return wren_pix;
-    if (strcmp(signature, "static TIC.line(_,_,_,_,_)"          ) == 0) return wren_line;
-    if (strcmp(signature, "static TIC.circ(_,_,_,_)"            ) == 0) return wren_circ;
-    if (strcmp(signature, "static TIC.circb(_,_,_,_)"           ) == 0) return wren_circb;
-    if (strcmp(signature, "static TIC.elli(_,_,_,_,_)"          ) == 0) return wren_elli;
-    if (strcmp(signature, "static TIC.ellib(_,_,_,_,_)"         ) == 0) return wren_ellib;
-    if (strcmp(signature, "static TIC.paint(_,_,_)"             ) == 0) return wren_paint;
-    if (strcmp(signature, "static TIC.paint(_,_,_,_)"           ) == 0) return wren_paint;
-    if (strcmp(signature, "static TIC.rect(_,_,_,_,_)"          ) == 0) return wren_rect;
-    if (strcmp(signature, "static TIC.rectb(_,_,_,_,_)"         ) == 0) return wren_rectb;
-    if (strcmp(signature, "static TIC.tri(_,_,_,_,_,_,_)"       ) == 0) return wren_tri;
-    if (strcmp(signature, "static TIC.trib(_,_,_,_,_,_,_)"      ) == 0) return wren_trib;
+    if(strcmp(signature, "static TIC.pix(_,_)") == 0) return wren_pix;
+    if(strcmp(signature, "static TIC.pix(_,_,_)") == 0) return wren_pix;
+    if(strcmp(signature, "static TIC.line(_,_,_,_,_)") == 0) return wren_line;
+    if(strcmp(signature, "static TIC.circ(_,_,_,_)") == 0) return wren_circ;
+    if(strcmp(signature, "static TIC.circb(_,_,_,_)") == 0) return wren_circb;
+    if(strcmp(signature, "static TIC.elli(_,_,_,_,_)") == 0) return wren_elli;
+    if(strcmp(signature, "static TIC.ellib(_,_,_,_,_)") == 0) return wren_ellib;
+    if(strcmp(signature, "static TIC.paint(_,_,_)") == 0) return wren_paint;
+    if(strcmp(signature, "static TIC.paint(_,_,_,_)") == 0) return wren_paint;
+    if(strcmp(signature, "static TIC.rect(_,_,_,_,_)") == 0) return wren_rect;
+    if(strcmp(signature, "static TIC.rectb(_,_,_,_,_)") == 0) return wren_rectb;
+    if(strcmp(signature, "static TIC.tri(_,_,_,_,_,_,_)") == 0) return wren_tri;
+    if(strcmp(signature, "static TIC.trib(_,_,_,_,_,_,_)") == 0) return wren_trib;
 
-    if (strcmp(signature, "static TIC.cls()"                    ) == 0) return wren_cls;
-    if (strcmp(signature, "static TIC.cls(_)"                   ) == 0) return wren_cls;
-    if (strcmp(signature, "static TIC.clip()"                   ) == 0) return wren_clip;
-    if (strcmp(signature, "static TIC.clip(_,_,_,_)"            ) == 0) return wren_clip;
+    if(strcmp(signature, "static TIC.cls()") == 0) return wren_cls;
+    if(strcmp(signature, "static TIC.cls(_)") == 0) return wren_cls;
+    if(strcmp(signature, "static TIC.clip()") == 0) return wren_clip;
+    if(strcmp(signature, "static TIC.clip(_,_,_,_)") == 0) return wren_clip;
 
-    if (strcmp(signature, "static TIC.peek(_)"                  ) == 0) return wren_peek;
-    if (strcmp(signature, "static TIC.poke(_,_)"                ) == 0) return wren_poke;
-    if (strcmp(signature, "static TIC.peek(_,_)"                ) == 0) return wren_peek;
-    if (strcmp(signature, "static TIC.poke(_,_,_)"              ) == 0) return wren_poke;
-    if (strcmp(signature, "static TIC.peek1(_)"                 ) == 0) return wren_peek1;
-    if (strcmp(signature, "static TIC.poke1(_,_)"               ) == 0) return wren_poke1;
-    if (strcmp(signature, "static TIC.peek2(_)"                 ) == 0) return wren_peek2;
-    if (strcmp(signature, "static TIC.poke2(_,_)"               ) == 0) return wren_poke2;
-    if (strcmp(signature, "static TIC.peek4(_)"                 ) == 0) return wren_peek4;
-    if (strcmp(signature, "static TIC.poke4(_,_)"               ) == 0) return wren_poke4;
-    if (strcmp(signature, "static TIC.memcpy(_,_,_)"            ) == 0) return wren_memcpy;
-    if (strcmp(signature, "static TIC.memset(_,_,_)"            ) == 0) return wren_memset;
-    if (strcmp(signature, "static TIC.pmem(_)"                  ) == 0) return wren_pmem;
-    if (strcmp(signature, "static TIC.pmem(_,_)"                ) == 0) return wren_pmem;
+    if(strcmp(signature, "static TIC.peek(_)") == 0) return wren_peek;
+    if(strcmp(signature, "static TIC.poke(_,_)") == 0) return wren_poke;
+    if(strcmp(signature, "static TIC.peek(_,_)") == 0) return wren_peek;
+    if(strcmp(signature, "static TIC.poke(_,_,_)") == 0) return wren_poke;
+    if(strcmp(signature, "static TIC.peek1(_)") == 0) return wren_peek1;
+    if(strcmp(signature, "static TIC.poke1(_,_)") == 0) return wren_poke1;
+    if(strcmp(signature, "static TIC.peek2(_)") == 0) return wren_peek2;
+    if(strcmp(signature, "static TIC.poke2(_,_)") == 0) return wren_poke2;
+    if(strcmp(signature, "static TIC.peek4(_)") == 0) return wren_peek4;
+    if(strcmp(signature, "static TIC.poke4(_,_)") == 0) return wren_poke4;
+    if(strcmp(signature, "static TIC.memcpy(_,_,_)") == 0) return wren_memcpy;
+    if(strcmp(signature, "static TIC.memset(_,_,_)") == 0) return wren_memset;
+    if(strcmp(signature, "static TIC.pmem(_)") == 0) return wren_pmem;
+    if(strcmp(signature, "static TIC.pmem(_,_)") == 0) return wren_pmem;
 
-    if (strcmp(signature, "static TIC.sfx(_)"                   ) == 0) return wren_sfx;
-    if (strcmp(signature, "static TIC.sfx(_,_)"                 ) == 0) return wren_sfx;
-    if (strcmp(signature, "static TIC.sfx(_,_,_)"               ) == 0) return wren_sfx;
-    if (strcmp(signature, "static TIC.sfx(_,_,_,_)"             ) == 0) return wren_sfx;
-    if (strcmp(signature, "static TIC.sfx(_,_,_,_,_)"           ) == 0) return wren_sfx;
-    if (strcmp(signature, "static TIC.sfx(_,_,_,_,_,_)"         ) == 0) return wren_sfx;
-    if (strcmp(signature, "static TIC.music()"                  ) == 0) return wren_music;
-    if (strcmp(signature, "static TIC.music(_)"                 ) == 0) return wren_music;
-    if (strcmp(signature, "static TIC.music(_,_)"               ) == 0) return wren_music;
-    if (strcmp(signature, "static TIC.music(_,_,_)"             ) == 0) return wren_music;
-    if (strcmp(signature, "static TIC.music(_,_,_,_)"           ) == 0) return wren_music;
-    if (strcmp(signature, "static TIC.music(_,_,_,_,_)"         ) == 0) return wren_music;
-    if (strcmp(signature, "static TIC.music(_,_,_,_,_,_)"       ) == 0) return wren_music;
-    if (strcmp(signature, "static TIC.music(_,_,_,_,_,_,_)"     ) == 0) return wren_music;
+    if(strcmp(signature, "static TIC.sfx(_)") == 0) return wren_sfx;
+    if(strcmp(signature, "static TIC.sfx(_,_)") == 0) return wren_sfx;
+    if(strcmp(signature, "static TIC.sfx(_,_,_)") == 0) return wren_sfx;
+    if(strcmp(signature, "static TIC.sfx(_,_,_,_)") == 0) return wren_sfx;
+    if(strcmp(signature, "static TIC.sfx(_,_,_,_,_)") == 0) return wren_sfx;
+    if(strcmp(signature, "static TIC.sfx(_,_,_,_,_,_)") == 0) return wren_sfx;
+    if(strcmp(signature, "static TIC.music()") == 0) return wren_music;
+    if(strcmp(signature, "static TIC.music(_)") == 0) return wren_music;
+    if(strcmp(signature, "static TIC.music(_,_)") == 0) return wren_music;
+    if(strcmp(signature, "static TIC.music(_,_,_)") == 0) return wren_music;
+    if(strcmp(signature, "static TIC.music(_,_,_,_)") == 0) return wren_music;
+    if(strcmp(signature, "static TIC.music(_,_,_,_,_)") == 0) return wren_music;
+    if(strcmp(signature, "static TIC.music(_,_,_,_,_,_)") == 0) return wren_music;
+    if(strcmp(signature, "static TIC.music(_,_,_,_,_,_,_)") == 0) return wren_music;
 
-    if (strcmp(signature, "static TIC.time()"                   ) == 0) return wren_time;
-    if (strcmp(signature, "static TIC.tstamp()"                 ) == 0) return wren_tstamp;
-    if (strcmp(signature, "static TIC.vbank()"                  ) == 0) return wren_vbank;
-    if (strcmp(signature, "static TIC.vbank(_)"                 ) == 0) return wren_vbank;
-    if (strcmp(signature, "static TIC.sync()"                   ) == 0) return wren_sync;
-    if (strcmp(signature, "static TIC.sync(_)"                  ) == 0) return wren_sync;
-    if (strcmp(signature, "static TIC.sync(_,_)"                ) == 0) return wren_sync;
-    if (strcmp(signature, "static TIC.sync(_,_,_)"              ) == 0) return wren_sync;
-    if (strcmp(signature, "static TIC.reset()"                  ) == 0) return wren_reset;
-    if (strcmp(signature, "static TIC.exit()"                   ) == 0) return wren_exit;
-    if (strcmp(signature, "static TIC.fget(_,_)"                ) == 0) return wren_fget;
-    if (strcmp(signature, "static TIC.fset(_,_,_)"              ) == 0) return wren_fset;
+    if(strcmp(signature, "static TIC.time()") == 0) return wren_time;
+    if(strcmp(signature, "static TIC.tstamp()") == 0) return wren_tstamp;
+    if(strcmp(signature, "static TIC.vbank()") == 0) return wren_vbank;
+    if(strcmp(signature, "static TIC.vbank(_)") == 0) return wren_vbank;
+    if(strcmp(signature, "static TIC.sync()") == 0) return wren_sync;
+    if(strcmp(signature, "static TIC.sync(_)") == 0) return wren_sync;
+    if(strcmp(signature, "static TIC.sync(_,_)") == 0) return wren_sync;
+    if(strcmp(signature, "static TIC.sync(_,_,_)") == 0) return wren_sync;
+    if(strcmp(signature, "static TIC.reset()") == 0) return wren_reset;
+    if(strcmp(signature, "static TIC.exit()") == 0) return wren_exit;
+    if(strcmp(signature, "static TIC.fget(_,_)") == 0) return wren_fget;
+    if(strcmp(signature, "static TIC.fset(_,_,_)") == 0) return wren_fset;
 
-    if (strcmp(signature, "static TIC.fft(_,_)"                 ) == 0) return wren_fft;
-    if (strcmp(signature, "static TIC.vqt(_)"                   ) == 0) return wren_vqt;
-    if (strcmp(signature, "static TIC.vqts(_)"                  ) == 0) return wren_vqts;
-    if (strcmp(signature, "static TIC.vqtw(_)"                  ) == 0) return wren_vqtw;
-    if (strcmp(signature, "static TIC.vqtsw(_)"                 ) == 0) return wren_vqtsw;
-    if (strcmp(signature, "static TIC.vqtr(_)"                  ) == 0) return wren_vqtr;
-    if (strcmp(signature, "static TIC.vqtrs(_)"                 ) == 0) return wren_vqtrs;
-    if (strcmp(signature, "static TIC.vqtrw(_)"                 ) == 0) return wren_vqtrw;
-    if (strcmp(signature, "static TIC.vqtrsw(_)"                ) == 0) return wren_vqtrsw;
-    if (strcmp(signature, "static TIC.fftr(_,_)"                 ) == 0) return wren_fftr;
-    if (strcmp(signature, "static TIC.fftrs(_,_)"                 ) == 0) return wren_fftrs;
-    if (strcmp(signature, "static TIC.ffts(_,_)"                ) == 0) return wren_ffts;
+    if(strcmp(signature, "static TIC.fft(_,_)") == 0) return wren_fft;
+    if(strcmp(signature, "static TIC.vqt(_)") == 0) return wren_vqt;
+    if(strcmp(signature, "static TIC.vqts(_)") == 0) return wren_vqts;
+    if(strcmp(signature, "static TIC.vqtw(_)") == 0) return wren_vqtw;
+    if(strcmp(signature, "static TIC.vqtsw(_)") == 0) return wren_vqtsw;
+    if(strcmp(signature, "static TIC.vqtr(_)") == 0) return wren_vqtr;
+    if(strcmp(signature, "static TIC.vqtrs(_)") == 0) return wren_vqtrs;
+    if(strcmp(signature, "static TIC.vqtrw(_)") == 0) return wren_vqtrw;
+    if(strcmp(signature, "static TIC.vqtrsw(_)") == 0) return wren_vqtrsw;
+    if(strcmp(signature, "static TIC.fftr(_,_)") == 0) return wren_fftr;
+    if(strcmp(signature, "static TIC.fftrs(_,_)") == 0) return wren_fftrs;
+    if(strcmp(signature, "static TIC.ffts(_,_)") == 0) return wren_ffts;
 
     // internal functions
-    if (strcmp(signature, "static TIC.map_width__"              ) == 0) return wren_map_width;
-    if (strcmp(signature, "static TIC.map_height__"             ) == 0) return wren_map_height;
-    if (strcmp(signature, "static TIC.spritesize__"             ) == 0) return wren_spritesize;
-    if (strcmp(signature, "static TIC.print__(_,_,_,_,_,_,_)"   ) == 0) return wren_print;
-    if (strcmp(signature, "static TIC.trace__(_,_)"             ) == 0) return wren_trace;
-    if (strcmp(signature, "static TIC.spr__(_,_,_,_,_,_,_)"     ) == 0) return wren_spr_internal;
-    if (strcmp(signature, "static TIC.mgeti__(_)"               ) == 0) return wren_mgeti;
+    if(strcmp(signature, "static TIC.map_width__") == 0) return wren_map_width;
+    if(strcmp(signature, "static TIC.map_height__") == 0) return wren_map_height;
+    if(strcmp(signature, "static TIC.spritesize__") == 0) return wren_spritesize;
+    if(strcmp(signature, "static TIC.print__(_,_,_,_,_,_,_)") == 0) return wren_print;
+    if(strcmp(signature, "static TIC.trace__(_,_)") == 0) return wren_trace;
+    if(strcmp(signature, "static TIC.spr__(_,_,_,_,_,_,_)") == 0) return wren_spr_internal;
+    if(strcmp(signature, "static TIC.mgeti__(_)") == 0) return wren_mgeti;
 
     return NULL;
 }
@@ -1867,12 +1911,12 @@ static WrenForeignMethodFn bindForeignMethod(
     bool isStatic, const char* signature)
 {
     (void)vm;
-    if (strcmp(module, "main") != 0) return NULL;
+    if(strcmp(module, "main") != 0) return NULL;
 
     // For convenience, concatenate all of the method qualifiers into a single signature string.
     char fullName[256];
     fullName[0] = '\0';
-    if (isStatic)
+    if(isStatic)
     {
         strcat(fullName, "static ");
     }
@@ -1888,7 +1932,7 @@ static void initAPI(tic_core* core)
 {
     wrenSetUserData(core->currentVM, core);
 
-    if (wrenInterpret(core->currentVM, "main", tic_wren_api) != WREN_RESULT_SUCCESS)
+    if(wrenInterpret(core->currentVM, "main", tic_wren_api) != WREN_RESULT_SUCCESS)
     {
         core->data->error(core->data->data, "can't load TIC wren api");
     }
@@ -1901,11 +1945,13 @@ static void reportError(WrenVM* vm, WrenErrorType type, const char* module, int 
 
     char buffer[1024];
 
-    if (module)
+    if(module)
     {
-        snprintf(buffer, sizeof buffer, "\"%s\", %d ,\"%s\"",module, line, message);
-    } else {
-        snprintf(buffer, sizeof buffer, "%d, \"%s\"",line, message);
+        snprintf(buffer, sizeof buffer, "\"%s\", %d ,\"%s\"", module, line, message);
+    }
+    else
+    {
+        snprintf(buffer, sizeof buffer, "%d, \"%s\"", line, message);
     }
 
     core->data->error(core->data->data, buffer);
@@ -1935,7 +1981,7 @@ static bool initWren(tic_mem* tic, const char* code)
 
     initAPI(core);
 
-    if (wrenInterpret(core->currentVM, "main", code) != WREN_RESULT_SUCCESS)
+    if(wrenInterpret(core->currentVM, "main", code) != WREN_RESULT_SUCCESS)
     {
         return false;
     }
@@ -1956,20 +2002,22 @@ static bool initWren(tic_mem* tic, const char* code)
     overline_handle = wrenMakeCallHandle(vm, OVR_FN "()");
 
     // create game class
-    if (game_class)
+    if(game_class)
     {
         wrenEnsureSlots(vm, 1);
         wrenSetSlotHandle(vm, 0, game_class);
         wrenCall(vm, new_handle);
         wrenReleaseHandle(core->currentVM, game_class); // release game class handle
         game_class = NULL;
-        if (wrenGetSlotCount(vm) == 0)
+        if(wrenGetSlotCount(vm) == 0)
         {
             core->data->error(core->data->data, "Error in game class :(");
             return false;
         }
         game_class = wrenGetSlotHandle(vm, 0); // handle from game object
-    } else {
+    }
+    else
+    {
         core->data->error(core->data->data, "'Game class' isn't found :(");
         return false;
     }
@@ -2051,18 +2099,23 @@ static void callWrenMenu(tic_mem* tic, s32 index, void* data)
     callWrenIntCallback(tic, index, menu_handle, data);
 }
 
-static const char* const WrenKeywords [] =
-{
-    "as", "break", "class", "construct", "continue", "else", "false",
-    "for", "foreign", "if", "import", "in", "is", "null", "return",
-    "static", "super", "this", "true", "var", "while"
-};
+static const char* const WrenKeywords[] =
+    {
+        "as", "break", "class", "construct", "continue", "else", "false",
+        "for", "foreign", "if", "import", "in", "is", "null", "return",
+        "static", "super", "this", "true", "var", "while"};
 
-static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
+static inline bool isalnum_(char c)
+{
+    return isalnum((u8)c) || c == '_';
+}
 
 static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 {
-    enum{Size = sizeof(tic_outline_item)};
+    enum
+    {
+        Size = sizeof(tic_outline_item)
+    };
 
     *size = 0;
 
@@ -2093,13 +2146,15 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
             {
                 char c = *ptr;
 
-                if(isalnum_(c));
+                if(isalnum_(c))
+                    ;
                 else if(c == ' ' || c == '{')
                 {
                     end = ptr;
                     break;
                 }
-                else break;
+                else
+                    break;
 
                 ptr++;
             }
@@ -2114,7 +2169,8 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
                 (*size)++;
             }
         }
-        else break;
+        else
+            break;
     }
 
     return items;
@@ -2127,50 +2183,50 @@ static void evalWren(tic_mem* tic, const char* code)
 }
 
 static const u8 DemoRom[] =
-{
-    #include "../build/assets/wrendemo.tic.dat"
+    {
+#include "../build/assets/wrendemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
-{
-    #include "../build/assets/wrenmark.tic.dat"
+    {
+#include "../build/assets/wrenmark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Wren) =
-{
-    .id                 = 16,
-    .name               = "wren",
-    .fileExtension      = ".wren",
-    .projectComment     = "//",
     {
-      .init               = initWren,
-      .close              = closeWren,
-      .tick               = callWrenTick,
-      .boot               = callWrenBoot,
+        .id = 16,
+        .name = "wren",
+        .fileExtension = ".wren",
+        .projectComment = "//",
+        {
+            .init = initWren,
+            .close = closeWren,
+            .tick = callWrenTick,
+            .boot = callWrenBoot,
 
-      .callback           =
-      {
-        .scanline       = callWrenScanline,
-        .border         = callWrenBorder,
-        .menu           = callWrenMenu,
-      },
-    },
+            .callback =
+                {
+                    .scanline = callWrenScanline,
+                    .border = callWrenBorder,
+                    .menu = callWrenMenu,
+                },
+        },
 
-    .getOutline         = getWrenOutline,
-    .eval               = evalWren,
+        .getOutline = getWrenOutline,
+        .eval = evalWren,
 
-    .blockCommentStart  = "/*",
-    .blockCommentEnd    = "*/",
-    .blockCommentStart2 = NULL,
-    .blockCommentEnd2   = NULL,
-    .blockStringStart   = NULL,
-    .blockStringEnd     = NULL,
-    .singleComment      = "//",
-    .blockEnd           = "}",
+        .blockCommentStart = "/*",
+        .blockCommentEnd = "*/",
+        .blockCommentStart2 = NULL,
+        .blockCommentEnd2 = NULL,
+        .blockStringStart = NULL,
+        .blockStringEnd = NULL,
+        .singleComment = "//",
+        .blockEnd = "}",
 
-    .keywords           = WrenKeywords,
-    .keywordsCount      = COUNT_OF(WrenKeywords),
+        .keywords = WrenKeywords,
+        .keywordsCount = COUNT_OF(WrenKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom, NULL},
-    .mark = {MarkRom, sizeof MarkRom, "wrenmark.tic"},
+        .demo = {DemoRom, sizeof DemoRom, NULL},
+        .mark = {MarkRom, sizeof MarkRom, "wrenmark.tic"},
 };

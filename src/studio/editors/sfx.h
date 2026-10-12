@@ -33,7 +33,7 @@ struct Sfx
 
     tic_sfx* src;
 
-    u8 index:SFX_COUNT_BITS;
+    u8 index : SFX_COUNT_BITS;
     s32 volwave;
     s32 hoverWave;
     s32 holdValue;
@@ -48,7 +48,7 @@ struct Sfx
     struct History* history;
     struct History* waveHistory;
 
-    void(*tick)(Sfx*);
+    void (*tick)(Sfx*);
 };
 
 extern const ClipboardOps SfxClipboard;

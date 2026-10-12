@@ -1,0 +1,87 @@
+name: Lint
+
+# A workflow of its own, not a job in build.yml: release.yml reaches that one
+# through workflow_call, and a formatting check has nothing to say on a tag.
+# The style it enforces is .clang-format; the files it leaves alone are the
+# ones in .clang-format-ignore.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # The base of the diff can be an arbitrary number of commits back,
+          # and a shallow clone does not carry it.
+          fetch-depth: 0
+
+      # Pinned: the apt packages for this runner stop nine releases short of
+      # 20.1.6, and two clang-format versions do not agree on layout. The PyPI
+      # wheel is the official build of exactly this version.
+      - name: Install clang-format
+        run: pip install clang-format==20.1.6
+
+      - name: Check the files this change touches
+        run: |
+          set -euo pipefail
+
+          # What to measure against: the branch a pull request targets, the
+          # commit a push landed on, main for a manual run.
+          case "${{ github.event_name }}" in
+            pull_request)
+              git fetch --no-tags origin "${{ github.base_ref }}"
+              base="origin/${{ github.base_ref }}"
+              ;;
+            push)
+              base="${{ github.event.before }}"
+              ;;
+            *)
+              git fetch --no-tags origin main
+              base="origin/main"
+              ;;
+          esac
+
+          # A new branch has no commit to compare with; there is nothing to
+          # hold it to yet.
+          if ! git rev-parse --verify --quiet "${base}^{commit}" >/dev/null; then
+            echo "no usable base ($base): nothing to check"
+            exit 0
+          fi
+
+          # An array, so that a path is a path whatever it holds — the file
+          # list is the only place a name from the diff reaches a command.
+          mapfile -t files < <(git diff --name-only --diff-filter=ACMR \
+            "$base...HEAD" -- '*.c' '*.h' '*.cpp' '*.hpp')
+
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "no C sources in this change"
+            exit 0
+          fi
+
+          printf '  %s\n' "${files[@]}"
+          clang-format --version
+
+          # Only the files the change touches, and only those .clang-format-ignore
+          # leaves in: the generated shader headers and the third-party files
+          # under src/ are nobody's to reformat here.
+          if ! clang-format --dry-run --Werror "${files[@]}"; then
+            echo "::error::clang-format 20.1.6 would rewrite the files above"
+            echo
+            echo "To match it locally:"
+            echo "    pip install clang-format==20.1.6"
+            echo "    clang-format -i <the files listed above>"
+            exit 1
+          fi
+
+          echo "all formatted"

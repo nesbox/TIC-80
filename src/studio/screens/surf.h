@@ -83,8 +83,8 @@ struct Surf
 
     } anim;
 
-    void(*tick)(Surf* surf);
-    void(*resume)(Surf* surf);
+    void (*tick)(Surf* surf);
+    void (*resume)(Surf* surf);
     void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
 

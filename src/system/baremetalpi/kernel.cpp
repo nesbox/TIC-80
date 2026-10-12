@@ -51,181 +51,194 @@ static struct TGamePadState gamepad;
 
 static CSpinLock keyspinlock;
 
-extern "C" {
+extern "C"
+{
 
-/*
+    /*
 unsigned int sleep(unsigned int seconds)
 {
     mTimer.SimpleMsDelay (seconds*1000);
 }
 */
 
-static struct
-{
-
-    Studio* studio;
-    tic80_input input;
-
-    struct
+    static struct
     {
-        bool state[tic_keys_count];
-    } keyboard;
 
-    char* clipboard;
+        Studio* studio;
+        tic80_input input;
 
-} platform;
+        struct
+        {
+            bool state[tic_keys_count];
+        } keyboard;
 
-void tic_sys_clipboard_set(const char* text)
-{
-    if(platform.clipboard)
+        char* clipboard;
+
+    } platform;
+
+    void tic_sys_clipboard_set(const char* text)
     {
-        free(platform.clipboard);
-        platform.clipboard = NULL;
+        if(platform.clipboard)
+        {
+            free(platform.clipboard);
+            platform.clipboard = NULL;
+        }
+
+        platform.clipboard = strdup(text);
     }
 
-    platform.clipboard = strdup(text);
-}
+    bool tic_sys_clipboard_has()
+    {
+        return platform.clipboard != NULL;
+    }
 
-bool tic_sys_clipboard_has()
-{
-    return platform.clipboard != NULL;
-}
+    char* tic_sys_clipboard_get()
+    {
+        return platform.clipboard ? strdup(platform.clipboard) : NULL;
+    }
 
-char* tic_sys_clipboard_get()
-{
-    return platform.clipboard ? strdup(platform.clipboard) : NULL;
-}
+    void tic_sys_clipboard_free(const char* text)
+    {
+        free((void*)text);
+    }
 
-void tic_sys_clipboard_free(const char* text)
-{
-    free((void*)text);
-}
+    u64 tic_sys_counter_get()
+    {
+        return CTimer::Get()->GetTicks();
+    }
 
-u64 tic_sys_counter_get()
-{
-    return CTimer::Get()->GetTicks();
-}
+    u64 tic_sys_freq_get()
+    {
+        return HZ;
+    }
 
-u64 tic_sys_freq_get()
-{
-    return HZ;
-}
+    void tic_sys_fullscreen_set(bool value)
+    {
+        (void)value;
+    }
 
-void tic_sys_fullscreen_set(bool value)
-{
-    (void)value;
-}
+    bool tic_sys_fullscreen_get()
+    {
+        return true;
+    }
 
-bool tic_sys_fullscreen_get()
-{
-    return true;
-}
+    void tic_sys_message(const char* title, const char* message)
+    {
+        (void)title;
+        (void)message;
+    }
 
-void tic_sys_message(const char* title, const char* message)
-{
-    (void)title; (void)message;
-}
+    void tic_sys_title(const char* title)
+    {
+        (void)title;
+    }
 
-void tic_sys_title(const char* title)
-{
-    (void)title;
-}
+    void tic_sys_open_path(const char* path)
+    {
+        (void)path;
+    }
+    void tic_sys_open_url(const char* url)
+    {
+        (void)url;
+    }
 
-void tic_sys_open_path(const char* path) {(void)path;}
-void tic_sys_open_url(const char* url) {(void)url;}
-
-void tic_sys_preseed()
-{
+    void tic_sys_preseed()
+    {
 #if defined(__TIC_MACOSX__)
-    srandom(time(NULL));
-    random();
+        srandom(time(NULL));
+        random();
 #else
-    srand(time(NULL));
-    rand();
+        srand(time(NULL));
+        rand();
 #endif
-}
-
-void tic_sys_update_config()
-{
-
-}
-
-void tic_sys_default_mapping(tic_mapping* mapping)
-{
-    *mapping = (tic_mapping)
-    {
-        tic_key_up,
-        tic_key_down,
-        tic_key_left,
-        tic_key_right,
-
-        tic_key_z, // a
-        tic_key_x, // b
-        tic_key_a, // x
-        tic_key_s, // y
-    };
-}
-
-bool tic_sys_keyboard_text(char* text)
-{
-    return false;
-}
-
-void screenCopy(CScreenDevice* screen, const u32* ts)
-{
-    u32 pitch = screen->GetPitch();
-    u32* buf = screen->GetBuffer();
-    for (int y = 0; y < TIC80_HEIGHT; y++)
-    {
-        const u32 *line = ts + ((y+TIC80_OFFSET_TOP)*(TIC80_FULLWIDTH) + TIC80_OFFSET_LEFT);
-        memcpy(buf + (pitch * y), line, TIC80_WIDTH * 4);
     }
-}
 
+    void tic_sys_update_config()
+    {
+    }
+
+    void tic_sys_default_mapping(tic_mapping* mapping)
+    {
+        *mapping = (tic_mapping){
+            tic_key_up,
+            tic_key_down,
+            tic_key_left,
+            tic_key_right,
+
+            tic_key_z, // a
+            tic_key_x, // b
+            tic_key_a, // x
+            tic_key_s, // y
+        };
+    }
+
+    bool tic_sys_keyboard_text(char* text)
+    {
+        return false;
+    }
+
+    void screenCopy(CScreenDevice* screen, const u32* ts)
+    {
+        u32 pitch = screen->GetPitch();
+        u32* buf = screen->GetBuffer();
+        for(int y = 0; y < TIC80_HEIGHT; y++)
+        {
+            const u32* line = ts + ((y + TIC80_OFFSET_TOP) * (TIC80_FULLWIDTH) + TIC80_OFFSET_LEFT);
+            memcpy(buf + (pitch * y), line, TIC80_WIDTH * 4);
+        }
+    }
 
 } //extern C
 
-void mouseStatusHandler (unsigned nButtons, int nDisplacementX, int nDisplacementY, int nWheelMove)
+void mouseStatusHandler(unsigned nButtons, int nDisplacementX, int nDisplacementY, int nWheelMove)
 {
     keyspinlock.Acquire();
 
     mousex += nDisplacementX;
     mousey += nDisplacementY;
 
-    if (mousex < 0) mousex = 0;
-    if (mousex > TIC80_WIDTH*MOUSE_SENS) mousex = TIC80_WIDTH*MOUSE_SENS;
-    if (mousey < 0) mousey = 0;
-    if (mousey > TIC80_HEIGHT*MOUSE_SENS) mousey = TIC80_HEIGHT*MOUSE_SENS;
+    if(mousex < 0) mousex = 0;
+    if(mousex > TIC80_WIDTH * MOUSE_SENS) mousex = TIC80_WIDTH * MOUSE_SENS;
+    if(mousey < 0) mousey = 0;
+    if(mousey > TIC80_HEIGHT * MOUSE_SENS) mousey = TIC80_HEIGHT * MOUSE_SENS;
 
     mousebuttons = nButtons;
     keyspinlock.Release();
 }
 
-void gamePadStatusHandler (unsigned nDeviceIndex, const TGamePadState *pState)
+void gamePadStatusHandler(unsigned nDeviceIndex, const TGamePadState* pState)
 {
 
     keyspinlock.Acquire();
     // Just copy buttons and axes.
-    gamepad.buttons = pState -> buttons;
-    gamepad.naxes = pState -> naxes;
-    for (int i = 0; i< pState->naxes; i++)
+    gamepad.buttons = pState->buttons;
+    gamepad.naxes = pState->naxes;
+    for(int i = 0; i < pState->naxes; i++)
     {
-        gamepad.axes[i].value = pState -> axes[i].value;
+        gamepad.axes[i].value = pState->axes[i].value;
     }
     keyspinlock.Release();
 }
-
 
 void inputToTic()
 {
     tic80_input* tic_input = &platform.input;
 
     // mouse
-    if (mousebuttons & 0x01) tic_input->mouse.left = true; else tic_input->mouse.left = false;
-    if (mousebuttons & 0x02) tic_input->mouse.right = true; else tic_input->mouse.right = false;
-    if (mousebuttons & 0x04) tic_input->mouse.middle = true; else tic_input->mouse.middle = false;
-    tic_input->mouse.x = mousex/MOUSE_SENS + TIC80_OFFSET_LEFT;
-    tic_input->mouse.y = mousey/MOUSE_SENS + TIC80_OFFSET_TOP;
+    if(mousebuttons & 0x01)
+        tic_input->mouse.left = true;
+    else
+        tic_input->mouse.left = false;
+    if(mousebuttons & 0x02)
+        tic_input->mouse.right = true;
+    else
+        tic_input->mouse.right = false;
+    if(mousebuttons & 0x04)
+        tic_input->mouse.middle = true;
+    else
+        tic_input->mouse.middle = false;
+    tic_input->mouse.x = mousex / MOUSE_SENS + TIC80_OFFSET_LEFT;
+    tic_input->mouse.y = mousey / MOUSE_SENS + TIC80_OFFSET_TOP;
 
     // keyboard
     tic_input->gamepads.first.data = 0;
@@ -235,18 +248,19 @@ void inputToTic()
 
     //dbg("MODIF %02x ", keyboardModifiers);
 
-    if(keyboardModifiers & 0x11) tic_input->keyboard.keys[keynum++]= tic_key_ctrl;
-    if(keyboardModifiers & 0x22) tic_input->keyboard.keys[keynum++]= tic_key_shift;
-    if(keyboardModifiers & 0x44) tic_input->keyboard.keys[keynum++]= tic_key_alt;
+    if(keyboardModifiers & 0x11) tic_input->keyboard.keys[keynum++] = tic_key_ctrl;
+    if(keyboardModifiers & 0x22) tic_input->keyboard.keys[keynum++] = tic_key_shift;
+    if(keyboardModifiers & 0x44) tic_input->keyboard.keys[keynum++] = tic_key_alt;
 
-    for (unsigned i = 0; i < 6; i++)
+    for(unsigned i = 0; i < 6; i++)
     {
-        if (keyboardRawKeys[i] != 0)
+        if(keyboardRawKeys[i] != 0)
         {
             // keyboard
-            if(keynum<TIC80_KEY_BUFFER){
+            if(keynum < TIC80_KEY_BUFFER)
+            {
                 tic_keycode tkc = TicKeyboardCodes[keyboardRawKeys[i]];
-                if(tkc != tic_key_unknown) tic_input->keyboard.keys[keynum++]= tkc;
+                if(tkc != tic_key_unknown) tic_input->keyboard.keys[keynum++] = tkc;
             }
             // key to gamepad
             switch(keyboardRawKeys[i])
@@ -267,26 +281,25 @@ void inputToTic()
 
     // gamepads
 
-    if (gamepad.buttons & 0x100) tic_input->gamepads.first.a = true;
-    if (gamepad.buttons & 0x200) tic_input->gamepads.first.b = true;
-    if (gamepad.buttons & 0x400) tic_input->gamepads.first.x = true;
-    if (gamepad.buttons & 0x800) tic_input->gamepads.first.y = true;
+    if(gamepad.buttons & 0x100) tic_input->gamepads.first.a = true;
+    if(gamepad.buttons & 0x200) tic_input->gamepads.first.b = true;
+    if(gamepad.buttons & 0x400) tic_input->gamepads.first.x = true;
+    if(gamepad.buttons & 0x800) tic_input->gamepads.first.y = true;
     // map ESC to a gamepad button to exit the game
-    if (gamepad.buttons & 0x10) tic_input->keyboard.keys[keynum++]= tic_key_escape;
+    if(gamepad.buttons & 0x10) tic_input->keyboard.keys[keynum++] = tic_key_escape;
 
     // TODO use min and max instead of hardcoded range
-    if (gamepad.naxes > 0)
+    if(gamepad.naxes > 0)
     {
-        if (gamepad.axes[0].value < 50) tic_input->gamepads.first.left = true;
-        if (gamepad.axes[0].value > 200) tic_input->gamepads.first.right = true;
-
+        if(gamepad.axes[0].value < 50) tic_input->gamepads.first.left = true;
+        if(gamepad.axes[0].value > 200) tic_input->gamepads.first.right = true;
     }
-    if (gamepad.naxes > 1)
+    if(gamepad.naxes > 1)
     {
-        if (gamepad.axes[1].value < 50) tic_input->gamepads.first.up = true;
-        if (gamepad.axes[1].value > 200) tic_input->gamepads.first.down = true;
+        if(gamepad.axes[1].value < 50) tic_input->gamepads.first.up = true;
+        if(gamepad.axes[1].value > 200) tic_input->gamepads.first.down = true;
     }
-/*
+    /*
         dbg("G:BTN 0x%X", gamepad.buttons);
 
         if (gamepad.naxes > 0)
@@ -311,62 +324,63 @@ void inputToTic()
 
        dbg("\n");
 */
-
 }
-void KeyStatusHandlerRaw (unsigned char ucModifiers, const unsigned char RawKeys[6])
+void KeyStatusHandlerRaw(unsigned char ucModifiers, const unsigned char RawKeys[6])
 {
     // this gets called with whatever key is currently pressed in RawKeys
     // (plus modifiers).
     keyspinlock.Acquire();
     keyboardModifiers = ucModifiers;
-    memcpy(keyboardRawKeys, RawKeys, sizeof(unsigned char)*6);
+    memcpy(keyboardRawKeys, RawKeys, sizeof(unsigned char) * 6);
     keyspinlock.Release();
 }
 
 TShutdownMode Run(void)
 {
     initializeCore();
-    mLogger.Write (KN, LogNotice, "TIC80 Port");
+    mLogger.Write(KN, LogNotice, "TIC80 Port");
 
     f_mkdir("tic80");
 
     dbg("Calling studio init instance..\n");
 
-    if (pKeyboard)
+    if(pKeyboard)
     {
         dbg("With keyboard\n");
-        char  arg0[] = "xxkernel";
-        char* argv[] = { &arg0[0], NULL };
+        char arg0[] = "xxkernel";
+        char* argv[] = {&arg0[0], NULL};
         int argc = 1;
         platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty);
     }
     else
     {
         //  if no keyboard, start in surf mode!
-        char  arg0[] = "xxkernel";
-        char  arg1[] = "--cmd=surf";
-        char* argv[] = { &arg0[0], &arg1[0], NULL };
+        char arg0[] = "xxkernel";
+        char arg1[] = "--cmd=surf";
+        char* argv[] = {&arg0[0], &arg1[0], NULL};
         int argc = 2;
         dbg("Without keyboard\n");
         platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty);
     }
     dbg("studio_create OK\n");
 
-    if( !platform.studio)
+    if(!platform.studio)
     {
         Die("Could not init studio");
     }
 
     dbg("Studio init ok..\n");
 
-    if (pKeyboard){
-        pKeyboard->RegisterKeyStatusHandlerRaw (KeyStatusHandlerRaw);
+    if(pKeyboard)
+    {
+        pKeyboard->RegisterKeyStatusHandlerRaw(KeyStatusHandlerRaw);
     }
 
     initGamepads(mDeviceNameService, gamePadStatusHandler);
 
-    if (pMouse) {
-        pMouse->RegisterStatusHandler (mouseStatusHandler);
+    if(pMouse)
+    {
+        pMouse->RegisterStatusHandler(mouseStatusHandler);
     }
 
     const tic80* product = &studio_mem(platform.studio)->product;
@@ -377,7 +391,7 @@ TShutdownMode Run(void)
     mSound->AllocateQueue(1000);
     mSound->SetWriteFormat(SoundFormatSigned16);
 
-    if (!mSound->Start())
+    if(!mSound->Start())
     {
         Die("Could not start sound.");
     }

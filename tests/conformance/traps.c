@@ -9,7 +9,6 @@
  */
 #include "traps.h"
 
-
 #include <stdio.h>
 
 #define API_FUNC_DEF(name, _, __, ___, ____, _____, ret, ...) \
@@ -20,7 +19,7 @@ TIC_API_LIST(API_FUNC_DEF)
 #if defined BUILD_DEPRECATED
 // Outside TIC_API_LIST: the deprecated entry is assigned by hand in core.c.
 static void (*Real_textri)(tic_mem*, float, float, float, float, float, float,
-    float, float, float, float, float, float, bool, u8*, s32);
+                           float, float, float, float, float, float, bool, u8*, s32);
 #endif
 
 static const char* b2s(bool value)
@@ -65,7 +64,7 @@ static s32 trap_print(tic_mem* tic, const char* text, s32 x, s32 y, u8 color, bo
     s32 width = Real_print(tic, text, x, y, color, fixed, scale, alt);
 
     api_record("print(\"%s\",%d,%d,%u,%s,%d,%s) -> %d",
-        text ? text : "<null>", x, y, (unsigned)color, b2s(fixed), scale, b2s(alt), width);
+               text ? text : "<null>", x, y, (unsigned)color, b2s(fixed), scale, b2s(alt), width);
 
     return width;
 }
@@ -108,7 +107,7 @@ static void trap_spr(tic_mem* tic, s32 index, s32 x, s32 y, s32 w, s32 h, u8* tr
     Real_spr(tic, index, x, y, w, h, trans_colors, trans_count, scale, flip, rotate);
 
     api_record("spr(%d,%d,%d,%d,%d,%s,%d,%d,%d)",
-        index, x, y, w, h, arrayText(trans_colors, trans_count), scale, (int)flip, (int)rotate);
+               index, x, y, w, h, arrayText(trans_colors, trans_count), scale, (int)flip, (int)rotate);
 }
 
 static u32 trap_btn(tic_mem* tic, s32 id)
@@ -142,7 +141,7 @@ static void trap_map(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, s32 sx, 
     // A function pointer means nothing across languages, but whether one was
     // passed at all does: it is what makes map() call back for a remapped tile.
     api_record("map(%d,%d,%d,%d,%d,%d,%s,%d,remap:%s)",
-        x, y, width, height, sx, sy, arrayText(trans_colors, trans_count), scale, remap ? "yes" : "no");
+               x, y, width, height, sx, sy, arrayText(trans_colors, trans_count), scale, remap ? "yes" : "no");
 }
 
 static u8 trap_mget(tic_mem* tic, s32 x, s32 y)
@@ -278,7 +277,7 @@ static s32 trap_font(tic_mem* tic, const char* text, s32 x, s32 y, u8* trans_col
     s32 width = Real_font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt);
 
     api_record("font(\"%s\",%d,%d,%s,%d,%d,%s,%d,%s) -> %d",
-        text ? text : "<null>", x, y, arrayText(trans_colors, trans_count), w, h, b2s(fixed), scale, b2s(alt), width);
+               text ? text : "<null>", x, y, arrayText(trans_colors, trans_count), w, h, b2s(fixed), scale, b2s(alt), width);
 
     return width;
 }
@@ -339,8 +338,8 @@ static void trap_ttri(tic_mem* tic, float x1, float y1, float x2, float y2, floa
     Real_ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, colors, count, z1, z2, z3, depth);
 
     api_record("ttri(%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%d,%s,%d,%g,%g,%g,%s)",
-        x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3,
-        (int)texsrc, arrayText(colors, (u8)count), count, z1, z2, z3, b2s(depth));
+               x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3,
+               (int)texsrc, arrayText(colors, (u8)count), count, z1, z2, z3, b2s(depth));
 }
 
 static void trap_clip(tic_mem* tic, s32 x, s32 y, s32 width, s32 height)
@@ -519,20 +518,22 @@ static double trap_fftrs(tic_mem* tic, s32 startFreq, s32 endFreq)
 
 #if defined BUILD_DEPRECATED
 static void trap_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3,
-    float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
+                        float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
 {
     Real_textri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, use_map, colors, count);
 
     api_record("textri(%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g,%s,%s)",
-        x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, b2s(use_map), arrayText(colors, count));
+               x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, b2s(use_map), arrayText(colors, count));
 }
 #endif
 
 void traps_install(tic_core* core)
 {
+    // clang-format off
 #define API_FUNC_DEF(name, ...)         \
     Real_##name = core->api.name;       \
     core->api.name = trap_##name;
+    // clang-format on
 
     TIC_API_LIST(API_FUNC_DEF)
 

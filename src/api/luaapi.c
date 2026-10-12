@@ -35,7 +35,7 @@ static inline s32 getLuaNumber(lua_State* lua, s32 index)
     return (s32)lua_tonumber(lua, index);
 }
 
-static void registerLuaFunction(tic_core* core, lua_CFunction func, const char *name)
+static void registerLuaFunction(tic_core* core, lua_CFunction func, const char* name)
 {
     lua_pushlightuserdata(core->currentVM, core);
     lua_pushcclosure(core->currentVM, func, 1);
@@ -65,7 +65,8 @@ static s32 lua_peek(lua_State* lua)
         lua_pushinteger(lua, core->api.peek(tic, address, bits));
         return 1;
     }
-    else luaL_error(lua, "invalid parameters, peek(addr,bits)\n");
+    else
+        luaL_error(lua, "invalid parameters, peek(addr,bits)\n");
 
     return 0;
 }
@@ -87,7 +88,8 @@ static s32 lua_poke(lua_State* lua)
 
         core->api.poke(tic, address, value, bits);
     }
-    else luaL_error(lua, "invalid parameters, poke(addr,val,bits)\n");
+    else
+        luaL_error(lua, "invalid parameters, poke(addr,val,bits)\n");
 
     return 0;
 }
@@ -104,7 +106,8 @@ static s32 lua_peek1(lua_State* lua)
         lua_pushinteger(lua, core->api.peek1(tic, address));
         return 1;
     }
-    else luaL_error(lua, "invalid parameters, peek1(addr)\n");
+    else
+        luaL_error(lua, "invalid parameters, peek1(addr)\n");
 
     return 0;
 }
@@ -122,7 +125,8 @@ static s32 lua_poke1(lua_State* lua)
 
         core->api.poke1(tic, address, value);
     }
-    else luaL_error(lua, "invalid parameters, poke1(addr,val)\n");
+    else
+        luaL_error(lua, "invalid parameters, poke1(addr,val)\n");
 
     return 0;
 }
@@ -139,7 +143,8 @@ static s32 lua_peek2(lua_State* lua)
         lua_pushinteger(lua, core->api.peek2(tic, address));
         return 1;
     }
-    else luaL_error(lua, "invalid parameters, peek2(addr)\n");
+    else
+        luaL_error(lua, "invalid parameters, peek2(addr)\n");
 
     return 0;
 }
@@ -157,7 +162,8 @@ static s32 lua_poke2(lua_State* lua)
 
         core->api.poke2(tic, address, value);
     }
-    else luaL_error(lua, "invalid parameters, poke2(addr,val)\n");
+    else
+        luaL_error(lua, "invalid parameters, poke2(addr,val)\n");
 
     return 0;
 }
@@ -174,7 +180,8 @@ static s32 lua_peek4(lua_State* lua)
         lua_pushinteger(lua, core->api.peek4(tic, address));
         return 1;
     }
-    else luaL_error(lua, "invalid parameters, peek4(addr)\n");
+    else
+        luaL_error(lua, "invalid parameters, peek4(addr)\n");
 
     return 0;
 }
@@ -192,7 +199,8 @@ static s32 lua_poke4(lua_State* lua)
 
         core->api.poke4(tic, address, value);
     }
-    else luaL_error(lua, "invalid parameters, poke4(addr,val)\n");
+    else
+        luaL_error(lua, "invalid parameters, poke4(addr,val)\n");
 
     return 0;
 }
@@ -225,7 +233,8 @@ static s32 lua_paint(lua_State* lua)
 
         core->api.paint(tic, x, y, (u8)(color), (u8)(bordercolor));
     }
-    else luaL_error(lua, "invalid parameters, paint(x y color [bordercolor])\n");
+    else
+        luaL_error(lua, "invalid parameters, paint(x y color [bordercolor])\n");
 
     return 0;
 }
@@ -252,9 +261,9 @@ static s32 lua_pix(lua_State* lua)
             lua_pushinteger(lua, core->api.pix(tic, x, y, 0, true));
             return 1;
         }
-
     }
-    else luaL_error(lua, "invalid parameters, pix(x y [color])\n");
+    else
+        luaL_error(lua, "invalid parameters, pix(x y [color])\n");
 
     return 0;
 }
@@ -276,7 +285,8 @@ static s32 lua_line(lua_State* lua)
 
         core->api.line(tic, x0, y0, x1, y1, (u8)(color));
     }
-    else luaL_error(lua, "invalid parameters, line(x0,y0,x1,y1,color)\n");
+    else
+        luaL_error(lua, "invalid parameters, line(x0,y0,x1,y1,color)\n");
 
     return 0;
 }
@@ -298,7 +308,8 @@ static s32 lua_rect(lua_State* lua)
 
         core->api.rect(tic, x, y, w, h, (u8)(color));
     }
-    else luaL_error(lua, "invalid parameters, rect(x,y,w,h,color)\n");
+    else
+        luaL_error(lua, "invalid parameters, rect(x,y,w,h,color)\n");
 
     return 0;
 }
@@ -320,7 +331,8 @@ static s32 lua_rectb(lua_State* lua)
 
         core->api.rectb(tic, x, y, w, h, (u8)(color));
     }
-    else luaL_error(lua, "invalid parameters, rectb(x,y,w,h,color)\n");
+    else
+        luaL_error(lua, "invalid parameters, rectb(x,y,w,h,color)\n");
 
     return 0;
 }
@@ -341,7 +353,8 @@ static s32 lua_circ(lua_State* lua)
 
         core->api.circ(tic, x, y, radius, (u8)(color));
     }
-    else luaL_error(lua, "invalid parameters, circ(x,y,radius,color)\n");
+    else
+        luaL_error(lua, "invalid parameters, circ(x,y,radius,color)\n");
 
     return 0;
 }
@@ -362,7 +375,8 @@ static s32 lua_circb(lua_State* lua)
 
         core->api.circb(tic, x, y, radius, (u8)(color));
     }
-    else luaL_error(lua, "invalid parameters, circb(x,y,radius,color)\n");
+    else
+        luaL_error(lua, "invalid parameters, circb(x,y,radius,color)\n");
 
     return 0;
 }
@@ -384,7 +398,8 @@ static s32 lua_elli(lua_State* lua)
 
         core->api.elli(tic, x, y, a, b, (u8)(color));
     }
-    else luaL_error(lua, "invalid parameters, elli(x,y,a,b,color)\n");
+    else
+        luaL_error(lua, "invalid parameters, elli(x,y,a,b,color)\n");
 
     return 0;
 }
@@ -406,7 +421,8 @@ static s32 lua_ellib(lua_State* lua)
 
         core->api.ellib(tic, x, y, a, b, (u8)(color));
     }
-    else luaL_error(lua, "invalid parameters, ellib(x,y,a,b,color)\n");
+    else
+        luaL_error(lua, "invalid parameters, ellib(x,y,a,b,color)\n");
 
     return 0;
 }
@@ -420,7 +436,7 @@ static s32 lua_tri(lua_State* lua)
         float pt[6];
 
         for(s32 i = 0; i < COUNT_OF(pt); i++)
-            pt[i] = (float)(lua_tonumber(lua, i+1));
+            pt[i] = (float)(lua_tonumber(lua, i + 1));
 
         s32 color = getLuaNumber(lua, 7);
 
@@ -429,7 +445,8 @@ static s32 lua_tri(lua_State* lua)
 
         core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
     }
-    else luaL_error(lua, "invalid parameters, tri(x1,y1,x2,y2,x3,y3,color)\n");
+    else
+        luaL_error(lua, "invalid parameters, tri(x1,y1,x2,y2,x3,y3,color)\n");
 
     return 0;
 }
@@ -443,7 +460,7 @@ static s32 lua_trib(lua_State* lua)
         float pt[6];
 
         for(s32 i = 0; i < COUNT_OF(pt); i++)
-            pt[i] = (float)(lua_tonumber(lua, i+1));
+            pt[i] = (float)(lua_tonumber(lua, i + 1));
 
         s32 color = getLuaNumber(lua, 7);
 
@@ -452,7 +469,8 @@ static s32 lua_trib(lua_State* lua)
 
         core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
     }
-    else luaL_error(lua, "invalid parameters, trib(x1,y1,x2,y2,x3,y3,color)\n");
+    else
+        luaL_error(lua, "invalid parameters, trib(x1,y1,x2,y2,x3,y3,color)\n");
 
     return 0;
 }
@@ -463,11 +481,11 @@ static s32 lua_textri(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
 
-    if (top >= 12)
+    if(top >= 12)
     {
         float pt[12];
 
-        for (s32 i = 0; i < COUNT_OF(pt); i++)
+        for(s32 i = 0; i < COUNT_OF(pt); i++)
             pt[i] = (float)lua_tonumber(lua, i + 1);
 
         tic_core* core = getLuaCore(lua);
@@ -477,7 +495,7 @@ static s32 lua_textri(lua_State* lua)
         bool use_map = false;
 
         //  check for use map
-        if (top >= 13)
+        if(top >= 13)
             use_map = lua_toboolean(lua, 13);
 
         //  check for chroma
@@ -490,7 +508,7 @@ static s32 lua_textri(lua_State* lua)
                     lua_rawgeti(lua, 14, i);
                     if(lua_isnumber(lua, -1))
                     {
-                        colors[i-1] = (u8)(getLuaNumber(lua, -1));
+                        colors[i - 1] = (u8)(getLuaNumber(lua, -1));
                         count++;
                         lua_pop(lua, 1);
                     }
@@ -509,14 +527,14 @@ static s32 lua_textri(lua_State* lua)
         }
 
         core->api.textri(tic,
-            pt[0], pt[1],   //  xy 1
-            pt[2], pt[3],   //  xy 2
-            pt[4], pt[5],   //  xy 3
-            pt[6], pt[7],   //  uv 1
-            pt[8], pt[9],   //  uv 2
-            pt[10], pt[11], //  uv 3
-            use_map,        // use map
-            colors, count); // chroma
+                         pt[0], pt[1],   //  xy 1
+                         pt[2], pt[3],   //  xy 2
+                         pt[4], pt[5],   //  xy 3
+                         pt[6], pt[7],   //  uv 1
+                         pt[8], pt[9],   //  uv 2
+                         pt[10], pt[11], //  uv 3
+                         use_map,        // use map
+                         colors, count); // chroma
     }
 
     return 0;
@@ -528,11 +546,11 @@ static s32 lua_ttri(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
 
-    if (top >= 12)
+    if(top >= 12)
     {
         float pt[12];
 
-        for (s32 i = 0; i < COUNT_OF(pt); i++)
+        for(s32 i = 0; i < COUNT_OF(pt); i++)
             pt[i] = (float)lua_tonumber(lua, i + 1);
 
         tic_core* core = getLuaCore(lua);
@@ -542,11 +560,11 @@ static s32 lua_ttri(lua_State* lua)
         tic_texture_src src = tic_tiles_texture;
 
         //  check for texture src
-        if (top >= 13)
+        if(top >= 13)
         {
             src = lua_isboolean(lua, 13)
-                ? (lua_toboolean(lua, 13) ? tic_map_texture : tic_tiles_texture)
-                : lua_tointeger(lua, 13);
+                      ? (lua_toboolean(lua, 13) ? tic_map_texture : tic_tiles_texture)
+                      : lua_tointeger(lua, 13);
         }
         //  check for chroma
         if(top >= 14)
@@ -558,7 +576,7 @@ static s32 lua_ttri(lua_State* lua)
                     lua_rawgeti(lua, 14, i);
                     if(lua_isnumber(lua, -1))
                     {
-                        colors[i-1] = (u8)(getLuaNumber(lua, -1));
+                        colors[i - 1] = (u8)(getLuaNumber(lua, -1));
                         count++;
                         lua_pop(lua, 1);
                     }
@@ -581,26 +599,26 @@ static s32 lua_ttri(lua_State* lua)
 
         if(top == 17)
         {
-            for (s32 i = 0; i < COUNT_OF(z); i++)
+            for(s32 i = 0; i < COUNT_OF(z); i++)
                 z[i] = (float)lua_tonumber(lua, i + 15);
 
             depth = true;
         }
 
-        core->api.ttri(tic, pt[0], pt[1],   //  xy 1
-                            pt[2], pt[3],   //  xy 2
-                            pt[4], pt[5],   //  xy 3
-                            pt[6], pt[7],   //  uv 1
-                            pt[8], pt[9],   //  uv 2
-                            pt[10], pt[11], //  uv 3
-                            src,            // texture source
-                            colors, count,  // chroma
-                            z[0], z[1], z[2], depth); // depth
+        core->api.ttri(tic, pt[0], pt[1],        //  xy 1
+                       pt[2], pt[3],             //  xy 2
+                       pt[4], pt[5],             //  xy 3
+                       pt[6], pt[7],             //  uv 1
+                       pt[8], pt[9],             //  uv 2
+                       pt[10], pt[11],           //  uv 3
+                       src,                      // texture source
+                       colors, count,            // chroma
+                       z[0], z[1], z[2], depth); // depth
     }
-    else luaL_error(lua, "invalid parameters, ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[src=0],[chroma=off],[z1=0],[z2=0],[z3=0])\n");
+    else
+        luaL_error(lua, "invalid parameters, ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[src=0],[chroma=off],[z1=0],[z2=0],[z3=0])\n");
     return 0;
 }
-
 
 static s32 lua_clip(lua_State* lua)
 {
@@ -624,7 +642,8 @@ static s32 lua_clip(lua_State* lua)
 
         core->api.clip((tic_mem*)getLuaCore(lua), x, y, w, h);
     }
-    else luaL_error(lua, "invalid parameters, use clip(x,y,w,h) or clip()\n");
+    else
+        luaL_error(lua, "invalid parameters, use clip(x,y,w,h) or clip()\n");
 
     return 0;
 }
@@ -636,7 +655,7 @@ static s32 lua_btnp(lua_State* lua)
 
     s32 top = lua_gettop(lua);
 
-    if (top == 0)
+    if(top == 0)
     {
         lua_pushinteger(lua, core->api.btnp(tic, -1, -1, -1));
     }
@@ -646,7 +665,7 @@ static s32 lua_btnp(lua_State* lua)
 
         lua_pushboolean(lua, core->api.btnp(tic, index, -1, -1));
     }
-    else if (top == 3)
+    else if(top == 3)
     {
         s32 index = getLuaNumber(lua, 1) & 0x1f;
         u32 hold = getLuaNumber(lua, 2);
@@ -670,11 +689,11 @@ static s32 lua_btn(lua_State* lua)
 
     s32 top = lua_gettop(lua);
 
-    if (top == 0)
+    if(top == 0)
     {
         lua_pushinteger(lua, core->api.btn(tic, -1));
     }
-    else if (top == 1)
+    else if(top == 1)
     {
         bool pressed = core->api.btn(tic, getLuaNumber(lua, 1) & 0x1f);
         lua_pushboolean(lua, pressed);
@@ -721,7 +740,7 @@ static s32 lua_spr(lua_State* lua)
                         lua_rawgeti(lua, 4, i);
                         if(lua_isnumber(lua, -1))
                         {
-                            colors[i-1] = (u8)(getLuaNumber(lua, -1));
+                            colors[i - 1] = (u8)(getLuaNumber(lua, -1));
                             count++;
                             lua_pop(lua, 1);
                         }
@@ -786,7 +805,8 @@ static s32 lua_mget(lua_State* lua)
         lua_pushinteger(lua, value);
         return 1;
     }
-    else luaL_error(lua, "invalid params, mget(x,y)\n");
+    else
+        luaL_error(lua, "invalid params, mget(x,y)\n");
 
     return 0;
 }
@@ -806,7 +826,8 @@ static s32 lua_mset(lua_State* lua)
 
         core->api.mset(tic, x, y, val);
     }
-    else luaL_error(lua, "invalid params, mget(x,y)\n");
+    else
+        luaL_error(lua, "invalid params, mget(x,y)\n");
 
     return 0;
 }
@@ -871,7 +892,7 @@ static s32 lua_map(lua_State* lua)
                             lua_rawgeti(lua, 7, i);
                             if(lua_isnumber(lua, -1))
                             {
-                                colors[i-1] = (u8)(getLuaNumber(lua, -1));
+                                colors[i - 1] = (u8)(getLuaNumber(lua, -1));
                                 count++;
                                 lua_pop(lua, 1);
                             }
@@ -894,7 +915,7 @@ static s32 lua_map(lua_State* lua)
 
                         if(top >= 9)
                         {
-                            if (lua_isfunction(lua, 9))
+                            if(lua_isfunction(lua, 9))
                             {
                                 s32 remap = luaL_ref(lua, LUA_REGISTRYINDEX);
 
@@ -929,7 +950,8 @@ static s32 lua_music(lua_State* lua)
     tic_core* core = getLuaCore(lua);
     tic_mem* tic = (tic_mem*)core;
 
-    if(top == 0) core->api.music(tic, -1, 0, 0, false, false, -1, -1);
+    if(top == 0)
+        core->api.music(tic, -1, 0, 0, false, false, -1, -1);
     else if(top >= 1)
     {
         s32 track = getLuaNumber(lua, 1);
@@ -961,28 +983,28 @@ static s32 lua_music(lua_State* lua)
                 {
                     loop = lua_toboolean(lua, 4);
 
-                    if (top >= 5)
+                    if(top >= 5)
                     {
                         sustain = lua_toboolean(lua, 5);
 
-                        if (top >= 6)
+                        if(top >= 6)
                         {
                             tempo = getLuaNumber(lua, 6);
 
-                            if (top >= 7)
+                            if(top >= 7)
                             {
                                 speed = getLuaNumber(lua, 7);
                             }
                         }
                     }
-
                 }
             }
         }
 
         core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
     }
-    else luaL_error(lua, "invalid params, use music(track)\n");
+    else
+        luaL_error(lua, "invalid params, use music(track)\n");
 
     return 0;
 }
@@ -1007,7 +1029,7 @@ static s32 lua_sfx(lua_State* lua)
 
         if(index < SFX_COUNT)
         {
-            if (index >= 0)
+            if(index >= 0)
             {
                 tic_sample* effect = tic->ram->sfx.samples.data + index;
 
@@ -1053,7 +1075,8 @@ static s32 lua_sfx(lua_State* lua)
                                     lua_pop(lua, 1);
                                 }
                             }
-                            else volumes[0] = volumes[1] = getLuaNumber(lua, 5);
+                            else
+                                volumes[0] = volumes[1] = getLuaNumber(lua, 5);
 
                             if(top >= 6)
                             {
@@ -1064,15 +1087,18 @@ static s32 lua_sfx(lua_State* lua)
                 }
             }
 
-            if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
+            if(channel >= 0 && channel < TIC_SOUND_CHANNELS)
             {
                 core->api.sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
             }
-            else luaL_error(lua, "unknown channel\n");
+            else
+                luaL_error(lua, "unknown channel\n");
         }
-        else luaL_error(lua, "unknown sfx index\n");
+        else
+            luaL_error(lua, "unknown sfx index\n");
     }
-    else luaL_error(lua, "invalid sfx params\n");
+    else
+        luaL_error(lua, "invalid sfx params\n");
 
     return 0;
 }
@@ -1139,11 +1165,11 @@ static s32 lua_key(lua_State* lua)
 
     s32 top = lua_gettop(lua);
 
-    if (top == 0)
+    if(top == 0)
     {
         lua_pushboolean(lua, core->api.key(tic, tic_key_unknown));
     }
-    else if (top == 1)
+    else if(top == 1)
     {
         tic_key key = (tic_key)(getLuaNumber(lua, 1));
 
@@ -1171,7 +1197,7 @@ static s32 lua_keyp(lua_State* lua)
 
     s32 top = lua_gettop(lua);
 
-    if (top == 0)
+    if(top == 0)
     {
         lua_pushboolean(lua, core->api.keyp(tic, tic_key_unknown, -1, -1));
     }
@@ -1221,7 +1247,8 @@ static s32 lua_memcpy(lua_State* lua)
         tic_mem* tic = (tic_mem*)core;
         core->api.memcpy(tic, dest, src, size);
     }
-    else luaL_error(lua, "invalid params, memcpy(dest,src,size)\n");
+    else
+        luaL_error(lua, "invalid params, memcpy(dest,src,size)\n");
 
     return 0;
 }
@@ -1241,7 +1268,8 @@ static s32 lua_memset(lua_State* lua)
 
         core->api.memset(tic, dest, value, size);
     }
-    else luaL_error(lua, "invalid params, memset(dest,val,size)\n");
+    else
+        luaL_error(lua, "invalid params, memset(dest,val,size)\n");
 
     return 0;
 }
@@ -1386,7 +1414,7 @@ static s32 lua_print(lua_State* lua)
     return 0;
 }
 
-static s32 lua_trace(lua_State *lua)
+static s32 lua_trace(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
     tic_core* core = getLuaCore(lua);
@@ -1404,12 +1432,13 @@ static s32 lua_trace(lua_State *lua)
 
         core->api.trace(tic, text, color);
     }
-    else luaL_error(lua, "invalid params, trace(text,[color])\n");
+    else
+        luaL_error(lua, "invalid params, trace(text,[color])\n");
 
     return 0;
 }
 
-static s32 lua_pmem(lua_State *lua)
+static s32 lua_pmem(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
     tic_core* core = getLuaCore(lua);
@@ -1435,12 +1464,13 @@ static s32 lua_pmem(lua_State *lua)
 
         luaL_error(lua, "invalid persistent tic index\n");
     }
-    else luaL_error(lua, "invalid params, pmem(index [val]) -> val\n");
+    else
+        luaL_error(lua, "invalid params, pmem(index [val]) -> val\n");
 
     return 0;
 }
 
-static s32 lua_time(lua_State *lua)
+static s32 lua_time(lua_State* lua)
 {
     tic_core* core = getLuaCore(lua);
     tic_mem* tic = (tic_mem*)core;
@@ -1450,7 +1480,7 @@ static s32 lua_time(lua_State *lua)
     return 1;
 }
 
-static s32 lua_tstamp(lua_State *lua)
+static s32 lua_tstamp(lua_State* lua)
 {
     tic_core* core = getLuaCore(lua);
     tic_mem* tic = (tic_mem*)core;
@@ -1460,7 +1490,7 @@ static s32 lua_tstamp(lua_State *lua)
     return 1;
 }
 
-static s32 lua_exit(lua_State *lua)
+static s32 lua_exit(lua_State* lua)
 {
     tic_core* core = getLuaCore(lua);
     tic_mem* tic = (tic_mem*)core;
@@ -1470,7 +1500,7 @@ static s32 lua_exit(lua_State *lua)
     return 0;
 }
 
-static s32 lua_mouse(lua_State *lua)
+static s32 lua_mouse(lua_State* lua)
 {
     tic_core* core = getLuaCore(lua);
 
@@ -1549,7 +1579,7 @@ static s32 lua_vqt(lua_State* lua)
     tic_mem* tic = (tic_mem*)core;
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 bin = getLuaNumber(lua, 1);
 
@@ -1567,7 +1597,7 @@ static s32 lua_vqts(lua_State* lua)
     tic_mem* tic = (tic_mem*)core;
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 bin = getLuaNumber(lua, 1);
 
@@ -1585,7 +1615,7 @@ static s32 lua_vqtr(lua_State* lua)
     tic_mem* tic = (tic_mem*)core;
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 bin = getLuaNumber(lua, 1);
 
@@ -1603,7 +1633,7 @@ static s32 lua_vqtrs(lua_State* lua)
     tic_mem* tic = (tic_mem*)core;
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 bin = getLuaNumber(lua, 1);
 
@@ -1621,7 +1651,7 @@ static s32 lua_vqtw(lua_State* lua)
     tic_mem* tic = (tic_mem*)core;
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 bin = getLuaNumber(lua, 1);
         lua_pushnumber(lua, core->api.vqtw(tic, bin));
@@ -1638,7 +1668,7 @@ static s32 lua_vqtsw(lua_State* lua)
     tic_mem* tic = (tic_mem*)core;
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 bin = getLuaNumber(lua, 1);
         lua_pushnumber(lua, core->api.vqtsw(tic, bin));
@@ -1655,7 +1685,7 @@ static s32 lua_vqtrw(lua_State* lua)
     tic_mem* tic = (tic_mem*)core;
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 bin = getLuaNumber(lua, 1);
         lua_pushnumber(lua, core->api.vqtrw(tic, bin));
@@ -1672,7 +1702,7 @@ static s32 lua_vqtrsw(lua_State* lua)
     tic_mem* tic = (tic_mem*)core;
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 bin = getLuaNumber(lua, 1);
         lua_pushnumber(lua, core->api.vqtrsw(tic, bin));
@@ -1690,12 +1720,12 @@ static s32 lua_fft(lua_State* lua)
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 start_freq = getLuaNumber(lua, 1);
         s32 end_freq = -1;
 
-        if (top >= 2)
+        if(top >= 2)
         {
             end_freq = getLuaNumber(lua, 2);
         }
@@ -1715,12 +1745,12 @@ static s32 lua_fftr(lua_State* lua)
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 start_freq = getLuaNumber(lua, 1);
         s32 end_freq = -1;
 
-        if (top >= 2)
+        if(top >= 2)
         {
             end_freq = getLuaNumber(lua, 2);
         }
@@ -1740,12 +1770,12 @@ static s32 lua_fftrs(lua_State* lua)
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 start_freq = getLuaNumber(lua, 1);
         s32 end_freq = -1;
 
-        if (top >= 2)
+        if(top >= 2)
         {
             end_freq = getLuaNumber(lua, 2);
         }
@@ -1765,12 +1795,12 @@ static s32 lua_ffts(lua_State* lua)
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
     s32 top = lua_gettop(lua);
 
-    if (top >= 1)
+    if(top >= 1)
     {
         s32 start_freq = getLuaNumber(lua, 1);
         s32 end_freq = -1;
 
-        if (top >= 2)
+        if(top >= 2)
         {
             end_freq = getLuaNumber(lua, 2);
         }
@@ -1783,35 +1813,34 @@ static s32 lua_ffts(lua_State* lua)
     return 0;
 }
 
-static int lua_dofile(lua_State *lua)
+static int lua_dofile(lua_State* lua)
 {
     luaL_error(lua, "unknown method: \"dofile\"\n");
 
     return 0;
 }
 
-static int lua_loadfile(lua_State *lua)
+static int lua_loadfile(lua_State* lua)
 {
     luaL_error(lua, "unknown method: \"loadfile\"\n");
 
     return 0;
 }
 
-void luaapi_open(lua_State *lua)
+void luaapi_open(lua_State* lua)
 {
     static const luaL_Reg loadedlibs[] =
-    {
-        { "_G", luaopen_base },
-        { LUA_LOADLIBNAME, luaopen_package },
-        { LUA_COLIBNAME, luaopen_coroutine },
-        { LUA_TABLIBNAME, luaopen_table },
-        { LUA_STRLIBNAME, luaopen_string },
-        { LUA_MATHLIBNAME, luaopen_math },
-        { LUA_DBLIBNAME, luaopen_debug },
-        { NULL, NULL }
-    };
+        {
+            {"_G", luaopen_base},
+            {LUA_LOADLIBNAME, luaopen_package},
+            {LUA_COLIBNAME, luaopen_coroutine},
+            {LUA_TABLIBNAME, luaopen_table},
+            {LUA_STRLIBNAME, luaopen_string},
+            {LUA_MATHLIBNAME, luaopen_math},
+            {LUA_DBLIBNAME, luaopen_debug},
+            {NULL, NULL}};
 
-    for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
+    for(const luaL_Reg* lib = loadedlibs; lib->func; lib++)
     {
         luaL_requiref(lua, lib->name, lib->func, 1);
         lua_pop(lua, 1);
@@ -1820,18 +1849,22 @@ void luaapi_open(lua_State *lua)
 
 void luaapi_init(tic_core* core)
 {
-    static const struct{lua_CFunction func; const char* name;} ApiItems[] =
+    static const struct
     {
-#define API_FUNC_DEF(name, ...) {(lua_CFunction)(lua_ ## name), #name},
-        TIC_API_LIST(API_FUNC_DEF)
-#undef  API_FUNC_DEF
+        lua_CFunction func;
+        const char* name;
+    } ApiItems[] =
+        {
+#define API_FUNC_DEF(name, ...) {(lua_CFunction)(lua_##name), #name},
+            TIC_API_LIST(API_FUNC_DEF)
+#undef API_FUNC_DEF
 
 #if defined(BUILD_DEPRECATED)
-        {(lua_CFunction)lua_textri, "textri"},
+                {(lua_CFunction)lua_textri, "textri"},
 #endif
-    };
+        };
 
-    for (s32 i = 0; i < COUNT_OF(ApiItems); i++)
+    for(s32 i = 0; i < COUNT_OF(ApiItems); i++)
         registerLuaFunction(core, ApiItems[i].func, ApiItems[i].name);
 
     registerLuaFunction(core, lua_dofile, "dofile");
@@ -1853,14 +1886,14 @@ void luaapi_close(tic_mem* tic)
 ** Message handler which appends stract trace to exceptions.
 ** This function was extractred from lua.c.
 */
-static int msghandler (lua_State *lua)
+static int msghandler(lua_State* lua)
 {
-    const char *msg = lua_tostring(lua, 1);
-    if (msg == NULL) /* is error object not a string? */
+    const char* msg = lua_tostring(lua, 1);
+    if(msg == NULL) /* is error object not a string? */
     {
-        if (luaL_callmeta(lua, 1, "__tostring") &&  /* does it have a metamethod */
-            lua_type(lua, -1) == LUA_TSTRING)  /* that produces a string? */
-            return 1;  /* that is the message */
+        if(luaL_callmeta(lua, 1, "__tostring") && /* does it have a metamethod */
+           lua_type(lua, -1) == LUA_TSTRING)      /* that produces a string? */
+            return 1;                             /* that is the message */
         else
             msg = lua_pushfstring(lua, "(error object is a %s value)", luaL_typename(lua, 1));
     }
@@ -1871,7 +1904,7 @@ static int msghandler (lua_State *lua)
     lua_gettable(lua, -2);
     lua_pushstring(lua, msg);
     lua_call(lua, 1, 1);
-    return 1;  /* return the traceback */
+    return 1; /* return the traceback */
 }
 
 /*
@@ -1879,14 +1912,14 @@ static int msghandler (lua_State *lua)
 ** Please use this function for all top level lua functions.
 ** This function was extractred from lua.c (and stripped of signal handling)
 */
-static s32 docall (lua_State *lua, s32 narg, s32 nres)
+static s32 docall(lua_State* lua, s32 narg, s32 nres)
 {
     s32 status = 0;
     s32 base = lua_gettop(lua) - narg;  /* function index */
-    lua_pushcfunction(lua, msghandler);  /* push message handler */
-    lua_insert(lua, base);  /* put it under function and args */
+    lua_pushcfunction(lua, msghandler); /* push message handler */
+    lua_insert(lua, base);              /* put it under function and args */
     status = lua_pcall(lua, narg, nres, base);
-    lua_remove(lua, base);  /* remove message handler from the stack */
+    lua_remove(lua, base); /* remove message handler from the stack */
     return status;
 }
 
@@ -1919,7 +1952,8 @@ void luaapi_tick(tic_mem* tic)
                             core->data->error(core->data->data, lua_tostring(lua, -1));
                     }
                 }
-                else lua_pop(lua, 1);
+                else
+                    lua_pop(lua, 1);
             }
 #endif
         }
@@ -1937,7 +1971,7 @@ void callLuaIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
     tic_core* core = (tic_core*)tic;
     lua_State* lua = core->currentVM;
 
-    if (lua)
+    if(lua)
     {
         lua_getglobal(lua, name);
         if(lua_isfunction(lua, -1))
@@ -1946,7 +1980,8 @@ void callLuaIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
             if(docall(lua, 1, 0) != LUA_OK)
                 core->data->error(core->data->data, lua_tostring(lua, -1));
         }
-        else lua_pop(lua, 1);
+        else
+            lua_pop(lua, 1);
     }
 }
 
@@ -1973,7 +2008,7 @@ void luaapi_boot(tic_mem* tic)
     tic_core* core = (tic_core*)tic;
     lua_State* lua = core->currentVM;
 
-    if (lua)
+    if(lua)
     {
         lua_getglobal(lua, BOOT_FN);
         if(lua_isfunction(lua, -1))
@@ -1981,14 +2016,15 @@ void luaapi_boot(tic_mem* tic)
             if(docall(lua, 0, 0) != LUA_OK)
                 core->data->error(core->data->data, lua_tostring(lua, -1));
         }
-        else lua_pop(lua, 1);
+        else
+            lua_pop(lua, 1);
 
 #if defined(BUILD_RENDER_CACHE)
         lua_getglobal(lua, SCN_FN);
         bool has_scn = lua_isfunction(lua, -1);
         lua_pop(lua, 1);
 
-        if (!has_scn)
+        if(!has_scn)
         {
             lua_getglobal(lua, "scanline");
             has_scn = lua_isfunction(lua, -1);
@@ -2004,4 +2040,3 @@ void luaapi_boot(tic_mem* tic)
 #endif
     }
 }
-

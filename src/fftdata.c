@@ -26,9 +26,9 @@ FFT_LogLevel g_currentLogLevel = FFT_LOG_DEBUG;
 void FFT_DebugLog(FFT_LogLevel level, const char* format, ...)
 {
 #ifdef FFT_DEBUG
-    if (level <= g_currentLogLevel)
+    if(level <= g_currentLogLevel)
     {
-        if (level == FFT_LOG_TRACE)
+        if(level == FFT_LOG_TRACE)
         {
             time_t now = time(NULL);
             struct tm* tm_now = localtime(&now);
@@ -39,7 +39,7 @@ void FFT_DebugLog(FFT_LogLevel level, const char* format, ...)
         }
         va_list args;
         va_start(args, format);
-        switch (level)
+        switch(level)
         {
             case FFT_LOG_TRACE:
                 printf("[FFT TRACE]: ");

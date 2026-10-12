@@ -52,7 +52,10 @@ static void testPressed(tic_mem* tic)
 // repeat lives in the core's tick, so the frames have to be really ticked.
 static void testRepeat(tic_mem* tic)
 {
-    enum {Frames = 40};
+    enum
+    {
+        Frames = 40
+    };
 
     bool repeated = false;
 

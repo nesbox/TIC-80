@@ -30,7 +30,8 @@
 #define SGAMEPAD_INCLUDED
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 #ifndef SGAMEPAD_API_DECL
@@ -40,26 +41,26 @@ extern "C" {
 #include <stdbool.h>
 
 // The slots the machine carries, and the devices a backend may report.
-#define SGAMEPAD_MAX_GAMEPADS   4
-#define SGAMEPAD_MAX_DEVICES    16
+#define SGAMEPAD_MAX_GAMEPADS 4
+#define SGAMEPAD_MAX_DEVICES  16
 
-// One gamepad's buttons, laid out as the machine reads them, plus the back and
-// start the machine has no room for — the layer reads those itself.
-typedef struct
-{
-    union
+    // One gamepad's buttons, laid out as the machine reads them, plus the back and
+    // start the machine has no room for — the layer reads those itself.
+    typedef struct
     {
-        struct
+        union
         {
+            struct
+            {
 #if defined(__BIG_ENDIAN__) || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-            unsigned char a : 1;
-            unsigned char b : 1;
-            unsigned char x : 1;
-            unsigned char y : 1;
-            unsigned char right : 1;
-            unsigned char left : 1;
-            unsigned char down : 1;
-            unsigned char up : 1;
+                unsigned char a : 1;
+                unsigned char b : 1;
+                unsigned char x : 1;
+                unsigned char y : 1;
+                unsigned char right : 1;
+                unsigned char left : 1;
+                unsigned char down : 1;
+                unsigned char up : 1;
 #else
             unsigned char up : 1;
             unsigned char down : 1;
@@ -70,42 +71,42 @@ typedef struct
             unsigned char x : 1;
             unsigned char y : 1;
 #endif
+            };
+
+            unsigned char data;
         };
 
-        unsigned char data;
-    };
+        bool back;
+        bool start;
 
-    bool back;
-    bool start;
+        // The right stick with the deadzone applied, -1..1 in the machine's own
+        // axes (x right, y down), zero where the pad has none or it is centered.
+        float right_x;
+        float right_y;
+    } sgamepad_state;
 
-    // The right stick with the deadzone applied, -1..1 in the machine's own
-    // axes (x right, y down), zero where the pad has none or it is centered.
-    float right_x;
-    float right_y;
-} sgamepad_state;
+    typedef struct sgamepad_desc
+    {
+        // The share of the axis travel that counts as pressed, 0..1.
+        float deadzone;
+    } sgamepad_desc;
 
-typedef struct sgamepad_desc
-{
-    // The share of the axis travel that counts as pressed, 0..1.
-    float deadzone;
-} sgamepad_desc;
+    SGAMEPAD_API_DECL void sgamepad_setup(const sgamepad_desc* desc);
+    SGAMEPAD_API_DECL void sgamepad_shutdown(void);
 
-SGAMEPAD_API_DECL void sgamepad_setup(const sgamepad_desc* desc);
-SGAMEPAD_API_DECL void sgamepad_shutdown(void);
+    // Call once a frame, before reading anything back.
+    SGAMEPAD_API_DECL void sgamepad_record_state(void);
 
-// Call once a frame, before reading anything back.
-SGAMEPAD_API_DECL void sgamepad_record_state(void);
+    SGAMEPAD_API_DECL int sgamepad_num_gamepads(void);
 
-SGAMEPAD_API_DECL int sgamepad_num_gamepads(void);
-
-// The slot's state; an unassigned slot reads back as nothing held.
-SGAMEPAD_API_DECL sgamepad_state sgamepad_gamepad_state(int slot);
+    // The slot's state; an unassigned slot reads back as nothing held.
+    SGAMEPAD_API_DECL sgamepad_state sgamepad_gamepad_state(int slot);
 
 #if defined(SGAMEPAD_TEST)
 
-// The backend the tests drive: the device at `index` is there or it is not,
-// and it holds whatever the caller says.
-SGAMEPAD_API_DECL void sgamepad_test_device(int index, bool present, sgamepad_state state);
+    // The backend the tests drive: the device at `index` is there or it is not,
+    // and it holds whatever the caller says.
+    SGAMEPAD_API_DECL void sgamepad_test_device(int index, bool present, sgamepad_state state);
 
 #endif
 
@@ -133,16 +134,16 @@ SGAMEPAD_API_DECL void sgamepad_test_device(int index, bool present, sgamepad_st
 // The headers a Windows build includes; named here so a build without the
 // platform's own can put something else in their place.
 #ifndef SGAMEPAD_WINDOWS_H
-#define SGAMEPAD_WINDOWS_H   <windows.h>
+#define SGAMEPAD_WINDOWS_H <windows.h>
 #endif
 #ifndef SGAMEPAD_XINPUT_H
-#define SGAMEPAD_XINPUT_H    <xinput.h>
+#define SGAMEPAD_XINPUT_H <xinput.h>
 #endif
 #ifndef SGAMEPAD_HIDSDI_H
-#define SGAMEPAD_HIDSDI_H    <hidsdi.h>
+#define SGAMEPAD_HIDSDI_H <hidsdi.h>
 #endif
 #ifndef SGAMEPAD_SETUPAPI_H
-#define SGAMEPAD_SETUPAPI_H  <setupapi.h>
+#define SGAMEPAD_SETUPAPI_H <setupapi.h>
 #endif
 
 #if defined(__EMSCRIPTEN__)
@@ -157,17 +158,17 @@ SGAMEPAD_API_DECL void sgamepad_test_device(int index, bool present, sgamepad_st
 // shown use the layer would not see otherwise — a button it does not map.
 typedef struct
 {
-    bool            present;
-    bool            used;
-    sgamepad_state  state;
+    bool present;
+    bool used;
+    sgamepad_state state;
 } _sgamepad_device;
 
 typedef struct
 {
-    int             ids[SGAMEPAD_MAX_GAMEPADS];     // which device owns each slot, -1 for none
-    sgamepad_state  states[SGAMEPAD_MAX_GAMEPADS];
+    int ids[SGAMEPAD_MAX_GAMEPADS]; // which device owns each slot, -1 for none
+    sgamepad_state states[SGAMEPAD_MAX_GAMEPADS];
     _sgamepad_device devices[SGAMEPAD_MAX_DEVICES];
-    float           deadzone;
+    float deadzone;
 } _sgamepad_t;
 
 static _sgamepad_t _sgamepad;
@@ -179,13 +180,15 @@ static _sgamepad_t _sgamepad;
 static void _sgamepad_backend_setup(void);
 static void _sgamepad_backend_shutdown(void);
 #else
-#define _sgamepad_backend_setup()       ((void)0)
-#define _sgamepad_backend_shutdown()    ((void)0)
+#define _sgamepad_backend_setup()    ((void)0)
+#define _sgamepad_backend_shutdown() ((void)0)
 #endif
 
 // The same conditions the backend selection uses: no backend, no helpers.
+// clang-format off
 #if defined(SGAMEPAD_TEST) || defined(__EMSCRIPTEN__) || defined(_WIN32) \
     || (defined(__APPLE__) && defined(__OBJC__)) || defined(__linux__)
+// clang-format on
 
 // What is inside the deadzone reads as nothing.
 static float _sgamepad_deadzone(float value)
@@ -205,8 +208,7 @@ static bool _sgamepad_direction(float value, int dir)
 // Anything of the pad the layer reads is being held.
 static bool _sgamepad_holding(const sgamepad_state* state)
 {
-    return state->data != 0 || state->back || state->start
-        || state->right_x != 0.0f || state->right_y != 0.0f;
+    return state->data != 0 || state->back || state->start || state->right_x != 0.0f || state->right_y != 0.0f;
 }
 
 #endif /* a backend to apply them to */
@@ -215,41 +217,40 @@ static bool _sgamepad_holding(const sgamepad_state* state)
 // takes the first free slot, and a device keeps its slot while it is present.
 static void _sgamepad_assign(int num_devices)
 {
-    if (num_devices > SGAMEPAD_MAX_DEVICES)
+    if(num_devices > SGAMEPAD_MAX_DEVICES)
         num_devices = SGAMEPAD_MAX_DEVICES;
 
-    for (int i = 0; i < SGAMEPAD_MAX_GAMEPADS; i++)
-        if (_sgamepad.ids[i] >= 0
-            && (_sgamepad.ids[i] >= num_devices || !_sgamepad.devices[_sgamepad.ids[i]].present))
+    for(int i = 0; i < SGAMEPAD_MAX_GAMEPADS; i++)
+        if(_sgamepad.ids[i] >= 0 && (_sgamepad.ids[i] >= num_devices || !_sgamepad.devices[_sgamepad.ids[i]].present))
             _sgamepad.ids[i] = -1;
 
-    for (int d = 0; d < num_devices; d++)
+    for(int d = 0; d < num_devices; d++)
     {
         const _sgamepad_device* device = &_sgamepad.devices[d];
 
-        if (!device->present)
+        if(!device->present)
             continue;
 
         int slot = -1;
 
-        for (int i = 0; i < SGAMEPAD_MAX_GAMEPADS && slot < 0; i++)
-            if (_sgamepad.ids[i] == d)
+        for(int i = 0; i < SGAMEPAD_MAX_GAMEPADS && slot < 0; i++)
+            if(_sgamepad.ids[i] == d)
                 slot = i;
 
-        if (slot < 0 && device->used)
-            for (int i = 0; i < SGAMEPAD_MAX_GAMEPADS && slot < 0; i++)
-                if (_sgamepad.ids[i] < 0)
+        if(slot < 0 && device->used)
+            for(int i = 0; i < SGAMEPAD_MAX_GAMEPADS && slot < 0; i++)
+                if(_sgamepad.ids[i] < 0)
                     slot = i;
 
-        if (slot < 0)
+        if(slot < 0)
             continue;
 
         _sgamepad.ids[slot] = d;
         _sgamepad.states[slot] = device->state;
     }
 
-    for (int i = 0; i < SGAMEPAD_MAX_GAMEPADS; i++)
-        if (_sgamepad.ids[i] < 0)
+    for(int i = 0; i < SGAMEPAD_MAX_GAMEPADS; i++)
+        if(_sgamepad.ids[i] < 0)
             memset(&_sgamepad.states[i], 0, sizeof _sgamepad.states[i]);
 }
 
@@ -259,7 +260,7 @@ SGAMEPAD_API_IMPL void sgamepad_setup(const sgamepad_desc* desc)
 
     _sgamepad.deadzone = (desc && desc->deadzone > 0.0f) ? desc->deadzone : 0.5f;
 
-    for (int i = 0; i < SGAMEPAD_MAX_GAMEPADS; i++)
+    for(int i = 0; i < SGAMEPAD_MAX_GAMEPADS; i++)
         _sgamepad.ids[i] = -1;
 
     _sgamepad_backend_setup();
@@ -276,8 +277,8 @@ SGAMEPAD_API_IMPL int sgamepad_num_gamepads(void)
 {
     int count = 0;
 
-    for (int i = 0; i < SGAMEPAD_MAX_GAMEPADS; i++)
-        if (_sgamepad.ids[i] >= 0)
+    for(int i = 0; i < SGAMEPAD_MAX_GAMEPADS; i++)
+        if(_sgamepad.ids[i] >= 0)
             count++;
 
     return count;
@@ -285,18 +286,18 @@ SGAMEPAD_API_IMPL int sgamepad_num_gamepads(void)
 
 SGAMEPAD_API_IMPL sgamepad_state sgamepad_gamepad_state(int slot)
 {
-    const sgamepad_state empty = { 0 };
+    const sgamepad_state empty = {0};
 
     return (slot >= 0 && slot < SGAMEPAD_MAX_GAMEPADS && _sgamepad.ids[slot] >= 0)
-        ? _sgamepad.states[slot]
-        : empty;
+               ? _sgamepad.states[slot]
+               : empty;
 }
 
 #if defined(SGAMEPAD_TEST)
 
 SGAMEPAD_API_IMPL void sgamepad_test_device(int index, bool present, sgamepad_state state)
 {
-    if (index < 0 || index >= SGAMEPAD_MAX_DEVICES)
+    if(index < 0 || index >= SGAMEPAD_MAX_DEVICES)
         return;
 
     state.right_x = _sgamepad_deadzone(state.right_x);
@@ -318,12 +319,12 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 // slot once something on it moves — the way the SDL layer picks its pads.
 static bool _sgamepad_used(const EmscriptenGamepadEvent* pad)
 {
-    for (int i = 0; i < pad->numButtons; i++)
-        if (pad->digitalButton[i] || pad->analogButton[i] > _sgamepad.deadzone)
+    for(int i = 0; i < pad->numButtons; i++)
+        if(pad->digitalButton[i] || pad->analogButton[i] > _sgamepad.deadzone)
             return true;
 
-    for (int i = 0; i < pad->numAxes; i++)
-        if (pad->axis[i] > _sgamepad.deadzone || pad->axis[i] < -_sgamepad.deadzone)
+    for(int i = 0; i < pad->numAxes; i++)
+        if(pad->axis[i] > _sgamepad.deadzone || pad->axis[i] < -_sgamepad.deadzone)
             return true;
 
     return false;
@@ -347,31 +348,41 @@ static float _sgamepad_stick(const EmscriptenGamepadEvent* pad, int axis)
 // The browser numbers a standard-mapped pad the way the W3C spec does.
 enum
 {
-    _SGAMEPAD_A, _SGAMEPAD_B, _SGAMEPAD_X, _SGAMEPAD_Y,
-    _SGAMEPAD_BACK = 8, _SGAMEPAD_START,
-    _SGAMEPAD_DPAD_UP = 12, _SGAMEPAD_DPAD_DOWN, _SGAMEPAD_DPAD_LEFT, _SGAMEPAD_DPAD_RIGHT,
-    _SGAMEPAD_LEFT_X = 0, _SGAMEPAD_LEFT_Y, _SGAMEPAD_RIGHT_X, _SGAMEPAD_RIGHT_Y,
+    _SGAMEPAD_A,
+    _SGAMEPAD_B,
+    _SGAMEPAD_X,
+    _SGAMEPAD_Y,
+    _SGAMEPAD_BACK = 8,
+    _SGAMEPAD_START,
+    _SGAMEPAD_DPAD_UP = 12,
+    _SGAMEPAD_DPAD_DOWN,
+    _SGAMEPAD_DPAD_LEFT,
+    _SGAMEPAD_DPAD_RIGHT,
+    _SGAMEPAD_LEFT_X = 0,
+    _SGAMEPAD_LEFT_Y,
+    _SGAMEPAD_RIGHT_X,
+    _SGAMEPAD_RIGHT_Y,
 };
 
 SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 {
     // The browser's pads have to be sampled before they can be read; without
     // this the reading call throws.
-    if (emscripten_sample_gamepad_data() != EMSCRIPTEN_RESULT_SUCCESS)
+    if(emscripten_sample_gamepad_data() != EMSCRIPTEN_RESULT_SUCCESS)
         return;
 
     const int num = emscripten_get_num_gamepads();
 
     memset(_sgamepad.devices, 0, sizeof _sgamepad.devices);
 
-    for (int pad = 0; pad < num && pad < SGAMEPAD_MAX_DEVICES; pad++)
+    for(int pad = 0; pad < num && pad < SGAMEPAD_MAX_DEVICES; pad++)
     {
         EmscriptenGamepadEvent event;
 
-        if (emscripten_get_gamepad_status(pad, &event) != EMSCRIPTEN_RESULT_SUCCESS)
+        if(emscripten_get_gamepad_status(pad, &event) != EMSCRIPTEN_RESULT_SUCCESS)
             continue;
 
-        if (!event.connected)
+        if(!event.connected)
             continue;
 
         // The platform's own number is the device's, so a pad keeps it while
@@ -408,10 +419,12 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 // shoulder, a trigger, a stick pressed in.
 static bool _sgamepad_use(GCExtendedGamepad* pad, const sgamepad_state* state)
 {
+    // clang-format off
     return _sgamepad_holding(state)
         || pad.leftShoulder.isPressed || pad.rightShoulder.isPressed
         || pad.leftTrigger.isPressed || pad.rightTrigger.isPressed
         || pad.leftThumbstickButton.isPressed || pad.rightThumbstickButton.isPressed;
+    // clang-format on
 }
 
 SGAMEPAD_API_IMPL void sgamepad_record_state(void)
@@ -424,13 +437,13 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 
     const NSUInteger count = MIN(controllers.count, (NSUInteger)SGAMEPAD_MAX_DEVICES);
 
-    for (NSUInteger index = 0; index < count; index++)
+    for(NSUInteger index = 0; index < count; index++)
     {
         // A controller with no extended profile is not a pad this layer can
         // read: the framework lists it, the layer leaves it alone.
         GCExtendedGamepad* pad = controllers[index].extendedGamepad;
 
-        if (pad == nil)
+        if(pad == nil)
             continue;
 
         _sgamepad_device* device = &_sgamepad.devices[index];
@@ -495,45 +508,47 @@ static float _sgamepad_xinput_thumb(SHORT value)
 // shoulder, a trigger held past the threshold XInput itself uses.
 static bool _sgamepad_xinput_use(const XINPUT_GAMEPAD* pad, const sgamepad_state* state)
 {
+    // clang-format off
     return _sgamepad_holding(state)
         || (pad->wButtons & (XINPUT_GAMEPAD_LEFT_SHOULDER | XINPUT_GAMEPAD_RIGHT_SHOULDER))
         || pad->bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD
         || pad->bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD;
+    // clang-format on
 }
 
 // The HID half. A raw pad is read with overlapped reads: one is left pending
 // and looked at once a frame, which is what a HID file wants — a synchronous
 // read would block until the pad next moved.
 
-#define _SGAMEPAD_HID_ARRAY 128      // bytes: more than any input report of these families
+#define _SGAMEPAD_HID_ARRAY        128 // bytes: more than any input report of these families
 
 // The room the device interface detail takes: its own fixed part, and the
 // widest path a device can be named by.
-#define _SGAMEPAD_HID_PATH          260
-#define _SGAMEPAD_HID_DETAIL_SIZE   (sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W) + _SGAMEPAD_HID_PATH * sizeof(wchar_t))
+#define _SGAMEPAD_HID_PATH         260
+#define _SGAMEPAD_HID_DETAIL_SIZE  (sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W) + _SGAMEPAD_HID_PATH * sizeof(wchar_t))
 
 // The XInput pads take the first slots of the device table, the way XInput
 // numbers them; these take what is left.
-#define _SGAMEPAD_HID_MAX (SGAMEPAD_MAX_DEVICES - XUSER_MAX_COUNT)
+#define _SGAMEPAD_HID_MAX          (SGAMEPAD_MAX_DEVICES - XUSER_MAX_COUNT)
 
 typedef struct
 {
-    HANDLE          file;           // the handle the reports are read on, overlapped
-    HANDLE          out;            // a second handle, not overlapped, for the keepalive's writes
-    OVERLAPPED      overlapped;
-    bool            pending;        // a read is outstanding on `overlapped`
-    bool            bluetooth;      // the wire the last report came in on
-    bool            enhanced;       // the pad sends its extended report, so it is one the keepalive is for
-    DWORD           last;           // when a report last arrived, for the Bluetooth keepalive
+    HANDLE file; // the handle the reports are read on, overlapped
+    HANDLE out;  // a second handle, not overlapped, for the keepalive's writes
+    OVERLAPPED overlapped;
+    bool pending;   // a read is outstanding on `overlapped`
+    bool bluetooth; // the wire the last report came in on
+    bool enhanced;  // the pad sends its extended report, so it is one the keepalive is for
+    DWORD last;     // when a report last arrived, for the Bluetooth keepalive
     sgamepad_hid_family family;
-    wchar_t         path[_SGAMEPAD_HID_PATH];   // the interface, which is what tells two of them apart
-    uint8_t         report[_SGAMEPAD_HID_ARRAY];
+    wchar_t path[_SGAMEPAD_HID_PATH]; // the interface, which is what tells two of them apart
+    uint8_t report[_SGAMEPAD_HID_ARRAY];
 } _sgamepad_hid_device;
 
 static struct
 {
     _sgamepad_hid_device devices[_SGAMEPAD_HID_MAX];
-    DWORD scanned;                  // when the devices were last looked for
+    DWORD scanned; // when the devices were last looked for
 } _sgamepad_hid;
 
 // A pad that sends nothing for this long over Bluetooth is stalled rather than
@@ -542,20 +557,20 @@ static struct
 
 // A pad that arrives takes this long to be noticed: the devices are listed by
 // opening them, which is not a thing to do once a frame once a pad is up.
-#define _SGAMEPAD_HID_SCAN_MS 1000
+#define _SGAMEPAD_HID_SCAN_MS      1000
 
 static void _sgamepad_hid_close(_sgamepad_hid_device* pad)
 {
     // The file first: closing it is what cancels a read still outstanding, and
     // the event it waits on has to outlive the wait. A write handle that never
     // opened is nothing to give back.
-    if (pad->out)
+    if(pad->out)
         CloseHandle(pad->out);
 
-    if (pad->file)
+    if(pad->file)
         CloseHandle(pad->file);
 
-    if (pad->overlapped.hEvent)
+    if(pad->overlapped.hEvent)
         CloseHandle(pad->overlapped.hEvent);
 
     memset(pad, 0, sizeof *pad);
@@ -565,7 +580,7 @@ static void _sgamepad_hid_close(_sgamepad_hid_device* pad)
 // present: one that comes back with nothing, or with an error, has gone.
 static bool _sgamepad_hid_read(_sgamepad_hid_device* pad)
 {
-    if (!pad->pending)
+    if(!pad->pending)
     {
         const HANDLE event = pad->overlapped.hEvent;
 
@@ -574,8 +589,7 @@ static bool _sgamepad_hid_read(_sgamepad_hid_device* pad)
         pad->overlapped.hEvent = event;
         pad->pending = true;
 
-        if (!ReadFile(pad->file, pad->report, _SGAMEPAD_HID_ARRAY, NULL, &pad->overlapped)
-            && GetLastError() != ERROR_IO_PENDING)
+        if(!ReadFile(pad->file, pad->report, _SGAMEPAD_HID_ARRAY, NULL, &pad->overlapped) && GetLastError() != ERROR_IO_PENDING)
         {
             pad->pending = false;
             return false;
@@ -584,31 +598,31 @@ static bool _sgamepad_hid_read(_sgamepad_hid_device* pad)
 
     DWORD bytes = 0;
 
-    if (!GetOverlappedResult(pad->file, &pad->overlapped, &bytes, FALSE))
+    if(!GetOverlappedResult(pad->file, &pad->overlapped, &bytes, FALSE))
         return GetLastError() == ERROR_IO_INCOMPLETE;
 
     pad->pending = false;
 
-    if (bytes == 0)
+    if(bytes == 0)
         return true;
 
     // The report id says which wire the pad is on, and only a Bluetooth one
     // wants the keepalive: `1` is the state report a cable delivers, and the
     // bands the Bluetooth stack wraps around it are the others.
     pad->bluetooth = pad->family == SGAMEPAD_HID_PS4
-        ? (pad->report[0] >= _SGAMEPAD_HID_PS4_BT_STATE_1 && pad->report[0] <= _SGAMEPAD_HID_PS4_BT_STATE_9)
-        : pad->report[0] == _SGAMEPAD_HID_PS5_BT_STATE;
+                         ? (pad->report[0] >= _SGAMEPAD_HID_PS4_BT_STATE_1 && pad->report[0] <= _SGAMEPAD_HID_PS4_BT_STATE_9)
+                         : pad->report[0] == _SGAMEPAD_HID_PS5_BT_STATE;
 
-    sgamepad_hid_state state = { 0 };
+    sgamepad_hid_state state = {0};
 
     bool read = false;
 
-    switch (pad->family)
+    switch(pad->family)
     {
-    case SGAMEPAD_HID_PS4:    read = sgamepad_hid_ps4_report(pad->report, bytes, &state); break;
-    case SGAMEPAD_HID_PS5:    read = sgamepad_hid_ps5_report(pad->report, bytes, &state); break;
-    case SGAMEPAD_HID_SWITCH: read = sgamepad_hid_switch_report(pad->report, bytes, &state); break;
-    default: break;
+        case SGAMEPAD_HID_PS4: read = sgamepad_hid_ps4_report(pad->report, bytes, &state); break;
+        case SGAMEPAD_HID_PS5: read = sgamepad_hid_ps5_report(pad->report, bytes, &state); break;
+        case SGAMEPAD_HID_SWITCH: read = sgamepad_hid_switch_report(pad->report, bytes, &state); break;
+        default: break;
     }
 
     // A report the reader does not know is one of the pad's other reports — a
@@ -616,7 +630,7 @@ static bool _sgamepad_hid_read(_sgamepad_hid_device* pad)
     // from. The pad is alive all the same, which is what the stamp says.
     pad->last = GetTickCount();
 
-    if (!read)
+    if(!read)
         return true;
 
     pad->enhanced = state.enhanced;
@@ -657,13 +671,12 @@ static bool _sgamepad_hid_read(_sgamepad_hid_device* pad)
 // packet would be the one that moves it out of that mode.
 static void _sgamepad_hid_keepalive(_sgamepad_hid_device* pad)
 {
-    if (pad->family == SGAMEPAD_HID_SWITCH || !pad->bluetooth || !pad->enhanced || !pad->out
-        || GetTickCount() - pad->last < _SGAMEPAD_HID_KEEPALIVE_MS)
+    if(pad->family == SGAMEPAD_HID_SWITCH || !pad->bluetooth || !pad->enhanced || !pad->out || GetTickCount() - pad->last < _SGAMEPAD_HID_KEEPALIVE_MS)
         return;
 
-    uint8_t report[_SGAMEPAD_HID_PS_REPORT_SIZE] = { 0 };
+    uint8_t report[_SGAMEPAD_HID_PS_REPORT_SIZE] = {0};
 
-    if (pad->family == SGAMEPAD_HID_PS4)
+    if(pad->family == SGAMEPAD_HID_PS4)
         sgamepad_hid_ps4_keepalive(report, sizeof report);
     else
         sgamepad_hid_ps5_keepalive(report, sizeof report);
@@ -673,16 +686,16 @@ static void _sgamepad_hid_keepalive(_sgamepad_hid_device* pad)
     // and the read's event are none of its business.
     DWORD written = 0;
 
-    if (WriteFile(pad->out, report, sizeof report, &written, NULL) && written == sizeof report)
+    if(WriteFile(pad->out, report, sizeof report, &written, NULL) && written == sizeof report)
         pad->last = GetTickCount();
 }
 
 static bool _sgamepad_hid_open(const wchar_t* path)
 {
     const HANDLE file = CreateFileW(path, GENERIC_READ | GENERIC_WRITE,
-        FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
+                                    FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
 
-    if (file == INVALID_HANDLE_VALUE)
+    if(file == INVALID_HANDLE_VALUE)
         return false;
 
     HIDD_ATTRIBUTES attributes;
@@ -691,7 +704,7 @@ static bool _sgamepad_hid_open(const wchar_t* path)
 
     attributes.Size = sizeof attributes;
 
-    if (!HidD_GetAttributes(file, &attributes))
+    if(!HidD_GetAttributes(file, &attributes))
     {
         CloseHandle(file);
         return false;
@@ -701,7 +714,7 @@ static bool _sgamepad_hid_open(const wchar_t* path)
     // is none of theirs, and is left where XInput may read it.
     const sgamepad_hid_family family = sgamepad_hid_family_of(attributes.VendorID, attributes.ProductID);
 
-    if (family == SGAMEPAD_HID_NONE)
+    if(family == SGAMEPAD_HID_NONE)
     {
         CloseHandle(file);
         return false;
@@ -709,11 +722,11 @@ static bool _sgamepad_hid_open(const wchar_t* path)
 
     int slot = -1;
 
-    for (int i = 0; i < _SGAMEPAD_HID_MAX && slot < 0; i++)
-        if (!_sgamepad_hid.devices[i].file)
+    for(int i = 0; i < _SGAMEPAD_HID_MAX && slot < 0; i++)
+        if(!_sgamepad_hid.devices[i].file)
             slot = i;
 
-    if (slot < 0)
+    if(slot < 0)
     {
         CloseHandle(file);
         return false;
@@ -732,18 +745,18 @@ static bool _sgamepad_hid_open(const wchar_t* path)
     // a write on an overlapped handle can report completion without doing the
     // I/O, and the keepalive has nowhere to wait for it.
     pad->out = CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
-        NULL, OPEN_EXISTING, 0, NULL);
+                           NULL, OPEN_EXISTING, 0, NULL);
 
-    if (pad->out == INVALID_HANDLE_VALUE)
+    if(pad->out == INVALID_HANDLE_VALUE)
         pad->out = NULL;
 
-    if (!pad->overlapped.hEvent)
+    if(!pad->overlapped.hEvent)
     {
         _sgamepad_hid_close(pad);
         return false;
     }
 
-    for (int i = 0; i < _SGAMEPAD_HID_PATH - 1 && path[i]; i++)
+    for(int i = 0; i < _SGAMEPAD_HID_PATH - 1 && path[i]; i++)
         pad->path[i] = path[i];
 
     return true;
@@ -761,10 +774,10 @@ static void _sgamepad_hid_scan(void)
 
     HDEVINFO set = SetupDiGetClassDevsW(&guid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 
-    if (set == INVALID_HANDLE_VALUE)
+    if(set == INVALID_HANDLE_VALUE)
         return;
 
-    for (DWORD i = 0; ; i++)
+    for(DWORD i = 0;; i++)
     {
         // The fields are set rather than designated: MSVC's C parser does not
         // take an initializer list here, which is a thing hand-written stubs
@@ -775,7 +788,7 @@ static void _sgamepad_hid_scan(void)
 
         entry.cbSize = sizeof entry;
 
-        if (!SetupDiEnumDeviceInterfaces(set, NULL, &guid, i, &entry))
+        if(!SetupDiEnumDeviceInterfaces(set, NULL, &guid, i, &entry))
             break;
 
         DWORD size = 0;
@@ -785,17 +798,17 @@ static void _sgamepad_hid_scan(void)
         // heap because the structure's alignment is not a byte's.
         SetupDiGetDeviceInterfaceDetailW(set, &entry, NULL, 0, &size, NULL);
 
-        if (size == 0 || size > _SGAMEPAD_HID_DETAIL_SIZE)
+        if(size == 0 || size > _SGAMEPAD_HID_DETAIL_SIZE)
             continue;
 
         SP_DEVICE_INTERFACE_DETAIL_DATA_W* detail = calloc(1, size);
 
-        if (!detail)
+        if(!detail)
             continue;
 
         detail->cbSize = sizeof *detail;
 
-        if (!SetupDiGetDeviceInterfaceDetailW(set, &entry, detail, size, NULL, NULL))
+        if(!SetupDiGetDeviceInterfaceDetailW(set, &entry, detail, size, NULL, NULL))
         {
             free(detail);
             continue;
@@ -808,7 +821,7 @@ static void _sgamepad_hid_scan(void)
 
         size_t length = 0;
 
-        while (length < _SGAMEPAD_HID_PATH - 1 && detail->DevicePath[length])
+        while(length < _SGAMEPAD_HID_PATH - 1 && detail->DevicePath[length])
             length++;
 
         memcpy(path, detail->DevicePath, length * sizeof path[0]);
@@ -818,11 +831,11 @@ static void _sgamepad_hid_scan(void)
 
         bool known = false;
 
-        for (int d = 0; d < _SGAMEPAD_HID_MAX && !known; d++)
-            if (_sgamepad_hid.devices[d].file)
+        for(int d = 0; d < _SGAMEPAD_HID_MAX && !known; d++)
+            if(_sgamepad_hid.devices[d].file)
                 known = wcscmp(_sgamepad_hid.devices[d].path, path) == 0;
 
-        if (known)
+        if(known)
             continue;
 
         // Only a pad the readers know is kept: anything else the call opened
@@ -839,11 +852,11 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 
     // XInput numbers the pads itself: a slot it does not answer for is a pad
     // that is not there, and one plugged in later starts answering.
-    for (DWORD index = 0; index < SGAMEPAD_MAX_DEVICES && index < XUSER_MAX_COUNT; index++)
+    for(DWORD index = 0; index < SGAMEPAD_MAX_DEVICES && index < XUSER_MAX_COUNT; index++)
     {
         XINPUT_STATE xinput;
 
-        if (XInputGetState(index, &xinput) != ERROR_SUCCESS)
+        if(XInputGetState(index, &xinput) != ERROR_SUCCESS)
             continue;
 
         const XINPUT_GAMEPAD* pad = &xinput.Gamepad;
@@ -879,14 +892,14 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
     // is read here.
     bool gone = false;
 
-    for (int i = 0; i < _SGAMEPAD_HID_MAX; i++)
+    for(int i = 0; i < _SGAMEPAD_HID_MAX; i++)
     {
         _sgamepad_hid_device* pad = &_sgamepad_hid.devices[i];
 
-        if (!pad->file)
+        if(!pad->file)
             continue;
 
-        if (!_sgamepad_hid_read(pad))
+        if(!_sgamepad_hid_read(pad))
         {
             _sgamepad_hid_close(pad);
             gone = true;
@@ -896,7 +909,7 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
         _sgamepad_hid_keepalive(pad);
     }
 
-    if (gone || GetTickCount() - _sgamepad_hid.scanned >= _SGAMEPAD_HID_SCAN_MS)
+    if(gone || GetTickCount() - _sgamepad_hid.scanned >= _SGAMEPAD_HID_SCAN_MS)
         _sgamepad_hid_scan();
 
     _sgamepad_assign(SGAMEPAD_MAX_DEVICES);
@@ -909,8 +922,8 @@ static void _sgamepad_backend_setup(void)
 
 static void _sgamepad_backend_shutdown(void)
 {
-    for (int i = 0; i < _SGAMEPAD_HID_MAX; i++)
-        if (_sgamepad_hid.devices[i].file)
+    for(int i = 0; i < _SGAMEPAD_HID_MAX; i++)
+        if(_sgamepad_hid.devices[i].file)
             _sgamepad_hid_close(&_sgamepad_hid.devices[i]);
 }
 
@@ -944,20 +957,22 @@ static void _sgamepad_backend_shutdown(void)
 // other four are the two sticks.
 enum
 {
-    _SGAMEPAD_LINUX_X, _SGAMEPAD_LINUX_Y,
-    _SGAMEPAD_LINUX_RX, _SGAMEPAD_LINUX_RY,
+    _SGAMEPAD_LINUX_X,
+    _SGAMEPAD_LINUX_Y,
+    _SGAMEPAD_LINUX_RX,
+    _SGAMEPAD_LINUX_RY,
     _SGAMEPAD_LINUX_AXES,
 };
 
 static int _sgamepad_linux_axis(int code)
 {
-    switch (code)
+    switch(code)
     {
-    case ABS_X:  return _SGAMEPAD_LINUX_X;
-    case ABS_Y:  return _SGAMEPAD_LINUX_Y;
-    case ABS_RX: return _SGAMEPAD_LINUX_RX;
-    case ABS_RY: return _SGAMEPAD_LINUX_RY;
-    default:     return -1;
+        case ABS_X: return _SGAMEPAD_LINUX_X;
+        case ABS_Y: return _SGAMEPAD_LINUX_Y;
+        case ABS_RX: return _SGAMEPAD_LINUX_RX;
+        case ABS_RY: return _SGAMEPAD_LINUX_RY;
+        default: return -1;
     }
 }
 
@@ -968,28 +983,28 @@ static bool _sgamepad_linux_bit(const unsigned char* bits, int code)
 
 typedef struct
 {
-    bool    present;
-    int     fd;
-    char    path[sizeof "/dev/input/" + 256];
-    bool    resync;                     // the kernel dropped events: read the pad again
-    bool    used;                       // a button or axis the layer does not read
+    bool present;
+    int fd;
+    char path[sizeof "/dev/input/" + 256];
+    bool resync; // the kernel dropped events: read the pad again
+    bool used;   // a button or axis the layer does not read
     struct input_absinfo axis[_SGAMEPAD_LINUX_AXES];
-    float   stick[_SGAMEPAD_LINUX_AXES];
-    int     hat_x, hat_y;
-    sgamepad_state state;               // the buttons, held between the events that set them
+    float stick[_SGAMEPAD_LINUX_AXES];
+    int hat_x, hat_y;
+    sgamepad_state state; // the buttons, held between the events that set them
 } _sgamepad_linux_device;
 
 static struct
 {
     _sgamepad_linux_device devices[SGAMEPAD_MAX_DEVICES];
     int inotify;
-} _sgamepad_linux = { .inotify = -1 };
+} _sgamepad_linux = {.inotify = -1};
 
 static float _sgamepad_linux_stick(const struct input_absinfo* info, int value)
 {
     const int range = info->maximum - info->minimum;
 
-    if (range == 0)
+    if(range == 0)
         return 0.0f;
 
     return ((value - info->minimum) / (float)range) * 2.0f - 1.0f;
@@ -999,27 +1014,27 @@ static float _sgamepad_linux_stick(const struct input_absinfo* info, int value)
 // a stick held, or one whose events the kernel dropped, reads what it holds.
 static void _sgamepad_linux_read_all(_sgamepad_linux_device* pad)
 {
-    static const int Axes[] = { ABS_X, ABS_Y, ABS_RX, ABS_RY };
+    static const int Axes[] = {ABS_X, ABS_Y, ABS_RX, ABS_RY};
 
-    for (size_t i = 0; i < sizeof Axes / sizeof Axes[0]; i++)
+    for(size_t i = 0; i < sizeof Axes / sizeof Axes[0]; i++)
     {
         const int index = _sgamepad_linux_axis(Axes[i]);
 
-        if (ioctl(pad->fd, EVIOCGABS(Axes[i]), &pad->axis[index]) == 0)
+        if(ioctl(pad->fd, EVIOCGABS(Axes[i]), &pad->axis[index]) == 0)
             pad->stick[index] = _sgamepad_linux_stick(&pad->axis[index], pad->axis[index].value);
     }
 
     struct input_absinfo hat;
 
-    if (ioctl(pad->fd, EVIOCGABS(ABS_HAT0X), &hat) == 0)
+    if(ioctl(pad->fd, EVIOCGABS(ABS_HAT0X), &hat) == 0)
         pad->hat_x = hat.value;
 
-    if (ioctl(pad->fd, EVIOCGABS(ABS_HAT0Y), &hat) == 0)
+    if(ioctl(pad->fd, EVIOCGABS(ABS_HAT0Y), &hat) == 0)
         pad->hat_y = hat.value;
 
-    unsigned char keys[(KEY_CNT + 7) / 8] = { 0 };
+    unsigned char keys[(KEY_CNT + 7) / 8] = {0};
 
-    if (ioctl(pad->fd, EVIOCGKEY(sizeof keys), keys) < 0)
+    if(ioctl(pad->fd, EVIOCGKEY(sizeof keys), keys) < 0)
         return;
 
     pad->state.a = _sgamepad_linux_bit(keys, BTN_SOUTH);
@@ -1034,16 +1049,17 @@ static void _sgamepad_linux_read_all(_sgamepad_linux_device* pad)
 // drivers do; anything else is left unclaimed rather than read wrongly.
 static bool _sgamepad_linux_claimed(int fd)
 {
-    unsigned char abs[(ABS_CNT + 7) / 8] = { 0 };
-    unsigned char keys[(KEY_CNT + 7) / 8] = { 0 };
+    unsigned char abs[(ABS_CNT + 7) / 8] = {0};
+    unsigned char keys[(KEY_CNT + 7) / 8] = {0};
 
-    if (ioctl(fd, EVIOCGBIT(EV_ABS, sizeof abs), abs) < 0
-        || ioctl(fd, EVIOCGBIT(EV_KEY, sizeof keys), keys) < 0)
+    if(ioctl(fd, EVIOCGBIT(EV_ABS, sizeof abs), abs) < 0 || ioctl(fd, EVIOCGBIT(EV_KEY, sizeof keys), keys) < 0)
         return false;
 
+    // clang-format off
     return _sgamepad_linux_bit(abs, ABS_HAT0X) && _sgamepad_linux_bit(abs, ABS_HAT0Y)
         && _sgamepad_linux_bit(keys, BTN_SOUTH) && _sgamepad_linux_bit(keys, BTN_EAST)
         && _sgamepad_linux_bit(keys, BTN_NORTH) && _sgamepad_linux_bit(keys, BTN_WEST);
+    // clang-format on
 }
 
 static void _sgamepad_linux_close(_sgamepad_linux_device* pad)
@@ -1055,16 +1071,16 @@ static void _sgamepad_linux_close(_sgamepad_linux_device* pad)
 
 static void _sgamepad_linux_open(const char* path)
 {
-    for (int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
-        if (_sgamepad_linux.devices[i].present && strcmp(_sgamepad_linux.devices[i].path, path) == 0)
+    for(int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
+        if(_sgamepad_linux.devices[i].present && strcmp(_sgamepad_linux.devices[i].path, path) == 0)
             return;
 
     const int fd = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
 
-    if (fd < 0)
+    if(fd < 0)
         return;
 
-    if (!_sgamepad_linux_claimed(fd))
+    if(!_sgamepad_linux_claimed(fd))
     {
         close(fd);
         return;
@@ -1072,11 +1088,11 @@ static void _sgamepad_linux_open(const char* path)
 
     int slot = -1;
 
-    for (int i = 0; i < SGAMEPAD_MAX_DEVICES && slot < 0; i++)
-        if (!_sgamepad_linux.devices[i].present)
+    for(int i = 0; i < SGAMEPAD_MAX_DEVICES && slot < 0; i++)
+        if(!_sgamepad_linux.devices[i].present)
             slot = i;
 
-    if (slot < 0)
+    if(slot < 0)
     {
         close(fd);
         return;
@@ -1098,14 +1114,14 @@ static void _sgamepad_linux_scan(void)
 {
     DIR* dir = opendir("/dev/input");
 
-    if (dir == NULL)
+    if(dir == NULL)
         return;
 
     struct dirent* entry;
 
-    while ((entry = readdir(dir)) != NULL)
+    while((entry = readdir(dir)) != NULL)
     {
-        if (strncmp(entry->d_name, "event", 5) != 0)
+        if(strncmp(entry->d_name, "event", 5) != 0)
             continue;
 
         char path[sizeof "/dev/input/" + sizeof entry->d_name];
@@ -1125,11 +1141,11 @@ static bool _sgamepad_linux_touched(void)
     char events[1024];
     bool touched = false;
 
-    for (;;)
+    for(;;)
     {
         const ssize_t bytes = read(_sgamepad_linux.inotify, events, sizeof events);
 
-        if (bytes <= 0)
+        if(bytes <= 0)
             return touched;
 
         touched = true;
@@ -1138,59 +1154,59 @@ static bool _sgamepad_linux_touched(void)
 
 static void _sgamepad_linux_event(_sgamepad_linux_device* pad, const struct input_event* event)
 {
-    if (event->type == EV_SYN)
+    if(event->type == EV_SYN)
     {
         // The kernel's queue overflowed and events were lost: whatever the pad
         // is holding now, it is not what this stream says.
-        if (event->code == SYN_DROPPED)
+        if(event->code == SYN_DROPPED)
             pad->resync = true;
 
         return;
     }
 
-    if (event->type == EV_ABS)
+    if(event->type == EV_ABS)
     {
-        switch (event->code)
+        switch(event->code)
         {
-        case ABS_HAT0X:
-            pad->hat_x = event->value;
-            break;
+            case ABS_HAT0X:
+                pad->hat_x = event->value;
+                break;
 
-        case ABS_HAT0Y:
-            pad->hat_y = event->value;
-            break;
+            case ABS_HAT0Y:
+                pad->hat_y = event->value;
+                break;
 
-        default:
-        {
-            const int index = _sgamepad_linux_axis(event->code);
+            default:
+            {
+                const int index = _sgamepad_linux_axis(event->code);
 
-            // An axis the layer does not read is not use on its own: triggers
-            // jitter, and a pad nobody picked up must not take a slot.
-            if (index >= 0)
-                pad->stick[index] = _sgamepad_linux_stick(&pad->axis[index], event->value);
+                // An axis the layer does not read is not use on its own: triggers
+                // jitter, and a pad nobody picked up must not take a slot.
+                if(index >= 0)
+                    pad->stick[index] = _sgamepad_linux_stick(&pad->axis[index], event->value);
 
-            break;
-        }
+                break;
+            }
         }
     }
-    else if (event->type == EV_KEY)
+    else if(event->type == EV_KEY)
     {
         const bool held = event->value != 0;
 
-        switch (event->code)
+        switch(event->code)
         {
-        case BTN_SOUTH:  pad->state.a = held; break;
-        case BTN_EAST:   pad->state.b = held; break;
-        case BTN_NORTH:  pad->state.x = held; break;
-        case BTN_WEST:   pad->state.y = held; break;
-        case BTN_SELECT: pad->state.back = held; break;
-        case BTN_START:  pad->state.start = held; break;
+            case BTN_SOUTH: pad->state.a = held; break;
+            case BTN_EAST: pad->state.b = held; break;
+            case BTN_NORTH: pad->state.x = held; break;
+            case BTN_WEST: pad->state.y = held; break;
+            case BTN_SELECT: pad->state.back = held; break;
+            case BTN_START: pad->state.start = held; break;
 
-        default:
-            // A shoulder, a stick pressed in, the guide button: nothing the
-            // machine reads, and use all the same.
-            pad->used = pad->used || held;
-            break;
+            default:
+                // A shoulder, a stick pressed in, the guide button: nothing the
+                // machine reads, and use all the same.
+                pad->used = pad->used || held;
+                break;
         }
     }
 }
@@ -1201,17 +1217,17 @@ static bool _sgamepad_linux_poll(_sgamepad_linux_device* pad)
 {
     struct input_event events[32];
 
-    for (;;)
+    for(;;)
     {
         const ssize_t bytes = read(pad->fd, events, sizeof events);
 
-        if (bytes < 0)
+        if(bytes < 0)
             return errno != ENODEV && errno != EIO;
 
-        if (bytes == 0)
+        if(bytes == 0)
             return true;
 
-        for (size_t i = 0; i < (size_t)bytes / sizeof events[0]; i++)
+        for(size_t i = 0; i < (size_t)bytes / sizeof events[0]; i++)
             _sgamepad_linux_event(pad, &events[i]);
     }
 }
@@ -1224,7 +1240,7 @@ static void _sgamepad_backend_setup(void)
 
     _sgamepad_linux.inotify = inotify_init1(IN_NONBLOCK | IN_CLOEXEC);
 
-    if (_sgamepad_linux.inotify >= 0)
+    if(_sgamepad_linux.inotify >= 0)
         inotify_add_watch(_sgamepad_linux.inotify, "/dev/input", IN_CREATE | IN_DELETE | IN_ATTRIB);
 
     _sgamepad_linux_scan();
@@ -1232,11 +1248,11 @@ static void _sgamepad_backend_setup(void)
 
 static void _sgamepad_backend_shutdown(void)
 {
-    for (int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
-        if (_sgamepad_linux.devices[i].present)
+    for(int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
+        if(_sgamepad_linux.devices[i].present)
             _sgamepad_linux_close(&_sgamepad_linux.devices[i]);
 
-    if (_sgamepad_linux.inotify >= 0)
+    if(_sgamepad_linux.inotify >= 0)
         close(_sgamepad_linux.inotify);
 
     _sgamepad_linux.inotify = -1;
@@ -1248,30 +1264,30 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
     // two frames has its old entry closed before the scan runs.
     bool gone = false;
 
-    for (int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
+    for(int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
     {
         _sgamepad_linux_device* pad = &_sgamepad_linux.devices[i];
 
-        if (pad->present && !_sgamepad_linux_poll(pad))
+        if(pad->present && !_sgamepad_linux_poll(pad))
         {
             _sgamepad_linux_close(pad);
             gone = true;
         }
     }
 
-    if (gone || (_sgamepad_linux.inotify >= 0 && _sgamepad_linux_touched()))
+    if(gone || (_sgamepad_linux.inotify >= 0 && _sgamepad_linux_touched()))
         _sgamepad_linux_scan();
 
     memset(_sgamepad.devices, 0, sizeof _sgamepad.devices);
 
-    for (int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
+    for(int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
     {
         _sgamepad_linux_device* pad = &_sgamepad_linux.devices[i];
 
-        if (!pad->present)
+        if(!pad->present)
             continue;
 
-        if (pad->resync)
+        if(pad->resync)
         {
             _sgamepad_linux_read_all(pad);
             pad->resync = false;
