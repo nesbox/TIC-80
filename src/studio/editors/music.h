@@ -94,7 +94,7 @@ struct Music
 
     struct History* history;
 
-    void(*tick)(Music*);
+    void (*tick)(Music*);
 };
 
 extern const ClipboardOps MusicClipboard;

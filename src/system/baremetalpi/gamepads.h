@@ -4,4 +4,4 @@
 #include <circle/devicenameservice.h>
 #include <stdio.h>
 
-void initGamepads(CDeviceNameService m_DeviceNameService, TGamePadStatusHandler  handler);
+void initGamepads(CDeviceNameService m_DeviceNameService, TGamePadStatusHandler handler);

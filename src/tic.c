@@ -107,16 +107,14 @@ TIC80_API void tic80_tick(tic80* tic, tic80_input input, CounterCallback counter
 
     mem->ram->input = input;
 
-    tic_tick_data tickData = (tic_tick_data)
-    {
+    tic_tick_data tickData = (tic_tick_data){
         .error = onError,
         .trace = onTrace,
         .exit = onExit,
         .data = tic,
         .start = 0,
         .counter = counter,
-        .freq = freq
-    };
+        .freq = freq};
 
     tic_core_tick_start(mem);
     tic_core_tick(mem, &tickData);

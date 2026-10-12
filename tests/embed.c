@@ -8,7 +8,11 @@
 
 // The app's own bytes, carrying a signature the scan has to pass over: the
 // header behind it claims zero sizes, so it cannot add up to the image's.
-enum {AppSize = 64, DecoyAt = 8};
+enum
+{
+    AppSize = 64,
+    DecoyAt = 8
+};
 
 static void testFindCart(tic_mem* tic)
 {

@@ -27,7 +27,7 @@
 #include "gif.h"
 #include "gif_lib.h"
 
-static gif_image* readGif(GifFileType *gif)
+static gif_image* readGif(GifFileType* gif)
 {
     gif_image* image = NULL;
 
@@ -54,9 +54,9 @@ static gif_image* readGif(GifFileType *gif)
                         break;
                     }
 
-                    switch (record)
+                    switch(record)
                     {
-                    case IMAGE_DESC_RECORD_TYPE:
+                        case IMAGE_DESC_RECORD_TYPE:
                         {
                             if(DGifGetImageDesc(gif) == GIF_ERROR)
                                 error = gif->Error;
@@ -66,17 +66,17 @@ static gif_image* readGif(GifFileType *gif)
                             s32 width = gif->Image.Width;
                             s32 height = gif->Image.Height;
 
-                            if (gif->Image.Left + gif->Image.Width > gif->SWidth ||
-                                gif->Image.Top + gif->Image.Height > gif->SHeight)
-                                    error = E_GIF_ERR_OPEN_FAILED;
+                            if(gif->Image.Left + gif->Image.Width > gif->SWidth ||
+                               gif->Image.Top + gif->Image.Height > gif->SHeight)
+                                error = E_GIF_ERR_OPEN_FAILED;
 
-                            if (gif->Image.Interlace)
+                            if(gif->Image.Interlace)
                             {
-                                s32 InterlacedOffset[] = { 0, 4, 2, 1 };
-                                s32 InterlacedJumps[] = { 8, 8, 4, 2 };
+                                s32 InterlacedOffset[] = {0, 4, 2, 1};
+                                s32 InterlacedJumps[] = {8, 8, 4, 2};
 
-                                for (s32 i = 0; i < 4; i++)
-                                    for (s32 j = row + InterlacedOffset[i]; j < row + height; j += InterlacedJumps[i])
+                                for(s32 i = 0; i < 4; i++)
+                                    for(s32 j = row + InterlacedOffset[i]; j < row + height; j += InterlacedJumps[i])
                                     {
                                         if(DGifGetLine(gif, screen + j * gif->SWidth + col, width) == GIF_ERROR)
                                         {
@@ -87,7 +87,7 @@ static gif_image* readGif(GifFileType *gif)
                             }
                             else
                             {
-                                for (s32 i = 0; i < height; i++, row++)
+                                for(s32 i = 0; i < height; i++, row++)
                                 {
                                     if(DGifGetLine(gif, screen + row * gif->SWidth + col, width) == GIF_ERROR)
                                     {
@@ -99,16 +99,16 @@ static gif_image* readGif(GifFileType *gif)
                         }
                         break;
 
-                    case EXTENSION_RECORD_TYPE:
+                        case EXTENSION_RECORD_TYPE:
                         {
                             int extCode = 0;
                             GifByteType* extension = NULL;
 
-                            if (DGifGetExtension(gif, &extCode, &extension) == GIF_ERROR)
+                            if(DGifGetExtension(gif, &extCode, &extension) == GIF_ERROR)
                                 error = gif->Error;
                             else
                             {
-                                while (extension != NULL)
+                                while(extension != NULL)
                                 {
                                     if(DGifGetExtensionNext(gif, &extension) == GIF_ERROR)
                                     {
@@ -119,15 +119,14 @@ static gif_image* readGif(GifFileType *gif)
                             }
                         }
                         break;
-                    case TERMINATE_RECORD_TYPE:
-                        break;
-                    default: break;
+                        case TERMINATE_RECORD_TYPE:
+                            break;
+                        default: break;
                     }
 
                     if(error != E_GIF_SUCCEEDED)
                         break;
-                }
-                while(record != TERMINATE_RECORD_TYPE);
+                } while(record != TERMINATE_RECORD_TYPE);
 
                 ColorMapObject* colorMap = gif->Image.ColorMap ? gif->Image.ColorMap : gif->SColorMap;
 
@@ -158,9 +157,11 @@ static gif_image* readGif(GifFileType *gif)
                             image = NULL;
                         }
                     }
-                    else free(screen);
+                    else
+                        free(screen);
                 }
-                else free(screen);
+                else
+                    free(screen);
             }
         }
 
@@ -201,11 +202,10 @@ gif_image* gif_read_data(const void* data, int size)
         return NULL;
 
     GifBuffer buffer = {data, size, 0};
-    GifFileType *gif = DGifOpen(&buffer, readBuffer, NULL);
+    GifFileType* gif = DGifOpen(&buffer, readBuffer, NULL);
 
     return readGif(gif);
 }
-
 
 void gif_close(gif_image* image)
 {

@@ -15,22 +15,37 @@
 
 // The platform the console and the modules under it reach for: nothing opens,
 // the keyboard types nothing and the clipboard is empty.
-void tic_sys_open_path(const char* path) {}
-bool tic_sys_keyboard_text(char* text) { return false; }
-void tic_sys_clipboard_set(const char* text) {}
-bool tic_sys_clipboard_has() { return false; }
-char* tic_sys_clipboard_get() { return NULL; }
-void tic_sys_clipboard_free(const char* text) {}
+void tic_sys_open_path(const char* path)
+{
+}
+bool tic_sys_keyboard_text(char* text)
+{
+    return false;
+}
+void tic_sys_clipboard_set(const char* text)
+{
+}
+bool tic_sys_clipboard_has()
+{
+    return false;
+}
+char* tic_sys_clipboard_get()
+{
+    return NULL;
+}
+void tic_sys_clipboard_free(const char* text)
+{
+}
 
 typedef struct
 {
-    tic_mem*     tic;
-    tic_fs*      fs;
-    Console*     console;
-    ConsoleView  view;
+    tic_mem* tic;
+    tic_fs* fs;
+    Console* console;
+    ConsoleView view;
     StudioConfig config;
-    MouseState   mouse[3];
-    char*        cmd;
+    MouseState mouse[3];
+    char* cmd;
 
 } Host;
 
@@ -45,17 +60,16 @@ static Host* hostNew(const char* cmd)
     host->view.inFront = true;
     host->cmd = cmd ? strdup(cmd) : NULL;
 
-    host->console = console_create(&(ConsoleDeps)
-    {
-        .tic    = host->tic,
-        .fs     = host->fs,
+    host->console = console_create(&(ConsoleDeps){
+        .tic = host->tic,
+        .fs = host->fs,
         .config = &host->config,
-        .mouse  = host->mouse,
-        .view   = &host->view,
+        .mouse = host->mouse,
+        .view = &host->view,
 
-        .args   = {.cmd = host->cmd},
+        .args = {.cmd = host->cmd},
 
-        .boot   = false,
+        .boot = false,
     });
 
     return host;
@@ -107,7 +121,7 @@ static bool said(Host* host, const char* text)
         Rows = TIC80_HEIGHT / (TIC_FONT_HEIGHT + 1),
     };
 
-    const s32 size = Row * Rows * 4;    // the test's messages stay in the first screens
+    const s32 size = Row * Rows * 4; // the test's messages stay in the first screens
     const s32 len = (s32)strlen(text);
 
     for(s32 i = 0; i + len <= size; i++)
@@ -154,7 +168,7 @@ static void testMoves(void)
     hostAnswer(host, (ConsoleAnswer){0});
 
     ask = hostTick(host);
-    assert(ask.kind == CONSOLE_ASK_NONE);   // cls prints, asks for nothing
+    assert(ask.kind == CONSOLE_ASK_NONE); // cls prints, asks for nothing
 
     ask = hostTick(host);
     assert(ask.kind == CONSOLE_ASK_EXIT);
@@ -284,16 +298,16 @@ static void testRunCountsOnAnswer(void)
     assert(ask.kind == CONSOLE_ASK_CART_LOADED);
     hostAnswer(host, (ConsoleAnswer){.name = ""});
 
-    ask = hostTick(host);               // cls asks nothing, so it counts here
+    ask = hostTick(host); // cls asks nothing, so it counts here
     assert(ask.kind == CONSOLE_ASK_NONE);
     assert(host->console->commands.current == 1);
 
-    ask = hostTick(host);               // run
+    ask = hostTick(host); // run
     assert(ask.kind == CONSOLE_ASK_RUN);
     assert(host->console->commands.current == 1);
-    assert(!console_replay(host->console));     // the host may start the cart
+    assert(!console_replay(host->console)); // the host may start the cart
 
-    hostAnswer(host, (ConsoleAnswer){0});       // ... and it counts now
+    hostAnswer(host, (ConsoleAnswer){0}); // ... and it counts now
     assert(host->console->commands.current == 2);
     assert(!host->console->counting);
 

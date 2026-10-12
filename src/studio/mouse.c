@@ -25,10 +25,7 @@
 
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
 {
-    return (pt->x >= rect->x)
-        && (pt->x < (rect->x + rect->w))
-        && (pt->y >= rect->y)
-        && (pt->y < (rect->y + rect->h));
+    return (pt->x >= rect->x) && (pt->x < (rect->x + rect->w)) && (pt->y >= rect->y) && (pt->y < (rect->y + rect->h));
 }
 
 bool mouse_over(tic_mem* tic, const tic_rect* rect)
@@ -39,9 +36,7 @@ bool mouse_over(tic_mem* tic, const tic_rect* rect)
 
 bool mouse_click(MouseState* state, const tic_rect* rect)
 {
-    bool value = state->click
-        && pointInRect(&state->start, rect)
-        && pointInRect(&state->end, rect);
+    bool value = state->click && pointInRect(&state->start, rect) && pointInRect(&state->end, rect);
 
     if(value) state->click = false;
 
@@ -50,9 +45,7 @@ bool mouse_click(MouseState* state, const tic_rect* rect)
 
 bool mouse_dblclick(MouseState* state, const tic_rect* rect)
 {
-    bool value = state->dbl.click
-        && pointInRect(&state->start, rect)
-        && pointInRect(&state->end, rect);
+    bool value = state->dbl.click && pointInRect(&state->start, rect) && pointInRect(&state->end, rect);
 
     if(value) state->dbl.click = false;
 

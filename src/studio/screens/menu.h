@@ -32,8 +32,8 @@ struct Studio;
 Menu* studio_menu_create(struct Studio* studio);
 void studio_menu_tick(Menu* menu);
 
-typedef s32(*MenuOptionGetHandler)(void*);
-typedef void(*MenuOptionSetHandler)(void*, s32);
+typedef s32 (*MenuOptionGetHandler)(void*);
+typedef void (*MenuOptionSetHandler)(void*, s32);
 
 typedef struct
 {
@@ -45,7 +45,7 @@ typedef struct
     s32 pos;
 } MenuOption;
 
-typedef void(*MenuItemHandler)(void*, s32);
+typedef void (*MenuItemHandler)(void*, s32);
 
 typedef struct
 {

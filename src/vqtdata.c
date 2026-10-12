@@ -25,7 +25,6 @@ float vqtWhiteSmoothingData[VQT_BINS];
 float vqtWhiteNormalizedData[VQT_BINS];
 float vqtWhitePeakSmoothValue = 1.0f;
 
-
 void VQT_Init(void)
 {
     // Zero all data arrays
@@ -47,19 +46,19 @@ void VQT_Init(void)
 void VQT_Cleanup(void)
 {
     // Free all allocated kernel memory
-    for (int i = 0; i < VQT_BINS; i++)
+    for(int i = 0; i < VQT_BINS; i++)
     {
-        if (vqtKernels[i].real)
+        if(vqtKernels[i].real)
         {
             free(vqtKernels[i].real);
             vqtKernels[i].real = NULL;
         }
-        if (vqtKernels[i].imag)
+        if(vqtKernels[i].imag)
         {
             free(vqtKernels[i].imag);
             vqtKernels[i].imag = NULL;
         }
-        if (vqtKernels[i].indices)
+        if(vqtKernels[i].indices)
         {
             free(vqtKernels[i].indices);
             vqtKernels[i].indices = NULL;
@@ -78,7 +77,11 @@ float vqtPeakSmoothValue = 1.0f;
 bool vqtEnabled = false;
 VqtKernel vqtKernels[VQT_BINS] = {{0}};
 
-void VQT_Init(void) {}
-void VQT_Cleanup(void) {}
+void VQT_Init(void)
+{
+}
+void VQT_Cleanup(void)
+{
+}
 
 #endif // TIC80_FFT_UNSUPPORTED

@@ -13,29 +13,29 @@
 // a 256x144 texture, a unit quad and the rectangle it goes into.
 static struct
 {
-    sg_image    framebuffer;
-    sg_view     view;
-    sg_sampler  nearest;
-    sg_buffer   quad;
+    sg_image framebuffer;
+    sg_view view;
+    sg_sampler nearest;
+    sg_buffer quad;
     sg_pipeline pipeline;
     sg_pipeline crt;
 
     // The uniform block wants 16 bytes of alignment and six 4-byte handles
     // leave it at 24: the pad says so, and /W4 stops reporting the padding.
-    float       pad[2];
+    float pad[2];
     vs_params_t params;
 } render;
 
 // The largest rectangle of the framebuffer's shape that fits a box; with
 // integer scaling the framebuffer keeps whole pixels.
 static void fit_into(float bx, float by, float bw, float bh, bool integer,
-    float* x, float* y, float* w, float* h)
+                     float* x, float* y, float* w, float* h)
 {
     const int iw = (int)bw;
     const int ih = (int)bh;
     int dw, dh;
 
-    if (iw * TIC80_FULLHEIGHT < ih * TIC80_FULLWIDTH)
+    if(iw * TIC80_FULLHEIGHT < ih * TIC80_FULLWIDTH)
     {
         dw = iw - (integer ? iw % TIC80_FULLWIDTH : 0);
         dh = TIC80_FULLHEIGHT * dw / TIC80_FULLWIDTH;
@@ -64,7 +64,7 @@ void render_player_rect(const Studio* studio, float* x, float* y, float* w, floa
     // The controls decide where the picture goes — they make room for
     // themselves and the place is eased — and the window is what is left of
     // the answer before they have run once.
-    if (controls->known)
+    if(controls->known)
     {
         fit_into(controls->x, controls->y, controls->w, controls->h, integer, x, y, w, h);
         return;
@@ -98,10 +98,22 @@ void render_init(void)
     });
 
     const float quad[] = {
-        0.0f, 0.0f, 0.0f, 0.0f,
-        1.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        0.0f,
+        1.0f,
+        0.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
+        1.0f,
     };
 
     render.quad = sg_make_buffer(&(sg_buffer_desc){
@@ -151,18 +163,18 @@ static void render_controls(void)
 {
     const ControlsState* controls = controls_state();
 
-    if (!controls->visible || !controls->quadCount)
+    if(!controls->visible || !controls->quadCount)
         return;
 
     sg_apply_pipeline(render.pipeline);
 
-    for (s32 i = 0; i < controls->quadCount; i++)
+    for(s32 i = 0; i < controls->quadCount; i++)
     {
         const ControlsQuad* quad = &controls->quads[i];
 
         // The gamepad sheet and the keyboard are two textures; a frame can
         // carry rectangles cut from both.
-        if (i == 0 || controls->quads[i - 1].texture != quad->texture)
+        if(i == 0 || controls->quads[i - 1].texture != quad->texture)
             sg_apply_bindings(&(sg_bindings){
                 .vertex_buffers[0] = render.quad,
                 .views[VIEW_tex] = controls_view((ControlsTexture)quad->texture),
@@ -170,12 +182,12 @@ static void render_controls(void)
             });
 
         const vs_params_t params = {
-            .rect_pos = { quad->x, quad->y },
-            .rect_size = { quad->w, quad->h },
-            .resolution = { render.params.resolution[0], render.params.resolution[1] },
-            .uv_pos = { quad->u0, quad->v0 },
-            .uv_size = { quad->u1 - quad->u0, quad->v1 - quad->v0 },
-            .tex_size = { (float)TIC80_FULLWIDTH, (float)TIC80_FULLHEIGHT },
+            .rect_pos = {quad->x, quad->y},
+            .rect_size = {quad->w, quad->h},
+            .resolution = {render.params.resolution[0], render.params.resolution[1]},
+            .uv_pos = {quad->u0, quad->v0},
+            .uv_size = {quad->u1 - quad->u0, quad->v1 - quad->v0},
+            .tex_size = {(float)TIC80_FULLWIDTH, (float)TIC80_FULLHEIGHT},
         };
 
         render.params = params;
@@ -197,11 +209,11 @@ void render_shutdown(void)
 
 void render_frame(const Studio* studio, const u32* framebuffer, bool dirty)
 {
-    if (dirty)
+    if(dirty)
     {
         sg_update_image(render.framebuffer, &(sg_image_data){
-            .mip_levels[0] = { .ptr = framebuffer, .size = TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32) },
-        });
+                                                .mip_levels[0] = {.ptr = framebuffer, .size = TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32)},
+                                            });
     }
 
     float x, y, w, h;
@@ -213,18 +225,18 @@ void render_frame(const Studio* studio, const u32* framebuffer, bool dirty)
     const bool crt = studio_config(studio)->options.crt;
 
     sg_begin_pass(&(sg_pass){
-        .action = { .colors[0] = { .load_action = SG_LOADACTION_CLEAR, .clear_value = { 0.1f, 0.11f, 0.17f, 1.0f } } },
+        .action = {.colors[0] = {.load_action = SG_LOADACTION_CLEAR, .clear_value = {0.1f, 0.11f, 0.17f, 1.0f}}},
         .swapchain = sglue_swapchain(),
     });
 
-    if (crt)
+    if(crt)
     {
         // The effect runs where the picture sits: the mask's place is the
         // window, at the window's own pixels.
         const crt_params_t cparams = {
-            .rect_pos = { x, y },
-            .rect_size = { w, h },
-            .resolution = { render.params.resolution[0], render.params.resolution[1] },
+            .rect_pos = {x, y},
+            .rect_size = {w, h},
+            .resolution = {render.params.resolution[0], render.params.resolution[1]},
             // The shader relates the mask's two axes, so every backend has to
             // measure y from the same end of the framebuffer.
             .y_origin = sg_query_features().origin_top_left ? 0.0f : render.params.resolution[1],

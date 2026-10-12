@@ -4,13 +4,15 @@
 #include "../vqtdata.h"
 
 // Window types for VQT kernels
-typedef enum {
+typedef enum
+{
     VQT_WINDOW_HAMMING = 0,
     VQT_WINDOW_GAUSSIAN
 } VqtWindowType;
 
 // VQT kernel configuration
-typedef struct {
+typedef struct
+{
     int fftSize;              // FFT size (4096)
     int numBins;              // Number of VQT bins (120)
     float minFreq;            // Minimum frequency (20 Hz)

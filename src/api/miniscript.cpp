@@ -51,35 +51,42 @@ while true
     TIC
     yield
 end while)";
-static const String miniscript_pre_harness() {
-    static String str = []{ String s(miniscript_pre_harness_code); GCManager::AddRoot(s); return s; }();
+static const String miniscript_pre_harness()
+{
+    static String str = []
+    { String s(miniscript_pre_harness_code); GCManager::AddRoot(s); return s; }();
     return str;
 }
-static const String miniscript_post_harness() {
-    static String str = []{ String s(miniscript_post_harness_code); GCManager::AddRoot(s); return s; }();
+static const String miniscript_post_harness()
+{
+    static String str = []
+    { String s(miniscript_post_harness_code); GCManager::AddRoot(s); return s; }();
     return str;
 }
 
 static bool _miniscriptInitialized = false;
 
-struct TICMiniScriptState {
+struct TICMiniScriptState
+{
     Interpreter interpreter;
 
     bool error = false;
     String errorString = "";
 
-    TICMiniScriptState(tic_core *core) {
+    TICMiniScriptState(tic_core* core)
+    {
         interpreter = Interpreter::New();
         interpreter.set_hostData(core);
-        interpreter.set_errorOutput([this](String s, Boolean lineBreak = true) {
+        interpreter.set_errorOutput([this](String s, Boolean lineBreak = true)
+                                    {
             this->error = true;
             this->errorString += s;
-            if (lineBreak) this->errorString += "\n";
-        });
+            if (lineBreak) this->errorString += "\n"; });
     }
 };
 
-static tic_core *getCore(Context context) {
+static tic_core* getCore(Context context)
+{
     return static_cast<tic_core*>(context.GetInterpreter().hostData());
 }
 
@@ -87,14 +94,16 @@ static tic_core *getCore(Context context) {
 // parameter in all fifty-two of them, which /W4 counts.
 #define INTRINSIC_LAMBDA [](MiniScript::Context context, MiniScript::IntrinsicResult) -> MiniScript::IntrinsicResult
 
-struct RemapData {
+struct RemapData
+{
     Interpreter interpreter;
     Value callback;
 };
 
-static void remapCallback(void *data, s32 x, s32 y, RemapResult *result) {
+static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
+{
     // Retrieve VM and callback
-    RemapData *remap = static_cast<RemapData*>(data);
+    RemapData* remap = static_cast<RemapData*>(data);
     auto interpreter = remap->interpreter;
     auto callback = remap->callback;
     // Arguments: (tile, x, y)
@@ -103,30 +112,37 @@ static void remapCallback(void *data, s32 x, s32 y, RemapResult *result) {
     arguments.Add(Value(x));
     arguments.Add(Value(y));
     auto resultValue = interpreter.RunFunction(callback, arguments);
-    if (resultValue.IsNumber()) {
+    if(resultValue.IsNumber())
+    {
         result->index = resultValue.IntValue() & 0xFF;
-    } else if (resultValue.IsList()) {
+    }
+    else if(resultValue.IsList())
+    {
         s32 count = resultValue.ListCount();
-        if (count>=1) result->index = resultValue.ListGet(0).IntValue() & 0xFF;
-        if (count>=2) result->flip = static_cast<tic_flip>(resultValue.ListGet(1).IntValue() & 0x3);
-        if (count>=3) result->rotate = static_cast<tic_rotate>(resultValue.ListGet(2).IntValue() & 0x3);
+        if(count >= 1) result->index = resultValue.ListGet(0).IntValue() & 0xFF;
+        if(count >= 2) result->flip = static_cast<tic_flip>(resultValue.ListGet(1).IntValue() & 0x3);
+        if(count >= 3) result->rotate = static_cast<tic_rotate>(resultValue.ListGet(2).IntValue() & 0x3);
     }
 }
 
-static void TIC80Intrinsics(ValueDict& tic80Module) {
+static void TIC80Intrinsics(ValueDict& tic80Module)
+{
     Intrinsic i;
 
     // btn
     i = Intrinsic::Create("");
     i.AddParam("id", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         Value idValue = context.GetArg(0);
 
-        if (idValue.IsNull()) {
+        if(idValue.IsNull())
+        {
             return IntrinsicResult(core->api.btn(tic, -1));
-        } else {
+        }
+        else
+        {
             bool pressed = core->api.btn(tic, idValue.IntValue() & 0x1f);
             return IntrinsicResult(pressed);
         }
@@ -139,18 +155,23 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("hold", Value::Null);
     i.AddParam("period", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         Value idValue = context.GetArg(0);
         Value holdValue = context.GetArg(1);
         Value periodValue = context.GetArg(2);
 
-        if (idValue.IsNull()) {
+        if(idValue.IsNull())
+        {
             return IntrinsicResult(core->api.btnp(tic, -1, -1, -1));
-        } else if (holdValue.IsNull() || periodValue.IsNull()) {
+        }
+        else if(holdValue.IsNull() || periodValue.IsNull())
+        {
             bool pressed = core->api.btnp(tic, idValue.IntValue() & 0x1f, -1, -1);
             return IntrinsicResult(pressed);
-        } else {
+        }
+        else
+        {
             bool pressed = core->api.btnp(tic, idValue.IntValue() & 0x1f, holdValue.IntValue(), periodValue.IntValue());
             return IntrinsicResult(pressed);
         }
@@ -164,8 +185,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("radius");
     i.AddParam("color");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 radius = context.GetArg(2).IntValue();
@@ -183,8 +204,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("radius");
     i.AddParam("color");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 radius = context.GetArg(2).IntValue();
@@ -202,18 +223,23 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("w", Value::Null);
     i.AddParam("h", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         Value xValue = context.GetArg(0);
         Value yValue = context.GetArg(1);
         Value wValue = context.GetArg(2);
         Value hValue = context.GetArg(3);
 
-        if (xValue.IsNull() && yValue.IsNull() && wValue.IsNull() && hValue.IsNull()) {
+        if(xValue.IsNull() && yValue.IsNull() && wValue.IsNull() && hValue.IsNull())
+        {
             core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
-        } else if (xValue.IsNumber() && yValue.IsNumber() && wValue.IsNumber() && hValue.IsNumber()) {
+        }
+        else if(xValue.IsNumber() && yValue.IsNumber() && wValue.IsNumber() && hValue.IsNumber())
+        {
             core->api.clip(tic, xValue.IntValue(), yValue.IntValue(), wValue.IntValue(), hValue.IntValue());
-        } else {
+        }
+        else
+        {
             context.vm.RaiseRuntimeError("invalid call to clip(); either use clip() or clip(x,y,w,h)");
         }
         return IntrinsicResult::Null;
@@ -224,8 +250,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i = Intrinsic::Create("");
     i.AddParam("color", 0);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         u8 color = context.GetArg(0).IntValue() & 0xF;
 
         core->api.cls(tic, color);
@@ -241,8 +267,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("b");
     i.AddParam("color");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 aRadius = context.GetArg(2).IntValue();
@@ -262,8 +288,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("b");
     i.AddParam("color");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 aRadius = context.GetArg(2).IntValue();
@@ -278,8 +304,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     // exit
     i = Intrinsic::Create("");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
 
         core->api.exit(tic);
         return IntrinsicResult::Null;
@@ -291,8 +317,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("index");
     i.AddParam("flag");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 index = context.GetArg(0).IntValue();
         u8 flag = context.GetArg(1).IntValue() & 0x7;
 
@@ -306,8 +332,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("flag");
     i.AddParam("value");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 index = context.GetArg(0).IntValue();
         u8 flag = context.GetArg(1).IntValue() & 0x7;
         bool value = context.GetArg(2).BoolValue();
@@ -329,10 +355,10 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("scale", 1);
     i.AddParam("alt", false);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
 
-        const char *text = context.GetArg(0).c_str();
+        const char* text = context.GetArg(0).c_str();
         s32 x = context.GetArg(1).IntValue();
         s32 y = context.GetArg(2).IntValue();
         u8 transcolor = context.GetArg(3).IntValue() & 0xF;
@@ -351,15 +377,19 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i = Intrinsic::Create("");
     i.AddParam("code", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         Value codeValue = context.GetArg(0);
 
-        if (codeValue.IsNull()) {
+        if(codeValue.IsNull())
+        {
             return IntrinsicResult(core->api.key(tic, tic_key_unknown));
-        } else {
+        }
+        else
+        {
             tic_key code = (tic_key)(codeValue.IntValue());
-            if (code < tic_keys_count) {
+            if(code < tic_keys_count)
+            {
                 return IntrinsicResult(core->api.key(tic, code));
             }
             context.vm.RaiseRuntimeError("unknown keyboard code");
@@ -374,24 +404,31 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("hold", Value::Null);
     i.AddParam("period", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         Value codeValue = context.GetArg(0);
         Value holdValue = context.GetArg(1);
         Value periodValue = context.GetArg(2);
 
-        if (codeValue.IsNull()) {
+        if(codeValue.IsNull())
+        {
             return IntrinsicResult(core->api.keyp(tic, tic_key_unknown, -1, -1));
-        } else {
+        }
+        else
+        {
             tic_key code = (tic_key)(codeValue.IntValue());
-            if (code >= tic_keys_count) {
+            if(code >= tic_keys_count)
+            {
                 context.vm.RaiseRuntimeError("unknown keyboard code");
                 return IntrinsicResult::Null;
             }
-            if (holdValue.IsNull() || periodValue.IsNull()) {
+            if(holdValue.IsNull() || periodValue.IsNull())
+            {
                 bool pressed = core->api.btnp(tic, code, -1, -1);
                 return IntrinsicResult(pressed);
-            } else {
+            }
+            else
+            {
                 bool pressed = core->api.btnp(tic, code, holdValue.IntValue(), periodValue.IntValue());
                 return IntrinsicResult(pressed);
             }
@@ -407,8 +444,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("y1");
     i.AddParam("color");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         float x0 = context.GetArg(0).FloatValue();
         float y0 = context.GetArg(1).FloatValue();
         float x1 = context.GetArg(2).FloatValue();
@@ -432,8 +469,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("scale", 1);
     i.AddParam("remap", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 w = context.GetArg(2).IntValue();
@@ -446,24 +483,33 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
         static u8 colors[TIC_PALETTE_SIZE];
         s32 count = 0;
         Value chromakey = context.GetArg(6);
-        if (chromakey.IsList()) {
+        if(chromakey.IsList())
+        {
             count = chromakey.ListCount();
-            if (count > TIC_PALETTE_SIZE) count = TIC_PALETTE_SIZE;
-            for (int i=0; i<count; ++i) {
+            if(count > TIC_PALETTE_SIZE) count = TIC_PALETTE_SIZE;
+            for(int i = 0; i < count; ++i)
+            {
                 colors[i] = chromakey.ListGet(i).IntValue() & 0xF;
             }
-        } else if (chromakey.IsNumber()) {
+        }
+        else if(chromakey.IsNumber())
+        {
             colors[count++] = (u8)(chromakey.IntValue());
         }
 
         // Handle remap
         Value remap = context.GetArg(8);
-        if (remap.IsFuncRef()) {
+        if(remap.IsFuncRef())
+        {
             RemapData data{context.GetInterpreter(), remap};
             core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, remapCallback, static_cast<void*>(&data));
-        } else if (remap.IsNull()) {
+        }
+        else if(remap.IsNull())
+        {
             core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, NULL, NULL);
-        } else {
+        }
+        else
+        {
             context.vm.RaiseRuntimeError("remap must be funcRef or null");
         }
 
@@ -477,8 +523,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("from");
     i.AddParam("length");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 dst = context.GetArg(0).IntValue();
         s32 src = context.GetArg(1).IntValue();
         s32 len = context.GetArg(2).IntValue();
@@ -494,8 +540,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("value");
     i.AddParam("length");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
         u8 val = context.GetArg(1).IntValue() & 0xFF;
         s32 len = context.GetArg(2).IntValue();
@@ -510,8 +556,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("x");
     i.AddParam("y");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
 
@@ -525,8 +571,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("y");
     i.AddParam("tile_id");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         u8 tile_id = context.GetArg(2).IntValue() & 0xFF;
@@ -539,8 +585,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     // mouse
     i = Intrinsic::Create("");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         ValueDict result;
 
         {
@@ -570,10 +616,11 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("tempo", -1);
     i.AddParam("speed", -1);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 track = context.GetArg(0).IntValue();
-        if (track > MUSIC_TRACKS - 1) {
+        if(track > MUSIC_TRACKS - 1)
+        {
             context.vm.RaiseRuntimeError("invalid music track index");
             return IntrinsicResult::Null;
         }
@@ -596,8 +643,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("addr");
     i.AddParam("bits", BITS_IN_BYTE);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
         s32 bits = context.GetArg(1).IntValue();
 
@@ -609,8 +656,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i = Intrinsic::Create("");
     i.AddParam("addr");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
 
         return IntrinsicResult(core->api.peek1(tic, addr));
@@ -621,8 +668,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i = Intrinsic::Create("");
     i.AddParam("addr");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
 
         return IntrinsicResult(core->api.peek2(tic, addr));
@@ -633,8 +680,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i = Intrinsic::Create("");
     i.AddParam("addr");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
 
         return IntrinsicResult(core->api.peek4(tic, addr));
@@ -647,15 +694,18 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("y");
     i.AddParam("color", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         Value colorValue = context.GetArg(2);
 
-        if (colorValue.IsNull()) {
+        if(colorValue.IsNull())
+        {
             return IntrinsicResult(core->api.pix(tic, x, y, 0, true));
-        } else {
+        }
+        else
+        {
             u8 color = colorValue.IntValue() & 0xF;
             core->api.pix(tic, x, y, color, false);
             return IntrinsicResult::Null;
@@ -668,8 +718,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("index");
     i.AddParam("val32", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 index = context.GetArg(0).IntValue();
         Value val32 = context.GetArg(1);
 
@@ -683,8 +733,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("val");
     i.AddParam("bits", BITS_IN_BYTE);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
         u8 value = context.GetArg(1).IntValue() & 0xFF;
         s32 bits = context.GetArg(2).IntValue();
@@ -699,8 +749,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("addr");
     i.AddParam("val");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
         u8 value = context.GetArg(1).IntValue() & 0x1;
 
@@ -714,8 +764,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("addr");
     i.AddParam("val");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
         u8 value = context.GetArg(1).IntValue() & 0x3;
 
@@ -729,8 +779,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("addr");
     i.AddParam("val");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
         u8 value = context.GetArg(1).IntValue() & 0xF;
 
@@ -749,10 +799,10 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("scale", 1);
     i.AddParam("smallfont", false);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
 
-        const char *text = context.GetArg(0).c_str();
+        const char* text = context.GetArg(0).c_str();
         s32 x = context.GetArg(1).IntValue();
         s32 y = context.GetArg(2).IntValue();
         u8 color = context.GetArg(3).IntValue() & 0xF;
@@ -773,8 +823,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("height");
     i.AddParam("color");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 width = context.GetArg(2).IntValue();
@@ -794,8 +844,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("height");
     i.AddParam("color");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 width = context.GetArg(2).IntValue();
@@ -810,8 +860,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     // reset
     i = Intrinsic::Create("");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        
+        tic_core* core = getCore(context);
+
         core->state.initialized = false;
 
         return IntrinsicResult::Null;
@@ -827,10 +877,11 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("volume", MAX_VOLUME);
     i.AddParam("speed", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 index = context.GetArg(0).IntValue();
-        if (index >= SFX_COUNT) {
+        if(index >= SFX_COUNT)
+        {
             context.vm.RaiseRuntimeError("unknown sfx index");
             return IntrinsicResult::Null;
         }
@@ -843,36 +894,46 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
         s32 note = -1;
         s32 octave = -1;
         s32 speed = SFX_DEF_SPEED;
-        if (index > 0) {
+        if(index > 0)
+        {
             tic_sample* effect = tic->ram->sfx.samples.data + index;
 
             note = effect->note;
             octave = effect->octave;
             speed = effect->speed;
         }
-        if (noteValue.IsNumber()) {
+        if(noteValue.IsNumber())
+        {
             s32 n = noteValue.IntValue();
             note = n % NOTES;
             octave = n / NOTES;
-        } else if (noteValue.IsString()) {
-            const char *notestr = noteValue.c_str();
-            if (!parse_note(notestr, &note, &octave)) {
+        }
+        else if(noteValue.IsString())
+        {
+            const char* notestr = noteValue.c_str();
+            if(!parse_note(notestr, &note, &octave))
+            {
                 context.vm.RaiseRuntimeError("invalid note, should be like C#4");
                 return IntrinsicResult::Null;
             }
         }
-        if (!speedValue.IsNull()) speed = speedValue.IntValue();
+        if(!speedValue.IsNull()) speed = speedValue.IntValue();
 
         s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
-        if (volumeValue.IsNumber()) {
+        if(volumeValue.IsNumber())
+        {
             volumes[0] = volumes[1] = volumeValue.IntValue();
-        } else if (volumeValue.IsList() && volumeValue.ListCount() >= TIC80_SAMPLE_CHANNELS) {
-            for (int i=0; i<TIC80_SAMPLE_CHANNELS; ++i) {
+        }
+        else if(volumeValue.IsList() && volumeValue.ListCount() >= TIC80_SAMPLE_CHANNELS)
+        {
+            for(int i = 0; i < TIC80_SAMPLE_CHANNELS; ++i)
+            {
                 volumes[i] = volumeValue.ListGet(i).IntValue();
             }
         }
 
-        if (channel < 0 || channel >= TIC_SOUND_CHANNELS) {
+        if(channel < 0 || channel >= TIC_SOUND_CHANNELS)
+        {
             context.vm.RaiseRuntimeError("unknown channel");
             return IntrinsicResult::Null;
         }
@@ -894,8 +955,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("w", 1);
     i.AddParam("h", 1);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         s32 index = context.GetArg(0).IntValue();
         s32 x = context.GetArg(1).IntValue();
         s32 y = context.GetArg(2).IntValue();
@@ -909,13 +970,17 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
         // Handle colorkey
         static u8 trans_colors[TIC_PALETTE_SIZE];
         s32 trans_count = 0;
-        if (chromakey.IsList()) {
+        if(chromakey.IsList())
+        {
             trans_count = chromakey.ListCount();
-            if (trans_count > TIC_PALETTE_SIZE) trans_count = TIC_PALETTE_SIZE;
-            for (int i=0; i<trans_count; ++i) {
+            if(trans_count > TIC_PALETTE_SIZE) trans_count = TIC_PALETTE_SIZE;
+            for(int i = 0; i < trans_count; ++i)
+            {
                 trans_colors[i] = chromakey.ListGet(i).IntValue() & 0xF;
             }
-        } else if (chromakey.IsNumber()) {
+        }
+        else if(chromakey.IsNumber())
+        {
             trans_colors[trans_count++] = (u8)(chromakey.IntValue());
         }
 
@@ -930,15 +995,18 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("bank", 0);
     i.AddParam("tocart", false);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         u32 mask = context.GetArg(0).UIntValue();
         s32 bank = context.GetArg(1).IntValue();
         bool tocart = context.GetArg(2).BoolValue();
 
-        if (bank >= 0 && bank < TIC_BANKS) {
+        if(bank >= 0 && bank < TIC_BANKS)
+        {
             core->api.sync(tic, mask, bank, tocart);
-        } else {
+        }
+        else
+        {
             context.vm.RaiseRuntimeError("sync() error, invalid bank");
         }
 
@@ -966,49 +1034,56 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("z2", Value::Null);
     i.AddParam("z3", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         float pt[12];
-        for (int i=0; i<12; ++i) {
+        for(int i = 0; i < 12; ++i)
+        {
             pt[i] = context.GetArg(i).FloatValue();
         }
 
         tic_texture_src texsrc = tic_tiles_texture;
         Value texsrcValue = context.GetArg(12);
-        if (!texsrcValue.IsNull()) {
+        if(!texsrcValue.IsNull())
+        {
             texsrc = static_cast<tic_texture_src>(texsrcValue.IntValue());
         }
 
         static u8 colors[TIC_PALETTE_SIZE];
         s32 count = 0;
         Value chromakey = context.GetArg(13);
-        if (chromakey.IsList()) {
+        if(chromakey.IsList())
+        {
             count = chromakey.ListCount();
-            if (count > TIC_PALETTE_SIZE) count = TIC_PALETTE_SIZE;
-            for (int i=0; i<count; ++i) {
+            if(count > TIC_PALETTE_SIZE) count = TIC_PALETTE_SIZE;
+            for(int i = 0; i < count; ++i)
+            {
                 colors[i] = chromakey.ListGet(i).IntValue() & 0xF;
             }
-        } else if (chromakey.IsNumber()) {
+        }
+        else if(chromakey.IsNumber())
+        {
             colors[count++] = (u8)(chromakey.IntValue());
         }
 
-        float z[3] = { 0 };
+        float z[3] = {0};
         bool depth = true;
-        for (int i=0; i<3; ++i) {
-            auto arg = context.GetArg(14+i);
+        for(int i = 0; i < 3; ++i)
+        {
+            auto arg = context.GetArg(14 + i);
             z[i] = arg.FloatValue();
             depth = depth && !arg.IsNull();
         }
 
-        core->api.ttri(tic, pt[0], pt[1],   //  xy 1
-                            pt[2], pt[3],   //  xy 2
-                            pt[4], pt[5],   //  xy 3
-                            pt[6], pt[7],   //  uv 1
-                            pt[8], pt[9],   //  uv 2
-                            pt[10], pt[11], //  uv 3
-                            texsrc,            // texture source
-                            colors, count,  // chroma
-                            z[0], z[1], z[2], depth); // depth
+        core->api.ttri(tic, pt[0], pt[1],        //  xy 1
+                       pt[2], pt[3],             //  xy 2
+                       pt[4], pt[5],             //  xy 3
+                       pt[6], pt[7],             //  uv 1
+                       pt[8], pt[9],             //  uv 2
+                       pt[10], pt[11],           //  uv 3
+                       texsrc,                   // texture source
+                       colors, count,            // chroma
+                       z[0], z[1], z[2], depth); // depth
 
         return IntrinsicResult::Null;
     });
@@ -1017,8 +1092,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     // time
     i = Intrinsic::Create("");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
 
         return IntrinsicResult(core->api.time(tic));
     });
@@ -1029,9 +1104,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("message");
     i.AddParam("color", 15);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
-        const char *message = context.GetArg(0).c_str();
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        const char* message = context.GetArg(0).c_str();
         u8 color = context.GetArg(1).IntValue() & 0xF;
 
         core->api.trace(tic, message, color);
@@ -1049,10 +1124,11 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("y3");
     i.AddParam("color");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         float pt[6];
-        for (int i=0; i<6; ++i) {
+        for(int i = 0; i < 6; ++i)
+        {
             pt[i] = context.GetArg(i).FloatValue();
         }
         u8 color = context.GetArg(6).IntValue() & 0xF;
@@ -1072,10 +1148,11 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i.AddParam("y3");
     i.AddParam("color");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         float pt[6];
-        for (int i=0; i<6; ++i) {
+        for(int i = 0; i < 6; ++i)
+        {
             pt[i] = context.GetArg(i).FloatValue();
         }
         u8 color = context.GetArg(6).IntValue() & 0xF;
@@ -1088,8 +1165,8 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     // tstamp
     i = Intrinsic::Create("");
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
 
         return IntrinsicResult(core->api.tstamp(tic));
     });
@@ -1099,13 +1176,14 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     i = Intrinsic::Create("");
     i.AddParam("bank", Value::Null);
     i.set_Code(INTRINSIC_LAMBDA {
-        tic_core *core = getCore(context);
-        tic_mem *tic = (tic_mem*)core;
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
         Value bankValue = context.GetArg(0);
 
         s32 prev = core->state.vbank.id;
 
-        if (!bankValue.IsNull()) {
+        if(!bankValue.IsNull())
+        {
             core->api.vbank(tic, bankValue.IntValue());
         }
 
@@ -1114,11 +1192,12 @@ static void TIC80Intrinsics(ValueDict& tic80Module) {
     tic80Module.SetValue("vbank", i.GetFunc());
 }
 
-void StaticInitMiniScript() {
-    if (_miniscriptInitialized) return;
+void StaticInitMiniScript()
+{
+    if(_miniscriptInitialized) return;
     GCManager::Init();
-	MiniScript::value_init_constants();
-	ErrorTypes::Init();
+    MiniScript::value_init_constants();
+    ErrorTypes::Init();
 
     MiniScript::hostName = "TIC-80";
     MiniScript::hostVersion = DEF2STR(TIC_VERSION);
@@ -1127,7 +1206,8 @@ void StaticInitMiniScript() {
     auto f = Intrinsic::Create("tic80");
     // The one intrinsic whose lambda never reads the context, so the Context
     // goes unnamed — the macro every other one uses names it for them.
-    f.set_Code([](MiniScript::Context, MiniScript::IntrinsicResult) -> MiniScript::IntrinsicResult {
+    f.set_Code([](MiniScript::Context, MiniScript::IntrinsicResult) -> MiniScript::IntrinsicResult
+               {
         static ValueDict tic80Module;
         static Value tic80ModuleValue;
 
@@ -1137,22 +1217,24 @@ void StaticInitMiniScript() {
             GCManager::AddRoot(tic80ModuleValue);
         }
 
-        return IntrinsicResult(tic80ModuleValue);
-    });
+        return IntrinsicResult(tic80ModuleValue); });
 
     _miniscriptInitialized = true;
 }
 
-static bool initMiniScript(tic_mem *tic, const char *code) {
-    tic_core *core = (tic_core*)tic;
+static bool initMiniScript(tic_mem* tic, const char* code)
+{
+    tic_core* core = (tic_core*)tic;
 
     // Do MiniScript initialization work if we haven't already
-    if (!_miniscriptInitialized) {
+    if(!_miniscriptInitialized)
+    {
         StaticInitMiniScript();
     }
 
     // Discard previous state if it exists
-    if (core->currentVM) {
+    if(core->currentVM)
+    {
         delete static_cast<TICMiniScriptState*>(core->currentVM);
         core->currentVM = nullptr;
     }
@@ -1166,7 +1248,8 @@ static bool initMiniScript(tic_mem *tic, const char *code) {
     vm->interpreter.RunUntilDone(0.1, true);
     vm->interpreter.ResetPreservingGlobals(code + miniscript_post_harness());
     vm->interpreter.Compile();
-    if (vm->error) {
+    if(vm->error)
+    {
         core->data->error(core->data->data, vm->errorString.c_str());
         return false;
     }
@@ -1179,26 +1262,30 @@ static bool initMiniScript(tic_mem *tic, const char *code) {
     return true;
 }
 
-static void closeMiniScript(tic_mem *tic) {
-    tic_core *core = (tic_core*)tic;
+static void closeMiniScript(tic_mem* tic)
+{
+    tic_core* core = (tic_core*)tic;
 
-    if (core->currentVM) {
+    if(core->currentVM)
+    {
         delete static_cast<TICMiniScriptState*>(core->currentVM);
         core->currentVM = nullptr;
     }
 }
 
-static void callMiniScriptBoot(tic_mem *) {
+static void callMiniScriptBoot(tic_mem*)
+{
     // Do nothing. The harness will call `BOOT` before it first calls `TIC`,
     // assuming `BOOT` exists.
 }
 
-static void callMiniScriptTick(tic_mem *tic) {
-    tic_core *core = (tic_core*)tic;
+static void callMiniScriptTick(tic_mem* tic)
+{
+    tic_core* core = (tic_core*)tic;
 
     // retrieve TICMiniScriptState
-    auto *vm = static_cast<TICMiniScriptState*>(core->currentVM);
-    if (!vm) return;
+    auto* vm = static_cast<TICMiniScriptState*>(core->currentVM);
+    if(!vm) return;
 
     // Run code for max 0.1 seconds (means the worst the user can end up with is 10FPS)
     vm->interpreter.RunUntilDone(0.1, true);
@@ -1211,41 +1298,45 @@ static void callMiniScriptTick(tic_mem *tic) {
         static Value scanlineName = Value::make_string("scanline");
         static Value borderName = Value::make_string("border");
         auto scnSlot = globals.Find(scnName);
-        if (scnSlot == -1) scnSlot = globals.Find(scanlineName);
+        if(scnSlot == -1) scnSlot = globals.Find(scanlineName);
         auto bdrSlot = globals.Find(bdrName);
-        if (bdrSlot == -1) bdrSlot = globals.Find(borderName);
+        if(bdrSlot == -1) bdrSlot = globals.Find(borderName);
         core->state.has_scn = (scnSlot != -1 && !globals.ValueAtSlot(scnSlot).IsUnassigned() && globals.ValueAtSlot(scnSlot).IsFuncRef());
         core->state.has_bdr = (bdrSlot != -1 && !globals.ValueAtSlot(bdrSlot).IsUnassigned() && globals.ValueAtSlot(bdrSlot).IsFuncRef());
     }
 #endif
 
     // If the user's code errored, display the error.
-    if (vm->error) {
+    if(vm->error)
+    {
         core->data->error(core->data->data, vm->errorString.c_str());
     }
 
     // If the VM has terminated, exit.
-    if (vm->interpreter.Done()) {
+    if(vm->interpreter.Done())
+    {
         core->data->exit(core->data->data);
     }
 }
 
-static void callMiniScriptCallback(tic_mem *tic, Value name, s32 arg) {
-    tic_core *core = (tic_core*)tic;
+static void callMiniScriptCallback(tic_mem* tic, Value name, s32 arg)
+{
+    tic_core* core = (tic_core*)tic;
 
     // retrieve TICMiniScriptState
-    auto *vm = static_cast<TICMiniScriptState*>(core->currentVM);
-    if (!vm) return;
+    auto* vm = static_cast<TICMiniScriptState*>(core->currentVM);
+    if(!vm) return;
 
     // Retrieve the callback
     auto globals = vm->interpreter.vm().GetGlobals();
     auto slot = globals.Find(name);
-    if (slot==-1) return;
+    if(slot == -1) return;
     Value callback = globals.ValueAtSlot(slot);
-    if (callback.IsUnassigned()) return;
+    if(callback.IsUnassigned()) return;
 
     // If it's assigned to something that isn't a function, error
-    if (!callback.IsFuncRef()) {
+    if(!callback.IsFuncRef())
+    {
         core->data->error(core->data->data, (name.ToString() + " isn't a function reference").c_str());
     }
 
@@ -1255,91 +1346,95 @@ static void callMiniScriptCallback(tic_mem *tic, Value name, s32 arg) {
     vm->interpreter.RunFunction(callback, arguments);
 
     // If the user's code errored, display the error.
-    if (vm->error) {
+    if(vm->error)
+    {
         core->data->error(core->data->data, vm->errorString.c_str());
     }
 
     // If the VM has terminated, exit.
-    if (vm->interpreter.Done()) {
+    if(vm->interpreter.Done())
+    {
         core->data->exit(core->data->data);
     }
 }
 
-static void callMiniScriptScanline(tic_mem *tic, s32 row, void*) {
+static void callMiniScriptScanline(tic_mem* tic, s32 row, void*)
+{
     static Value name = Value::make_string("SCN");
     callMiniScriptCallback(tic, name, row);
 }
 
-static void callMiniScriptBorder(tic_mem *tic, s32 row, void*) {
+static void callMiniScriptBorder(tic_mem* tic, s32 row, void*)
+{
     static Value name = Value::make_string("BDR");
     callMiniScriptCallback(tic, name, row);
 }
 
-static void callMiniScriptMenu(tic_mem *tic, s32 index, void*) {
+static void callMiniScriptMenu(tic_mem* tic, s32 index, void*)
+{
     static Value name = Value::make_string("MENU");
     callMiniScriptCallback(tic, name, index);
 }
 
-static const char* const MiniScriptKeywords [] =
-{
-    "and", "break", "continue", "else", "end", "false", "for", "function",
-    "if", "in", "isa", "new", "not", "null", "or", "return", "self", "super",
-    "true", "then", "while"
-};
+static const char* const MiniScriptKeywords[] =
+    {
+        "and", "break", "continue", "else", "end", "false", "for", "function",
+        "if", "in", "isa", "new", "not", "null", "or", "return", "self", "super",
+        "true", "then", "while"};
 
 static const u8 DemoRom[] =
-{
-    #include "../build/assets/miniscriptdemo.tic.dat"
+    {
+#include "../build/assets/miniscriptdemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
-{
-    #include "../build/assets/miniscriptmark.tic.dat"
+    {
+#include "../build/assets/miniscriptmark.tic.dat"
 };
 
 extern "C" TIC_EXPORT const tic_script EXPORT_SCRIPT(MiniScript) =
-{
-    .id                     = 0x55,
-    .name                   = "miniscript",
-    .fileExtension          = ".ms",
-    .projectComment         = "//",
-    .init                 = initMiniScript,
-    .close                = closeMiniScript,
-    .tick                 = callMiniScriptTick,
-    .boot                 = callMiniScriptBoot,
-
-    .callback             =
     {
-        .scanline           = callMiniScriptScanline,
-        .border             = callMiniScriptBorder,
-        .menu               = callMiniScriptMenu,
-        .data               = nullptr,
-    },
+        .id = 0x55,
+        .name = "miniscript",
+        .fileExtension = ".ms",
+        .projectComment = "//",
+        .init = initMiniScript,
+        .close = closeMiniScript,
+        .tick = callMiniScriptTick,
+        .boot = callMiniScriptBoot,
 
-    .getOutline             = nullptr,
-    .eval                   = nullptr,
+        .callback =
+            {
+                .scanline = callMiniScriptScanline,
+                .border = callMiniScriptBorder,
+                .menu = callMiniScriptMenu,
+                .data = nullptr,
+            },
 
-    .blockCommentStart      = nullptr,
-    .blockCommentEnd        = nullptr,
-    .blockCommentStart2     = nullptr,
-    .blockCommentEnd2       = nullptr,
-    .blockStringStart       = nullptr,
-    .blockStringEnd         = nullptr,
+        .getOutline = nullptr,
+        .eval = nullptr,
 
-    .stdStringStartEnd      = "\"",
-    .singleComment          = "//",
-    .blockEnd               = nullptr,
+        .blockCommentStart = nullptr,
+        .blockCommentEnd = nullptr,
+        .blockCommentStart2 = nullptr,
+        .blockCommentEnd2 = nullptr,
+        .blockStringStart = nullptr,
+        .blockStringEnd = nullptr,
 
-    .keywords               = MiniScriptKeywords,
-    .keywordsCount          = COUNT_OF(MiniScriptKeywords),
+        .stdStringStartEnd = "\"",
+        .singleComment = "//",
+        .blockEnd = nullptr,
 
-    .lang_isalnum           = nullptr,
-    .useStructuredEdition   = false,
-    .useBinarySection       = false,
-    .api_keywordsCount      = 0,
-    .api_keywords           = nullptr,
+        .keywords = MiniScriptKeywords,
+        .keywordsCount = COUNT_OF(MiniScriptKeywords),
 
-    .demo = { DemoRom, sizeof(DemoRom), nullptr },
-    .mark = { MarkRom, sizeof(MarkRom), "miniscriptmark.tic" },
-    .demos = nullptr,
+        .lang_isalnum = nullptr,
+        .useStructuredEdition = false,
+        .useBinarySection = false,
+        .api_keywordsCount = 0,
+        .api_keywords = nullptr,
+
+        .demo = {DemoRom, sizeof(DemoRom), nullptr},
+        .mark = {MarkRom, sizeof(MarkRom), "miniscriptmark.tic"},
+        .demos = nullptr,
 };

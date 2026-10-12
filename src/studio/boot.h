@@ -28,7 +28,7 @@
 // player named. Not a user cart — it has no name of its own, and nothing saves it.
 typedef struct
 {
-    bool cart;      // arrived with the launch, still to be played
+    bool cart; // arrived with the launch, still to be played
 
 } Boot;
 

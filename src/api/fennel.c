@@ -28,16 +28,12 @@
 #define FENNEL_CODE(...) #__VA_ARGS__
 
 static const char* execute_fennel_src = FENNEL_CODE(
-  io = { read = true }
-  local fennel = require("fennel")
-  debug.traceback = fennel.traceback
-  local opts = {allowedGlobals = false, ["error-pinpoint"]={">>", "<<"},
-                filename="game.fnl"}
-  local src = ...
-  if(src:find("\n;; +strict: *true")) then opts.allowedGlobals = nil end
-  local ok, msg = pcall(fennel.eval, src, opts)
-  if(not ok) then return msg end
-);
+    io = {read = true} local fennel = require("fennel")
+                                          debug.traceback = fennel.traceback
+                                                                local opts = {allowedGlobals = false, ["error-pinpoint"] = {">>", "<<"},
+                                                                              filename = "game.fnl"} local src = ... if(src : find("\n;; +strict: *true")) then opts.allowedGlobals = nil end
+        local ok,
+    msg = pcall(fennel.eval, src, opts) if(not ok) then return msg end);
 
 static bool initFennel(tic_mem* tic, const char* code)
 {
@@ -54,8 +50,8 @@ static bool initFennel(tic_mem* tic, const char* code)
 
         lua_settop(fennel, 0);
 
-        if (luaL_loadbuffer(fennel, (const char *)loadfennel_lua,
-                            loadfennel_lua_len, "fennel.lua") != LUA_OK)
+        if(luaL_loadbuffer(fennel, (const char*)loadfennel_lua,
+                           loadfennel_lua_len, "fennel.lua") != LUA_OK)
         {
             core->data->error(core->data->data, "failed to load fennel compiler");
             return false;
@@ -63,7 +59,7 @@ static bool initFennel(tic_mem* tic, const char* code)
 
         lua_call(fennel, 0, 0);
 
-        if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
+        if(luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
         {
             core->data->error(core->data->data, "failed to load fennel compiler");
             return false;
@@ -73,7 +69,7 @@ static bool initFennel(tic_mem* tic, const char* code)
         lua_call(fennel, 1, 1);
         const char* err = lua_tostring(fennel, -1);
 
-        if (err)
+        if(err)
         {
             core->data->error(core->data->data, err);
             return false;
@@ -83,19 +79,18 @@ static bool initFennel(tic_mem* tic, const char* code)
     return true;
 }
 
-static const char* const FennelKeywords [] =
-{
-    "#", "%", "*", "+", "-", "->", "->>", "-?>", "-?>>", ".", "..", "/",
-    "//", ":", "<", "<=", "=", ">", ">=", "?.", "^", "accumulate", "and",
-    "band", "bnot", "bor", "bxor", "case", "case-try", "collect", "comment",
-    "do", "doto", "each", "eval-compiler", "faccumulate", "fcollect", "fn",
-    "for", "global", "hashfn", "icollect", "if", "import-macros", "include",
-    "lambda", "length", "let", "local", "lshift", "lua", "macro",
-    "macrodebug", "macros", "match", "match-try", "not", "not=", "or",
-    "partial", "pick-args", "pick-values", "quote", "require-macros",
-    "rshift", "set", "tset", "values", "var", "when", "while", "with-open",
-    "true", "false", "nil"
-};
+static const char* const FennelKeywords[] =
+    {
+        "#", "%", "*", "+", "-", "->", "->>", "-?>", "-?>>", ".", "..", "/",
+        "//", ":", "<", "<=", "=", ">", ">=", "?.", "^", "accumulate", "and",
+        "band", "bnot", "bor", "bxor", "case", "case-try", "collect", "comment",
+        "do", "doto", "each", "eval-compiler", "faccumulate", "fcollect", "fn",
+        "for", "global", "hashfn", "icollect", "if", "import-macros", "include",
+        "lambda", "length", "let", "local", "lshift", "lua", "macro",
+        "macrodebug", "macros", "match", "match-try", "not", "not=", "or",
+        "partial", "pick-args", "pick-values", "quote", "require-macros",
+        "rshift", "set", "tset", "values", "var", "when", "while", "with-open",
+        "true", "false", "nil"};
 
 static inline bool fennel_isalnum(char c)
 {
@@ -108,7 +103,10 @@ static inline bool fennel_isalnum(char c)
 
 static const tic_outline_item* getFennelOutline(const char* code, s32* size)
 {
-    enum{Size = sizeof(tic_outline_item)};
+    enum
+    {
+        Size = sizeof(tic_outline_item)
+    };
 
     *size = 0;
 
@@ -158,23 +156,25 @@ static const tic_outline_item* getFennelOutline(const char* code, s32* size)
                 (*size)++;
             }
         }
-        else break;
+        else
+            break;
     }
 
     return items;
 }
 
-static void evalFennel(tic_mem* tic, const char* code) {
+static void evalFennel(tic_mem* tic, const char* code)
+{
     tic_core* core = (tic_core*)tic;
     lua_State* fennel = core->currentVM;
 
     /* if we proceed with an uninitialized VM it will segfault; however */
     /* it could be better just to initialize here when needed instead! */
-    if (!fennel) return;
+    if(!fennel) return;
 
     lua_settop(fennel, 0);
 
-    if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
+    if(luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
     {
         core->data->error(core->data->data, "failed to load fennel compiler");
     }
@@ -183,55 +183,55 @@ static void evalFennel(tic_mem* tic, const char* code) {
     lua_call(fennel, 1, 1);
     const char* err = lua_tostring(fennel, -1);
 
-    if (err)
+    if(err)
     {
         core->data->error(core->data->data, err);
     }
 }
 
 static const u8 DemoRom[] =
-{
-    #include "../build/assets/fenneldemo.tic.dat"
+    {
+#include "../build/assets/fenneldemo.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Fennel) =
-{
-    .id                 = 14,
-    .name               = "fennel",
-    .fileExtension      = ".fnl",
-    .projectComment     = ";;",
     {
-      .init               = initFennel,
-      .close              = luaapi_close,
-      .tick               = luaapi_tick,
-      .boot               = luaapi_boot,
+        .id = 14,
+        .name = "fennel",
+        .fileExtension = ".fnl",
+        .projectComment = ";;",
+        {
+            .init = initFennel,
+            .close = luaapi_close,
+            .tick = luaapi_tick,
+            .boot = luaapi_boot,
 
-      .callback           =
-      {
-        .scanline       = luaapi_scn,
-        .border         = luaapi_bdr,
-        .menu           = luaapi_menu,
-      },
-    },
+            .callback =
+                {
+                    .scanline = luaapi_scn,
+                    .border = luaapi_bdr,
+                    .menu = luaapi_menu,
+                },
+        },
 
-    .getOutline         = getFennelOutline,
-    .eval               = evalFennel,
+        .getOutline = getFennelOutline,
+        .eval = evalFennel,
 
-    .blockCommentStart  = NULL,
-    .blockCommentEnd    = NULL,
-    .blockCommentStart2 = NULL,
-    .blockCommentEnd2   = NULL,
-    .blockStringStart   = NULL,
-    .blockStringEnd     = NULL,
-    .stdStringStartEnd  = "\"",
-    .singleComment      = ";",
-    .lang_isalnum       = fennel_isalnum,
-    .blockEnd           = NULL,
+        .blockCommentStart = NULL,
+        .blockCommentEnd = NULL,
+        .blockCommentStart2 = NULL,
+        .blockCommentEnd2 = NULL,
+        .blockStringStart = NULL,
+        .blockStringEnd = NULL,
+        .stdStringStartEnd = "\"",
+        .singleComment = ";",
+        .lang_isalnum = fennel_isalnum,
+        .blockEnd = NULL,
 
-    .keywords           = FennelKeywords,
-    .keywordsCount      = COUNT_OF(FennelKeywords),
+        .keywords = FennelKeywords,
+        .keywordsCount = COUNT_OF(FennelKeywords),
 
-    .useStructuredEdition = true,
+        .useStructuredEdition = true,
 
-    .demo = {DemoRom, sizeof DemoRom, NULL},
+        .demo = {DemoRom, sizeof DemoRom, NULL},
 };

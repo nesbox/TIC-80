@@ -15,7 +15,10 @@ static s32 channelSample(tic_mem* tic)
 
 static void testPlay(tic_mem* tic)
 {
-    enum {Id = 3};
+    enum
+    {
+        Id = 3
+    };
     tic_sample* sample = &Sfx.samples.data[Id];
 
     sample->note = NoteStart;

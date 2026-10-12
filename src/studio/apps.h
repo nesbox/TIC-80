@@ -31,16 +31,16 @@ struct Toolbar;
 // `instance` resolves a mode to its editor, the bank index being the variable.
 typedef struct
 {
-    const char* name;           // tab label and strip title; NULL outside the editors
+    const char* name; // tab label and strip title; NULL outside the editors
     const char* tip;
-    u8          icon;
+    u8 icon;
     tic_keycode hotkey;
     const ClipboardOps* clipboard;
 
-    bool  vbank1;               // the mode draws its whole screen in the overlay bank
+    bool vbank1; // the mode draws its whole screen in the overlay bank
     void* (*instance)(Studio*);
-    void  (*tick)(void*);
-    void  (*band)(void*, struct Toolbar*);
-    void  (*scanline)(tic_mem*, s32, void*);
+    void (*tick)(void*);
+    void (*band)(void*, struct Toolbar*);
+    void (*scanline)(tic_mem*, s32, void*);
 
 } EditorApp;

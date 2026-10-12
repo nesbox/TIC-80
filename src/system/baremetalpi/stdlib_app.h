@@ -42,49 +42,49 @@
  */
 class CStdlibApp
 {
-public:
-        enum TShutdownMode
-        {
-                ShutdownNone,
-                ShutdownHalt,
-                ShutdownReboot
-        };
+  public:
+    enum TShutdownMode
+    {
+        ShutdownNone,
+        ShutdownHalt,
+        ShutdownReboot
+    };
 
-        CStdlibApp (const char *kernel) :
-                FromKernel (kernel)
-        {
-        }
+    CStdlibApp(const char* kernel) : FromKernel(kernel)
+    {
+    }
 
-        virtual ~CStdlibApp (void)
-        {
-        }
+    virtual ~CStdlibApp(void)
+    {
+    }
 
-        virtual bool Initialize (void)
-        {
-                return mInterrupt.Initialize ();
-        }
+    virtual bool Initialize(void)
+    {
+        return mInterrupt.Initialize();
+    }
 
-        virtual void Cleanup (void)
-        {
-        }
+    virtual void Cleanup(void)
+    {
+    }
 
-        virtual TShutdownMode Run (void) = 0;
+    virtual TShutdownMode Run(void) = 0;
 
-        const char *GetKernelName(void) const
-        {
-                return FromKernel;
-        }
+    const char* GetKernelName(void) const
+    {
+        return FromKernel;
+    }
 
-protected:
-	CMemorySystem	   mMemory;
-        CActLED            mActLED;
-        CKernelOptions     mOptions;
-        CDeviceNameService mDeviceNameService;
-        CNullDevice        mNullDevice;
-        CExceptionHandler  mExceptionHandler;
-        CInterruptSystem   mInterrupt;
-private:
-        char const *FromKernel;
+  protected:
+    CMemorySystem mMemory;
+    CActLED mActLED;
+    CKernelOptions mOptions;
+    CDeviceNameService mDeviceNameService;
+    CNullDevice mNullDevice;
+    CExceptionHandler mExceptionHandler;
+    CInterruptSystem mInterrupt;
+
+  private:
+    char const* FromKernel;
 };
 
 /**
@@ -93,113 +93,113 @@ private:
  */
 class CStdlibAppScreen : public CStdlibApp
 {
-public:
-        CStdlibAppScreen(const char *kernel)
-                : CStdlibApp (kernel),
-                  mScreen (TIC80_WIDTH, TIC80_HEIGHT),
-		mSerial(&mInterrupt),
-                  mTimer (&mInterrupt),
-                  mLogger (LogWarning /*mOptions.GetLogLevel ()*/, &mTimer)
+  public:
+    CStdlibAppScreen(const char* kernel)
+        : CStdlibApp(kernel),
+          mScreen(TIC80_WIDTH, TIC80_HEIGHT),
+          mSerial(&mInterrupt),
+          mTimer(&mInterrupt),
+          mLogger(LogWarning /*mOptions.GetLogLevel ()*/, &mTimer)
 
+    {
+    }
+
+    virtual bool Initialize(void)
+    {
+        if(!CStdlibApp::Initialize())
         {
+            return false;
         }
 
-        virtual bool Initialize (void)
+        if(!mScreen.Initialize())
         {
-                if (!CStdlibApp::Initialize ())
-                {
-                        return false;
-                }
-
-                if (!mScreen.Initialize ())
-                {
-                        return false;
-                }
-
-                if (!mSerial.Initialize (921600))
-                {
-                        return false;
-                }
-		mSerial.RegisterMagicReceivedHandler ("REBOOT", reboot);
-
-                CDevice *pTarget =
-                        mDeviceNameService.GetDevice (mOptions.GetLogDevice (), false);
-                if (pTarget == 0)
-                {
-                        pTarget = &mScreen;
-                }
-
-                if (!mLogger.Initialize (&mNullDevice)) //pTarget))
-                // if (!mLogger.Initialize(pTarget))
-                {
-                        return false;
-                }
-
-                return mTimer.Initialize ();
+            return false;
         }
-	CScreenDevice* getScreen()
-	{
-		return &mScreen;
-	}
 
-protected:
-        CScreenDevice   mScreen;
-        CSerialDevice   mSerial;
-        CTimer          mTimer;
-        CLogger         mLogger;
+        if(!mSerial.Initialize(921600))
+        {
+            return false;
+        }
+        mSerial.RegisterMagicReceivedHandler("REBOOT", reboot);
+
+        CDevice* pTarget =
+            mDeviceNameService.GetDevice(mOptions.GetLogDevice(), false);
+        if(pTarget == 0)
+        {
+            pTarget = &mScreen;
+        }
+
+        if(!mLogger.Initialize(&mNullDevice)) //pTarget))
+        // if (!mLogger.Initialize(pTarget))
+        {
+            return false;
+        }
+
+        return mTimer.Initialize();
+    }
+    CScreenDevice* getScreen()
+    {
+        return &mScreen;
+    }
+
+  protected:
+    CScreenDevice mScreen;
+    CSerialDevice mSerial;
+    CTimer mTimer;
+    CLogger mLogger;
 };
 
 /**
  * Stdlib application that adds stdio support
  * to the CStdlibAppScreen functionality.
  */
-class CStdlibAppStdio: public CStdlibAppScreen
+class CStdlibAppStdio : public CStdlibAppScreen
 {
-private:
-        char const *mpPartitionName;
+  private:
+    char const* mpPartitionName;
 
-public:
-        // ransform to constexpr
-        // constexpr char static DefaultPartition[] = "emmc1-1";
+  public:
+    // ransform to constexpr
+    // constexpr char static DefaultPartition[] = "emmc1-1";
 #define CSTDLIBAPP_DEFAULT_PARTITION "emmc1-1"
 
-        CStdlibAppStdio (const char *kernel,
-                         const char *pPartitionName = CSTDLIBAPP_DEFAULT_PARTITION)
-                : CStdlibAppScreen (kernel),
-                  mpPartitionName (pPartitionName),
-                  mDWHCI (&mInterrupt, &mTimer),
-                  mEMMC (&mInterrupt, &mTimer, &mActLED),
-                  mConsole (&mScreen),
-		  mVCHIQ (&mMemory, &mInterrupt),
-		  mVCHIQSound (&mVCHIQ, 44100, 
-			4000, // TODO verify 
-			VCHIQSoundDestinationHDMI)
+    CStdlibAppStdio(const char* kernel,
+                    const char* pPartitionName = CSTDLIBAPP_DEFAULT_PARTITION)
+        : CStdlibAppScreen(kernel),
+          mpPartitionName(pPartitionName),
+          mDWHCI(&mInterrupt, &mTimer),
+          mEMMC(&mInterrupt, &mTimer, &mActLED),
+          mConsole(&mScreen),
+          mVCHIQ(&mMemory, &mInterrupt),
+          mVCHIQSound(&mVCHIQ, 44100,
+                      4000, // TODO verify
+                      VCHIQSoundDestinationHDMI)
+    {
+    }
+
+    virtual bool Initialize(void)
+    {
+        if(!CStdlibAppScreen::Initialize())
         {
+            return false;
         }
 
-        virtual bool Initialize (void)
+        if(!mEMMC.Initialize())
         {
-                if (!CStdlibAppScreen::Initialize ())
-                {
-                        return false;
-                }
+            return false;
+        }
 
-                if (!mEMMC.Initialize ())
-                {
-                        return false;
-                }
+        CDevice* const pPartition =
+            mDeviceNameService.GetDevice(mpPartitionName, true);
+        if(pPartition == 0)
+        {
+            mLogger.Write(GetKernelName(), LogError,
+                          "Partition not found: %s", mpPartitionName);
 
-                CDevice * const pPartition =
-                        mDeviceNameService.GetDevice (mpPartitionName, true);
-                if (pPartition == 0)
-                {
-                        mLogger.Write (GetKernelName (), LogError,
-                                       "Partition not found: %s", mpPartitionName);
+            return false;
+        }
 
-                        return false;
-                }
-
-                /*if (!mFileSystem.Mount (pPartition))
+        /*if (!mFileSystem.Mount (pPartition))
                 {
                         mLogger.Write (GetKernelName (), LogError,
                                          "Cannot mount partition: %s", mpPartitionName);
@@ -207,46 +207,45 @@ public:
                         return false;
                 }*/
 
-                if (!mDWHCI.Initialize ())
-                {
-                        return false;
-                }
-
-                if (!mConsole.Initialize ())
-                {
-                        return false;
-                }
-
-       if (!mVCHIQ.Initialize ())
+        if(!mDWHCI.Initialize())
         {
-                        return false;
+            return false;
         }
 
-
-                // Initialize newlib stdio with a reference to Circle's file system and console
-                CGlueStdioInit (mConsole);
-
-                mLogger.Write (GetKernelName (), LogNotice, "Compile time: " __DATE__ " " __TIME__);
-
-                return true;
-        }
-
-        virtual void Cleanup (void)
+        if(!mConsole.Initialize())
         {
-                //mFileSystem.UnMount ();
-
-                CStdlibAppScreen::Cleanup ();
+            return false;
         }
 
-protected:
-        CDWHCIDevice    mDWHCI;
-        CEMMCDevice     mEMMC;
-        //CFATFileSystem  mFileSystem;
-        CConsole        mConsole;
-	FATFS		mFileSystem;
-	CScheduler		mScheduler;
-	CVCHIQDevice		mVCHIQ;
-	CVCHIQSoundBaseDevice	mVCHIQSound;
+        if(!mVCHIQ.Initialize())
+        {
+            return false;
+        }
+
+        // Initialize newlib stdio with a reference to Circle's file system and console
+        CGlueStdioInit(mConsole);
+
+        mLogger.Write(GetKernelName(), LogNotice, "Compile time: " __DATE__ " " __TIME__);
+
+        return true;
+    }
+
+    virtual void Cleanup(void)
+    {
+        //mFileSystem.UnMount ();
+
+        CStdlibAppScreen::Cleanup();
+    }
+
+  protected:
+    CDWHCIDevice mDWHCI;
+    CEMMCDevice mEMMC;
+    //CFATFileSystem  mFileSystem;
+    CConsole mConsole;
+    FATFS mFileSystem;
+    CScheduler mScheduler;
+    CVCHIQDevice mVCHIQ;
+    CVCHIQSoundBaseDevice mVCHIQSound;
 };
 
 #endif

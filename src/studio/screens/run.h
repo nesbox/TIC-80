@@ -40,7 +40,7 @@ struct Run
     char saveid[TICNAME_MAX];
     tic_persistent pmem;
 
-    void(*tick)(Run*);
+    void (*tick)(Run*);
 };
 
 void initRun(Run*, struct Console*, struct tic_fs*, Studio* studio);

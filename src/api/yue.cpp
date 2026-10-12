@@ -45,19 +45,19 @@ static void evalYuescript(tic_mem* tic, const char* code)
     config.options["target"] = LUA_VERSION_MAJOR "." LUA_VERSION_MINOR;
     auto result = compiler.compile(code, config);
 
-    if (result.error)
+    if(result.error)
     {
         core->data->error(core->data->data, result.error->displayMessage.c_str());
         return;
     }
 
     const char* luaCode = result.codes.c_str();
-    if (luaL_loadstring(lua, luaCode) == LUA_OK)
+    if(luaL_loadstring(lua, luaCode) == LUA_OK)
     {
-        if (lua_pcall(lua, 0, 0, 0) != LUA_OK)
+        if(lua_pcall(lua, 0, 0, 0) != LUA_OK)
         {
             const char* msg = lua_tostring(lua, -1);
-            if (msg)
+            if(msg)
             {
                 core->data->error(core->data->data, msg);
             }
@@ -131,7 +131,7 @@ static const tic_outline_item* getYueOutline(const char* code, s32* size)
 
     static tic_outline_item* items = NULL;
 
-    if (items)
+    if(items)
     {
         free(items);
         items = NULL;
@@ -139,30 +139,30 @@ static const tic_outline_item* getYueOutline(const char* code, s32* size)
 
     const char* ptr = code;
 
-    while (true)
+    while(true)
     {
         static const char FuncString[] = "=->";
 
         ptr = strstr(ptr, FuncString);
 
-        if (ptr)
+        if(ptr)
         {
             const char* end = ptr;
 
             ptr += sizeof FuncString - 1;
 
-            while (end >= code && !isalnum_(*end))
+            while(end >= code && !isalnum_(*end))
                 end--;
 
             const char* start = end;
 
-            for (const char* val = start - 1; val >= code && (isalnum_(*val)); val--, start--)
+            for(const char* val = start - 1; val >= code && (isalnum_(*val)); val--, start--)
                 ;
 
-            if (end > start)
+            if(end > start)
             {
                 tic_outline_item* new_items = (tic_outline_item*)realloc(items, (*size + 1) * Size);
-                if (new_items)
+                if(new_items)
                 {
                     items = new_items;
                     items[*size].pos = start;
@@ -200,8 +200,8 @@ extern "C" TIC_EXPORT const tic_script EXPORT_SCRIPT(Yue) = {
         luaapi_boot,   // boot
         {
             // callback
-            luaapi_scn, // scanline
-            luaapi_bdr, // border
+            luaapi_scn,  // scanline
+            luaapi_bdr,  // border
             luaapi_menu, // menu
             nullptr      // data
         }},

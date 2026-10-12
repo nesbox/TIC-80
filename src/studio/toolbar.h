@@ -30,26 +30,26 @@
 // tagged, because apps.h forward-declares `struct Toolbar` for the band slot.
 typedef struct Toolbar
 {
-    tic_mem*            tic;
+    tic_mem* tic;
     const StudioConfig* config;
-    MouseState*         mouse;      // [3], the studio's
-    char*               tooltip;    // the studio's buffer, drawn by the strip
-    const EditorApp*    apps;
-    s32                 appCount;
+    MouseState* mouse; // [3], the studio's
+    char* tooltip;     // the studio's buffer, drawn by the strip
+    const EditorApp* apps;
+    s32 appCount;
 
-    s32        y;                   // vertical offset; 0 until the strip can hide
-    EditorMode mode;                // whose band is on screen
-    EditorMode requested;           // a tab click, for the host to pick up
+    s32 y;                // vertical offset; 0 until the strip can hide
+    EditorMode mode;      // whose band is on screen
+    EditorMode requested; // a tab click, for the host to pick up
 
-    void* app;                      // the current mode's editor, for its clipboard
-    s32  railX;                     // the right rail's packing cursor
-    bool hideName;                  // a pro build's bank row takes the name's space
+    void* app;     // the current mode's editor, for its clipboard
+    s32 railX;     // the right rail's packing cursor
+    bool hideName; // a pro build's bank row takes the name's space
 
     // The strip's y when each press began, so a moving strip still reads it.
     struct
     {
         bool wasDown[3];
-        s32  y[3];
+        s32 y[3];
     } press;
 
 } Toolbar;
@@ -58,19 +58,19 @@ typedef struct Toolbar
 // glyph otherwise — which is how the music toggles show green.
 typedef struct
 {
-    u8          icon;
-    const char* label;              // drawn with the alt font unless altFont says otherwise
-    bool        altFont;            // the label's font, as drawChar's last argument
+    u8 icon;
+    const char* label; // drawn with the alt font unless altFont says otherwise
+    bool altFont;      // the label's font, as drawChar's last argument
     const char* tip;
-    s32         width;
-    s8          y;                  // the widget's own line inside the strip
-    u8          color;              // glyph when idle
-    u8          over;               // glyph under the pointer; 0 means grey
-    bool        enabled;            // a click is consumed either way
+    s32 width;
+    s8 y;         // the widget's own line inside the strip
+    u8 color;     // glyph when idle
+    u8 over;      // glyph under the pointer; 0 means grey
+    bool enabled; // a click is consumed either way
 
     // For a widget the fields above cannot describe; two icons on one cell.
-    void      (*draw)(Toolbar*, const tic_rect*, bool over, void* ctx);
-    void*       ctx;
+    void (*draw)(Toolbar*, const tic_rect*, bool over, void* ctx);
+    void* ctx;
 
 } ToolbarButton;
 

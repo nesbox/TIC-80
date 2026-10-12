@@ -63,14 +63,14 @@ typedef struct
     s32 end;
     s32 time;
 
-    s32 *value;
+    s32* value;
 
     AnimEffect effect;
 } Anim;
 
 typedef struct
 {
-    void(*done)(void *data);
+    void (*done)(void* data);
 
     s32 time;
     s32 tick;

@@ -34,7 +34,6 @@
 #include "project.h"
 #endif
 
-
 static inline tic_cartridge* newCart()
 {
     return malloc(sizeof(tic_cartridge));
@@ -77,7 +76,7 @@ static void hashLoadDone(const u8* buffer, s32 size, void* data)
         studioRomLoaded(studio);
     }
 
-    if (loadByHashData->callback)
+    if(loadByHashData->callback)
         loadByHashData->callback(loadByHashData->calldata);
 
     FREE(loadByHashData->name);
@@ -87,7 +86,7 @@ static void hashLoadDone(const u8* buffer, s32 size, void* data)
 
 void studioLoadByHash(Studio* studio, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data)
 {
-    LoadByHashData loadByHashData = { studio, strdup(name), section ? strdup(section) : NULL, callback, data};
+    LoadByHashData loadByHashData = {studio, strdup(name), section ? strdup(section) : NULL, callback, data};
     tic_fs_hashload(studio_fs(studio), name, hash, hashLoadDone, MOVE(loadByHashData));
 }
 
@@ -104,16 +103,16 @@ void studioReloadCart(Studio* studio)
         void* data = fs_read(path, &size);
 
         if(data) SCOPE(free(data))
-        {
+            {
 #if defined(TIC80_PRO)
-            if(tic_tool_is_project(path))
-                tic_project_load(studioCart(studio)->name, data, size, &tic->cart);
-            else
+                if(tic_tool_is_project(path))
+                    tic_project_load(studioCart(studio)->name, data, size, &tic->cart);
+                else
 #endif
-                tic_cart_load(&tic->cart, data, size);
+                    tic_cart_load(&tic->cart, data, size);
 
-            studioRomLoaded(studio);
-        }
+                studioRomLoaded(studio);
+            }
     }
 }
 
@@ -152,19 +151,26 @@ CartSaveResult studioSaveCart(Studio* studio, const char* name)
                     png_buffer cover;
 
                     {
-                        enum{CoverWidth = 256};
+                        enum
+                        {
+                            CoverWidth = 256
+                        };
 
                         static const u8 Cartridge[] =
-                        {
-                            #include "../build/assets/cart.png.dat"
-                        };
+                            {
+#include "../build/assets/cart.png.dat"
+                            };
 
                         png_buffer template = {(u8*)Cartridge, sizeof Cartridge};
                         png_img img = png_read(template, NULL);
 
                         // draw screen
                         {
-                            enum{PaddingLeft = 8, PaddingTop = 8};
+                            enum
+                            {
+                                PaddingLeft = 8,
+                                PaddingTop = 8
+                            };
 
                             const tic_bank* bank = &tic->cart.bank0;
                             const tic_rgb* pal = bank->palette.vbank0.colors;
@@ -177,7 +183,15 @@ CartSaveResult studioSaveCart(Studio* studio, const char* name)
 
                         // draw title/author/desc
                         {
-                            enum{Width = 224, Height = 40, PaddingTop = 162, PaddingLeft = 16, Scale = 2, Row = TIC_FONT_HEIGHT * 2 * Scale};
+                            enum
+                            {
+                                Width = 224,
+                                Height = 40,
+                                PaddingTop = 162,
+                                PaddingLeft = 16,
+                                Scale = 2,
+                                Row = TIC_FONT_HEIGHT * 2 * Scale
+                            };
 
                             tic_api_cls(tic, tic_color_dark_grey);
 
@@ -199,13 +213,9 @@ CartSaveResult studioSaveCart(Studio* studio, const char* name)
 
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
                             const u8* screen = tic->ram->vram.screen.data;
-							const tic_rgb Sweetie16[] = {
-								{0x1a, 0x1c, 0x2c}, {0x5d, 0x27, 0x5d}, {0xb1, 0x3e, 0x53}, {0xef, 0x7d, 0x57},
-								{0xff, 0xcd, 0x75}, {0xa7, 0xf0, 0x70}, {0x38, 0xb7, 0x64}, {0x25, 0x71, 0x79},
-								{0x29, 0x36, 0x6f}, {0x3b, 0x5d, 0xc9}, {0x41, 0xa6, 0xf6}, {0x73, 0xef, 0xf7},
-								{0xf4, 0xf4, 0xf4}, {0x94, 0xb0, 0xc2}, {0x56, 0x6c, 0x86}, {0x33, 0x3c, 0x57}
-							};
-							const tic_rgb* pal = Sweetie16;
+                            const tic_rgb Sweetie16[] = {
+                                {0x1a, 0x1c, 0x2c}, {0x5d, 0x27, 0x5d}, {0xb1, 0x3e, 0x53}, {0xef, 0x7d, 0x57}, {0xff, 0xcd, 0x75}, {0xa7, 0xf0, 0x70}, {0x38, 0xb7, 0x64}, {0x25, 0x71, 0x79}, {0x29, 0x36, 0x6f}, {0x3b, 0x5d, 0xc9}, {0x41, 0xa6, 0xf6}, {0x73, 0xef, 0xf7}, {0xf4, 0xf4, 0xf4}, {0x94, 0xb0, 0xc2}, {0x56, 0x6c, 0x86}, {0x33, 0x3c, 0x57}};
+                            const tic_rgb* pal = Sweetie16;
 
                             for(s32 y = 0; y < Height; y++)
                                 for(s32 x = 0; x < Width; x++)
@@ -256,11 +266,12 @@ CartSaveResult studioSaveCart(Studio* studio, const char* name)
             free(buffer);
         }
     }
-    else if (strlen(studioCart(studio)->name))
+    else if(strlen(studioCart(studio)->name))
     {
         return studioSaveCart(studio, studioCart(studio)->name);
     }
-    else return CART_SAVE_MISSING_NAME;
+    else
+        return CART_SAVE_MISSING_NAME;
 
     return success ? CART_SAVE_OK : CART_SAVE_ERROR;
 }
@@ -288,7 +299,8 @@ bool studioLoadCart(Studio* studio, const char* path)
 
         {
             const char* ptr = path + strlen(path);
-            while(ptr > path && !isslash(*ptr))--ptr;
+            while(ptr > path && !isslash(*ptr))
+                --ptr;
             cartName = ptr + isslash(*ptr);
         }
 

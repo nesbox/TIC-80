@@ -36,7 +36,7 @@ static struct
     const char* json;
 } state = {.tcount = 128};
 
-bool json_parse(const char *json, s32 size)
+bool json_parse(const char* json, s32 size)
 {
     if(state.t == NULL)
         state.t = malloc(state.tcount * sizeof *state.t);
@@ -51,17 +51,15 @@ bool json_parse(const char *json, s32 size)
     return state.count >= 0 && state.t[0].type == JSMN_OBJECT;
 }
 
-static s32 jsoneq(const char *json, const jsmntok_t *tok, const char *s) 
+static s32 jsoneq(const char* json, const jsmntok_t* tok, const char* s)
 {
-    if (tok->type & JSMN_STRING 
-        && strlen(s) == (size_t)(tok->end - tok->start) 
-        && strncmp(json + tok->start, s, tok->end - tok->start) == 0) 
+    if(tok->type & JSMN_STRING && strlen(s) == (size_t)(tok->end - tok->start) && strncmp(json + tok->start, s, tok->end - tok->start) == 0)
         return 0;
 
     return -1;
 }
 
-static s32 getJsonItem(const char *var, s32 parent, jsmntype_t type)
+static s32 getJsonItem(const char* var, s32 parent, jsmntype_t type)
 {
     for(s32 i = parent; i < state.count; i++)
         if(jsoneq(state.json, &state.t[i], var) == 0 && state.t[i + 1].type & type)
@@ -74,29 +72,29 @@ static s32 getJsonItem(const char *var, s32 parent, jsmntype_t type)
 // is the root object, so its "value" reads as 0 — which is why a caller that
 // must keep its own value for a missing key asks this first. The token the
 // scan starts at is the second argument; a document is searched from 0.
-bool json_has(const char *var, s32 parent)
+bool json_has(const char* var, s32 parent)
 {
     return getJsonItem(var, parent, JSMN_PRIMITIVE | JSMN_STRING | JSMN_ARRAY | JSMN_OBJECT) != 0;
 }
 
-bool json_bool(const char *var, s32 parent)
+bool json_bool(const char* var, s32 parent)
 {
-    const jsmntok_t *t = &state.t[getJsonItem(var, parent, JSMN_PRIMITIVE)];
+    const jsmntok_t* t = &state.t[getJsonItem(var, parent, JSMN_PRIMITIVE)];
     return strncmp(state.json + t->start, "true", t->end - t->start) == 0;
 }
 
-s32 json_int(const char *var, s32 parent)
+s32 json_int(const char* var, s32 parent)
 {
     return atoi(state.json + state.t[getJsonItem(var, parent, JSMN_PRIMITIVE)].start);
 }
 
-bool json_string(const char *var, s32 parent, char* value, s32 size)
+bool json_string(const char* var, s32 parent, char* value, s32 size)
 {
     const jsmntok_t* t = &state.t[getJsonItem(var, parent, JSMN_STRING)];
     return snprintf(value, size, "%.*s", t->end - t->start, state.json + t->start) > 0;
 }
 
-s32 json_array(const char *var, s32 parent)
+s32 json_array(const char* var, s32 parent)
 {
     return getJsonItem(var, parent, JSMN_ARRAY);
 }
@@ -121,7 +119,7 @@ s32 json_array_item(s32 array, s32 index)
     return 0;
 }
 
-s32 json_object(const char *var, s32 parent)
+s32 json_object(const char* var, s32 parent)
 {
     return getJsonItem(var, parent, JSMN_OBJECT);
 }

@@ -17,21 +17,21 @@
 #include "kernel.h"
 #include <circle/startup.h>
 #include "utils.h"
-int main (void)
+int main(void)
 {
-	// cannot return here because some destructors used in CKernel are not implemented
+    // cannot return here because some destructors used in CKernel are not implemented
 
-	TShutdownMode s = Run();
+    TShutdownMode s = Run();
 
-	switch (s)
-	{
-	case ShutdownReboot:
-		reboot ();
-		return EXIT_REBOOT;
+    switch(s)
+    {
+        case ShutdownReboot:
+            reboot();
+            return EXIT_REBOOT;
 
-	case ShutdownHalt:
-	default:
-		halt ();
-		return EXIT_HALT;
-	}
+        case ShutdownHalt:
+        default:
+            halt();
+            return EXIT_HALT;
+    }
 }

@@ -13,32 +13,32 @@
 
 // The deadzone the layer is set up with, and the values the tests push the
 // stick to: 0.2 is inside it, 0.8 and 1.0 are past it.
-#define Deadzone    0.5f
-#define Inside      0.2f
-#define Outside     0.8f
+#define Deadzone 0.5f
+#define Inside   0.2f
+#define Outside  0.8f
 
 static void setup(void)
 {
-    sgamepad_setup(&(sgamepad_desc){ .deadzone = Deadzone });
+    sgamepad_setup(&(sgamepad_desc){.deadzone = Deadzone});
 }
 
 static sgamepad_state pressed_a(void)
 {
-    sgamepad_state state = { 0 };
+    sgamepad_state state = {0};
     state.a = true;
     return state;
 }
 
 static sgamepad_state pressed_b(void)
 {
-    sgamepad_state state = { 0 };
+    sgamepad_state state = {0};
     state.b = true;
     return state;
 }
 
 static sgamepad_state stick(float x, float y)
 {
-    sgamepad_state state = { 0 };
+    sgamepad_state state = {0};
     state.right_x = x;
     state.right_y = y;
     return state;
@@ -46,8 +46,7 @@ static sgamepad_state stick(float x, float y)
 
 static bool empty(sgamepad_state state)
 {
-    return state.data == 0 && !state.back && !state.start
-        && state.right_x == 0.0f && state.right_y == 0.0f;
+    return state.data == 0 && !state.back && !state.start && state.right_x == 0.0f && state.right_y == 0.0f;
 }
 
 // The pad the platform numbers second, used first, takes the first slot; the
@@ -116,8 +115,8 @@ static void testAPadThatStaysKeepsItsSlot(void)
     assert(sgamepad_gamepad_state(0).a && sgamepad_gamepad_state(1).b);
 
     // Both let go: the slots stay theirs, they only stop reporting.
-    sgamepad_test_device(0, true, (sgamepad_state){ 0 });
-    sgamepad_test_device(1, true, (sgamepad_state){ 0 });
+    sgamepad_test_device(0, true, (sgamepad_state){0});
+    sgamepad_test_device(1, true, (sgamepad_state){0});
     sgamepad_record_state();
 
     assert(sgamepad_num_gamepads() == 2);
@@ -144,7 +143,7 @@ static void testAnUntouchedDeviceTakesNoSlot(void)
     assert(sgamepad_num_gamepads() == 0);
     assert(empty(sgamepad_gamepad_state(0)));
 
-    sgamepad_test_device(3, true, (sgamepad_state){ 0 });
+    sgamepad_test_device(3, true, (sgamepad_state){0});
     sgamepad_record_state();
 
     assert(sgamepad_num_gamepads() == 0);

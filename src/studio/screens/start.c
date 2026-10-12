@@ -54,7 +54,8 @@ static void reset(Start* start)
     static const u8 Reset[] = {0x0, 0x2, 0x42, 0x00};
     u8 val = Reset[sizeof(Reset) * (start->ticks % TIC80_FRAMERATE) / TIC80_FRAMERATE];
 
-    for(s32 i = 0; i < (s32)sizeof(tic_tile); i++) tile[i] = val;
+    for(s32 i = 0; i < (s32)sizeof(tic_tile); i++)
+        tile[i] = val;
 
     tic_api_map(start->tic, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT + (TIC80_HEIGHT % TIC_SPRITESIZE ? 1 : 0), 0, 0, 0, 0, 1, NULL, NULL);
 }
@@ -63,9 +64,9 @@ static void drawHeader(Start* start)
 {
     for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
         tic_api_print(start->tic, (char[]){start->text[i], '\0'},
-            (i % STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_WIDTH,
-            (i / STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_HEIGHT,
-            start->color[i], true, 1, false);
+                      (i % STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_WIDTH,
+                      (i / STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_HEIGHT,
+                      start->color[i], true, 1, false);
 }
 
 static void chime(Start* start)
@@ -86,12 +87,12 @@ static void header(Start* start)
 void start_banner(char* text, u8* color)
 {
     static const char* Header[] =
-    {
-        "",
-        " " TIC_NAME_FULL,
-        " version " TIC_VERSION,
-        " " TIC_COPYRIGHT,
-    };
+        {
+            "",
+            " " TIC_NAME_FULL,
+            " version " TIC_VERSION,
+            " " TIC_COPYRIGHT,
+        };
 
     memset(text, 0, STUDIO_TEXT_BUFFER_SIZE);
 
@@ -100,7 +101,7 @@ void start_banner(char* text, u8* color)
 
     for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
         color[i] = (u8)CLAMP(((i % STUDIO_TEXT_BUFFER_WIDTH) + (i / STUDIO_TEXT_BUFFER_WIDTH)) / 2,
-            tic_color_black, tic_color_dark_grey);
+                             tic_color_black, tic_color_dark_grey);
 }
 
 Start* start_create(const StartDeps* deps)
@@ -109,17 +110,16 @@ Start* start_create(const StartDeps* deps)
 
     if(start)
     {
-        *start = (Start)
-        {
+        *start = (Start){
             .tic = deps->tic,
             .config = deps->config,
             .stages =
-            {
-                { .fn = reset, .ticks = TIC80_FRAMERATE },
-                { .fn = chime },
-                { .fn = header, .ticks = TIC80_FRAMERATE },
-                { .fn = stop_chime },
-            },
+                {
+                    {.fn = reset, .ticks = TIC80_FRAMERATE},
+                    {.fn = chime},
+                    {.fn = header, .ticks = TIC80_FRAMERATE},
+                    {.fn = stop_chime},
+                },
         };
 
         start_banner(start->text, start->color);

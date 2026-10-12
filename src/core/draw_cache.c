@@ -9,33 +9,35 @@
 #include <stdio.h>
 #include <stddef.h>
 
-#define RAM_A_SIZE          offsetof(tic_ram, input)
-#define RAM_B_OFFSET        offsetof(tic_ram, flags)
-#define RAM_B_SIZE          (offsetof(tic_ram, pcm) - offsetof(tic_ram, flags))
+#define RAM_A_SIZE   offsetof(tic_ram, input)
+#define RAM_B_OFFSET offsetof(tic_ram, flags)
+#define RAM_B_SIZE   (offsetof(tic_ram, pcm) - offsetof(tic_ram, flags))
 
-struct tic_draw_cache {
+struct tic_draw_cache
+{
     bool enabled;
     bool is_recording;
     bool is_executing;
     bool has_invalidated;
-    
+
     u8* curr_calls_buf;
     s32 curr_calls_pos;
-    
+
     u8* prev_calls_buf;
     s32 prev_calls_size;
     s32 play_pos;
-    
+
     // RAM mutation tracking
     u8* saved_ram_a;
     u8* saved_ram_b;
     u8* saved_vbank1;
-    
+
     // Mouse tracking (to prevent cursor trails)
     tic80_mouse saved_mouse;
 };
 
-typedef enum {
+typedef enum
+{
     DRAW_CALL_CLS,
     DRAW_CALL_CLIP,
     DRAW_CALL_PIX,
@@ -56,85 +58,99 @@ typedef enum {
     DRAW_CALL_FONT
 } DrawCallType;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     u8 color;
 } DrawCallCls;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y, w, h;
 } DrawCallClip;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y;
     u8 color;
     bool get;
 } DrawCallPix;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y, w, h;
     u8 color;
 } DrawCallRect;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y, w, h;
     u8 color;
 } DrawCallRectb;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     float x0, y0, x1, y1;
     u8 color;
 } DrawCallLine;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y, r;
     u8 color;
 } DrawCallCirc;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y, r;
     u8 color;
 } DrawCallCircb;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y, a, b;
     u8 color;
 } DrawCallElli;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y, a, b;
     u8 color;
 } DrawCallEllib;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y;
     u8 color;
     u8 bordercolor;
 } DrawCallPaint;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     float x1, y1, x2, y2, x3, y3;
     u8 color;
 } DrawCallTri;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     float x1, y1, x2, y2, x3, y3;
     u8 color;
 } DrawCallTrib;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     float x1, y1, x2, y2, x3, y3;
     float u1, v1, u2, v2, u3, v3;
@@ -145,7 +161,8 @@ typedef struct {
     bool depth;
 } DrawCallTtri;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 index;
     s32 x, y, w, h;
@@ -156,7 +173,8 @@ typedef struct {
     s32 rotate;
 } DrawCallSpr;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y, w, h, sx, sy;
     u8 count;
@@ -165,7 +183,8 @@ typedef struct {
     u8 has_remap;
 } DrawCallMap;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y;
     u8 color;
@@ -175,7 +194,8 @@ typedef struct {
     u32 len;
 } DrawCallPrint;
 
-typedef struct {
+typedef struct
+{
     u8 type;
     s32 x, y;
     u8 trans_count;
@@ -189,7 +209,7 @@ typedef struct {
 
 static s32 get_draw_call_size(u8 type, const u8* data)
 {
-    switch (type)
+    switch(type)
     {
         case DRAW_CALL_CLS: return sizeof(DrawCallCls);
         case DRAW_CALL_CLIP: return sizeof(DrawCallClip);
@@ -206,19 +226,22 @@ static s32 get_draw_call_size(u8 type, const u8* data)
         case DRAW_CALL_TRIB: return sizeof(DrawCallTrib);
         case DRAW_CALL_TTRI: return sizeof(DrawCallTtri);
         case DRAW_CALL_SPR: return sizeof(DrawCallSpr);
-        case DRAW_CALL_MAP: {
+        case DRAW_CALL_MAP:
+        {
             const DrawCallMap* c = (const DrawCallMap*)data;
-            if (c->has_remap)
+            if(c->has_remap)
             {
                 return sizeof(DrawCallMap) + c->w * c->h * sizeof(RemapResult);
             }
             return sizeof(DrawCallMap);
         }
-        case DRAW_CALL_PRINT: {
+        case DRAW_CALL_PRINT:
+        {
             const DrawCallPrint* c = (const DrawCallPrint*)data;
             return sizeof(DrawCallPrint) + c->len + sizeof(s32);
         }
-        case DRAW_CALL_FONT: {
+        case DRAW_CALL_FONT:
+        {
             const DrawCallFont* c = (const DrawCallFont*)data;
             return sizeof(DrawCallFont) + c->len + sizeof(s32);
         }
@@ -226,7 +249,8 @@ static s32 get_draw_call_size(u8 type, const u8* data)
     }
 }
 
-typedef struct {
+typedef struct
+{
     const RemapResult* remapped_tiles;
     s32 pos;
 } PlaybackRemapContext;
@@ -234,81 +258,96 @@ typedef struct {
 static void playbackRemapCallback(void* data, s32 x, s32 y, RemapResult* result)
 {
     // the remap is a flat table, the position in it is the coordinate
-    (void)x; (void)y;
+    (void)x;
+    (void)y;
     PlaybackRemapContext* ctx = (PlaybackRemapContext*)data;
     *result = ctx->remapped_tiles[ctx->pos++];
 }
 
 static void execute_draw_call(tic_core* core, u8 type, const u8* data)
 {
-    switch (type)
+    switch(type)
     {
-        case DRAW_CALL_CLS: {
+        case DRAW_CALL_CLS:
+        {
             const DrawCallCls* c = (const DrawCallCls*)data;
             tic_api_cls(&core->memory, c->color);
             break;
         }
-        case DRAW_CALL_CLIP: {
+        case DRAW_CALL_CLIP:
+        {
             const DrawCallClip* c = (const DrawCallClip*)data;
             tic_api_clip(&core->memory, c->x, c->y, c->w, c->h);
             break;
         }
-        case DRAW_CALL_PIX: {
+        case DRAW_CALL_PIX:
+        {
             const DrawCallPix* c = (const DrawCallPix*)data;
             tic_api_pix(&core->memory, c->x, c->y, c->color, c->get);
             break;
         }
-        case DRAW_CALL_RECT: {
+        case DRAW_CALL_RECT:
+        {
             const DrawCallRect* c = (const DrawCallRect*)data;
             tic_api_rect(&core->memory, c->x, c->y, c->w, c->h, c->color);
             break;
         }
-        case DRAW_CALL_RECTB: {
+        case DRAW_CALL_RECTB:
+        {
             const DrawCallRectb* c = (const DrawCallRectb*)data;
             tic_api_rectb(&core->memory, c->x, c->y, c->w, c->h, c->color);
             break;
         }
-        case DRAW_CALL_LINE: {
+        case DRAW_CALL_LINE:
+        {
             const DrawCallLine* c = (const DrawCallLine*)data;
             tic_api_line(&core->memory, c->x0, c->y0, c->x1, c->y1, c->color);
             break;
         }
-        case DRAW_CALL_CIRC: {
+        case DRAW_CALL_CIRC:
+        {
             const DrawCallCirc* c = (const DrawCallCirc*)data;
             tic_api_circ(&core->memory, c->x, c->y, c->r, c->color);
             break;
         }
-        case DRAW_CALL_CIRCB: {
+        case DRAW_CALL_CIRCB:
+        {
             const DrawCallCircb* c = (const DrawCallCircb*)data;
             tic_api_circb(&core->memory, c->x, c->y, c->r, c->color);
             break;
         }
-        case DRAW_CALL_ELLI: {
+        case DRAW_CALL_ELLI:
+        {
             const DrawCallElli* c = (const DrawCallElli*)data;
             tic_api_elli(&core->memory, c->x, c->y, c->a, c->b, c->color);
             break;
         }
-        case DRAW_CALL_ELLIB: {
+        case DRAW_CALL_ELLIB:
+        {
             const DrawCallEllib* c = (const DrawCallEllib*)data;
             tic_api_ellib(&core->memory, c->x, c->y, c->a, c->b, c->color);
             break;
         }
-        case DRAW_CALL_PAINT: {
+        case DRAW_CALL_PAINT:
+        {
             const DrawCallPaint* c = (const DrawCallPaint*)data;
             tic_api_paint(&core->memory, c->x, c->y, c->color, c->bordercolor);
             break;
         }
-        case DRAW_CALL_TRI: {
+        case DRAW_CALL_TRI:
+        {
             const DrawCallTri* c = (const DrawCallTri*)data;
             tic_api_tri(&core->memory, c->x1, c->y1, c->x2, c->y2, c->x3, c->y3, c->color);
             break;
         }
-        case DRAW_CALL_TRIB: {
+        case DRAW_CALL_TRIB:
+        {
             const DrawCallTrib* c = (const DrawCallTrib*)data;
             tic_api_trib(&core->memory, c->x1, c->y1, c->x2, c->y2, c->x3, c->y3, c->color);
             break;
         }
-        case DRAW_CALL_TTRI: {
+        case DRAW_CALL_TTRI:
+        {
             const DrawCallTtri* c = (const DrawCallTtri*)data;
             tic_api_ttri(&core->memory, c->x1, c->y1, c->x2, c->y2, c->x3, c->y3,
                          c->u1, c->v1, c->u2, c->v2, c->u3, c->v3,
@@ -316,18 +355,20 @@ static void execute_draw_call(tic_core* core, u8 type, const u8* data)
                          c->z1, c->z2, c->z3, c->depth);
             break;
         }
-        case DRAW_CALL_SPR: {
+        case DRAW_CALL_SPR:
+        {
             const DrawCallSpr* c = (const DrawCallSpr*)data;
             tic_api_spr(&core->memory, c->index, c->x, c->y, c->w, c->h,
                         (u8*)c->trans_colors, c->trans_count, c->scale, c->flip, c->rotate);
             break;
         }
-        case DRAW_CALL_MAP: {
+        case DRAW_CALL_MAP:
+        {
             const DrawCallMap* c = (const DrawCallMap*)data;
-            if (c->has_remap)
+            if(c->has_remap)
             {
                 const RemapResult* remapped_tiles = (const RemapResult*)(data + sizeof(DrawCallMap));
-                PlaybackRemapContext ctx = { remapped_tiles, 0 };
+                PlaybackRemapContext ctx = {remapped_tiles, 0};
                 tic_api_map(&core->memory, c->x, c->y, c->w, c->h, c->sx, c->sy,
                             (u8*)c->colors, c->count, c->scale, playbackRemapCallback, &ctx);
             }
@@ -338,10 +379,11 @@ static void execute_draw_call(tic_core* core, u8 type, const u8* data)
             }
             break;
         }
-        case DRAW_CALL_PRINT: {
+        case DRAW_CALL_PRINT:
+        {
             const DrawCallPrint* c = (const DrawCallPrint*)data;
             char* text_temp = (char*)malloc(c->len + 1);
-            if (text_temp)
+            if(text_temp)
             {
                 memcpy(text_temp, data + sizeof(DrawCallPrint), c->len);
                 text_temp[c->len] = '\0';
@@ -350,10 +392,11 @@ static void execute_draw_call(tic_core* core, u8 type, const u8* data)
             }
             break;
         }
-        case DRAW_CALL_FONT: {
+        case DRAW_CALL_FONT:
+        {
             const DrawCallFont* c = (const DrawCallFont*)data;
             char* text_temp = (char*)malloc(c->len + 1);
-            if (text_temp)
+            if(text_temp)
             {
                 memcpy(text_temp, data + sizeof(DrawCallFont), c->len);
                 text_temp[c->len] = '\0';
@@ -368,24 +411,24 @@ static void execute_draw_call(tic_core* core, u8 type, const u8* data)
 
 void tic_core_draw_cache_invalidate(tic_core* core)
 {
-    if (!core->draw_cache) return;
-    if (core->draw_cache->is_recording && !core->draw_cache->has_invalidated)
+    if(!core->draw_cache) return;
+    if(core->draw_cache->is_recording && !core->draw_cache->has_invalidated)
     {
         core->draw_cache->has_invalidated = true;
-        
+
         bool was_recording = core->draw_cache->is_recording;
         core->draw_cache->is_recording = false;
         core->draw_cache->is_executing = true;
-        
+
         s32 pos = 0;
-        while (pos < core->draw_cache->play_pos)
+        while(pos < core->draw_cache->play_pos)
         {
             u8 type = core->draw_cache->prev_calls_buf[pos];
             s32 size = get_draw_call_size(type, core->draw_cache->prev_calls_buf + pos);
             execute_draw_call(core, type, core->draw_cache->prev_calls_buf + pos);
             pos += size;
         }
-        
+
         core->draw_cache->is_executing = false;
         core->draw_cache->is_recording = was_recording;
     }
@@ -393,27 +436,27 @@ void tic_core_draw_cache_invalidate(tic_core* core)
 
 void tic_core_draw_cache_start(tic_core* core)
 {
-    if (!core->draw_cache || !core->draw_cache->enabled) return;
-    
-    if (!core->draw_cache->curr_calls_buf) core->draw_cache->curr_calls_buf = (u8*)malloc(DRAW_CACHE_MAX_SIZE);
-    if (!core->draw_cache->prev_calls_buf) core->draw_cache->prev_calls_buf = (u8*)malloc(DRAW_CACHE_MAX_SIZE);
+    if(!core->draw_cache || !core->draw_cache->enabled) return;
+
+    if(!core->draw_cache->curr_calls_buf) core->draw_cache->curr_calls_buf = (u8*)malloc(DRAW_CACHE_MAX_SIZE);
+    if(!core->draw_cache->prev_calls_buf) core->draw_cache->prev_calls_buf = (u8*)malloc(DRAW_CACHE_MAX_SIZE);
 
     core->draw_cache->is_recording = true;
     core->draw_cache->curr_calls_pos = 0;
     core->draw_cache->play_pos = 0;
     core->draw_cache->has_invalidated = false;
 
-    if (core->draw_cache->saved_ram_a && core->draw_cache->saved_ram_b && core->draw_cache->saved_vbank1)
+    if(core->draw_cache->saved_ram_a && core->draw_cache->saved_ram_b && core->draw_cache->saved_vbank1)
     {
         bool match_a = memcmp(core->memory.ram, core->draw_cache->saved_ram_a, RAM_A_SIZE) == 0;
         bool match_b = memcmp(core->memory.ram->data + RAM_B_OFFSET, core->draw_cache->saved_ram_b, RAM_B_SIZE) == 0;
-        
+
         tic_vram* v1 = core->state.vbank.id ? &core->memory.ram->vram : &core->state.vbank.mem;
         bool match_v1 = memcmp(v1, core->draw_cache->saved_vbank1, sizeof(tic_vram)) == 0;
 
         bool match_mouse = memcmp(&core->memory.ram->input.mouse, &core->draw_cache->saved_mouse, sizeof(tic80_mouse)) == 0;
 
-        if (!match_a || !match_b || !match_v1 || !match_mouse)
+        if(!match_a || !match_b || !match_v1 || !match_mouse)
         {
             tic_core_draw_cache_invalidate(core);
         }
@@ -426,37 +469,37 @@ void tic_core_draw_cache_start(tic_core* core)
 
 void tic_core_draw_cache_end(tic_core* core)
 {
-    if (!core->draw_cache || !core->draw_cache->enabled) return;
-    
+    if(!core->draw_cache || !core->draw_cache->enabled) return;
+
     core->draw_cache->is_recording = false;
 
-    if (core->draw_cache->saved_ram_a && core->draw_cache->saved_ram_b && core->draw_cache->saved_vbank1)
+    if(core->draw_cache->saved_ram_a && core->draw_cache->saved_ram_b && core->draw_cache->saved_vbank1)
     {
         bool match_a = memcmp(core->memory.ram, core->draw_cache->saved_ram_a, RAM_A_SIZE) == 0;
         bool match_b = memcmp(core->memory.ram->data + RAM_B_OFFSET, core->draw_cache->saved_ram_b, RAM_B_SIZE) == 0;
-        
+
         tic_vram* v1 = core->state.vbank.id ? &core->memory.ram->vram : &core->state.vbank.mem;
         bool match_v1 = memcmp(v1, core->draw_cache->saved_vbank1, sizeof(tic_vram)) == 0;
 
-        if (!match_a || !match_b || !match_v1)
+        if(!match_a || !match_b || !match_v1)
         {
             tic_core_draw_cache_invalidate(core);
         }
     }
 
-    if (!core->draw_cache->saved_ram_a) core->draw_cache->saved_ram_a = malloc(RAM_A_SIZE);
+    if(!core->draw_cache->saved_ram_a) core->draw_cache->saved_ram_a = malloc(RAM_A_SIZE);
     memcpy(core->draw_cache->saved_ram_a, core->memory.ram, RAM_A_SIZE);
 
-    if (!core->draw_cache->saved_ram_b) core->draw_cache->saved_ram_b = malloc(RAM_B_SIZE);
+    if(!core->draw_cache->saved_ram_b) core->draw_cache->saved_ram_b = malloc(RAM_B_SIZE);
     memcpy(core->draw_cache->saved_ram_b, core->memory.ram->data + RAM_B_OFFSET, RAM_B_SIZE);
 
-    if (!core->draw_cache->saved_vbank1) core->draw_cache->saved_vbank1 = malloc(sizeof(tic_vram));
+    if(!core->draw_cache->saved_vbank1) core->draw_cache->saved_vbank1 = malloc(sizeof(tic_vram));
     tic_vram* v1 = core->state.vbank.id ? &core->memory.ram->vram : &core->state.vbank.mem;
     memcpy(core->draw_cache->saved_vbank1, v1, sizeof(tic_vram));
 
     memcpy(&core->draw_cache->saved_mouse, &core->memory.ram->input.mouse, sizeof(tic80_mouse));
 
-    if (!core->draw_cache->has_invalidated && core->draw_cache->play_pos == core->draw_cache->prev_calls_size)
+    if(!core->draw_cache->has_invalidated && core->draw_cache->play_pos == core->draw_cache->prev_calls_size)
     {
         // Screen is identical
     }
@@ -465,31 +508,31 @@ void tic_core_draw_cache_end(tic_core* core)
         u8* temp = core->draw_cache->prev_calls_buf;
         core->draw_cache->prev_calls_buf = core->draw_cache->curr_calls_buf;
         core->draw_cache->curr_calls_buf = temp;
-        
+
         core->draw_cache->prev_calls_size = core->draw_cache->curr_calls_pos;
     }
 }
 
 static bool handle_draw_call(tic_core* core, const void* data, s32 size)
 {
-    if (!core->draw_cache || !core->draw_cache->enabled || !core->draw_cache->curr_calls_buf) return true;
-    if (core->draw_cache->is_executing || !core->draw_cache->is_recording) return true;
-    
-    if (core->draw_cache->curr_calls_pos + size > DRAW_CACHE_MAX_SIZE)
+    if(!core->draw_cache || !core->draw_cache->enabled || !core->draw_cache->curr_calls_buf) return true;
+    if(core->draw_cache->is_executing || !core->draw_cache->is_recording) return true;
+
+    if(core->draw_cache->curr_calls_pos + size > DRAW_CACHE_MAX_SIZE)
     {
         tic_core_draw_cache_invalidate(core);
         core->draw_cache->is_recording = false;
         return true;
     }
-    
+
     memcpy(core->draw_cache->curr_calls_buf + core->draw_cache->curr_calls_pos, data, size);
     core->draw_cache->curr_calls_pos += size;
-    
-    if (!core->draw_cache->has_invalidated)
+
+    if(!core->draw_cache->has_invalidated)
     {
-        if (core->draw_cache->play_pos + size <= core->draw_cache->prev_calls_size)
+        if(core->draw_cache->play_pos + size <= core->draw_cache->prev_calls_size)
         {
-            if (memcmp(core->draw_cache->prev_calls_buf + core->draw_cache->play_pos, data, size) == 0)
+            if(memcmp(core->draw_cache->prev_calls_buf + core->draw_cache->play_pos, data, size) == 0)
             {
                 core->draw_cache->play_pos += size;
                 return false;
@@ -504,7 +547,7 @@ static bool handle_draw_call(tic_core* core, const void* data, s32 size)
             tic_core_draw_cache_invalidate(core);
         }
     }
-    
+
     return true;
 }
 
@@ -517,7 +560,7 @@ static void cache_api_cls(tic_mem* tic, u8 color)
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_CLS;
     call.color = color;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_cls(tic, color);
     }
@@ -529,8 +572,11 @@ static void cache_api_clip(tic_mem* tic, s32 x, s32 y, s32 w, s32 h)
     DrawCallClip call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_CLIP;
-    call.x = x; call.y = y; call.w = w; call.h = h;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x = x;
+    call.y = y;
+    call.w = w;
+    call.h = h;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_clip(tic, x, y, w, h);
     }
@@ -542,8 +588,11 @@ static u8 cache_api_pix(tic_mem* tic, s32 x, s32 y, u8 color, bool get)
     DrawCallPix call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_PIX;
-    call.x = x; call.y = y; call.color = color; call.get = get;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x = x;
+    call.y = y;
+    call.color = color;
+    call.get = get;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         return tic_api_pix(tic, x, y, color, get);
     }
@@ -556,8 +605,12 @@ static void cache_api_rect(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u8 color)
     DrawCallRect call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_RECT;
-    call.x = x; call.y = y; call.w = w; call.h = h; call.color = color;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x = x;
+    call.y = y;
+    call.w = w;
+    call.h = h;
+    call.color = color;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_rect(tic, x, y, w, h, color);
     }
@@ -569,8 +622,12 @@ static void cache_api_rectb(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u8 color)
     DrawCallRectb call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_RECTB;
-    call.x = x; call.y = y; call.w = w; call.h = h; call.color = color;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x = x;
+    call.y = y;
+    call.w = w;
+    call.h = h;
+    call.color = color;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_rectb(tic, x, y, w, h, color);
     }
@@ -582,8 +639,12 @@ static void cache_api_line(tic_mem* tic, float x0, float y0, float x1, float y1,
     DrawCallLine call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_LINE;
-    call.x0 = x0; call.y0 = y0; call.x1 = x1; call.y1 = y1; call.color = color;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x0 = x0;
+    call.y0 = y0;
+    call.x1 = x1;
+    call.y1 = y1;
+    call.color = color;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_line(tic, x0, y0, x1, y1, color);
     }
@@ -595,8 +656,11 @@ static void cache_api_circ(tic_mem* tic, s32 x, s32 y, s32 r, u8 color)
     DrawCallCirc call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_CIRC;
-    call.x = x; call.y = y; call.r = r; call.color = color;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x = x;
+    call.y = y;
+    call.r = r;
+    call.color = color;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_circ(tic, x, y, r, color);
     }
@@ -608,8 +672,11 @@ static void cache_api_circb(tic_mem* tic, s32 x, s32 y, s32 r, u8 color)
     DrawCallCircb call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_CIRCB;
-    call.x = x; call.y = y; call.r = r; call.color = color;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x = x;
+    call.y = y;
+    call.r = r;
+    call.color = color;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_circb(tic, x, y, r, color);
     }
@@ -621,8 +688,12 @@ static void cache_api_elli(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u8 color)
     DrawCallElli call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_ELLI;
-    call.x = x; call.y = y; call.a = a; call.b = b; call.color = color;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x = x;
+    call.y = y;
+    call.a = a;
+    call.b = b;
+    call.color = color;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_elli(tic, x, y, a, b, color);
     }
@@ -634,8 +705,12 @@ static void cache_api_ellib(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u8 color)
     DrawCallEllib call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_ELLIB;
-    call.x = x; call.y = y; call.a = a; call.b = b; call.color = color;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x = x;
+    call.y = y;
+    call.a = a;
+    call.b = b;
+    call.color = color;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_ellib(tic, x, y, a, b, color);
     }
@@ -647,8 +722,11 @@ static void cache_api_paint(tic_mem* tic, s32 x, s32 y, u8 color, u8 bordercolor
     DrawCallPaint call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_PAINT;
-    call.x = x; call.y = y; call.color = color; call.bordercolor = bordercolor;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x = x;
+    call.y = y;
+    call.color = color;
+    call.bordercolor = bordercolor;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_paint(tic, x, y, color, bordercolor);
     }
@@ -660,8 +738,14 @@ static void cache_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, 
     DrawCallTri call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_TRI;
-    call.x1 = x1; call.y1 = y1; call.x2 = x2; call.y2 = y2; call.x3 = x3; call.y3 = y3; call.color = color;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x1 = x1;
+    call.y1 = y1;
+    call.x2 = x2;
+    call.y2 = y2;
+    call.x3 = x3;
+    call.y3 = y3;
+    call.color = color;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_tri(tic, x1, y1, x2, y2, x3, y3, color);
     }
@@ -673,8 +757,14 @@ static void cache_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2,
     DrawCallTrib call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_TRIB;
-    call.x1 = x1; call.y1 = y1; call.x2 = x2; call.y2 = y2; call.x3 = x3; call.y3 = y3; call.color = color;
-    if (handle_draw_call(core, &call, sizeof(call)))
+    call.x1 = x1;
+    call.y1 = y1;
+    call.x2 = x2;
+    call.y2 = y2;
+    call.x3 = x3;
+    call.y3 = y3;
+    call.color = color;
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_trib(tic, x1, y1, x2, y2, x3, y3, color);
     }
@@ -689,17 +779,29 @@ static void cache_api_ttri(tic_mem* tic, float x1, float y1, float x2, float y2,
     DrawCallTtri call;
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_TTRI;
-    call.x1 = x1; call.y1 = y1; call.x2 = x2; call.y2 = y2; call.x3 = x3; call.y3 = y3;
-    call.u1 = u1; call.v1 = v1; call.u2 = u2; call.v2 = v2; call.u3 = u3; call.v3 = v3;
+    call.x1 = x1;
+    call.y1 = y1;
+    call.x2 = x2;
+    call.y2 = y2;
+    call.x3 = x3;
+    call.y3 = y3;
+    call.u1 = u1;
+    call.v1 = v1;
+    call.u2 = u2;
+    call.v2 = v2;
+    call.u3 = u3;
+    call.v3 = v3;
     call.texsrc = texsrc;
     call.trans_count = count;
-    call.z1 = z1; call.z2 = z2; call.z3 = z3;
+    call.z1 = z1;
+    call.z2 = z2;
+    call.z3 = z3;
     call.depth = depth;
-    if (colors && count > 0)
+    if(colors && count > 0)
     {
         memcpy(call.trans_colors, colors, count < 16 ? count : 16);
     }
-    if (handle_draw_call(core, &call, sizeof(call)))
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, colors, count, z1, z2, z3, depth);
     }
@@ -712,22 +814,26 @@ static void cache_api_spr(tic_mem* tic, s32 index, s32 x, s32 y, s32 w, s32 h, u
     memset(&call, 0, sizeof(call));
     call.type = DRAW_CALL_SPR;
     call.index = index;
-    call.x = x; call.y = y; call.w = w; call.h = h;
+    call.x = x;
+    call.y = y;
+    call.w = w;
+    call.h = h;
     call.trans_count = trans_count;
     call.scale = scale;
     call.flip = flip;
     call.rotate = rotate;
-    if (trans_colors && trans_count > 0)
+    if(trans_colors && trans_count > 0)
     {
         memcpy(call.trans_colors, trans_colors, trans_count < 16 ? trans_count : 16);
     }
-    if (handle_draw_call(core, &call, sizeof(call)))
+    if(handle_draw_call(core, &call, sizeof(call)))
     {
         tic_api_spr(tic, index, x, y, w, h, trans_colors, trans_count, scale, flip, rotate);
     }
 }
 
-typedef struct {
+typedef struct
+{
     RemapFunc original_remap;
     void* original_data;
     RemapResult* record_buf;
@@ -738,20 +844,20 @@ typedef struct {
 static void remapInterceptor(void* data, s32 x, s32 y, RemapResult* result)
 {
     RemapInterceptorContext* ctx = (RemapInterceptorContext*)data;
-    
+
     RemapResult user_result;
     memset(&user_result, 0, sizeof(RemapResult));
     user_result.index = result->index;
     user_result.flip = result->flip;
     user_result.rotate = result->rotate;
-    
+
     ctx->original_remap(ctx->original_data, x, y, &user_result);
-    
+
     result->index = user_result.index;
     result->flip = user_result.flip;
     result->rotate = user_result.rotate;
-    
-    if (ctx->record_buf && ctx->record_pos < ctx->max_count)
+
+    if(ctx->record_buf && ctx->record_pos < ctx->max_count)
     {
         ctx->record_buf[ctx->record_pos++] = user_result;
     }
@@ -760,70 +866,75 @@ static void remapInterceptor(void* data, s32 x, s32 y, RemapResult* result)
 static void cache_api_map(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* trans_colors, u8 trans_count, s32 scale, RemapFunc remap, void* data)
 {
     tic_core* core = (tic_core*)tic;
-    
-    if (remap != NULL)
+
+    if(remap != NULL)
     {
-        if (core->draw_cache->is_executing)
+        if(core->draw_cache->is_executing)
         {
             tic_api_map(tic, x, y, width, height, sx, sy, trans_colors, trans_count, scale, remap, data);
             return;
         }
-        
+
         s64 total_tiles = (s64)width * (s64)height;
-        if (width <= 0 || height <= 0 || total_tiles <= 0 || total_tiles > (TIC_MAP_WIDTH * TIC_MAP_HEIGHT) ||
-            sizeof(DrawCallMap) + (size_t)total_tiles * sizeof(RemapResult) > DRAW_CACHE_MAX_SIZE)
+        if(width <= 0 || height <= 0 || total_tiles <= 0 || total_tiles > (TIC_MAP_WIDTH * TIC_MAP_HEIGHT) ||
+           sizeof(DrawCallMap) + (size_t)total_tiles * sizeof(RemapResult) > DRAW_CACHE_MAX_SIZE)
         {
             tic_core_draw_cache_invalidate(core);
             tic_api_map(tic, x, y, width, height, sx, sy, trans_colors, trans_count, scale, remap, data);
             return;
         }
-        
+
         s32 tiles_count = (s32)total_tiles;
         RemapResult* remapped_tiles = malloc(tiles_count * sizeof(RemapResult));
-        if (!remapped_tiles)
+        if(!remapped_tiles)
         {
             tic_core_draw_cache_invalidate(core);
             tic_api_map(tic, x, y, width, height, sx, sy, trans_colors, trans_count, scale, remap, data);
             return;
         }
         memset(remapped_tiles, 0, tiles_count * sizeof(RemapResult));
-        
-        RemapInterceptorContext ctx = { remap, data, remapped_tiles, 0, tiles_count };
-        
+
+        RemapInterceptorContext ctx = {remap, data, remapped_tiles, 0, tiles_count};
+
         tic_api_map(tic, x, y, width, height, sx, sy, trans_colors, trans_count, scale, remapInterceptor, &ctx);
-        
+
         s32 total_size = sizeof(DrawCallMap) + tiles_count * sizeof(RemapResult);
-        
+
         DrawCallMap header;
         memset(&header, 0, sizeof(header));
         header.type = DRAW_CALL_MAP;
-        header.x = x; header.y = y; header.w = width; header.h = height; header.sx = sx; header.sy = sy;
+        header.x = x;
+        header.y = y;
+        header.w = width;
+        header.h = height;
+        header.sx = sx;
+        header.sy = sy;
         header.count = trans_count;
         header.scale = scale;
         header.has_remap = true;
-        if (trans_colors && trans_count > 0)
+        if(trans_colors && trans_count > 0)
         {
             memcpy(header.colors, trans_colors, trans_count < 16 ? trans_count : 16);
         }
-        
-        if (core->draw_cache->is_recording)
+
+        if(core->draw_cache->is_recording)
         {
-            if (core->draw_cache->curr_calls_pos + total_size > DRAW_CACHE_MAX_SIZE)
+            if(core->draw_cache->curr_calls_pos + total_size > DRAW_CACHE_MAX_SIZE)
             {
                 tic_core_draw_cache_invalidate(core);
                 core->draw_cache->is_recording = false;
                 free(remapped_tiles);
                 return;
             }
-            
+
             u8* dest = core->draw_cache->curr_calls_buf + core->draw_cache->curr_calls_pos;
             memcpy(dest, &header, sizeof(DrawCallMap));
             memcpy(dest + sizeof(DrawCallMap), remapped_tiles, tiles_count * sizeof(RemapResult));
-            
-            if (!core->draw_cache->has_invalidated)
+
+            if(!core->draw_cache->has_invalidated)
             {
-                if (core->draw_cache->play_pos + total_size <= core->draw_cache->prev_calls_size &&
-                    memcmp(core->draw_cache->prev_calls_buf + core->draw_cache->play_pos, dest, total_size) == 0)
+                if(core->draw_cache->play_pos + total_size <= core->draw_cache->prev_calls_size &&
+                   memcmp(core->draw_cache->prev_calls_buf + core->draw_cache->play_pos, dest, total_size) == 0)
                 {
                     core->draw_cache->curr_calls_pos += total_size;
                     core->draw_cache->play_pos += total_size;
@@ -838,7 +949,7 @@ static void cache_api_map(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, s32
                 core->draw_cache->curr_calls_pos += total_size;
             }
         }
-        
+
         free(remapped_tiles);
     }
     else
@@ -846,15 +957,20 @@ static void cache_api_map(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, s32
         DrawCallMap call;
         memset(&call, 0, sizeof(call));
         call.type = DRAW_CALL_MAP;
-        call.x = x; call.y = y; call.w = width; call.h = height; call.sx = sx; call.sy = sy;
+        call.x = x;
+        call.y = y;
+        call.w = width;
+        call.h = height;
+        call.sx = sx;
+        call.sy = sy;
         call.count = trans_count;
         call.scale = scale;
         call.has_remap = false;
-        if (trans_colors && trans_count > 0)
+        if(trans_colors && trans_count > 0)
         {
             memcpy(call.colors, trans_colors, trans_count < 16 ? trans_count : 16);
         }
-        if (handle_draw_call(core, &call, sizeof(call)))
+        if(handle_draw_call(core, &call, sizeof(call)))
         {
             tic_api_map(tic, x, y, width, height, sx, sy, trans_colors, trans_count, scale, remap, data);
         }
@@ -863,37 +979,43 @@ static void cache_api_map(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, s32
 
 static s32 cache_api_print(tic_mem* tic, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt)
 {
-    if (!text) return 0;
+    if(!text) return 0;
     tic_core* core = (tic_core*)tic;
-    if (!core->draw_cache || !core->draw_cache->enabled || !core->draw_cache->curr_calls_buf ||
-        core->draw_cache->is_executing || !core->draw_cache->is_recording)
+    if(!core->draw_cache || !core->draw_cache->enabled || !core->draw_cache->curr_calls_buf ||
+       core->draw_cache->is_executing || !core->draw_cache->is_recording)
     {
         return tic_api_print(tic, text, x, y, color, fixed, scale, alt);
     }
-    
+
     u32 len = strlen(text);
     DrawCallPrint header;
     memset(&header, 0, sizeof(header));
     header.type = DRAW_CALL_PRINT;
-    header.x = x; header.y = y; header.color = color; header.fixed = fixed; header.scale = scale; header.alt = alt; header.len = len;
+    header.x = x;
+    header.y = y;
+    header.color = color;
+    header.fixed = fixed;
+    header.scale = scale;
+    header.alt = alt;
+    header.len = len;
     s32 total_compare_size = sizeof(DrawCallPrint) + len;
     s32 total_record_size = total_compare_size + sizeof(s32);
-    
-    if (core->draw_cache->curr_calls_pos + total_record_size > DRAW_CACHE_MAX_SIZE)
+
+    if(core->draw_cache->curr_calls_pos + total_record_size > DRAW_CACHE_MAX_SIZE)
     {
         tic_core_draw_cache_invalidate(core);
         core->draw_cache->is_recording = false;
         return tic_api_print(tic, text, x, y, color, fixed, scale, alt);
     }
-    
+
     u8* write_ptr = core->draw_cache->curr_calls_buf + core->draw_cache->curr_calls_pos;
     memcpy(write_ptr, &header, sizeof(DrawCallPrint));
     memcpy(write_ptr + sizeof(DrawCallPrint), text, len);
-    
-    if (!core->draw_cache->has_invalidated)
+
+    if(!core->draw_cache->has_invalidated)
     {
-        if (core->draw_cache->play_pos + total_record_size <= core->draw_cache->prev_calls_size &&
-            memcmp(core->draw_cache->prev_calls_buf + core->draw_cache->play_pos, write_ptr, total_compare_size) == 0)
+        if(core->draw_cache->play_pos + total_record_size <= core->draw_cache->prev_calls_size &&
+           memcmp(core->draw_cache->prev_calls_buf + core->draw_cache->play_pos, write_ptr, total_compare_size) == 0)
         {
             s32 cached_width;
             memcpy(&cached_width, core->draw_cache->prev_calls_buf + core->draw_cache->play_pos + total_compare_size, sizeof(s32));
@@ -907,7 +1029,7 @@ static s32 cache_api_print(tic_mem* tic, const char* text, s32 x, s32 y, u8 colo
             tic_core_draw_cache_invalidate(core);
         }
     }
-    
+
     s32 result = tic_api_print(tic, text, x, y, color, fixed, scale, alt);
     memcpy(write_ptr + total_compare_size, &result, sizeof(s32));
     core->draw_cache->curr_calls_pos += total_record_size;
@@ -916,41 +1038,49 @@ static s32 cache_api_print(tic_mem* tic, const char* text, s32 x, s32 y, u8 colo
 
 static s32 cache_api_font(tic_mem* tic, const char* text, s32 x, s32 y, u8* trans_colors, u8 trans_count, s32 w, s32 h, bool fixed, s32 scale, bool alt)
 {
-    if (!text) return 0;
+    if(!text) return 0;
     tic_core* core = (tic_core*)tic;
-    if (!core->draw_cache || !core->draw_cache->enabled || !core->draw_cache->curr_calls_buf ||
-        core->draw_cache->is_executing || !core->draw_cache->is_recording)
+    if(!core->draw_cache || !core->draw_cache->enabled || !core->draw_cache->curr_calls_buf ||
+       core->draw_cache->is_executing || !core->draw_cache->is_recording)
     {
         return tic_api_font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt);
     }
-    
+
     u32 len = strlen(text);
     DrawCallFont header;
     memset(&header, 0, sizeof(header));
     header.type = DRAW_CALL_FONT;
-    header.x = x; header.y = y; header.trans_count = trans_count; header.w = w; header.h = h; header.fixed = fixed; header.scale = scale; header.alt = alt; header.len = len;
-    if (trans_colors && trans_count > 0)
+    header.x = x;
+    header.y = y;
+    header.trans_count = trans_count;
+    header.w = w;
+    header.h = h;
+    header.fixed = fixed;
+    header.scale = scale;
+    header.alt = alt;
+    header.len = len;
+    if(trans_colors && trans_count > 0)
     {
         memcpy(header.trans_colors, trans_colors, trans_count < 16 ? trans_count : 16);
     }
     s32 total_compare_size = sizeof(DrawCallFont) + len;
     s32 total_record_size = total_compare_size + sizeof(s32);
-    
-    if (core->draw_cache->curr_calls_pos + total_record_size > DRAW_CACHE_MAX_SIZE)
+
+    if(core->draw_cache->curr_calls_pos + total_record_size > DRAW_CACHE_MAX_SIZE)
     {
         tic_core_draw_cache_invalidate(core);
         core->draw_cache->is_recording = false;
         return tic_api_font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt);
     }
-    
+
     u8* write_ptr = core->draw_cache->curr_calls_buf + core->draw_cache->curr_calls_pos;
     memcpy(write_ptr, &header, sizeof(DrawCallFont));
     memcpy(write_ptr + sizeof(DrawCallFont), text, len);
-    
-    if (!core->draw_cache->has_invalidated)
+
+    if(!core->draw_cache->has_invalidated)
     {
-        if (core->draw_cache->play_pos + total_record_size <= core->draw_cache->prev_calls_size &&
-            memcmp(core->draw_cache->prev_calls_buf + core->draw_cache->play_pos, write_ptr, total_compare_size) == 0)
+        if(core->draw_cache->play_pos + total_record_size <= core->draw_cache->prev_calls_size &&
+           memcmp(core->draw_cache->prev_calls_buf + core->draw_cache->play_pos, write_ptr, total_compare_size) == 0)
         {
             s32 cached_width;
             memcpy(&cached_width, core->draw_cache->prev_calls_buf + core->draw_cache->play_pos + total_compare_size, sizeof(s32));
@@ -964,7 +1094,7 @@ static s32 cache_api_font(tic_mem* tic, const char* text, s32 x, s32 y, u8* tran
             tic_core_draw_cache_invalidate(core);
         }
     }
-    
+
     s32 result = tic_api_font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt);
     memcpy(write_ptr + total_compare_size, &result, sizeof(s32));
     core->draw_cache->curr_calls_pos += total_record_size;
@@ -986,13 +1116,13 @@ void tic_core_draw_cache_init(tic_core* core)
 
 void tic_core_draw_cache_free(tic_core* core)
 {
-    if (core->draw_cache)
+    if(core->draw_cache)
     {
-        if (core->draw_cache->curr_calls_buf) free(core->draw_cache->curr_calls_buf);
-        if (core->draw_cache->prev_calls_buf) free(core->draw_cache->prev_calls_buf);
-        if (core->draw_cache->saved_ram_a) free(core->draw_cache->saved_ram_a);
-        if (core->draw_cache->saved_ram_b) free(core->draw_cache->saved_ram_b);
-        if (core->draw_cache->saved_vbank1) free(core->draw_cache->saved_vbank1);
+        if(core->draw_cache->curr_calls_buf) free(core->draw_cache->curr_calls_buf);
+        if(core->draw_cache->prev_calls_buf) free(core->draw_cache->prev_calls_buf);
+        if(core->draw_cache->saved_ram_a) free(core->draw_cache->saved_ram_a);
+        if(core->draw_cache->saved_ram_b) free(core->draw_cache->saved_ram_b);
+        if(core->draw_cache->saved_vbank1) free(core->draw_cache->saved_vbank1);
         free(core->draw_cache);
         core->draw_cache = NULL;
     }
@@ -1028,8 +1158,8 @@ bool tic_core_draw_cache_has_invalidated(tic_core* core)
 void tic_core_draw_cache_set_enabled(tic_mem* memory, bool enabled)
 {
     tic_core* core = (tic_core*)memory;
-    if (!core->draw_cache) return;
-    if (core->draw_cache->enabled == enabled) return;
+    if(!core->draw_cache) return;
+    if(core->draw_cache->enabled == enabled) return;
 
     core->draw_cache->enabled = enabled;
     tic_core_draw_cache_invalidate(core);
@@ -1038,13 +1168,33 @@ void tic_core_draw_cache_set_enabled(tic_mem* memory, bool enabled)
     core->draw_cache->play_pos = 0;
     core->draw_cache->prev_calls_size = 0;
 
-    if (!enabled)
+    if(!enabled)
     {
-        if (core->draw_cache->curr_calls_buf) { free(core->draw_cache->curr_calls_buf); core->draw_cache->curr_calls_buf = NULL; }
-        if (core->draw_cache->prev_calls_buf) { free(core->draw_cache->prev_calls_buf); core->draw_cache->prev_calls_buf = NULL; }
-        if (core->draw_cache->saved_ram_a) { free(core->draw_cache->saved_ram_a); core->draw_cache->saved_ram_a = NULL; }
-        if (core->draw_cache->saved_ram_b) { free(core->draw_cache->saved_ram_b); core->draw_cache->saved_ram_b = NULL; }
-        if (core->draw_cache->saved_vbank1) { free(core->draw_cache->saved_vbank1); core->draw_cache->saved_vbank1 = NULL; }
+        if(core->draw_cache->curr_calls_buf)
+        {
+            free(core->draw_cache->curr_calls_buf);
+            core->draw_cache->curr_calls_buf = NULL;
+        }
+        if(core->draw_cache->prev_calls_buf)
+        {
+            free(core->draw_cache->prev_calls_buf);
+            core->draw_cache->prev_calls_buf = NULL;
+        }
+        if(core->draw_cache->saved_ram_a)
+        {
+            free(core->draw_cache->saved_ram_a);
+            core->draw_cache->saved_ram_a = NULL;
+        }
+        if(core->draw_cache->saved_ram_b)
+        {
+            free(core->draw_cache->saved_ram_b);
+            core->draw_cache->saved_ram_b = NULL;
+        }
+        if(core->draw_cache->saved_vbank1)
+        {
+            free(core->draw_cache->saved_vbank1);
+            core->draw_cache->saved_vbank1 = NULL;
+        }
     }
 }
 

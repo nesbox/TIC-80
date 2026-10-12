@@ -29,26 +29,35 @@
 #include <ctype.h>
 #include <stddef.h>
 
-static const struct BinarySection{const char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySections[] =
+static const struct BinarySection
 {
-    {"TILES",       TIC_BANK_SPRITES,   offsetof(tic_bank, tiles),          sizeof(tic_tile),                   true},
-    {"SPRITES",     TIC_BANK_SPRITES,   offsetof(tic_bank, sprites),        sizeof(tic_tile),                   true},
-    {"MAP",         TIC_MAP_HEIGHT,     offsetof(tic_bank, map),            TIC_MAP_WIDTH,                      true},
-    {"WAVES",       WAVES_COUNT,        offsetof(tic_bank, sfx.waveforms),  sizeof(tic_waveform),               true},
-    {"SFX",         SFX_COUNT,          offsetof(tic_bank, sfx.samples),    sizeof(tic_sample),                 true},
-    {"PATTERNS",    MUSIC_PATTERNS,     offsetof(tic_bank, music.patterns), sizeof(tic_track_pattern),          true},
-    {"TRACKS",      MUSIC_TRACKS,       offsetof(tic_bank, music.tracks),   sizeof(tic_track),                  true},
-    {"FLAGS",       TIC_SPRITE_BANKS,   offsetof(tic_bank, flags),          TIC_BANK_SPRITES,                   true},
-    {"SCREEN",      TIC80_HEIGHT,       offsetof(tic_bank, screen),         sizeof(tic_screen) / TIC80_HEIGHT,  true},
-    {"PALETTE",     TIC_PALETTES,       offsetof(tic_bank, palette),        sizeof(tic_palette),                false},
+    const char* tag;
+    s32 count;
+    s32 offset;
+    s32 size;
+    bool flip;
+} BinarySections[] =
+    {
+        {"TILES", TIC_BANK_SPRITES, offsetof(tic_bank, tiles), sizeof(tic_tile), true},
+        {"SPRITES", TIC_BANK_SPRITES, offsetof(tic_bank, sprites), sizeof(tic_tile), true},
+        {"MAP", TIC_MAP_HEIGHT, offsetof(tic_bank, map), TIC_MAP_WIDTH, true},
+        {"WAVES", WAVES_COUNT, offsetof(tic_bank, sfx.waveforms), sizeof(tic_waveform), true},
+        {"SFX", SFX_COUNT, offsetof(tic_bank, sfx.samples), sizeof(tic_sample), true},
+        {"PATTERNS", MUSIC_PATTERNS, offsetof(tic_bank, music.patterns), sizeof(tic_track_pattern), true},
+        {"TRACKS", MUSIC_TRACKS, offsetof(tic_bank, music.tracks), sizeof(tic_track), true},
+        {"FLAGS", TIC_SPRITE_BANKS, offsetof(tic_bank, flags), TIC_BANK_SPRITES, true},
+        {"SCREEN", TIC80_HEIGHT, offsetof(tic_bank, screen), sizeof(tic_screen) / TIC80_HEIGHT, true},
+        {"PALETTE", TIC_PALETTES, offsetof(tic_bank, palette), sizeof(tic_palette), false},
 };
 
-static const struct BinarySection LangSection = {"LANG", 1, 0, sizeof (((tic_cartridge*)0)->lang), false};
+static const struct BinarySection LangSection = {"LANG", 1, 0, sizeof(((tic_cartridge*)0)->lang), false};
 
 static void makeTag(const char* tag, char* out, s32 bank)
 {
-    if(bank) sprintf(out, "%s%i", tag, bank);
-    else strcpy(out, tag);
+    if(bank)
+        sprintf(out, "%s%i", tag, bank);
+    else
+        strcpy(out, tag);
 }
 
 static bool bufferEmpty(const u8* data, s32 size)
@@ -124,13 +133,13 @@ s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
     char tag[16];
 
     FOR(const struct BinarySection*, section, BinarySections)
-        for(s32 b = 0; b < TIC_BANKS; b++)
-        {
-            makeTag(section->tag, tag, b);
+    for(s32 b = 0; b < TIC_BANKS; b++)
+    {
+        makeTag(section->tag, tag, b);
 
-            ptr = saveBinarySection(ptr, comment, tag, section->count,
-                (u8*)&cart->banks[b] + section->offset, section->size, section->flip);
-        }
+        ptr = saveBinarySection(ptr, comment, tag, section->count,
+                                (u8*)&cart->banks[b] + section->offset, section->size, section->flip);
+    }
 
     if(cart->lang)
         ptr = saveBinarySection(ptr, comment, LangSection.tag, LangSection.count, &cart->lang, LangSection.size, LangSection.flip);
@@ -166,7 +175,8 @@ static bool loadTextSection(const char* project, const char* comment, char* dst,
 
 static inline const char* getLineEnd(const char* ptr)
 {
-    while(*ptr && isspace((u8)(*ptr)) && *ptr++ != '\n');
+    while(*ptr && isspace((u8)(*ptr)) && *ptr++ != '\n')
+        ;
 
     return ptr;
 }
@@ -203,12 +213,13 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
                     if(index < count)
                     {
                         ptr += strlen(comment) + sizeof(" 999:") - 1;
-                        tic_tool_str2buf(ptr, size*2, (u8*)dst + size*index, flip);
-                        ptr += size*2 + 1;
+                        tic_tool_str2buf(ptr, size * 2, (u8*)dst + size * index, flip);
+                        ptr += size * 2 + 1;
 
                         ptr = getLineEnd(ptr);
                     }
-                    else break;
+                    else
+                        break;
                 }
             }
             else
@@ -226,7 +237,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
 
 bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridge* dst)
 {
-    char* project = (char*)malloc(size+1);
+    char* project = (char*)malloc(size + 1);
 
     bool done = false;
 
@@ -238,7 +249,8 @@ bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridg
         // remove all the '\r' chars
         {
             char *s, *d;
-            for(s = d = project; (*d = *s); d += (*s++ != '\r'));
+            for(s = d = project; (*d = *s); d += (*s++ != '\r'))
+                ;
         }
 
         tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
@@ -254,11 +266,11 @@ bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridg
             if(done)
             {
                 FOR(const struct BinarySection*, section, BinarySections)
-                    for(s32 b = 0; b < TIC_BANKS; b++)
-                    {
-                        makeTag(section->tag, tag, b);
-                        loadBinarySection(project, comment, tag, section->count, (u8*)&cart->banks[b] + section->offset, section->size, section->flip);
-                    }
+                for(s32 b = 0; b < TIC_BANKS; b++)
+                {
+                    makeTag(section->tag, tag, b);
+                    loadBinarySection(project, comment, tag, section->count, (u8*)&cart->banks[b] + section->offset, section->size, section->flip);
+                }
 
                 loadBinarySection(project, comment, LangSection.tag, LangSection.count, &cart->lang, LangSection.size, LangSection.flip);
             }

@@ -26,87 +26,86 @@
 #include "tic80.h"
 #include "defines.h"
 
-#define TIC_VRAM_SIZE (16*1024) //16K
-#define TIC_RAM_SIZE (TIC_VRAM_SIZE+80*1024) //16K+80K
-#define TIC_WASM_PAGE_COUNT 4 // 256K
-#define TIC_FONT_WIDTH 6
-#define TIC_FONT_HEIGHT 6
-#define TIC_ALTFONT_WIDTH 4
-#define TIC_PALETTE_BPP 4
-#define TIC_PALETTE_SIZE (1 << TIC_PALETTE_BPP)
-#define TIC_PALETTES 2
-#define TIC_SPRITESIZE 8
+#define TIC_VRAM_SIZE       (16 * 1024)                 //16K
+#define TIC_RAM_SIZE        (TIC_VRAM_SIZE + 80 * 1024) //16K+80K
+#define TIC_WASM_PAGE_COUNT 4                           // 256K
+#define TIC_FONT_WIDTH      6
+#define TIC_FONT_HEIGHT     6
+#define TIC_ALTFONT_WIDTH   4
+#define TIC_PALETTE_BPP     4
+#define TIC_PALETTE_SIZE    (1 << TIC_PALETTE_BPP)
+#define TIC_PALETTES        2
+#define TIC_SPRITESIZE      8
 
 #define TIC_DEFAULT_BIT_DEPTH 4
 #define TIC_DEFAULT_BLIT_MODE 2
 
-#define TIC80_OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
-#define TIC80_OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
+#define TIC80_OFFSET_LEFT ((TIC80_FULLWIDTH - TIC80_WIDTH) / 2)
+#define TIC80_OFFSET_TOP  ((TIC80_FULLHEIGHT - TIC80_HEIGHT) / 2)
 
-#define BITS_IN_BYTE 8
+#define BITS_IN_BYTE     8
 #define TIC_BANK_SPRITES (1 << BITS_IN_BYTE)
 #define TIC_SPRITE_BANKS 2
-#define TIC_FLAGS (TIC_BANK_SPRITES * TIC_SPRITE_BANKS)
-#define TIC_SPRITES (TIC_BANK_SPRITES * TIC_SPRITE_BANKS)
+#define TIC_FLAGS        (TIC_BANK_SPRITES * TIC_SPRITE_BANKS)
+#define TIC_SPRITES      (TIC_BANK_SPRITES * TIC_SPRITE_BANKS)
 
 #define TIC_SPRITESHEET_SIZE 128
 #define TIC_SPRITESHEET_COLS (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE)
 
-#define TIC_MAP_ROWS (TIC_SPRITESIZE)
-#define TIC_MAP_COLS (TIC_SPRITESIZE)
-#define TIC_MAP_SCREEN_WIDTH (TIC80_WIDTH / TIC_SPRITESIZE)
+#define TIC_MAP_ROWS          (TIC_SPRITESIZE)
+#define TIC_MAP_COLS          (TIC_SPRITESIZE)
+#define TIC_MAP_SCREEN_WIDTH  (TIC80_WIDTH / TIC_SPRITESIZE)
 #define TIC_MAP_SCREEN_HEIGHT (TIC80_HEIGHT / TIC_SPRITESIZE)
-#define TIC_MAP_WIDTH (TIC_MAP_SCREEN_WIDTH * TIC_MAP_ROWS)
-#define TIC_MAP_HEIGHT (TIC_MAP_SCREEN_HEIGHT * TIC_MAP_COLS)
+#define TIC_MAP_WIDTH         (TIC_MAP_SCREEN_WIDTH * TIC_MAP_ROWS)
+#define TIC_MAP_HEIGHT        (TIC_MAP_SCREEN_HEIGHT * TIC_MAP_COLS)
 
-#define TIC_PERSISTENT_SIZE (1024/sizeof(s32)) // 1K
-#define TIC_SAVEID_SIZE 64
+#define TIC_PERSISTENT_SIZE (1024 / sizeof(s32)) // 1K
+#define TIC_SAVEID_SIZE     64
 
 #define TIC_SOUND_CHANNELS 4
-#define SFX_TICKS 30
-#define SFX_COUNT_BITS 6
-#define SFX_COUNT (1 << SFX_COUNT_BITS)
-#define SFX_SPEED_BITS 3
-#define SFX_DEF_SPEED (1 << SFX_SPEED_BITS)
+#define SFX_TICKS          30
+#define SFX_COUNT_BITS     6
+#define SFX_COUNT          (1 << SFX_COUNT_BITS)
+#define SFX_SPEED_BITS     3
+#define SFX_DEF_SPEED      (1 << SFX_SPEED_BITS)
 
-#define NOTES 12
-#define OCTAVES 8
-#define MAX_VOLUME 15
-#define MUSIC_PATTERN_ROWS 64
-#define MUSIC_PATTERNS 60
-#define MUSIC_CMD_BITS 3
-#define TRACK_PATTERN_BITS 6
-#define TRACK_PATTERN_MASK ((1 << TRACK_PATTERN_BITS) - 1)
-#define TRACK_PATTERNS_SIZE (TRACK_PATTERN_BITS * TIC_SOUND_CHANNELS / BITS_IN_BYTE)
-#define MUSIC_FRAMES 16
-#define MUSIC_TRACKS 8
-#define DEFAULT_TEMPO 150
-#define DEFAULT_SPEED 6
-#define PITCH_DELTA 128
-#define NOTES_PER_BEAT 4
-#define PATTERN_START 1
+#define NOTES                12
+#define OCTAVES              8
+#define MAX_VOLUME           15
+#define MUSIC_PATTERN_ROWS   64
+#define MUSIC_PATTERNS       60
+#define MUSIC_CMD_BITS       3
+#define TRACK_PATTERN_BITS   6
+#define TRACK_PATTERN_MASK   ((1 << TRACK_PATTERN_BITS) - 1)
+#define TRACK_PATTERNS_SIZE  (TRACK_PATTERN_BITS * TIC_SOUND_CHANNELS / BITS_IN_BYTE)
+#define MUSIC_FRAMES         16
+#define MUSIC_TRACKS         8
+#define DEFAULT_TEMPO        150
+#define DEFAULT_SPEED        6
+#define PITCH_DELTA          128
+#define NOTES_PER_BEAT       4
+#define PATTERN_START        1
 #define MUSIC_SFXID_LOW_BITS 5
-#define WAVES_COUNT 16
-#define WAVE_VALUES 32
-#define WAVE_VALUE_BITS 4
-#define WAVE_MAX_VALUE ((1 << WAVE_VALUE_BITS) - 1)
-#define WAVE_SIZE (WAVE_VALUES * WAVE_VALUE_BITS / BITS_IN_BYTE)
-#define TIC_PCM_SIZE 128
+#define WAVES_COUNT          16
+#define WAVE_VALUES          32
+#define WAVE_VALUE_BITS      4
+#define WAVE_MAX_VALUE       ((1 << WAVE_VALUE_BITS) - 1)
+#define WAVE_SIZE            (WAVE_VALUES * WAVE_VALUE_BITS / BITS_IN_BYTE)
+#define TIC_PCM_SIZE         128
 
 #define TIC_BANKSIZE_BITS 16
-#define TIC_BANK_SIZE (1 << TIC_BANKSIZE_BITS) // 64K
-#define TIC_BANK_BITS 3
-#define TIC_BANKS (1 << TIC_BANK_BITS)
+#define TIC_BANK_SIZE     (1 << TIC_BANKSIZE_BITS) // 64K
+#define TIC_BANK_BITS     3
+#define TIC_BANKS         (1 << TIC_BANK_BITS)
 
-#define TIC_CODE_SIZE (TIC_BANK_SIZE * TIC_BANKS)
+#define TIC_CODE_SIZE    (TIC_BANK_SIZE * TIC_BANKS)
 #define TIC_BINARY_BANKS 4
-#define TIC_BINARY_SIZE (TIC_BINARY_BANKS * TIC_BANK_SIZE) // 4 * 64k = 256K
+#define TIC_BINARY_SIZE  (TIC_BINARY_BANKS * TIC_BANK_SIZE) // 4 * 64k = 256K
 
-
-#define TIC_BUTTONS 8
+#define TIC_BUTTONS  8
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
-#define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+#define SFX_NOTES      {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 #define TIC_FONT_CHARS 128
 
 #define TIC_UNUSED(x) (void)x
@@ -165,11 +164,11 @@ typedef enum
 typedef struct
 {
 #if RETRO_IS_BIG_ENDIAN
-    u8 size:4;
-    u8 start:4;
+    u8 size : 4;
+    u8 start : 4;
 #else
-    u8 start:4;
-    u8 size:4;
+    u8 start : 4;
+    u8 size : 4;
 #endif
 } tic_sound_loop;
 
@@ -179,38 +178,38 @@ typedef struct
     struct
     {
 #if RETRO_IS_BIG_ENDIAN
-        u8 wave:4;
-        u8 volume:4;
-        s8 pitch:4;
-        u8 chord:4;
+        u8 wave : 4;
+        u8 volume : 4;
+        s8 pitch : 4;
+        u8 chord : 4;
 #else
-        u8 volume:4;
-        u8 wave:4;
-        u8 chord:4;
-        s8 pitch:4;
+        u8 volume : 4;
+        u8 wave : 4;
+        u8 chord : 4;
+        s8 pitch : 4;
 #endif
     } data[SFX_TICKS];
 
     struct
     {
 #if RETRO_IS_BIG_ENDIAN
-        u8 reverse:1; // chord reverse
-        s8 speed:SFX_SPEED_BITS;
-        u8 pitch16x:1; // pitch factor
-        u8 octave:3;
-        u8 temp:2;
-        u8 stereo_right:1;
-        u8 stereo_left:1;
-        u8 note:4;
+        u8 reverse : 1; // chord reverse
+        s8 speed : SFX_SPEED_BITS;
+        u8 pitch16x : 1; // pitch factor
+        u8 octave : 3;
+        u8 temp : 2;
+        u8 stereo_right : 1;
+        u8 stereo_left : 1;
+        u8 note : 4;
 #else
-        u8 octave:3;
-        u8 pitch16x:1; // pitch factor
-        s8 speed:SFX_SPEED_BITS;
-        u8 reverse:1; // chord reverse
-        u8 note:4;
-        u8 stereo_left:1;
-        u8 stereo_right:1;
-        u8 temp:2;
+        u8 octave : 3;
+        u8 pitch16x : 1; // pitch factor
+        s8 speed : SFX_SPEED_BITS;
+        u8 reverse : 1; // chord reverse
+        u8 note : 4;
+        u8 stereo_left : 1;
+        u8 stereo_right : 1;
+        u8 temp : 2;
 #endif
     };
 
@@ -248,7 +247,7 @@ typedef struct
 typedef struct
 {
     u8 data[WAVE_SIZE];
-}tic_waveform;
+} tic_waveform;
 
 typedef struct
 {
@@ -273,27 +272,27 @@ typedef enum
     MUSIC_CMD_LIST(ENUM_ITEM)
 #undef ENUM_ITEM
 
-    tic_music_cmd_count
+        tic_music_cmd_count
 } tic_music_command;
 
 typedef struct
 {
 #if RETRO_IS_BIG_ENDIAN
-    u8 param1   :4;
-    u8 note     :4;
-    u8 sfxhi    :1;
-    u8 command  :MUSIC_CMD_BITS; // tic_music_command
-    u8 param2   :4;
-    u8 octave   :3;
-    u8 sfxlow   :MUSIC_SFXID_LOW_BITS;
+    u8 param1 : 4;
+    u8 note : 4;
+    u8 sfxhi : 1;
+    u8 command : MUSIC_CMD_BITS; // tic_music_command
+    u8 param2 : 4;
+    u8 octave : 3;
+    u8 sfxlow : MUSIC_SFXID_LOW_BITS;
 #else
-    u8 note     :4;
-    u8 param1   :4;
-    u8 param2   :4;
-    u8 command  :MUSIC_CMD_BITS; // tic_music_command
-    u8 sfxhi    :1;
-    u8 sfxlow   :MUSIC_SFXID_LOW_BITS;
-    u8 octave   :3;
+    u8 note : 4;
+    u8 param1 : 4;
+    u8 param2 : 4;
+    u8 command : MUSIC_CMD_BITS; // tic_music_command
+    u8 sfxhi : 1;
+    u8 sfxlow : MUSIC_SFXID_LOW_BITS;
+    u8 octave : 3;
 #endif
 } tic_track_row;
 
@@ -308,7 +307,7 @@ typedef struct
     u8 data[MUSIC_FRAMES * TRACK_PATTERNS_SIZE]; // sfx - 6bits per channel = 24 bit
 
     s8 tempo; // delta value, rel to 120 bpm * 10 [32-255]
-    u8 rows; // delta value, rel to 64 rows, can be [1-64]
+    u8 rows;  // delta value, rel to 64 rows, can be [1-64]
     s8 speed; // delta value, rel to 6 [1-31]
 
 } tic_track;
@@ -332,13 +331,13 @@ typedef struct
 {
     tic_waveforms waveforms;
     tic_samples samples;
-}tic_sfx;
+} tic_sfx;
 
 typedef struct
 {
     tic_patterns patterns;
     tic_tracks tracks;
-}tic_music;
+} tic_music;
 
 typedef enum
 {
@@ -359,15 +358,15 @@ typedef struct
     struct
     {
 #if RETRO_IS_BIG_ENDIAN
-        u8 unknown:4;
-        u8 music_sustain:1;
-        u8 music_status:2; // enum tic_music_status
-        u8 music_loop:1;
+        u8 unknown : 4;
+        u8 music_sustain : 1;
+        u8 music_status : 2; // enum tic_music_status
+        u8 music_loop : 1;
 #else
-        u8 music_loop:1;
-        u8 music_status:2; // enum tic_music_status
-        u8 music_sustain:1;
-        u8 unknown:4;
+        u8 music_loop : 1;
+        u8 music_status : 2; // enum tic_music_status
+        u8 music_sustain : 1;
+        u8 unknown : 4;
 #endif
     } flag;
 
@@ -378,29 +377,29 @@ typedef union
     struct
     {
 #if RETRO_IS_BIG_ENDIAN
-        u8 right4:4;
-        u8 left4:4;
+        u8 right4 : 4;
+        u8 left4 : 4;
 
-        u8 right3:4;
-        u8 left3:4;
+        u8 right3 : 4;
+        u8 left3 : 4;
 
-        u8 right2:4;
-        u8 left2:4;
+        u8 right2 : 4;
+        u8 left2 : 4;
 
-        u8 right1:4;
-        u8 left1:4;
+        u8 right1 : 4;
+        u8 left1 : 4;
 #else
-        u8 left1:4;
-        u8 right1:4;
+        u8 left1 : 4;
+        u8 right1 : 4;
 
-        u8 left2:4;
-        u8 right2:4;
+        u8 left2 : 4;
+        u8 right2 : 4;
 
-        u8 left3:4;
-        u8 right3:4;
+        u8 left3 : 4;
+        u8 right3 : 4;
 
-        u8 left4:4;
-        u8 right4:4;
+        u8 left4 : 4;
+        u8 right4 : 4;
 #endif
     };
 
@@ -411,19 +410,18 @@ typedef struct
 {
     struct
     {
-	u8 freq_low;
+        u8 freq_low;
 #if RETRO_IS_BIG_ENDIAN
-        u8 volume:4;
-        u8 freq_high:4;
+        u8 volume : 4;
+        u8 freq_high : 4;
 #else
-        u8 freq_high:4;
-        u8 volume:4;
+        u8 freq_high : 4;
+        u8 volume : 4;
 #endif
     };
 
     tic_waveform waveform;
 } tic_sound_register;
-
 
 static INLINE u16 tic_sound_register_get_freq(const tic_sound_register* reg)
 {
@@ -499,14 +497,14 @@ typedef struct
 
 typedef struct
 {
-    tic_screen      screen;
-    tic_tiles       tiles;
-    tic_sprites     sprites;
-    tic_map         map;
-    tic_sfx         sfx;
-    tic_music       music;
-    tic_flags       flags;
-    tic_palettes    palette;
+    tic_screen screen;
+    tic_tiles tiles;
+    tic_sprites sprites;
+    tic_map map;
+    tic_sfx sfx;
+    tic_music music;
+    tic_flags flags;
+    tic_palettes palette;
 } tic_bank;
 
 typedef struct
@@ -557,25 +555,27 @@ typedef union
         {
             union
             {
-		struct {
+                struct
+                {
 #if RETRO_IS_BIG_ENDIAN
-		    u8 padding_border:4;
-		    u8 border:TIC_PALETTE_BPP;
+                    u8 padding_border : 4;
+                    u8 border : TIC_PALETTE_BPP;
 #else
-		    u8 border:TIC_PALETTE_BPP;
-		    u8 padding_border:4;
+                    u8 border : TIC_PALETTE_BPP;
+                    u8 padding_border : 4;
 #endif
-		};
+                };
                 // clear color for the BANK1
-		struct {
+                struct
+                {
 #if RETRO_IS_BIG_ENDIAN
-		    u8 padding_clear:4;
-		    u8 clear:TIC_PALETTE_BPP;
+                    u8 padding_clear : 4;
+                    u8 clear : TIC_PALETTE_BPP;
 #else
-		    u8 clear:TIC_PALETTE_BPP;
-		    u8 padding_clear:4;
+                    u8 clear : TIC_PALETTE_BPP;
+                    u8 padding_clear : 4;
 #endif
-		};
+                };
             };
 
             struct
@@ -587,11 +587,11 @@ typedef union
             struct
             {
 #if RETRO_IS_BIG_ENDIAN
-                u8 system:1;
-                u8 sprite:7;
+                u8 system : 1;
+                u8 sprite : 7;
 #else
-                u8 sprite:7;
-                u8 system:1;
+                u8 sprite : 7;
+                u8 system : 1;
 #endif
             } cursor;
         } vars;
@@ -599,11 +599,11 @@ typedef union
         struct
         {
 #if RETRO_IS_BIG_ENDIAN
-            u8 reserved:4;
-            u8 segment:4;
+            u8 reserved : 4;
+            u8 segment : 4;
 #else
-            u8 segment:4;
-            u8 reserved:4;
+            u8 segment : 4;
+            u8 reserved : 4;
 #endif
         } blit;
 
@@ -632,22 +632,22 @@ typedef union
 {
     struct
     {
-        tic_vram            vram;
-        tic_tiles           tiles;
-        tic_sprites         sprites;
-        tic_map             map;
-        tic80_input         input;
-        tic_sfx_pos         sfxpos[TIC_SOUND_CHANNELS];
-        tic_sound_register  registers[TIC_SOUND_CHANNELS];
-        tic_sfx             sfx;
-        tic_music           music;
-        tic_music_state     music_state;
-        tic_stereo_volume   stereo;
-        tic_persistent      persistent;
-        tic_flags           flags;
-        tic_font            font;
-        tic_mapping         mapping;
-        tic_pcm             pcm;
+        tic_vram vram;
+        tic_tiles tiles;
+        tic_sprites sprites;
+        tic_map map;
+        tic80_input input;
+        tic_sfx_pos sfxpos[TIC_SOUND_CHANNELS];
+        tic_sound_register registers[TIC_SOUND_CHANNELS];
+        tic_sfx sfx;
+        tic_music music;
+        tic_music_state music_state;
+        tic_stereo_volume stereo;
+        tic_persistent persistent;
+        tic_flags flags;
+        tic_font font;
+        tic_mapping mapping;
+        tic_pcm pcm;
 
         u8 free;
     };

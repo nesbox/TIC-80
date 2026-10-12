@@ -18,7 +18,7 @@ void VQT_GenerateCenterFrequencies(float* frequencies, int numBins, float minFre
 {
     (void)maxFreq; // base is authoritative; maxFreq is not used to scale bins
     const double base = (double)minFreq;
-    for (int i = 0; i < numBins; i++)
+    for(int i = 0; i < numBins; i++)
     {
         frequencies[i] = (float)(base * pow(2.0, (double)i / 12.0));
     }
@@ -29,16 +29,26 @@ static float calculateVariableQ(float centerFreq)
 {
     // Designed to maximize Q within 8K FFT window size limitation
     // Low-frequency windows are truncated to the available 8192 samples.
-    if (centerFreq < 25.0f) return 7.4f;        // 20-25 Hz: Max possible with 8K
-    else if (centerFreq < 30.0f) return 9.2f;   // 25-30 Hz: Good resolution
-    else if (centerFreq < 40.0f) return 11.5f;  // 30-40 Hz: Better resolution
-    else if (centerFreq < 50.0f) return 14.5f;  // 40-50 Hz: Near ideal
-    else if (centerFreq < 65.0f) return 16.0f;  // 50-65 Hz: Almost full Q
-    else if (centerFreq < 80.0f) return 17.0f;  // 65-80 Hz: Full standard Q
-    else if (centerFreq < 160.0f) return 17.0f; // 80-160 Hz: Standard VQT
-    else if (centerFreq < 320.0f) return 15.0f; // 160-320 Hz: Slightly wider
-    else if (centerFreq < 640.0f) return 13.0f; // 320-640 Hz: Smoother
-    else return 11.0f;                           // 640+ Hz: Very smooth
+    if(centerFreq < 25.0f)
+        return 7.4f; // 20-25 Hz: Max possible with 8K
+    else if(centerFreq < 30.0f)
+        return 9.2f; // 25-30 Hz: Good resolution
+    else if(centerFreq < 40.0f)
+        return 11.5f; // 30-40 Hz: Better resolution
+    else if(centerFreq < 50.0f)
+        return 14.5f; // 40-50 Hz: Near ideal
+    else if(centerFreq < 65.0f)
+        return 16.0f; // 50-65 Hz: Almost full Q
+    else if(centerFreq < 80.0f)
+        return 17.0f; // 65-80 Hz: Full standard Q
+    else if(centerFreq < 160.0f)
+        return 17.0f; // 80-160 Hz: Standard VQT
+    else if(centerFreq < 320.0f)
+        return 15.0f; // 160-320 Hz: Slightly wider
+    else if(centerFreq < 640.0f)
+        return 13.0f; // 320-640 Hz: Smoother
+    else
+        return 11.0f; // 640+ Hz: Very smooth
 }
 
 // Get adaptive sparsity threshold based on Q factor
@@ -46,9 +56,12 @@ static float getSparsityThreshold(float centerFreq)
 {
     float Q = calculateVariableQ(centerFreq);
     // Higher Q needs lower threshold to preserve frequency selectivity
-    if (Q > 30) return 0.005f;
-    else if (Q > 20) return 0.01f;
-    else return 0.02f;
+    if(Q > 30)
+        return 0.005f;
+    else if(Q > 20)
+        return 0.01f;
+    else
+        return 0.02f;
 }
 
 // Generate Hamming window
@@ -57,7 +70,7 @@ static void generateHammingWindow(float* window, int length)
     const float a0 = 0.54f;
     const float a1 = 0.46f;
 
-    for (int i = 0; i < length; i++)
+    for(int i = 0; i < length; i++)
     {
         window[i] = (float)(a0 - a1 * cos(2.0 * M_PI * i / (length - 1)));
     }
@@ -70,7 +83,7 @@ static void generateGaussianWindow(float* window, int length)
     float center = (length - 1) / 2.0f;
     float normFactor = sigma * length / 2.0f;
 
-    for (int i = 0; i < length; i++)
+    for(int i = 0; i < length; i++)
     {
         float x = (i - center) / normFactor;
         window[i] = (float)(exp(-0.5f * x * x));
@@ -103,24 +116,25 @@ static bool generateSingleKernel(
     // 80Hz+: All fit within 8K samples with designed Q!
 
     // Ensure it fits in FFT size
-    if (windowLength > fftSize) {
+    if(windowLength > fftSize)
+    {
         windowLength = fftSize;
-        #ifdef VQT_DEBUG
+#ifdef VQT_DEBUG
         // Calculate effective Q after truncation
         float effectiveQ = windowLength * centerFreq / sampleRate;
         printf("Freq %.1f Hz: Q designed=%.1f, window=%d, Q effective=%.1f (truncated)\n",
                centerFreq, Q, windowLength, effectiveQ);
-        #endif
+#endif
     }
 
     // Ensure window length is reasonable
-    if (windowLength < 32) windowLength = 32;  // Minimum window size
+    if(windowLength < 32) windowLength = 32; // Minimum window size
 
     // Allocate temporary arrays
     float* timeKernel = (float*)calloc(fftSize, sizeof(float));
-    kiss_fft_cpx* freqKernel = (kiss_fft_cpx*)malloc((fftSize/2 + 1) * sizeof(kiss_fft_cpx));
+    kiss_fft_cpx* freqKernel = (kiss_fft_cpx*)malloc((fftSize / 2 + 1) * sizeof(kiss_fft_cpx));
 
-    if (!timeKernel || !freqKernel)
+    if(!timeKernel || !freqKernel)
     {
         free(timeKernel);
         free(freqKernel);
@@ -132,14 +146,14 @@ static bool generateSingleKernel(
 
     // First generate the window
     float* tempWindow = (float*)malloc(windowLength * sizeof(float));
-    if (!tempWindow)
+    if(!tempWindow)
     {
         free(timeKernel);
         free(freqKernel);
         return false;
     }
 
-    switch (windowType)
+    switch(windowType)
     {
         case VQT_WINDOW_HAMMING:
             generateHammingWindow(tempWindow, windowLength);
@@ -151,17 +165,17 @@ static bool generateSingleKernel(
 
     // Apply window and modulate with complex exponential
     // Following ESP32 reference: modulate based on full FFT size, not window size
-    for (int i = 0; i < windowLength; i++)
+    for(int i = 0; i < windowLength; i++)
     {
         int idx = windowStart + i;
         // Key insight: use idx (position in full FFT buffer) not i (position in window)
         // and center around N/2 where N is the full FFT size
-        float phase = (float)(2.0f * M_PI * (centerFreq / sampleRate) * (idx - fftSize/2));
+        float phase = (float)(2.0f * M_PI * (centerFreq / sampleRate) * (idx - fftSize / 2));
         timeKernel[idx] = (float)(tempWindow[i] * cos(phase));
     }
 
     // Normalize by window length before FFT (like ESP32)
-    for (int i = 0; i < fftSize; i++)
+    for(int i = 0; i < fftSize; i++)
     {
         timeKernel[i] /= windowLength;
     }
@@ -173,11 +187,11 @@ static bool generateSingleKernel(
 
     // Count non-zero elements (above sparsity threshold)
     int nonZeroCount = 0;
-    for (int i = 0; i <= fftSize/2; i++)
+    for(int i = 0; i <= fftSize / 2; i++)
     {
         float magnitude = (float)(sqrt(freqKernel[i].r * freqKernel[i].r +
-                              freqKernel[i].i * freqKernel[i].i));
-        if (magnitude > sparsityThreshold)
+                                       freqKernel[i].i * freqKernel[i].i));
+        if(magnitude > sparsityThreshold)
         {
             nonZeroCount++;
         }
@@ -189,7 +203,7 @@ static bool generateSingleKernel(
     kernel->indices = (int*)malloc(nonZeroCount * sizeof(int));
     kernel->length = nonZeroCount;
 
-    if (!kernel->real || !kernel->imag || !kernel->indices)
+    if(!kernel->real || !kernel->imag || !kernel->indices)
     {
         free(kernel->real);
         free(kernel->imag);
@@ -203,30 +217,30 @@ static bool generateSingleKernel(
 
     // Store non-zero elements
     int sparseIndex = 0;
-    int minIdx = fftSize, maxIdx = 0;  // Track range for debug
-    for (int i = 0; i <= fftSize/2; i++)
+    int minIdx = fftSize, maxIdx = 0; // Track range for debug
+    for(int i = 0; i <= fftSize / 2; i++)
     {
         float magnitude = (float)(sqrt(freqKernel[i].r * freqKernel[i].r +
-                              freqKernel[i].i * freqKernel[i].i));
-        if (magnitude > sparsityThreshold)
+                                       freqKernel[i].i * freqKernel[i].i));
+        if(magnitude > sparsityThreshold)
         {
             kernel->real[sparseIndex] = freqKernel[i].r;
             kernel->imag[sparseIndex] = freqKernel[i].i;
             kernel->indices[sparseIndex] = i;
-            if (i < minIdx) minIdx = i;
-            if (i > maxIdx) maxIdx = i;
+            if(i < minIdx) minIdx = i;
+            if(i > maxIdx) maxIdx = i;
             sparseIndex++;
         }
     }
 
-    #ifdef VQT_DEBUG
+#ifdef VQT_DEBUG
     // Debug output for specific frequencies
-    if (fabs(centerFreq - 110.0f) < 1.0f || fabs(centerFreq - 440.0f) < 1.0f)
+    if(fabs(centerFreq - 110.0f) < 1.0f || fabs(centerFreq - 440.0f) < 1.0f)
     {
         printf("Kernel for %.1f Hz: FFT bins %d-%d (count: %d)\n",
                centerFreq, minIdx, maxIdx, nonZeroCount);
     }
-    #endif
+#endif
 
     free(timeKernel);
     free(freqKernel);
@@ -238,14 +252,14 @@ bool VQT_GenerateKernels(VqtKernel* kernels, const VqtKernelConfig* config)
 {
     // Generate center frequencies
     float* centerFreqs = (float*)malloc(config->numBins * sizeof(float));
-    if (!centerFreqs) return false;
+    if(!centerFreqs) return false;
 
     VQT_GenerateCenterFrequencies(centerFreqs, config->numBins,
                                   config->minFreq, config->maxFreq);
 
     // Create FFT configuration
     kiss_fftr_cfg fftCfg = kiss_fftr_alloc(config->fftSize, 0, NULL, NULL);
-    if (!fftCfg)
+    if(!fftCfg)
     {
         free(centerFreqs);
         return false;
@@ -253,17 +267,17 @@ bool VQT_GenerateKernels(VqtKernel* kernels, const VqtKernelConfig* config)
 
     // Generate kernel for each VQT bin
     bool success = true;
-    for (int i = 0; i < config->numBins; i++)
+    for(int i = 0; i < config->numBins; i++)
     {
         // Use adaptive sparsity threshold based on frequency
         float adaptiveThreshold = getSparsityThreshold(centerFreqs[i]);
-        if (!generateSingleKernel(&kernels[i], fftCfg, config->fftSize,
+        if(!generateSingleKernel(&kernels[i], fftCfg, config->fftSize,
                                  centerFreqs[i], config->minFreq,
                                  config->sampleRate, config->windowType,
                                  adaptiveThreshold))
         {
             // Clean up on failure
-            for (int j = 0; j < i; j++)
+            for(int j = 0; j < i; j++)
             {
                 free(kernels[j].real);
                 free(kernels[j].imag);
@@ -285,11 +299,15 @@ bool VQT_GenerateKernels(VqtKernel* kernels, const VqtKernelConfig* config)
 // Stub implementations when FFT is unsupported
 void VQT_GenerateCenterFrequencies(float* frequencies, int numBins, float minFreq, float maxFreq)
 {
-    (void)frequencies; (void)numBins; (void)minFreq; (void)maxFreq;
+    (void)frequencies;
+    (void)numBins;
+    (void)minFreq;
+    (void)maxFreq;
 }
 bool VQT_GenerateKernels(VqtKernel* kernels, const VqtKernelConfig* config)
 {
-    (void)kernels; (void)config;
+    (void)kernels;
+    (void)config;
     return false;
 }
 

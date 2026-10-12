@@ -27,7 +27,7 @@
 
 #if defined(_WIN32) || defined(__INTEL_COMPILER)
 #define INLINE __inline
-#elif defined(__STDC_VERSION__) && __STDC_VERSION__>=199901L
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #define INLINE inline
 #elif defined(__GNUC__)
 #define INLINE __inline__

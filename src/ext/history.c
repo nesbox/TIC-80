@@ -53,7 +53,7 @@ static void list_delete(Item* list, Item* from)
         Item* next = it->next;
 
         if(it->data.buffer) free(it->data.buffer);
-        
+
         free(it);
 
         it = next;
@@ -81,7 +81,8 @@ static Item* list_insert(Item* list, Data* data)
 static Item* list_first(Item* list)
 {
     Item* it = list;
-    while(it->prev) it = it->prev;
+    while(it->prev)
+        it = it->prev;
 
     return it;
 }
@@ -127,7 +128,7 @@ void history_delete(History* history)
 
 static void history_diff(History* history, Data* data)
 {
-    for (u32 i = data->start, k = 0; i < data->end; ++i, ++k)
+    for(u32 i = data->start, k = 0; i < data->end; ++i, ++k)
         history->state[i] ^= data->buffer[k];
 }
 
@@ -149,7 +150,7 @@ static u32 trim_right(u8* data, u32 size)
 
 bool history_add(History* history)
 {
-    if (memcmp(history->state, history->data, history->size) == 0) return false;
+    if(memcmp(history->state, history->data, history->size) == 0) return false;
 
     history_diff(history, &(Data){history->data, 0, history->size});
 

@@ -25,7 +25,10 @@
 
 static const char _ms_loadstring[] = "_ms_loadstring";
 
-static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
+static inline bool isalnum_(char c)
+{
+    return isalnum((u8)c) || c == '_';
+}
 
 #include "moonscript.h"
 
@@ -34,11 +37,7 @@ static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
 static const char* execute_moonscript_src = MOON_CODE(
     local fn, err = require('moonscript.base').loadstring(...)
 
-    if not fn then
-        error(err)
-    end
-    return fn()
-);
+                        if not fn then error(err) end return fn());
 
 static void setloaded(lua_State* l, char* name)
 {
@@ -46,7 +45,8 @@ static void setloaded(lua_State* l, char* name)
     lua_getglobal(l, "package");
     lua_getfield(l, -1, "loaded");
     lua_getfield(l, -1, name);
-    if (lua_isnil(l, -1)) {
+    if(lua_isnil(l, -1))
+    {
         lua_pop(l, 1);
         lua_pushvalue(l, top);
         lua_setfield(l, -2, name);
@@ -55,24 +55,25 @@ static void setloaded(lua_State* l, char* name)
     lua_settop(l, top);
 }
 
-static void evalMoonscript(tic_mem* tic, const char* code) {
+static void evalMoonscript(tic_mem* tic, const char* code)
+{
     tic_core* core = (tic_core*)tic;
     lua_State* lua = core->currentVM;
 
     lua_getglobal(lua, _ms_loadstring);
 
     lua_pushstring(lua, code);
-    if (lua_pcall(lua, 1, 1, 0) != LUA_OK)
+    if(lua_pcall(lua, 1, 1, 0) != LUA_OK)
     {
         const char* msg = lua_tostring(lua, -1);
-        if (msg)
+        if(msg)
         {
             core->data->error(core->data->data, msg);
         }
     }
 }
 
-extern s32 luaopen_lpeg(lua_State *lua);
+extern s32 luaopen_lpeg(lua_State* lua);
 
 static bool initMoonscript(tic_mem* tic, const char* code)
 {
@@ -92,7 +93,7 @@ static bool initMoonscript(tic_mem* tic, const char* code)
 
         lua_settop(moon, 0);
 
-        if (luaL_loadbuffer(moon, (const char *)moonscript_lua, moonscript_lua_len, "moonscript.lua") != LUA_OK)
+        if(luaL_loadbuffer(moon, (const char*)moonscript_lua, moonscript_lua_len, "moonscript.lua") != LUA_OK)
         {
             core->data->error(core->data->data, "failed to load moonscript.lua");
             return false;
@@ -100,7 +101,7 @@ static bool initMoonscript(tic_mem* tic, const char* code)
 
         lua_call(moon, 0, 0);
 
-        if (luaL_loadbuffer(moon, execute_moonscript_src, strlen(execute_moonscript_src), "execute_moonscript") != LUA_OK)
+        if(luaL_loadbuffer(moon, execute_moonscript_src, strlen(execute_moonscript_src), "execute_moonscript") != LUA_OK)
         {
             core->data->error(core->data->data, "failed to load moonscript compiler");
             return false;
@@ -110,11 +111,11 @@ static bool initMoonscript(tic_mem* tic, const char* code)
         lua_getglobal(lua, _ms_loadstring);
 
         lua_pushstring(moon, code);
-        if (lua_pcall(moon, 1, 1, 0) != LUA_OK)
+        if(lua_pcall(moon, 1, 1, 0) != LUA_OK)
         {
             const char* msg = lua_tostring(moon, -1);
 
-            if (msg)
+            if(msg)
             {
                 core->data->error(core->data->data, msg);
                 return false;
@@ -125,20 +126,48 @@ static bool initMoonscript(tic_mem* tic, const char* code)
     return true;
 }
 
-static const char* const MoonKeywords [] =
-{
-    "false", "true", "nil", "local", "return",
-    "break", "continue", "for", "while",
-    "if", "else", "elseif", "unless", "switch",
-    "when", "and", "or", "in", "do",
-    "not", "super", "try", "catch",
-    "with", "export", "import", "then",
-    "from", "class", "extends", "new", "using",
+static const char* const MoonKeywords[] =
+    {
+        "false",
+        "true",
+        "nil",
+        "local",
+        "return",
+        "break",
+        "continue",
+        "for",
+        "while",
+        "if",
+        "else",
+        "elseif",
+        "unless",
+        "switch",
+        "when",
+        "and",
+        "or",
+        "in",
+        "do",
+        "not",
+        "super",
+        "try",
+        "catch",
+        "with",
+        "export",
+        "import",
+        "then",
+        "from",
+        "class",
+        "extends",
+        "new",
+        "using",
 };
 
 static const tic_outline_item* getMoonOutline(const char* code, s32* size)
 {
-    enum{Size = sizeof(tic_outline_item)};
+    enum
+    {
+        Size = sizeof(tic_outline_item)
+    };
 
     *size = 0;
 
@@ -164,11 +193,13 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
 
             ptr += sizeof FuncString - 1;
 
-            while(end >= code && !isalnum_(*end))  end--;
+            while(end >= code && !isalnum_(*end))
+                end--;
 
             const char* start = end;
 
-            for (const char* val = start-1; val >= code && (isalnum_(*val)); val--, start--);
+            for(const char* val = start - 1; val >= code && (isalnum_(*val)); val--, start--)
+                ;
 
             if(end > start)
             {
@@ -180,57 +211,58 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
                 (*size)++;
             }
         }
-        else break;
+        else
+            break;
     }
 
     return items;
 }
 
 static const u8 DemoRom[] =
-{
-    #include "../build/assets/moondemo.tic.dat"
+    {
+#include "../build/assets/moondemo.tic.dat"
 };
 
 static const u8 MarkRom[] =
-{
-    #include "../build/assets/moonmark.tic.dat"
+    {
+#include "../build/assets/moonmark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Moon) =
-{
-    .id                 = 13,
-    .name               = "moon",
-    .fileExtension      = ".moon",
-    .projectComment     = "--",
     {
-      .init               = initMoonscript,
-      .close              = luaapi_close,
-      .tick               = luaapi_tick,
-      .boot               = luaapi_boot,
+        .id = 13,
+        .name = "moon",
+        .fileExtension = ".moon",
+        .projectComment = "--",
+        {
+            .init = initMoonscript,
+            .close = luaapi_close,
+            .tick = luaapi_tick,
+            .boot = luaapi_boot,
 
-      .callback           =
-      {
-        .scanline       = luaapi_scn,
-        .border         = luaapi_bdr,
-        .menu           = luaapi_menu,
-      },
-    },
+            .callback =
+                {
+                    .scanline = luaapi_scn,
+                    .border = luaapi_bdr,
+                    .menu = luaapi_menu,
+                },
+        },
 
-    .getOutline         = getMoonOutline,
-    .eval               = evalMoonscript,
+        .getOutline = getMoonOutline,
+        .eval = evalMoonscript,
 
-    .blockCommentStart  = NULL,
-    .blockCommentEnd    = NULL,
-    .blockCommentStart2 = NULL,
-    .blockCommentEnd2   = NULL,
-    .blockStringStart   = NULL,
-    .blockStringEnd     = NULL,
-    .singleComment      = "--",
-    .blockEnd           = NULL,
+        .blockCommentStart = NULL,
+        .blockCommentEnd = NULL,
+        .blockCommentStart2 = NULL,
+        .blockCommentEnd2 = NULL,
+        .blockStringStart = NULL,
+        .blockStringEnd = NULL,
+        .singleComment = "--",
+        .blockEnd = NULL,
 
-    .keywords           = MoonKeywords,
-    .keywordsCount      = COUNT_OF(MoonKeywords),
+        .keywords = MoonKeywords,
+        .keywordsCount = COUNT_OF(MoonKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom, NULL},
-    .mark = {MarkRom, sizeof MarkRom, "moonmark.tic"},
+        .demo = {DemoRom, sizeof DemoRom, NULL},
+        .mark = {MarkRom, sizeof MarkRom, "moonmark.tic"},
 };

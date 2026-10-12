@@ -34,4 +34,4 @@ typedef enum
 } CartSaveResult;
 
 void tic_cart_load(tic_cartridge* rom, const u8* buffer, s32 size);
-s32  tic_cart_save(const tic_cartridge* rom, u8* buffer);
+s32 tic_cart_save(const tic_cartridge* rom, u8* buffer);

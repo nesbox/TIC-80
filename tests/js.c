@@ -53,23 +53,23 @@ int main(void)
     assert(ErrorCount == 0);
 
     assert(Script->init(tic,
-        "let frames = 0;"
-        "let ready = false;"
-        "Promise.resolve(7).then(value => { pmem(1, value); ready = true; });"
-        "function BOOT() { pmem(2, 1); }"
-        "function TIC() {"
-        "  if (!ready) throw new Error('pending job did not run');"
-        "  cls();"
-        "  pix(4, 5, 3);"
-        "  spr(1, 0, 0, [0]);"
-        "  map(0, 0, 1, 1, 16, 0, [0], 1, () => [2, 0, 0]);"
-        "  sfx(-1, 0, -1, 0, [3, 5]);"
-        "  pmem(3, ++frames);"
-        "}"
-        "function SCN(row) { pmem(4, row); }"
-        "function scanline(row) { pmem(5, row); }"
-        "function BDR(row) { pmem(6, row); }"
-        "function MENU(index) { pmem(7, index); }"));
+                        "let frames = 0;"
+                        "let ready = false;"
+                        "Promise.resolve(7).then(value => { pmem(1, value); ready = true; });"
+                        "function BOOT() { pmem(2, 1); }"
+                        "function TIC() {"
+                        "  if (!ready) throw new Error('pending job did not run');"
+                        "  cls();"
+                        "  pix(4, 5, 3);"
+                        "  spr(1, 0, 0, [0]);"
+                        "  map(0, 0, 1, 1, 16, 0, [0], 1, () => [2, 0, 0]);"
+                        "  sfx(-1, 0, -1, 0, [3, 5]);"
+                        "  pmem(3, ++frames);"
+                        "}"
+                        "function SCN(row) { pmem(4, row); }"
+                        "function scanline(row) { pmem(5, row); }"
+                        "function BDR(row) { pmem(6, row); }"
+                        "function MENU(index) { pmem(7, index); }"));
 
     fillTile(&tic->ram->tiles.data[1], 2);
     fillTile(&tic->ram->tiles.data[2], 4);
@@ -84,14 +84,14 @@ int main(void)
 
     // The old API also recognized nested proxies and accepted coercible values.
     Script->eval(tic,
-        "const proxy = array => new Proxy(new Proxy(array, {}), {});"
-        "spr(1, 32, 0, proxy([new Number(0)]));"
-        "map(0, 0, 1, 1, 48, 0, proxy(['0']), 1,"
-        "    () => proxy([new Number(2), '0', new Number(0)]));"
-        "sfx(-1, 0, -1, 0, proxy([new Number(3), '5']));"
-        "ttri(64, 0, 72, 0, 64, 8, 0, 0, 8, 0, 0, 8, 0, proxy([new Number(0)]));"
-        "if (typeof textri === 'function')"
-        "  textri(80, 0, 88, 0, 80, 8, 0, 0, 8, 0, 0, 8, false, proxy(['0']));");
+                 "const proxy = array => new Proxy(new Proxy(array, {}), {});"
+                 "spr(1, 32, 0, proxy([new Number(0)]));"
+                 "map(0, 0, 1, 1, 48, 0, proxy(['0']), 1,"
+                 "    () => proxy([new Number(2), '0', new Number(0)]));"
+                 "sfx(-1, 0, -1, 0, proxy([new Number(3), '5']));"
+                 "ttri(64, 0, 72, 0, 64, 8, 0, 0, 8, 0, 0, 8, 0, proxy([new Number(0)]));"
+                 "if (typeof textri === 'function')"
+                 "  textri(80, 0, 88, 0, 80, 8, 0, 0, 8, 0, 0, 8, false, proxy(['0']));");
     assert(ErrorCount == 0);
     assert(pixel(tic, 32, 0) == 2);
     assert(pixel(tic, 48, 0) == 4);

@@ -17,15 +17,13 @@
 #ifndef _kernel_h
 #define _kernel_h
 
+enum TShutdownMode
+{
+    ShutdownNone,
+    ShutdownHalt,
+    ShutdownReboot
+};
 
- enum TShutdownMode
-        {
-                ShutdownNone,
-                ShutdownHalt,
-                ShutdownReboot
-        };
-
- TShutdownMode Run (void);
+TShutdownMode Run(void);
 
 #endif
-

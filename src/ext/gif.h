@@ -29,7 +29,7 @@ typedef struct
     u8 r;
     u8 g;
     u8 b;
-}gif_color;
+} gif_color;
 
 typedef struct
 {

@@ -30,18 +30,18 @@ typedef struct Start Start;
 // comes from. No studio, and nothing to call back into.
 typedef struct
 {
-    tic_mem*            tic;
+    tic_mem* tic;
     const StudioConfig* config;
 
 } StartDeps;
 
 Start* start_create(const StartDeps* deps);
-void   start_tick(Start* start);
-void   start_free(Start* start);
+void start_tick(Start* start);
+void start_free(Start* start);
 
 // The intro is over; where that leads is the host's to decide.
-bool   start_done(const Start* start);
+bool start_done(const Start* start);
 
 // The studio's name, version and copyright: what the splash draws, and what the
 // console prints in builds that reach it without drawing the splash at all.
-void   start_banner(char* text, u8* color);
+void start_banner(char* text, u8* color);

@@ -29,13 +29,13 @@ static void* _memmem(const void* haystack, size_t hlen, const void* needle, size
     const u8* p = haystack;
     size_t plen = hlen;
 
-    if (!nlen) return NULL;
+    if(!nlen) return NULL;
 
     s32 needle_first = *(u8*)needle;
 
-    while (plen >= nlen && (p = memchr(p, needle_first, plen - nlen + 1)))
+    while(plen >= nlen && (p = memchr(p, needle_first, plen - nlen + 1)))
     {
-        if (!memcmp(p, needle, nlen))
+        if(!memcmp(p, needle, nlen))
             return (void*)p;
 
         p++;
@@ -81,7 +81,8 @@ void* embed_find_cart(const u8* app, s32 size, s32* cartSize)
             ptr = (const u8*)header + STRLEN(CART_SIG);
             left = size - (s32)(ptr - app);
         }
-        else break;
+        else
+            break;
     }
 
     return NULL;
@@ -106,17 +107,17 @@ void* embed_cart(tic_mem* tic, const u8* app, s32* size)
                 s32 appSize = *size;
 
                 EmbedHeader header =
-                {
-                    .appSize = appSize,
-                    .cartSize = zipSize,
-                };
+                    {
+                        .appSize = appSize,
+                        .cartSize = zipSize,
+                    };
 
                 memcpy(header.sig, CART_SIG, STRLEN(CART_SIG));
 
                 s32 finalSize = appSize + sizeof header + header.cartSize;
                 data = malloc(finalSize);
 
-                if (data)
+                if(data)
                 {
                     memcpy(data, app, appSize);
                     memcpy(data + appSize, &header, sizeof header);

@@ -41,36 +41,36 @@ inline s32 tic_tool_sfx_pos(s32 speed, s32 ticks)
 } while(0)
 // clang-format on
 
-#define PEEK_N(P,I,A,B,C,D) ( ( ((u8*)(P))[((I) >> (A))] >> ( ((I) & (B)) << (C) ) ) & (D) )
+#define PEEK_N(P, I, A, B, C, D) ((((u8*)(P))[((I) >> (A))] >> (((I) & (B)) << (C))) & (D))
 
 inline void tic_tool_poke4(void* addr, u32 index, u8 value)
 {
-    POKE_N(addr, index, value, 1,1,2,15);
+    POKE_N(addr, index, value, 1, 1, 2, 15);
 }
 
 inline u8 tic_tool_peek4(const void* addr, u32 index)
 {
-    return PEEK_N(addr, index, 1,1,2,15);
+    return PEEK_N(addr, index, 1, 1, 2, 15);
 }
 
 inline void tic_tool_poke2(void* addr, u32 index, u8 value)
 {
-    POKE_N(addr, index, value, 2,3,1,3);
+    POKE_N(addr, index, value, 2, 3, 1, 3);
 }
 
 inline u8 tic_tool_peek2(const void* addr, u32 index)
 {
-    return PEEK_N(addr, index, 2,3,1,3);
+    return PEEK_N(addr, index, 2, 3, 1, 3);
 }
 
 inline void tic_tool_poke1(void* addr, u32 index, u8 value)
 {
-    POKE_N(addr, index, value, 3,7,0,1);
+    POKE_N(addr, index, value, 3, 7, 0, 1);
 }
 
 inline u8 tic_tool_peek1(const void* addr, u32 index)
 {
-    return PEEK_N(addr, index, 3,7,0,1);
+    return PEEK_N(addr, index, 3, 7, 0, 1);
 }
 
 #undef PEEK_N
@@ -84,16 +84,16 @@ inline u32 tic_rgba(const tic_rgb* c)
 inline s32 tic_modulo(s32 x, s32 m)
 {
     s32 r = x % m;
-    if (r < 0)
+    if(r < 0)
         r += m;
     return r;
 }
 
 tic_blitpal tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_format fmt);
 
-s32     tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
-void    tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
-bool    tic_tool_has_ext(const char* name, const char* ext);
+s32 tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
+void tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
+bool tic_tool_has_ext(const char* name, const char* ext);
 
 #define CART_EXT ".tic"
 
@@ -102,27 +102,27 @@ bool    tic_tool_has_ext(const char* name, const char* ext);
 const char* tic_tool_cart_name(const char* name);
 
 // The machine's cart with one section, or all of it, taken from `cart`.
-void    tic_tool_load_section(tic_mem* tic, const tic_cartridge* cart, const char* section);
+void tic_tool_load_section(tic_mem* tic, const tic_cartridge* cart, const char* section);
 
 // Whether a name is one of the built-in languages' source files, rather than a
 // cart: the languages are the core's registry, so the question is the core's.
-bool    tic_tool_is_project(const char* name);
-s32     tic_tool_get_track_row_sfx(const tic_track_row* row);
-void    tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
+bool tic_tool_is_project(const char* name);
+s32 tic_tool_get_track_row_sfx(const tic_track_row* row);
+void tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
 
-void    tic_tool_buf2str(const void* data, s32 size, char* str, bool flip);
-void    tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip);
+void tic_tool_buf2str(const void* data, s32 size, char* str, bool flip);
+void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip);
 
-u32     tic_tool_zip(void* dest, s32 destSize, const void* source, s32 size);
-u32     tic_tool_unzip(void* dest, s32 bufSize, const void* source, s32 size);
+u32 tic_tool_zip(void* dest, s32 destSize, const void* source, s32 size);
+u32 tic_tool_unzip(void* dest, s32 bufSize, const void* source, s32 size);
 
-bool    tic_tool_empty(const void* buffer, s32 size);
-#define EMPTY(BUFFER) (tic_tool_empty((BUFFER), sizeof (BUFFER)))
+bool tic_tool_empty(const void* buffer, s32 size);
+#define EMPTY(BUFFER) (tic_tool_empty((BUFFER), sizeof(BUFFER)))
 
-bool    tic_tool_flat4(const void* buffer, s32 size);
-#define FLAT4(BUFFER) (tic_tool_flat4((BUFFER), sizeof (BUFFER)))
+bool tic_tool_flat4(const void* buffer, s32 size);
+#define FLAT4(BUFFER) (tic_tool_flat4((BUFFER), sizeof(BUFFER)))
 
-bool    tic_tool_noise(const tic_waveform* wave);
-u32     tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count);
+bool tic_tool_noise(const tic_waveform* wave);
+u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count);
 
 const char* tic_tool_metatag(const char* code, const char* tag, const char* comment);

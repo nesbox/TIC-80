@@ -55,20 +55,25 @@ static bool initLua(tic_mem* tic, const char* code)
     return true;
 }
 
-static const char* const LuaKeywords [] =
-{
-    "and", "break", "do", "else", "elseif",
-    "end", "false", "for", "function", "goto", "if",
-    "in", "local", "nil", "not", "or", "repeat",
-    "return", "then", "true", "until", "while",
-    "self"
-};
+static const char* const LuaKeywords[] =
+    {
+        "and", "break", "do", "else", "elseif",
+        "end", "false", "for", "function", "goto", "if",
+        "in", "local", "nil", "not", "or", "repeat",
+        "return", "then", "true", "until", "while",
+        "self"};
 
-static inline bool isalnum_(char c) {return isalnum((u8)c) || c == '_';}
+static inline bool isalnum_(char c)
+{
+    return isalnum((u8)c) || c == '_';
+}
 
 static const tic_outline_item* getLuaOutline(const char* code, s32* size)
 {
-    enum{Size = sizeof(tic_outline_item)};
+    enum
+    {
+        Size = sizeof(tic_outline_item)
+    };
 
     *size = 0;
 
@@ -99,13 +104,15 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
             {
                 char c = *ptr;
 
-                if(isalnum_(c) || c == ':' || c == '.');
+                if(isalnum_(c) || c == ':' || c == '.')
+                    ;
                 else if(c == '(')
                 {
                     end = ptr;
                     break;
                 }
-                else break;
+                else
+                    break;
 
                 ptr++;
             }
@@ -120,7 +127,8 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
                 (*size)++;
             }
         }
-        else break;
+        else
+            break;
     }
 
     return items;
@@ -131,7 +139,7 @@ static void evalLua(tic_mem* tic, const char* code)
     tic_core* core = (tic_core*)tic;
     lua_State* lua = core->currentVM;
 
-    if (!lua) return;
+    if(!lua) return;
 
     lua_settop(lua, 0);
 
@@ -142,122 +150,121 @@ static void evalLua(tic_mem* tic, const char* code)
 }
 
 static const u8 DemoRom[] =
-{
-    #include "../build/assets/luademo.tic.dat"
+    {
+#include "../build/assets/luademo.tic.dat"
 };
 
 static const u8 MarkRom[] =
-{
-    #include "../build/assets/luamark.tic.dat"
+    {
+#include "../build/assets/luamark.tic.dat"
 };
 
 static const u8 DemoFire[] =
-{
-    #include "../build/assets/fire.tic.dat"
+    {
+#include "../build/assets/fire.tic.dat"
 };
 
 static const u8 DemoP3d[] =
-{
-    #include "../build/assets/p3d.tic.dat"
+    {
+#include "../build/assets/p3d.tic.dat"
 };
 
 static const u8 DemoSfx[] =
-{
-    #include "../build/assets/sfx.tic.dat"
+    {
+#include "../build/assets/sfx.tic.dat"
 };
 
 static const u8 DemoPalette[] =
-{
-    #include "../build/assets/palette.tic.dat"
+    {
+#include "../build/assets/palette.tic.dat"
 };
 
 static const u8 DemoFont[] =
-{
-    #include "../build/assets/font.tic.dat"
+    {
+#include "../build/assets/font.tic.dat"
 };
 
 static const u8 DemoMusic[] =
-{
-    #include "../build/assets/music.tic.dat"
+    {
+#include "../build/assets/music.tic.dat"
 };
 
 static const u8 DemoQuest[] =
-{
-    #include "../build/assets/quest.tic.dat"
+    {
+#include "../build/assets/quest.tic.dat"
 };
 
 static const u8 DemoTetris[] =
-{
-    #include "../build/assets/tetris.tic.dat"
+    {
+#include "../build/assets/tetris.tic.dat"
 };
 
 static const u8 DemoBenchmark[] =
-{
-    #include "../build/assets/benchmark.tic.dat"
+    {
+#include "../build/assets/benchmark.tic.dat"
 };
 
 static const u8 DemoBpp[] =
-{
-    #include "../build/assets/bpp.tic.dat"
+    {
+#include "../build/assets/bpp.tic.dat"
 };
 
 static const u8 DemoCar[] =
-{
-    #include "../build/assets/car.tic.dat"
+    {
+#include "../build/assets/car.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Lua) =
-{
-    .id                 = 10,
-    .name               = "lua",
-    .fileExtension      = ".lua",
-    .projectComment     = "--",
     {
-      .init               = initLua,
-      .close              = luaapi_close,
-      .tick               = luaapi_tick,
-      .boot               = luaapi_boot,
+        .id = 10,
+        .name = "lua",
+        .fileExtension = ".lua",
+        .projectComment = "--",
+        {
+            .init = initLua,
+            .close = luaapi_close,
+            .tick = luaapi_tick,
+            .boot = luaapi_boot,
 
-      .callback           =
-      {
-        .scanline       = luaapi_scn,
-        .border         = luaapi_bdr,
-        .menu           = luaapi_menu,
-      },
-    },
+            .callback =
+                {
+                    .scanline = luaapi_scn,
+                    .border = luaapi_bdr,
+                    .menu = luaapi_menu,
+                },
+        },
 
-    .getOutline         = getLuaOutline,
-    .eval               = evalLua,
+        .getOutline = getLuaOutline,
+        .eval = evalLua,
 
-    .blockCommentStart  = "--[[",
-    .blockCommentEnd    = "]]",
-    .blockCommentStart2 = NULL,
-    .blockCommentEnd2   = NULL,
-    .singleComment      = "--",
-    .blockStringStart   = "[[",
-    .blockStringEnd     = "]]",
-    .stdStringStartEnd  = "\'\"",
-    .blockEnd           = "end",
+        .blockCommentStart = "--[[",
+        .blockCommentEnd = "]]",
+        .blockCommentStart2 = NULL,
+        .blockCommentEnd2 = NULL,
+        .singleComment = "--",
+        .blockStringStart = "[[",
+        .blockStringEnd = "]]",
+        .stdStringStartEnd = "\'\"",
+        .blockEnd = "end",
 
-    .keywords           = LuaKeywords,
-    .keywordsCount      = COUNT_OF(LuaKeywords),
+        .keywords = LuaKeywords,
+        .keywordsCount = COUNT_OF(LuaKeywords),
 
-    .demo = {DemoRom, sizeof DemoRom, NULL},
-    .mark = {MarkRom, sizeof MarkRom, "luamark.tic"},
+        .demo = {DemoRom, sizeof DemoRom, NULL},
+        .mark = {MarkRom, sizeof MarkRom, "luamark.tic"},
 
-    .demos = (struct tic_demo[])
-    {
-        {DemoFire,      sizeof DemoFire,        "fire.tic"},
-        {DemoP3d,       sizeof DemoP3d,         "p3d.tic"},
-        {DemoSfx,       sizeof DemoSfx,         "sfx.tic"},
-        {DemoPalette,   sizeof DemoPalette,     "palette.tic"},
-        {DemoFont,      sizeof DemoFont,        "font.tic"},
-        {DemoMusic,     sizeof DemoMusic,       "music.tic"},
-        {DemoQuest,     sizeof DemoQuest,       "quest.tic"},
-        {DemoTetris,    sizeof DemoTetris,      "tetris.tic"},
-        {DemoBenchmark, sizeof DemoBenchmark,   "benchmark.tic"},
-        {DemoBpp,       sizeof DemoBpp,         "bpp.tic"},
-        {DemoCar,       sizeof DemoCar,         "car.tic"},
-        {0},
-    },
+        .demos = (struct tic_demo[]){
+            {DemoFire, sizeof DemoFire, "fire.tic"},
+            {DemoP3d, sizeof DemoP3d, "p3d.tic"},
+            {DemoSfx, sizeof DemoSfx, "sfx.tic"},
+            {DemoPalette, sizeof DemoPalette, "palette.tic"},
+            {DemoFont, sizeof DemoFont, "font.tic"},
+            {DemoMusic, sizeof DemoMusic, "music.tic"},
+            {DemoQuest, sizeof DemoQuest, "quest.tic"},
+            {DemoTetris, sizeof DemoTetris, "tetris.tic"},
+            {DemoBenchmark, sizeof DemoBenchmark, "benchmark.tic"},
+            {DemoBpp, sizeof DemoBpp, "bpp.tic"},
+            {DemoCar, sizeof DemoCar, "car.tic"},
+            {0},
+        },
 };
