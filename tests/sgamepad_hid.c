@@ -457,6 +457,58 @@ static void testFamilies(void)
     puts("families ok");
 }
 
+// SDL's own crc32, written out here rather than called: the header's is a
+// port of it, and a port checked against the thing it was ported from is only
+// as good as the two staying apart. This is that second copy — from
+// `vendor/sdl2/src/stdlib/SDL_crc32.c` — and it is what says the header's
+// computes what the pads' packets carry.
+static uint32_t sdl_crc32_for_byte(uint32_t r)
+{
+    for (int i = 0; i < 8; i++)
+        r = (r & 1 ? 0 : 0xEDB88320u) ^ r >> 1;
+
+    return r ^ 0xFF000000u;
+}
+
+static uint32_t sdl_crc32(uint32_t crc, const uint8_t* data, size_t length)
+{
+    for (size_t i = 0; i < length; i++)
+        crc = sdl_crc32_for_byte((uint8_t)crc ^ data[i]) ^ crc >> 8;
+
+    return crc;
+}
+
+static void testCrcIsSdls(void)
+{
+    uint8_t data[256];
+
+    for (size_t i = 0; i < sizeof data; i++)
+        data[i] = (uint8_t)(i * 7 + 3);
+
+    // Every length, and then with the one-byte header the Bluetooth packets
+    // sum the coming-in header over.
+    for (size_t length = 0; length <= sizeof data; length++)
+        assert(sgamepad_hid_crc32(0, data, length) == sdl_crc32(0, data, length));
+
+    for (int header = 0; header < 256; header++)
+    {
+        const uint8_t byte = (uint8_t)header;
+
+        assert(sgamepad_hid_crc32(sgamepad_hid_crc32(0, &byte, 1), data, 74)
+            == sdl_crc32(sdl_crc32(0, &byte, 1), data, 74));
+    }
+
+    // And a value to pin, so a rewrite of the loop has something to be wrong
+    // against: the standard crc32 of "123456789" from a zero state, which this
+    // construction is — the byte-at-a-time form and the table-and-inversion
+    // form agree on every input, this one included.
+    static const uint8_t Check[10] = "123456789";
+
+    assert(sgamepad_hid_crc32(0, Check, 9) == 0xCBF43926u);
+
+    puts("crc32 is sdl's ok");
+}
+
 // The keepalive the pad needs over Bluetooth: the magic byte in the report the
 // pad listens on, and — for the DualSense, which checks — a CRC that adds up.
 static void testKeepalive(void)
@@ -499,6 +551,7 @@ int main(void)
     testSwitchHatAndSticks();
     testUnknownReports();
     testFamilies();
+    testCrcIsSdls();
     testKeepalive();
 
     puts("sgamepad_hid ok");
