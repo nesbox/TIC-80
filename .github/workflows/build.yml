@@ -344,9 +344,7 @@ jobs:
           set -euo pipefail
           command -v ninja >/dev/null || sudo apt-get install -y ninja-build
           command -v ccache >/dev/null || sudo apt-get install -y ccache
-          # No layer at all: the target built below is the conformance runner
-          # and the core it traps, so both layer options are off by name — the
-          # default would otherwise put the sokol layer in the configure.
+          # No layer: the target below is the conformance runner and the core.
           cmake -B build-conformance -G Ninja \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON \
@@ -503,12 +501,9 @@ jobs:
 
   # === Raspberry PI 1-4 Bare Metal ===
   #
-  # An ARM build against a system GLES rather than the desktop's GL, for the
-  # images that carry their own libs — Batocera's data path is what the flag
-  # below spells. It followed the desktop onto the sokol layer, and that is
-  # worth reading twice: sokol's GLES backend needs a GLES 3 context, where
-  # the SDL path this job used to build was a GLES 2 one, so a board with
-  # only GLES 2 is no longer served by this artifact.
+  # An ARM build against a system GLES (Batocera's data path is below). It
+  # followed the desktop onto sokol, whose GLES backend needs a GLES 3 context —
+  # where the SDL path this job built was a GLES 2 one.
 
   linux-arm64-gles2:
     runs-on: ubuntu-22.04-arm
@@ -914,11 +909,8 @@ jobs:
   # === Android ===
   # === SDL desktop builds: the fallback ===
   #
-  # The layer the desktop shipped before the migration, which the shipping
-  # jobs no longer build — they are the sokol builds now. This is where SDL is
-  # kept compiling and handed out as a binary for one release cycle, while it
-  # is what a player would fall back to. Each job prints what the build cost
-  # and what the binary weighs, which is the comparison in the log.
+  # The layer the desktop shipped before the migration, kept compiling for one
+  # release cycle; the echo is the comparison in the log.
 
   sdl-windows:
     runs-on: windows-2022
@@ -1213,9 +1205,7 @@ jobs:
             done
             cd "$GITHUB_WORKSPACE/build"
             # "Build all"'s flags with one language on: the site's player is
-            # that build, thirteen runtimes lighter (the static runtime is the
-            # default everywhere, so this leaks nothing into the stub pass
-            # below)
+            # that build, thirteen runtimes lighter.
             emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=ON "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             for f in "bin/tic80$lang.js" "bin/tic80$lang.wasm"; do

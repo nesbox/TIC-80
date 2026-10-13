@@ -39,8 +39,7 @@
 #include <emscripten.h>
 #elif defined(_WIN32)
 #include <direct.h>
-// windows.h first: shellapi.h is written against the types it defines and
-// does not include it.
+// windows.h first: shellapi.h is written against its types.
 #include <windows.h>
 #include <shellapi.h>
 #else
@@ -117,8 +116,7 @@ static struct
         float top, right, bottom, left;
     } insets;
 
-    // Whether the window exists: the console-only run makes a studio and no
-    // window at all, and the calls that belong to one are left alone there.
+    // Whether the window exists: the console-only run makes none.
     bool started;
 
     bool fullscreen;
@@ -926,24 +924,16 @@ static void event_cb(const sapp_event* event)
 
 #if !defined(__EMSCRIPTEN__)
         case SAPP_EVENTTYPE_FILES_DROPPED:
-            // The desktop hands over what was dropped on the window; the first
-            // is the cart and the rest are ignored rather than queued, since
-            // loading each in turn would open and close carts as fast as the
-            // drop order arrives. The studio's own load asks about unsaved
-            // changes, so nothing about the drop is special-cased here.
+            // The first dropped file is the cart; the studio's own load asks
+            // about unsaved changes, so nothing here is special-cased.
             if(sapp_get_num_dropped_files() > 0)
             {
                 const char* path = sapp_get_dropped_file_path(0);
 
                 if(path && *path)
                 {
-                    // The studio holds the path until its confirmation is
-                    // answered and sokol writes over its own on the next drop,
-                    // so what the studio is given is a copy. The one buffer is
-                    // enough: the studio keeps one confirmation, and a second
-                    // drop replaces it rather than queueing behind it. A path
-                    // longer than the studio's own name buffer is cut rather
-                    // than overrunning it.
+                    // A copy: sokol writes over its own on the next drop, and the
+                    // studio holds this until its confirmation is answered.
                     static char dropped[TICNAME_MAX];
 
                     snprintf(dropped, sizeof dropped, "%s", path);
@@ -1037,9 +1027,7 @@ EMSCRIPTEN_KEEPALIVE void tic80_insets(float top, float right, float bottom, flo
 }
 #endif
 
-// The window carries the studio's own art — the config cart's tileset, the
-// same 64×64 painting the SDL layer draws, with the colorkey palette entry
-// cut out. The cart is what the art comes from, so this waits for the studio.
+// The config cart's tileset, painted 64×64 with the colorkey cut out.
 static void set_window_icon(void)
 {
     enum
@@ -1067,8 +1055,7 @@ static void set_window_icon(void)
         .images[0] = {.width = Size, .height = Size, .pixels = {.ptr = pixels, .size = sizeof pixels}}});
 }
 
-// The studio, made the same way by the windowed run and the console-only one:
-// the layer's own state is all it is handed besides the scale.
+// The studio, made the same way by the windowed run and the console-only one.
 static Studio* create_studio(s32 scale)
 {
     return studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
@@ -1082,9 +1069,7 @@ static void init_cb(void)
     platform.started = true;
     platform.lastTime = stm_now();
 
-    // The page mounts its own folder from IndexedDB before anything starts;
-    // elsewhere the entry point made it already, and asking again is the same
-    // answer from the same place.
+    // The page mounts its own folder; elsewhere the entry point made it.
     platform.appFolder = getAppFolder();
 
     sg_setup(&(sg_desc){
@@ -1114,9 +1099,7 @@ static void init_cb(void)
     // clang-format on
 #endif
 
-    // What the config asks for, applied the way the SDL layer applies it: the
-    // window is made before the studio reads the config, so the mode is set
-    // here rather than asked for in the description.
+    // The config's fullscreen: the window exists before the studio reads it.
     if(studio_config(platform.studio)->options.fullscreen)
         tic_sys_fullscreen_set(true);
 
@@ -1162,8 +1145,7 @@ static sapp_desc app_desc(void)
         .enable_clipboard = true,
         .clipboard_size = 4096,
 #if !defined(__EMSCRIPTEN__)
-        // A handful of files, so a player dragging several carts does not have
-        // the drop swallowed; the layer still loads the first of them only.
+        // A handful; the layer still loads the first of them only.
         .enable_dragndrop = true,
         .max_dropped_files = 8,
 #endif
@@ -1251,12 +1233,8 @@ int main(int argc, char* argv[])
 
 #if defined(_WIN32)
 
-// A console build's `main` is handed its arguments in the machine's own code
-// page, and the layer keeps them as UTF-8: the studio's file hooks convert
-// with CP_UTF8, and a cart named on the command line — or handed over by the
-// file association — is a path like any other. Windows keeps the command line
-// as text, so argv is built from it again; SDL's own main did this for the
-// build this layer replaces.
+// A console build's argv is in the machine's code page and the studio reads
+// paths as UTF-8, so argv is built from the wide command line again.
 static void win32_utf8_argv(int* argc, char*** argv)
 {
     int count = 0;
@@ -1271,8 +1249,7 @@ static void win32_utf8_argv(int* argc, char*** argv)
         return;
     }
 
-    // Kept for the life of the process: the studio holds the path it was
-    // given, and an argv has no owner to give it back to.
+    // For the life of the process: the studio keeps the path it was given.
     char** utf8 = malloc(((size_t)count + 1) * sizeof(char*));
 
     for(int i = 0; i < count; i++)
@@ -1292,11 +1269,8 @@ static void win32_utf8_argv(int* argc, char*** argv)
 
 #endif
 
-// Whether the command line asks for the console-only run. It is the one option
-// that decides whether a window is made at all, and it has to be read before
-// the studio exists. The scan is not a parser — argparse takes the flag's two
-// spellings, `--cli` and `--cli=anything`, and increments the boolean for
-// both — and it is why the studio gets the last word below.
+// Whether the command line asks for the console-only run: argparse takes
+// `--cli` and `--cli=anything` alike, and the studio has the last word.
 static bool cli_requested(s32 argc, char** argv)
 {
     for(s32 i = 1; i < argc; i++)
@@ -1306,18 +1280,8 @@ static bool cli_requested(s32 argc, char** argv)
     return false;
 }
 
-// The console-only run: no window, no GL, no audio — the studio is made, its
-// commands run over the ticks until it is done, and it is let go. It is how
-// the docs are built and how a cart is exported from a machine with no
-// display to put a window on, which is what the SDL layer's own CLI loop did.
-//
-// False when the studio says the command line did not ask for it after all: a
-// word that only looks like the flag is another option's value to argparse
-// (`--cmd --cli` reads as the command `--cli`), and the studio is the only one
-// that can tell. The one it was asked with never runs a tick and is let go,
-// and the studio made again for the window prints its greeting a second time —
-// the price of asking, on a command line nobody types on purpose. The SDL
-// layer reads the flag the parser set and never asks.
+// The console-only run: the studio's commands over the ticks, no window. False
+// when the studio says the flag was another option's value after all.
 static bool run_cli(void)
 {
     Studio* studio = create_studio(1);
@@ -1336,9 +1300,8 @@ static bool run_cli(void)
     return true;
 }
 
-// The layer owns the entry point rather than sokol_app, on the desktop as it
-// already did on the page: the window is the thing the CLI must not make, and
-// sokol_app makes it before anything of ours runs.
+// The layer owns the entry point: sokol_app makes the window before anything
+// of ours runs, and the console-only run must not make one.
 int main(int argc, char* argv[])
 {
 #if defined(_WIN32)
@@ -1351,9 +1314,7 @@ int main(int argc, char* argv[])
     stm_setup();
 
 #if !defined(_WIN32)
-    // The openers are spawned and never waited for, and nothing else in this
-    // layer forks: their exits are reaped by the system rather than kept as
-    // zombies by a session that opened the folder a few times.
+    // The openers are never waited for; this keeps their exits reaped.
     signal(SIGCHLD, SIG_IGN);
 #endif
 
@@ -1373,9 +1334,7 @@ int main(int argc, char* argv[])
 
 ////// the studio's side of the layer //////
 
-// The clipboard, the title and the fullscreen mode belong to the window, and
-// the console-only run has none: the studio is made, its commands run, and a
-// command that cannot reach the desktop is still a command to run.
+// The window's own state, and the console-only run has no window.
 void tic_sys_clipboard_set(const char* text)
 {
     if(platform.started)
@@ -1448,9 +1407,7 @@ void tic_sys_title(const char* title)
 
 #if defined(_WIN32)
 
-// The desktop's own "open": the shell's verb takes a folder to the file
-// manager and a URL to the browser alike. Nothing is waited for — a target
-// with no handler is the desktop's answer to give, not a reason to stop.
+// The shell's own "open" verb takes a folder and a URL alike.
 static void open_target(const char* target)
 {
     wchar_t wide[TICNAME_MAX];
@@ -1463,17 +1420,14 @@ static void open_target(const char* target)
 
 #elif !defined(__EMSCRIPTEN__)
 
-// The opener each desktop carries; both take the one target and no options.
+// The opener each desktop carries; both take one target.
 #if defined(__APPLE__)
 #define OPEN_COMMAND "open"
 #else
 #define OPEN_COMMAND "xdg-open"
 #endif
 
-// Spawned with an argv rather than handed to a shell, so a path with a quote
-// in it is just a path. The child is not waited for — the opener outlives
-// this call by design — and init_cb has SIGCHLD ignored, so its exit is
-// reaped by the system rather than kept as a zombie.
+// Spawned with an argv, not a shell: a path with a quote is just a path.
 static void open_target(const char* target)
 {
     const char* argv[] = {OPEN_COMMAND, target, NULL};

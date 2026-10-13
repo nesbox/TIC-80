@@ -24,9 +24,7 @@ message("VERSION_HASH: ${VERSION_HASH}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
-# The static runtime is what every artifact the project ships is built with,
-# so it is the default everywhere and the build that wants the shared one —
-# a local run of a language module under a debugger, mostly — asks for it.
+# The static runtime is what every artifact the project ships is built with.
 set(BUILD_STATIC_DEFAULT ON)
 
 set(BUILD_PLAYER_DEFAULT OFF)
@@ -45,12 +43,8 @@ option(BUILD_RENDER_CACHE "Build with render cache optimization" OFF)
 if(BUILD_RENDER_CACHE)
     add_definitions(-DBUILD_RENDER_CACHE)
 endif()
-# Sokol is the layer the desktop ships and the one the web has built since the
-# browser change, so it is the default wherever it can be built. The platforms
-# below cannot: Android has no GLES 3 wiring for it yet, the Pi's sysroot
-# carries Broadcom's GL and no X11, sokol_app has no FreeBSD backend. The
-# consoles and the Apple backend bring a layer of their own — the Switch's is
-# SDL's — and turn the layers off below.
+# Sokol is the layer the desktop ships and the web has built since the browser
+# change; the platforms below cannot build it and keep the SDL default.
 if(ANDROID OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI OR RPI OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(BUILD_SDL_DEFAULT ON)
     set(BUILD_SOKOL_DEFAULT OFF)
@@ -239,12 +233,8 @@ include(cmake/libretro.cmake)
 include(cmake/n3ds.cmake)
 include(cmake/nswitch.cmake)
 
-# After every layer: the Linux desktop entry, its icon and the mime type
-# belong to the app rather than to the layer that built it, and so does the
-# install rule for the binary. Whichever layer a build names, a Linux package
-# carries these — the ARM build packs them beside a sokol binary. A build that
-# names no layer at all — the conformance runner's — has no binary to install
-# and skips the block.
+# The Linux desktop entry, its icon and the mime type belong to the app, not
+# to the layer; a build with no layer at all has no binary to install.
 if(LINUX AND TARGET ${TIC80_TARGET})
 
     configure_file("${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop.in" "${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop")

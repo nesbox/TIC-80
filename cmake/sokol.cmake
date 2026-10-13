@@ -21,9 +21,7 @@ if(BUILD_SOKOL)
     # sokol is implemented inside sokol_impl.c, and its warnings are not ours
     target_include_directories(sokol SYSTEM PUBLIC ${THIRDPARTY_DIR}/sokol)
 
-    # The layer provides its own entry point on every platform, as it did on
-    # the page before this: the console-only run must make a studio and no
-    # window, and sokol_app makes the window before anything of ours runs.
+    # The layer's own entry point: the console-only run must make no window.
     target_compile_definitions(sokol PUBLIC SOKOL_NO_ENTRY)
 
     if(APPLE)
@@ -33,9 +31,7 @@ if(BUILD_SOKOL)
     elseif(EMSCRIPTEN)
         target_compile_definitions(sokol PUBLIC SOKOL_GLES3)
     elseif(USE_GLES2)
-        # USE_GLES2 is the build's "GLES rather than the desktop's GL" switch —
-        # sokol's GLES backend is a 3.1 one, which is what this option reaches
-        # here; see the ARM job for what that means for the boards it serves.
+        # USE_GLES2 reaches sokol's GLES 3 backend; see the ARM job.
         target_compile_definitions(sokol PUBLIC SOKOL_GLES3)
     else()
         target_compile_definitions(sokol PUBLIC SOKOL_GLCORE)
@@ -67,10 +63,7 @@ if(BUILD_SOKOL)
     elseif(EMSCRIPTEN)
 
     else()
-        # sokol_app references pthread_attr_init as a link-time guard and
-        # sokol_audio's ALSA backend starts a thread, so the flag is part of
-        # the documented link line. The X11 window is the same either way; the
-        # GLES path draws through EGL and GLESv2 in place of GL.
+        # The link line sokol documents; GLES draws through EGL and GLESv2.
         if(USE_GLES2)
             target_link_libraries(sokol PRIVATE X11 GLESv2 EGL Xi Xcursor m dl asound pthread)
         else()
@@ -107,9 +100,8 @@ if(BUILD_SOKOL)
 
     endif()
 
-    # No WIN32 keyword: it asks for the GUI subsystem, where --cli, --cmd and
-    # an export print nothing from a terminal. The shipping tic80.exe is a
-    # console application — the icon comes from the .rc above either way.
+    # No WIN32 keyword: it asks for the GUI subsystem, where --cli prints
+    # nothing from a terminal.
     add_executable(${TIC80_TARGET} ${TIC80_SRC})
 
     # clay comes in the same way, through the controls the app draws
