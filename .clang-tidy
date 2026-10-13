@@ -1,0 +1,28 @@
+# The checks this tree is held to. Where the set is narrower than everything
+# the tool can say, the code won, not the tool: see
+# openspec/changes/clang-tidy-adoption/design.md.
+#
+# The analyzer, which asks what the code does rather than how it reads. Two
+# families are off inside it:
+#
+# -security.insecureAPI.* — memcpy and memset "do not provide the security
+# checks introduced in C11". This codebase allocates and copies its own buffers
+# on purpose, and the finding says nothing about whether it does so correctly.
+#
+# -optin.* — off unless asked for, and wrong about this code where it fires:
+# EnumCastOutOfRange flags (tic_palette)255 and friends, which are deliberate,
+# and Padding flags struct layouts chosen for the machine.
+#
+# A check joins this list with the fixes it demands, never with a baseline and
+# never with a severity override. A translation unit this set leaves unable to
+# parse is an error whatever the set says, and fails the run on its own.
+Checks: >
+  -*,
+  clang-analyzer-*,
+  -clang-analyzer-security.insecureAPI.*,
+  -clang-analyzer-optin.*
+
+# The project's own headers and not the vendored ones: a translation unit's own
+# diagnostics always show, and these two govern the headers it pulls in.
+HeaderFilterRegex: '.*'
+ExcludeHeaderFilterRegex: '.*/vendor/.*|.*/src/ext/.*'

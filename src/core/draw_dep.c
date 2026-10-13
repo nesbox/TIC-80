@@ -95,6 +95,10 @@ static void ticTexLine(tic_mem* memory, TexVertDep* v0, TexVertDep* v1)
     if(botY > TIC80_HEIGHT)
         botY = TIC80_HEIGHT;
 
+    // The counter steps by one and the fraction it starts at is the row it
+    // draws: an integer counter would draw a different one — and, for a
+    // coordinate no int can hold, a different number of them.
+    // NOLINTNEXTLINE(clang-analyzer-security.FloatLoopCounter): a raster counter, exact at one a step
     for(; y < botY; ++y)
     {
         setSideTexPixel((s32)x, (s32)y, u, v);

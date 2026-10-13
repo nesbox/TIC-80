@@ -652,7 +652,8 @@ static void rotateSelectRect(Sprite* sprite)
 
 static void rotateCanvas(Sprite* sprite)
 {
-    u8* buffer = (u8*)malloc(CANVAS_SIZE * CANVAS_SIZE);
+    // zeroed: the loop below is written back out of it whole
+    u8* buffer = (u8*)calloc(1, CANVAS_SIZE * CANVAS_SIZE);
 
     if(buffer)
     {
@@ -1702,7 +1703,9 @@ static void copyToClipboard(Sprite* sprite)
 {
     s32 size = getClipboardSize(sprite);
 
-    u8* buffer = malloc(size);
+    // zeroed: the pokes below read the byte around the nibble they write, and
+    // an odd number of them leaves the last byte's other nibble as it was
+    u8* buffer = calloc(1, size);
     SCOPE(free(buffer))
     {
         tic_rect rect = getSpriteRect(sprite);

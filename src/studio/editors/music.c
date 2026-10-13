@@ -1683,7 +1683,7 @@ static void drawTopPanel(Music* music, s32 x, s32 y)
     drawSwitch(music, x, y, "TRACK", music->track, setIndex);
     drawSwitch(music, x += TIC_FONT_WIDTH * 9, y, "TEMPO", track->tempo + DEFAULT_TEMPO, setTempo);
     drawSwitch(music, x += TIC_FONT_WIDTH * 10, y, "SPD", track->speed + DEFAULT_SPEED, setSpeed);
-    drawSwitch(music, x += TIC_FONT_WIDTH * 7, y, "ROWS", MUSIC_PATTERN_ROWS - track->rows, setRows);
+    drawSwitch(music, x + TIC_FONT_WIDTH * 7, y, "ROWS", MUSIC_PATTERN_ROWS - track->rows, setRows);
 }
 
 static void drawTrackerFrames(Music* music, s32 x, s32 y)

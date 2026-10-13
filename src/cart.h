@@ -33,5 +33,13 @@ typedef enum
     CART_SAVE_MISSING_NAME,
 } CartSaveResult;
 
+// A saved cart is its own bytes plus a 4-byte header a chunk: ten chunks a
+// bank, five for the binary, nine for the code, one for the language. It is
+// bigger than the struct, so a buffer holding one is this, not sizeof().
+#define TIC_CART_SAVE_SIZE (sizeof(tic_cartridge) + (TIC_BANKS * 10 + 15) * sizeof(u32))
+
+// Deflate can grow what it is given by a few bytes in a thousand.
+#define TIC_CART_ZIP_SIZE (TIC_CART_SAVE_SIZE + TIC_CART_SAVE_SIZE / 1024 + 64)
+
 void tic_cart_load(tic_cartridge* rom, const u8* buffer, s32 size);
 s32 tic_cart_save(const tic_cartridge* rom, u8* buffer);

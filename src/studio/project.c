@@ -142,7 +142,7 @@ s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
     }
 
     if(cart->lang)
-        ptr = saveBinarySection(ptr, comment, LangSection.tag, LangSection.count, &cart->lang, LangSection.size, LangSection.flip);
+        saveBinarySection(ptr, comment, LangSection.tag, LangSection.count, &cart->lang, LangSection.size, LangSection.flip);
 
     return (s32)strlen(stream);
 }

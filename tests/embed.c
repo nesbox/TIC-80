@@ -20,8 +20,8 @@ static void testFindCart(tic_mem* tic)
     memcpy(app + DecoyAt, CART_SIG, STRLEN(CART_SIG));
 
     // What the cart serializes to: what comes back has to equal these bytes.
-    // On the heap, because a cartridge is 1.4M and a stack is not always 8M.
-    u8* ref = malloc(sizeof(tic_cartridge));
+    // On the heap, because a saved cart is 1.4M and a stack is not always 8M.
+    u8* ref = malloc(TIC_CART_SAVE_SIZE);
     s32 refSize = tic_cart_save(&tic->cart, ref);
 
     s32 imageSize = AppSize;

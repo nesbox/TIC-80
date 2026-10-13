@@ -60,11 +60,11 @@ void* embed_find_cart(const u8* app, s32 size, s32* cartSize)
             // match is a signature that merely occurs in the bytes.
             if(size == header->appSize + (s32)sizeof(EmbedHeader) + header->cartSize)
             {
-                u8* cart = calloc(1, sizeof(tic_cartridge));
+                u8* cart = calloc(1, TIC_CART_SAVE_SIZE);
 
                 if(cart)
                 {
-                    s32 done = tic_tool_unzip(cart, sizeof(tic_cartridge), app + header->appSize + sizeof(EmbedHeader), header->cartSize);
+                    s32 done = tic_tool_unzip(cart, TIC_CART_SAVE_SIZE, app + header->appSize + sizeof(EmbedHeader), header->cartSize);
 
                     if(done)
                     {
@@ -91,13 +91,13 @@ void* embed_find_cart(const u8* app, s32 size, s32* cartSize)
 void* embed_cart(tic_mem* tic, const u8* app, s32* size)
 {
     u8* data = NULL;
-    void* cart = malloc(sizeof(tic_cartridge));
+    void* cart = malloc(TIC_CART_SAVE_SIZE);
 
     SCOPE(free(cart))
     {
         s32 cartSize = tic_cart_save(&tic->cart, cart);
 
-        s32 zipSize = sizeof(tic_cartridge);
+        s32 zipSize = TIC_CART_ZIP_SIZE;
         u8* zipData = (u8*)malloc(zipSize);
 
         SCOPE(free(zipData))

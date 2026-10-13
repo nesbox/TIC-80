@@ -1,9 +1,11 @@
 name: Lint
 
 # A workflow of its own, not a job in build.yml: release.yml reaches that one
-# through workflow_call, and a formatting check has nothing to say on a tag.
-# The style it enforces is .clang-format; the files it leaves alone are the
-# ones in .clang-format-ignore.
+# through workflow_call, and neither check has anything to say on a tag.
+#
+# The format job holds the tree to .clang-format, and leaves alone the files in
+# .clang-format-ignore. The tidy job holds it to .clang-tidy: what the code
+# does rather than how it reads.
 
 on:
   push:
@@ -85,3 +87,65 @@ jobs:
           fi
 
           echo "all formatted"
+
+  tidy:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # The compile database names the sources of every target, and the
+          # submodules carry the headers they include.
+          submodules: recursive
+
+      # Pinned as clang-format is pinned, and for the same reason: a check set
+      # is a property of a version, and moving to another one is a change of
+      # its own — the one that carries the fixes for what it reports. The PyPI
+      # wheel for this line is 20.1.0 where clang-format's is 20.1.6, and it
+      # ships the checker alone: the loop below is the runner.
+      - name: Install clang-tidy
+        run: pip install clang-tidy==20.1.0
+
+      # sokol is parsed here, never linked, but parsing it on Linux is
+      # compiling it far enough to need the headers CMake's Linux branch links
+      # against: X11, Xi, Xcursor, GL and asound.
+      - name: Install the headers sokol is parsed against
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxi-dev libxcursor-dev libgl1-mesa-dev libasound2-dev
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+
+      # The options a real build uses, one platform layer as the tree allows:
+      # sokol is the layer the browser and console builds take. A database that
+      # leaves a unit unable to find its headers is worse than no checker at
+      # all — such a unit is a compiler error, and clang-tidy fails on one
+      # whatever .clang-tidy says.
+      - name: Configure
+        run: |
+          cmake -B build-tidy -G Ninja \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_TOUCH_INPUT=ON \
+            -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DBUILD_TESTS=ON \
+            -DBUILD_PRO=On -DBUILD_LIBRETRO=ON
+
+      - name: Run
+        run: |
+          set -euo pipefail
+
+          # The project's own translation units: the vendored trees and src/ext
+          # are nobody's to hold to this. The number printed below is the whole
+          # of what is checked — the 3DS, Switch and baremetalpi sources need
+          # SDKs a runner has not, the SDL layer is not the layer this
+          # configuration takes, and draw_cache.c and python_outline.c need
+          # build options it does not turn on.
+          files=()
+          while IFS= read -r f; do files+=("$f"); done < <(jq -r '.[].file' build-tidy/compile_commands.json |
+            sort -u | grep -E '/(src|tests)/' | grep -vE '/(vendor|src/ext)/')
+
+          clang-tidy --version
+          echo "${#files[@]} translation units"
+
+          # One file a process — the analyzer is the slow half of this job —
+          # and a non-zero exit from any of them fails the step.
+          printf '%s\0' "${files[@]}" | xargs -0 -n1 -P "$(nproc)" \
+            clang-tidy -p build-tidy --quiet --warnings-as-errors='*'

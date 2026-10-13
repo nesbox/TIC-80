@@ -60,6 +60,7 @@ void FFT_DebugLog(FFT_LogLevel level, const char* format, ...)
                 printf("[FFT FATAL]: ");
                 break;
             case FFT_LOG_OFF:
+                va_end(args);
                 return;
         }
         vprintf(format, args);
