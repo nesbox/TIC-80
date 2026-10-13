@@ -55,7 +55,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --config Release --parallel || exit /b 1
           rem The universal export stub is this same binary (console.c appends
           rem the cart to it), so keep it before Build Pro overwrites it below.
@@ -77,7 +77,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config Release --parallel
 
       # The universal stub: every free export asks for /export/<ver>/<system>,
@@ -122,7 +122,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --config Release --parallel
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang.exe" "$GITHUB_WORKSPACE/stubs/"
           done
@@ -198,7 +198,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
           # The universal export stub is this same binary (console.c appends the
           # cart to it), so keep it before Build Pro overwrites it below. It goes
@@ -232,7 +232,7 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       # No build here: the universal stub is the binary the Build step kept
@@ -273,7 +273,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
@@ -342,10 +342,13 @@ jobs:
           set -euo pipefail
           command -v ninja >/dev/null || sudo apt-get install -y ninja-build
           command -v ccache >/dev/null || sudo apt-get install -y ccache
+          # No layer at all: the target built below is the conformance runner
+          # and the core it traps, so both layer options are off by name — the
+          # default would otherwise put the sokol layer in the configure.
           cmake -B build-conformance -G Ninja \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON \
-            -DBUILD_SDL=OFF -DBUILD_TESTS=ON
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON \
+            -DBUILD_SDL=OFF -DBUILD_SOKOL=OFF -DBUILD_TESTS=ON
           cmake --build build-conformance --target api-conformance --parallel
 
       # The table is markdown and the summary renders it; pipefail keeps a
@@ -397,7 +400,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
           # The universal export stub is this same binary (console.c appends the
           # cart to it), so keep it before Build Pro overwrites it below. It goes
@@ -418,7 +421,7 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       # No build here: the universal stub is the binary the Build step kept
@@ -459,7 +462,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
@@ -495,6 +498,13 @@ jobs:
             stubs/*
 
   # === Raspberry PI 1-4 Bare Metal ===
+  #
+  # An ARM build against a system GLES rather than the desktop's GL, for the
+  # images that carry their own libs — Batocera's data path is what the flag
+  # below spells. It followed the desktop onto the sokol layer, and that is
+  # worth reading twice: sokol's GLES backend needs a GLES 3 context, where
+  # the SDL path this job used to build was a GLES 2 one, so a board with
+  # only GLES 2 is no longer served by this artifact.
 
   linux-arm64-gles2:
     runs-on: ubuntu-22.04-arm
@@ -508,11 +518,13 @@ jobs:
       - name: Install Toolchain and Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc g++ xz-utils wget python3 rake pkg-config binutils libsdl2-dev libgles2-mesa-dev libegl1-mesa-dev
+          # The GLES pair is stubbed below and the X11 trio and ALSA are what
+          # sokol_app and sokol_audio link against, as in the shipping job.
+          sudo apt-get install -y gcc g++ xz-utils wget python3 rake pkg-config binutils libgles2-mesa-dev libegl1-mesa-dev libx11-dev libxi-dev libxcursor-dev libasound2-dev
 
       - name: Generate Stubs
         run: |
-          for lib in /usr/lib/aarch64-linux-gnu/libSDL2-2.0.so.0 /usr/lib/aarch64-linux-gnu/libGLESv2.so.2 /usr/lib/aarch64-linux-gnu/libEGL.so.1; do \
+          for lib in /usr/lib/aarch64-linux-gnu/libGLESv2.so.2 /usr/lib/aarch64-linux-gnu/libEGL.so.1; do \
               outname=$(basename $lib | sed 's/-2.0//; s/\.so\..*/.so/') && \
               echo "Generating stubs for $outname from $lib" && \
               nm -D $lib | grep " T " | awk '{print "void " $3 "(){}"}' > stubs.c && \
@@ -529,14 +541,11 @@ jobs:
             -DBUILD_WITH_ALL=ON \
             -DCMAKE_C_FLAGS_RELEASE="-Ofast -flto" \
             -DCMAKE_CXX_FLAGS_RELEASE="-Ofast -flto" \
-            -DBUILD_SDL=ON \
-            -DBUILD_SDLGPU=ON \
+            -DBUILD_SDL=OFF \
+            -DBUILD_SOKOL=ON \
             -DUSE_GLES2=ON \
-            -DUSE_EGL=ON \
             -DBUILD_EDITORS=OFF \
             -DBUILD_SURF=OFF \
-            -DPREFER_SYSTEM_SDL2=ON \
-            -DBUILD_STATIC=ON \
             -DTIC_DATA_PATH="/userdata/roms/tic80/"
           cmake --build . --target tic80 --config Release --parallel
 
@@ -660,7 +669,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel 3
           # The universal export stub is this same binary (console.c appends the
           # cart to it), so keep it before Build Pro overwrites it below. It goes
@@ -681,7 +690,7 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel 3
 
       # No build here: the universal stub is the binary the Build step kept
@@ -722,7 +731,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
@@ -761,7 +770,7 @@ jobs:
         run: |
           mkdir -p build_apple
           cd build_apple
-          cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DBUILD_APPLE=ON -DBUILD_STATIC=ON -DBUILD_RENDER_CACHE=ON -DBUILD_SDLGPU=OFF -DBUILD_SURF=OFF -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DBUILD_APPLE=ON -DBUILD_RENDER_CACHE=ON -DBUILD_SDLGPU=OFF -DBUILD_SURF=OFF -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --config Release --parallel 3
 
   # === MacOS 15 / x86_64 ===
@@ -803,7 +812,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
           # The universal export stub is this same binary (console.c appends the
           # cart to it), so keep it before Build Pro overwrites it below. It goes
@@ -824,7 +833,7 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       # No build here: the universal stub is the binary the Build step kept
@@ -865,7 +874,7 @@ jobs:
               if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
             done
             cd "$GITHUB_WORKSPACE/build"
-            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
           done
@@ -901,14 +910,15 @@ jobs:
             stubs/*
 
   # === Android ===
-  # === Sokol desktop builds ===
+  # === SDL desktop builds: the fallback ===
   #
-  # The sokol layer with every language, built on its own so the SDL jobs are
-  # not slowed by a second full build, and handed out as the bench binary for
-  # its system. Each one prints what it cost and what it weighs, which is the
-  # comparison the migration wants.
+  # The layer the desktop shipped before the migration, which the shipping
+  # jobs no longer build — they are the sokol builds now. This is where SDL is
+  # kept compiling and handed out as a binary for one release cycle, while it
+  # is what a player would fall back to. Each job prints what the build cost
+  # and what the binary weighs, which is the comparison in the log.
 
-  sokol-windows:
+  sdl-windows:
     runs-on: windows-2022
 
     steps:
@@ -926,19 +936,19 @@ jobs:
         run: |
           set -euo pipefail
           start=$SECONDS
-          cmake -S . -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake -S . -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_SOKOL=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build build --config Release --parallel
-          echo "sokol build: $((SECONDS - start))s"
+          echo "sdl build: $((SECONDS - start))s"
           du -h build/bin/tic80.exe
 
       - uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-windows-sokol"
+          name: "tic80-windows-sdl"
           path: |
             build/bin/tic80.exe
 
-  sokol-linux:
+  sdl-linux:
     runs-on: ubuntu-22.04
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -957,9 +967,9 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update
-          # The X11 trio and ALSA are sokol_app's and sokol_audio's link line;
-          # the rest is what the studio itself needs.
-          sudo apt-get install -y libx11-dev libxi-dev libxcursor-dev libasound2-dev libglu1-mesa-dev libcurl4-openssl-dev
+          # What the SDL build and the studio itself need; the shipping jobs
+          # carry sokol's X11 link line instead.
+          sudo apt-get install -y libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev
           command -v ninja >/dev/null || sudo apt-get install -y ninja-build
           command -v ccache >/dev/null || sudo apt-get install -y ccache
 
@@ -973,19 +983,19 @@ jobs:
         run: |
           set -euo pipefail
           start=$SECONDS
-          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_ALL=ON
+          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_SOKOL=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON
           cmake --build build --parallel
-          echo "sokol build: $((SECONDS - start))s"
+          echo "sdl build: $((SECONDS - start))s"
           du -h build/bin/tic80
 
       - uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-linux-sokol"
+          name: "tic80-linux-sdl"
           path: |
             build/bin/tic80
 
-  sokol-macos:
+  sdl-macos:
     runs-on: macos-14
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -1017,15 +1027,15 @@ jobs:
         run: |
           set -euo pipefail
           start=$SECONDS
-          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_WITH_ALL=ON
+          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_SOKOL=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON
           cmake --build build --parallel 3
-          echo "sokol build: $((SECONDS - start))s"
+          echo "sdl build: $((SECONDS - start))s"
           du -h build/bin/tic80
 
       - uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-macos-sokol"
+          name: "tic80-macos-sdl"
           path: |
             build/bin/tic80
 
@@ -1201,10 +1211,10 @@ jobs:
             done
             cd "$GITHUB_WORKSPACE/build"
             # "Build all"'s flags with one language on: the site's player is
-            # that build, thirteen runtimes lighter (BUILD_STATIC already
-            # defaults to ON under emscripten, so this leaks nothing into the
-            # stub pass below)
-            emcmake cmake -G Ninja -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_TOUCH_INPUT=ON -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=ON "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            # that build, thirteen runtimes lighter (the static runtime is the
+            # default everywhere, so this leaks nothing into the stub pass
+            # below)
+            emcmake cmake -G Ninja -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=ON "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             for f in "bin/tic80$lang.js" "bin/tic80$lang.wasm"; do
               [ -f "$f" ] || { echo "missing player: build/$f" >&2; exit 1; }
@@ -1324,7 +1334,7 @@ jobs:
       - name: Build all
         run: |
           cd build
-          emcmake cmake -G Ninja -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_TOUCH_INPUT=ON -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON .. --fresh
+          emcmake cmake -G Ninja -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON .. --fresh
           cmake --build . --parallel
           # index.html is the only page: the site's player, and the page an
           # exported game gets — the client fetches it, rewrites the title

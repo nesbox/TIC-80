@@ -28,7 +28,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "Visual Studio 17 2022" -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G "Visual Studio 17 2022" -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config Release --parallel
 
       - name: Push to itch.io
@@ -71,7 +71,7 @@ jobs:
       - name: Build PRO
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config Release --parallel
 
       - name: Build deb
@@ -134,7 +134,7 @@ jobs:
       - name: Build PRO
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       - name: Build deb
@@ -181,7 +181,7 @@ jobs:
       - name: Build PRO
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       - name: Build dmg
@@ -225,7 +225,7 @@ jobs:
       - name: Build PRO
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_STATIC=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
           cmake --build . --parallel
 
       - name: Build dmg
