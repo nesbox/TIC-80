@@ -22,6 +22,7 @@
 
 #include "studio/system.h"
 #include "tools.h"
+#include "tilesheet.h"
 #include "render.h"
 #if defined(TOUCH_INPUT_SUPPORT)
 #include "controls.h"
@@ -38,8 +39,15 @@
 #include <emscripten.h>
 #elif defined(_WIN32)
 #include <direct.h>
+// windows.h first: shellapi.h is written against its types.
+#include <windows.h>
+#include <shellapi.h>
 #else
+#include <signal.h>
+#include <spawn.h>
 #include <sys/stat.h>
+
+extern char** environ;
 #endif
 
 // The machine runs at sixty ticks a second whatever the display does; a frame
@@ -107,6 +115,9 @@ static struct
     {
         float top, right, bottom, left;
     } insets;
+
+    // Whether the window exists: the console-only run makes none.
+    bool started;
 
     bool fullscreen;
     bool layoutKnown;
@@ -911,6 +922,27 @@ static void event_cb(const sapp_event* event)
             break;
 #endif
 
+#if !defined(__EMSCRIPTEN__)
+        case SAPP_EVENTTYPE_FILES_DROPPED:
+            // The first dropped file is the cart; the studio's own load asks
+            // about unsaved changes, so nothing here is special-cased.
+            if(sapp_get_num_dropped_files() > 0)
+            {
+                const char* path = sapp_get_dropped_file_path(0);
+
+                if(path && *path)
+                {
+                    // A copy: sokol writes over its own on the next drop, and the
+                    // studio holds this until its confirmation is answered.
+                    static char dropped[TICNAME_MAX];
+
+                    snprintf(dropped, sizeof dropped, "%s", path);
+                    studio_load(platform.studio, dropped);
+                }
+            }
+            break;
+#endif
+
         case SAPP_EVENTTYPE_RESIZED:
 #if defined(__EMSCRIPTEN__)
             // clang-format off
@@ -995,21 +1027,54 @@ EMSCRIPTEN_KEEPALIVE void tic80_insets(float top, float right, float bottom, flo
 }
 #endif
 
+// The config cart's tileset, painted 64×64 with the colorkey cut out.
+static void set_window_icon(void)
+{
+    enum
+    {
+        Size = 64,
+        TileSize = 16,
+        ColorKey = 14,
+        Scale = Size / TileSize
+    };
+
+    static u32 pixels[Size * Size];
+
+    const tic_tiles* tiles = &studio_config(platform.studio)->cart->bank0.tiles;
+    const tic_blitpal pal = tic_tool_palette_blit(&studio_config(platform.studio)->cart->bank0.palette.vbank0,
+                                                  TIC80_PIXEL_COLOR_RGBA8888);
+
+    for(s32 j = 0, index = 0; j < Size; j++)
+        for(s32 i = 0; i < Size; i++, index++)
+        {
+            const u8 color = tic_tilesheet_getflatpix(tiles->data, i / Scale, j / Scale);
+            pixels[index] = color == ColorKey ? 0 : pal.data[color];
+        }
+
+    sapp_set_icon(&(sapp_icon_desc){
+        .images[0] = {.width = Size, .height = Size, .pixels = {.ptr = pixels, .size = sizeof pixels}}});
+}
+
+// The studio, made the same way by the windowed run and the console-only one.
+static Studio* create_studio(s32 scale)
+{
+    return studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
+                         TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, scale, tic_layout_qwerty);
+}
+
 static void init_cb(void)
 {
     stm_setup();
+
+    platform.started = true;
     platform.lastTime = stm_now();
+
+    // The page mounts its own folder; elsewhere the entry point made it.
+    platform.appFolder = getAppFolder();
 
     sg_setup(&(sg_desc){
         .environment = sglue_environment(),
         TIC80_LOGGER});
-
-    platform.appFolder = getAppFolder();
-
-#if !defined(__EMSCRIPTEN__)
-    // The page mounts its own folder from IndexedDB before anything starts.
-    make_folder(platform.appFolder);
-#endif
 
     render_init();
 
@@ -1018,8 +1083,9 @@ static void init_cb(void)
         .num_channels = TIC80_SAMPLE_CHANNELS,
         TIC80_LOGGER});
 
-    platform.studio = studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
-                                    TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, max_scale(), tic_layout_qwerty);
+    platform.studio = create_studio(max_scale());
+
+    set_window_icon();
 
 #if defined(TOUCH_INPUT_SUPPORT)
     controls_init(studio_config(platform.studio)->cart);
@@ -1032,6 +1098,10 @@ static void init_cb(void)
     EM_ASM(Module.tic80Viewport());
     // clang-format on
 #endif
+
+    // The config's fullscreen: the window exists before the studio reads it.
+    if(studio_config(platform.studio)->options.fullscreen)
+        tic_sys_fullscreen_set(true);
 
     platform.fullscreen = sapp_is_fullscreen();
 }
@@ -1074,6 +1144,11 @@ static sapp_desc app_desc(void)
         .html5.canvas_resize = false,
         .enable_clipboard = true,
         .clipboard_size = 4096,
+#if !defined(__EMSCRIPTEN__)
+        // A handful; the layer still loads the first of them only.
+        .enable_dragndrop = true,
+        .max_dropped_files = 8,
+#endif
     };
 }
 
@@ -1156,32 +1231,125 @@ int main(int argc, char* argv[])
 
 #else
 
-sapp_desc sokol_main(int argc, char* argv[])
+#if defined(_WIN32)
+
+// A console build's argv is in the machine's code page and the studio reads
+// paths as UTF-8, so argv is built from the wide command line again.
+static void win32_utf8_argv(int* argc, char*** argv)
 {
+    int count = 0;
+    wchar_t** wide = CommandLineToArgvW(GetCommandLineW(), &count);
+
+    if(!wide)
+        return;
+
+    if(count < 1)
+    {
+        LocalFree(wide);
+        return;
+    }
+
+    // For the life of the process: the studio keeps the path it was given.
+    char** utf8 = malloc(((size_t)count + 1) * sizeof(char*));
+
+    for(int i = 0; i < count; i++)
+    {
+        const int len = WideCharToMultiByte(CP_UTF8, 0, wide[i], -1, NULL, 0, NULL, NULL);
+
+        utf8[i] = malloc((size_t)len);
+        WideCharToMultiByte(CP_UTF8, 0, wide[i], -1, utf8[i], len, NULL, NULL);
+    }
+
+    utf8[count] = NULL;
+    LocalFree(wide);
+
+    *argc = count;
+    *argv = utf8;
+}
+
+#endif
+
+// Whether the command line asks for the console-only run: argparse takes
+// `--cli` and `--cli=anything` alike, and the studio has the last word.
+static bool cli_requested(s32 argc, char** argv)
+{
+    for(s32 i = 1; i < argc; i++)
+        if(!strcmp(argv[i], "--cli") || !strncmp(argv[i], "--cli=", 6))
+            return true;
+
+    return false;
+}
+
+// The console-only run: the studio's commands over the ticks, no window. False
+// when the studio says the flag was another option's value after all.
+static bool run_cli(void)
+{
+    Studio* studio = create_studio(1);
+
+    if(!studio_config(studio)->cli)
+    {
+        studio_delete(studio);
+        return false;
+    }
+
+    while(!studio_alive(studio))
+        studio_tick(studio, platform.input);
+
+    studio_delete(studio);
+
+    return true;
+}
+
+// The layer owns the entry point: sokol_app makes the window before anything
+// of ours runs, and the console-only run must not make one.
+int main(int argc, char* argv[])
+{
+#if defined(_WIN32)
+    win32_utf8_argv(&argc, &argv);
+#endif
+
     platform.argc = argc;
     platform.argv = argv;
 
-    return app_desc();
+    stm_setup();
+
+#if !defined(_WIN32)
+    // The openers are never waited for; this keeps their exits reaped.
+    signal(SIGCHLD, SIG_IGN);
+#endif
+
+    platform.appFolder = getAppFolder();
+    make_folder(platform.appFolder);
+
+    if(cli_requested(argc, argv) && run_cli())
+        return 0;
+
+    sapp_desc desc = app_desc();
+    sapp_run(&desc);
+
+    return 0;
 }
 
 #endif
 
 ////// the studio's side of the layer //////
 
+// The window's own state, and the console-only run has no window.
 void tic_sys_clipboard_set(const char* text)
 {
-    sapp_set_clipboard_string(text);
+    if(platform.started)
+        sapp_set_clipboard_string(text);
 }
 
 bool tic_sys_clipboard_has(void)
 {
-    const char* text = sapp_get_clipboard_string();
+    const char* text = platform.started ? sapp_get_clipboard_string() : NULL;
     return text && *text;
 }
 
 char* tic_sys_clipboard_get(void)
 {
-    const char* text = sapp_get_clipboard_string();
+    const char* text = platform.started ? sapp_get_clipboard_string() : NULL;
 
     if(!text)
         return NULL;
@@ -1214,6 +1382,9 @@ bool tic_sys_fullscreen_get(void)
 
 void tic_sys_fullscreen_set(bool value)
 {
+    if(!platform.started)
+        return;
+
     if(value != sapp_is_fullscreen())
     {
         sapp_toggle_fullscreen();
@@ -1228,20 +1399,52 @@ void tic_sys_fullscreen_set(bool value)
     platform.fullscreen = sapp_is_fullscreen();
 }
 
-void tic_sys_message(const char* title, const char* message)
-{
-    TIC_UNUSED(title);
-    printf("%s\n", message);
-}
-
 void tic_sys_title(const char* title)
 {
-    sapp_set_window_title(title);
+    if(platform.started)
+        sapp_set_window_title(title);
 }
+
+#if defined(_WIN32)
+
+// The shell's own "open" verb takes a folder and a URL alike.
+static void open_target(const char* target)
+{
+    wchar_t wide[TICNAME_MAX];
+
+    if(MultiByteToWideChar(CP_UTF8, 0, target, -1, wide, COUNT_OF(wide)) == 0)
+        return;
+
+    (void)ShellExecuteW(NULL, L"open", wide, NULL, NULL, SW_SHOWNORMAL);
+}
+
+#elif !defined(__EMSCRIPTEN__)
+
+// The opener each desktop carries; both take one target.
+#if defined(__APPLE__)
+#define OPEN_COMMAND "open"
+#else
+#define OPEN_COMMAND "xdg-open"
+#endif
+
+// Spawned with an argv, not a shell: a path with a quote is just a path.
+static void open_target(const char* target)
+{
+    const char* argv[] = {OPEN_COMMAND, target, NULL};
+    pid_t pid = 0;
+
+    posix_spawnp(&pid, OPEN_COMMAND, NULL, NULL, (char* const*)argv, environ);
+}
+
+#endif
 
 void tic_sys_open_path(const char* path)
 {
+#if defined(__EMSCRIPTEN__)
     TIC_UNUSED(path);
+#else
+    open_target(path);
+#endif
 }
 
 void tic_sys_open_url(const char* url)
@@ -1251,7 +1454,7 @@ void tic_sys_open_url(const char* url)
     EM_ASM({ window.open(UTF8ToString($0), '_blank'); }, url);
     // clang-format on
 #else
-    TIC_UNUSED(url);
+    open_target(url);
 #endif
 }
 

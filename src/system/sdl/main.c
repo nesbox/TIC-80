@@ -1645,11 +1645,6 @@ void tic_sys_fullscreen_set(bool value)
     }
 }
 
-void tic_sys_message(const char* title, const char* message)
-{
-    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, title, message, NULL);
-}
-
 void tic_sys_title(const char* title)
 {
     if(platform.window)

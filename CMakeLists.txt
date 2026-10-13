@@ -24,11 +24,8 @@ message("VERSION_HASH: ${VERSION_HASH}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
-if(ANDROID OR EMSCRIPTEN OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI)
-    set(BUILD_STATIC_DEFAULT ON)
-else()
-    set(BUILD_STATIC_DEFAULT OFF)
-endif()
+# The static runtime is what every artifact the project ships is built with.
+set(BUILD_STATIC_DEFAULT ON)
 
 set(BUILD_PLAYER_DEFAULT OFF)
 set(BUILD_LIBRETRO_DEFAULT OFF)
@@ -46,10 +43,21 @@ option(BUILD_RENDER_CACHE "Build with render cache optimization" OFF)
 if(BUILD_RENDER_CACHE)
     add_definitions(-DBUILD_RENDER_CACHE)
 endif()
-option(BUILD_SDL "SDL Enabled" ON)
-option(BUILD_SOKOL "Sokol Enabled" OFF)
+# Sokol is the layer the desktop ships and the web has built since the browser
+# change; the platforms below cannot build it and keep the SDL default.
+if(ANDROID OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI OR RPI OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    set(BUILD_SDL_DEFAULT ON)
+    set(BUILD_SOKOL_DEFAULT OFF)
+else()
+    set(BUILD_SDL_DEFAULT OFF)
+    set(BUILD_SOKOL_DEFAULT ON)
+endif()
+
+option(BUILD_SDL "SDL Enabled" ${BUILD_SDL_DEFAULT})
+option(BUILD_SOKOL "Sokol Enabled" ${BUILD_SOKOL_DEFAULT})
 if(BUILD_APPLE)
     set(BUILD_SDL OFF)
+    set(BUILD_SOKOL OFF)
 endif()
 if(BUILD_SDL AND BUILD_SOKOL)
     message(FATAL_ERROR "BUILD_SDL and BUILD_SOKOL are two system layers: enable exactly one")
@@ -224,5 +232,25 @@ include(cmake/apple.cmake)
 include(cmake/libretro.cmake)
 include(cmake/n3ds.cmake)
 include(cmake/nswitch.cmake)
+
+# The Linux desktop entry, its icon and the mime type belong to the app, not
+# to the layer; a build with no layer at all has no binary to install.
+if(LINUX AND TARGET ${TIC80_TARGET})
+
+    configure_file("${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop.in" "${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop")
+
+    install(TARGETS ${TIC80_TARGET} DESTINATION bin)
+
+    set(TIC80_DESKTOP_DIR       "share/applications/")
+    set(TIC80_MIME_DIR          "share/mime/packages/")
+    set(TIC80_PIXMAPS_DIR       "share/icons/hicolor/256x256/apps")
+    set(TIC80_MIMETYPE_ICON_DIR "share/icons/hicolor/256x256/mimetypes")
+
+    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop DESTINATION ${TIC80_DESKTOP_DIR})
+    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_MIME_DIR})
+    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_PIXMAPS_DIR})
+    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_MIMETYPE_ICON_DIR} RENAME application-x-tic80-item.png)
+
+endif()
 
 include(cmake/install.cmake)

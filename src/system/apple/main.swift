@@ -464,20 +464,6 @@ public func tic_sys_fullscreen_get() -> Bool {
     return intendedFullscreen
 }
 
-@_cdecl("tic_sys_message")
-public func tic_sys_message(_ title: UnsafePointer<CChar>?, _ message: UnsafePointer<CChar>?) {
-    let t = title != nil ? String(cString: title!) : "Message"
-    let m = message != nil ? String(cString: message!) : ""
-    DispatchQueue.main.async {
-        let alert = NSAlert()
-        alert.messageText = t
-        alert.informativeText = m
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
-        alert.runModal()
-    }
-}
-
 @_cdecl("tic_sys_title")
 public func tic_sys_title(_ title: UnsafePointer<CChar>?) {
     guard let title = title else { return }
