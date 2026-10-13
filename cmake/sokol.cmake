@@ -21,18 +21,17 @@ if(BUILD_SOKOL)
     # sokol is implemented inside sokol_impl.c, and its warnings are not ours
     target_include_directories(sokol SYSTEM PUBLIC ${THIRDPARTY_DIR}/sokol)
 
+    # The layer provides its own entry point on every platform, as it did on
+    # the page before this: the console-only run must make a studio and no
+    # window, and sokol_app makes the window before anything of ours runs.
+    target_compile_definitions(sokol PUBLIC SOKOL_NO_ENTRY)
+
     if(APPLE)
         target_compile_definitions(sokol PUBLIC SOKOL_METAL)
     elseif(WIN32)
-        # FORCE_MAIN is what the console subsystem below needs: sokol_app
-        # defines WinMain by default, and the linker of a console image calls
-        # main.
-        target_compile_definitions(sokol PUBLIC SOKOL_D3D11 UNICODE SOKOL_WIN32_FORCE_MAIN)
+        target_compile_definitions(sokol PUBLIC SOKOL_D3D11 UNICODE)
     elseif(EMSCRIPTEN)
         target_compile_definitions(sokol PUBLIC SOKOL_GLES3)
-        # The page needs its data folder mounted from IndexedDB before the
-        # studio starts, so the layer provides its own entry point there.
-        target_compile_definitions(sokol PUBLIC SOKOL_NO_ENTRY)
     elseif(USE_GLES2)
         # USE_GLES2 is the build's "GLES rather than the desktop's GL" switch —
         # sokol's GLES backend is a 3.1 one, which is what this option reaches

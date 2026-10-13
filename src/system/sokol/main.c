@@ -117,6 +117,10 @@ static struct
         float top, right, bottom, left;
     } insets;
 
+    // Whether the window exists: the console-only run makes a studio and no
+    // window at all, and the calls that belong to one are left alone there.
+    bool started;
+
     bool fullscreen;
     bool layoutKnown;
 
@@ -935,14 +939,14 @@ static void event_cb(const sapp_event* event)
                 {
                     // The studio holds the path until its confirmation is
                     // answered and sokol writes over its own on the next drop,
-                    // so what the studio is given is a copy — one per drop,
-                    // since a second drop while a confirmation is up would
-                    // otherwise rename the file the first one named. Nothing
-                    // gives it back: the layer never learns the answer, and
-                    // the SDL layer's drop path leaks the same string.
-                    char* dropped = malloc(strlen(path) + 1);
+                    // so what the studio is given is a copy. The one buffer is
+                    // enough: the studio keeps one confirmation, and a second
+                    // drop replaces it rather than queueing behind it. A path
+                    // longer than the studio's own name buffer is cut rather
+                    // than overrunning it.
+                    static char dropped[TICNAME_MAX];
 
-                    strcpy(dropped, path);
+                    snprintf(dropped, sizeof dropped, "%s", path);
                     studio_load(platform.studio, dropped);
                 }
             }
@@ -1063,28 +1067,29 @@ static void set_window_icon(void)
         .images[0] = {.width = Size, .height = Size, .pixels = {.ptr = pixels, .size = sizeof pixels}}});
 }
 
+// The studio, made the same way by the windowed run and the console-only one:
+// the layer's own state is all it is handed besides the scale.
+static Studio* create_studio(s32 scale)
+{
+    return studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
+                         TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, scale, tic_layout_qwerty);
+}
+
 static void init_cb(void)
 {
     stm_setup();
+
+    platform.started = true;
     platform.lastTime = stm_now();
 
-#if !defined(__EMSCRIPTEN__) && !defined(_WIN32)
-    // The openers below are spawned and never waited for, and nothing else in
-    // this layer forks: their exits are reaped by the system rather than kept
-    // as zombies by a session that opened the folder a few times.
-    signal(SIGCHLD, SIG_IGN);
-#endif
+    // The page mounts its own folder from IndexedDB before anything starts;
+    // elsewhere the entry point made it already, and asking again is the same
+    // answer from the same place.
+    platform.appFolder = getAppFolder();
 
     sg_setup(&(sg_desc){
         .environment = sglue_environment(),
         TIC80_LOGGER});
-
-    platform.appFolder = getAppFolder();
-
-#if !defined(__EMSCRIPTEN__)
-    // The page mounts its own folder from IndexedDB before anything starts.
-    make_folder(platform.appFolder);
-#endif
 
     render_init();
 
@@ -1093,8 +1098,7 @@ static void init_cb(void)
         .num_channels = TIC80_SAMPLE_CHANNELS,
         TIC80_LOGGER});
 
-    platform.studio = studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
-                                    TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, max_scale(), tic_layout_qwerty);
+    platform.studio = create_studio(max_scale());
 
     set_window_icon();
 
@@ -1282,7 +1286,54 @@ static void win32_utf8_argv(int* argc, char*** argv)
 
 #endif
 
-sapp_desc sokol_main(int argc, char* argv[])
+// Whether the command line asks for the console-only run. It is the one option
+// that decides whether a window is made at all, and it has to be read before
+// the studio exists. The scan is not a parser — argparse takes the flag's two
+// spellings, `--cli` and `--cli=anything`, and increments the boolean for
+// both — and it is why the studio gets the last word below.
+static bool cli_requested(s32 argc, char** argv)
+{
+    for(s32 i = 1; i < argc; i++)
+        if(!strcmp(argv[i], "--cli") || !strncmp(argv[i], "--cli=", 6))
+            return true;
+
+    return false;
+}
+
+// The console-only run: no window, no GL, no audio — the studio is made, its
+// commands run over the ticks until it is done, and it is let go. It is how
+// the docs are built and how a cart is exported from a machine with no
+// display to put a window on, which is what the SDL layer's own CLI loop did.
+//
+// False when the studio says the command line did not ask for it after all: a
+// word that only looks like the flag is another option's value to argparse
+// (`--cmd --cli` reads as the command `--cli`), and the studio is the only one
+// that can tell. The one it was asked with never runs a tick and is let go,
+// and the studio made again for the window prints its greeting a second time —
+// the price of asking, on a command line nobody types on purpose. The SDL
+// layer reads the flag the parser set and never asks.
+static bool run_cli(void)
+{
+    Studio* studio = create_studio(1);
+
+    if(!studio_config(studio)->cli)
+    {
+        studio_delete(studio);
+        return false;
+    }
+
+    while(!studio_alive(studio))
+        studio_tick(studio, platform.input);
+
+    studio_delete(studio);
+
+    return true;
+}
+
+// The layer owns the entry point rather than sokol_app, on the desktop as it
+// already did on the page: the window is the thing the CLI must not make, and
+// sokol_app makes it before anything of ours runs.
+int main(int argc, char* argv[])
 {
 #if defined(_WIN32)
     win32_utf8_argv(&argc, &argv);
@@ -1291,27 +1342,49 @@ sapp_desc sokol_main(int argc, char* argv[])
     platform.argc = argc;
     platform.argv = argv;
 
-    return app_desc();
+    stm_setup();
+
+#if !defined(_WIN32)
+    // The openers are spawned and never waited for, and nothing else in this
+    // layer forks: their exits are reaped by the system rather than kept as
+    // zombies by a session that opened the folder a few times.
+    signal(SIGCHLD, SIG_IGN);
+#endif
+
+    platform.appFolder = getAppFolder();
+    make_folder(platform.appFolder);
+
+    if(cli_requested(argc, argv) && run_cli())
+        return 0;
+
+    sapp_desc desc = app_desc();
+    sapp_run(&desc);
+
+    return 0;
 }
 
 #endif
 
 ////// the studio's side of the layer //////
 
+// The clipboard, the title and the fullscreen mode belong to the window, and
+// the console-only run has none: the studio is made, its commands run, and a
+// command that cannot reach the desktop is still a command to run.
 void tic_sys_clipboard_set(const char* text)
 {
-    sapp_set_clipboard_string(text);
+    if(platform.started)
+        sapp_set_clipboard_string(text);
 }
 
 bool tic_sys_clipboard_has(void)
 {
-    const char* text = sapp_get_clipboard_string();
+    const char* text = platform.started ? sapp_get_clipboard_string() : NULL;
     return text && *text;
 }
 
 char* tic_sys_clipboard_get(void)
 {
-    const char* text = sapp_get_clipboard_string();
+    const char* text = platform.started ? sapp_get_clipboard_string() : NULL;
 
     if(!text)
         return NULL;
@@ -1344,6 +1417,9 @@ bool tic_sys_fullscreen_get(void)
 
 void tic_sys_fullscreen_set(bool value)
 {
+    if(!platform.started)
+        return;
+
     if(value != sapp_is_fullscreen())
     {
         sapp_toggle_fullscreen();
@@ -1360,7 +1436,8 @@ void tic_sys_fullscreen_set(bool value)
 
 void tic_sys_title(const char* title)
 {
-    sapp_set_window_title(title);
+    if(platform.started)
+        sapp_set_window_title(title);
 }
 
 #if defined(_WIN32)
