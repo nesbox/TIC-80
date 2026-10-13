@@ -39,8 +39,10 @@
 #include <emscripten.h>
 #elif defined(_WIN32)
 #include <direct.h>
-#include <shellapi.h>
+// windows.h first: shellapi.h is written against the types it defines and
+// does not include it.
 #include <windows.h>
+#include <shellapi.h>
 #else
 #include <signal.h>
 #include <spawn.h>
@@ -933,10 +935,14 @@ static void event_cb(const sapp_event* event)
                 {
                     // The studio holds the path until its confirmation is
                     // answered and sokol writes over its own on the next drop,
-                    // so what the studio is given is a copy.
-                    static char dropped[TICNAME_MAX];
+                    // so what the studio is given is a copy — one per drop,
+                    // since a second drop while a confirmation is up would
+                    // otherwise rename the file the first one named. Nothing
+                    // gives it back: the layer never learns the answer, and
+                    // the SDL layer's drop path leaks the same string.
+                    char* dropped = malloc(strlen(path) + 1);
 
-                    snprintf(dropped, sizeof dropped, "%s", path);
+                    strcpy(dropped, path);
                     studio_load(platform.studio, dropped);
                 }
             }
@@ -1233,8 +1239,55 @@ int main(int argc, char* argv[])
 
 #else
 
+#if defined(_WIN32)
+
+// A console build's `main` is handed its arguments in the machine's own code
+// page, and the layer keeps them as UTF-8: the studio's file hooks convert
+// with CP_UTF8, and a cart named on the command line — or handed over by the
+// file association — is a path like any other. Windows keeps the command line
+// as text, so argv is built from it again; SDL's own main did this for the
+// build this layer replaces.
+static void win32_utf8_argv(int* argc, char*** argv)
+{
+    int count = 0;
+    wchar_t** wide = CommandLineToArgvW(GetCommandLineW(), &count);
+
+    if(!wide)
+        return;
+
+    if(count < 1)
+    {
+        LocalFree(wide);
+        return;
+    }
+
+    // Kept for the life of the process: the studio holds the path it was
+    // given, and an argv has no owner to give it back to.
+    char** utf8 = malloc(((size_t)count + 1) * sizeof(char*));
+
+    for(int i = 0; i < count; i++)
+    {
+        const int len = WideCharToMultiByte(CP_UTF8, 0, wide[i], -1, NULL, 0, NULL, NULL);
+
+        utf8[i] = malloc((size_t)len);
+        WideCharToMultiByte(CP_UTF8, 0, wide[i], -1, utf8[i], len, NULL, NULL);
+    }
+
+    utf8[count] = NULL;
+    LocalFree(wide);
+
+    *argc = count;
+    *argv = utf8;
+}
+
+#endif
+
 sapp_desc sokol_main(int argc, char* argv[])
 {
+#if defined(_WIN32)
+    win32_utf8_argv(&argc, &argv);
+#endif
+
     platform.argc = argc;
     platform.argv = argv;
 
