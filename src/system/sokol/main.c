@@ -22,6 +22,7 @@
 
 #include "studio/system.h"
 #include "tools.h"
+#include "tilesheet.h"
 #include "render.h"
 #if defined(TOUCH_INPUT_SUPPORT)
 #include "controls.h"
@@ -38,8 +39,14 @@
 #include <emscripten.h>
 #elif defined(_WIN32)
 #include <direct.h>
+#include <shellapi.h>
+#include <windows.h>
 #else
+#include <signal.h>
+#include <spawn.h>
 #include <sys/stat.h>
+
+extern char** environ;
 #endif
 
 // The machine runs at sixty ticks a second whatever the display does; a frame
@@ -911,6 +918,31 @@ static void event_cb(const sapp_event* event)
             break;
 #endif
 
+#if !defined(__EMSCRIPTEN__)
+        case SAPP_EVENTTYPE_FILES_DROPPED:
+            // The desktop hands over what was dropped on the window; the first
+            // is the cart and the rest are ignored rather than queued, since
+            // loading each in turn would open and close carts as fast as the
+            // drop order arrives. The studio's own load asks about unsaved
+            // changes, so nothing about the drop is special-cased here.
+            if(sapp_get_num_dropped_files() > 0)
+            {
+                const char* path = sapp_get_dropped_file_path(0);
+
+                if(path && *path)
+                {
+                    // The studio holds the path until its confirmation is
+                    // answered and sokol writes over its own on the next drop,
+                    // so what the studio is given is a copy.
+                    static char dropped[TICNAME_MAX];
+
+                    snprintf(dropped, sizeof dropped, "%s", path);
+                    studio_load(platform.studio, dropped);
+                }
+            }
+            break;
+#endif
+
         case SAPP_EVENTTYPE_RESIZED:
 #if defined(__EMSCRIPTEN__)
             // clang-format off
@@ -995,10 +1027,47 @@ EMSCRIPTEN_KEEPALIVE void tic80_insets(float top, float right, float bottom, flo
 }
 #endif
 
+// The window carries the studio's own art — the config cart's tileset, the
+// same 64×64 painting the SDL layer draws, with the colorkey palette entry
+// cut out. The cart is what the art comes from, so this waits for the studio.
+static void set_window_icon(void)
+{
+    enum
+    {
+        Size = 64,
+        TileSize = 16,
+        ColorKey = 14,
+        Scale = Size / TileSize
+    };
+
+    static u32 pixels[Size * Size];
+
+    const tic_tiles* tiles = &studio_config(platform.studio)->cart->bank0.tiles;
+    const tic_blitpal pal = tic_tool_palette_blit(&studio_config(platform.studio)->cart->bank0.palette.vbank0,
+                                                  TIC80_PIXEL_COLOR_RGBA8888);
+
+    for(s32 j = 0, index = 0; j < Size; j++)
+        for(s32 i = 0; i < Size; i++, index++)
+        {
+            const u8 color = tic_tilesheet_getflatpix(tiles->data, i / Scale, j / Scale);
+            pixels[index] = color == ColorKey ? 0 : pal.data[color];
+        }
+
+    sapp_set_icon(&(sapp_icon_desc){
+        .images[0] = {.width = Size, .height = Size, .pixels = {.ptr = pixels, .size = sizeof pixels}}});
+}
+
 static void init_cb(void)
 {
     stm_setup();
     platform.lastTime = stm_now();
+
+#if !defined(__EMSCRIPTEN__) && !defined(_WIN32)
+    // The openers below are spawned and never waited for, and nothing else in
+    // this layer forks: their exits are reaped by the system rather than kept
+    // as zombies by a session that opened the folder a few times.
+    signal(SIGCHLD, SIG_IGN);
+#endif
 
     sg_setup(&(sg_desc){
         .environment = sglue_environment(),
@@ -1020,6 +1089,8 @@ static void init_cb(void)
 
     platform.studio = studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
                                     TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, max_scale(), tic_layout_qwerty);
+
+    set_window_icon();
 
 #if defined(TOUCH_INPUT_SUPPORT)
     controls_init(studio_config(platform.studio)->cart);
@@ -1074,6 +1145,12 @@ static sapp_desc app_desc(void)
         .html5.canvas_resize = false,
         .enable_clipboard = true,
         .clipboard_size = 4096,
+#if !defined(__EMSCRIPTEN__)
+        // A handful of files, so a player dragging several carts does not have
+        // the drop swallowed; the layer still loads the first of them only.
+        .enable_dragndrop = true,
+        .max_dropped_files = 8,
+#endif
     };
 }
 
@@ -1228,20 +1305,56 @@ void tic_sys_fullscreen_set(bool value)
     platform.fullscreen = sapp_is_fullscreen();
 }
 
-void tic_sys_message(const char* title, const char* message)
-{
-    TIC_UNUSED(title);
-    printf("%s\n", message);
-}
-
 void tic_sys_title(const char* title)
 {
     sapp_set_window_title(title);
 }
 
+#if defined(_WIN32)
+
+// The desktop's own "open": the shell's verb takes a folder to the file
+// manager and a URL to the browser alike. Nothing is waited for — a target
+// with no handler is the desktop's answer to give, not a reason to stop.
+static void open_target(const char* target)
+{
+    wchar_t wide[TICNAME_MAX];
+
+    if(MultiByteToWideChar(CP_UTF8, 0, target, -1, wide, COUNT_OF(wide)) == 0)
+        return;
+
+    (void)ShellExecuteW(NULL, L"open", wide, NULL, NULL, SW_SHOWNORMAL);
+}
+
+#elif !defined(__EMSCRIPTEN__)
+
+// The opener each desktop carries; both take the one target and no options.
+#if defined(__APPLE__)
+#define OPEN_COMMAND "open"
+#else
+#define OPEN_COMMAND "xdg-open"
+#endif
+
+// Spawned with an argv rather than handed to a shell, so a path with a quote
+// in it is just a path. The child is not waited for — the opener outlives
+// this call by design — and init_cb has SIGCHLD ignored, so its exit is
+// reaped by the system rather than kept as a zombie.
+static void open_target(const char* target)
+{
+    const char* argv[] = {OPEN_COMMAND, target, NULL};
+    pid_t pid = 0;
+
+    posix_spawnp(&pid, OPEN_COMMAND, NULL, NULL, (char* const*)argv, environ);
+}
+
+#endif
+
 void tic_sys_open_path(const char* path)
 {
+#if defined(__EMSCRIPTEN__)
     TIC_UNUSED(path);
+#else
+    open_target(path);
+#endif
 }
 
 void tic_sys_open_url(const char* url)
@@ -1251,7 +1364,7 @@ void tic_sys_open_url(const char* url)
     EM_ASM({ window.open(UTF8ToString($0), '_blank'); }, url);
     // clang-format on
 #else
-    TIC_UNUSED(url);
+    open_target(url);
 #endif
 }
 
