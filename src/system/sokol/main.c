@@ -1114,6 +1114,12 @@ static void init_cb(void)
     // clang-format on
 #endif
 
+    // What the config asks for, applied the way the SDL layer applies it: the
+    // window is made before the studio reads the config, so the mode is set
+    // here rather than asked for in the description.
+    if(studio_config(platform.studio)->options.fullscreen)
+        tic_sys_fullscreen_set(true);
+
     platform.fullscreen = sapp_is_fullscreen();
 }
 
