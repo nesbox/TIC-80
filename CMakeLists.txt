@@ -48,8 +48,10 @@ endif()
 # The desktop builds the sokol layer where no layer is named, as it built the
 # SDL one before the migration. The platforms that are not the desktop keep
 # the SDL default — Android builds it, the consoles and the Apple backend turn
-# it off for a layer of their own, and the web jobs name sokol outright.
-if(ANDROID OR EMSCRIPTEN OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI)
+# it off for a layer of their own, and the web jobs name sokol outright — and
+# so do the two desktops sokol has no backend for: the Pi's sysroot, whose GL
+# is Broadcom's, and FreeBSD.
+if(ANDROID OR EMSCRIPTEN OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI OR RPI OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(BUILD_SDL_DEFAULT ON)
     set(BUILD_SOKOL_DEFAULT OFF)
 else()
@@ -240,8 +242,10 @@ include(cmake/nswitch.cmake)
 # After every layer: the Linux desktop entry, its icon and the mime type
 # belong to the app rather than to the layer that built it, and so does the
 # install rule for the binary. Whichever layer a build names, a Linux package
-# carries these — the ARM build packs them beside a sokol binary.
-if(LINUX)
+# carries these — the ARM build packs them beside a sokol binary. A build that
+# names no layer at all — the conformance runner's — has no binary to install
+# and skips the block.
+if(LINUX AND TARGET ${TIC80_TARGET})
 
     configure_file("${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop.in" "${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop")
 

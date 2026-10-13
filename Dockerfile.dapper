@@ -3,4 +3,6 @@ RUN apt-get update && apt-get install -y g++ git cmake libgtk-3-dev \
     libglvnd-dev libglu1-mesa-dev freeglut3-dev libasound2-dev
 WORKDIR ${DAPPER_SOURCE:-/source}
 ENV DAPPER_OUTPUT build/bin
-ENTRYPOINT ["sh", "-c", "cd build; cmake .. && make -j4"]
+# The layer is named: this image carries the GTK build's dependencies and is
+# not kept up with the sokol one, which is the desktop's default now.
+ENTRYPOINT ["sh", "-c", "cd build; cmake -DBUILD_SDL=ON -DBUILD_SOKOL=OFF .. && make -j4"]
