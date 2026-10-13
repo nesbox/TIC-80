@@ -299,21 +299,4 @@ if(BUILD_SDL)
         endif()
     endif()
 
-    if(LINUX)
-
-        configure_file("${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop.in" "${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop")
-
-        install(TARGETS ${TIC80_TARGET} DESTINATION bin)
-
-        SET(TIC80_DESKTOP_DIR     "share/applications/")
-        SET(TIC80_MIME_DIR        "share/mime/packages/")
-        SET(TIC80_PIXMAPS_DIR     "share/icons/hicolor/256x256/apps")
-        SET(TIC80_MIMETYPE_ICON_DIR "share/icons/hicolor/256x256/mimetypes")
-
-        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop DESTINATION ${TIC80_DESKTOP_DIR})
-        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_MIME_DIR})
-        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_PIXMAPS_DIR})
-        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_MIMETYPE_ICON_DIR} RENAME application-x-tic80-item.png)
-
-    endif()
 endif()
