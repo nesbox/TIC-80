@@ -124,7 +124,7 @@ jobs:
         run: |
           cmake -B build-tidy -G Ninja \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_SDL=OFF -DBUILD_SOKOL=ON -DBUILD_TOUCH_INPUT=ON \
+            -DBUILD_TOUCH_INPUT=ON \
             -DBUILD_WITH_ALL=ON -DBUILD_TESTS=ON \
             -DBUILD_PRO=On -DBUILD_LIBRETRO=ON
 

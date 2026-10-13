@@ -45,13 +45,13 @@ option(BUILD_RENDER_CACHE "Build with render cache optimization" OFF)
 if(BUILD_RENDER_CACHE)
     add_definitions(-DBUILD_RENDER_CACHE)
 endif()
-# The desktop builds the sokol layer where no layer is named, as it built the
-# SDL one before the migration. The platforms that are not the desktop keep
-# the SDL default — Android builds it, the consoles and the Apple backend turn
-# it off for a layer of their own, and the web jobs name sokol outright — and
-# so do the two desktops sokol has no backend for: the Pi's sysroot, whose GL
-# is Broadcom's, and FreeBSD.
-if(ANDROID OR EMSCRIPTEN OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI OR RPI OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+# Sokol is the layer the desktop ships and the one the web has built since the
+# browser change, so it is the default wherever it can be built. The platforms
+# below cannot: Android has no GLES 3 wiring for it yet, the Pi's sysroot
+# carries Broadcom's GL and no X11, sokol_app has no FreeBSD backend. The
+# consoles and the Apple backend bring a layer of their own — the Switch's is
+# SDL's — and turn the layers off below.
+if(ANDROID OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI OR RPI OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(BUILD_SDL_DEFAULT ON)
     set(BUILD_SOKOL_DEFAULT OFF)
 else()
