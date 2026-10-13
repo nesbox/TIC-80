@@ -207,12 +207,6 @@ bool tic_sys_fullscreen_get()
     return true;
 }
 
-void tic_sys_message(const char* title, const char* message)
-{
-    (void)title;
-    (void)message;
-}
-
 void tic_sys_title(const char* title)
 {
     (void)title;
