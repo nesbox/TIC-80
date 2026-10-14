@@ -528,7 +528,7 @@ static void setMapSprite(Map* map, s32 x, s32 y)
     {
         mx += rand() % map->sheet.rect.w;
         my += rand() % map->sheet.rect.h;
-        tic_api_mset(map->tic, x % TIC_MAP_WIDTH, y % TIC_MAP_HEIGHT, mx + my * TIC_SPRITESHEET_COLS);
+        tic_api_mset(map->tic, x % TIC_MAP_WIDTH, y % TIC_MAP_HEIGHT, (u8)(mx + my * TIC_SPRITESHEET_COLS));
     }
     else
     {
@@ -951,7 +951,7 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
         if(map->canvas.random)
         {
             s32 randomTile = (mx + rand() % map->sheet.rect.w) + (my + rand() % map->sheet.rect.h) * TIC_SPRITESHEET_COLS;
-            tic_api_mset(map->tic, x, y, randomTile);
+            tic_api_mset(map->tic, x, y, (u8)randomTile);
         }
         else
         {
