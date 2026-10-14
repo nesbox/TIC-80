@@ -25,12 +25,14 @@
 #include "ext/history.h"
 
 #include <ctype.h>
+#include <math.h>
 #include "tic_assert.h"
 
 #define TEXT_CURSOR_DELAY        (TIC80_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
-#define BOOKMARK_WIDTH           7
-#define CODE_EDITOR_WIDTH        (TIC80_WIDTH - BOOKMARK_WIDTH)
+#define MAX_LINE_NUMBER_DIGITS   5
+#define MIN_GUTTER_WIDTH         7
+#define MAX_GUTTER_WIDTH         (TIC_ALTFONT_WIDTH * MAX_LINE_NUMBER_DIGITS + 1)
 #define CODE_EDITOR_HEIGHT       (TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT)
 #define TEXT_BUFFER_HEIGHT       (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
 #define SIDEBAR_WIDTH            (12 * TIC_FONT_WIDTH)
@@ -134,6 +136,43 @@ tic_color getCodeColor(Code* code)
     return tic_color_white;
 }
 
+static s32 getLinesCount(Code* code)
+{
+    char* text = code->src;
+    s32 count = 0;
+
+    while(*text)
+        if(*text++ == '\n')
+            count++;
+
+    return count;
+}
+
+static void getWidths(Code* code, s32* gutterWidthOut, s32* codeWidthOut)
+{
+    int charCount = code->lineNumbers ? ((int)log10(getLinesCount(code)) + 1) : 0;
+    int gutterWidth = code->lineNumbers ? 1 + charCount * TIC_ALTFONT_WIDTH : MIN_GUTTER_WIDTH;
+    gutterWidth = MAX(gutterWidth, MIN_GUTTER_WIDTH);
+    int codeWidth = TIC80_WIDTH - gutterWidth;
+
+    if(gutterWidthOut) *gutterWidthOut = gutterWidth;
+    if(codeWidthOut) *codeWidthOut = codeWidth;
+}
+
+static inline s32 getCodeEditorWidth(Code* code)
+{
+    s32 width;
+    getWidths(code, NULL, &width);
+    return width;
+}
+
+static inline s32 getGutterWidth(Code* code)
+{
+    s32 width;
+    getWidths(code, &width, NULL);
+    return width;
+}
+
 static void drawStatus(Code* code)
 {
     enum
@@ -217,16 +256,13 @@ static void toggleBookmark(Code* code, char* codePos)
     history(code);
 }
 
-static void drawBookmarks(Code* code)
+static void drawGutter(Code* code)
 {
     tic_mem* tic = code->tic;
-
-    enum
-    {
-        Width = BOOKMARK_WIDTH,
-        Height = TIC80_HEIGHT - TOOLBAR_SIZE * 2
-    };
-    tic_rect rect = {0, TOOLBAR_SIZE, Width, Height};
+    const s32 gutterWidth = getGutterWidth(code);
+    const s32 gutterHeight = TIC80_HEIGHT - TOOLBAR_SIZE * 2;
+    tic_rect rect = {0, TOOLBAR_SIZE, gutterWidth, gutterHeight};
+    s32 mouseOverLine = -1;
 
     tic_api_rect(code->tic, rect.x, rect.y, rect.w, rect.h, tic_color_grey);
 
@@ -236,9 +272,9 @@ static void drawBookmarks(Code* code)
 
         showTooltip(code->studio, "BOOKMARK [ctrl+f1]");
 
-        s32 line = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
+        s32 line = mouseOverLine = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
 
-        drawBitIcon(code->studio, tic_icon_bookmark, rect.x, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
+        drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
 
         if(checkMouseClick(code->studio, &rect, tic_mouse_left))
             toggleBookmark(code, getPosByLine(code->src, line + code->scroll.y));
@@ -248,15 +284,32 @@ static void drawBookmarks(Code* code)
     const CodeState* syntaxPointer = code->state;
     s32 y = -code->scroll.y;
 
+    char buf[16] = "";
+    bool bookmarkDrawn = false;
+    s32 cursorX, cursorY;
+    codeGetPos(code, &cursorX, &cursorY);
+
     while(*pointer)
     {
         if(syntaxPointer++->bookmark)
         {
-            drawBitIcon(code->studio, tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_black);
-            drawBitIcon(code->studio, tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT - 1, tic_color_yellow);
+            drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_black);
+            drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT - 1, tic_color_yellow);
+            bookmarkDrawn = true;
+        }
+        else if(code->lineNumbers && y != mouseOverLine && !bookmarkDrawn)
+        {
+            s32 lineNumber = y + 1 + code->scroll.y;
+            snprintf(buf, sizeof(buf), "%d", lineNumber);
+            s32 offset = (s32)strlen(buf) * TIC_ALTFONT_WIDTH;
+            tic_api_print(tic, buf, rect.x + gutterWidth - offset, rect.y + y * STUDIO_TEXT_HEIGHT, y + code->scroll.y == cursorY ? tic_color_white : tic_color_dark_grey, true, 1, true);
         }
 
-        if(*pointer++ == '\n') y++;
+        if(*pointer++ == '\n')
+        {
+            bookmarkDrawn = false;
+            y++;
+        }
     }
 }
 
@@ -320,7 +373,9 @@ static void drawMatchedDelim(Code* code, s32 x, s32 y, char symbol, u8 color)
 
 static void drawCode(Code* code, bool withCursor)
 {
-    tic_rect rect = {BOOKMARK_WIDTH, TOOLBAR_SIZE, CODE_EDITOR_WIDTH, CODE_EDITOR_HEIGHT};
+    s32 gutterWidth, codeWidth;
+    getWidths(code, &gutterWidth, &codeWidth);
+    tic_rect rect = {gutterWidth, TOOLBAR_SIZE, codeWidth, CODE_EDITOR_HEIGHT};
 
     s32 xStart = rect.x - code->scroll.x * getFontWidth(code);
     s32 x = xStart;
@@ -435,12 +490,12 @@ static void drawCode(Code* code, bool withCursor)
         syntaxPointer++;
     }
 
-    drawBookmarks(code);
+    drawGutter(code);
 
     if(code->cursor.position == pointer)
         cursor.x = x, cursor.y = y;
 
-    if(withCursor && cursor.x >= BOOKMARK_WIDTH && cursor.y >= 0)
+    if(withCursor && cursor.x >= gutterWidth && cursor.y >= 0)
         drawCursor(code, cursor.x, cursor.y, cursor.symbol);
 
     if(matchedDelim.symbol)
@@ -486,18 +541,6 @@ void codeSetPos(Code* code, s32 x, s32 y)
     setCursorPosition(code, x, y);
     parseSyntaxColor(code);
     code->cursor.delay = 0;
-}
-
-static s32 getLinesCount(Code* code)
-{
-    char* text = code->src;
-    s32 count = 0;
-
-    while(*text)
-        if(*text++ == '\n')
-            count++;
-
-    return count;
 }
 
 static void removeInvalidChars(char* code)
@@ -559,7 +602,7 @@ static void updateEditor(Code* code)
     if(getConfig(code->studio)->theme.code.matchDelimiters)
         code->matchedDelim = findMatchedDelim(code, code->cursor.position);
 
-    const s32 BufferWidth = CODE_EDITOR_WIDTH / getFontWidth(code);
+    const s32 BufferWidth = getCodeEditorWidth(code) / getFontWidth(code);
 
     if(column < code->scroll.x)
         code->scroll.x = column;
@@ -1883,7 +1926,7 @@ static void recenterScroll(Code* code, bool emacsMode)
     s32 col, line;
     getCursorPosition(code, &col, &line);
 
-    s32 desiredCol = col - CODE_EDITOR_WIDTH / getFontWidth(code) / 2;
+    s32 desiredCol = col - getCodeEditorWidth(code) / getFontWidth(code) / 2;
     s32 desiredLine = MAX(0, line - TEXT_BUFFER_HEIGHT / 2);
 
     if(emacsMode && code->scroll.y == desiredLine)
@@ -3388,6 +3431,8 @@ static void processKeyboard(Code* code)
                 emacsMode ? redo(code) : noop;
             else if(keyWasPressed(code->studio, tic_key_semicolon))
                 emacsMode ? commentLine(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_l) && !ctrl)
+                code->lineNumbers = !code->lineNumbers;
             else
                 altHandled = false;
         }
@@ -3461,8 +3506,9 @@ static void processKeyboard(Code* code)
 static void processMouse(Code* code)
 {
     tic_mem* tic = code->tic;
-
-    tic_rect rect = {BOOKMARK_WIDTH, TOOLBAR_SIZE, CODE_EDITOR_WIDTH, CODE_EDITOR_HEIGHT};
+    s32 gutterWidth, codeWidth;
+    getWidths(code, &gutterWidth, &codeWidth);
+    tic_rect rect = {gutterWidth, TOOLBAR_SIZE, codeWidth, CODE_EDITOR_HEIGHT};
 
     if(checkMousePos(code->studio, &rect))
     {
@@ -3582,11 +3628,7 @@ static void textEditTick(Code* code)
 static void drawPopupBar(Code* code, const char* title)
 {
     s32 pos = code->anim.pos;
-
-    enum
-    {
-        TextX = BOOKMARK_WIDTH
-    };
+    const s32 TextX = getGutterWidth(code);
 
     tic_api_rect(code->tic, 0, TOOLBAR_SIZE + pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, tic_color_grey);
 
@@ -4262,6 +4304,7 @@ void initCode(Code* code, Studio* studio)
         .matchedDelim = NULL,
         .altFont = firstLoad ? getConfig(studio)->theme.code.altFont : code->altFont,
         .shadowText = getConfig(studio)->theme.code.shadow,
+        .lineNumbers = firstLoad ? getConfig(studio)->theme.code.lineNumbers : code->lineNumbers,
         .anim =
             {
                 .idle = {

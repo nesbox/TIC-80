@@ -113,6 +113,7 @@ extern "C"
                 u8 cursor;
                 bool shadow;
                 bool altFont;
+                bool lineNumbers;
                 bool altCaret;
                 bool matchDelimiters;
                 bool autoDelimiters;

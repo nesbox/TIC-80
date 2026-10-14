@@ -65,6 +65,7 @@ static void readConfig(Config* config)
 
         config->data.theme.code.shadow = json_bool("SHADOW", theme);
         config->data.theme.code.altFont = json_bool("ALT_FONT", theme);
+        config->data.theme.code.lineNumbers = json_bool("LINE_NUMBERS", theme);
         config->data.theme.code.altCaret = json_bool("ALT_CARET", theme);
         config->data.theme.code.matchDelimiters = json_bool("MATCH_DELIMITERS", theme);
         config->data.theme.code.autoDelimiters = json_bool("AUTO_DELIMITERS", theme);
@@ -113,6 +114,7 @@ static void setDefault(Config* config)
         static const u8 ConfigZip[] =
             {
 #include "../build/assets/config.tic.dat"
+
             };
 
         u8* data = malloc(TIC_CART_SAVE_SIZE);

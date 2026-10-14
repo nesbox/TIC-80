@@ -119,6 +119,7 @@ struct Code
     const char* matchedDelim;
     bool altFont;
     bool shadowText;
+    bool lineNumbers;
 
     struct
     {
