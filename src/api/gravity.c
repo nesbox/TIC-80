@@ -794,6 +794,46 @@ static bool grav_rectb(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, ui
     RETURN_NOVALUE();
 }
 
+// MARK: rrect
+static bool grav_rrect(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uint32_t rindex)
+{
+    TIC_GRAVITY_GET_CORE(vm, tic, core);
+
+    if(nargs < 6 || nargs > 8) RETURN_ERROR("invalid parameters, rrect x y w h color [radius=-1 [exponent=2]]");
+
+    s32 x = grav_get_int(args[1]);
+    s32 y = grav_get_int(args[2]);
+    s32 w = grav_get_int(args[3]);
+    s32 h = grav_get_int(args[4]);
+    u8 color = (u8)grav_get_int(args[5]);
+    s32 radius = nargs >= 7 ? grav_get_int(args[6]) : -1;
+    float exponent = nargs >= 8 ? grav_get_float(args[7]) : 2.0f;
+
+    core->api.rrect(tic, x, y, w, h, color, radius, exponent);
+
+    RETURN_NOVALUE();
+}
+
+// MARK: rrectb
+static bool grav_rrectb(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uint32_t rindex)
+{
+    TIC_GRAVITY_GET_CORE(vm, tic, core);
+
+    if(nargs < 6 || nargs > 8) RETURN_ERROR("invalid parameters, rrect x y w h color [radius=-1 [exponent=2]]");
+
+    s32 x = grav_get_int(args[1]);
+    s32 y = grav_get_int(args[2]);
+    s32 w = grav_get_int(args[3]);
+    s32 h = grav_get_int(args[4]);
+    u8 color = (u8)grav_get_int(args[5]);
+    s32 radius = nargs >= 7 ? grav_get_int(args[6]) : -1;
+    float exponent = nargs >= 8 ? grav_get_float(args[7]) : 2.0f;
+
+    core->api.rrectb(tic, x, y, w, h, color, radius, exponent);
+
+    RETURN_NOVALUE();
+}
+
 // MARK: reset
 static bool grav_reset(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uint32_t rindex)
 {
