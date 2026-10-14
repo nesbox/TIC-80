@@ -373,7 +373,7 @@ static SQInteger squirrel_rrect(HSQUIRRELVM vm)
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rrect(tic, x, y, w, h, color, radius, exponent);
+        core->api.rrect(tic, x, y, w, h, (u8)color, radius, exponent);
     }
     else
         return sq_throwerror(vm, "invalid parameters, rrect(x,y,w,h,color,radius=-1,exponent=2)\n");
@@ -398,7 +398,7 @@ static SQInteger squirrel_rrectb(HSQUIRRELVM vm)
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rrectb(tic, x, y, w, h, color, radius, exponent);
+        core->api.rrectb(tic, x, y, w, h, (u8)color, radius, exponent);
     }
     else
         return sq_throwerror(vm, "invalid parameters, rrectb(x,y,w,h,color,radius=-1,exponent=2)\n");

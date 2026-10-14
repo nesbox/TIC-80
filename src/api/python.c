@@ -862,13 +862,13 @@ static bool py_rrect(int argc, py_Ref argv)
         PY_CHECK_ARG_TYPE(i, tp_int);
     PY_CHECK_ARG_TYPE(6, tp_float);
 
-    s32 x = py_toint(py_arg(0));
-    s32 y = py_toint(py_arg(1));
-    s32 w = py_toint(py_arg(2));
-    s32 h = py_toint(py_arg(3));
-    u8 color = py_toint(py_arg(4));
-    s32 radius = py_toint(py_arg(5));
-    float exponent = py_tofloat(py_arg(6));
+    s32 x = (s32)py_toint(py_arg(0));
+    s32 y = (s32)py_toint(py_arg(1));
+    s32 w = (s32)py_toint(py_arg(2));
+    s32 h = (s32)py_toint(py_arg(3));
+    u8 color = (u8)py_toint(py_arg(4));
+    s32 radius = (s32)py_toint(py_arg(5));
+    float exponent = (float)py_tofloat(py_arg(6));
 
     tic_core* core = get_core();
     core->api.rrect((tic_mem*)core, x, y, w, h, color, radius, exponent);
@@ -885,13 +885,13 @@ static bool py_rrectb(int argc, py_Ref argv)
         PY_CHECK_ARG_TYPE(i, tp_int);
     PY_CHECK_ARG_TYPE(6, tp_float);
 
-    s32 x = py_toint(py_arg(0));
-    s32 y = py_toint(py_arg(1));
-    s32 w = py_toint(py_arg(2));
-    s32 h = py_toint(py_arg(3));
-    u8 color = py_toint(py_arg(4));
-    s32 radius = py_toint(py_arg(5));
-    float exponent = py_tofloat(py_arg(6));
+    s32 x = (s32)py_toint(py_arg(0));
+    s32 y = (s32)py_toint(py_arg(1));
+    s32 w = (s32)py_toint(py_arg(2));
+    s32 h = (s32)py_toint(py_arg(3));
+    u8 color = (u8)py_toint(py_arg(4));
+    s32 radius = (s32)py_toint(py_arg(5));
+    float exponent = (float)py_tofloat(py_arg(6));
 
     tic_core* core = get_core();
     core->api.rrectb((tic_mem*)core, x, y, w, h, color, radius, exponent);

@@ -268,7 +268,7 @@ static JSValue js_rrect(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
 
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
-    core->api.rrect(tic, x, y, w, h, color, radius, exponent);
+    core->api.rrect(tic, x, y, w, h, (u8)color, radius, exponent);
 
     return JS_UNDEFINED;
 }
@@ -286,7 +286,7 @@ static JSValue js_rrectb(JSContext* ctx, JSValueConst this_val, s32 argc, JSValu
 
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
-    core->api.rrectb(tic, x, y, w, h, color, radius, exponent);
+    core->api.rrectb(tic, x, y, w, h, (u8)color, radius, exponent);
 
     return JS_UNDEFINED;
 }

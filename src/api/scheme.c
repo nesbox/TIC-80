@@ -122,36 +122,36 @@ s7_pointer scheme_rectb(s7_scheme* sc, s7_pointer args)
 }
 s7_pointer scheme_rrect(s7_scheme* sc, s7_pointer args)
 {
-    // rrect(x y w h color radius exponent=2)
+    // rrect(x y w h color radius=-1 exponent=2)
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const s32 w = s7_integer(s7_caddr(args));
-    const s32 h = s7_integer(s7_cadddr(args));
-    const u8 color = s7_integer(s7_list_ref(sc, args, 4));
-    const s32 radius = argn >= 6 ? s7_integer(s7_list_ref(sc, args, 5)) : -1;
-    const double exponent = argn >= 7 ? s7_real(s7_list_ref(sc, args, 6)) : 2;
+    const s32 argn = (s32)s7_list_length(sc, args);
+    const s32 x = (s32)s7_integer(s7_car(args));
+    const s32 y = (s32)s7_integer(s7_cadr(args));
+    const s32 w = (s32)s7_integer(s7_caddr(args));
+    const s32 h = (s32)s7_integer(s7_cadddr(args));
+    const u8 color = (u8)s7_integer(s7_list_ref(sc, args, 4));
+    const s32 radius = argn >= 6 ? (s32)s7_integer(s7_list_ref(sc, args, 5)) : -1;
+    const float exponent = argn >= 7 ? (float)s7_real(s7_list_ref(sc, args, 6)) : 2.0f;
 
-    core->api.rrect(tic, x, y, w, h, color, radius, (float)exponent);
+    core->api.rrect(tic, x, y, w, h, color, radius, exponent);
     return s7_nil(sc);
 }
 s7_pointer scheme_rrectb(s7_scheme* sc, s7_pointer args)
 {
-    // rrectb(x y w h color radius exponent=2)
+    // rrectb(x y w h color radius=-1 exponent=2)
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const int argn = s7_list_length(sc, args);
-    const s32 x = s7_integer(s7_car(args));
-    const s32 y = s7_integer(s7_cadr(args));
-    const s32 w = s7_integer(s7_caddr(args));
-    const s32 h = s7_integer(s7_cadddr(args));
-    const u8 color = s7_integer(s7_list_ref(sc, args, 4));
-    const s32 radius = argn >= 6 ? s7_integer(s7_list_ref(sc, args, 5)) : -1;
-    const double exponent = argn >= 7 ? s7_real(s7_list_ref(sc, args, 6)) : 2;
+    const s32 argn = (s32)s7_list_length(sc, args);
+    const s32 x = (s32)s7_integer(s7_car(args));
+    const s32 y = (s32)s7_integer(s7_cadr(args));
+    const s32 w = (s32)s7_integer(s7_caddr(args));
+    const s32 h = (s32)s7_integer(s7_cadddr(args));
+    const u8 color = (u8)s7_integer(s7_list_ref(sc, args, 4));
+    const s32 radius = argn >= 6 ? (s32)s7_integer(s7_list_ref(sc, args, 5)) : -1;
+    const float exponent = argn >= 7 ? (float)s7_real(s7_list_ref(sc, args, 6)) : 2.0f;
 
-    core->api.rrectb(tic, x, y, w, h, color, radius, (float)exponent);
+    core->api.rrectb(tic, x, y, w, h, color, radius, exponent);
     return s7_nil(sc);
 }
 

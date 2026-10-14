@@ -354,7 +354,7 @@ static s32 lua_rrect(lua_State* lua)
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rrect(tic, x, y, w, h, color, radius, exponent);
+        core->api.rrect(tic, x, y, w, h, (u8)color, radius, exponent);
     }
     else
         luaL_error(lua, "invalid parameters, rrect(x,y,w,h,color,radius=-1,exponent=2)\n");
@@ -379,7 +379,7 @@ static s32 lua_rrectb(lua_State* lua)
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rrectb(tic, x, y, w, h, color, radius, exponent);
+        core->api.rrectb(tic, x, y, w, h, (u8)color, radius, exponent);
     }
     else
         luaL_error(lua, "invalid parameters, rrectb(x,y,w,h,color,radius=-1,exponent=2)\n");

@@ -259,7 +259,7 @@ static mrb_value mrb_rrect(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rrect(tic, x, y, w, h, color, radius, exponent);
+    core->api.rrect(tic, (s32)x, (s32)y, (s32)w, (s32)h, (u8)color, (s32)radius, (float)exponent);
 
     return mrb_nil_value();
 }
@@ -276,7 +276,7 @@ static mrb_value mrb_rrectb(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rrectb(tic, x, y, w, h, color, radius, exponent);
+    core->api.rrectb(tic, (s32)x, (s32)y, (s32)w, (s32)h, (u8)color, (s32)radius, (float)exponent);
 
     return mrb_nil_value();
 }

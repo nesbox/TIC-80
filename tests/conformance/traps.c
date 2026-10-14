@@ -102,6 +102,18 @@ static void trap_rectb(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u8 col
     api_record("rectb(%d,%d,%d,%d,%u)", x, y, width, height, (unsigned)color);
 }
 
+static void trap_rrect(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)
+{
+    Real_rrect(tic, x, y, width, height, color, radius, exponent);
+    api_record("rrect(%d,%d,%d,%d,%u,%d,%g)", x, y, width, height, (unsigned)color, radius, exponent);
+}
+
+static void trap_rrectb(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)
+{
+    Real_rrectb(tic, x, y, width, height, color, radius, exponent);
+    api_record("rrectb(%d,%d,%d,%d,%u,%d,%g)", x, y, width, height, (unsigned)color, radius, exponent);
+}
+
 static void trap_spr(tic_mem* tic, s32 index, s32 x, s32 y, s32 w, s32 h, u8* trans_colors, u8 trans_count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
     Real_spr(tic, index, x, y, w, h, trans_colors, trans_count, scale, flip, rotate);
