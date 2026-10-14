@@ -1504,13 +1504,12 @@ static const char* const GravityKeywords[] =
 static const u8 DemoRom[] =
     {
 #include "../build/assets/gravitydemo.tic.dat"
-
 };
 
-// static const u8 MarkRom[] =
-// {
-// // #include "../build/assets/gravitymark.tic.dat"
-// };
+static const u8 MarkRom[] =
+    {
+#include "../build/assets/gravitymark.tic.dat"
+};
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Gravity) =
     {
@@ -1547,8 +1546,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Gravity) =
         .keywordsCount = COUNT_OF(GravityKeywords),
 
         .demo = {DemoRom, sizeof DemoRom, "gravitydemo.tic"},
-        // TODO: .mark = {MarkRom, sizeof MarkRom, NULL},
-        .mark = {NULL, 0, NULL},
+        .mark = {MarkRom, sizeof MarkRom, "gravitymark.tic"},
 };
 
 // endregion
