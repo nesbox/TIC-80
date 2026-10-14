@@ -356,6 +356,56 @@ static SQInteger squirrel_rectb(HSQUIRRELVM vm)
     return 0;
 }
 
+static SQInteger squirrel_rrect(HSQUIRRELVM vm)
+{
+    SQInteger top = sq_gettop(vm);
+
+    if(top >= 7 && top <= 8)
+    {
+        s32 x = getSquirrelNumber(vm, 2);
+        s32 y = getSquirrelNumber(vm, 3);
+        s32 w = getSquirrelNumber(vm, 4);
+        s32 h = getSquirrelNumber(vm, 5);
+        s32 color = getSquirrelNumber(vm, 6);
+        s32 radius = top >= 7 ? getSquirrelNumber(vm, 7) : -1;
+        float exponent = top >= 8 ? getSquirrelFloat(vm, 8) : 2;
+
+        tic_core* core = getSquirrelCore(vm);
+        tic_mem* tic = (tic_mem*)core;
+
+        core->api.rrect(tic, x, y, w, h, (u8)color, radius, exponent);
+    }
+    else
+        return sq_throwerror(vm, "invalid parameters, rrect(x,y,w,h,color,radius=-1,exponent=2)\n");
+
+    return 0;
+}
+
+static SQInteger squirrel_rrectb(HSQUIRRELVM vm)
+{
+    SQInteger top = sq_gettop(vm);
+
+    if(top >= 7 && top <= 8)
+    {
+        s32 x = getSquirrelNumber(vm, 2);
+        s32 y = getSquirrelNumber(vm, 3);
+        s32 w = getSquirrelNumber(vm, 4);
+        s32 h = getSquirrelNumber(vm, 5);
+        s32 color = getSquirrelNumber(vm, 6);
+        s32 radius = top >= 7 ? getSquirrelNumber(vm, 7) : -1;
+        float exponent = top >= 8 ? getSquirrelFloat(vm, 8) : 2;
+
+        tic_core* core = getSquirrelCore(vm);
+        tic_mem* tic = (tic_mem*)core;
+
+        core->api.rrectb(tic, x, y, w, h, (u8)color, radius, exponent);
+    }
+    else
+        return sq_throwerror(vm, "invalid parameters, rrectb(x,y,w,h,color,radius=-1,exponent=2)\n");
+
+    return 0;
+}
+
 static SQInteger squirrel_circ(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);

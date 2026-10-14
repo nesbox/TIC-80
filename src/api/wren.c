@@ -102,6 +102,10 @@ class TIC {\n\
     foreign static paint(x, y, color, bordercolor)\n\
     foreign static rect(x, y, w, h, color)\n\
     foreign static rectb(x, y, w, h, color)\n\
+    foreign static rrect(x, y, w, h, color, radius)\n\
+    foreign static rrect(x, y, w, h, color, radius, exponent)\n\
+    foreign static rrectb(x, y, w, h, color, radius)\n\
+    foreign static rrectb(x, y, w, h, color, radius, exponent)\n\
     foreign static tri(x1, y1, x2, y2, x3, y3, color)\n\
     foreign static trib(x1, y1, x2, y2, x3, y3, color)\n\
     foreign static cls()\n\
@@ -1075,6 +1079,40 @@ static void wren_rectb(WrenVM* vm)
     core->api.rectb(tic, x, y, w, h, (u8)(color));
 }
 
+static void wren_rrect(WrenVM* vm)
+{
+    s32 top = wrenGetSlotCount(vm);
+    s32 x = getWrenNumber(vm, 1);
+    s32 y = getWrenNumber(vm, 2);
+    s32 w = getWrenNumber(vm, 3);
+    s32 h = getWrenNumber(vm, 4);
+    s32 color = getWrenNumber(vm, 5);
+    s32 radius = top > 6 ? getWrenNumber(vm, 6) : -1;
+    double exponent = top > 7 ? wrenGetSlotDouble(vm, 7) : 2;
+
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    core->api.rrect(tic, x, y, w, h, (u8)color, radius, (float)exponent);
+}
+
+static void wren_rrectb(WrenVM* vm)
+{
+    s32 top = wrenGetSlotCount(vm);
+    s32 x = getWrenNumber(vm, 1);
+    s32 y = getWrenNumber(vm, 2);
+    s32 w = getWrenNumber(vm, 3);
+    s32 h = getWrenNumber(vm, 4);
+    s32 color = getWrenNumber(vm, 5);
+    s32 radius = top > 6 ? getWrenNumber(vm, 6) : -1;
+    double exponent = top > 7 ? wrenGetSlotDouble(vm, 7) : 2;
+
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    core->api.rrectb(tic, x, y, w, h, (u8)color, radius, (float)exponent);
+}
+
 static void wren_tri(WrenVM* vm)
 {
     float pt[6];
@@ -1830,6 +1868,12 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if(strcmp(signature, "static TIC.paint(_,_,_,_)") == 0) return wren_paint;
     if(strcmp(signature, "static TIC.rect(_,_,_,_,_)") == 0) return wren_rect;
     if(strcmp(signature, "static TIC.rectb(_,_,_,_,_)") == 0) return wren_rectb;
+    if(strcmp(signature, "static TIC.rrect(_,_,_,_,_)") == 0) return wren_rrect;
+    if(strcmp(signature, "static TIC.rrect(_,_,_,_,_,_)") == 0) return wren_rrect;
+    if(strcmp(signature, "static TIC.rrect(_,_,_,_,_,_,_)") == 0) return wren_rrect;
+    if(strcmp(signature, "static TIC.rrectb(_,_,_,_,_)") == 0) return wren_rrectb;
+    if(strcmp(signature, "static TIC.rrectb(_,_,_,_,_,_)") == 0) return wren_rrectb;
+    if(strcmp(signature, "static TIC.rrectb(_,_,_,_,_,_,_)") == 0) return wren_rrectb;
     if(strcmp(signature, "static TIC.tri(_,_,_,_,_,_,_)") == 0) return wren_tri;
     if(strcmp(signature, "static TIC.trib(_,_,_,_,_,_,_)") == 0) return wren_trib;
 

@@ -91,6 +91,8 @@ static Janet janet_vqtrsw(int32_t argc, Janet* argv);
 static Janet janet_ffts(int32_t argc, Janet* argv);
 static Janet janet_fftr(int32_t argc, Janet* argv);
 static Janet janet_fftrs(int32_t argc, Janet* argv);
+static Janet janet_rrect(int32_t argc, Janet* argv);
+static Janet janet_rrectb(int32_t argc, Janet* argv);
 
 static void closeJanet(tic_mem* tic);
 static bool initJanet(tic_mem* tic, const char* code);
@@ -166,6 +168,8 @@ static const JanetReg janet_c_functions[] =
         {"vqtrsw", janet_vqtrsw, NULL},
         {"fftr", janet_fftr, NULL},
         {"fftrs", janet_fftrs, NULL},
+        {"rrect", janet_rrect, NULL},
+        {"rrectb", janet_rrectb, NULL},
         {NULL, NULL, NULL}};
 
 static const char* const JanetKeywords[] =
@@ -402,6 +406,42 @@ static Janet janet_rectb(int32_t argc, Janet* argv)
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
     core->api.rectb(tic, x, y, width, height, color);
+    return janet_wrap_nil();
+}
+
+static Janet janet_rrect(int32_t argc, Janet* argv)
+{
+    janet_arity(argc, 6, 7);
+
+    s32 x = (s32)janet_getinteger(argv, 0);
+    s32 y = (s32)janet_getinteger(argv, 1);
+    s32 width = (s32)janet_getinteger(argv, 2);
+    s32 height = (s32)janet_getinteger(argv, 3);
+    u8 color = (u8)janet_getinteger(argv, 4);
+    s32 radius = argc >= 6 ? (s32)janet_getinteger(argv, 5) : -1;
+    float exponent = argc >= 7 ? (float)janet_getnumber(argv, 6) : 2.0f;
+
+    tic_core* core = getJanetMachine();
+    tic_mem* tic = (tic_mem*)core;
+    core->api.rrect(tic, x, y, width, height, color, radius, exponent);
+    return janet_wrap_nil();
+}
+
+static Janet janet_rrectb(int32_t argc, Janet* argv)
+{
+    janet_arity(argc, 6, 7);
+
+    s32 x = (s32)janet_getinteger(argv, 0);
+    s32 y = (s32)janet_getinteger(argv, 1);
+    s32 width = (s32)janet_getinteger(argv, 2);
+    s32 height = (s32)janet_getinteger(argv, 3);
+    u8 color = (u8)janet_getinteger(argv, 4);
+    s32 radius = argc >= 6 ? (s32)janet_getinteger(argv, 5) : -1;
+    float exponent = argc >= 7 ? (float)janet_getnumber(argv, 6) : 2.0f;
+
+    tic_core* core = getJanetMachine();
+    tic_mem* tic = (tic_mem*)core;
+    core->api.rrectb(tic, x, y, width, height, color, radius, exponent);
     return janet_wrap_nil();
 }
 

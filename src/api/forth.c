@@ -298,6 +298,34 @@ static cell_t tic_forth_rectb(void)
     return 0;
 }
 
+// rrect ( x y w h color radius exponent -- )
+static cell_t tic_forth_rrect(void)
+{
+    float exponent = (float)pfPopFromStack();
+    s32 radius = (s32)pfPopFromStack();
+    u8 color = (u8)pfPopFromStack();
+    s32 height = (s32)pfPopFromStack();
+    s32 width = (s32)pfPopFromStack();
+    s32 y = (s32)pfPopFromStack();
+    s32 x = (s32)pfPopFromStack();
+    gForthCore->api.rrect((tic_mem*)gForthCore, x, y, width, height, color, radius, exponent);
+    return 0;
+}
+
+// rrectb ( x y w h color radius exponent -- )
+static cell_t tic_forth_rrectb(void)
+{
+    float exponent = (float)pfPopFromStack();
+    s32 radius = (s32)pfPopFromStack();
+    u8 color = (u8)pfPopFromStack();
+    s32 height = (s32)pfPopFromStack();
+    s32 width = (s32)pfPopFromStack();
+    s32 y = (s32)pfPopFromStack();
+    s32 x = (s32)pfPopFromStack();
+    gForthCore->api.rrectb((tic_mem*)gForthCore, x, y, width, height, color, radius, exponent);
+    return 0;
+}
+
 // spr ( id x y colorkey scale flip rotate w h -- )
 // colorkey: -1 = opaque, 0..15 = transparent color index
 static cell_t tic_forth_spr(void)
@@ -868,6 +896,8 @@ CFunc0 CustomFunctionTable[] =
         (CFunc0)tic_forth_fset,     // 49  FSET
         (CFunc0)tic_forth_fft,      // 50  FFT
         (CFunc0)tic_forth_ffts,     // 51  FFTS
+        (CFunc0)tic_forth_rrect,    // 52  RRECT
+        (CFunc0)tic_forth_rrectb,   // 53  RRECTB
 };
 
 // Called during dictionary build (pfBuildDictionary) and manually after

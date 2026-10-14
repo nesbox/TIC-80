@@ -314,6 +314,48 @@ m3ApiRawFunction(wasmtic_rectb)
     m3ApiSuccess();
 }
 
+// x y w h radius color [radius=-1] [exponent=2]
+m3ApiRawFunction(wasmtic_rrect)
+{
+    (void)_ctx;
+    (void)_mem;
+    m3ApiGetArg(int32_t, x);
+    m3ApiGetArg(int32_t, y);
+    m3ApiGetArg(int32_t, w);
+    m3ApiGetArg(int32_t, h);
+    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, radius);
+    m3ApiGetArg(float, exponent);
+
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
+
+    core->api.rrectb(tic, x, y, w, h, color, radius, exponent);
+
+    m3ApiSuccess();
+}
+
+// x y w h radius color [radius=-1] [exponent=2]
+m3ApiRawFunction(wasmtic_rrectb)
+{
+    (void)_ctx;
+    (void)_mem;
+    m3ApiGetArg(int32_t, x);
+    m3ApiGetArg(int32_t, y);
+    m3ApiGetArg(int32_t, w);
+    m3ApiGetArg(int32_t, h);
+    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, radius);
+    m3ApiGetArg(float, exponent);
+
+    tic_core* core = getWasmCore(runtime);
+    tic_mem* tic = (tic_mem*)core;
+
+    core->api.rrectb(tic, x, y, w, h, color, radius, exponent);
+
+    m3ApiSuccess();
+}
+
 m3ApiRawFunction(wasmtic_tri)
 {
     (void)_ctx;
@@ -1231,6 +1273,8 @@ M3Result linkTicAPI(IM3Module module)
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "print", "i(*iiiiii)", &wasmtic_print)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "rect", "v(iiiii)", &wasmtic_rect)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "rectb", "v(iiiii)", &wasmtic_rectb)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "rrect", "v(iiiiiif)", &wasmtic_rrect)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "rrectb", "v(iiiiiif)", &wasmtic_rrectb)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "sfx", "v(iiiiiiii)", &wasmtic_sfx)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "spr", "v(iiiiiiiiii)", &wasmtic_spr)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "sync", "v(iii)", &wasmtic_sync)));
