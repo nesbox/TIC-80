@@ -37,6 +37,18 @@ if(BUILD_WITH_GRAVITY)
         endif()
     endforeach()
 
+    # need to force git safe directory for nintendo builds
+    if(NINTENDO_SWITCH OR NINTENDO_3DS)
+        execute_process(
+                COMMAND ${GIT_EXECUTABLE} config
+                --global
+                --add
+                safe.directory "/__w/TIC-80/TIC-80"
+                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                COMMAND_ERROR_IS_FATAL ANY
+        )
+    endif()
+    
     # find the repository root
     execute_process(
             COMMAND ${GIT_EXECUTABLE} rev-parse --show-toplevel
