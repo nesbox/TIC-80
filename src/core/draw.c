@@ -610,7 +610,7 @@ static void drawSuperEllipseCapsule(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32
     if(exponent <= 0)
         exponent = SUPERELLIPSE_CIRCLE_EXPONENT;
     else
-        exponent = CLAMP(exponent, SUPERELLIPSE_MIN_EXPONENT, SUPERELLIPSE_MAX_EXPONENT);
+        exponent = (float)CLAMP(exponent, SUPERELLIPSE_MIN_EXPONENT, SUPERELLIPSE_MAX_EXPONENT);
 
     float r = (float)radius;
     float rn = powf(r, exponent);
