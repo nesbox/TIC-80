@@ -1,11 +1,14 @@
-name: Lint
+name: Checks
 
-# A workflow of its own, not a job in build.yml: release.yml reaches that one
-# through workflow_call, and neither check has anything to say on a tag.
+# The checks, apart from the workflow that produces the artifacts: build.yml
+# is the matrix and the only workflow release.yml calls, so a release runs no
+# check — a check produces no artifact, and a re-run of one on a tag could only
+# fail a release, never inform it.
 #
 # The format job holds the tree to .clang-format, and leaves alone the files in
 # .clang-format-ignore. The tidy job holds it to .clang-tidy: what the code
-# does rather than how it reads.
+# does rather than how it reads. The tests job builds and runs what
+# cmake/tests.cmake registers, the conformance runner among it.
 
 on:
   push:
@@ -14,7 +17,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: lint-${{ github.ref }}
+  group: checks-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -149,3 +152,66 @@ jobs:
           # and a non-zero exit from any of them fails the step.
           printf '%s\0' "${files[@]}" | xargs -0 -n1 -P "$(nproc)" \
             clang-tidy -p build-tidy --quiet --warnings-as-errors='*'
+
+  # The suite cmake/tests.cmake registers, the conformance suite among it: one
+  # static build with every language and no system layer, one headless run.
+  # Every registered test that exits non-zero fails the job; the conformance
+  # runner exits non-zero only when the measurement itself broke, so a
+  # divergence stays a finding, and its table is the report.
+  tests:
+    runs-on: ubuntu-22.04
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      # mruby builds through a ruby rake, like the other linux jobs.
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Build
+        id: build
+        run: |
+          set -euo pipefail
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+          command -v ccache >/dev/null || sudo apt-get install -y ccache
+          # No layer, the static runtime named rather than defaulted: the
+          # configuration the conformance suite's spec asks for. The suite
+          # builds on the core alone, so this job needs nothing installed
+          # beyond the toolchain.
+          cmake -B build-tests -G Ninja \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON \
+            -DBUILD_SOKOL=OFF -DBUILD_TESTS=ON
+          # The suite's own target, not `all`: the studio library would compile
+          # the editors and the browser here, which is the artifact matrix's to
+          # build, not the checks'.
+          cmake --build build-tests --parallel --target tic80-tests
+
+      # The table is markdown and comes from the runner's own invocation — the
+      # ctest pass below prints a failing test's output and swallows a passing
+      # one's — and pipefail keeps a broken measurement red through the tee.
+      - name: Run the conformance suite
+        run: |
+          set -euo pipefail
+          ./build-tests/bin/api-conformance tests/conformance/probes | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # The registration gate is the build alone: a measurement that broke
+      # above leaves the job red either way, and the other fifteen tests'
+      # results are still worth having in that run.
+      - name: Run the registered tests
+        if: steps.build.outcome == 'success'
+        run: ctest --test-dir build-tests --output-on-failure -E api-conformance

@@ -22,6 +22,9 @@ if(BUILD_TESTS)
         endif()
 
         target_include_directories(${target} PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
+
+        # Every registration, so one target can build them all below.
+        set_property(GLOBAL APPEND PROPERTY TIC80_TESTS ${target})
         add_test(NAME ${target} COMMAND ${target} ${ARGN})
     endfunction()
 
@@ -203,5 +206,10 @@ if(BUILD_TESTS)
         target_link_libraries(api-conformance PRIVATE tic80core)
         tic80_add_test(api-conformance ${CMAKE_SOURCE_DIR}/tests/conformance/probes)
     endif()
+
+    # One target for the whole suite — what CI builds, so a test registered
+    # above is built and run without a change to the workflow.
+    get_property(tic80_tests GLOBAL PROPERTY TIC80_TESTS)
+    add_custom_target(tic80-tests DEPENDS ${tic80_tests})
 
 endif()
