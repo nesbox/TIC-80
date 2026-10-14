@@ -1287,7 +1287,7 @@ static mrb_value mrb_trace(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
 
     const char* text = mrb_value_to_cstr(mrb, text_obj);
-    core->data->trace(core->data->data, text, (u8)color);
+    core->api.trace((tic_mem*)core, text, (u8)color);
 
     return mrb_nil_value();
 }
