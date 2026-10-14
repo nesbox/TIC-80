@@ -52,7 +52,9 @@ static void normalizeMap(s32* x, s32* y)
 
 static tic_point getTileOffset(Map* map)
 {
-    return (tic_point){(map->sheet.rect.w - 1) * TIC_SPRITESIZE / 2, (map->sheet.rect.h - 1) * TIC_SPRITESIZE / 2};
+    return map->canvas.random
+               ? (tic_point){0, 0}
+               : (tic_point){(map->sheet.rect.w - 1) * TIC_SPRITESIZE / 2, (map->sheet.rect.h - 1) * TIC_SPRITESIZE / 2};
 }
 
 static void getMouseMap(Map* map, s32* x, s32* y)
@@ -341,6 +343,23 @@ void mapBand(void* app, Toolbar* tb)
         }
 
         {
+            bool on = map->canvas.random;
+
+            ToolbarButton button =
+                {
+                    .icon = tic_icon_random,
+                    .tip = "RANDOM BRUSH [R]",
+                    .width = ICON_SIZE,
+                    .color = on ? tic_color_black : tic_color_light_grey,
+                    .over = on ? tic_color_black : 0,
+                    .enabled = true,
+                };
+
+            if(toolbar_button(tb, &button))
+                map->canvas.random = !on;
+        }
+
+        {
             ToolbarButton button =
                 {
                     .icon = tic_icon_world,
@@ -505,9 +524,18 @@ static void setMapSprite(Map* map, s32 x, s32 y)
     s32 mx = map->sheet.rect.x;
     s32 my = map->sheet.rect.y;
 
-    for(s32 j = 0; j < map->sheet.rect.h; j++)
-        for(s32 i = 0; i < map->sheet.rect.w; i++)
-            tic_api_mset(map->tic, (x + i) % TIC_MAP_WIDTH, (y + j) % TIC_MAP_HEIGHT, (u8)((mx + i) + (my + j) * TIC_SPRITESHEET_COLS));
+    if(map->canvas.random)
+    {
+        mx += rand() % map->sheet.rect.w;
+        my += rand() % map->sheet.rect.h;
+        tic_api_mset(map->tic, x % TIC_MAP_WIDTH, y % TIC_MAP_HEIGHT, (u8)(mx + my * TIC_SPRITESHEET_COLS));
+    }
+    else
+    {
+        for(s32 j = 0; j < map->sheet.rect.h; j++)
+            for(s32 i = 0; i < map->sheet.rect.w; i++)
+                tic_api_mset(map->tic, (x + i) % TIC_MAP_WIDTH, (y + j) % TIC_MAP_HEIGHT, (u8)((mx + i) + (my + j) * TIC_SPRITESHEET_COLS));
+    }
 
     ram2map(map->tic->ram, map->src);
 
@@ -543,9 +571,11 @@ static void drawTileCursor(Map* map)
     {
         s32 sx = map->sheet.rect.x;
         s32 sy = map->sheet.rect.y;
+        s32 rw = map->canvas.random ? 1 : map->sheet.rect.w;
+        s32 rh = map->canvas.random ? 1 : map->sheet.rect.h;
 
         initBlitMode(map);
-        tic_api_spr(tic, sx + map->sheet.blit.pages * sy * TIC_SPRITESHEET_COLS, pos.x, pos.y, map->sheet.rect.w, map->sheet.rect.h, NULL, 0, 1, tic_no_flip, tic_no_rotate);
+        tic_api_spr(tic, sx + map->sheet.blit.pages * sy * TIC_SPRITESHEET_COLS, pos.x, pos.y, rw, rh, NULL, 0, 1, tic_no_flip, tic_no_rotate);
         resetBlitMode(map->tic);
     }
 }
@@ -558,8 +588,8 @@ static void drawTileCursorVBank1(Map* map)
     tic_point pos = getCursorPos(map);
 
     {
-        s32 width = map->sheet.rect.w * TIC_SPRITESIZE + 2;
-        s32 height = map->sheet.rect.h * TIC_SPRITESIZE + 2;
+        s32 width = (map->canvas.random ? 1 : map->sheet.rect.w) * TIC_SPRITESIZE + 2;
+        s32 height = (map->canvas.random ? 1 : map->sheet.rect.h) * TIC_SPRITESIZE + 2;
         tic_api_rectb(map->tic, pos.x - 1, pos.y - 1, width, height, tic_color_white);
     }
 
@@ -584,13 +614,21 @@ static void processMouseDrawMode(Map* map)
             s32 w = tx - map->canvas.start.x;
             s32 h = ty - map->canvas.start.y;
 
-            if(w % map->sheet.rect.w == 0 && h % map->sheet.rect.h == 0)
-                setMapSprite(map, tx, ty);
+            if(map->canvas.random || (w % map->sheet.rect.w == 0 && h % map->sheet.rect.h == 0))
+            {
+                if(tx != map->canvas.current.x || ty != map->canvas.current.y)
+                {
+                    map->canvas.current.x = tx;
+                    map->canvas.current.y = ty;
+                    setMapSprite(map, tx, ty);
+                }
+            }
         }
         else
         {
             map->canvas.draw = true;
             map->canvas.start = (tic_point){tx, ty};
+            map->canvas.current = (tic_point){-1, -1};
         }
     }
     else
@@ -889,6 +927,8 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
 
     s32 mx = map->sheet.rect.x;
     s32 my = map->sheet.rect.y;
+    s32 rw = map->canvas.random ? 1 : map->sheet.rect.w;
+    s32 rh = map->canvas.random ? 1 : map->sheet.rect.h;
 
     struct
     {
@@ -902,26 +942,34 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
     {
         clip.l = map->select.rect.x;
         clip.t = map->select.rect.y;
-        clip.r = map->select.rect.x + map->select.rect.w;
-        clip.b = map->select.rect.y + map->select.rect.h;
+        clip.r = map->select.rect.x + rw;
+        clip.b = map->select.rect.y + rh;
     }
 
     while(pop(&stack, &x, &y))
     {
-        for(s32 j = 0; j < map->sheet.rect.h; j++)
-            for(s32 i = 0; i < map->sheet.rect.w; i++)
-                tic_api_mset(map->tic, x + i, y + j, (u8)((mx + i) + (my + j) * TIC_SPRITESHEET_COLS));
+        if(map->canvas.random)
+        {
+            s32 randomTile = (mx + rand() % map->sheet.rect.w) + (my + rand() % map->sheet.rect.h) * TIC_SPRITESHEET_COLS;
+            tic_api_mset(map->tic, x, y, (u8)randomTile);
+        }
+        else
+        {
+            for(s32 j = 0; j < map->sheet.rect.h; j++)
+                for(s32 i = 0; i < map->sheet.rect.w; i++)
+                    tic_api_mset(map->tic, x + i, y + j, (u8)((mx + i) + (my + j) * TIC_SPRITESHEET_COLS));
+        }
 
         for(s32 i = 0; i < COUNT_OF(dx); i++)
         {
-            s32 nx = x + dx[i] * map->sheet.rect.w;
-            s32 ny = y + dy[i] * map->sheet.rect.h;
+            s32 nx = x + dx[i] * rw;
+            s32 ny = y + dy[i] * rh;
 
             if(nx >= clip.l && nx < clip.r && ny >= clip.t && ny < clip.b)
             {
                 bool match = true;
-                for(s32 j = 0; j < map->sheet.rect.h; j++)
-                    for(s32 ti = 0; ti < map->sheet.rect.w; ti++)
+                for(s32 j = 0; j < rh; j++)
+                    for(s32 ti = 0; ti < rw; ti++)
                         if(tic_api_mget(map->tic, nx + ti, ny + j) != tile)
                             match = false;
 
@@ -1256,6 +1304,8 @@ static void processKeyboard(Map* map)
             deleteSelection(map);
         else if(keyWasPressed(map->studio, tic_key_grave))
             map->canvas.grid = !map->canvas.grid;
+        else if(keyWasPressed(map->studio, tic_key_r))
+            map->canvas.random = !map->canvas.random;
     }
 
     enum
