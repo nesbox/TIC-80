@@ -1,0 +1,74 @@
+diff --git a/src/compiler/gravity_parser.c b/src/compiler/gravity_parser.c
+index 2fbc24a..bad18dc 100644
+--- a/src/compiler/gravity_parser.c
++++ b/src/compiler/gravity_parser.c
+@@ -10,5 +10,3 @@
+ #define GRAVITY_INCLUDE_MATH
+ #define GRAVITY_INCLUDE_JSON
+-#define GRAVITY_INCLUDE_ENV
+-#define GRAVITY_INCLUDE_FILE
+ #include "gravity_optionals.h"
+diff --git a/src/optionals/gravity_opt_json.c b/src/optionals/gravity_opt_json.c
+--- a/src/optionals/gravity_opt_json.c
++++ b/src/optionals/gravity_opt_json.c
+@@ -171,3 +171,3 @@
+     gravity_string_t *string = VALUE_AS_STRING(value);
+-    json_value *json = json_parse(string->s, string->len);
++    json_value *json = _gravity_json_parse(string->s, string->len);
+     if (!json) RETURN_VALUE(VALUE_FROM_NULL, rindex);
+diff --git a/src/runtime/gravity_vm.c b/src/runtime/gravity_vm.c
+index a6bb708..3160ab8 100644
+--- a/src/runtime/gravity_vm.c
++++ b/src/runtime/gravity_vm.c
+@@ -19,5 +19,3 @@
+ #define GRAVITY_INCLUDE_MATH
+ #define GRAVITY_INCLUDE_JSON
+-#define GRAVITY_INCLUDE_ENV
+-#define GRAVITY_INCLUDE_FILE
+ #include "gravity_optionals.h"
+@@ -2080,4 +2078,4 @@ gravity_closure_t *gravity_vm_loadbuffer (gravity_vm *vm, const char *buffer, si
+     // start json parsing
+-    json_value *json = json_parse (buffer, len);
++    json_value *json = _gravity_json_parse (buffer, len);
+     if (!json) goto abort_load;
+     if (json->type != json_object) goto abort_load;
+diff --git a/src/shared/gravity_config.h b/src/shared/gravity_config.h
+index b539ff6..e26a14a 100644
+--- a/src/shared/gravity_config.h
++++ b/src/shared/gravity_config.h
+@@ -32,6 +32,9 @@ typedef int         mode_t;
+ #define __func__    __FUNCTION__
+ #define PATH_SEPARATOR  '\\'
+ #else
++#if _WIN32 && !defined(bzero)
++#define bzero(b, len) memset((b), 0, (len))
++#endif
+ #include <unistd.h>
+ #define PATH_SEPARATOR  '/'
+ #endif
+diff --git a/src/utils/gravity_json.c b/src/utils/gravity_json.c
+index 4356603..6ef0979 100755
+--- a/src/utils/gravity_json.c
++++ b/src/utils/gravity_json.c
+@@ -1365,7 +1365,7 @@ e_failed:
+    return 0;
+ }
+ 
+-json_value * json_parse (const json_char * json, size_t length)
++json_value * _gravity_json_parse (const json_char * json, size_t length)
+ {
+    json_settings settings = EMPTY_SETTINGS_STRUCT;
+    return json_parse_ex (&settings, json, length, 0);
+diff --git a/src/utils/gravity_json.h b/src/utils/gravity_json.h
+index 518d0a1..4ac8500 100755
+--- a/src/utils/gravity_json.h
++++ b/src/utils/gravity_json.h
+@@ -315,7 +315,7 @@ typedef struct _json_value
+ #define EMPTY_SETTINGS_STRUCT    {0,0,0,0,0,0}
+ #define EMPTY_STATE_STRUCT        {0,0,0,EMPTY_SETTINGS_STRUCT,0,0,0,0}
+ 
+-json_value * json_parse (const json_char * json,
++json_value * _gravity_json_parse (const json_char * json,
+                          size_t length);
+ 
+ #define json_error_max 128

@@ -86,6 +86,7 @@ demos/car.lua                           car
 demos/fenneldemo.fnl                    fenneldemo
 demos/fire.lua                          fire
 demos/font.lua                          font
+demos/gravitydemo.gravity               gravity
 demos/janetdemo.janet                   janetdemo
 demos/jsdemo.js                         jsdemo
 demos/miniscriptdemo.ms                 miniscriptdemo

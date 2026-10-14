@@ -128,6 +128,10 @@ if(BUILD_STATIC)
         target_link_libraries(tic80core PRIVATE forth)
     endif()
 
+    if(BUILD_WITH_GRAVITY)
+        target_link_libraries(tic80core PRIVATE gravity)
+    endif()
+
     target_link_libraries(tic80core PRIVATE runtime)
     target_link_libraries(tic80core PUBLIC runtime)
 

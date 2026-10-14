@@ -103,3 +103,6 @@
 	path = vendor/clay
 	url = https://github.com/nicbarker/clay.git
 	shallow = true
+[submodule "vendor/gravity"]
+	path = vendor/gravity
+	url = https://github.com/marcobambini/gravity.git
