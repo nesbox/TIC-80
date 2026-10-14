@@ -205,6 +205,74 @@ probe('rectb/missing-color', () => {
     pix(1, 1);
 });
 
+// ---- rrect
+
+probe('rrect/fill', () => {
+    cls(0);
+    rrect(10, 10, 20, 20, 6, 4);
+    pix(20, 20);
+    pix(10, 20);
+    pix(14, 10);
+    pix(10, 10);
+});
+
+probe('rrect/zero-radius', () => {
+    cls(0);
+    rrect(10, 10, 20, 20, 6, 0);
+    pix(10, 10);
+    pix(29, 29);
+    pix(30, 30);
+});
+
+probe('rrect/exponent', () => {
+    cls(0);
+    rrect(10, 10, 20, 20, 6, 4, 4);
+    pix(12, 10);
+    pix(11, 10);
+    pix(10, 11);
+    pix(10, 12);
+});
+
+probe('rrect/missing-radius', () => {
+    cls(0);
+    rrect(10, 10, 20, 20, 6);
+    pix(10, 10);
+});
+
+// ---- rrectb
+
+probe('rrectb/border', () => {
+    cls(0);
+    rrectb(10, 10, 20, 20, 6, 4);
+    pix(10, 20);
+    pix(20, 10);
+    pix(20, 20);
+    pix(10, 10);
+});
+
+probe('rrectb/zero-radius', () => {
+    cls(0);
+    rrectb(10, 10, 20, 20, 6, 0);
+    pix(10, 10);
+    pix(29, 10);
+    pix(20, 20);
+});
+
+probe('rrectb/exponent', () => {
+    cls(0);
+    rrectb(10, 10, 20, 20, 6, 4, 4);
+    pix(11, 10);
+    pix(12, 11);
+    pix(10, 11);
+    pix(12, 10);
+});
+
+probe('rrectb/missing-radius', () => {
+    cls(0);
+    rrectb(10, 10, 20, 20, 6);
+    pix(10, 10);
+});
+
 // ---- mget
 
 probe('mget/zero', () => {

@@ -209,6 +209,74 @@ probe('rectb/missing-color', function()
     pix(1, 1)
 end)
 
+---- rrect
+
+probe('rrect/fill', function()
+    cls(0)
+    rrect(10, 10, 20, 20, 6, 4)
+    pix(20, 20)
+    pix(10, 20)
+    pix(14, 10)
+    pix(10, 10)
+end)
+
+probe('rrect/zero-radius', function()
+    cls(0)
+    rrect(10, 10, 20, 20, 6, 0)
+    pix(10, 10)
+    pix(29, 29)
+    pix(30, 30)
+end)
+
+probe('rrect/exponent', function()
+    cls(0)
+    rrect(10, 10, 20, 20, 6, 4, 4)
+    pix(12, 10)
+    pix(11, 10)
+    pix(10, 11)
+    pix(10, 12)
+end)
+
+probe('rrect/missing-radius', function()
+    cls(0)
+    rrect(10, 10, 20, 20, 6)
+    pix(10, 10)
+end)
+
+---- rrectb
+
+probe('rrectb/border', function()
+    cls(0)
+    rrectb(10, 10, 20, 20, 6, 4)
+    pix(10, 20)
+    pix(20, 10)
+    pix(20, 20)
+    pix(10, 10)
+end)
+
+probe('rrectb/zero-radius', function()
+    cls(0)
+    rrectb(10, 10, 20, 20, 6, 0)
+    pix(10, 10)
+    pix(29, 10)
+    pix(20, 20)
+end)
+
+probe('rrectb/exponent', function()
+    cls(0)
+    rrectb(10, 10, 20, 20, 6, 4, 4)
+    pix(11, 10)
+    pix(12, 11)
+    pix(10, 11)
+    pix(12, 10)
+end)
+
+probe('rrectb/missing-radius', function()
+    cls(0)
+    rrectb(10, 10, 20, 20, 6)
+    pix(10, 10)
+end)
+
 ---- mget
 
 probe('mget/zero', function()

@@ -314,7 +314,6 @@ m3ApiRawFunction(wasmtic_rectb)
     m3ApiSuccess();
 }
 
-// x y w h radius color [radius=-1] [exponent=2]
 m3ApiRawFunction(wasmtic_rrect)
 {
     (void)_ctx;
@@ -330,12 +329,11 @@ m3ApiRawFunction(wasmtic_rrect)
     tic_core* core = getWasmCore(runtime);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rrectb(tic, x, y, w, h, color, radius, exponent);
+    core->api.rrect(tic, x, y, w, h, color, radius, exponent);
 
     m3ApiSuccess();
 }
 
-// x y w h radius color [radius=-1] [exponent=2]
 m3ApiRawFunction(wasmtic_rrectb)
 {
     (void)_ctx;
