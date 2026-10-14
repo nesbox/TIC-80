@@ -1093,7 +1093,7 @@ static void wren_rrect(WrenVM* vm)
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rrect(tic, x, y, w, h, color, radius, (float)exponent);
+    core->api.rrect(tic, x, y, w, h, (u8)color, radius, (float)exponent);
 }
 
 static void wren_rrectb(WrenVM* vm)
@@ -1110,7 +1110,7 @@ static void wren_rrectb(WrenVM* vm)
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rrectb(tic, x, y, w, h, color, radius, (float)exponent);
+    core->api.rrectb(tic, x, y, w, h, (u8)color, radius, (float)exponent);
 }
 
 static void wren_tri(WrenVM* vm)
