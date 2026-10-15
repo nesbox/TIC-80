@@ -1341,7 +1341,7 @@ static mrb_value mrb_exit(mrb_state* mrb, mrb_value self)
 {
     (void)self;
     tic_core* core = getMRubyMachine(mrb);
-    core->data->exit(core->data->data);
+    core->api.exit((tic_mem*)core);
 
     return mrb_nil_value();
 }
