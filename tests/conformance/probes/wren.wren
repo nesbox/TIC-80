@@ -4,9 +4,8 @@
 // Wren carts are a class, so the probes live in Game's constructor and the
 // prelude is a method of it: the marker is traced, the body runs in a fiber
 // whose try() catches what the binding refuses, and fiber.error names it.
-// The TIC() method carries one marker of its own — the deprecated-OVR shim in
-// the binding runs after every tick (vbank(1), cls(0), vbank(back)), and that
-// section is where the shim shows instead of inside reset/call.
+// This cart defines no overlay, so the binding runs no overlay shim after the
+// tick and the record ends with the last probe.
 
 class Game is TIC {
   construct new() {
@@ -775,7 +774,5 @@ class Game is TIC {
     }
   }
 
-  TIC() {
-    TIC.trace("#wren-bind/overlay-shim")
-  }
+  TIC() {}
 }

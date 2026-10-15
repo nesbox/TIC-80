@@ -32,6 +32,38 @@
 
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
+// Whether the cart defines OVR(). Wren has no reflection over methods and the
+// prelude gives every cart an empty OVR(), so the source is what answers — and
+// it can only be wrong in the harmless direction: a cart that never spells
+// `OVR(` cannot define the method the call handle resolves, so a missed match
+// means the shim runs when it need not (the old behavior), never that a
+// cart's overlay goes uncalled.
+static bool hasOvrCallback(const char* code)
+{
+    for(const char* p = code; (p = strstr(p, "OVR")); p += 3)
+    {
+        if(p != code && (isalnum((u8)p[-1]) || p[-1] == '_'))
+            continue;
+
+        const char* q = p + 3;
+
+        while(*q == ' ' || *q == '\t')
+            q++;
+
+        if(*q++ != '(')
+            continue;
+
+        while(*q == ' ' || *q == '\t')
+            q++;
+
+        return *q == ')';
+    }
+
+    return false;
+}
+
+static bool cartHasOvr = false;
+
 static WrenHandle* game_class = NULL;
 static WrenHandle* new_handle = NULL;
 static WrenHandle* update_handle = NULL;
@@ -272,6 +304,7 @@ static void closeWren(tic_mem* tic)
         core->currentVM = NULL;
     }
     loaded = false;
+    cartHasOvr = false;
 }
 
 static tic_core* getWrenCore(WrenVM* vm)
@@ -2013,6 +2046,8 @@ static bool initWren(tic_mem* tic, const char* code)
     tic_core* core = (tic_core*)tic;
     closeWren(tic);
 
+    cartHasOvr = hasOvrCallback(code);
+
     WrenConfiguration config;
     wrenInitConfiguration(&config);
 
@@ -2086,8 +2121,10 @@ static void callWrenTick(tic_mem* tic)
         wrenCall(vm, update_handle);
 
 #if defined(BUILD_DEPRECATED)
-        // call OVR() callback for backward compatibility
-        if(overline_handle)
+        // call OVR() callback for backward compatibility — only for a cart
+        // that defines one: the shim switches to VRAM bank 1, clears it and
+        // switches back, which is the overlay's frame, not every cart's
+        if(cartHasOvr && overline_handle)
         {
             OVR(core)
             {
