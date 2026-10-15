@@ -382,14 +382,16 @@ s7_pointer scheme_map(s7_scheme* sc, s7_pointer args)
     // map(x=0 y=0 w=30 h=17 sx=0 sy=0 colorkey=-1 scale=1 remap=nil)
     tic_core* core = getSchemeCore(sc);
     tic_mem* tic = (tic_mem*)core;
-    const s32 x = (s32)(s7_integer(s7_car(args)));
-    const s32 y = (s32)(s7_integer(s7_cadr(args)));
-    const s32 w = (s32)(s7_integer(s7_caddr(args)));
-    const s32 h = (s32)(s7_integer(s7_cadddr(args)));
-    const s32 sx = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
-    const s32 sy = (s32)(s7_integer(s7_list_ref(sc, args, 5)));
-
     const int argn = (s32)(s7_list_length(sc, args));
+
+    // every argument is optional: reading one that is not there dereferences
+    // the empty list, which is how a bare map() used to crash
+    const s32 x = argn > 0 ? (s32)(s7_integer(s7_car(args))) : 0;
+    const s32 y = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : 0;
+    const s32 w = argn > 2 ? (s32)(s7_integer(s7_caddr(args))) : TIC_MAP_SCREEN_WIDTH;
+    const s32 h = argn > 3 ? (s32)(s7_integer(s7_cadddr(args))) : TIC_MAP_SCREEN_HEIGHT;
+    const s32 sx = argn > 4 ? (s32)(s7_integer(s7_list_ref(sc, args, 4))) : 0;
+    const s32 sy = argn > 5 ? (s32)(s7_integer(s7_list_ref(sc, args, 5))) : 0;
 
     static u8 trans_colors[TIC_PALETTE_SIZE];
     u8 trans_count = 0;
