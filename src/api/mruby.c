@@ -523,13 +523,17 @@ static mrb_value mrb_spr(mrb_state* mrb, mrb_value self)
     mrb_int index, x, y;
     mrb_int w = 1, h = 1, scale = 1;
     mrb_int flip = tic_no_flip, rotate = tic_no_rotate;
-    mrb_value colors_obj;
+    mrb_value colors_obj = mrb_nil_value();
     static u8 colors[TIC_PALETTE_SIZE];
     mrb_int count = 0;
 
-    mrb_get_args(mrb, "iii|oiiiii", &index, &x, &y, &colors_obj, &scale, &flip, &rotate, &w, &h);
+    mrb_int argc = mrb_get_args(mrb, "iii|oiiiii", &index, &x, &y, &colors_obj, &scale, &flip, &rotate, &w, &h);
 
-    if(mrb_array_p(colors_obj))
+    if(argc < 4 || mrb_nil_p(colors_obj))
+    {
+        // no transparent colors: the call the colorkey was left out of
+    }
+    else if(mrb_array_p(colors_obj))
     {
         for(; count < TIC_PALETTE_SIZE && count < ARY_LEN(RARRAY(colors_obj)); count++) // HACK
             colors[count] = (u8)mrb_int(mrb, mrb_ary_entry(colors_obj, count));
@@ -924,7 +928,7 @@ static mrb_value mrb_map(mrb_state* mrb, mrb_value self)
     mrb_int h = TIC_MAP_SCREEN_HEIGHT;
     mrb_int sx = 0;
     mrb_int sy = 0;
-    mrb_value chroma;
+    mrb_value chroma = mrb_nil_value();
     mrb_int scale = 1;
     mrb_value block;
 
@@ -946,11 +950,17 @@ static mrb_value mrb_map(mrb_state* mrb, mrb_value self)
             chromas[i] = (u8)(mrb_integer(mrb_ary_entry(chroma, i)));
         }
     }
-    else
+    else if(mrb_fixnum_p(chroma))
     {
         count = 1;
         chromas = malloc(sizeof(u8));
         chromas[0] = (u8)(mrb_integer(chroma));
+    }
+    else
+    {
+        // no transparent colors: the call the chroma was left out of
+        count = 0;
+        chromas = NULL;
     }
 
     if(mrb_proc_p(block))
