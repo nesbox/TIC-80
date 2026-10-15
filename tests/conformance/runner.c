@@ -5,9 +5,11 @@
  * and substitutes the core's API table with the recording wrappers from
  * traps.c, so every call is recorded with the values it arrived with. The
  * records are diffed per probe section and printed as a markdown table —
- * ✅ where a language matches the reference, 🔴 with the count where not.
- * Adding a language to the suite is dropping a probe file in — nothing here
- * names one.
+ * ✅ where a language matches the reference, 🔴 with the count where not, and
+ * coverage (the reference sections the language ran) beside every total, since
+ * a section a language cannot express is a gap in its file, not a
+ * disagreement. Adding a language to the suite is dropping a probe file in —
+ * nothing here names one.
  *
  * Usage: api-conformance [probes dir] [--dump]
  * Exit: 0 — the table was printed, divergences and all; 2 — the measurement
@@ -68,12 +70,16 @@ static s32 LangCount;
 static Divergence* Divs;
 static s32 DivCount;
 
-// The api rows in the reference's probe order; the probes per api and the
-// diverging-probe cells, addressed [api * LangCount + lang] — a new api
-// appends one column, so the cap on neither is a number this file invents.
+// The api rows in the reference's probe order; the probes per api, the
+// diverging-probe cells and the sections a language actually ran, addressed
+// [api * LangCount + lang] — a new api appends one column, so the cap on
+// neither is a number this file invents. The ran count is coverage: a
+// reference section a language's record does not carry is a gap in its file
+// (a refusal it cannot express, a probe not ported yet), not a disagreement.
 static const char** Apis;
 static s32* ApiProbes;
 static s32* ApiCells;
+static s32* ApiRan;
 static s32 ApiCount;
 
 static char* copyString(const char* text)
@@ -407,9 +413,13 @@ static s32 apiIndex(const char* api)
     ApiProbes[ApiCount] = 0;
 
     ApiCells = realloc(ApiCells, sizeof(s32) * (ApiCount + 1) * LangCount);
+    ApiRan = realloc(ApiRan, sizeof(s32) * (ApiCount + 1) * LangCount);
 
     for(s32 l = 0; l < LangCount; l++)
+    {
         ApiCells[ApiCount * LangCount + l] = 0;
+        ApiRan[ApiCount * LangCount + l] = 0;
+    }
 
     return ApiCount++;
 }
@@ -521,16 +531,23 @@ int main(int argc, char** argv)
             Section* gotSection = findSection(sections, count, refSection->marker);
             s32 api = apiIndex(refSection->api);
 
-            if(gotSection && sectionEqual(&ref->lines, refSection, &lang->lines, gotSection))
+            // A reference section the language's file does not carry is
+            // coverage, not a divergence: it says the port is incomplete (a
+            // refusal the language cannot express, a probe not ported yet),
+            // and the per-language coverage line is where that reads.
+            if(!gotSection)
+                continue;
+
+            ApiRan[api * LangCount + l]++;
+
+            if(sectionEqual(&ref->lines, refSection, &lang->lines, gotSection))
                 continue;
 
             char refText[TEXT_MAX];
-            char gotText[TEXT_MAX] = "(no probe)";
+            char gotText[TEXT_MAX];
 
             joinLines(&ref->lines, refSection->first, refSection->count, refText, sizeof refText);
-
-            if(gotSection)
-                joinLines(&lang->lines, gotSection->first, gotSection->count, gotText, sizeof gotText);
+            joinLines(&lang->lines, gotSection->first, gotSection->count, gotText, sizeof gotText);
 
             addDivergence(l, api, refSection->marker, refText, gotText);
         }
@@ -599,6 +616,12 @@ int main(int argc, char** argv)
                     else
                         printf(" - |");
                 }
+                else if(ApiRan[i * LangCount + l] == 0)
+                {
+                    // The language ran none of this api's probes: a green mark
+                    // would say it agrees about something it never ran.
+                    printf(" - |");
+                }
                 else if(ApiCells[i * LangCount + l] == 0)
                     printf(" ✅ |");
                 else
@@ -616,16 +639,24 @@ int main(int argc, char** argv)
                 continue;
 
             s32 divergences = 0;
+            s32 ran = 0;
 
             for(s32 i = 0; i < ApiCount; i++)
+            {
                 divergences += ApiCells[i * LangCount + l];
+                ran += ApiRan[i * LangCount + l];
+            }
 
             // A count, not a ratio: a language-only section is a divergence the
-            // reference's probe count does not know about.
+            // reference's probe count does not know about. Coverage is the
+            // sections the language ran of the reference's — short means the
+            // file omits something, and the marks say nothing about it.
             if(divergences)
-                printf("- **%s: 🔴 %d divergences**\n", Langs[l].script->name, divergences);
+                printf("- **%s: 🔴 %d divergences, coverage %d/%d**\n",
+                       Langs[l].script->name, divergences, ran, probes);
             else
-                printf("- **%s: ✅ no divergences**\n", Langs[l].script->name);
+                printf("- **%s: ✅ no divergences, coverage %d/%d**\n",
+                       Langs[l].script->name, ran, probes);
         }
     }
 
