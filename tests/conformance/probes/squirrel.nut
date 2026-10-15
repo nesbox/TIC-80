@@ -11,8 +11,9 @@ function probe(id, f) {
     trace("#" + id);
 
     local name = id.slice(0, id.find("/"));
+    local fn = name in getroottable() ? getroottable()[name] : null;
 
-    if (typeof getroottable().rawget(name) != "function") {
+    if (typeof fn != "function") {
         trace("!missing");
         return;
     }

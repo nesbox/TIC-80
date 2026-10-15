@@ -3,7 +3,9 @@
 ;;
 ;; The api lives under t80::, so every call is (t80::name ...); the prelude
 ;; traces the marker and runs each body under catch, which with #t takes any
-;; error the binding raises.
+;; error the binding raises. There is no existence check, as in janet: a name
+;; the binding lacked would be caught and read as a refusal, not as !missing —
+;; no api is missing today.
 
 (define (probe id f)
   (t80::trace (string-append "#" id))
