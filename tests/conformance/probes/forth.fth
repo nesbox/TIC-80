@@ -157,14 +157,66 @@
 ;
 
 \ rectb/missing-color: the reference refuses the call and forth's stack cannot refuse one
-\ rrect/fill: CustomFunctionTable has RRECT and RRECTB, and CompileCustomFunctions never registers them, so the word is not in the dictionary
-\ rrect/zero-radius: CustomFunctionTable has RRECT and RRECTB, and CompileCustomFunctions never registers them, so the word is not in the dictionary
-\ rrect/exponent: CustomFunctionTable has RRECT and RRECTB, and CompileCustomFunctions never registers them, so the word is not in the dictionary
-\ rrect/missing-radius: CustomFunctionTable has RRECT and RRECTB, and CompileCustomFunctions never registers them, so the word is not in the dictionary
-\ rrectb/border: CustomFunctionTable has RRECT and RRECTB, and CompileCustomFunctions never registers them, so the word is not in the dictionary
-\ rrectb/zero-radius: CustomFunctionTable has RRECT and RRECTB, and CompileCustomFunctions never registers them, so the word is not in the dictionary
-\ rrectb/exponent: CustomFunctionTable has RRECT and RRECTB, and CompileCustomFunctions never registers them, so the word is not in the dictionary
-\ rrectb/missing-radius: CustomFunctionTable has RRECT and RRECTB, and CompileCustomFunctions never registers them, so the word is not in the dictionary
+
+\ ---- rrect
+
+: P_RRECT_FILL
+    0 CLS
+    10 10 20 20 6 4 2 RRECT
+    20 20 PIX DROP
+    10 20 PIX DROP
+    14 10 PIX DROP
+    10 10 PIX DROP
+;
+
+: P_RRECT_ZERO_RADIUS
+    0 CLS
+    10 10 20 20 6 0 2 RRECT
+    10 10 PIX DROP
+    29 29 PIX DROP
+    30 30 PIX DROP
+;
+
+: P_RRECT_EXPONENT
+    0 CLS
+    10 10 20 20 6 4 4 RRECT
+    12 10 PIX DROP
+    11 10 PIX DROP
+    10 11 PIX DROP
+    10 12 PIX DROP
+;
+
+\ rrect/missing-radius: the reference refuses the call and forth's stack cannot refuse one
+
+\ ---- rrectb
+
+: P_RRECTB_BORDER
+    0 CLS
+    10 10 20 20 6 4 2 RRECTB
+    10 20 PIX DROP
+    20 10 PIX DROP
+    20 20 PIX DROP
+    10 10 PIX DROP
+;
+
+: P_RRECTB_ZERO_RADIUS
+    0 CLS
+    10 10 20 20 6 0 2 RRECTB
+    10 10 PIX DROP
+    29 10 PIX DROP
+    20 20 PIX DROP
+;
+
+: P_RRECTB_EXPONENT
+    0 CLS
+    10 10 20 20 6 4 4 RRECTB
+    11 10 PIX DROP
+    12 11 PIX DROP
+    10 11 PIX DROP
+    12 10 PIX DROP
+;
+
+\ rrectb/missing-radius: the reference refuses the call and forth's stack cannot refuse one
 
 \ ---- mget
 
@@ -685,6 +737,12 @@
     ['] P_RECTB_BORDER S" #rectb/border" PROBE
     ['] P_RECTB_ZERO_SIZE S" #rectb/zero-size" PROBE
     ['] P_RECTB_ONE_WIDE S" #rectb/one-wide" PROBE
+    ['] P_RRECT_FILL S" #rrect/fill" PROBE
+    ['] P_RRECT_ZERO_RADIUS S" #rrect/zero-radius" PROBE
+    ['] P_RRECT_EXPONENT S" #rrect/exponent" PROBE
+    ['] P_RRECTB_BORDER S" #rrectb/border" PROBE
+    ['] P_RRECTB_ZERO_RADIUS S" #rrectb/zero-radius" PROBE
+    ['] P_RRECTB_EXPONENT S" #rrectb/exponent" PROBE
     ['] P_MGET_ZERO S" #mget/zero" PROBE
     ['] P_MSET_BASIC S" #mset/basic" PROBE
     ['] P_MSET_OUT_OF_RANGE_TILE S" #mset/out-of-range-tile" PROBE
