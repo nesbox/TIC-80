@@ -964,6 +964,8 @@ Err CompileCustomFunctions(void)
     if(CreateGlueToC("FSET", i++, C_RETURNS_VOID, 0) < 0) return -1;
     if(CreateGlueToC("FFT", i++, C_RETURNS_VALUE, 0) < 0) return -1;
     if(CreateGlueToC("FFTS", i++, C_RETURNS_VALUE, 0) < 0) return -1;
+    if(CreateGlueToC("RRECT", i++, C_RETURNS_VOID, 0) < 0) return -1;
+    if(CreateGlueToC("RRECTB", i++, C_RETURNS_VOID, 0) < 0) return -1;
     return 0;
 }
 
@@ -1384,6 +1386,8 @@ static const char* ForthAPIKeywords[] = {
     "FSET",
     "FFT",
     "FFTS",
+    "RRECT",
+    "RRECTB",
 };
 
 // =============================================================================
