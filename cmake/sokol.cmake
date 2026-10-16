@@ -28,6 +28,12 @@ if(BUILD_SOKOL)
         target_compile_definitions(sokol PUBLIC SOKOL_METAL)
     elseif(WIN32)
         target_compile_definitions(sokol PUBLIC SOKOL_D3D11 UNICODE)
+    elseif(EMSCRIPTEN AND BUILD_SOKOL_WGPU)
+        # The browser's other backend: sokol_app creates and owns the WebGPU
+        # device and swapchain, and sokol_gfx draws through them. The port is
+        # what carries <webgpu/webgpu.h>, so it is needed to compile too (it
+        # is put on the C flags below).
+        target_compile_definitions(sokol PUBLIC SOKOL_WGPU)
     elseif(EMSCRIPTEN)
         target_compile_definitions(sokol PUBLIC SOKOL_GLES3)
     elseif(USE_GLES2)
@@ -124,7 +130,28 @@ if(BUILD_SOKOL)
         # The same runtime shape the SDL web target asks for — memory growth,
         # fetch, the 4M stack a deep cart needs, the page's file hooks — with
         # WebGL2 in place of SDL's GL.
-        set_target_properties(${TIC80_TARGET} PROPERTIES LINK_FLAGS "-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -s STACK_SIZE=4194304 -s EXPORTED_FUNCTIONS=_main,_malloc,_free -s EXPORTED_RUNTIME_METHODS=UTF8ToString -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
+        set(TIC80_LINK_FLAGS "-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -s STACK_SIZE=4194304 -s EXPORTED_FUNCTIONS=_main,_malloc,_free -s EXPORTED_RUNTIME_METHODS=UTF8ToString --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
+
+        if(BUILD_SOKOL_WGPU)
+
+            # WebGPU in place of WebGL2. The port replaces the WebGL version
+            # flags, and it carries the header every C file includes, so it
+            # goes on the compile flags as well as the link line. It brings
+            # C++ code of its own, hence DEFAULT_TO_CXX — the tree is C.
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --use-port=emdawnwebgpu")
+            # The stack exports are named for the same reason: the port's C++
+            # moves them out of the default set, and a build whose JS glue
+            # names an export the module does not carry dies in callMain with
+            # "__emscripten_stack_alloc is not a function".
+            set(TIC80_LINK_FLAGS "${TIC80_LINK_FLAGS} --use-port=emdawnwebgpu -sDEFAULT_TO_CXX -sEXPORTED_FUNCTIONS=_main,_malloc,_free,__emscripten_stack_alloc,_emscripten_stack_get_current,__emscripten_stack_restore")
+
+        else()
+
+            set(TIC80_LINK_FLAGS "${TIC80_LINK_FLAGS} -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2")
+
+        endif()
+
+        set_target_properties(${TIC80_TARGET} PROPERTIES LINK_FLAGS "${TIC80_LINK_FLAGS}")
 
     endif()
 
