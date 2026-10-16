@@ -63,6 +63,13 @@ endif()
 if(BUILD_SDL AND BUILD_SOKOL)
     message(FATAL_ERROR "BUILD_SDL and BUILD_SOKOL are two system layers: enable exactly one")
 endif()
+# The WebGPU backend is the browser's: sokol_app draws through WebGPU on
+# Emscripten alone, and the port that carries it is an Emscripten port. Asked
+# for anywhere else it would be ignored, and a build that quietly kept the
+# other backend is not the build that was asked for.
+if(BUILD_SOKOL_WGPU AND NOT (EMSCRIPTEN AND BUILD_SOKOL))
+    message(FATAL_ERROR "BUILD_SOKOL_WGPU is the Emscripten sokol backend: enable it with BUILD_SOKOL, for the browser")
+endif()
 option(BUILD_SDLGPU "SDL GPU Enabled" OFF)
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
 option(BUILD_TOOLS "bin2txt prj2cart" OFF)

@@ -139,10 +139,12 @@ if(BUILD_SOKOL)
             # goes on the compile flags as well as the link line. It brings
             # C++ code of its own, hence DEFAULT_TO_CXX — the tree is C.
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --use-port=emdawnwebgpu")
-            # The stack exports are named for the same reason: the port's C++
-            # moves them out of the default set, and a build whose JS glue
-            # names an export the module does not carry dies in callMain with
-            # "__emscripten_stack_alloc is not a function".
+            # The stack exports are named here and nowhere else: the port's C++
+            # moves them out of the default export set, and a build whose JS
+            # glue names an export the module does not carry dies in callMain
+            # with "__emscripten_stack_alloc is not a function". Naming them
+            # also keeps the three in the module, which a GLES3 build drops
+            # unused — so they are this branch's and not the shared line's.
             set(TIC80_LINK_FLAGS "${TIC80_LINK_FLAGS} --use-port=emdawnwebgpu -sDEFAULT_TO_CXX -sEXPORTED_FUNCTIONS=_main,_malloc,_free,__emscripten_stack_alloc,_emscripten_stack_get_current,__emscripten_stack_restore")
 
         else()

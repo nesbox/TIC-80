@@ -1383,21 +1383,28 @@ jobs:
             rm -f "bin/tic80$lang.js" "bin/tic80$lang.wasm"
           done
 
-      # The universal build — 16 runtimes, touch input, the browser — is the
-      # one /create loads, the shape the html job's "Build all" makes for
-      # WebGL2. --fresh for its reason there: it clears the language flags the
-      # loop above leaves in the build directory.
+      # The universal build — all sixteen runtimes, touch input, the browser —
+      # is the one /create loads, the shape the html job's "Build all" makes
+      # for WebGL2. --fresh for its reason there: it clears the language flags
+      # the loop above leaves in the build directory.
+      #
+      # The target names the build, and the name is what its own loader asks
+      # for: -DTIC80_TARGET=tic80webgpu makes bin/tic80webgpu.js emit
+      # locateFile("tic80webgpu.wasm"), which is the pair the site's deploy
+      # looks for. Built as plain "tic80" the loader would ask for tic80.wasm
+      # and the player would not start — so the name is not decoration, and
+      # the check below reads it back out of the loader.
       - name: Build universal WebGPU player
         shell: bash
         run: |
           set -euo pipefail
           stage="$GITHUB_WORKSPACE/build/players-webgpu/webgpu"
           cd "$GITHUB_WORKSPACE/build"
-          emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DBUILD_SOKOL_WGPU=ON .. --fresh
+          emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DBUILD_SOKOL_WGPU=ON -DTIC80_TARGET=tic80webgpu .. --fresh
           cmake --build . --parallel
           mkdir -p "$stage"
-          cp bin/tic80.js   "$stage/tic80.js"
-          cp bin/tic80.wasm "$stage/tic80webgpu.wasm"
+          cp bin/tic80webgpu.js   "$stage/tic80.js"
+          cp bin/tic80webgpu.wasm "$stage/tic80webgpu.wasm"
           # index.html is the page an exported game gets: the client fetches
           # it, rewrites the title and the arguments marker, and adds it to
           # the export zip with the cartridge (console.c onHtmlPageGet).
@@ -1411,6 +1418,11 @@ jobs:
       # the shim it calls live in the JS, and the wasm carries no such string
       # for a grep to find, which is worth knowing before trusting a check
       # that only looks at the module.
+      #
+      # The loader is also asked which wasm it wants, and that name is checked
+      # against the file beside it: a build renamed on the way out is a player
+      # that cannot start, and neither the markers nor the file list can see
+      # it — the wasm next to tic80.js is simply not the one it asks for.
       - name: Check the builds are what they claim
         shell: bash
         run: |
@@ -1419,16 +1431,20 @@ jobs:
           langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
           files=()
           for lang in "${langs[@]}"; do
-            for f in "$stage/$lang/webgpu/tic80.js" "$stage/$lang/webgpu/tic80$lang.wasm"; do
+            js="$stage/$lang/webgpu/tic80.js"
+            wasm="$stage/$lang/webgpu/tic80$lang.wasm"
+            for f in "$js" "$wasm"; do
               [ -f "$f" ] || { echo "missing player file: $f" >&2; exit 1; }
             done
-            grep -qa "SPRITE EDITOR" "$stage/$lang/webgpu/tic80$lang.wasm" ||
-              { echo "player without editors: $f — BUILD_EDITORS=ON did not take" >&2; exit 1; }
-            grep -qa "Unable to initialize SDL Video" "$stage/$lang/webgpu/tic80$lang.wasm" &&
-              { echo "player on the SDL layer: $f — the sokol default did not take" >&2; exit 1; }
-            grep -qa "navigator.gpu" "$stage/$lang/webgpu/tic80.js" ||
-              { echo "player without the WebGPU shim: $stage/$lang/webgpu/tic80.js — BUILD_SOKOL_WGPU=ON did not take" >&2; exit 1; }
-            files+=("$stage/$lang/webgpu/tic80$lang.wasm")
+            grep -qa "SPRITE EDITOR" "$wasm" ||
+              { echo "player without editors: $wasm — BUILD_EDITORS=ON did not take" >&2; exit 1; }
+            grep -qa "Unable to initialize SDL Video" "$wasm" &&
+              { echo "player on the SDL layer: $wasm — the sokol default did not take" >&2; exit 1; }
+            grep -qa "navigator.gpu" "$js" ||
+              { echo "player without the WebGPU shim: $js — BUILD_SOKOL_WGPU=ON did not take" >&2; exit 1; }
+            grep -qa "tic80$lang.wasm" "$js" ||
+              { echo "player asks for another wasm: $js does not name tic80$lang.wasm — TIC80_TARGET did not take" >&2; exit 1; }
+            files+=("$wasm")
           done
           for f in "$stage/webgpu/tic80.js" "$stage/webgpu/tic80webgpu.wasm" "$stage/webgpu/index.html"; do
             [ -f "$f" ] || { echo "missing universal file: $f" >&2; exit 1; }
@@ -1439,6 +1455,8 @@ jobs:
             { echo "the universal build is on the SDL layer — the sokol default did not take" >&2; exit 1; }
           grep -qa "navigator.gpu" "$stage/webgpu/tic80.js" ||
             { echo "the universal build is not WebGPU" >&2; exit 1; }
+          grep -qa "tic80webgpu.wasm" "$stage/webgpu/tic80.js" ||
+            { echo "the universal player asks for another wasm: it does not name tic80webgpu.wasm — TIC80_TARGET did not take" >&2; exit 1; }
           # a language flag that did not take leaves two builds alike
           for ((i = 0; i < ${#files[@]}; i++)); do
             for ((j = i + 1; j < ${#files[@]}; j++)); do
