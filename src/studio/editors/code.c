@@ -262,22 +262,40 @@ static void drawGutter(Code* code)
     const s32 gutterWidth = getGutterWidth(code);
     const s32 gutterHeight = TIC80_HEIGHT - TOOLBAR_SIZE * 2;
     tic_rect rect = {0, TOOLBAR_SIZE, gutterWidth, gutterHeight};
+    tic_rect lineNumberButtonRect = {0, rect.y + rect.h - TIC_SPRITESIZE + 1, gutterWidth, TOOLBAR_SIZE};
+    bool buttonHover = checkMousePos(code->studio, &lineNumberButtonRect);
     s32 mouseOverLine = -1;
 
+    // draw the background rectangle
     tic_api_rect(code->tic, rect.x, rect.y, rect.w, rect.h, tic_color_grey);
 
+    // then if the mouse is hovering over the gutter...
     if(checkMousePos(code->studio, &rect))
     {
-        setCursor(code->studio, tic_cursor_hand);
-
-        showTooltip(code->studio, "BOOKMARK [ctrl+f1]");
-
-        s32 line = mouseOverLine = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
-
-        drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
-
-        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-            toggleBookmark(code, getPosByLine(code->src, line + code->scroll.y));
+        // and we're inside the line number button...
+        if(buttonHover)
+        {
+            // draw it
+            setCursor(code->studio, tic_cursor_hand);
+            showTooltip(code->studio, "LINE# [alt+l]");
+            tic_api_rect(tic, rect.x, lineNumberButtonRect.y, rect.w, TIC_SPRITESIZE, tic_color_white);
+            drawBitIcon(code->studio, tic_icon_line_numbers, rect.x, lineNumberButtonRect.y, tic_color_black);
+            // and toggle line numbers if we clicked it
+            if(checkMouseClick(code->studio, &lineNumberButtonRect, tic_mouse_left))
+                code->lineNumbers = !code->lineNumbers;
+        }
+        // if we're somewhere else in the gutter...
+        else
+        {
+            // draw a bookmark preview
+            setCursor(code->studio, tic_cursor_hand);
+            showTooltip(code->studio, "BOOKMARK [ctrl+f1]");
+            s32 line = mouseOverLine = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
+            drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
+            // and toggle the bookmark if we clicked it
+            if(checkMouseClick(code->studio, &rect, tic_mouse_left))
+                toggleBookmark(code, getPosByLine(code->src, line + code->scroll.y));
+        }
     }
 
     const char* pointer = code->src;
@@ -289,6 +307,7 @@ static void drawGutter(Code* code)
     s32 cursorX, cursorY;
     codeGetPos(code, &cursorX, &cursorY);
 
+    // render all the bookmarks and line numbers
     while(*pointer)
     {
         if(syntaxPointer++->bookmark)
@@ -311,6 +330,10 @@ static void drawGutter(Code* code)
             y++;
         }
     }
+
+    // render the button again, over the line numbers
+    tic_api_rect(tic, rect.x, lineNumberButtonRect.y, rect.w, lineNumberButtonRect.h, (code->lineNumbers || buttonHover) ? tic_color_white : tic_color_grey);
+    drawBitIcon(code->studio, tic_icon_line_numbers, rect.x, lineNumberButtonRect.y, tic_color_dark_grey);
 }
 
 static inline s32 getFontWidth(Code* code)

@@ -254,6 +254,7 @@ enum
     tic_icon_bigfill = 136,
     tic_icon_loop = 137,
     tic_icon_random = 138,
+    tic_icon_line_numbers = 139,
 };
 
 void setCursor(Studio* studio, tic_cursor id);
