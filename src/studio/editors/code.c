@@ -150,7 +150,7 @@ static s32 getLinesCount(Code* code)
 
 static void getWidths(Code* code, s32* gutterWidthOut, s32* codeWidthOut)
 {
-    int charCount = code->lineNumbers ? ((int)log10(getLinesCount(code)) + 1) : 0;
+    int charCount = code->lineNumbers ? ((int)log10(code->status.lineCount + 1) + 1) : 0;
     int gutterWidth = code->lineNumbers ? 1 + charCount * TIC_ALTFONT_WIDTH : MIN_GUTTER_WIDTH;
     gutterWidth = MAX(gutterWidth, MIN_GUTTER_WIDTH);
     int codeWidth = TIC80_WIDTH - gutterWidth;
