@@ -1315,26 +1315,7 @@ jobs:
           path: build/players/*
 
   # === HTML, WebGPU backend ===
-  #
-  # The same set the html job builds, drawn through WebGPU instead of WebGL2,
-  # and a job of its own rather than a second set of passes inside that one.
-  # The reason is what the two sets owe each other: a WebGPU-only break — and
-  # a WebGPU build does break where a GLES3 one cannot, the port pulls C++ of
-  # its own into a C link — stops this job's artifact and nothing else, where
-  # inside html it would keep every GLES3 player off the dev instance. The
-  # price is a second emsdk setup and a second compile of the shared layer,
-  # paid in runner minutes and not in wall clock: the two run side by side
-  # under the workflow's one concurrency group.
-  #
-  # The two backends cannot share a build — emdawnwebgpu replaces the WebGL2
-  # linker settings — so this is a separate compile of the same tree with
-  # -DBUILD_SOKOL_WGPU=ON, a flag that is off by default and changes nothing
-  # of any build that does not ask for it.
-  #
-  # Two shapes, as the site's players are: a per-language build for a game
-  # page, and the universal one for /create, both staged under
-  # build/players-webgpu/ in the layout the deploy writes into the tree —
-  # <lang>/webgpu/ for a language and webgpu/ for the universal build.
+  # A job of its own so a WebGPU-only break cannot keep the GLES3 players off dev.
   html-webgpu:
     runs-on: ubuntu-latest
 
@@ -1353,11 +1334,7 @@ jobs:
       - name: Install 32-bit build tools
         run: sudo apt-get update && sudo apt-get install -y gcc-multilib
 
-      # The editorful build, as the site's players are built: a game page
-      # keeps the editors, so ESC opens the IDE on the WebGPU player the way
-      # it does on the GLES3 one. The wasm is copied under the name its own
-      # loader asks for — tic80<lang>.wasm, the target it was built with —
-      # because the pair moves together and the server checks for both.
+      # The editorful build, as the site's players are: the loader keeps the name the site asks for.
       - name: Build per-language WebGPU players
         shell: bash
         run: |
@@ -1383,17 +1360,7 @@ jobs:
             rm -f "bin/tic80$lang.js" "bin/tic80$lang.wasm"
           done
 
-      # The universal build — all sixteen runtimes, touch input, the browser —
-      # is the one /create loads, the shape the html job's "Build all" makes
-      # for WebGL2. --fresh for its reason there: it clears the language flags
-      # the loop above leaves in the build directory.
-      #
-      # The target names the build, and the name is what its own loader asks
-      # for: -DTIC80_TARGET=tic80webgpu makes bin/tic80webgpu.js emit
-      # locateFile("tic80webgpu.wasm"), which is the pair the site's deploy
-      # looks for. Built as plain "tic80" the loader would ask for tic80.wasm
-      # and the player would not start — so the name is not decoration, and
-      # the check below reads it back out of the loader.
+      # The target names the wasm its loader asks for; plain "tic80" would ask for the wrong one.
       - name: Build universal WebGPU player
         shell: bash
         run: |
@@ -1405,24 +1372,10 @@ jobs:
           mkdir -p "$stage"
           cp bin/tic80webgpu.js   "$stage/tic80.js"
           cp bin/tic80webgpu.wasm "$stage/tic80webgpu.wasm"
-          # index.html is the page an exported game gets: the client fetches
-          # it, rewrites the title and the arguments marker, and adds it to
-          # the export zip with the cartridge (console.c onHtmlPageGet).
+          # the page an exported game gets, as the html job's "Build all" copies it
           cp html/index.html "$stage/index.html"
 
-      # What tells these builds from the GLES3 ones, checked as the GLES3
-      # sets check theirs. The editors marker is the one shared check — a
-      # WebGPU build without them would ship an IDE-less game page — and the
-      # SDL marker catches a pass that lost the sokol layer. The backend
-      # itself is read out of the loader, not the wasm: <webgpu/webgpu.h> and
-      # the shim it calls live in the JS, and the wasm carries no such string
-      # for a grep to find, which is worth knowing before trusting a check
-      # that only looks at the module.
-      #
-      # The loader is also asked which wasm it wants, and that name is checked
-      # against the file beside it: a build renamed on the way out is a player
-      # that cannot start, and neither the markers nor the file list can see
-      # it — the wasm next to tic80.js is simply not the one it asks for.
+      # The backend is read from the loader: the wasm carries no such string.
       - name: Check the builds are what they claim
         shell: bash
         run: |

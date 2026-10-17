@@ -29,10 +29,7 @@ if(BUILD_SOKOL)
     elseif(WIN32)
         target_compile_definitions(sokol PUBLIC SOKOL_D3D11 UNICODE)
     elseif(EMSCRIPTEN AND BUILD_SOKOL_WGPU)
-        # The browser's other backend: sokol_app creates and owns the WebGPU
-        # device and swapchain, and sokol_gfx draws through them. The port is
-        # what carries <webgpu/webgpu.h>, so it is needed to compile too (it
-        # is put on the C flags below).
+        # The browser's other backend: sokol_app owns the WebGPU device and swapchain.
         target_compile_definitions(sokol PUBLIC SOKOL_WGPU)
     elseif(EMSCRIPTEN)
         target_compile_definitions(sokol PUBLIC SOKOL_GLES3)
@@ -134,17 +131,9 @@ if(BUILD_SOKOL)
 
         if(BUILD_SOKOL_WGPU)
 
-            # WebGPU in place of WebGL2. The port replaces the WebGL version
-            # flags, and it carries the header every C file includes, so it
-            # goes on the compile flags as well as the link line. It brings
-            # C++ code of its own, hence DEFAULT_TO_CXX — the tree is C.
+            # WebGPU in place of WebGL2; the port carries the header, so it is on compile and link.
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --use-port=emdawnwebgpu")
-            # The stack exports are named here and nowhere else: the port's C++
-            # moves them out of the default export set, and a build whose JS
-            # glue names an export the module does not carry dies in callMain
-            # with "__emscripten_stack_alloc is not a function". Naming them
-            # also keeps the three in the module, which a GLES3 build drops
-            # unused — so they are this branch's and not the shared line's.
+            # Named because the port's C++ drops them from the default set; unnamed they die in callMain.
             set(TIC80_LINK_FLAGS "${TIC80_LINK_FLAGS} --use-port=emdawnwebgpu -sDEFAULT_TO_CXX -sEXPORTED_FUNCTIONS=_main,_malloc,_free,__emscripten_stack_alloc,_emscripten_stack_get_current,__emscripten_stack_restore")
 
         else()
