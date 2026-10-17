@@ -298,35 +298,43 @@ static void drawGutter(Code* code)
         }
     }
 
+    // find the first character on the screen, including syntax pointer
     const char* pointer = code->src;
     const CodeState* syntaxPointer = code->state;
     s32 y = -code->scroll.y;
+    while(y < 0)
+    {
+        syntaxPointer++;
+        if(*pointer++ == '\n')
+            y++;
+    }
 
     char buf[16] = "";
-    bool bookmarkDrawn = false;
+    bool somethingDrawn = false;
     s32 cursorX, cursorY;
     codeGetPos(code, &cursorX, &cursorY);
 
     // render all the bookmarks and line numbers
-    while(*pointer)
+    while(*pointer && y < STUDIO_TEXT_BUFFER_HEIGHT)
     {
         if(syntaxPointer++->bookmark)
         {
             drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_black);
             drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT - 1, tic_color_yellow);
-            bookmarkDrawn = true;
+            somethingDrawn = true;
         }
-        else if(code->lineNumbers && y != mouseOverLine && !bookmarkDrawn)
+        else if(!somethingDrawn && code->lineNumbers && y != mouseOverLine)
         {
             s32 lineNumber = y + 1 + code->scroll.y;
             snprintf(buf, sizeof(buf), "%d", lineNumber);
+            somethingDrawn = true;
             s32 offset = (s32)strlen(buf) * TIC_ALTFONT_WIDTH;
             tic_api_print(tic, buf, rect.x + gutterWidth - offset, rect.y + y * STUDIO_TEXT_HEIGHT, y + code->scroll.y == cursorY ? tic_color_white : tic_color_dark_grey, true, 1, true);
         }
 
         if(*pointer++ == '\n')
         {
-            bookmarkDrawn = false;
+            somethingDrawn = false;
             y++;
         }
     }
