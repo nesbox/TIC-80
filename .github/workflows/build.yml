@@ -189,13 +189,15 @@ jobs:
           # the generator the builds use; the image carries it already
           command -v ninja >/dev/null || sudo apt-get install -y ninja-build
           command -v ccache >/dev/null || sudo apt-get install -y ccache
-          
+
       - name: ccache
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.ccache
-          key: ccache-${{ github.job }}-${{ github.sha }}
-          restore-keys: ccache-${{ github.job }}-
+          # restore-keys match by prefix, and `linux-` is a prefix of `linux-arm64-`:
+          # the arch keeps this job from restoring the arm64 cache.
+          key: ccache-${{ github.job }}-${{ runner.arch }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-${{ runner.arch }}-
 
       - name: Build
         run: |
@@ -343,13 +345,13 @@ jobs:
           # the generator the builds use; the image carries it already
           command -v ninja >/dev/null || sudo apt-get install -y ninja-build
           command -v ccache >/dev/null || sudo apt-get install -y ccache
-          
+
       - name: ccache
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.ccache
-          key: ccache-${{ github.job }}-${{ github.sha }}
-          restore-keys: ccache-${{ github.job }}-
+          key: ccache-${{ github.job }}-${{ runner.arch }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-${{ runner.arch }}-
 
       - name: Build
         run: |
@@ -858,7 +860,6 @@ jobs:
           path: |
             stubs/*
 
-  # === Android ===
   # === SDL desktop builds: the fallback ===
   #
   # The layer the desktop shipped before the migration, kept compiling for one
@@ -985,6 +986,7 @@ jobs:
           path: |
             build/bin/tic80
 
+  # === Android ===
   android:
     runs-on: ubuntu-latest
 
