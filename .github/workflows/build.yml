@@ -1360,18 +1360,18 @@ jobs:
             rm -f "bin/tic80$lang.js" "bin/tic80$lang.wasm"
           done
 
-      # The target names the wasm its loader asks for; plain "tic80" would ask for the wrong one.
+      # The default target names the pair tic80.js + tic80.wasm, as the GLES3 universal build does.
       - name: Build universal WebGPU player
         shell: bash
         run: |
           set -euo pipefail
           stage="$GITHUB_WORKSPACE/build/players-webgpu/webgpu"
           cd "$GITHUB_WORKSPACE/build"
-          emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DBUILD_SOKOL_WGPU=ON -DTIC80_TARGET=tic80webgpu .. --fresh
+          emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DBUILD_SOKOL_WGPU=ON .. --fresh
           cmake --build . --parallel
           mkdir -p "$stage"
-          cp bin/tic80webgpu.js   "$stage/tic80.js"
-          cp bin/tic80webgpu.wasm "$stage/tic80webgpu.wasm"
+          cp bin/tic80.js   "$stage/tic80.js"
+          cp bin/tic80.wasm "$stage/tic80.wasm"
           # the page an exported game gets, as the html job's "Build all" copies it
           cp html/index.html "$stage/index.html"
 
@@ -1399,17 +1399,17 @@ jobs:
               { echo "player asks for another wasm: $js does not name tic80$lang.wasm — TIC80_TARGET did not take" >&2; exit 1; }
             files+=("$wasm")
           done
-          for f in "$stage/webgpu/tic80.js" "$stage/webgpu/tic80webgpu.wasm" "$stage/webgpu/index.html"; do
+          for f in "$stage/webgpu/tic80.js" "$stage/webgpu/tic80.wasm" "$stage/webgpu/index.html"; do
             [ -f "$f" ] || { echo "missing universal file: $f" >&2; exit 1; }
           done
-          grep -qa "SPRITE EDITOR" "$stage/webgpu/tic80webgpu.wasm" ||
+          grep -qa "SPRITE EDITOR" "$stage/webgpu/tic80.wasm" ||
             { echo "the universal build carries no editors" >&2; exit 1; }
-          grep -qa "Unable to initialize SDL Video" "$stage/webgpu/tic80webgpu.wasm" &&
+          grep -qa "Unable to initialize SDL Video" "$stage/webgpu/tic80.wasm" &&
             { echo "the universal build is on the SDL layer — the sokol default did not take" >&2; exit 1; }
           grep -qa "navigator.gpu" "$stage/webgpu/tic80.js" ||
             { echo "the universal build is not WebGPU" >&2; exit 1; }
-          grep -qa "tic80webgpu.wasm" "$stage/webgpu/tic80.js" ||
-            { echo "the universal player asks for another wasm: it does not name tic80webgpu.wasm — TIC80_TARGET did not take" >&2; exit 1; }
+          grep -qa 'locateFile("tic80.wasm")' "$stage/webgpu/tic80.js" ||
+            { echo "the universal player asks for another wasm: it does not name tic80.wasm" >&2; exit 1; }
           # a language flag that did not take leaves two builds alike
           for ((i = 0; i < ${#files[@]}; i++)); do
             for ((j = i + 1; j < ${#files[@]}; j++)); do

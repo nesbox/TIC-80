@@ -321,6 +321,58 @@ if [ -d "$ART" ]; then
     fi
 fi
 
+# --- the site's WebGPU players, for the two webgpu routes. deploy-client.sh
+# unpacks this into js/<tag>/ — webgpu/ for the universal build and
+# <lang>/webgpu/ for a language's. Same pairs as the GLES3 players:
+# tic80.js + tic80.wasm for the universal build, + tic80<lang>.wasm for a language's.
+if [ -d "$ART" ]; then
+    tmp="$OUT/.webgpu"
+    rm -rf "$tmp"
+    mkdir -p "$tmp"
+    gmissing=0
+    if [ -f "$ART/tic80-html-webgpu/webgpu/tic80.js" ] && [ -f "$ART/tic80-html-webgpu/webgpu/tic80.wasm" ]; then
+        mkdir -p "$tmp/webgpu"
+        cp "$ART/tic80-html-webgpu/webgpu/tic80.js" "$tmp/webgpu/"
+        cp "$ART/tic80-html-webgpu/webgpu/tic80.wasm" "$tmp/webgpu/"
+        [ -f "$ART/tic80-html-webgpu/webgpu/index.html" ] && cp "$ART/tic80-html-webgpu/webgpu/index.html" "$tmp/webgpu/"
+        grep -qa "navigator.gpu" "$tmp/webgpu/tic80.js" ||
+            { echo "the universal WebGPU player carries no shim" >&2; gmissing=1; }
+        grep -qa 'locateFile("tic80.wasm")' "$tmp/webgpu/tic80.js" ||
+            { echo "the universal WebGPU player asks for another wasm" >&2; gmissing=1; }
+        grep -qa "$EDITOR_MARKER" "$tmp/webgpu/tic80.wasm" ||
+            { echo "the universal WebGPU player lost its editors" >&2; gmissing=1; }
+    else
+        echo "webgpu player missing: $ART/tic80-html-webgpu/webgpu/{tic80.js,tic80.wasm}" >&2
+        gmissing=1
+    fi
+    for lang in $STUB_LANGS; do
+        src="$ART/tic80-html-webgpu/$lang/webgpu"
+        if [ -f "$src/tic80.js" ] && [ -f "$src/tic80$lang.wasm" ]; then
+            mkdir -p "$tmp/$lang/webgpu"
+            cp "$src/tic80.js" "$tmp/$lang/webgpu/"
+            cp "$src/tic80$lang.wasm" "$tmp/$lang/webgpu/"
+            grep -qa "navigator.gpu" "$tmp/$lang/webgpu/tic80.js" ||
+                { echo "the $lang WebGPU player carries no shim" >&2; gmissing=1; }
+            grep -qa "tic80$lang.wasm" "$tmp/$lang/webgpu/tic80.js" ||
+                { echo "the $lang WebGPU player asks for another wasm" >&2; gmissing=1; }
+            grep -qa "$EDITOR_MARKER" "$tmp/$lang/webgpu/tic80$lang.wasm" ||
+                { echo "the $lang WebGPU player lost its editors" >&2; gmissing=1; }
+        else
+            echo "webgpu player missing: $src/{tic80.js,tic80$lang.wasm}" >&2
+            gmissing=1
+        fi
+    done
+    if [ "$gmissing" != 0 ]; then
+        missing=1
+        rm -rf "$tmp"
+        rm -f "$OUT/tic80-v$SHORT-webgpu.tar.gz"
+        echo "the WebGPU players are incomplete (see the lines above)" >&2
+    else
+        (cd "$tmp" && tar czf "$OUT/tic80-v$SHORT-webgpu.tar.gz" .)
+        rm -rf "$tmp"
+    fi
+fi
+
 if [ "$missing" != 0 ]; then
     echo "packaging incomplete — the artifacts listed above are missing" >&2
     exit 1
