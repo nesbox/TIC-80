@@ -51,7 +51,10 @@ Module.tic80Viewport = function()
 	var style = getComputedStyle(probe);
 	var value = function(name) { return parseFloat(style.getPropertyValue(name)) || 0; };
 
-	Module._tic80_insets(value('padding-top'), value('padding-right'), value('padding-bottom'), value('padding-left'));
+	// The player lays out in framebuffer pixels; env() reports CSS ones.
+	var scale = window.devicePixelRatio || 1;
+
+	Module._tic80_insets(value('padding-top') * scale, value('padding-right') * scale, value('padding-bottom') * scale, value('padding-left') * scale);
 };
 
 (function()
@@ -66,5 +69,19 @@ Module.tic80Viewport = function()
 	{
 		visualViewport.addEventListener('resize', Module.tic80Viewport);
 		visualViewport.addEventListener('scroll', Module.tic80Viewport);
+	}
+
+	// A home-screen app on iOS can miss the resize on rotation; nudge the player when the canvas box moves.
+	if(window.ResizeObserver)
+	{
+		var canvas = Module.canvas || document.getElementById('canvas');
+
+		if(canvas)
+		{
+			new ResizeObserver(function()
+			{
+				requestAnimationFrame(function() { dispatchEvent(new Event('resize')); });
+			}).observe(canvas);
+		}
 	}
 })();
