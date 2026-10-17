@@ -157,8 +157,8 @@ jobs:
           path: |
             stubs/*
 
-  # === Ubuntu ===
-  linux-gcc12-glibc235:
+  # === Ubuntu 22.04 (gcc-12, glibc 2.35) ===
+  linux:
     runs-on: ubuntu-22.04
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -227,7 +227,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-linux-gcc12"
+          name: "tic80-linux"
           path: |
             build/bin/tic80
 
@@ -244,7 +244,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-linux-gcc12-export"
+          name: "tic80-linux-export"
           path: |
             stub/tic80
 
@@ -306,13 +306,13 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-linux-gcc12-export-langs"
+          name: "tic80-linux-export-langs"
           path: |
             stubs/*
 
-  # === Ubuntu-arm64 ===
+  # === Ubuntu 22.04 arm64 (gcc-12, glibc 2.35) ===
 
-  linux-arm64-gcc12-glibc235:
+  linux-arm64:
     runs-on: ubuntu-22.04-arm
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -368,7 +368,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-linux-arm64-gcc12"
+          name: "tic80-linux-arm64"
           path: |
             build/bin/tic80
 
@@ -385,7 +385,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-linux-arm64-gcc12-export"
+          name: "tic80-linux-arm64-export"
           path: |
             stub/tic80
 
@@ -447,17 +447,17 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-linux-arm64-gcc12-export-langs"
+          name: "tic80-linux-arm64-export-langs"
           path: |
             stubs/*
 
-  # === Raspberry PI 1-4 Bare Metal ===
+  # === Ubuntu-arm64 system GLES ===
   #
   # An ARM build against a system GLES (Batocera's data path is below). It
   # followed the desktop onto sokol, whose GLES backend needs a GLES 3 context —
   # where the SDL path this job built was a GLES 2 one.
 
-  linux-arm64-gles2:
+  linux-arm64-gles:
     runs-on: ubuntu-22.04-arm
 
     steps:
@@ -510,7 +510,7 @@ jobs:
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
-          name: "tic80-linux-arm64-gles2"
+          name: "tic80-linux-arm64-gles"
           path: |
             build/linux/bin/tic80
             build/linux/bin/*.so

@@ -76,10 +76,10 @@ pack_file() { # pack_file <src> <out>
 pack_dir "$ART/tic80-windows" "$OUT/tic80-v$SHORT-win.zip"
 
 # --- Linux ---
-pack_dir "$ART/tic80-linux-gcc12" "$OUT/tic80-v$SHORT-linux.zip"
-pack_deb "$ART/tic80-linux-gcc12" "$OUT/tic80-v$SHORT-linux.deb" amd64
-pack_dir "$ART/tic80-linux-arm64-gcc12" "$OUT/tic80-v$SHORT-linux-arm64.zip"
-pack_deb "$ART/tic80-linux-arm64-gcc12" "$OUT/tic80-v$SHORT-linux-arm64.deb" arm64
+pack_dir "$ART/tic80-linux" "$OUT/tic80-v$SHORT-linux.zip"
+pack_deb "$ART/tic80-linux" "$OUT/tic80-v$SHORT-linux.deb" amd64
+pack_dir "$ART/tic80-linux-arm64" "$OUT/tic80-v$SHORT-linux-arm64.zip"
+pack_deb "$ART/tic80-linux-arm64" "$OUT/tic80-v$SHORT-linux-arm64.deb" arm64
 
 # --- macOS (binaries + dylibs; the .dmg is built separately on macOS) ---
 pack_dir "$ART/tic80-macos-arm64" "$OUT/tic80-v$SHORT-mac-arm64.zip"
@@ -127,7 +127,7 @@ pack_file "$ART/tic80-learn/learn.md" "$OUT/tic80-v$SHORT-learn.md"
 #
 # A missing piece fails the packaging. The linuxarm stub was lost for a
 # whole release because this loop looked for "$ART/tic80-linux-arm64-export"
-# while the workflow uploads "tic80-linux-arm64-gcc12-export", and the miss
+# while the workflow uploaded "tic80-linux-arm64-gcc12-export", and the miss
 # was a silent `[ -f ] &&`.
 # Keep in sync with the loops in .github/workflows/build.yml and with
 # scriptLanguages in the server's internal/httpapi/export.go: a language
@@ -190,7 +190,7 @@ if [ -d "$ART" ]; then
     # native asset above, and a section that stops the run on someone else's
     # finding is what hides the rest of them
     smissing=0
-    for spec in windows:win:tic80.exe linux-gcc12:linux:tic80 linux-arm64-gcc12:linuxarm:tic80 macos:macintel:tic80 macos-arm64:mac:tic80; do
+    for spec in windows:win:tic80.exe linux:linux:tic80 linux-arm64:linuxarm:tic80 macos:macintel:tic80 macos-arm64:mac:tic80; do
         art="${spec%%:*}"; rest="${spec#*:}"; dst="${rest%%:*}"; file="${rest#*:}"
         src="$ART/tic80-$art-export/$file"
         if [ -f "$src" ]; then
