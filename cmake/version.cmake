@@ -9,9 +9,9 @@
 
 # The line under development. A snapshot reports it, and a tree with no git
 # reports it verbatim — see the no-git note further down. Bump it in the
-# commit after a release: v1.2.0 shipped, so main is on the 1.3 line.
+# commit after a release: v1.3.1 shipped, so main is on the 1.4 line.
 set(VERSION_MAJOR 1)
-set(VERSION_MINOR 3)
+set(VERSION_MINOR 4)
 set(VERSION_REVISION 0)
 set(VERSION_STATUS "-dev")
 
