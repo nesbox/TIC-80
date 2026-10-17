@@ -334,7 +334,6 @@ if [ -d "$ART" ]; then
         mkdir -p "$tmp/webgpu"
         cp "$ART/tic80-html-webgpu/webgpu/tic80.js" "$tmp/webgpu/"
         cp "$ART/tic80-html-webgpu/webgpu/tic80.wasm" "$tmp/webgpu/"
-        [ -f "$ART/tic80-html-webgpu/webgpu/index.html" ] && cp "$ART/tic80-html-webgpu/webgpu/index.html" "$tmp/webgpu/"
         grep -qa "navigator.gpu" "$tmp/webgpu/tic80.js" ||
             { echo "the universal WebGPU player carries no shim" >&2; gmissing=1; }
         grep -qa 'locateFile("tic80.wasm")' "$tmp/webgpu/tic80.js" ||

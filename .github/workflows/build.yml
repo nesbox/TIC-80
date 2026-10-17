@@ -1372,8 +1372,6 @@ jobs:
           mkdir -p "$stage"
           cp bin/tic80.js   "$stage/tic80.js"
           cp bin/tic80.wasm "$stage/tic80.wasm"
-          # the page an exported game gets, as the html job's "Build all" copies it
-          cp html/index.html "$stage/index.html"
 
       # The backend is read from the loader: the wasm carries no such string.
       - name: Check the builds are what they claim
@@ -1399,7 +1397,7 @@ jobs:
               { echo "player asks for another wasm: $js does not name tic80$lang.wasm — TIC80_TARGET did not take" >&2; exit 1; }
             files+=("$wasm")
           done
-          for f in "$stage/webgpu/tic80.js" "$stage/webgpu/tic80.wasm" "$stage/webgpu/index.html"; do
+          for f in "$stage/webgpu/tic80.js" "$stage/webgpu/tic80.wasm"; do
             [ -f "$f" ] || { echo "missing universal file: $f" >&2; exit 1; }
           done
           grep -qa "SPRITE EDITOR" "$stage/webgpu/tic80.wasm" ||
