@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "studio/system.h"
+#include "studio/studio.h"
 #include "tools.h"
 #include "tilesheet.h"
 #include "render.h"
@@ -772,6 +773,75 @@ static void resume_audio(void)
 #endif
 }
 
+#if defined(__EMSCRIPTEN__)
+// The browser gives its clipboard asynchronously and only on its own terms: a
+// paste attempt asks, and a press refreshes what the click on release reads.
+static void clipboard_read_web(bool ask)
+{
+    if(!platform.started)
+        return;
+
+    // clang-format off
+    EM_ASM({
+        if (Module.tic80ClipboardReading || (!$0 && !Module.tic80ClipboardGranted) ||
+            !navigator.clipboard || !navigator.clipboard.readText)
+            return;
+
+        Module.tic80ClipboardReading = true;
+
+        navigator.clipboard.readText().then(function(text)
+        {
+            Module.tic80ClipboardReading = false;
+            if (Module.tic80ClipboardCheck)
+                Module.tic80ClipboardCheck();
+
+            const bytes = new TextEncoder().encode(text);
+            const ptr = _malloc(bytes.length + 1);
+            if (!ptr)
+                return;
+
+            HEAPU8.set(bytes, ptr);
+            HEAPU8[ptr + bytes.length] = 0;
+            try { Module.__sapp_emsc_onpaste(ptr); } finally { _free(ptr); }
+        }).catch(function()
+        {
+            Module.tic80ClipboardReading = false;
+        });
+    }, ask ? 1 : 0);
+    // clang-format on
+}
+
+// Only a browser that both reports and keeps the permission may be read on
+// every press: Firefox cannot report it, and asks on each read.
+static void clipboard_permission_web(void)
+{
+    // clang-format off
+    EM_ASM({
+        Module.tic80ClipboardCheck = function()
+        {
+            if (!navigator.permissions || !navigator.permissions.query)
+                return;
+
+            navigator.permissions.query({ name: 'clipboard-read' }).then(function(status)
+            {
+                if (status.state === 'granted')
+                    Module.tic80ClipboardGranted = true;
+            }).catch(function() {});
+        };
+
+        Module.tic80ClipboardCheck();
+    });
+    // clang-format on
+}
+
+// Only the editor's presses can be followed by a paste; a game's must not
+// read the clipboard.
+static bool clipboard_wanted_web(void)
+{
+    return platform.studio && getStudioMode(platform.studio) != TIC_RUN_MODE;
+}
+#endif
+
 static void event_cb(const sapp_event* event)
 {
     switch(event->type)
@@ -827,6 +897,13 @@ static void event_cb(const sapp_event* event)
         case SAPP_EVENTTYPE_MOUSE_UP:
             platform.pointer.x = event->mouse_x;
             platform.pointer.y = event->mouse_y;
+
+#if defined(__EMSCRIPTEN__)
+            // The press is the last moment the browser lets a read start and
+            // still have it land before the click on release.
+            if(event->type == SAPP_EVENTTYPE_MOUSE_DOWN && clipboard_wanted_web())
+                clipboard_read_web(false);
+#endif
 
 #if defined(TOUCH_INPUT_SUPPORT) && !defined(__EMSCRIPTEN__)
             // Desktop only: see desktop_pointer() — the mouse stands in for a finger.
@@ -917,7 +994,13 @@ static void event_cb(const sapp_event* event)
             // The beginning is the gesture a browser wants for audio, and the only
             // one worth asking on: a move or a lift only repeats what it said.
             if(event->type == SAPP_EVENTTYPE_TOUCHES_BEGAN)
+            {
                 resume_audio();
+#if defined(__EMSCRIPTEN__)
+                if(clipboard_wanted_web())
+                    clipboard_read_web(false);
+#endif
+            }
 
             break;
 #endif
@@ -1068,6 +1151,10 @@ static void init_cb(void)
 
     platform.started = true;
     platform.lastTime = stm_now();
+
+#if defined(__EMSCRIPTEN__)
+    clipboard_permission_web();
+#endif
 
     // The page mounts its own folder; elsewhere the entry point made it.
     platform.appFolder = getAppFolder();
@@ -1344,6 +1431,13 @@ void tic_sys_clipboard_set(const char* text)
 bool tic_sys_clipboard_has(void)
 {
     const char* text = platform.started ? sapp_get_clipboard_string() : NULL;
+
+#if defined(__EMSCRIPTEN__)
+    // Nothing cached: this paste is the page's chance to ask for the clipboard.
+    if(!text || !*text)
+        clipboard_read_web(true);
+#endif
+
     return text && *text;
 }
 
