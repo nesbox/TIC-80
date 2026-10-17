@@ -28,6 +28,9 @@ if(BUILD_SOKOL)
         target_compile_definitions(sokol PUBLIC SOKOL_METAL)
     elseif(WIN32)
         target_compile_definitions(sokol PUBLIC SOKOL_D3D11 UNICODE)
+    elseif(EMSCRIPTEN AND BUILD_SOKOL_WGPU)
+        # The browser's other backend: sokol_app owns the WebGPU device and swapchain.
+        target_compile_definitions(sokol PUBLIC SOKOL_WGPU)
     elseif(EMSCRIPTEN)
         target_compile_definitions(sokol PUBLIC SOKOL_GLES3)
     elseif(USE_GLES2)
@@ -124,7 +127,22 @@ if(BUILD_SOKOL)
         # The same runtime shape the SDL web target asks for — memory growth,
         # fetch, the 4M stack a deep cart needs, the page's file hooks — with
         # WebGL2 in place of SDL's GL.
-        set_target_properties(${TIC80_TARGET} PROPERTIES LINK_FLAGS "-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -s STACK_SIZE=4194304 -s EXPORTED_FUNCTIONS=_main,_malloc,_free -s EXPORTED_RUNTIME_METHODS=UTF8ToString -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
+        set(TIC80_LINK_FLAGS "-s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -s STACK_SIZE=4194304 -s EXPORTED_FUNCTIONS=_main,_malloc,_free -s EXPORTED_RUNTIME_METHODS=UTF8ToString --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
+
+        if(BUILD_SOKOL_WGPU)
+
+            # WebGPU in place of WebGL2; the port carries the header, so it is on compile and link.
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --use-port=emdawnwebgpu")
+            # Named because the port's C++ drops them from the default set; unnamed they die in callMain.
+            set(TIC80_LINK_FLAGS "${TIC80_LINK_FLAGS} --use-port=emdawnwebgpu -sDEFAULT_TO_CXX -sEXPORTED_FUNCTIONS=_main,_malloc,_free,__emscripten_stack_alloc,_emscripten_stack_get_current,__emscripten_stack_restore")
+
+        else()
+
+            set(TIC80_LINK_FLAGS "${TIC80_LINK_FLAGS} -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2")
+
+        endif()
+
+        set_target_properties(${TIC80_TARGET} PROPERTIES LINK_FLAGS "${TIC80_LINK_FLAGS}")
 
     endif()
 
