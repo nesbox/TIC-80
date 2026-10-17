@@ -1393,7 +1393,7 @@ jobs:
               { echo "player on the SDL layer: $wasm — the sokol default did not take" >&2; exit 1; }
             grep -qa "navigator.gpu" "$js" ||
               { echo "player without the WebGPU shim: $js — BUILD_SOKOL_WGPU=ON did not take" >&2; exit 1; }
-            grep -qa "tic80$lang.wasm" "$js" ||
+            grep -qa "locateFile(\"tic80$lang.wasm\")" "$js" ||
               { echo "player asks for another wasm: $js does not name tic80$lang.wasm — TIC80_TARGET did not take" >&2; exit 1; }
             files+=("$wasm")
           done

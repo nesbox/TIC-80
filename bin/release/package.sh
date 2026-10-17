@@ -352,7 +352,7 @@ if [ -d "$ART" ]; then
             cp "$src/tic80$lang.wasm" "$tmp/$lang/webgpu/"
             grep -qa "navigator.gpu" "$tmp/$lang/webgpu/tic80.js" ||
                 { echo "the $lang WebGPU player carries no shim" >&2; gmissing=1; }
-            grep -qa "tic80$lang.wasm" "$tmp/$lang/webgpu/tic80.js" ||
+            grep -qa "locateFile(\"tic80$lang.wasm\")" "$tmp/$lang/webgpu/tic80.js" ||
                 { echo "the $lang WebGPU player asks for another wasm" >&2; gmissing=1; }
             grep -qa "$EDITOR_MARKER" "$tmp/$lang/webgpu/tic80$lang.wasm" ||
                 { echo "the $lang WebGPU player lost its editors" >&2; gmissing=1; }
