@@ -150,7 +150,7 @@ static s32 getLinesCount(Code* code)
 
 static void getWidths(Code* code, s32* gutterWidthOut, s32* codeWidthOut)
 {
-    int charCount = code->lineNumbers ? ((int)log10(getLinesCount(code)) + 1) : 0;
+    int charCount = code->lineNumbers ? ((int)log10(code->status.lineCount + 1) + 1) : 0;
     int gutterWidth = code->lineNumbers ? 1 + charCount * TIC_ALTFONT_WIDTH : MIN_GUTTER_WIDTH;
     gutterWidth = MAX(gutterWidth, MIN_GUTTER_WIDTH);
     int codeWidth = TIC80_WIDTH - gutterWidth;
@@ -298,35 +298,43 @@ static void drawGutter(Code* code)
         }
     }
 
+    // find the first character on the screen, including syntax pointer
     const char* pointer = code->src;
     const CodeState* syntaxPointer = code->state;
     s32 y = -code->scroll.y;
+    while(y < 0)
+    {
+        syntaxPointer++;
+        if(*pointer++ == '\n')
+            y++;
+    }
 
     char buf[16] = "";
-    bool bookmarkDrawn = false;
+    bool somethingDrawn = false;
     s32 cursorX, cursorY;
     codeGetPos(code, &cursorX, &cursorY);
 
     // render all the bookmarks and line numbers
-    while(*pointer)
+    while(*pointer && y < STUDIO_TEXT_BUFFER_HEIGHT)
     {
         if(syntaxPointer++->bookmark)
         {
             drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_black);
             drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT - 1, tic_color_yellow);
-            bookmarkDrawn = true;
+            somethingDrawn = true;
         }
-        else if(code->lineNumbers && y != mouseOverLine && !bookmarkDrawn)
+        else if(!somethingDrawn && code->lineNumbers && y != mouseOverLine)
         {
             s32 lineNumber = y + 1 + code->scroll.y;
             snprintf(buf, sizeof(buf), "%d", lineNumber);
+            somethingDrawn = true;
             s32 offset = (s32)strlen(buf) * TIC_ALTFONT_WIDTH;
             tic_api_print(tic, buf, rect.x + gutterWidth - offset, rect.y + y * STUDIO_TEXT_HEIGHT, y + code->scroll.y == cursorY ? tic_color_white : tic_color_dark_grey, true, 1, true);
         }
 
         if(*pointer++ == '\n')
         {
-            bookmarkDrawn = false;
+            somethingDrawn = false;
             y++;
         }
     }
@@ -639,7 +647,8 @@ static void updateEditor(Code* code)
 
     code->cursor.delay = TEXT_CURSOR_DELAY;
 
-    sprintf(code->status.line, "line %i/%i col %i", line + 1, getLinesCount(code) + 1, column + 1);
+    code->status.lineCount = getLinesCount(code);
+    sprintf(code->status.line, "line %i/%i col %i", line + 1, code->status.lineCount + 1, column + 1);
     {
         s32 codeLen = (s32)strlen(code->src);
         sprintf(code->status.size, "size %i/%i", codeLen, (s32)MAX_CODE);

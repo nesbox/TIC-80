@@ -76,6 +76,7 @@ struct Code
         char line[STUDIO_TEXT_BUFFER_WIDTH + sizeof "-2147483648"];
         char size[STUDIO_TEXT_BUFFER_WIDTH];
         tic_color color;
+        int lineCount;
     } status;
 
     u32 tickCounter;
