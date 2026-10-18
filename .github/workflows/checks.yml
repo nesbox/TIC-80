@@ -101,6 +101,10 @@ jobs:
           # submodules carry the headers they include.
           submodules: recursive
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
       # Pinned as clang-format is pinned, and for the same reason: a check set
       # is a property of a version, and moving to another one is a change of
       # its own — the one that carries the fixes for what it reports. The PyPI
@@ -130,6 +134,11 @@ jobs:
             -DBUILD_TOUCH_INPUT=ON \
             -DBUILD_WITH_ALL=ON -DBUILD_TESTS=ON \
             -DBUILD_PRO=On -DBUILD_LIBRETRO=ON
+
+      # mruby 4 generates its presym headers during the build; the checker
+      # parses mruby.c, so they have to exist before the database is used.
+      - name: Generate the mruby headers
+        run: cmake --build build-tidy --target mruby_vendor
 
       - name: Run
         run: |
