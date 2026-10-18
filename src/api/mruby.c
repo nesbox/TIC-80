@@ -38,6 +38,10 @@
 #include <mruby.h>
 #include <mruby/compile.h>
 #include <mruby/error.h>
+// mruby 3.2 moved the backtrace API out of the public error.h.
+#if MRUBY_RELEASE_NO >= 30200
+#include <mruby/internal.h>
+#endif
 #include <mruby/throw.h>
 #include <mruby/array.h>
 #include <mruby/hash.h>
@@ -1444,13 +1448,10 @@ static bool initMRuby(tic_mem* tic, const char* code)
 
     for(s32 i = 0; i < COUNT_OF(ApiItems); ++i)
     {
-        mrb_aspec args = MRB_ARGS_NONE();
-        if(ApiItems[i].nrequired > 0)
-            args |= MRB_ARGS_REQ(ApiItems[i].nrequired);
-        if(ApiItems[i].noptional > 0)
-            args |= MRB_ARGS_OPT(ApiItems[i].noptional);
-        if(ApiItems[i].block)
-            args |= MRB_ARGS_BLOCK();
+        // Each binding validates its own arguments: the table's counts are
+        // the C API's, not the script-level defaults (btn(), clip(), vbank()).
+        const bool noargs = ApiItems[i].nrequired == 0 && ApiItems[i].noptional == 0;
+        const mrb_aspec args = noargs ? MRB_ARGS_NONE() : MRB_ARGS_ANY();
 
         mrb_define_method(mrb, mrb->kernel_module, ApiItems[i].name, ApiItems[i].func, args);
     }

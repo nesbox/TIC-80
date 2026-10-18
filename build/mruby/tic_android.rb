@@ -9,7 +9,6 @@ MRuby::Build.new do |conf|
 
   conf.build_mrbc_exec
   conf.disable_libmruby
-  conf.disable_presym
 end
 
 MRuby::CrossBuild.new('target') do |conf|
