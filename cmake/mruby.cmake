@@ -60,7 +60,10 @@ if(BUILD_WITH_RUBY)
     set(MRUBY_LIB ${MRUBY_DIR}/build/target/lib/libmruby.a)
 
     target_include_directories(ruby
-        PUBLIC ${MRUBY_DIR}/include
+        PUBLIC
+            ${MRUBY_DIR}/include
+            # mruby 4 generates the presym headers into the build tree.
+            ${MRUBY_DIR}/build/target/include
         PRIVATE
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src

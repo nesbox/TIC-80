@@ -1,7 +1,7 @@
 require "json"
 
-# Vendored mruby (3.0-dev) predates NDK r19; this is the upstream android
-# toolchain (MIT, from mruby master), reading the NDK's unified sysroot.
+# The upstream android toolchain (MIT, from mruby) with two local changes:
+# the app's minSdk targets the API, and arm64 macOS uses darwin-x86_64.
 class MRuby::Toolchain::TicAndroid
 
   DEFAULT_ARCH = 'arm64-v8a'
