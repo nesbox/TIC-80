@@ -33,7 +33,7 @@
 #define MAX_LINE_NUMBER_DIGITS   5
 #define MIN_GUTTER_WIDTH         7
 #define MAX_GUTTER_WIDTH         (TIC_ALTFONT_WIDTH * MAX_LINE_NUMBER_DIGITS + 1)
-#define CODE_EDITOR_HEIGHT       (TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT)
+#define CODE_EDITOR_HEIGHT       (TIC80_HEIGHT - STUDIO_BAR_HEIGHT - STUDIO_TEXT_HEIGHT)
 #define TEXT_BUFFER_HEIGHT       (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
 #define SIDEBAR_WIDTH            (12 * TIC_FONT_WIDTH)
 
@@ -260,10 +260,8 @@ static void drawGutter(Code* code)
 {
     tic_mem* tic = code->tic;
     const s32 gutterWidth = getGutterWidth(code);
-    const s32 gutterHeight = TIC80_HEIGHT - TOOLBAR_SIZE * 2;
-    tic_rect rect = {0, TOOLBAR_SIZE, gutterWidth, gutterHeight};
-    tic_rect lineNumberButtonRect = {0, rect.y + rect.h - TIC_SPRITESIZE + 1, gutterWidth, TOOLBAR_SIZE};
-    bool buttonHover = checkMousePos(code->studio, &lineNumberButtonRect);
+    const s32 gutterHeight = TIC80_HEIGHT - STUDIO_BAR_HEIGHT * 2;
+    tic_rect rect = {0, STUDIO_BAR_HEIGHT, gutterWidth, gutterHeight};
     s32 mouseOverLine = -1;
 
     // draw the background rectangle
@@ -272,30 +270,14 @@ static void drawGutter(Code* code)
     // then if the mouse is hovering over the gutter...
     if(checkMousePos(code->studio, &rect))
     {
-        // and we're inside the line number button...
-        if(buttonHover)
-        {
-            // draw it
-            setCursor(code->studio, tic_cursor_hand);
-            showTooltip(code->studio, "LINE# [alt+l]");
-            tic_api_rect(tic, rect.x, lineNumberButtonRect.y, rect.w, TIC_SPRITESIZE, tic_color_white);
-            drawBitIcon(code->studio, tic_icon_line_numbers, rect.x, lineNumberButtonRect.y, tic_color_black);
-            // and toggle line numbers if we clicked it
-            if(checkMouseClick(code->studio, &lineNumberButtonRect, tic_mouse_left))
-                code->lineNumbers = !code->lineNumbers;
-        }
-        // if we're somewhere else in the gutter...
-        else
-        {
-            // draw a bookmark preview
-            setCursor(code->studio, tic_cursor_hand);
-            showTooltip(code->studio, "BOOKMARK [ctrl+f1]");
-            s32 line = mouseOverLine = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
-            drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
-            // and toggle the bookmark if we clicked it
-            if(checkMouseClick(code->studio, &rect, tic_mouse_left))
-                toggleBookmark(code, getPosByLine(code->src, line + code->scroll.y));
-        }
+        // draw a bookmark preview
+        setCursor(code->studio, tic_cursor_hand);
+        showTooltip(code->studio, "BOOKMARK [ctrl+f1]");
+        s32 line = mouseOverLine = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
+        drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
+        // and toggle the bookmark if we clicked it
+        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
+            toggleBookmark(code, getPosByLine(code->src, line + code->scroll.y));
     }
 
     // find the first character on the screen, including syntax pointer
@@ -338,10 +320,6 @@ static void drawGutter(Code* code)
             y++;
         }
     }
-
-    // render the button again, over the line numbers
-    tic_api_rect(tic, rect.x, lineNumberButtonRect.y, rect.w, lineNumberButtonRect.h, (code->lineNumbers || buttonHover) ? tic_color_white : tic_color_grey);
-    drawBitIcon(code->studio, tic_icon_line_numbers, rect.x, lineNumberButtonRect.y, tic_color_dark_grey);
 }
 
 static inline s32 getFontWidth(Code* code)
@@ -406,7 +384,7 @@ static void drawCode(Code* code, bool withCursor)
 {
     s32 gutterWidth, codeWidth;
     getWidths(code, &gutterWidth, &codeWidth);
-    tic_rect rect = {gutterWidth, TOOLBAR_SIZE, codeWidth, CODE_EDITOR_HEIGHT};
+    tic_rect rect = {gutterWidth, STUDIO_BAR_HEIGHT, codeWidth, CODE_EDITOR_HEIGHT};
 
     s32 xStart = rect.x - code->scroll.x * getFontWidth(code);
     s32 x = xStart;
@@ -2135,6 +2113,26 @@ static void setCodeMode(Code* code, s32 mode)
     }
 }
 
+void codeFind(Code* code)
+{
+    setCodeMode(code, TEXT_FIND_MODE);
+}
+
+void codeGoto(Code* code)
+{
+    setCodeMode(code, TEXT_GOTO_MODE);
+}
+
+void codeBookmarks(Code* code)
+{
+    setCodeMode(code, TEXT_BOOKMARK_MODE);
+}
+
+void codeOutline(Code* code)
+{
+    setCodeMode(code, TEXT_OUTLINE_MODE);
+}
+
 static int getNumberOfLines(Code* code)
 {
     char* pos = code->cursor.position;
@@ -3540,7 +3538,7 @@ static void processMouse(Code* code)
     tic_mem* tic = code->tic;
     s32 gutterWidth, codeWidth;
     getWidths(code, &gutterWidth, &codeWidth);
-    tic_rect rect = {gutterWidth, TOOLBAR_SIZE, codeWidth, CODE_EDITOR_HEIGHT};
+    tic_rect rect = {gutterWidth, STUDIO_BAR_HEIGHT, codeWidth, CODE_EDITOR_HEIGHT};
 
     if(checkMousePos(code->studio, &rect))
     {
@@ -3662,9 +3660,9 @@ static void drawPopupBar(Code* code, const char* title)
     s32 pos = code->anim.pos;
     const s32 TextX = getGutterWidth(code);
 
-    tic_api_rect(code->tic, 0, TOOLBAR_SIZE + pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, tic_color_grey);
+    tic_api_rect(code->tic, 0, STUDIO_BAR_HEIGHT + pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, tic_color_grey);
 
-    s32 textY = (TOOLBAR_SIZE + 1) + pos;
+    s32 textY = (STUDIO_BAR_HEIGHT + 1) + pos;
 
     if(code->shadowText)
         tic_api_print(code->tic, title, TextX + 1, textY + 1, tic_color_black, true, 1, code->altFont);
@@ -3878,7 +3876,7 @@ static void textGoToTick(Code* code)
     tic_api_cls(tic, getConfig(code->studio)->theme.code.BG);
 
     if(code->jump.line >= 0)
-        tic_api_rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT + 1) + TOOLBAR_SIZE,
+        tic_api_rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT + 1) + STUDIO_BAR_HEIGHT,
                      TIC80_WIDTH, TIC_FONT_HEIGHT + 2, getConfig(code->studio)->theme.code.select);
 
     drawCode(code, false);
@@ -4057,149 +4055,6 @@ static void textOutlineTick(Code* code)
     drawPopupBar(code, "FUNC:");
 }
 
-// The active mode button is three layers in the old code: a grey cell, the
-// icon again one line down in black, and the icon in white on top.
-typedef struct
-{
-    u8 icon;
-    bool active;
-
-} ModeButton;
-
-static void modeButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
-{
-    const ModeButton* btn = ctx;
-    const tic_tiles* tiles = &tb->config->cart->bank0.tiles;
-
-    if(btn->active)
-    {
-        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, rect->h, tic_color_grey);
-        ui_icon(tb->tic, tiles, btn->icon, rect->x, rect->y + tb->y + 1, tic_color_black);
-    }
-
-    ui_icon(tb->tic, tiles, btn->icon, rect->x, rect->y + tb->y,
-            btn->active ? tic_color_white : over ? tic_color_grey
-                                                 : tic_color_light_grey);
-}
-
-// The font button is a glyph, not an icon, and it was drawn a pixel in from its
-// cell. Its colour does not change with the font — the shape does.
-static void fontButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
-{
-    Code* code = ctx;
-
-    tic_api_print(tb->tic, "F", rect->x, rect->y + tb->y + 1,
-                  over ? tic_color_grey : tic_color_light_grey, true, 1, code->altFont);
-}
-
-// Two icons on one cell: the shadow glyph, and a filled one over it when the
-// shadow is on. Neither `pressed` nor `color` says that.
-static void shadowButton(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
-{
-    Code* code = ctx;
-    const tic_tiles* tiles = &tb->config->cart->bank0.tiles;
-
-    ui_icon(tb->tic, tiles, tic_icon_shadow, rect->x, rect->y + tb->y,
-            over && !code->shadowText ? tic_color_grey : tic_color_light_grey);
-
-    if(code->shadowText)
-        ui_icon(tb->tic, tiles, tic_icon_shadow2, rect->x, rect->y + tb->y, tic_color_black);
-}
-
-// The strip's right rail. Drawn by the host after this editor's tick, so it
-// never sees the strip's background and never paints one.
-void codeBand(void* app, Toolbar* tb)
-{
-    Code* code = app;
-
-    static const struct
-    {
-        u8 icon;
-        const char* tip;
-    } Buttons[] =
-        {
-            {tic_icon_hand, "DRAG [right mouse]"},
-            {tic_icon_find, "FIND [ctrl+f]"},
-            {tic_icon_goto, "GOTO [ctrl+g]"},
-            {tic_icon_bookmark, "BOOKMARKS [ctrl+b]"},
-            {tic_icon_outline, "OUTLINE [ctrl+o]"},
-        };
-
-    enum
-    {
-        Count = COUNT_OF(Buttons),
-        Size = 7,
-        Small = TIC_FONT_WIDTH
-    };
-
-    // The rail packs right to left, and this editor's order runs the other way.
-    for(s32 i = Count - 1; i >= 0; i--)
-    {
-        ModeButton mode = {Buttons[i].icon, i == (s32)code->mode && isIdle(code)};
-
-        ToolbarButton button =
-            {
-                .tip = Buttons[i].tip,
-                .width = Size,
-                .enabled = true,
-                .draw = modeButton,
-                .ctx = &mode,
-            };
-
-        if(toolbar_button(tb, &button))
-        {
-            if((s32)code->mode == i)
-                code->escape(code);
-            else
-                setCodeMode(code, i);
-        }
-    }
-
-    // These three carry a pixel of slack, which is what put them at 198, 191
-    // and 184 before; the rail packs with no gap of its own.
-    {
-        ToolbarButton button =
-            {
-                .icon = tic_icon_run,
-                .tip = "RUN [ctrl+r]",
-                .width = Small + 1,
-                .color = tic_color_light_grey,
-                .enabled = true,
-            };
-
-        if(toolbar_button(tb, &button))
-            runGame(code->studio, RUN_FROM_STUDIO);
-    }
-
-    {
-        ToolbarButton button =
-            {
-                .tip = "SHOW SHADOW",
-                .width = Small + 1,
-                .enabled = true,
-                .draw = shadowButton,
-                .ctx = code,
-            };
-
-        if(toolbar_button(tb, &button))
-            code->shadowText = !code->shadowText;
-    }
-
-    {
-        ToolbarButton button =
-            {
-                .tip = "SWITCH FONT",
-                .width = Small + 1,
-                .enabled = true,
-                .draw = fontButton,
-                .ctx = code,
-            };
-
-        if(toolbar_button(tb, &button))
-            code->altFont = !code->altFont;
-    }
-}
-
 static void tick(Code* code)
 {
     processAnim(code->anim.movie, code);
@@ -4344,12 +4199,12 @@ void initCode(Code* code, Studio* studio)
                 },
 
                 .show = MOVIE_DEF(STUDIO_ANIM_TIME, setIdle, {
-                                                                 {-TOOLBAR_SIZE, 0, STUDIO_ANIM_TIME, &code->anim.pos, AnimEaseIn},
+                                                                 {-STUDIO_BAR_HEIGHT, 0, STUDIO_ANIM_TIME, &code->anim.pos, AnimEaseIn},
                                                                  {SIDEBAR_WIDTH, 0, STUDIO_ANIM_TIME, &code->anim.sidebar, AnimEaseIn},
                                                              }),
 
                 .hide = MOVIE_DEF(STUDIO_ANIM_TIME, setEditMode, {
-                                                                     {0, -TOOLBAR_SIZE, STUDIO_ANIM_TIME, &code->anim.pos, AnimEaseIn},
+                                                                     {0, -STUDIO_BAR_HEIGHT, STUDIO_ANIM_TIME, &code->anim.pos, AnimEaseIn},
                                                                      {0, SIDEBAR_WIDTH, STUDIO_ANIM_TIME, &code->anim.sidebar, AnimEaseIn},
                                                                  }),
             },

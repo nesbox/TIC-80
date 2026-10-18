@@ -25,7 +25,6 @@
 #include "studio.h"
 
 struct tic_mem;
-struct Toolbar;
 
 // One entry per EditorMode; unused fields are NULL and tic_key_unknown.
 // `instance` resolves a mode to its editor, the bank index being the variable.
@@ -40,7 +39,6 @@ typedef struct
     bool vbank1; // the mode draws its whole screen in the overlay bank
     void* (*instance)(Studio*);
     void (*tick)(void*);
-    void (*band)(void*, struct Toolbar*);
     void (*scanline)(tic_mem*, s32, void*);
 
 } EditorApp;

@@ -36,7 +36,7 @@
 
 enum
 {
-    ToolbarH = TOOLBAR_SIZE,
+    BarH = STUDIO_BAR_HEIGHT,
     CanvasX = 24,
     CanvasY = 20,
     CanvasW = CANVAS_SIZE,
@@ -46,7 +46,7 @@ enum
     PaletteW = PALETTE_WIDTH,
     PaletteH = PALETTE_HEIGHT,
     SheetX = TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1,
-    SheetY = ToolbarH,
+    SheetY = BarH,
     SheetW = TIC_SPRITESHEET_SIZE,
     SheetH = TIC_SPRITESHEET_SIZE,
 };
@@ -882,63 +882,6 @@ static void switchBitMode(Sprite* sprite, tic_bpp bpp)
     sprite->color2 %= 1 << sprite->blit.mode;
 }
 
-static void drawBitMode(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
-{
-    (void)h;
-    tic_mem* tic = sprite->tic;
-    s32 label_w = tic_api_print(tic, "BPP :", x + 2, y, tic_color_dark_grey, false, 1, true);
-    x += label_w + 4;
-    w -= label_w + 4;
-
-    enum
-    {
-        Modes = 3,
-        SizeY = 5,
-        SizeX = 5,
-        OffsetX = 15
-    };
-
-    s32 centerX = x + w / 2;
-
-    for(s32 i = 0; i < Modes; i++)
-    {
-        tic_bpp mode = 1 << (2 - i);
-        bool current = mode == sprite->blit.mode;
-
-        tic_rect rect = {centerX - SizeX / 2 + (i - 1) * OffsetX, y, SizeX, SizeY};
-
-        bool over = false;
-        if(checkMousePos(sprite->studio, &rect))
-        {
-            setCursor(sprite->studio, tic_cursor_hand);
-            over = true;
-
-            if(mode > 1)
-                SHOW_TOOLTIP(sprite->studio, "%iBITS PER PIXEL", mode);
-            else
-                SHOW_TOOLTIP(sprite->studio, "%iBIT PER PIXEL", mode);
-
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
-            {
-                switchBitMode(sprite, mode);
-            }
-        }
-
-        u8 label_color = current ? tic_color_white : tic_color_dark_grey;
-
-        tic_api_rect(tic, rect.x, rect.y, SizeX, SizeY, tic_color_dark_grey);
-        if(current)
-        {
-            tic_api_rect(tic, rect.x + 1, rect.y + 1, SizeX - 2, SizeY - 2, (u8)(tic_color_yellow - i));
-            tic_api_pix(tic, rect.x + 3, rect.y + 1, tic_color_white, false);
-        }
-        else if(over)
-            tic_api_rect(tic, rect.x + 1, rect.y + 1, SizeX - 2, SizeY - 2, tic_color_light_grey);
-
-        tic_api_print(tic, (char[]){(char)('0' + mode), '\0'}, rect.x - 4, rect.y, label_color, false, 1, true);
-    }
-}
-
 static void drawMoveButtons(Sprite* sprite)
 {
     if(hasCanvasSelection(sprite))
@@ -1309,53 +1252,6 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
         }
     }
 
-    if(sprite->advanced)
-    {
-        tic_rect btnRect = {x - 22, y + 1, 19, 5};
-
-        if(checkMousePos(sprite->studio, &btnRect))
-        {
-            setCursor(sprite->studio, tic_cursor_hand);
-
-            showTooltip(sprite->studio, "VBANK0 PALETTE");
-
-            if(checkMouseClick(sprite->studio, &btnRect, tic_mouse_left))
-                sprite->palette.vbank1 = false;
-        }
-
-        {
-            static const char* Label = "bank0";
-            if(!sprite->palette.vbank1)
-                tic_api_print(tic, Label, btnRect.x, btnRect.y + 1, tic_color_black, false, 1, true);
-
-            tic_api_print(tic, Label, btnRect.x, btnRect.y, sprite->palette.vbank1 ? tic_color_dark_grey : tic_color_white, false, 1, true);
-        }
-    }
-
-    if(sprite->advanced)
-    {
-        tic_rect btnRect = {x - 22, y + 9, 19, 5};
-
-        if(checkMousePos(sprite->studio, &btnRect))
-        {
-            setCursor(sprite->studio, tic_cursor_hand);
-
-            showTooltip(sprite->studio, "VBANK1 PALETTE");
-
-            if(checkMouseClick(sprite->studio, &btnRect, tic_mouse_left))
-                sprite->palette.vbank1 = true;
-        }
-
-        {
-            static const char* Label = "bank1";
-            if(sprite->palette.vbank1)
-                tic_api_print(tic, Label, btnRect.x, btnRect.y + 1, tic_color_black, false, 1, true);
-
-            tic_api_print(tic, Label, btnRect.x, btnRect.y, sprite->palette.vbank1 ? tic_color_white : tic_color_dark_grey, false, 1, true);
-        }
-    }
-
-    if(sprite->advanced)
     {
         tic_rect editRect = {x + PALETTE_WIDTH + 3, y + (PALETTE_HEIGHT - 8) / 2 - 1, 8, 8};
 
@@ -1816,64 +1712,20 @@ static void switchBanks(Sprite* sprite)
     }
 }
 
-static void drawTab(Sprite* sprite, s32 x, s32 y, s32 w, s32 h, u8 icon, bool active, bool over)
+void spriteSelectBank(Sprite* sprite, s32 bank)
 {
-    tic_color tab_color = active ? tic_color_white : over ? tic_color_light_grey
-                                                          : tic_color_dark_grey;
-    tic_color label_color = active ? tic_color_dark_grey : tic_color_grey;
-
-    tic_api_rect(sprite->tic, x + 1, y, w - 1, h, tab_color);
-    tic_api_line(sprite->tic, (float)(x), (float)(y + 1), (float)(x), (float)(y + h - 2), tab_color);
-
-    if(active)
-    {
-        tic_api_line(sprite->tic, (float)(x + 1), (float)(y + h), (float)(x + w - 1), (float)(y + h), tic_color_black);
-        tic_api_pix(sprite->tic, x, y - 1 + h, label_color, false);
-    }
-
-    drawBitIcon(sprite->studio, icon, x + 1, y, label_color);
+    if((s32)sprite->blit.bank != bank)
+        switchBanks(sprite);
 }
 
-static void drawBankTabs(Sprite* sprite, s32 x, s32 y)
+void spriteSetBpp(Sprite* sprite, tic_bpp bpp)
 {
+    switchBitMode(sprite, bpp);
+}
 
-    if(hasCanvasSelection(sprite)) return;
-
-    enum
-    {
-        Banks = 2,
-        SizeY = 7,
-        SizeX = 9
-    };
-
-    static const u8 Icons[] = {tic_icon_tiles, tic_icon_sprites};
-    static const char* tooltips[] = {"TILES [tab]", "SPRITES [tab]"};
-
-    for(s32 i = 0; i < Banks; i++)
-    {
-        bool current = i == sprite->blit.bank;
-
-        tic_rect rect = {x - SizeX, y + (SizeY + 1) * i, SizeX, SizeY};
-
-        bool over = false;
-        if(checkMousePos(sprite->studio, &rect))
-        {
-            setCursor(sprite->studio, tic_cursor_hand);
-            over = true;
-
-            showTooltip(sprite->studio, tooltips[i]);
-
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
-            {
-                if(!current)
-                {
-                    switchBanks(sprite);
-                }
-            }
-        }
-
-        drawTab(sprite, rect.x, rect.y, SizeX, SizeY, Icons[i], current, over);
-    }
+void spriteSetSize(Sprite* sprite, s32 size)
+{
+    updateSpriteSize(sprite, size);
 }
 
 static void updateBrushSize(Sprite* sprite, s32 val)
@@ -2087,124 +1939,12 @@ static void processKeyboard(Sprite* sprite)
     }
 }
 
-// The page tabs are a black cell with the number in the alt font, which the
-// widget's own fields do not say; the strip reserves and hit-tests the cell.
-enum
-{
-    TabW = 7
-};
-
-typedef struct
-{
-    char label[2];
-    bool active;
-
-} PageTab;
-
-static void pageTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
-{
-    (void)over;
-    const PageTab* tab = ctx;
-
-    // Rows 0..TOOLBAR_SIZE-1: the strip's full height.
-    if(tab->active)
-        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, TabW, TOOLBAR_SIZE, tic_color_black);
-
-    tic_api_print(tb->tic, tab->label, rect->x + 2, rect->y + tb->y + 1,
-                  tab->active ? tic_color_white : tic_color_grey, false, 1, true);
-}
-
-// The tabs come first, so the zoom control packs against them; at a fixed x
-// its gap grew as the bit depth fell.
-void spriteBand(void* app, Toolbar* tb)
-{
-    Sprite* sprite = app;
-
-    // One page has nothing to switch to, so there is no tab and no margin.
-    if(sprite->blit.pages > 1)
-    {
-        // The old tabs sat a pixel off the edge, cells touching; the rail
-        // packs flush, so the margin is held open here.
-        tb->railX -= 1;
-
-        for(s32 page = sprite->blit.pages - 1; page >= 0; page--)
-        {
-            static char tip[sizeof "PAGE " + sizeof "-2147483648"];
-            sprintf(tip, "PAGE %i", page + 1);
-
-            PageTab tab = {{(char)('1' + page), '\0'}, page == sprite->blit.page};
-
-            ToolbarButton button =
-                {
-                    .tip = tip,
-                    .width = TabW,
-                    .enabled = true,
-                    .draw = pageTab,
-                    .ctx = &tab,
-                };
-
-            if(toolbar_button(tb, &button))
-                selectViewportPage(sprite, (u8)(page));
-        }
-    }
-
-    // Four stops, and the drag's pitch is the six pixels it always used. The
-    // rail packs flush, so the gap beside the tabs is held open here.
-    enum
-    {
-        Gap = 6
-    };
-
-    tb->railX -= Gap;
-
-    s32 zoom = 0;
-
-    for(s32 size = sprite->size / TIC_SPRITESIZE; size > 1; size >>= 1)
-        zoom++;
-
-    if(toolbar_slider(tb, "CANVAS ZOOM", &zoom, 0, 3))
-        updateSpriteSize(sprite, (1 << zoom) * TIC_SPRITESIZE);
-}
-
 static void scanline(tic_mem* tic, s32 row, void* data)
 {
     Sprite* sprite = (Sprite*)data;
 
     if(row == 0)
         memcpy(&tic->ram->vram.palette, getBankPalette(sprite->studio, sprite->palette.vbank1), sizeof(tic_palette));
-}
-
-static void drawAdvancedButton(Sprite* sprite, s32 x, s32 y)
-{
-    tic_mem* tic = sprite->tic;
-
-    tic_rect rect = {x, y, 8, 5};
-
-    bool over = false;
-    if(checkMousePos(sprite->studio, &rect))
-    {
-        setCursor(sprite->studio, tic_cursor_hand);
-        over = true;
-        showTooltip(sprite->studio, "ADVANCED MODE");
-
-        if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
-            sprite->advanced = !sprite->advanced;
-
-        if(!sprite->advanced)
-        {
-            sprite->palette.edit = false;
-            sprite->palette.focus = -1;
-        }
-    }
-
-    enum
-    {
-        Size = 3,
-        Gap = 1
-    };
-
-    tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_black);
-    tic_api_rect(tic, rect.x + Gap + (sprite->advanced ? Size : 0), rect.y + Gap, Size, Size, over ? tic_color_light_grey : tic_color_grey);
 }
 
 static void tick(Sprite* sprite)
@@ -2245,7 +1985,7 @@ static void tick(Sprite* sprite)
 
         static const tic_rect bg[] =
             {
-                {0, ToolbarH, SheetX, CanvasY - ToolbarH},
+                {0, BarH, SheetX, CanvasY - BarH},
                 {0, CanvasY, CanvasX, CanvasH},
                 {CanvasX + CanvasW, CanvasY, SheetX - (CanvasX + CanvasW), CanvasH},
 
@@ -2265,15 +2005,11 @@ static void tick(Sprite* sprite)
         drawCanvasVBank1(sprite, 24, 20);
         drawMoveButtons(sprite);
 
-        if(sprite->advanced)
+        if(sprite->flags.show)
         {
             if(is4bpp(sprite))
                 drawFlags(sprite, 24 + 64 + 7, 20 + 8);
-
-            drawBitMode(sprite, PaletteX, PaletteY + PaletteH + 2, PaletteW, 8);
         }
-
-        drawBankTabs(sprite, SheetX, 8);
 
         sprite->palette.edit
             ? drawRGBSliders(sprite, 24, 91)
@@ -2281,7 +2017,6 @@ static void tick(Sprite* sprite)
 
         drawPaletteVBank1(sprite, 24, 112);
         drawSheetVBank1(sprite, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, 7);
-        drawAdvancedButton(sprite, 4, 11);
     }
 
     sprite->tickCounter++;
@@ -2349,7 +2084,6 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
         .src = src,
         .x = 1,
         .y = 0,
-        .advanced = false,
         .blit = {0},
         .color = 2,
         .color2 = 0,

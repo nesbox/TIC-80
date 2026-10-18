@@ -4921,6 +4921,18 @@ bool console_replay(Console* console)
     return false;
 }
 
+void console_exec(Console* console, const char* command)
+{
+    snprintf(console->commands.exec, sizeof console->commands.exec, "%.*s",
+             (s32)sizeof console->commands.exec - 1, command);
+
+    console->commands.items = realloc(console->commands.items,
+                                      sizeof(char*) * (console->commands.count + 1));
+    console->commands.items[console->commands.count] = console->commands.exec;
+    console->commands.count++;
+    console->active = true;
+}
+
 void console_trace(Console* console, const char* text, u8 color)
 {
     trace(console, text, color);

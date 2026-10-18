@@ -34,21 +34,18 @@ if(BUILD_TESTS)
         tic80_add_test(js-test)
     endif()
 
-    # The strip is tested against the core alone: linking tic80studio instead
+    # The menu bar is tested against the core alone: linking tic80studio instead
     # would hide a call into studio.c, which is the one thing this test is for.
-    # version.h is generated into the build directory, and the studio target is
-    # what usually publishes that path.
-    # The strip draws its icons and sets its hand cursor through the ui module,
-    # so that builds here too.
-    add_executable(toolbar-test
-        ${CMAKE_SOURCE_DIR}/tests/toolbar.c
-        ${CMAKE_SOURCE_DIR}/src/studio/toolbar.c
+    # The bar draws its icons and cursor through the ui module, so that builds
+    # here too.
+    add_executable(menubar-test
+        ${CMAKE_SOURCE_DIR}/tests/menubar.c
+        ${CMAKE_SOURCE_DIR}/src/studio/menubar.c
         ${CMAKE_SOURCE_DIR}/src/studio/ui.c
     )
 
-    target_include_directories(toolbar-test PRIVATE ${CMAKE_BINARY_DIR})
-    target_link_libraries(toolbar-test PRIVATE tic80core)
-    tic80_add_test(toolbar-test)
+    target_link_libraries(menubar-test PRIVATE tic80core)
+    tic80_add_test(menubar-test)
 
     # The gamepad header is compiled with its test backend here: the slot
     # policy, the deadzone and the stick are exercised with no pad plugged in,

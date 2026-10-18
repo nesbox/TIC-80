@@ -28,9 +28,11 @@
 #include "keyboard.h"
 #include "ui.h"
 
-// The strip is drawn by the editors' screens alone, so its header comes with them.
+// The bar is drawn by the editors' screens alone, so its header comes with them.
 #if defined(BUILD_EDITORS)
-#include "toolbar.h"
+#include "menubar.h"
+
+static void drawStudioMenubar(Studio* studio);
 #endif
 
 #if defined(_WIN32)
@@ -122,14 +124,14 @@ typedef struct
 } CartHash;
 
 // The editors in tab order, expanded into the mode list and the registry
-// entries, so the tabs, the function keys and the number shortcuts agree.
+// entries, so the app switcher, the function keys and the number shortcuts agree.
 // clang-format off
 #define EDITOR_APPS(APP)                                                                                            \
-    APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard,   codeBand,   false)   \
-    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard, spriteBand, true) \
-    APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard,    mapBand,    true)    \
-    APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard,    NULL,       false)    \
-    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard,  musicBand,  false)
+    APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard,   false)   \
+    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard, true) \
+    APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard,    true)    \
+    APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard,    false)    \
+    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard,  false)
 // clang-format on
 
 #if defined(BUILD_EDITORS)
@@ -195,8 +197,8 @@ struct Studio
 #endif
     } mouse;
 
-    // Written by the editors, cleared by toolbar_step, drawn by the strip — so
-    // the buffer is not the editors' to guard.
+    // Written by the editors; the bar and the panels draw it. The buffer is not
+    // the editors' to guard.
     struct
     {
         char text[STUDIO_TEXT_BUFFER_WIDTH];
@@ -309,7 +311,7 @@ struct Studio
     tic_font systemFont;
 
 #if defined(BUILD_EDITORS)
-    Toolbar toolbar;
+    Menubar menubar;
 #endif
     Boot boot;
 };
@@ -462,10 +464,10 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 // The parameters are capitalised: lowercase ones would be substituted inside
 // the `.name =` designators, which is not what an initialiser means.
 // clang-format off
-#define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN, CLIP, BAND, VB1)                 \
+#define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN, CLIP, VB1)                 \
     [MODE] = {.name = NAME, .tip = TIP, .icon = ICON, .hotkey = KEY,                   \
               .instance = INST, .tick = TICK, .scanline = SCAN, .clipboard = CLIP,    \
-              .band = BAND, .vbank1 = VB1},
+              .vbank1 = VB1},
         // clang-format on
         EDITOR_APPS(APP_ENTRY)
 #undef APP_ENTRY
@@ -799,106 +801,6 @@ void showTooltip(Studio* studio, const char* text)
              (s32)sizeof studio->tooltip.text - 1, text);
 }
 
-#if defined(TIC80_PRO) && defined(BUILD_EDITORS)
-static void drawBankIcon(Studio* studio, s32 x, s32 y)
-{
-    tic_mem* tic = studio->tic;
-
-    tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
-
-    bool over = false;
-    EditorMode mode = 0;
-
-    for(s32 i = 0; i < COUNT_OF(BankModes); i++)
-        if(BankModes[i] == studio->mode)
-        {
-            mode = i;
-            break;
-        }
-
-    if(checkMousePos(studio, &rect))
-    {
-        setCursor(studio, tic_cursor_hand);
-
-        over = true;
-
-        showTooltip(studio, "SWITCH BANK");
-
-        if(checkMouseClick(studio, &rect, tic_mouse_left))
-            studio->bank.show = !studio->bank.show;
-    }
-
-    if(studio->bank.show)
-    {
-        drawBitIcon(studio, tic_icon_bank, x, y, tic_color_red);
-
-        enum
-        {
-            Size = TOOLBAR_SIZE
-        };
-
-        for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
-        {
-            tic_rect btnRect = {x + 2 + (i + 1) * Size, 0, Size, Size};
-
-            bool hover = false;
-            if(checkMousePos(studio, &btnRect))
-            {
-                setCursor(studio, tic_cursor_hand);
-                hover = true;
-
-                if(checkMouseClick(studio, &btnRect, tic_mouse_left))
-                {
-                    if(studio->bank.chained)
-                        memset(studio->bank.indexes, i, sizeof studio->bank.indexes);
-                    else
-                        studio->bank.indexes[mode] = (s8)i;
-                }
-            }
-
-            if(i == studio->bank.indexes[mode])
-                tic_api_rect(tic, btnRect.x, btnRect.y, btnRect.w, btnRect.h, tic_color_red);
-
-            tic_api_print(tic, (char[]){(char)('0' + i), '\0'}, btnRect.x + 1, btnRect.y + 1,
-                          i == studio->bank.indexes[mode]
-                              ? tic_color_white
-                          : hover
-                              ? tic_color_red
-                              : tic_color_light_grey,
-                          false, 1, false);
-        }
-
-        {
-            tic_rect btnRect = {x + 4 + (TIC_EDITOR_BANKS + 1) * Size, 0, Size, Size};
-
-            bool hover = false;
-
-            if(checkMousePos(studio, &btnRect))
-            {
-                setCursor(studio, tic_cursor_hand);
-
-                hover = true;
-
-                if(checkMouseClick(studio, &btnRect, tic_mouse_left))
-                {
-                    studio->bank.chained = !studio->bank.chained;
-
-                    if(studio->bank.chained)
-                        memset(studio->bank.indexes, studio->bank.indexes[mode], sizeof studio->bank.indexes);
-                }
-            }
-
-            drawBitIcon(studio, tic_icon_pin, btnRect.x, btnRect.y, studio->bank.chained ? tic_color_red : hover ? tic_color_grey
-                                                                                                                 : tic_color_light_grey);
-        }
-    }
-    else
-    {
-        drawBitIcon(studio, tic_icon_bank, x, y, over ? tic_color_red : tic_color_light_grey);
-    }
-}
-#endif
-
 struct Sprite* getSpriteEditor(Studio* studio)
 {
     return studio->banks.sprite[studio->bank.index.sprites];
@@ -1119,7 +1021,7 @@ Boot* getBoot(Studio* studio)
 
 #if defined(BUILD_EDITORS)
 
-// The popup unrolls by its own height; it was never TOOLBAR_SIZE, the two
+// The popup unrolls by its own height; it was never STUDIO_BAR_HEIGHT, the two
 // just happen to be 7.
 #define POPUP_HEIGHT (TIC_FONT_HEIGHT + 1)
 
@@ -1163,38 +1065,6 @@ static bool isBanked(EditorMode mode)
     return false;
 }
 #endif
-
-// The strip's whole frame: background, the mode's own widgets, then the studio
-// chrome. A mode that is not an editor has no strip at all.
-static void drawToolbar(Studio* studio)
-{
-    Toolbar* tb = &studio->toolbar;
-
-    // Read live: an editor may have switched the mode earlier in this same tick.
-    EditorMode mode = tb->mode = studio->mode;
-    const EditorApp* app = &Apps[mode];
-
-    if(!app->name)
-        return;
-
-    tb->app = app->instance(studio);
-    tb->hideName = false;
-
-    toolbar_begin(tb, true);
-
-#if defined(TIC80_PRO) && defined(BUILD_EDITORS)
-    if(isBanked(mode))
-    {
-        drawBankIcon(studio, COUNT_OF(Modes) * TOOLBAR_SIZE + 2, 0);
-        tb->hideName = studio->bank.show;
-    }
-#endif
-
-    if(app->band)
-        app->band(tb->app, tb);
-
-    toolbar_end(tb);
-}
 
 ClipboardEvent getClipboardEvent(Studio* studio)
 {
@@ -1917,6 +1787,776 @@ static void gotoFullscreen(Studio* studio)
     tic_sys_fullscreen_set(studio->config->data.options.fullscreen = !tic_sys_fullscreen_get());
 }
 
+#if defined(BUILD_EDITORS)
+enum
+{
+    MenuActionFullscreen,
+    MenuActionScreenshot,
+    MenuActionRecord,
+    MenuActionQuit,
+    MenuActionSave,
+    MenuActionRun,
+    MenuActionUndo,
+    MenuActionRedo,
+    MenuActionCut,
+    MenuActionCopy,
+    MenuActionPaste,
+    MenuActionAutosave,
+};
+
+static void menubarClipboard(Studio* studio, s32 action)
+{
+    const EditorApp* app = &Apps[studio->mode];
+
+    if(!app->clipboard)
+        return;
+
+    void* instance = app->instance(studio);
+
+    switch(action)
+    {
+        case MenuActionUndo: app->clipboard->undo(instance); break;
+        case MenuActionRedo: app->clipboard->redo(instance); break;
+        case MenuActionCut: app->clipboard->cut(instance); break;
+        case MenuActionCopy: app->clipboard->copy(instance); break;
+        case MenuActionPaste: app->clipboard->paste(instance); break;
+    }
+}
+
+static void menubarAction(void* data, s32 id)
+{
+    Studio* studio = data;
+
+    switch(id)
+    {
+        case MenuActionFullscreen: gotoFullscreen(studio); break;
+        case MenuActionScreenshot: takeScreenshot(studio); break;
+        case MenuActionRecord: startVideoRecord(studio); break;
+        case MenuActionQuit: exitStudio(studio); break;
+        case MenuActionSave: saveProject(studio); break;
+        case MenuActionRun: runGame(studio, RUN_FROM_STUDIO); break;
+
+        case MenuActionUndo:
+        case MenuActionRedo:
+        case MenuActionCut:
+        case MenuActionCopy:
+        case MenuActionPaste:
+            menubarClipboard(studio, id);
+            break;
+    }
+}
+
+static void menubarSetMode(void* data, s32 id)
+{
+    Studio* studio = data;
+    studio->menubar.requested = id;
+}
+
+enum
+{
+    CodeActionFind = 100,
+    CodeActionGoto,
+    CodeActionBookmarks,
+    CodeActionOutline,
+    CodeActionFont,
+    CodeActionShadow,
+    CodeActionLineNumbers,
+};
+
+enum
+{
+    SpriteActionTiles = 200,
+    SpriteActionSprites,
+    SpriteActionFlags,
+    SpriteActionBpp4,
+    SpriteActionBpp2,
+    SpriteActionBpp1,
+    SpriteActionVbank0,
+    SpriteActionVbank1,
+    SpriteActionSize8,
+    SpriteActionSize16,
+    SpriteActionSize32,
+    SpriteActionSize64,
+};
+
+enum
+{
+    MapActionTiles = 300,
+    MapActionSprites,
+    MapActionGrid,
+    MapActionRandom,
+    MapActionTileset,
+    MapActionWorld,
+};
+
+enum
+{
+    MusicActionPiano = 400,
+    MusicActionTracker,
+    MusicActionFollow,
+    MusicActionLoop,
+    MusicActionSustain,
+    MusicActionPlayNow,
+    MusicActionPlayFrame,
+    MusicActionPlayTrack,
+    MusicActionStop,
+};
+
+enum
+{
+    ExportWin,
+    ExportLinux,
+    ExportLinuxArm,
+    ExportMac,
+    ExportMacIntel,
+    ExportHtml,
+};
+
+enum
+{
+    HelpCommands,
+    HelpApi,
+    HelpHotkeys,
+    HelpKeys,
+    HelpButtons,
+    HelpSpec,
+    HelpRam,
+    HelpVram,
+    HelpTerms,
+    HelpLicense,
+};
+
+enum
+{
+    EditorTabSize1,
+    EditorTabSize2,
+    EditorTabSize4,
+    EditorTabSize8,
+    EditorTabModeAuto,
+    EditorTabModeTabs,
+    EditorTabModeSpaces,
+    EditorKeybindStandard,
+    EditorKeybindEmacs,
+    EditorKeybindVi,
+};
+
+static void menubarCodeAction(void* data, s32 id)
+{
+    Studio* studio = data;
+    Code* code = studio->code;
+
+    switch(id)
+    {
+        case CodeActionFind: codeFind(code); break;
+        case CodeActionGoto: codeGoto(code); break;
+        case CodeActionBookmarks: codeBookmarks(code); break;
+        case CodeActionOutline: codeOutline(code); break;
+        case CodeActionFont: code->altFont = !code->altFont; break;
+        case CodeActionShadow: code->shadowText = !code->shadowText; break;
+        case CodeActionLineNumbers: code->lineNumbers = !code->lineNumbers; break;
+    }
+}
+
+static void menubarSpriteAction(void* data, s32 id)
+{
+    Studio* studio = data;
+    Sprite* sprite = spriteApp(studio);
+
+    switch(id)
+    {
+        case SpriteActionTiles: spriteSelectBank(sprite, 0); break;
+        case SpriteActionSprites: spriteSelectBank(sprite, 1); break;
+        case SpriteActionBpp4: spriteSetBpp(sprite, tic_bpp_4); break;
+        case SpriteActionBpp2: spriteSetBpp(sprite, tic_bpp_2); break;
+        case SpriteActionBpp1: spriteSetBpp(sprite, tic_bpp_1); break;
+        case SpriteActionVbank0: sprite->palette.vbank1 = false; break;
+        case SpriteActionVbank1: sprite->palette.vbank1 = true; break;
+        case SpriteActionSize8: spriteSetSize(sprite, 8); break;
+        case SpriteActionSize16: spriteSetSize(sprite, 16); break;
+        case SpriteActionSize32: spriteSetSize(sprite, 32); break;
+        case SpriteActionSize64: spriteSetSize(sprite, 64); break;
+
+        case SpriteActionFlags:
+            sprite->flags.show = !sprite->flags.show;
+
+            if(!sprite->flags.show)
+                sprite->flags.edit = false;
+            break;
+    }
+}
+
+static void menubarMapAction(void* data, s32 id)
+{
+    Studio* studio = data;
+    Map* map = mapApp(studio);
+
+    switch(id)
+    {
+        case MapActionTiles: map_select_bank(map, 0); break;
+        case MapActionSprites: map_select_bank(map, 1); break;
+        case MapActionGrid: map->canvas.grid = !map->canvas.grid; break;
+        case MapActionRandom: map->canvas.random = !map->canvas.random; break;
+        case MapActionTileset: map_toggle_sheet(map); break;
+        case MapActionWorld: studio->menubar.requested = TIC_WORLD_MODE; break;
+    }
+}
+
+static void menubarMusicAction(void* data, s32 id)
+{
+    Studio* studio = data;
+    Music* music = musicApp(studio);
+
+    switch(id)
+    {
+        case MusicActionPiano: music->tab = MUSIC_PIANO_TAB; break;
+        case MusicActionTracker: music->tab = MUSIC_TRACKER_TAB; break;
+        case MusicActionFollow: musicToggleFollow(music); break;
+        case MusicActionLoop: musicToggleLoop(music); break;
+        case MusicActionSustain: musicToggleSustain(music); break;
+        case MusicActionPlayNow: musicPlayFromNow(music); break;
+        case MusicActionPlayFrame: musicPlayFrame(music); break;
+        case MusicActionPlayTrack: musicPlayTrack(music); break;
+        case MusicActionStop: musicStop(music); break;
+    }
+}
+
+static void menubarExport(void* data, s32 id)
+{
+    Studio* studio = data;
+
+    static const char* Types[] = {"win", "linux", "linuxarm", "mac", "macintel", "html"};
+    const char* name = studio->rom.name[0] && !strchr(studio->rom.name, ' ')
+                           ? studio->rom.name
+                           : "game";
+
+    char command[TICNAME_MAX];
+    snprintf(command, sizeof command, "export %s %s", Types[id], name);
+
+    console_exec(studio->console, command);
+    studio->menubar.requested = TIC_CONSOLE_MODE;
+}
+
+static void menubarHelp(void* data, s32 id)
+{
+    Studio* studio = data;
+
+    static const char* Topics[] =
+        {
+            "commands",
+            "api",
+            "hotkeys",
+            "keys",
+            "buttons",
+            "spec",
+            "ram",
+            "vram",
+            "terms",
+            "license",
+        };
+
+    char command[64];
+    snprintf(command, sizeof command, "help %s", Topics[id]);
+
+    console_exec(studio->console, command);
+    studio->menubar.requested = TIC_CONSOLE_MODE;
+}
+
+enum
+{
+    OptionCrt,
+    OptionFullscreen,
+    OptionIntegerScale,
+    OptionAutosave,
+};
+
+static void menubarOption(void* data, s32 id)
+{
+    Studio* studio = data;
+
+    switch(id)
+    {
+        case OptionCrt:
+#if defined(CRT_SHADER_SUPPORT)
+            studio->config->data.options.crt = !studio->config->data.options.crt;
+#endif
+            break;
+
+        case OptionFullscreen:
+            gotoFullscreen(studio);
+            break;
+
+        case OptionIntegerScale:
+            studio->config->data.options.integerScale = !studio->config->data.options.integerScale;
+            break;
+
+        case OptionAutosave:
+            studio->config->data.options.autosave = !studio->config->data.options.autosave;
+            break;
+    }
+
+    studio->config->saveOptions(studio->config);
+}
+
+static void menubarEditorOption(void* data, s32 id)
+{
+    Studio* studio = data;
+
+    switch(id)
+    {
+        case EditorTabSize1: studio->config->data.options.tabSize = 1; break;
+        case EditorTabSize2: studio->config->data.options.tabSize = 2; break;
+        case EditorTabSize4: studio->config->data.options.tabSize = 4; break;
+        case EditorTabSize8: studio->config->data.options.tabSize = 8; break;
+        case EditorTabModeAuto: studio->config->data.options.tabMode = TAB_AUTO; break;
+        case EditorTabModeTabs: studio->config->data.options.tabMode = TAB_TAB; break;
+        case EditorTabModeSpaces: studio->config->data.options.tabMode = TAB_SPACE; break;
+        case EditorKeybindStandard: studio->config->data.options.keybindMode = KEYBIND_STANDARD; break;
+        case EditorKeybindEmacs: studio->config->data.options.keybindMode = KEYBIND_EMACS; break;
+        case EditorKeybindVi: studio->config->data.options.keybindMode = KEYBIND_VI; break;
+    }
+
+    studio->config->saveOptions(studio->config);
+}
+
+#if defined(TIC80_PRO)
+static void switchBank(Studio*, s32);
+
+static void menubarBank(void* data, s32 id)
+{
+    Studio* studio = data;
+    switchBank(studio, id);
+}
+#endif
+
+// The app switcher: the editor items are built from Modes[], the one list the
+// keys and the cycling follow, then the screens that are not editors.
+enum
+{
+    MenubarAppSlots = COUNT_OF(Modes) + 4,
+};
+
+static MenuBarItem MenubarApps[MenubarAppSlots];
+static s32 MenubarAppsCount;
+static char MenubarAppLabels[COUNT_OF(Modes)][16];
+static char MenubarAppAccels[COUNT_OF(Modes)][4];
+
+static void shortName(const char* name, char* out, s32 size)
+{
+    s32 length = 0;
+
+    while(name && name[length] && name[length] != ' ' && length < size - 1)
+    {
+        out[length] = name[length];
+        length++;
+    }
+
+    out[length] = '\0';
+}
+
+static void initMenubarApps(void)
+{
+    s32 count = 0;
+
+    for(s32 i = 0; i < COUNT_OF(Modes); i++)
+    {
+        const EditorApp* app = &Apps[Modes[i]];
+
+        shortName(app->name, MenubarAppLabels[i], sizeof MenubarAppLabels[i]);
+
+        if(app->hotkey >= tic_key_f1 && app->hotkey <= tic_key_f12)
+            snprintf(MenubarAppAccels[i], sizeof MenubarAppAccels[i], "F%i",
+                     (s32)(app->hotkey - tic_key_f1) + 1);
+        else
+            MenubarAppAccels[i][0] = '\0';
+
+        MenubarApps[count++] = (MenuBarItem){
+            .label = MenubarAppLabels[i],
+            .accel = MenubarAppAccels[i][0] ? MenubarAppAccels[i] : NULL,
+            .handler = menubarSetMode,
+            .id = Modes[i],
+            .enabled = true,
+            .separator = false,
+            .icon = app->icon,
+            .color = 0,
+            .submenu = NULL,
+            .checked = -1,
+        };
+    }
+
+    MenubarApps[count++] = (MenuBarItem){"", NULL, NULL, 0, true, true, 0, 0, NULL, -1};
+    MenubarApps[count++] = (MenuBarItem){"CONSOLE", NULL, menubarSetMode, TIC_CONSOLE_MODE, true, false, 0, 0, NULL, -1};
+#if defined(BUILD_SURF)
+    MenubarApps[count++] = (MenuBarItem){"SURF", NULL, menubarSetMode, TIC_SURF_MODE, true, false, 0, 0, NULL, -1};
+#endif
+    MenubarApps[count++] = (MenuBarItem){"GAME MENU", NULL, menubarSetMode, TIC_MENU_MODE, true, false, 0, 0, NULL, -1};
+
+    MenubarAppsCount = count;
+}
+
+static const MenuBarItem MenubarExport[] =
+    {
+        {"WIN", NULL, menubarExport, ExportWin, true, false, 0, 0, NULL, -1},
+        {"LINUX", NULL, menubarExport, ExportLinux, true, false, 0, 0, NULL, -1},
+        {"LINUX ARM", NULL, menubarExport, ExportLinuxArm, true, false, 0, 0, NULL, -1},
+        {"MACOS", NULL, menubarExport, ExportMac, true, false, 0, 0, NULL, -1},
+        {"MAC INTEL", NULL, menubarExport, ExportMacIntel, true, false, 0, 0, NULL, -1},
+        {"HTML", NULL, menubarExport, ExportHtml, true, false, 0, 0, NULL, -1},
+};
+
+static const MenuBarCategory MenubarExportMenu = {"EXPORT", MenubarExport, COUNT_OF(MenubarExport), false, 0, -1, 0, false};
+
+static const MenuBarItem MenubarHelp[] =
+    {
+        {"COMMANDS", NULL, menubarHelp, HelpCommands, true, false, 0, 0, NULL, -1},
+        {"API", NULL, menubarHelp, HelpApi, true, false, 0, 0, NULL, -1},
+        {"HOTKEYS", NULL, menubarHelp, HelpHotkeys, true, false, 0, 0, NULL, -1},
+        {"KEYS", NULL, menubarHelp, HelpKeys, true, false, 0, 0, NULL, -1},
+        {"BUTTONS", NULL, menubarHelp, HelpButtons, true, false, 0, 0, NULL, -1},
+        {"SPEC", NULL, menubarHelp, HelpSpec, true, false, 0, 0, NULL, -1},
+        {"RAM", NULL, menubarHelp, HelpRam, true, false, 0, 0, NULL, -1},
+        {"VRAM", NULL, menubarHelp, HelpVram, true, false, 0, 0, NULL, -1},
+        {"TERMS", NULL, menubarHelp, HelpTerms, true, false, 0, 0, NULL, -1},
+        {"LICENSE", NULL, menubarHelp, HelpLicense, true, false, 0, 0, NULL, -1},
+};
+
+static const MenuBarCategory MenubarHelpMenu = {"HELP", MenubarHelp, COUNT_OF(MenubarHelp), false, 0, -1, 0, false};
+
+static MenuBarItem MenubarEditor[] =
+    {
+        {"TAB SIZE 1", NULL, menubarEditorOption, EditorTabSize1, true, false, 0, 0, NULL, 0},
+        {"TAB SIZE 2", NULL, menubarEditorOption, EditorTabSize2, true, false, 0, 0, NULL, 0},
+        {"TAB SIZE 4", NULL, menubarEditorOption, EditorTabSize4, true, false, 0, 0, NULL, 0},
+        {"TAB SIZE 8", NULL, menubarEditorOption, EditorTabSize8, true, false, 0, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"TAB MODE AUTO", NULL, menubarEditorOption, EditorTabModeAuto, true, false, 0, 0, NULL, 0},
+        {"TAB MODE TABS", NULL, menubarEditorOption, EditorTabModeTabs, true, false, 0, 0, NULL, 0},
+        {"TAB MODE SPACES", NULL, menubarEditorOption, EditorTabModeSpaces, true, false, 0, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"KEYBIND STANDARD", NULL, menubarEditorOption, EditorKeybindStandard, true, false, 0, 0, NULL, 0},
+        {"KEYBIND EMACS", NULL, menubarEditorOption, EditorKeybindEmacs, true, false, 0, 0, NULL, 0},
+        {"KEYBIND VI", NULL, menubarEditorOption, EditorKeybindVi, true, false, 0, 0, NULL, 0},
+};
+
+static const MenuBarCategory MenubarEditorMenu = {"EDITOR", MenubarEditor, COUNT_OF(MenubarEditor), false, 0, -1, 0, false};
+
+static MenuBarItem MenubarOptions[] =
+    {
+#if defined(CRT_SHADER_SUPPORT)
+        {"CRT", "F6", menubarOption, OptionCrt, true, false, 0, 0, NULL, 0},
+#endif
+        {"FULLSCREEN", "F11", menubarOption, OptionFullscreen, true, false, 0, 0, NULL, 0},
+        {"INTEGER SCALE", NULL, menubarOption, OptionIntegerScale, true, false, 0, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"AUTOSAVE", NULL, menubarOption, OptionAutosave, true, false, 0, 0, NULL, 0},
+};
+
+static const MenuBarCategory MenubarOptionsMenu = {"OPTIONS", MenubarOptions, COUNT_OF(MenubarOptions), false, 0, -1, 0, false};
+
+#if defined(TIC80_PRO)
+#define BANK_ITEM(n) {"BANK " #n, NULL, menubarBank, n, true, false, tic_icon_bank, tic_color_red, NULL, -1}
+static const MenuBarItem MenubarBanks[] =
+    {
+        BANK_ITEM(0),
+        BANK_ITEM(1),
+        BANK_ITEM(2),
+        BANK_ITEM(3),
+        BANK_ITEM(4),
+        BANK_ITEM(5),
+        BANK_ITEM(6),
+        BANK_ITEM(7),
+};
+#undef BANK_ITEM
+#endif
+
+static MenuBarItem MenubarCodeApp[] =
+    {
+        {"FIND", "CTRL+F", menubarCodeAction, CodeActionFind, true, false, tic_icon_find, 0, NULL, -1},
+        {"GOTO", "CTRL+G", menubarCodeAction, CodeActionGoto, true, false, tic_icon_goto, 0, NULL, -1},
+        {"BOOKMARKS", "CTRL+B", menubarCodeAction, CodeActionBookmarks, true, false, tic_icon_bookmark, 0, NULL, -1},
+        {"OUTLINE", "CTRL+O", menubarCodeAction, CodeActionOutline, true, false, tic_icon_outline, 0, NULL, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"TINY FONT", "ALT+F", menubarCodeAction, CodeActionFont, true, false, 0, 0, NULL, 0},
+        {"SHADOW", "ALT+S", menubarCodeAction, CodeActionShadow, true, false, tic_icon_shadow, 0, NULL, 0},
+        {"LINES", "ALT+L", menubarCodeAction, CodeActionLineNumbers, true, false, tic_icon_line_numbers, 0, NULL, 0},
+        {"OPTIONS", NULL, NULL, 0, true, false, 0, 0, &MenubarEditorMenu, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
+};
+
+static MenuBarItem MenubarBpp[] =
+    {
+        {"4BPP", NULL, menubarSpriteAction, SpriteActionBpp4, true, false, 0, 0, NULL, 0},
+        {"2BPP", NULL, menubarSpriteAction, SpriteActionBpp2, true, false, 0, 0, NULL, 0},
+        {"1BPP", NULL, menubarSpriteAction, SpriteActionBpp1, true, false, 0, 0, NULL, 0},
+};
+
+static const MenuBarCategory MenubarBppMenu = {"BPP", MenubarBpp, COUNT_OF(MenubarBpp), false, 0, -1, 0, false};
+
+static MenuBarItem MenubarPalette[] =
+    {
+        {"VBANK0", NULL, menubarSpriteAction, SpriteActionVbank0, true, false, 0, 0, NULL, 0},
+        {"VBANK1", NULL, menubarSpriteAction, SpriteActionVbank1, true, false, 0, 0, NULL, 0},
+};
+
+static const MenuBarCategory MenubarPaletteMenu = {"PALETTE", MenubarPalette, COUNT_OF(MenubarPalette), false, 0, -1, 0, false};
+
+static MenuBarItem MenubarSize[] =
+    {
+        {"8X8", NULL, menubarSpriteAction, SpriteActionSize8, true, false, 0, 0, NULL, 0},
+        {"16X16", NULL, menubarSpriteAction, SpriteActionSize16, true, false, 0, 0, NULL, 0},
+        {"32X32", NULL, menubarSpriteAction, SpriteActionSize32, true, false, 0, 0, NULL, 0},
+        {"64X64", NULL, menubarSpriteAction, SpriteActionSize64, true, false, 0, 0, NULL, 0},
+};
+
+static const MenuBarCategory MenubarSizeMenu = {"SIZE", MenubarSize, COUNT_OF(MenubarSize), false, 0, -1, 0, false};
+
+static MenuBarItem MenubarSpriteApp[] =
+    {
+        {"TILES", "TAB", menubarSpriteAction, SpriteActionTiles, true, false, tic_icon_tiles, 0, NULL, 0},
+        {"SPRITES", NULL, menubarSpriteAction, SpriteActionSprites, true, false, tic_icon_sprites, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"FLAGS", NULL, menubarSpriteAction, SpriteActionFlags, true, false, 0, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"BPP", NULL, NULL, 0, true, false, 0, 0, &MenubarBppMenu, -1},
+        {"PALETTE", NULL, NULL, 0, true, false, 0, 0, &MenubarPaletteMenu, -1},
+        {"SIZE", NULL, NULL, 0, true, false, 0, 0, &MenubarSizeMenu, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
+};
+
+static MenuBarItem MenubarMapApp[] =
+    {
+        {"TILES", NULL, menubarMapAction, MapActionTiles, true, false, tic_icon_tiles, 0, NULL, 0},
+        {"SPRITES", NULL, menubarMapAction, MapActionSprites, true, false, tic_icon_sprites, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"GRID", "`", menubarMapAction, MapActionGrid, true, false, tic_icon_grid, 0, NULL, 0},
+        {"RANDOM", "R", menubarMapAction, MapActionRandom, true, false, tic_icon_random, 0, NULL, 0},
+        {"TILESET", "SHIFT", menubarMapAction, MapActionTileset, true, false, 0, 0, NULL, 0},
+        {"WORLD MAP", "TAB", menubarMapAction, MapActionWorld, true, false, tic_icon_world, 0, NULL, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
+};
+
+static MenuBarItem MenubarMusicApp[] =
+    {
+        {"PIANO", NULL, menubarMusicAction, MusicActionPiano, true, false, tic_icon_piano, 0, NULL, 0},
+        {"TRACKER", NULL, menubarMusicAction, MusicActionTracker, true, false, tic_icon_tracker, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"FOLLOW", "CTRL+F", menubarMusicAction, MusicActionFollow, true, false, tic_icon_follow, 0, NULL, 0},
+        {"LOOP", NULL, menubarMusicAction, MusicActionLoop, true, false, tic_icon_loop, 0, NULL, 0},
+        {"SUSTAIN", NULL, menubarMusicAction, MusicActionSustain, true, false, tic_icon_sustain, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"PLAY FROM NOW", "SHIFT+ENTER", menubarMusicAction, MusicActionPlayNow, true, false, tic_icon_playnow, 0, NULL, -1},
+        {"PLAY FRAME", "ENTER", menubarMusicAction, MusicActionPlayFrame, true, false, tic_icon_playframe, 0, NULL, -1},
+        {"PLAY TRACK", "SPACE", menubarMusicAction, MusicActionPlayTrack, true, false, tic_icon_right, 0, NULL, -1},
+        {"STOP", "ENTER", menubarMusicAction, MusicActionStop, true, false, tic_icon_stop, 0, NULL, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
+};
+
+static const MenuBarItem MenubarDefaultApp[] =
+    {
+        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
+};
+
+static const MenuBarItem MenubarEdit[] =
+    {
+        {"UNDO", "CTRL+Z", menubarAction, MenuActionUndo, true, false, tic_icon_undo, tic_color_light_green, NULL, -1},
+        {"REDO", "CTRL+Y", menubarAction, MenuActionRedo, true, false, tic_icon_redo, tic_color_green, NULL, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"CUT", "CTRL+X", menubarAction, MenuActionCut, true, false, tic_icon_cut, tic_color_red, NULL, -1},
+        {"COPY", "CTRL+C", menubarAction, MenuActionCopy, true, false, tic_icon_copy, tic_color_orange, NULL, -1},
+        {"PASTE", "CTRL+V", menubarAction, MenuActionPaste, true, false, tic_icon_paste, tic_color_yellow, NULL, -1},
+};
+
+static MenuBarItem MenubarTic[] =
+    {
+        {"SAVE", "CTRL+S", menubarAction, MenuActionSave, true, false, 0, 0, NULL, -1},
+        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, 0, 0, NULL, -1},
+        {"EXPORT", NULL, NULL, 0, true, false, 0, 0, &MenubarExportMenu, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"SCREENSHOT", "F8", menubarAction, MenuActionScreenshot, true, false, 0, 0, NULL, -1},
+        {"RECORD GIF", "F9", menubarAction, MenuActionRecord, true, false, 0, 0, NULL, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"OPTIONS", NULL, NULL, 0, true, false, 0, 0, &MenubarOptionsMenu, -1},
+        {"HELP", NULL, NULL, 0, true, false, 0, 0, &MenubarHelpMenu, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"QUIT", "CTRL+Q", menubarAction, MenuActionQuit, true, false, 0, 0, NULL, -1},
+};
+
+static MenuBarCategory MenubarCategories[] =
+    {
+        // The first title is the current editor's, set by updateMenubar.
+        {"", MenubarApps, 0, false, 0, -1, 0, false},
+        {"MENU", MenubarDefaultApp, COUNT_OF(MenubarDefaultApp), false, 0, -1, 0, false},
+        {"EDIT", MenubarEdit, COUNT_OF(MenubarEdit), false, 0, -1, 0, false},
+#if defined(TIC80_PRO)
+        {"BANK", MenubarBanks, COUNT_OF(MenubarBanks), false, tic_icon_bank, -1, tic_color_red, false},
+#endif
+        {"TIC-80", MenubarTic, COUNT_OF(MenubarTic), true, 0, -1, 0, false},
+};
+
+static void menubarCheck(MenuBarItem* items, s32 count, s32 id, bool on)
+{
+    for(s32 i = 0; i < count; i++)
+        if(items[i].id == id)
+            items[i].checked = on ? 1 : 0;
+}
+
+static void updateMenubar(Studio* studio)
+{
+    static char title[16];
+
+    const EditorApp* app = &Apps[studio->mode];
+
+    shortName(app->name, title, sizeof title);
+
+    MenubarCategories[0].title = title;
+    MenubarCategories[0].icon = app->icon;
+    MenubarCategories[0].items = MenubarApps;
+    MenubarCategories[0].count = MenubarAppsCount;
+    MenubarCategories[0].selected = (s32)studio->mode;
+
+    const MenuBarItem* items = MenubarDefaultApp;
+    s32 count = COUNT_OF(MenubarDefaultApp);
+
+    switch(studio->mode)
+    {
+        case TIC_CODE_MODE:
+        {
+            Code* code = studio->code;
+
+            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionFont, code->altFont);
+            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionShadow, code->shadowText);
+            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionLineNumbers, code->lineNumbers);
+
+            items = MenubarCodeApp;
+            count = COUNT_OF(MenubarCodeApp);
+            break;
+        }
+
+        case TIC_SPRITE_MODE:
+        {
+            Sprite* sprite = spriteApp(studio);
+
+            menubarCheck(MenubarSpriteApp, COUNT_OF(MenubarSpriteApp), SpriteActionTiles, sprite->blit.bank == 0);
+            menubarCheck(MenubarSpriteApp, COUNT_OF(MenubarSpriteApp), SpriteActionSprites, sprite->blit.bank == 1);
+            menubarCheck(MenubarSpriteApp, COUNT_OF(MenubarSpriteApp), SpriteActionFlags, sprite->flags.show);
+
+            menubarCheck(MenubarBpp, COUNT_OF(MenubarBpp), SpriteActionBpp4, sprite->blit.mode == tic_bpp_4);
+            menubarCheck(MenubarBpp, COUNT_OF(MenubarBpp), SpriteActionBpp2, sprite->blit.mode == tic_bpp_2);
+            menubarCheck(MenubarBpp, COUNT_OF(MenubarBpp), SpriteActionBpp1, sprite->blit.mode == tic_bpp_1);
+
+            menubarCheck(MenubarPalette, COUNT_OF(MenubarPalette), SpriteActionVbank0, !sprite->palette.vbank1);
+            menubarCheck(MenubarPalette, COUNT_OF(MenubarPalette), SpriteActionVbank1, sprite->palette.vbank1);
+
+            menubarCheck(MenubarSize, COUNT_OF(MenubarSize), SpriteActionSize8, sprite->size == 8);
+            menubarCheck(MenubarSize, COUNT_OF(MenubarSize), SpriteActionSize16, sprite->size == 16);
+            menubarCheck(MenubarSize, COUNT_OF(MenubarSize), SpriteActionSize32, sprite->size == 32);
+            menubarCheck(MenubarSize, COUNT_OF(MenubarSize), SpriteActionSize64, sprite->size == 64);
+
+            items = MenubarSpriteApp;
+            count = COUNT_OF(MenubarSpriteApp);
+            break;
+        }
+
+        case TIC_MAP_MODE:
+        {
+            Map* map = mapApp(studio);
+
+            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionTiles, map->sheet.blit.bank == 0);
+            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionSprites, map->sheet.blit.bank == 1);
+            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionGrid, map->canvas.grid);
+            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionRandom, map->canvas.random);
+            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionTileset, map->anim.pos.sheet >= 0);
+
+            items = MenubarMapApp;
+            count = COUNT_OF(MenubarMapApp);
+            break;
+        }
+
+        case TIC_MUSIC_MODE:
+        {
+            Music* music = musicApp(studio);
+
+            menubarCheck(MenubarMusicApp, COUNT_OF(MenubarMusicApp), MusicActionPiano, music->tab == MUSIC_PIANO_TAB);
+            menubarCheck(MenubarMusicApp, COUNT_OF(MenubarMusicApp), MusicActionTracker, music->tab == MUSIC_TRACKER_TAB);
+            menubarCheck(MenubarMusicApp, COUNT_OF(MenubarMusicApp), MusicActionFollow, music->follow);
+            menubarCheck(MenubarMusicApp, COUNT_OF(MenubarMusicApp), MusicActionLoop, music->loop);
+            menubarCheck(MenubarMusicApp, COUNT_OF(MenubarMusicApp), MusicActionSustain, music->sustain);
+
+            items = MenubarMusicApp;
+            count = COUNT_OF(MenubarMusicApp);
+            break;
+        }
+
+        default:
+            break;
+    }
+
+    MenubarCategories[1].items = items;
+    MenubarCategories[1].count = count;
+    MenubarCategories[1].selected = -1;
+
+#if defined(CRT_SHADER_SUPPORT)
+    menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionCrt, studio->config->data.options.crt);
+#endif
+    menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionFullscreen, tic_sys_fullscreen_get());
+    menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionIntegerScale, studio->config->data.options.integerScale);
+    menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionAutosave, studio->config->data.options.autosave);
+
+    s32 tabSize = studio->config->data.options.tabSize;
+
+    menubarCheck(MenubarEditor, COUNT_OF(MenubarEditor), EditorTabSize1, tabSize == 1);
+    menubarCheck(MenubarEditor, COUNT_OF(MenubarEditor), EditorTabSize2, tabSize == 2);
+    menubarCheck(MenubarEditor, COUNT_OF(MenubarEditor), EditorTabSize4, tabSize == 4);
+    menubarCheck(MenubarEditor, COUNT_OF(MenubarEditor), EditorTabSize8, tabSize == 8);
+
+    menubarCheck(MenubarEditor, COUNT_OF(MenubarEditor), EditorTabModeAuto,
+                 studio->config->data.options.tabMode == TAB_AUTO);
+    menubarCheck(MenubarEditor, COUNT_OF(MenubarEditor), EditorTabModeTabs,
+                 studio->config->data.options.tabMode == TAB_TAB);
+    menubarCheck(MenubarEditor, COUNT_OF(MenubarEditor), EditorTabModeSpaces,
+                 studio->config->data.options.tabMode == TAB_SPACE);
+
+    menubarCheck(MenubarEditor, COUNT_OF(MenubarEditor), EditorKeybindStandard,
+                 studio->config->data.options.keybindMode == KEYBIND_STANDARD);
+    menubarCheck(MenubarEditor, COUNT_OF(MenubarEditor), EditorKeybindEmacs,
+                 studio->config->data.options.keybindMode == KEYBIND_EMACS);
+    menubarCheck(MenubarEditor, COUNT_OF(MenubarEditor), EditorKeybindVi,
+                 studio->config->data.options.keybindMode == KEYBIND_VI);
+
+#if defined(TIC80_PRO)
+    s32 bank = 0;
+    static char bankTitle[16];
+
+    for(s32 i = 0; i < COUNT_OF(BankModes); i++)
+        if(BankModes[i] == studio->mode)
+        {
+            bank = studio->bank.indexes[i];
+            break;
+        }
+
+    snprintf(bankTitle, sizeof bankTitle, "BANK %i", bank);
+
+    for(s32 i = 0; i < COUNT_OF(MenubarCategories); i++)
+        if(MenubarCategories[i].items == MenubarBanks)
+        {
+            MenubarCategories[i].selected = bank;
+            MenubarCategories[i].title = bankTitle;
+            MenubarCategories[i].hidden = !isBanked(studio->mode);
+        }
+#endif
+}
+
+static void drawStudioMenubar(Studio* studio)
+{
+    updateMenubar(studio);
+    menubar_draw(&studio->menubar, studio->tic, studio->mode,
+                 &getConfig(studio)->cart->bank0.tiles);
+}
+#endif
+
 #if defined(CRT_SHADER_SUPPORT)
 static void switchCrtMonitor(Studio* studio)
 {
@@ -2038,6 +2678,15 @@ static void processShortcuts(Studio* studio)
 #endif
 
     if(studio_mainmenu_keyboard(studio->mainmenu)) return;
+
+#if defined(BUILD_EDITORS)
+    // ESC was the menu's this frame: it closed it and goes no further.
+    if(studio->menubar.escaped)
+    {
+        studio->menubar.escaped = false;
+        return;
+    }
+#endif
 
     bool alt = tic_api_key(tic, tic_key_alt);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
@@ -2378,10 +3027,22 @@ static void renderStudio(Studio* studio)
             };
 #endif
 
+#if defined(BUILD_EDITORS)
+        // The menu is modal: its press must not reach the editor under it.
+        MouseState* menuMouse = &studio->mouse.state[tic_mouse_left];
+        bool menuMasked = studio->menubar.open >= 0 && menuMouse->down;
+
+        if(menuMasked)
+            menuMouse->down = false;
+#endif
+
         if(app->tick)
             app->tick(app->instance(studio));
 
 #if defined(BUILD_EDITORS)
+        if(menuMasked)
+            menuMouse->down = true;
+
         serveConsole(studio);
 #endif
 
@@ -2398,8 +3059,7 @@ static void renderStudio(Studio* studio)
                 setStudioMode(studio, TIC_HOME_MODE);
         }
 
-        // Any editor mode gets the strip; `band` NULL still draws the rail.
-        // An overlay-bank mode drew its strip there too — see D2.
+        // Any editor mode gets the bar; an overlay-bank mode draws it there.
 #if defined(BUILD_EDITORS)
         if(app->name)
         {
@@ -2407,11 +3067,11 @@ static void renderStudio(Studio* studio)
             {
                 VBANK(tic, 1)
                 {
-                    drawToolbar(studio);
+                    drawStudioMenubar(studio);
                 }
             }
             else
-                drawToolbar(studio);
+                drawStudioMenubar(studio);
         }
 #else
         TIC_UNUSED(app);
@@ -2708,21 +3368,38 @@ void studio_tick(Studio* studio, tic80_input input)
     tic_net_start(studio->net);
 #endif
 
-    // A tab click lands here rather than switching mid-frame: the mode's blit
+    // A menu item lands here rather than switching mid-frame: the mode's blit
     // callback is chosen after its tick, so the switch has to wait for that.
 #if defined(BUILD_EDITORS)
-    if(studio->toolbar.requested)
+    if(studio->menubar.requested != MENUBAR_NO_MODE)
     {
-        setStudioMode(studio, studio->toolbar.requested);
-        studio->toolbar.requested = 0;
+        EditorMode mode = studio->menubar.requested;
+
+        studio->menubar.requested = MENUBAR_NO_MODE;
+
+        if(mode == TIC_MENU_MODE)
+            gotoMenu(studio);
+#if defined(BUILD_SURF)
+        else if(mode == TIC_SURF_MODE)
+            gotoSurf(studio);
+#endif
+        else
+            setStudioMode(studio, mode);
     }
 #endif
 
     // After processMouseStates so a press is seen the frame it arrives, and
-    // before renderStudio, which is where the tooltip's clear belongs.
+    // before renderStudio, which is where the tooltip's clear belongs. The menu
+    // takes the pointer here too, before the editor under its popup sees it.
     processMouseStates(studio);
 #if defined(BUILD_EDITORS)
-    toolbar_step(&studio->toolbar);
+    if(Apps[studio->mode].name)
+    {
+        updateMenubar(studio);
+        menubar_step(&studio->menubar, studio->tic, (s32)studio->mode);
+    }
+    else
+        menubar_step(&studio->menubar, studio->tic, MENUBAR_NO_MODE);
 #endif
 
     renderStudio(studio);
@@ -3189,14 +3866,10 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
     initConfig(studio->config, studio, studio->fs);
 
 #if defined(BUILD_EDITORS)
-    studio->toolbar = (Toolbar){
-        .tic = studio->tic,
-        .config = getConfig(studio),
-        .mouse = studio->mouse.state,
-        .tooltip = studio->tooltip.text,
-        .apps = Apps,
-        .appCount = TIC_MODES_COUNT,
-    };
+    initMenubarApps();
+
+    menubar_init(&studio->menubar, MenubarCategories, COUNT_OF(MenubarCategories),
+                 studio->mouse.state, studio, tic_icon_circle);
 #endif
 
     if(studio->config->data.uiScale > maxscale)

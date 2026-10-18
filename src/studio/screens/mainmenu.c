@@ -237,105 +237,6 @@ static MenuOption VolumeOption =
         optionVolumeSet,
 };
 
-// Autosave belongs to the full client: it decides whether a cart SURF loaded
-// from the web is written to disk (surf.c), and the editors-less export stubs
-// are the builds without either, so the row toggled a setting nothing read.
-#if defined(BUILD_EDITORS)
-static s32 optionAutoSaveGet(void* data)
-{
-    StudioMainMenu* main = data;
-    return main->options->autosave ? 1 : 0;
-}
-
-static void optionAutoSaveSet(void* data, s32 pos)
-{
-    StudioMainMenu* main = data;
-    main->options->autosave = pos == 1;
-}
-
-static MenuOption AutoSaveOption =
-    {
-        OPTION_VALUES({OffValue, OnValue}),
-        optionAutoSaveGet,
-        optionAutoSaveSet,
-};
-#endif
-
-#if defined(BUILD_EDITORS)
-static s32 optionTabSizeGet(void* data)
-{
-    StudioMainMenu* main = data;
-    s32 tsize = main->options->tabSize;
-
-    s32 ret = 0;
-    tsize /= 2;
-    while(tsize != 0)
-    {
-        ret++;
-        tsize /= 2;
-    }
-
-    return ret;
-}
-
-static void optionTabSizeSet(void* data, s32 pos)
-{
-    s32 tsize = 1;
-    for(s32 i = 0; i < pos; i++)
-        tsize *= 2;
-    StudioMainMenu* main = data;
-    main->options->tabSize = tsize;
-}
-
-static MenuOption TabSizeOption =
-    {
-        OPTION_VALUES({"1", "2", "4", "8"}),
-        optionTabSizeGet,
-        optionTabSizeSet,
-};
-
-static s32 optionTabModeGet(void* data)
-{
-    StudioMainMenu* main = data;
-    return main->options->tabMode;
-}
-
-static void optionTabModeSet(void* data, s32 pos)
-{
-    StudioMainMenu* main = data;
-    main->options->tabMode = (enum TabMode)pos;
-}
-
-static MenuOption TabModeOption =
-    {
-        OPTION_VALUES({"AUTO", "TABS", "SPACES"}),
-        optionTabModeGet,
-        optionTabModeSet,
-};
-
-static s32 optionKeybindModeGet(void* data)
-{
-    StudioMainMenu* main = data;
-    return main->options->keybindMode;
-}
-
-static void optionKeybindModeSet(void* data, s32 pos)
-{
-    StudioMainMenu* main = data;
-    main->options->keybindMode = (enum KeybindMode)pos;
-}
-
-static MenuOption KeybindModeOption =
-    {
-        OPTION_VALUES({"STANDARD", "EMACS", "VI"}),
-        optionKeybindModeGet,
-        optionKeybindModeSet,
-};
-
-static void showEditorMenu(void* data, s32 pos);
-
-#endif
-
 static void showGamepadMenu(void* data, s32 pos)
 {
     (void)pos;
@@ -360,10 +261,6 @@ enum
     OptionsMenu_DrawCacheOption,
 #endif
     OptionsMenu_VolumeOption,
-#if defined(BUILD_EDITORS)
-    OptionsMenu_AutoSaveOption,
-    OptionsMenu_Editor,
-#endif
     OptionsMenu_Gamepad,
     OptionsMenu_Separator,
     OptionsMenu_Back,
@@ -383,10 +280,6 @@ static const MenuItem OptionMenu[] =
         {.label = "DRAW CACHE", .option = &DrawCacheOption, .help = "Cache draw calls for CPU saving"},
 #endif
         {.label = "VOLUME", .option = &VolumeOption},
-#if defined(BUILD_EDITORS)
-        {.label = "AUTOSAVE", .option = &AutoSaveOption, .help = "Keep carts loaded from the web"},
-        {.label = "EDITOR OPTIONS", .handler = showEditorMenu},
-#endif
         {.label = "SETUP GAMEPAD", .handler = showGamepadMenu},
         {.label = ""},
         {.label = "BACK", .handler = onBackFromOptionsMenu, .back = true},
@@ -406,38 +299,6 @@ static void gameMenuHandler(void* data, s32 pos)
     resumeGame(main->studio);
     tic_get_script(tic)->callback.menu(tic, pos, NULL);
 }
-
-#if defined(BUILD_EDITORS)
-
-enum
-{
-    EditorMenu_TabSize,
-    EditorMenu_TabMode,
-    EditorMenu_KeybindMode,
-    EditorMenu_Separator,
-    EditorMenu_Back,
-};
-
-static const MenuItem EditorMenu[] =
-    {
-        {.label = "TAB SIZE", .option = &TabSizeOption, .help = "Indentation is your friend"},
-        {.label = "TAB MODE", .option = &TabModeOption, .help = "Auto uses spaces for python/moonscript"},
-        {.label = "KEYBIND MODE", .option = &KeybindModeOption, .help = "For the cool kids only"},
-        {.label = ""},
-        {.label = "BACK", .handler = showOptionsMenu, .back = true},
-};
-
-static_assert(COUNT_OF(EditorMenu) == EditorMenu_Back + 1, "EditorMenuCount");
-
-static void showEditorMenu(void* data, s32 pos)
-{
-    (void)pos;
-    StudioMainMenu* main = data;
-
-    studio_menu_init(main->menu, EditorMenu,
-                     COUNT_OF(EditorMenu), EditorMenu_KeybindMode, OptionsMenu_Editor, showOptionsMenu, main);
-}
-#endif
 
 static void freeItems(StudioMainMenu* menu)
 {

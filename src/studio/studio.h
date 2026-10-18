@@ -72,7 +72,7 @@
 #define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_HASH "/"
 #define TIC_CACHE         TIC_LOCAL "cache/"
 
-#define TOOLBAR_SIZE              7
+#define STUDIO_BAR_HEIGHT         7
 #define STUDIO_TEXT_WIDTH         (TIC_FONT_WIDTH)
 #define STUDIO_TEXT_HEIGHT        (TIC_FONT_HEIGHT + 1)
 #define STUDIO_TEXT_BUFFER_WIDTH  (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
@@ -255,6 +255,7 @@ enum
     tic_icon_loop = 137,
     tic_icon_random = 138,
     tic_icon_line_numbers = 139,
+    tic_icon_circle = 140,
 };
 
 void setCursor(Studio* studio, tic_cursor id);
@@ -282,8 +283,8 @@ bool checkStudioViMode(Studio* studio, ViMode mode);
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize);
 
-// The five operations the toolbar's clipboard buttons perform. Each editor
-// supplies its own; a mode with none leaves it NULL.
+// The five operations the Edit menu performs. Each editor supplies its own; a
+// mode with none leaves it NULL.
 typedef struct
 {
     void (*cut)(void*);
