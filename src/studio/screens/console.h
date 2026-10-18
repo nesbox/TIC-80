@@ -219,7 +219,8 @@ struct Console
         s32 count;
         s32 current;
         char** items;
-        char exec[TICNAME_MAX]; // the command a menu queued
+        char** owned; // the menu's commands, freed with the console
+        s32 ownedCount;
     } commands;
 
     CommandDesc* desc;

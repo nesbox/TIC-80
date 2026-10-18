@@ -257,7 +257,38 @@ static void testTitleSwitch(tic_mem* tic)
     step(&bar, tic);
     assert(bar.open == AppMain);
 
+    // A click on another title switches and is consumed.
+    clickAt(tic, 210, 3);
+    step(&bar, tic);
+    assert(bar.open == AppRight);
+    assert(!Mouse[tic_mouse_left].click);
+
     puts("title switch ok");
+}
+
+static void testClickConsumption(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+
+    // The click that opens the bar also clears a double-click window.
+    clickAt(tic, 10, 3);
+    Mouse[tic_mouse_left].dbl.click = true;
+    step(&bar, tic);
+
+    assert(bar.open == AppMain);
+    assert(!Mouse[tic_mouse_left].click);
+    assert(!Mouse[tic_mouse_left].dbl.click);
+
+    // The click that closes it outside does the same.
+    clickAt(tic, 200, 130);
+    Mouse[tic_mouse_left].dbl.click = true;
+    step(&bar, tic);
+
+    assert(bar.open == -1);
+    assert(!Mouse[tic_mouse_left].click);
+    assert(!Mouse[tic_mouse_left].dbl.click);
+
+    puts("click consumption ok");
 }
 
 static void testChecked(tic_mem* tic)
@@ -419,6 +450,7 @@ int main(void)
     testClickAway(tic);
     testHidden(tic);
     testTitleSwitch(tic);
+    testClickConsumption(tic);
     testChecked(tic);
     testSubmenuHover(tic);
     testSubmenuGrace(tic);

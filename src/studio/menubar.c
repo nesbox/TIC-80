@@ -44,6 +44,13 @@ static bool pointInRect(const tic_point* pt, const tic_rect* rect)
            (pt->y >= rect->y) && (pt->y < (rect->y + rect->h));
 }
 
+// The menu owns a click it handles: a double-click must not reach the editor.
+static void consumeClick(MouseState* state)
+{
+    state->click = false;
+    state->dbl.click = false;
+}
+
 // The pointer state's click, consumed: the press and the release both inside.
 static bool menuClick(MouseState* state, const tic_rect* rect)
 {
@@ -51,7 +58,7 @@ static bool menuClick(MouseState* state, const tic_rect* rect)
                  pointInRect(&state->end, rect);
 
     if(value)
-        state->click = false;
+        consumeClick(state);
 
     return value;
 }
@@ -191,7 +198,7 @@ static tic_rect popupRect(const Menubar* menubar)
     if(x + size.w > TIC80_WIDTH)
         x = title.x + title.w - size.w;
 
-    x = CLAMP(x, 0, TIC80_WIDTH - size.w);
+    x = CLAMP(x, 0, MAX(0, TIC80_WIDTH - size.w));
 
     s32 y = MENUBAR_HEIGHT;
 
@@ -212,7 +219,7 @@ static tic_rect subPopupRect(const Menubar* menubar)
     if(x + size.w > TIC80_WIDTH)
         x = parent.x - size.w;
 
-    x = CLAMP(x, 0, TIC80_WIDTH - size.w);
+    x = CLAMP(x, 0, MAX(0, TIC80_WIDTH - size.w));
 
     s32 y = CLAMP(row.y, MENUBAR_HEIGHT, MAX(MENUBAR_HEIGHT, TIC80_HEIGHT - size.h));
 
@@ -280,6 +287,7 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
         else
             closeMenu(menubar);
 
+        consumeClick(state);
         menubar->escaped = true;
         return;
     }
@@ -322,6 +330,10 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
             menubar->sub = NULL;
             menubar->subItem = -1;
             menubar->subTimer = 0;
+
+            if(state->click)
+                consumeClick(state);
+
             return;
         }
     }
@@ -501,7 +513,7 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
     // Anything left is outside: it closes the menu and never reaches the editor.
     if(state->click)
     {
-        state->click = false;
+        consumeClick(state);
         closeMenu(menubar);
     }
 }

@@ -26,7 +26,7 @@
 #include "api.h"
 
 // The two halves of how the studio plays a system sound, in a module of their
-// own: the strip never called either, and the studio's wrappers are one line each.
+// own: the bar never called either, and the studio's wrappers are one line each.
 
 // Plays sample `id` of `sfx` on channel 0.
 void sound_play(tic_mem* tic, const tic_sfx* sfx, s32 id);

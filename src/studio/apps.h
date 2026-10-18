@@ -30,8 +30,7 @@ struct tic_mem;
 // `instance` resolves a mode to its editor, the bank index being the variable.
 typedef struct
 {
-    const char* name; // tab label and strip title; NULL outside the editors
-    const char* tip;
+    const char* name; // app switcher label and bar title; NULL outside the editors
     u8 icon;
     tic_keycode hotkey;
     const ClipboardOps* clipboard;

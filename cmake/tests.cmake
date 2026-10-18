@@ -71,7 +71,7 @@ if(BUILD_TESTS)
     tic80_add_test(sound-test)
 
     # The icon and the cursor are a module of their own, and link with the core
-    # alone: the strip is one of their callers, not their owner.
+    # alone: the bar is one of their callers, not their owner.
     add_executable(ui-test
         ${CMAKE_SOURCE_DIR}/tests/ui.c
         ${CMAKE_SOURCE_DIR}/src/studio/ui.c

@@ -127,11 +127,11 @@ typedef struct
 // entries, so the app switcher, the function keys and the number shortcuts agree.
 // clang-format off
 #define EDITOR_APPS(APP)                                                                                            \
-    APP(TIC_CODE_MODE,   "CODE EDITOR",   "CODE EDITOR [f1]",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard,   false)   \
-    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", "SPRITE EDITOR [f2]", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard, true) \
-    APP(TIC_MAP_MODE,    "MAP EDITOR",    "MAP EDITOR [f3]",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard,    true)    \
-    APP(TIC_SFX_MODE,    "SFX EDITOR",    "SFX EDITOR [f4]",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard,    false)    \
-    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  "MUSIC EDITOR [f5]",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard,  false)
+    APP(TIC_CODE_MODE,   "CODE EDITOR",   tic_icon_code,   tic_key_f1, codeApp,   codeTick,   NULL,           &CodeClipboard,   false)   \
+    APP(TIC_SPRITE_MODE, "SPRITE EDITOR", tic_icon_sprite, tic_key_f2, spriteApp, spriteTick, spriteScanline, &SpriteClipboard, true) \
+    APP(TIC_MAP_MODE,    "MAP EDITOR",    tic_icon_map,    tic_key_f3, mapApp,    mapTick,    mapScanline,    &MapClipboard,    true)    \
+    APP(TIC_SFX_MODE,    "SFX EDITOR",    tic_icon_sfx,    tic_key_f4, sfxApp,    sfxTick,    NULL,           &SfxClipboard,    false)    \
+    APP(TIC_MUSIC_MODE,  "MUSIC EDITOR",  tic_icon_music,  tic_key_f5, musicApp,  musicTick,  NULL,           &MusicClipboard,  false)
 // clang-format on
 
 #if defined(BUILD_EDITORS)
@@ -216,7 +216,6 @@ struct Studio
 #if defined(BUILD_EDITORS)
     struct
     {
-        bool show;
         bool chained;
 
         union
@@ -464,8 +463,8 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 // The parameters are capitalised: lowercase ones would be substituted inside
 // the `.name =` designators, which is not what an initialiser means.
 // clang-format off
-#define APP_ENTRY(MODE, NAME, TIP, ICON, KEY, INST, TICK, SCAN, CLIP, VB1)                 \
-    [MODE] = {.name = NAME, .tip = TIP, .icon = ICON, .hotkey = KEY,                   \
+#define APP_ENTRY(MODE, NAME, ICON, KEY, INST, TICK, SCAN, CLIP, VB1)                   \
+    [MODE] = {.name = NAME, .icon = ICON, .hotkey = KEY,                               \
               .instance = INST, .tick = TICK, .scanline = SCAN, .clipboard = CLIP,    \
               .vbank1 = VB1},
         // clang-format on
@@ -660,6 +659,12 @@ char getKeyboardText(Studio* studio)
 
 bool keyWasPressed(Studio* studio, tic_key key)
 {
+#if defined(BUILD_EDITORS)
+    // The menu closed on ESC this frame; the editor must not see the same key.
+    if(key == tic_key_escape && studio->menubar.escaped)
+        return false;
+#endif
+
     return keyboard_pressed(studio->tic, key);
 }
 
@@ -1790,7 +1795,6 @@ static void gotoFullscreen(Studio* studio)
 #if defined(BUILD_EDITORS)
 enum
 {
-    MenuActionFullscreen,
     MenuActionScreenshot,
     MenuActionRecord,
     MenuActionQuit,
@@ -1801,7 +1805,6 @@ enum
     MenuActionCut,
     MenuActionCopy,
     MenuActionPaste,
-    MenuActionAutosave,
 };
 
 static void menubarClipboard(Studio* studio, s32 action)
@@ -1829,7 +1832,6 @@ static void menubarAction(void* data, s32 id)
 
     switch(id)
     {
-        case MenuActionFullscreen: gotoFullscreen(studio); break;
         case MenuActionScreenshot: takeScreenshot(studio); break;
         case MenuActionRecord: startVideoRecord(studio); break;
         case MenuActionQuit: exitStudio(studio); break;
@@ -2126,13 +2128,37 @@ static void menubarBank(void* data, s32 id)
     Studio* studio = data;
     switchBank(studio, id);
 }
+
+static void menubarBankChain(void* data, s32 id)
+{
+    (void)id;
+
+    Studio* studio = data;
+    studio->bank.chained = !studio->bank.chained;
+
+    if(studio->bank.chained)
+    {
+        s32 banked = 0;
+
+        for(s32 i = 0; i < COUNT_OF(BankModes); i++)
+            if(BankModes[i] == studio->mode)
+            {
+                banked = i;
+                break;
+            }
+
+        memset(studio->bank.indexes, studio->bank.indexes[banked], sizeof studio->bank.indexes);
+    }
+}
 #endif
 
 // The app switcher: the editor items are built from Modes[], the one list the
 // keys and the cycling follow, then the screens that are not editors.
 enum
 {
-    MenubarAppSlots = COUNT_OF(Modes) + 4,
+    // The editors, a separator, the console, the browser and the game menu,
+    // with one spare.
+    MenubarAppSlots = COUNT_OF(Modes) + 5,
 };
 
 static MenuBarItem MenubarApps[MenubarAppSlots];
@@ -2253,8 +2279,13 @@ static MenuBarItem MenubarOptions[] =
 static const MenuBarCategory MenubarOptionsMenu = {"OPTIONS", MenubarOptions, COUNT_OF(MenubarOptions), false, 0, -1, 0, false};
 
 #if defined(TIC80_PRO)
+enum
+{
+    BankActionChain = TIC_EDITOR_BANKS,
+};
+
 #define BANK_ITEM(n) {"BANK " #n, NULL, menubarBank, n, true, false, tic_icon_bank, tic_color_red, NULL, -1}
-static const MenuBarItem MenubarBanks[] =
+static MenuBarItem MenubarBanks[] =
     {
         BANK_ITEM(0),
         BANK_ITEM(1),
@@ -2264,6 +2295,8 @@ static const MenuBarItem MenubarBanks[] =
         BANK_ITEM(5),
         BANK_ITEM(6),
         BANK_ITEM(7),
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"CHAIN BANKS", NULL, menubarBankChain, BankActionChain, true, false, 0, 0, NULL, 0},
 };
 #undef BANK_ITEM
 #endif
@@ -2403,6 +2436,13 @@ static void menubarCheck(MenuBarItem* items, s32 count, s32 id, bool on)
             items[i].checked = on ? 1 : 0;
 }
 
+static void menubarAccel(MenuBarItem* items, s32 count, s32 id, const char* accel)
+{
+    for(s32 i = 0; i < count; i++)
+        if(items[i].id == id)
+            items[i].accel = accel;
+}
+
 static void updateMenubar(Studio* studio)
 {
     static char title[16];
@@ -2425,6 +2465,12 @@ static void updateMenubar(Studio* studio)
         case TIC_CODE_MODE:
         {
             Code* code = studio->code;
+            bool vi = studio->config->data.options.keybindMode == KEYBIND_VI;
+
+            // These two are VI-only: in the standard keybind ALT+F moves a
+            // word and ALT+S does nothing.
+            menubarAccel(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionFont, vi ? "ALT+F" : NULL);
+            menubarAccel(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionShadow, vi ? "ALT+S" : NULL);
 
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionFont, code->altFont);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionShadow, code->shadowText);
@@ -2539,6 +2585,8 @@ static void updateMenubar(Studio* studio)
 
     snprintf(bankTitle, sizeof bankTitle, "BANK %i", bank);
 
+    menubarCheck(MenubarBanks, COUNT_OF(MenubarBanks), BankActionChain, studio->bank.chained);
+
     for(s32 i = 0; i < COUNT_OF(MenubarCategories); i++)
         if(MenubarCategories[i].items == MenubarBanks)
         {
@@ -2551,6 +2599,9 @@ static void updateMenubar(Studio* studio)
 
 static void drawStudioMenubar(Studio* studio)
 {
+    if(!Apps[studio->mode].name)
+        return;
+
     updateMenubar(studio);
     menubar_draw(&studio->menubar, studio->tic, studio->mode,
                  &getConfig(studio)->cart->bank0.tiles);
@@ -2680,12 +2731,11 @@ static void processShortcuts(Studio* studio)
     if(studio_mainmenu_keyboard(studio->mainmenu)) return;
 
 #if defined(BUILD_EDITORS)
-    // ESC was the menu's this frame: it closed it and goes no further.
+    // ESC was the menu's this frame: it closed it and goes no further. The
+    // flag stays set until the next menubar_step, so keyWasPressed() hides the
+    // key from the editor's tick too.
     if(studio->menubar.escaped)
-    {
-        studio->menubar.escaped = false;
         return;
-    }
 #endif
 
     bool alt = tic_api_key(tic, tic_key_alt);
@@ -3028,20 +3078,33 @@ static void renderStudio(Studio* studio)
 #endif
 
 #if defined(BUILD_EDITORS)
-        // The menu is modal: its press must not reach the editor under it.
-        MouseState* menuMouse = &studio->mouse.state[tic_mouse_left];
-        bool menuMasked = studio->menubar.open >= 0 && menuMouse->down;
+        // The menu is modal: its presses and clicks must not reach the editor.
+        MouseState* menuMouse = studio->mouse.state;
+        bool menuMasked[COUNT_OF(studio->mouse.state)];
+        bool menuOpen = studio->menubar.open >= 0;
 
-        if(menuMasked)
-            menuMouse->down = false;
+        for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
+        {
+            menuMasked[i] = menuOpen && menuMouse[i].down;
+
+            if(menuMasked[i])
+                menuMouse[i].down = false;
+
+            if(menuOpen)
+            {
+                menuMouse[i].click = false;
+                menuMouse[i].dbl.click = false;
+            }
+        }
 #endif
 
         if(app->tick)
             app->tick(app->instance(studio));
 
 #if defined(BUILD_EDITORS)
-        if(menuMasked)
-            menuMouse->down = true;
+        for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
+            if(menuMasked[i])
+                menuMouse[i].down = true;
 
         serveConsole(studio);
 #endif
@@ -3059,11 +3122,14 @@ static void renderStudio(Studio* studio)
                 setStudioMode(studio, TIC_HOME_MODE);
         }
 
-        // Any editor mode gets the bar; an overlay-bank mode draws it there.
+        // The bar follows the live mode: the editor's tick may have switched
+        // it, and a mode with no name gets no bar.
 #if defined(BUILD_EDITORS)
-        if(app->name)
+        const EditorApp* barApp = &Apps[studio->mode];
+
+        if(barApp->name)
         {
-            if(app->vbank1)
+            if(barApp->vbank1)
             {
                 VBANK(tic, 1)
                 {
@@ -3389,8 +3455,8 @@ void studio_tick(Studio* studio, tic80_input input)
 #endif
 
     // After processMouseStates so a press is seen the frame it arrives, and
-    // before renderStudio, which is where the tooltip's clear belongs. The menu
-    // takes the pointer here too, before the editor under its popup sees it.
+    // before renderStudio. The menu takes the pointer here too, before the
+    // editor under its popup sees it.
     processMouseStates(studio);
 #if defined(BUILD_EDITORS)
     if(Apps[studio->mode].name)

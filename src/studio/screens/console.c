@@ -4861,6 +4861,10 @@ void console_free(Console* console)
         free(console->history.items);
     }
 
+    for(s32 i = 0; i < console->commands.ownedCount; i++)
+        free(console->commands.owned[i]);
+
+    FREE(console->commands.owned);
     FREE(console->commands.items);
     free(console->desc);
     free(console);
@@ -4923,13 +4927,42 @@ bool console_replay(Console* console)
 
 void console_exec(Console* console, const char* command)
 {
-    snprintf(console->commands.exec, sizeof console->commands.exec, "%.*s",
-             (s32)sizeof console->commands.exec - 1, command);
+    size_t length = strlen(command);
 
-    console->commands.items = realloc(console->commands.items,
-                                      sizeof(char*) * (console->commands.count + 1));
-    console->commands.items[console->commands.count] = console->commands.exec;
-    console->commands.count++;
+    if(length >= TICNAME_MAX)
+        length = TICNAME_MAX - 1;
+
+    char* copy = malloc(length + 1);
+
+    if(!copy)
+        return;
+
+    memcpy(copy, command, length);
+    copy[length] = '\0';
+
+    char** items = realloc(console->commands.items,
+                           sizeof(char*) * (console->commands.count + 1));
+    char** owned = realloc(console->commands.owned,
+                           sizeof(char*) * (console->commands.ownedCount + 1));
+
+    if(!items || !owned)
+    {
+        free(copy);
+
+        if(items)
+            console->commands.items = items;
+
+        if(owned)
+            console->commands.owned = owned;
+
+        return;
+    }
+
+    console->commands.items = items;
+    console->commands.owned = owned;
+
+    console->commands.items[console->commands.count++] = copy;
+    console->commands.owned[console->commands.ownedCount++] = copy;
     console->active = true;
 }
 
