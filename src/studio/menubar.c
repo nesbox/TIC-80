@@ -123,6 +123,8 @@ static s32 rightStart(const Menubar* menubar)
 
 static bool titleRect(const Menubar* menubar, s32 index, tic_rect* rect)
 {
+    *rect = (tic_rect){0};
+
     s32 leftX = TitleX;
     s32 rightX = rightStart(menubar);
 

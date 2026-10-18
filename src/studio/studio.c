@@ -2031,8 +2031,13 @@ static void menubarExport(void* data, s32 id)
                            ? studio->rom.name
                            : "game";
 
-    char command[TICNAME_MAX];
-    snprintf(command, sizeof command, "export %s %s", Types[id], name);
+    char command[TICNAME_MAX + 16];
+    int length = snprintf(command, sizeof command, "export %s ", Types[id]);
+
+    if(length < 0 || (size_t)length >= sizeof command)
+        return;
+
+    snprintf(command + length, sizeof command - (size_t)length, "%s", name);
 
     console_exec(studio->console, command);
     studio->menubar.requested = TIC_CONSOLE_MODE;
