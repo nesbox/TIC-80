@@ -996,6 +996,10 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:

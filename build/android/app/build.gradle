@@ -144,8 +144,7 @@ android {
                 arguments "APP_PLATFORM=android-31"
             }
             cmake {
-                arguments "-DBUILD_WITH_RUBY=OFF",
-                            "-DBUILD_PRO=${ticPro}",
+                arguments "-DBUILD_PRO=${ticPro}",
                             "-DBUILD_EDITORS=${ticEditors}",
                             "-DCMAKE_BUILD_TYPE=Release",
                             "-DBUILD_WITH_ALL=ON",
