@@ -35,7 +35,7 @@ enum
     IconWidth = 10,
     SubArrow = TIC_FONT_WIDTH,
     SubOverlap = 2,
-    SubRise = 2,
+    SubRise = 3,
 };
 
 static bool pointInRect(const tic_point* pt, const tic_rect* rect)

@@ -2318,6 +2318,7 @@ static MenuBarItem MenubarCodeApp[] =
         {"LINES", "ALT+L", menubarCodeAction, CodeActionLineNumbers, true, false, tic_icon_line_numbers, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"OPTIONS", NULL, NULL, 0, true, false, 0, 0, &MenubarEditorMenu, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
 };
 
