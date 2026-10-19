@@ -3126,7 +3126,16 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
     studio->mouse.last = tic_api_mouse(studio->tic);
 
     {
-        const char* path = args.fs ? args.fs : folder;
+        const char* temp_path = args.fs ? args.fs : folder;
+        char path[1024];
+        strncpy_s(path, sizeof(path), temp_path, strlen(temp_path));
+        for(int i = strlen(path) - 1; i >= 0; i--)
+        {
+            if(path[i] == '\\' || path[i] == '/')
+                path[i] = '\0';
+            else
+                break;
+        }
 
         if(fs_isdir(path))
         {
