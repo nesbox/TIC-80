@@ -217,10 +217,19 @@ static tic_rect subPopupRect(const Menubar* menubar)
 
     // The submenu overlaps the parent's edge: no bare border column for the
     // pointer to cross, so the submenu cannot close on the way in.
-    s32 x = parent.x + parent.w - SubOverlap;
+    s32 right = parent.x + parent.w - SubOverlap;
+    s32 left = parent.x - size.w + SubOverlap;
+    s32 x = right;
 
-    if(x + size.w > TIC80_WIDTH)
-        x = parent.x - size.w + SubOverlap;
+    // Right is the default. Flip left only when that placement is on screen;
+    // a submenu too wide for both stays on the right, clamped to the edge.
+    if(right + size.w > TIC80_WIDTH)
+    {
+        if(left >= 0)
+            x = left;
+        else
+            x = TIC80_WIDTH - size.w;
+    }
 
     x = CLAMP(x, 0, MAX(0, TIC80_WIDTH - size.w));
 

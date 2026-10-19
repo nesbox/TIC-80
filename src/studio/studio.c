@@ -2259,13 +2259,13 @@ static MenuBarItem MenubarEditor[] =
         {"TAB SIZE 4", NULL, menubarEditorOption, EditorTabSize4, true, false, 0, 0, NULL, 0},
         {"TAB SIZE 8", NULL, menubarEditorOption, EditorTabSize8, true, false, 0, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"TAB MODE AUTO", NULL, menubarEditorOption, EditorTabModeAuto, true, false, 0, 0, NULL, 0},
-        {"TAB MODE TABS", NULL, menubarEditorOption, EditorTabModeTabs, true, false, 0, 0, NULL, 0},
-        {"TAB MODE SPACES", NULL, menubarEditorOption, EditorTabModeSpaces, true, false, 0, 0, NULL, 0},
+        {"MODE AUTO", NULL, menubarEditorOption, EditorTabModeAuto, true, false, 0, 0, NULL, 0},
+        {"MODE TABS", NULL, menubarEditorOption, EditorTabModeTabs, true, false, 0, 0, NULL, 0},
+        {"MODE SPACES", NULL, menubarEditorOption, EditorTabModeSpaces, true, false, 0, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"KEYBIND STANDARD", NULL, menubarEditorOption, EditorKeybindStandard, true, false, 0, 0, NULL, 0},
-        {"KEYBIND EMACS", NULL, menubarEditorOption, EditorKeybindEmacs, true, false, 0, 0, NULL, 0},
-        {"KEYBIND VI", NULL, menubarEditorOption, EditorKeybindVi, true, false, 0, 0, NULL, 0},
+        {"KEY STANDARD", NULL, menubarEditorOption, EditorKeybindStandard, true, false, 0, 0, NULL, 0},
+        {"KEY EMACS", NULL, menubarEditorOption, EditorKeybindEmacs, true, false, 0, 0, NULL, 0},
+        {"KEY VI", NULL, menubarEditorOption, EditorKeybindVi, true, false, 0, 0, NULL, 0},
 };
 
 static const MenuBarCategory MenubarEditorMenu = {"EDITOR", MenubarEditor, COUNT_OF(MenubarEditor), false, 0, -1, 0, false};
@@ -2312,11 +2312,11 @@ static MenuBarItem MenubarCodeApp[] =
         {"GOTO", "CTRL+G", menubarCodeAction, CodeActionGoto, true, false, tic_icon_goto, 0, NULL, -1},
         {"BOOKMARKS", "CTRL+B", menubarCodeAction, CodeActionBookmarks, true, false, tic_icon_bookmark, 0, NULL, -1},
         {"OUTLINE", "CTRL+O", menubarCodeAction, CodeActionOutline, true, false, tic_icon_outline, 0, NULL, -1},
+        {"OPTIONS", NULL, NULL, 0, true, false, 0, 0, &MenubarEditorMenu, -1},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"TINY FONT", "ALT+F", menubarCodeAction, CodeActionFont, true, false, 0, 0, NULL, 0},
         {"SHADOW", "ALT+S", menubarCodeAction, CodeActionShadow, true, false, tic_icon_shadow, 0, NULL, 0},
         {"LINES", "ALT+L", menubarCodeAction, CodeActionLineNumbers, true, false, tic_icon_line_numbers, 0, NULL, 0},
-        {"OPTIONS", NULL, NULL, 0, true, false, 0, 0, &MenubarEditorMenu, -1},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
 };
