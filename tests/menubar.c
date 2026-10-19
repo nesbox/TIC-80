@@ -340,6 +340,12 @@ static void testSubmenuFollow(tic_mem* tic)
     Menubar bar = makeMenubar();
     openSubmenu(tic, &bar);
 
+    // The submenu overlaps the parent's edge, so the border column is inside
+    // it: crossing slowly does not close it.
+    moveTo(tic, PopupX + 81, itemY(4) + 3);
+    step(&bar, tic);
+    assert(bar.sub == &SubAMenu);
+
     // Into the submenu: it stays open.
     moveTo(tic, 89, itemY(4) + 3);
     step(&bar, tic);

@@ -34,6 +34,7 @@ enum
     SeparatorY = 3,
     IconWidth = 10,
     SubArrow = TIC_FONT_WIDTH,
+    SubOverlap = 2,
 };
 
 static bool pointInRect(const tic_point* pt, const tic_rect* rect)
@@ -214,10 +215,12 @@ static tic_rect subPopupRect(const Menubar* menubar)
     tic_rect parent = popupRect(menubar);
     tic_rect row = itemRect(&parent, menubar->subItem);
 
-    s32 x = parent.x + parent.w;
+    // The submenu overlaps the parent's edge: no bare border column for the
+    // pointer to cross, so the submenu cannot close on the way in.
+    s32 x = parent.x + parent.w - SubOverlap;
 
     if(x + size.w > TIC80_WIDTH)
-        x = parent.x - size.w;
+        x = parent.x - size.w + SubOverlap;
 
     x = CLAMP(x, 0, MAX(0, TIC80_WIDTH - size.w));
 
