@@ -80,8 +80,6 @@ typedef struct
     s32 open;
     const MenuBarCategory* sub; // the open submenu
     s32 subItem;                // the parent row it hangs from
-    s32 subTimer;               // ticks the pointer has rested on a submenu item
-    s32 subCloseTimer;          // ticks the pointer has been away from it
     MenuBarHandler pending;
     s32 pendingId;
     bool escaped; // ESC closed the menu this frame

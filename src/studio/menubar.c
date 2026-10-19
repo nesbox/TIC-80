@@ -34,8 +34,6 @@ enum
     SeparatorY = 3,
     IconWidth = 10,
     SubArrow = TIC_FONT_WIDTH,
-    SubDelay = TIC80_FRAMERATE / 3,
-    SubCloseDelay = TIC80_FRAMERATE / 4,
 };
 
 static bool pointInRect(const tic_point* pt, const tic_rect* rect)
@@ -242,8 +240,6 @@ void menubar_init(Menubar* menubar, MenuBarCategory* categories, s32 count,
         .open = -1,
         .sub = NULL,
         .subItem = -1,
-        .subTimer = 0,
-        .subCloseTimer = 0,
         .pending = NULL,
         .pendingId = 0,
     };
@@ -254,8 +250,6 @@ static void closeMenu(Menubar* menubar)
     menubar->open = -1;
     menubar->sub = NULL;
     menubar->subItem = -1;
-    menubar->subTimer = 0;
-    menubar->subCloseTimer = 0;
 }
 
 void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
@@ -284,7 +278,6 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
         {
             menubar->sub = NULL;
             menubar->subItem = -1;
-            menubar->subTimer = 0;
         }
         else
             closeMenu(menubar);
@@ -309,7 +302,6 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
                 menubar->open = i;
                 menubar->sub = NULL;
                 menubar->subItem = -1;
-                menubar->subTimer = 0;
                 return;
             }
         }
@@ -331,7 +323,6 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
             menubar->open = i;
             menubar->sub = NULL;
             menubar->subItem = -1;
-            menubar->subTimer = 0;
 
             if(state->click)
                 consumeClick(state);
@@ -349,8 +340,7 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
         return;
     }
 
-    // A submenu follows the pointer, as macOS does: it opens after the pointer
-    // rests on an item and gives way when the pointer moves on.
+    // A submenu follows the pointer: it opens, switches and closes with it.
     {
         tic_rect popup = popupRect(menubar);
         const MenuBarCategory* category = &menubar->categories[menubar->open];
@@ -376,51 +366,25 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
         if(menubar->sub)
         {
             tic_rect sub = subPopupRect(menubar);
-            bool inSub = pointInRect(&pos, &sub);
 
-            if(inSub || row == menubar->subItem)
+            if(!pointInRect(&pos, &sub) && row != menubar->subItem)
             {
-                menubar->subTimer = 0;
-                menubar->subCloseTimer = 0;
-            }
-            else if(row >= 0 && category->items[row].enabled && category->items[row].submenu)
-            {
-                menubar->subCloseTimer = 0;
-
-                if(++menubar->subTimer >= SubDelay)
+                if(row >= 0 && category->items[row].enabled && category->items[row].submenu)
                 {
                     menubar->sub = category->items[row].submenu;
                     menubar->subItem = row;
-                    menubar->subTimer = 0;
                 }
-            }
-            else
-            {
-                menubar->subTimer = 0;
-
-                if(++menubar->subCloseTimer >= SubCloseDelay)
+                else
                 {
                     menubar->sub = NULL;
                     menubar->subItem = -1;
-                    menubar->subCloseTimer = 0;
                 }
             }
         }
         else if(row >= 0 && category->items[row].enabled && category->items[row].submenu)
         {
-            menubar->subCloseTimer = 0;
-
-            if(++menubar->subTimer >= SubDelay)
-            {
-                menubar->sub = category->items[row].submenu;
-                menubar->subItem = row;
-                menubar->subTimer = 0;
-            }
-        }
-        else
-        {
-            menubar->subTimer = 0;
-            menubar->subCloseTimer = 0;
+            menubar->sub = category->items[row].submenu;
+            menubar->subItem = row;
         }
     }
 
@@ -466,8 +430,6 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
         {
             menubar->sub = NULL;
             menubar->subItem = -1;
-            menubar->subTimer = 0;
-            menubar->subCloseTimer = 0;
             return;
         }
     }
@@ -494,7 +456,6 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
                 {
                     menubar->sub = item->submenu;
                     menubar->subItem = i;
-                    menubar->subTimer = 0;
                 }
                 else if(item->handler)
                 {

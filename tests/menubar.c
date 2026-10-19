@@ -318,18 +318,10 @@ static void openSubmenu(tic_mem* tic, Menubar* bar)
     assert(bar->open == AppMain);
 
     moveTo(tic, ItemX + 5, itemY(4) + 3);
-
-    s32 frames = 0;
-
-    while(bar->sub == NULL && frames < TIC80_FRAMERATE)
-    {
-        step(bar, tic);
-        frames++;
-    }
+    step(bar, tic);
 
     assert(bar->sub == &SubAMenu);
     assert(bar->subItem == 4);
-    assert(frames > 1);
 }
 
 static void testSubmenuHover(tic_mem* tic)
@@ -337,44 +329,29 @@ static void testSubmenuHover(tic_mem* tic)
     Menubar bar = makeMenubar();
     openSubmenu(tic, &bar);
 
-    // The submenu opens on hover, not on a click.
+    // The submenu opens on hover, with no click and no delay.
     assert(!Mouse[tic_mouse_left].click);
 
     puts("submenu hover ok");
 }
 
-static void testSubmenuGrace(tic_mem* tic)
+static void testSubmenuFollow(tic_mem* tic)
 {
     Menubar bar = makeMenubar();
     openSubmenu(tic, &bar);
 
-    // Leave the owner toward the submenu and stop in the gap: the close grace
-    // holds the submenu open long enough to reach it.
-    moveTo(tic, PopupX + 81, itemY(4) + 3);
-    step(&bar, tic);
-    assert(bar.sub == &SubAMenu);
-
+    // Into the submenu: it stays open.
     moveTo(tic, 89, itemY(4) + 3);
     step(&bar, tic);
     assert(bar.sub == &SubAMenu);
 
-    // Away from both, it closes, but not on the first frame.
+    // Away from the owner and the submenu, it closes at once.
     moveTo(tic, ItemX + 5, itemY(3) + 3);
     step(&bar, tic);
-    assert(bar.sub == &SubAMenu);
-
-    s32 frames = 0;
-
-    while(bar.sub != NULL && frames < TIC80_FRAMERATE)
-    {
-        step(&bar, tic);
-        frames++;
-    }
-
     assert(bar.sub == NULL);
-    assert(frames > 1);
+    assert(bar.open == AppMain);
 
-    puts("submenu grace ok");
+    puts("submenu follow ok");
 }
 
 static void testSubmenuSwitch(tic_mem* tic)
@@ -382,20 +359,12 @@ static void testSubmenuSwitch(tic_mem* tic)
     Menubar bar = makeMenubar();
     openSubmenu(tic, &bar);
 
-    // Another owner with a submenu takes over after the hover delay.
+    // Another owner with a submenu takes over at once.
     moveTo(tic, ItemX + 5, itemY(5) + 3);
-
-    s32 frames = 0;
-
-    while(bar.sub != &SubBMenu && frames < TIC80_FRAMERATE)
-    {
-        step(&bar, tic);
-        frames++;
-    }
+    step(&bar, tic);
 
     assert(bar.sub == &SubBMenu);
     assert(bar.subItem == 5);
-    assert(frames > 1);
 
     puts("submenu switch ok");
 }
@@ -453,7 +422,7 @@ int main(void)
     testClickConsumption(tic);
     testChecked(tic);
     testSubmenuHover(tic);
-    testSubmenuGrace(tic);
+    testSubmenuFollow(tic);
     testSubmenuSwitch(tic);
     testOwnerClick(tic);
     testSubmenuDispatch(tic);
