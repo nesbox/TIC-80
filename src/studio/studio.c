@@ -2312,12 +2312,12 @@ static MenuBarItem MenubarCodeApp[] =
         {"GOTO", "CTRL+G", menubarCodeAction, CodeActionGoto, true, false, tic_icon_goto, 0, NULL, -1},
         {"BOOKMARKS", "CTRL+B", menubarCodeAction, CodeActionBookmarks, true, false, tic_icon_bookmark, 0, NULL, -1},
         {"OUTLINE", "CTRL+O", menubarCodeAction, CodeActionOutline, true, false, tic_icon_outline, 0, NULL, -1},
-        {"OPTIONS", NULL, NULL, 0, true, false, 0, 0, &MenubarEditorMenu, -1},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"TINY FONT", "ALT+F", menubarCodeAction, CodeActionFont, true, false, 0, 0, NULL, 0},
         {"SHADOW", "ALT+S", menubarCodeAction, CodeActionShadow, true, false, tic_icon_shadow, 0, NULL, 0},
         {"LINES", "ALT+L", menubarCodeAction, CodeActionLineNumbers, true, false, tic_icon_line_numbers, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"OPTIONS", NULL, NULL, 0, true, false, 0, 0, &MenubarEditorMenu, -1},
         {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
 };
 

@@ -35,6 +35,7 @@ enum
     IconWidth = 10,
     SubArrow = TIC_FONT_WIDTH,
     SubOverlap = 2,
+    SubRise = 2,
 };
 
 static bool pointInRect(const tic_point* pt, const tic_rect* rect)
@@ -233,7 +234,7 @@ static tic_rect subPopupRect(const Menubar* menubar)
 
     x = CLAMP(x, 0, MAX(0, TIC80_WIDTH - size.w));
 
-    s32 y = CLAMP(row.y, MENUBAR_HEIGHT, MAX(MENUBAR_HEIGHT, TIC80_HEIGHT - size.h));
+    s32 y = CLAMP(row.y - SubRise, MENUBAR_HEIGHT, MAX(MENUBAR_HEIGHT, TIC80_HEIGHT - size.h));
 
     return (tic_rect){x, y, size.w, size.h};
 }
