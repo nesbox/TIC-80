@@ -2134,7 +2134,9 @@ enum
     OptionFullscreen,
     OptionIntegerScale,
     OptionAutohide,
+#if defined(BUILD_SURF)
     OptionAutosave,
+#endif
 };
 
 static void menubarOption(void* data, s32 id)
@@ -2161,9 +2163,11 @@ static void menubarOption(void* data, s32 id)
             studio->menubar.autohide = !studio->menubar.autohide;
             return;
 
+#if defined(BUILD_SURF)
         case OptionAutosave:
             studio->config->data.options.autosave = !studio->config->data.options.autosave;
             break;
+#endif
     }
 
     studio->config->saveOptions(studio->config);
@@ -2343,8 +2347,10 @@ static MenuBarItem MenubarOptions[] =
         {"FULLSCREEN", "F11", menubarOption, OptionFullscreen, true, false, 0, 0, NULL, 0},
         {"INTEGER SCALE", NULL, menubarOption, OptionIntegerScale, true, false, 0, 0, NULL, 0},
         {"AUTOHIDE MENU", NULL, menubarOption, OptionAutohide, true, false, 0, 0, NULL, 0},
+#if defined(BUILD_SURF)
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"AUTOSAVE", NULL, menubarOption, OptionAutosave, true, false, 0, 0, NULL, 0},
+        {"SAVE SURF CARTS", NULL, menubarOption, OptionAutosave, true, false, 0, 0, NULL, 0},
+#endif
 };
 
 static const MenuBarCategory MenubarOptionsMenu = {"OPTIONS", MenubarOptions, COUNT_OF(MenubarOptions), false, 0, -1, 0, false};
@@ -2692,7 +2698,9 @@ static void updateMenubar(Studio* studio)
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionFullscreen, tic_sys_fullscreen_get());
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionIntegerScale, studio->config->data.options.integerScale);
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionAutohide, studio->menubar.autohide);
+#if defined(BUILD_SURF)
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionAutosave, studio->config->data.options.autosave);
+#endif
 
     s32 tabSize = studio->config->data.options.tabSize;
 

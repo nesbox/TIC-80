@@ -99,7 +99,9 @@ static void setDefault(Config* config)
 #if defined(BUILD_RENDER_CACHE)
                 .drawCache = true,
 #endif
+#if defined(BUILD_SURF)
                 .autosave = false,
+#endif
 #if defined(BUILD_EDITORS)
                 .keybindMode = KEYBIND_STANDARD,
                 .tabMode = TAB_AUTO,
@@ -210,8 +212,10 @@ static void loadOptions(Config* config)
                 if(json_has("volume", 0))
                     options->volume = json_int("volume", 0);
 
+#if defined(BUILD_SURF)
                 if(json_has("autosave", 0))
                     options->autosave = json_bool("autosave", 0);
+#endif
 
                 // Two bounds matter here: a file without "mapping" used to read
                 // the whole document (a missing key resolves to token 0, the root
@@ -271,7 +275,9 @@ static void saveOptions(Config* config)
             "\"drawCache\":%s, "
 #endif
             "\"volume\":%i, "
+#if defined(BUILD_SURF)
             "\"autosave\":%s, "
+#endif
             "\"mapping\":\"%s\""
 #if defined(BUILD_EDITORS)
             ", "
@@ -290,7 +296,9 @@ static void saveOptions(Config* config)
             bool2str(options->drawCache),
 #endif
             options->volume,
+#if defined(BUILD_SURF)
             bool2str(options->autosave),
+#endif
             data2str(&options->mapping, sizeof options->mapping).data
 
 #if defined(BUILD_EDITORS)

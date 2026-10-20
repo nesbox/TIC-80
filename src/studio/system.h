@@ -149,7 +149,9 @@ extern "C"
             bool drawCache;
 #endif
             s32 volume;
+#if defined(BUILD_SURF)
             bool autosave;
+#endif
             tic_mapping mapping;
 #if defined(BUILD_EDITORS)
             enum KeybindMode keybindMode;
