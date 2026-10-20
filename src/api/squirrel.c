@@ -2248,7 +2248,16 @@ static const tic_outline_item* getSquirrelOutline(const char* code, s32* size)
 
             if(end > start)
             {
-                items = realloc(items, (*size + 1) * Size);
+                tic_outline_item* next = realloc(items, (*size + 1) * Size);
+                if(!next)
+                {
+                    // if realloc fails, free items and bail
+                    free(items);
+                    items = NULL;
+                    *size = 0;
+                    return NULL;
+                }
+                items = next;
 
                 items[*size].pos = start;
                 items[*size].size = (s32)(end - start);
