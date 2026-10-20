@@ -134,8 +134,10 @@ class TIC {\n\
     foreign static paint(x, y, color, bordercolor)\n\
     foreign static rect(x, y, w, h, color)\n\
     foreign static rectb(x, y, w, h, color)\n\
+    foreign static rrect(x, y, w, h, color)\n\
     foreign static rrect(x, y, w, h, color, radius)\n\
     foreign static rrect(x, y, w, h, color, radius, exponent)\n\
+    foreign static rrectb(x, y, w, h, color)\n\
     foreign static rrectb(x, y, w, h, color, radius)\n\
     foreign static rrectb(x, y, w, h, color, radius, exponent)\n\
     foreign static tri(x1, y1, x2, y2, x3, y3, color)\n\

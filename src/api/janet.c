@@ -411,7 +411,7 @@ static Janet janet_rectb(int32_t argc, Janet* argv)
 
 static Janet janet_rrect(int32_t argc, Janet* argv)
 {
-    janet_arity(argc, 6, 7);
+    janet_arity(argc, 5, 7);
 
     s32 x = (s32)janet_getinteger(argv, 0);
     s32 y = (s32)janet_getinteger(argv, 1);
@@ -429,7 +429,7 @@ static Janet janet_rrect(int32_t argc, Janet* argv)
 
 static Janet janet_rrectb(int32_t argc, Janet* argv)
 {
-    janet_arity(argc, 6, 7);
+    janet_arity(argc, 5, 7);
 
     s32 x = (s32)janet_getinteger(argv, 0);
     s32 y = (s32)janet_getinteger(argv, 1);

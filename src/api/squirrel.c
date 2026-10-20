@@ -102,15 +102,17 @@ static SQInteger squirrel_errorHandler(HSQUIRRELVM vm)
 
     SQStackInfos si;
     SQInteger level = 0;
+    char message[4096] = "squirrel stack trace:";
     while(SQ_SUCCEEDED(sq_stackinfos(vm, level, &si)))
     {
-        char buffer[100];
-        snprintf(buffer, 99, "%.40s %.40s %.6d\n", si.funcname, si.source, (int)si.line);
-
-        if(core->data)
-            core->data->error(core->data->data, buffer);
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer) - 1, "\n % .5d %.40s", (int)si.line, si.funcname);
+        strncat(message, buffer, sizeof(message) - strlen(message) - 1);
         ++level;
     }
+
+    if(core->data)
+        core->data->error(core->data->data, message);
 
     return 0;
 }
@@ -163,7 +165,7 @@ static SQInteger squirrel_peek1(HSQUIRRELVM vm)
 
     // check number of args
     if(sq_gettop(vm) != 2)
-        return sq_throwerror(vm, "invalid parameters, peek4(address)");
+        return sq_throwerror(vm, "invalid parameters, peek1(address)");
     s32 address = getSquirrelNumber(vm, 2);
 
     sq_pushinteger(vm, core->api.peek1(tic, address));
@@ -176,7 +178,7 @@ static SQInteger squirrel_poke1(HSQUIRRELVM vm)
     tic_mem* tic = (tic_mem*)core;
 
     if(sq_gettop(vm) != 3)
-        return sq_throwerror(vm, "invalid parameters, poke4(address,value)");
+        return sq_throwerror(vm, "invalid parameters, poke1(address,value)");
 
     s32 address = getSquirrelNumber(vm, 2);
     u8 value = (u8)(getSquirrelNumber(vm, 3));
@@ -360,7 +362,7 @@ static SQInteger squirrel_rrect(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);
 
-    if(top >= 7 && top <= 8)
+    if(top >= 6 && top <= 8)
     {
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
@@ -385,7 +387,7 @@ static SQInteger squirrel_rrectb(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);
 
-    if(top >= 7 && top <= 8)
+    if(top >= 6 && top <= 8)
     {
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
@@ -589,30 +591,33 @@ static SQInteger squirrel_ttri(HSQUIRRELVM vm)
             src = getSquirrelNumber(vm, 14);
         }
         //  check for chroma
-        if(OT_ARRAY == sq_gettype(vm, 15))
+        if(top >= 15)
         {
-            s32 arr_len = (s32)sq_getsize(vm, 15);
-            for(s32 i = 0; i < TIC_PALETTE_SIZE && i < arr_len; i++)
+            if(OT_ARRAY == sq_gettype(vm, 15))
             {
-                sq_pushinteger(vm, (SQInteger)i);
-                sq_rawget(vm, 15);
-                if(sq_gettype(vm, -1) & (OT_FLOAT | OT_INTEGER))
+                s32 arr_len = (s32)sq_getsize(vm, 15);
+                for(s32 i = 0; i < TIC_PALETTE_SIZE && i < arr_len; i++)
                 {
-                    colors[i] = (u8)(getSquirrelNumber(vm, -1));
-                    count++;
-                    sq_poptop(vm);
-                }
-                else
-                {
-                    sq_poptop(vm);
-                    break;
+                    sq_pushinteger(vm, (SQInteger)i);
+                    sq_rawget(vm, 15);
+                    if(sq_gettype(vm, -1) & (OT_FLOAT | OT_INTEGER))
+                    {
+                        colors[i] = (u8)(getSquirrelNumber(vm, -1));
+                        count++;
+                        sq_poptop(vm);
+                    }
+                    else
+                    {
+                        sq_poptop(vm);
+                        break;
+                    }
                 }
             }
-        }
-        else
-        {
-            colors[0] = (u8)(getSquirrelNumber(vm, 15));
-            count = 1;
+            else
+            {
+                colors[0] = (u8)(getSquirrelNumber(vm, 15));
+                count = 1;
+            }
         }
 
         float z[3] = {0, 0, 0};
@@ -644,13 +649,11 @@ static SQInteger squirrel_ttri(HSQUIRRELVM vm)
 static SQInteger squirrel_clip(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);
+    tic_core* core = getSquirrelCore(vm);
 
     if(top == 1)
     {
-        tic_core* core = getSquirrelCore(vm);
-        tic_mem* tic = (tic_mem*)core;
-
-        core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+        core->api.clip((tic_mem*)core, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
     }
     else if(top == 5)
     {
@@ -659,9 +662,7 @@ static SQInteger squirrel_clip(HSQUIRRELVM vm)
         s32 w = getSquirrelNumber(vm, 4);
         s32 h = getSquirrelNumber(vm, 5);
 
-        tic_core* core = getSquirrelCore(vm);
-
-        core->api.clip((tic_mem*)getSquirrelCore(vm), x, y, w, h);
+        core->api.clip((tic_mem*)core, x, y, w, h);
     }
     else
         return sq_throwerror(vm, "invalid parameters, use clip(x,y,w,h) or clip()\n");
@@ -759,7 +760,7 @@ static SQInteger squirrel_spr(HSQUIRRELVM vm)
                     {
                         sq_pushinteger(vm, (SQInteger)i);
                         sq_rawget(vm, 5);
-                        if(sq_gettype(vm, -1) & (OT_FLOAT | OT_INTEGER))
+                        if(sq_gettype(vm, -1) & SQOBJECT_NUMERIC)
                         {
                             colors[i] = (u8)(getSquirrelNumber(vm, -1));
                             count++;
@@ -846,7 +847,7 @@ static SQInteger squirrel_mset(HSQUIRRELVM vm)
         core->api.mset(tic, x, y, val);
     }
     else
-        return sq_throwerror(vm, "invalid params, mget(x,y)\n");
+        return sq_throwerror(vm, "invalid params, mset(x,y,value)\n");
 
     return 0;
 }
@@ -869,7 +870,6 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     sq_pushinteger(vm, result->index);
     sq_pushinteger(vm, x);
     sq_pushinteger(vm, y);
-    //lua_pcall(lua, 3, 3, 0);
 
     if(SQ_SUCCEEDED(sq_call(vm, 4, SQTrue, SQTrue)))
     {
@@ -934,7 +934,7 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
                         {
                             sq_pushinteger(vm, (SQInteger)i);
                             sq_rawget(vm, 8);
-                            if(sq_gettype(vm, -1) & (OT_FLOAT | OT_INTEGER))
+                            if(sq_gettype(vm, -1) & SQOBJECT_NUMERIC)
                             {
                                 colors[i] = (u8)(getSquirrelNumber(vm, -1));
                                 count++;
@@ -960,7 +960,9 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
                         if(top >= 10)
                         {
                             SQObjectType type = sq_gettype(vm, 10);
-                            if(type & (OT_CLOSURE | OT_NATIVECLOSURE | OT_INSTANCE))
+                            // do a direct type check rather than bitwise, since it will
+                            // incorrectly match any reference-counted type
+                            if(type == OT_CLOSURE || type == OT_NATIVECLOSURE || type == OT_INSTANCE)
                             {
                                 RemapData data = {.vm = vm};
                                 sq_resetobject(&data.reg);
@@ -972,7 +974,6 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
 
                                 core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, remapCallback, &data);
 
-                                //luaL_unref(lua, LUA_REGISTRYINDEX, data.reg);
                                 sq_release(vm, &data.reg);
 
                                 return 0;
@@ -1601,9 +1602,7 @@ static SQInteger squirrel_fget(HSQUIRRELVM vm)
         }
     }
 
-    sq_throwerror(vm, "invalid params, fget(index, flag) -> val\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, fget(index, flag) -> val\n");
 }
 
 static SQInteger squirrel_fset(HSQUIRRELVM vm)
@@ -1632,9 +1631,7 @@ static SQInteger squirrel_fset(HSQUIRRELVM vm)
         }
     }
 
-    sq_throwerror(vm, "invalid params, fset(index, flag, value)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, fset(index, flag, value)\n");
 }
 
 static SQInteger squirrel_vqt(HSQUIRRELVM vm)
@@ -1652,9 +1649,7 @@ static SQInteger squirrel_vqt(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqt(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqt(bin)\n");
 }
 
 static SQInteger squirrel_vqts(HSQUIRRELVM vm)
@@ -1672,9 +1667,7 @@ static SQInteger squirrel_vqts(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqts(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqts(bin)\n");
 }
 
 static SQInteger squirrel_vqtr(HSQUIRRELVM vm)
@@ -1692,9 +1685,7 @@ static SQInteger squirrel_vqtr(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtr(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtr(bin)\n");
 }
 
 static SQInteger squirrel_vqtrs(HSQUIRRELVM vm)
@@ -1712,9 +1703,7 @@ static SQInteger squirrel_vqtrs(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtrs(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtrs(bin)\n");
 }
 
 static SQInteger squirrel_vqtw(HSQUIRRELVM vm)
@@ -1732,9 +1721,7 @@ static SQInteger squirrel_vqtw(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtw(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtw(bin)\n");
 }
 
 static SQInteger squirrel_vqtsw(HSQUIRRELVM vm)
@@ -1752,9 +1739,7 @@ static SQInteger squirrel_vqtsw(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtsw(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtsw(bin)\n");
 }
 
 static SQInteger squirrel_vqtrw(HSQUIRRELVM vm)
@@ -1772,9 +1757,7 @@ static SQInteger squirrel_vqtrw(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtrw(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtrw(bin)\n");
 }
 
 static SQInteger squirrel_vqtrsw(HSQUIRRELVM vm)
@@ -1792,9 +1775,7 @@ static SQInteger squirrel_vqtrsw(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtrsw(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtrsw(bin)\n");
 }
 
 static SQInteger squirrel_fft(HSQUIRRELVM vm)
@@ -1818,9 +1799,7 @@ static SQInteger squirrel_fft(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, fft(start_freq, end_freq)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, fft(start_freq, end_freq)\n");
 }
 
 static SQInteger squirrel_fftr(HSQUIRRELVM vm)
@@ -1844,9 +1823,7 @@ static SQInteger squirrel_fftr(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, fftr(start_freq, end_freq)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, fftr(start_freq, end_freq)\n");
 }
 
 static SQInteger squirrel_fftrs(HSQUIRRELVM vm)
@@ -1870,9 +1847,7 @@ static SQInteger squirrel_fftrs(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, fftrs(start_freq, end_freq)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, fftrs(start_freq, end_freq)\n");
 }
 
 static SQInteger squirrel_ffts(HSQUIRRELVM vm)
@@ -1896,9 +1871,7 @@ static SQInteger squirrel_ffts(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, ffts(start_freq, end_freq)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, ffts(start_freq, end_freq)\n");
 }
 
 static SQInteger squirrel_dofile(HSQUIRRELVM vm)
@@ -1983,9 +1956,13 @@ static bool initSquirrel(tic_mem* tic, const char* code)
 
         sq_settop(current, 0);
 
-        if((SQ_FAILED(sq_compilebuffer(current, code, strlen(code), "squirrel", SQTrue))) ||
-           (sq_pushroottable(current), false) ||
-           (SQ_FAILED(sq_call(current, 1, SQFalse, SQTrue))))
+        // compile error already reported
+        if(SQ_FAILED(sq_compilebuffer(current, code, strlen(code), "squirrel", SQTrue)))
+            return false;
+
+        sq_pushroottable(current);
+
+        if(SQ_FAILED(sq_call(current, 1, SQFalse, SQTrue)))
         {
             sq_getlasterror(current);
             sq_tostring(current, -1);
@@ -2028,6 +2005,7 @@ static void callSquirrelTick(tic_mem* tic)
 
     if(vm)
     {
+        sq_collectgarbage(vm);
         sq_pushroottable(vm);
         sq_pushstring(vm, TIC_FN, -1);
 
@@ -2248,7 +2226,16 @@ static const tic_outline_item* getSquirrelOutline(const char* code, s32* size)
 
             if(end > start)
             {
-                items = realloc(items, (*size + 1) * Size);
+                tic_outline_item* next = realloc(items, (*size + 1) * Size);
+                if(!next)
+                {
+                    // if realloc fails, free items and bail
+                    free(items);
+                    items = NULL;
+                    *size = 0;
+                    return NULL;
+                }
+                items = next;
 
                 items[*size].pos = start;
                 items[*size].size = (s32)(end - start);
@@ -2278,9 +2265,13 @@ void evalSquirrel(tic_mem* tic, const char* code)
 
     sq_settop(vm, 0);
 
-    if((SQ_FAILED(sq_compilebuffer(vm, code, strlen(code), "squirrel", SQTrue))) ||
-       (sq_pushroottable(vm), false) ||
-       (SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue))))
+    // compile error already reported
+    if(SQ_FAILED(sq_compilebuffer(vm, code, strlen(code), "squirrel", SQTrue)))
+        return;
+
+    sq_pushroottable(vm);
+
+    if(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue)))
     {
         sq_getlasterror(vm);
         sq_tostring(vm, -1);
