@@ -589,30 +589,33 @@ static SQInteger squirrel_ttri(HSQUIRRELVM vm)
             src = getSquirrelNumber(vm, 14);
         }
         //  check for chroma
-        if(OT_ARRAY == sq_gettype(vm, 15))
+        if(top >= 15)
         {
-            s32 arr_len = (s32)sq_getsize(vm, 15);
-            for(s32 i = 0; i < TIC_PALETTE_SIZE && i < arr_len; i++)
+            if(OT_ARRAY == sq_gettype(vm, 15))
             {
-                sq_pushinteger(vm, (SQInteger)i);
-                sq_rawget(vm, 15);
-                if(sq_gettype(vm, -1) & (OT_FLOAT | OT_INTEGER))
+                s32 arr_len = (s32)sq_getsize(vm, 15);
+                for(s32 i = 0; i < TIC_PALETTE_SIZE && i < arr_len; i++)
                 {
-                    colors[i] = (u8)(getSquirrelNumber(vm, -1));
-                    count++;
-                    sq_poptop(vm);
-                }
-                else
-                {
-                    sq_poptop(vm);
-                    break;
+                    sq_pushinteger(vm, (SQInteger)i);
+                    sq_rawget(vm, 15);
+                    if(sq_gettype(vm, -1) & (OT_FLOAT | OT_INTEGER))
+                    {
+                        colors[i] = (u8)(getSquirrelNumber(vm, -1));
+                        count++;
+                        sq_poptop(vm);
+                    }
+                    else
+                    {
+                        sq_poptop(vm);
+                        break;
+                    }
                 }
             }
-        }
-        else
-        {
-            colors[0] = (u8)(getSquirrelNumber(vm, 15));
-            count = 1;
+            else
+            {
+                colors[0] = (u8)(getSquirrelNumber(vm, 15));
+                count = 1;
+            }
         }
 
         float z[3] = {0, 0, 0};
@@ -869,7 +872,6 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     sq_pushinteger(vm, result->index);
     sq_pushinteger(vm, x);
     sq_pushinteger(vm, y);
-    //lua_pcall(lua, 3, 3, 0);
 
     if(SQ_SUCCEEDED(sq_call(vm, 4, SQTrue, SQTrue)))
     {
@@ -972,7 +974,6 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
 
                                 core->api.map(tic, x, y, w, h, sx, sy, colors, (u8)(count), scale, remapCallback, &data);
 
-                                //luaL_unref(lua, LUA_REGISTRYINDEX, data.reg);
                                 sq_release(vm, &data.reg);
 
                                 return 0;
