@@ -36,6 +36,7 @@ enum
     SubArrow = TIC_FONT_WIDTH,
     SubOverlap = 2,
     SubRise = 3,
+    AutoHideSpeed = 2,
 };
 
 static bool pointInRect(const tic_point* pt, const tic_rect* rect)
@@ -151,7 +152,7 @@ static bool titleRect(const Menubar* menubar, s32 index, tic_rect* rect)
 
         if(i == index)
         {
-            *rect = (tic_rect){x, 0, width, MENUBAR_HEIGHT};
+            *rect = (tic_rect){x, menubar->y, width, MENUBAR_HEIGHT};
             return true;
         }
     }
@@ -208,10 +209,11 @@ static tic_rect popupRect(const Menubar* menubar)
 
     x = CLAMP(x, 0, MAX(0, TIC80_WIDTH - size.w));
 
-    s32 y = MENUBAR_HEIGHT;
+    s32 barBottom = menubar->y + MENUBAR_HEIGHT;
+    s32 y = barBottom;
 
     if(y + size.h > TIC80_HEIGHT)
-        y = MAX(0, TIC80_HEIGHT - size.h);
+        y = MAX(barBottom, TIC80_HEIGHT - size.h);
 
     return (tic_rect){x, y, size.w, size.h};
 }
@@ -240,7 +242,8 @@ static tic_rect subPopupRect(const Menubar* menubar)
 
     x = CLAMP(x, 0, MAX(0, TIC80_WIDTH - size.w));
 
-    s32 y = CLAMP(row.y - SubRise, MENUBAR_HEIGHT, MAX(MENUBAR_HEIGHT, TIC80_HEIGHT - size.h));
+    s32 barBottom = menubar->y + MENUBAR_HEIGHT;
+    s32 y = CLAMP(row.y - SubRise, barBottom, MAX(barBottom, TIC80_HEIGHT - size.h));
 
     return (tic_rect){x, y, size.w, size.h};
 }
@@ -256,6 +259,8 @@ void menubar_init(Menubar* menubar, MenuBarCategory* categories, s32 count,
         .mode = MENUBAR_NO_MODE,
         .requested = MENUBAR_NO_MODE,
         .checkIcon = checkIcon,
+        .autohide = false,
+        .y = 0,
         .open = -1,
         .sub = NULL,
         .subItem = -1,
@@ -290,6 +295,17 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
 
     MouseState* state = &menubar->mouse[tic_mouse_left];
     tic_point pos = tic_api_mouse(tic);
+
+    // Autohide follows the pointer: the bar is shown while a menu is open or
+    // the pointer is in the top strip, and slides away otherwise.
+    s32 target = menubar->autohide && menubar->open < 0 && pos.y >= MENUBAR_HEIGHT
+                     ? -MENUBAR_HEIGHT
+                     : 0;
+
+    if(menubar->y < target)
+        menubar->y = MIN(menubar->y + AutoHideSpeed, target);
+    else if(menubar->y > target)
+        menubar->y = MAX(menubar->y - AutoHideSpeed, target);
 
     if(menubar->open >= 0 && tic_api_keyp(tic, tic_key_escape, -1, -1))
     {
@@ -337,7 +353,7 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
         tic_rect rect;
         titleRect(menubar, i, &rect);
 
-        if(pos.y < MENUBAR_HEIGHT && pointInRect(&pos, &rect) && i != menubar->open)
+        if(pos.y < menubar->y + MENUBAR_HEIGHT && pointInRect(&pos, &rect) && i != menubar->open)
         {
             menubar->open = i;
             menubar->sub = NULL;
@@ -598,7 +614,7 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
     if(menubar->open >= 0 && menubar->categories[menubar->open].hidden)
         closeMenu(menubar);
 
-    tic_api_rect(tic, 0, 0, TIC80_WIDTH, MENUBAR_HEIGHT, tic_color_white);
+    tic_api_rect(tic, 0, menubar->y, TIC80_WIDTH, MENUBAR_HEIGHT, tic_color_white);
 
     tic_point pos = tic_api_mouse(tic);
 
@@ -631,7 +647,7 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
             textX += IconWidth;
         }
 
-        tic_api_print(tic, category->title, textX, TextY,
+        tic_api_print(tic, category->title, textX, rect.y + TextY,
                       open ? tic_color_white : tic_color_dark_grey, true, 1, false);
     }
 
@@ -651,7 +667,7 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
     }
 
     // The menu owns the pointer: over the bar, or anywhere while it is open.
-    if(menubar->open >= 0 || pos.y < MENUBAR_HEIGHT)
+    if(menubar->open >= 0 || pos.y < menubar->y + MENUBAR_HEIGHT)
         ui_cursor(tic, tic_cursor_arrow);
 
     if(menubar->pending)

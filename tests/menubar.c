@@ -338,6 +338,42 @@ static void testGroupStaysOpen(tic_mem* tic)
     puts("group stays open ok");
 }
 
+static void testAutohide(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    bar.autohide = true;
+
+    // Away from the top, the bar slides out.
+    moveTo(tic, 200, 100);
+
+    for(s32 i = 0; i < MENUBAR_HEIGHT + 1; i++)
+        step(&bar, tic);
+
+    assert(bar.y == -MENUBAR_HEIGHT);
+
+    // Back in the top strip, it slides in.
+    moveTo(tic, 10, 0);
+
+    for(s32 i = 0; i < MENUBAR_HEIGHT + 1; i++)
+        step(&bar, tic);
+
+    assert(bar.y == 0);
+
+    // An open menu keeps it shown.
+    clickAt(tic, 10, 3);
+    step(&bar, tic);
+    assert(bar.open == AppMain);
+
+    moveTo(tic, 200, 100);
+
+    for(s32 i = 0; i < MENUBAR_HEIGHT + 1; i++)
+        step(&bar, tic);
+
+    assert(bar.y == 0);
+
+    puts("autohide ok");
+}
+
 static void testChecked(tic_mem* tic)
 {
     Menubar bar = makeMenubar();
@@ -496,6 +532,7 @@ int main(void)
     testTitleSwitch(tic);
     testClickConsumption(tic);
     testGroupStaysOpen(tic);
+    testAutohide(tic);
     testChecked(tic);
     testSubmenuHover(tic);
     testSubmenuFollow(tic);

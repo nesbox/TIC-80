@@ -24,10 +24,23 @@
 #include "studio/keyboard.h"
 #include "ext/history.h"
 
-#define MAP_WIDTH  (TIC80_WIDTH)
-#define MAP_HEIGHT (TIC80_HEIGHT - STUDIO_BAR_HEIGHT)
-#define MAP_X      (0)
-#define MAP_Y      (STUDIO_BAR_HEIGHT)
+#define MAP_WIDTH (TIC80_WIDTH)
+#define MAP_X     (0)
+
+static s32 mapY(const Map* map)
+{
+    return getStudioEditorTop(map->studio);
+}
+
+static s32 mapHeight(const Map* map)
+{
+    return TIC80_HEIGHT - mapY(map);
+}
+
+// The map fills the screen under autohide, but its input stays below the bar:
+// the top strip is the menu's.
+#define MAP_INPUT_Y      (STUDIO_BAR_HEIGHT)
+#define MAP_INPUT_HEIGHT (TIC80_HEIGHT - STUDIO_BAR_HEIGHT)
 
 #define MAX_SCROLL_X (TIC_MAP_WIDTH * TIC_SPRITESIZE)
 #define MAX_SCROLL_Y (TIC_MAP_HEIGHT * TIC_SPRITESIZE)
@@ -243,7 +256,7 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
     if(px + width >= TIC80_WIDTH) px = x - (width + 2);
 
     s32 py = y - (TIC_FONT_HEIGHT + 2);
-    if(py <= STUDIO_BAR_HEIGHT) py = y + (TIC_SPRITESIZE + 3);
+    if(py <= MAP_INPUT_Y) py = y + (TIC_SPRITESIZE + 3);
 
     tic_api_rect(map->tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, tic_color_white);
     tic_api_print(map->tic, pos, px, py, tic_color_light_grey, true, 1, false);
@@ -339,7 +352,7 @@ static void drawTileCursorVBank1(Map* map)
 
 static void processMouseDrawMode(Map* map)
 {
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     setCursor(map->studio, tic_cursor_hand);
 
@@ -393,7 +406,7 @@ static void processMouseDrawMode(Map* map)
 static void processScrolling(Map* map, bool pressed)
 {
     tic_mem* tic = map->tic;
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     if(map->scroll.active)
     {
@@ -423,7 +436,7 @@ static void processScrolling(Map* map, bool pressed)
 
 static void processMouseDragMode(Map* map)
 {
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     processScrolling(map, checkMouseDown(map->studio, &rect, tic_mouse_left) ||
                               checkMouseDown(map->studio, &rect, tic_mouse_right));
@@ -476,7 +489,7 @@ static void drawPasteData(Map* map)
     s32 mx = tic_api_mouse(tic).x + map->scroll.x - (w - 1) * TIC_SPRITESIZE / 2;
     s32 my = tic_api_mouse(tic).y + map->scroll.y - (h - 1) * TIC_SPRITESIZE / 2;
 
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     if(checkMouseClick(map->studio, &rect, tic_mouse_left))
     {
@@ -553,7 +566,7 @@ static void normalizeMapRect(s32* x, s32* y)
 static void processMouseSelectMode(Map* map)
 {
     tic_mem* tic = map->tic;
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     if(checkMousePos(map->studio, &rect))
     {
@@ -769,7 +782,7 @@ static void replaceTile(Map* map, s32 x, s32 y, u8 tile)
 
 static void processMouseFillMode(Map* map)
 {
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     setCursor(map->studio, tic_cursor_hand);
 
@@ -852,7 +865,7 @@ static void drawGrid(Map* map)
 static void drawMapReg(Map* map)
 {
     tic_mem* tic = map->tic;
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     bool handle = !sheetVisible(map) && checkMousePos(map->studio, &rect);
     bool space = tic_api_key(tic, tic_key_space);
@@ -1094,7 +1107,7 @@ static void tick(Map* map)
 
         memcpy(tic->ram->vram.palette.data, getConfig(map->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
-        tic_api_clip(tic, 0, STUDIO_BAR_HEIGHT, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE + 2 : 0), TIC80_HEIGHT - STUDIO_BAR_HEIGHT);
+        tic_api_clip(tic, 0, mapY(map), TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE + 2 : 0), mapHeight(map));
         {
             s32 screenScrollX = map->scroll.x % TIC80_WIDTH;
             s32 screenScrollY = map->scroll.y % TIC80_HEIGHT;
@@ -1107,7 +1120,7 @@ static void tick(Map* map)
         drawSheetVBank1(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, STUDIO_BAR_HEIGHT);
 
         {
-            tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+            tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
             if(!sheetVisible(map) && checkMousePos(map->studio, &rect) && !tic_api_key(tic, tic_key_space))
             {
                 switch(map->mode)
@@ -1191,7 +1204,7 @@ void initMap(Map* map, Studio* studio, tic_map* src)
 {
     enum
     {
-        SheetStart = -(TIC_SPRITESHEET_SIZE + STUDIO_BAR_HEIGHT)
+        SheetStart = -(TIC_SPRITESHEET_SIZE + STUDIO_BAR_HEIGHT) - 1
     };
 
     if(map->history) history_delete(map->history);

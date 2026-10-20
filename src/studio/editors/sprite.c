@@ -1985,6 +1985,9 @@ static void tick(Sprite* sprite)
 
         static const tic_rect bg[] =
             {
+                // vbank1's cyan is the clear colour, so the strip over the
+                // main screen must be painted with a real colour.
+                {0, 0, TIC80_WIDTH, BarH},
                 {0, BarH, SheetX, CanvasY - BarH},
                 {0, CanvasY, CanvasX, CanvasH},
                 {CanvasX + CanvasW, CanvasY, SheetX - (CanvasX + CanvasW), CanvasH},

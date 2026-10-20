@@ -40,7 +40,7 @@
 // panel keeps its own height.
 static s32 getCodeHeight(const Code* code)
 {
-    return TIC80_HEIGHT - STUDIO_BAR_HEIGHT - (code->showStatusbar ? STUDIO_TEXT_HEIGHT : 0);
+    return TIC80_HEIGHT - getStudioEditorTop(code->studio) - (code->showStatusbar ? STUDIO_TEXT_HEIGHT : 0);
 }
 
 static s32 getCodeTextHeight(const Code* code)
@@ -280,7 +280,7 @@ static void drawGutter(Code* code)
     tic_mem* tic = code->tic;
     const s32 gutterWidth = getGutterWidth(code);
     const s32 gutterHeight = getCodeHeight(code);
-    tic_rect rect = {0, STUDIO_BAR_HEIGHT, gutterWidth, gutterHeight};
+    tic_rect rect = {0, getStudioEditorTop(code->studio), gutterWidth, gutterHeight};
     s32 mouseOverLine = -1;
 
     // draw the background rectangle
@@ -403,7 +403,7 @@ static void drawCode(Code* code, bool withCursor)
 {
     s32 gutterWidth, codeWidth;
     getWidths(code, &gutterWidth, &codeWidth);
-    tic_rect rect = {gutterWidth, STUDIO_BAR_HEIGHT, codeWidth, getCodeHeight(code)};
+    tic_rect rect = {gutterWidth, getStudioEditorTop(code->studio), codeWidth, getCodeHeight(code)};
 
     s32 xStart = rect.x - code->scroll.x * getFontWidth(code);
     s32 x = xStart;
@@ -3557,7 +3557,7 @@ static void processMouse(Code* code)
     tic_mem* tic = code->tic;
     s32 gutterWidth, codeWidth;
     getWidths(code, &gutterWidth, &codeWidth);
-    tic_rect rect = {gutterWidth, STUDIO_BAR_HEIGHT, codeWidth, getCodeHeight(code)};
+    tic_rect rect = {gutterWidth, getStudioEditorTop(code->studio), codeWidth, getCodeHeight(code)};
 
     if(checkMousePos(code->studio, &rect))
     {
@@ -3679,9 +3679,10 @@ static void drawPopupBar(Code* code, const char* title)
     s32 pos = code->anim.pos;
     const s32 TextX = getGutterWidth(code);
 
-    tic_api_rect(code->tic, 0, STUDIO_BAR_HEIGHT + pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, tic_color_grey);
+    const s32 bar = getStudioEditorTop(code->studio);
+    tic_api_rect(code->tic, 0, bar + pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, tic_color_grey);
 
-    s32 textY = (STUDIO_BAR_HEIGHT + 1) + pos;
+    s32 textY = (bar + 1) + pos;
 
     if(code->shadowText)
         tic_api_print(code->tic, title, TextX + 1, textY + 1, tic_color_black, true, 1, code->altFont);
@@ -3895,7 +3896,7 @@ static void textGoToTick(Code* code)
     tic_api_cls(tic, getConfig(code->studio)->theme.code.BG);
 
     if(code->jump.line >= 0)
-        tic_api_rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT + 1) + STUDIO_BAR_HEIGHT,
+        tic_api_rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT + 1) + getStudioEditorTop(code->studio),
                      TIC80_WIDTH, TIC_FONT_HEIGHT + 2, getConfig(code->studio)->theme.code.select);
 
     drawCode(code, false);

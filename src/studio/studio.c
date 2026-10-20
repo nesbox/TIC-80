@@ -1181,6 +1181,17 @@ bool studio_is_cart_loaded(Studio* studio)
     return strlen(studio->rom.name) > 0 || studio->boot.cart;
 }
 
+s32 getStudioEditorTop(Studio* studio)
+{
+#if defined(BUILD_EDITORS)
+    // With autohide the editors fill the screen and the bar overlays them.
+    return studio->menubar.autohide ? 0 : STUDIO_BAR_HEIGHT;
+#else
+    (void)studio;
+    return STUDIO_BAR_HEIGHT;
+#endif
+}
+
 void setStudioMode(Studio* studio, EditorMode mode)
 {
     if(mode != studio->mode)
@@ -2115,6 +2126,7 @@ enum
     OptionCrt,
     OptionFullscreen,
     OptionIntegerScale,
+    OptionAutohide,
     OptionAutosave,
 };
 
@@ -2137,6 +2149,10 @@ static void menubarOption(void* data, s32 id)
         case OptionIntegerScale:
             studio->config->data.options.integerScale = !studio->config->data.options.integerScale;
             break;
+
+        case OptionAutohide:
+            studio->menubar.autohide = !studio->menubar.autohide;
+            return;
 
         case OptionAutosave:
             studio->config->data.options.autosave = !studio->config->data.options.autosave;
@@ -2319,6 +2335,7 @@ static MenuBarItem MenubarOptions[] =
 #endif
         {"FULLSCREEN", "F11", menubarOption, OptionFullscreen, true, false, 0, 0, NULL, 0},
         {"INTEGER SCALE", NULL, menubarOption, OptionIntegerScale, true, false, 0, 0, NULL, 0},
+        {"AUTOHIDE MENU", NULL, menubarOption, OptionAutohide, true, false, 0, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"AUTOSAVE", NULL, menubarOption, OptionAutosave, true, false, 0, 0, NULL, 0},
 };
@@ -2657,6 +2674,7 @@ static void updateMenubar(Studio* studio)
 #endif
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionFullscreen, tic_sys_fullscreen_get());
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionIntegerScale, studio->config->data.options.integerScale);
+    menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionAutohide, studio->menubar.autohide);
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionAutosave, studio->config->data.options.autosave);
 
     s32 tabSize = studio->config->data.options.tabSize;
@@ -3204,6 +3222,7 @@ static void renderStudio(Studio* studio)
                 menuMouse[i].dbl.click = false;
             }
         }
+
 #endif
 
         if(app->tick)

@@ -77,6 +77,9 @@ typedef struct
     s32 requested; // MENUBAR_NO_MODE when nothing is asked
     u8 checkIcon;  // the host's atlas icon for a toggle without one; 0 for none
 
+    bool autohide; // the host's toggle: slide the bar away when the pointer leaves
+    s32 y;         // bar offset: 0 shown, -MENUBAR_HEIGHT hidden
+
     s32 open;
     const MenuBarCategory* sub; // the open submenu
     s32 subItem;                // the parent row it hangs from
