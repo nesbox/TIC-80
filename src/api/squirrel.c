@@ -2028,6 +2028,7 @@ static void callSquirrelTick(tic_mem* tic)
 
     if(vm)
     {
+        sq_collectgarbage(vm);
         sq_pushroottable(vm);
         sq_pushstring(vm, TIC_FN, -1);
 
