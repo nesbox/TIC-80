@@ -163,7 +163,7 @@ static SQInteger squirrel_peek1(HSQUIRRELVM vm)
 
     // check number of args
     if(sq_gettop(vm) != 2)
-        return sq_throwerror(vm, "invalid parameters, peek4(address)");
+        return sq_throwerror(vm, "invalid parameters, peek1(address)");
     s32 address = getSquirrelNumber(vm, 2);
 
     sq_pushinteger(vm, core->api.peek1(tic, address));
@@ -176,7 +176,7 @@ static SQInteger squirrel_poke1(HSQUIRRELVM vm)
     tic_mem* tic = (tic_mem*)core;
 
     if(sq_gettop(vm) != 3)
-        return sq_throwerror(vm, "invalid parameters, poke4(address,value)");
+        return sq_throwerror(vm, "invalid parameters, poke1(address,value)");
 
     s32 address = getSquirrelNumber(vm, 2);
     u8 value = (u8)(getSquirrelNumber(vm, 3));
@@ -647,13 +647,11 @@ static SQInteger squirrel_ttri(HSQUIRRELVM vm)
 static SQInteger squirrel_clip(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);
+    tic_core* core = getSquirrelCore(vm);
 
     if(top == 1)
     {
-        tic_core* core = getSquirrelCore(vm);
-        tic_mem* tic = (tic_mem*)core;
-
-        core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+        core->api.clip((tic_mem*)core, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
     }
     else if(top == 5)
     {
@@ -662,9 +660,7 @@ static SQInteger squirrel_clip(HSQUIRRELVM vm)
         s32 w = getSquirrelNumber(vm, 4);
         s32 h = getSquirrelNumber(vm, 5);
 
-        tic_core* core = getSquirrelCore(vm);
-
-        core->api.clip((tic_mem*)getSquirrelCore(vm), x, y, w, h);
+        core->api.clip((tic_mem*)core, x, y, w, h);
     }
     else
         return sq_throwerror(vm, "invalid parameters, use clip(x,y,w,h) or clip()\n");
@@ -762,7 +758,7 @@ static SQInteger squirrel_spr(HSQUIRRELVM vm)
                     {
                         sq_pushinteger(vm, (SQInteger)i);
                         sq_rawget(vm, 5);
-                        if(sq_gettype(vm, -1) & (OT_FLOAT | OT_INTEGER))
+                        if(sq_gettype(vm, -1) & SQOBJECT_NUMERIC)
                         {
                             colors[i] = (u8)(getSquirrelNumber(vm, -1));
                             count++;
@@ -849,7 +845,7 @@ static SQInteger squirrel_mset(HSQUIRRELVM vm)
         core->api.mset(tic, x, y, val);
     }
     else
-        return sq_throwerror(vm, "invalid params, mget(x,y)\n");
+        return sq_throwerror(vm, "invalid params, mset(x,y,value)\n");
 
     return 0;
 }
@@ -936,7 +932,7 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
                         {
                             sq_pushinteger(vm, (SQInteger)i);
                             sq_rawget(vm, 8);
-                            if(sq_gettype(vm, -1) & (OT_FLOAT | OT_INTEGER))
+                            if(sq_gettype(vm, -1) & SQOBJECT_NUMERIC)
                             {
                                 colors[i] = (u8)(getSquirrelNumber(vm, -1));
                                 count++;
@@ -962,7 +958,9 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
                         if(top >= 10)
                         {
                             SQObjectType type = sq_gettype(vm, 10);
-                            if(type & (OT_CLOSURE | OT_NATIVECLOSURE | OT_INSTANCE))
+                            // do a direct type check rather than bitwise, since it will
+                            // incorrectly match any reference-counted type
+                            if(type == OT_CLOSURE || type == OT_NATIVECLOSURE || type == OT_INSTANCE)
                             {
                                 RemapData data = {.vm = vm};
                                 sq_resetobject(&data.reg);
