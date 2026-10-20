@@ -1800,6 +1800,7 @@ enum
     MenuActionQuit,
     MenuActionSave,
     MenuActionRun,
+    MenuActionResume,
     MenuActionUndo,
     MenuActionRedo,
     MenuActionCut,
@@ -1837,6 +1838,7 @@ static void menubarAction(void* data, s32 id)
         case MenuActionQuit: exitStudio(studio); break;
         case MenuActionSave: saveProject(studio); break;
         case MenuActionRun: runGame(studio, RUN_FROM_STUDIO); break;
+        case MenuActionResume: resumeGame(studio); break;
 
         case MenuActionUndo:
         case MenuActionRedo:
@@ -2043,6 +2045,27 @@ static void menubarExport(void* data, s32 id)
     studio->menubar.requested = TIC_CONSOLE_MODE;
 }
 
+static void menubarNew(void* data, s32 id)
+{
+    Studio* studio = data;
+    char command[TICNAME_MAX];
+
+    if(id >= 0)
+    {
+        const tic_script* script = tic_scripts()[id];
+
+        if(!script)
+            return;
+
+        snprintf(command, sizeof command, "new %.*s", (s32)sizeof command - 5, script->name);
+    }
+    else
+        snprintf(command, sizeof command, "new");
+
+    console_exec(studio->console, command);
+    studio->menubar.requested = TIC_CONSOLE_MODE;
+}
+
 static void menubarHelp(void* data, s32 id)
 {
     Studio* studio = data;
@@ -2215,7 +2238,7 @@ static void initMenubarApps(void)
     }
 
     MenubarApps[count++] = (MenuBarItem){"", NULL, NULL, 0, true, true, 0, 0, NULL, -1};
-    MenubarApps[count++] = (MenuBarItem){"CONSOLE", NULL, menubarSetMode, TIC_CONSOLE_MODE, true, false, 0, 0, NULL, -1};
+    MenubarApps[count++] = (MenuBarItem){"CONSOLE", "ESC", menubarSetMode, TIC_CONSOLE_MODE, true, false, 0, 0, NULL, -1};
 #if defined(BUILD_SURF)
     MenubarApps[count++] = (MenuBarItem){"SURF", NULL, menubarSetMode, TIC_SURF_MODE, true, false, 0, 0, NULL, -1};
 #endif
@@ -2410,8 +2433,10 @@ static const MenuBarItem MenubarEdit[] =
 
 static MenuBarItem MenubarTic[] =
     {
-        {"SAVE", "CTRL+S", menubarAction, MenuActionSave, true, false, 0, 0, NULL, -1},
+        {"NEW", NULL, NULL, 0, true, false, 0, 0, NULL, -1},
         {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, 0, 0, NULL, -1},
+        {"RESUME", NULL, menubarAction, MenuActionResume, true, false, 0, 0, NULL, -1},
+        {"SAVE", "CTRL+S", menubarAction, MenuActionSave, true, false, 0, 0, NULL, -1},
         {"EXPORT", NULL, NULL, 0, true, false, 0, 0, &MenubarExportMenu, -1},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"SCREENSHOT", "F8", menubarAction, MenuActionScreenshot, true, false, 0, 0, NULL, -1},
@@ -2422,6 +2447,72 @@ static MenuBarItem MenubarTic[] =
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"QUIT", "CTRL+Q", menubarAction, MenuActionQuit, true, false, 0, 0, NULL, -1},
 };
+
+// The NEW item grows a submenu when the build has more than one language.
+enum
+{
+    MenubarNewMax = 16,
+    MenubarNewIndex = 0, // NEW, RUN, RESUME, SAVE, EXPORT
+};
+
+static MenuBarItem MenubarNewItems[MenubarNewMax];
+static char MenubarNewLabels[MenubarNewMax][16];
+static MenuBarCategory MenubarNewMenu = {"NEW", MenubarNewItems, 0, false, 0, -1, 0, false};
+
+static void initMenubarNew(void)
+{
+    s32 count = 0;
+
+    FOREACH_LANG(script)
+    {
+        if(count < MenubarNewMax)
+        {
+            s32 j = 0;
+
+            for(; script->name[j] && j < (s32)sizeof MenubarNewLabels[count] - 1; j++)
+                MenubarNewLabels[count][j] = (char)toupper((u8)script->name[j]);
+
+            MenubarNewLabels[count][j] = '\0';
+
+            MenubarNewItems[count] = (MenuBarItem){
+                .label = MenubarNewLabels[count],
+                .accel = NULL,
+                .handler = menubarNew,
+                .id = count,
+                .enabled = true,
+                .separator = false,
+                .icon = 0,
+                .color = 0,
+                .submenu = NULL,
+                .checked = -1,
+            };
+        }
+
+        count++;
+    }
+
+    s32 available = MIN(count, MenubarNewMax);
+    MenubarNewMenu.count = available;
+
+    MenuBarItem* item = &MenubarTic[MenubarNewIndex];
+
+    if(available == 1)
+    {
+        item->handler = menubarNew;
+        item->id = -1;
+        item->submenu = NULL;
+        item->enabled = true;
+    }
+    else if(available > 1)
+    {
+        item->handler = NULL;
+        item->id = 0;
+        item->submenu = &MenubarNewMenu;
+        item->enabled = true;
+    }
+    else
+        item->enabled = false;
+}
 
 static MenuBarCategory MenubarCategories[] =
     {
@@ -3939,6 +4030,7 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
 
 #if defined(BUILD_EDITORS)
     initMenubarApps();
+    initMenubarNew();
 
     menubar_init(&studio->menubar, MenubarCategories, COUNT_OF(MenubarCategories),
                  studio->mouse.state, studio, tic_icon_circle);

@@ -30,6 +30,7 @@ enum
     Disabled,
     SubAItem0,
     SubAItem1,
+    SubAItem2,
     SubBItem0,
     ToggleOn,
     ToggleOff,
@@ -50,6 +51,7 @@ static const MenuBarItem SubAItems[] =
     {
         {"SUB A ONE", NULL, hit, SubAItem0, true, false, 0, 0, NULL, -1},
         {"SUB A TWO", NULL, hit, SubAItem1, true, false, 0, 0, NULL, -1},
+        {"SUB A ON", NULL, hit, SubAItem2, true, false, 0, 0, NULL, 0},
 };
 
 static const MenuBarCategory SubAMenu = {"SUB A", SubAItems, COUNT_OF(SubAItems), false, 0, -1, 0, false};
@@ -90,7 +92,7 @@ static MenuBarCategory Categories[] =
         // First, so a click on the bar would land on it if it were not skipped.
         {"HIDDEN", HiddenItems, COUNT_OF(HiddenItems), false, 0, -1, 0, true},
         {"APP", MainItems, COUNT_OF(MainItems), false, 0, -1, 0, false},
-        {"RIGHT", RightItems, COUNT_OF(RightItems), true, 0, -1, 0, false},
+        {"RIGHT", RightItems, COUNT_OF(RightItems), true, 0, Two, 0, false},
 };
 
 static Menubar makeMenubar(void)
@@ -184,6 +186,29 @@ static void testOpenAndDispatch(tic_mem* tic)
     assert(Hits[One] == 1);
 
     puts("open and dispatch ok");
+}
+
+static void testToggleStaysOpen(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+
+    clickAt(tic, 10, 3);
+    step(&bar, tic);
+    assert(bar.open == AppMain);
+
+    // A checked item runs its handler but leaves the popup open.
+    clickAt(tic, ItemX + 5, itemY(6) + 3);
+    step(&bar, tic);
+
+    assert(bar.open == AppMain);
+    assert(!Mouse[tic_mouse_left].click);
+    assert(Hits[ToggleOn] == 0);
+
+    draw(&bar, tic);
+    assert(Hits[ToggleOn] == 1);
+    assert(bar.open == AppMain);
+
+    puts("toggle stays open ok");
 }
 
 static void testDisabled(tic_mem* tic)
@@ -291,6 +316,28 @@ static void testClickConsumption(tic_mem* tic)
     puts("click consumption ok");
 }
 
+static void testGroupStaysOpen(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+
+    clickAt(tic, 210, 3);
+    step(&bar, tic);
+    assert(bar.open == AppRight);
+
+    // The category marks a selection group, so its item keeps it open.
+    clickAt(tic, 180, 13);
+    step(&bar, tic);
+
+    assert(bar.open == AppRight);
+    assert(!Mouse[tic_mouse_left].click);
+    assert(Hits[Two] == 0);
+
+    draw(&bar, tic);
+    assert(Hits[Two] == 1);
+
+    puts("group stays open ok");
+}
+
 static void testChecked(tic_mem* tic)
 {
     Menubar bar = makeMenubar();
@@ -391,6 +438,27 @@ static void testOwnerClick(tic_mem* tic)
     puts("owner click ok");
 }
 
+static void testSubmenuToggleStaysOpen(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    openSubmenu(tic, &bar);
+
+    // The third submenu item is a toggle: it keeps the submenu open.
+    clickAt(tic, 89, itemY(4) + 17);
+    step(&bar, tic);
+
+    assert(bar.open == AppMain);
+    assert(bar.sub == &SubAMenu);
+    assert(!Mouse[tic_mouse_left].click);
+    assert(Hits[SubAItem2] == 0);
+
+    draw(&bar, tic);
+    assert(Hits[SubAItem2] == 1);
+    assert(bar.sub == &SubAMenu);
+
+    puts("submenu toggle stays open ok");
+}
+
 static void testSubmenuDispatch(tic_mem* tic)
 {
     Menubar bar = makeMenubar();
@@ -421,16 +489,19 @@ int main(void)
         tic_tool_poke4(Tiles.data[CheckIcon].data, i, 1);
 
     testOpenAndDispatch(tic);
+    testToggleStaysOpen(tic);
     testDisabled(tic);
     testClickAway(tic);
     testHidden(tic);
     testTitleSwitch(tic);
     testClickConsumption(tic);
+    testGroupStaysOpen(tic);
     testChecked(tic);
     testSubmenuHover(tic);
     testSubmenuFollow(tic);
     testSubmenuSwitch(tic);
     testOwnerClick(tic);
+    testSubmenuToggleStaysOpen(tic);
     testSubmenuDispatch(tic);
 
     tic_core_close(tic);

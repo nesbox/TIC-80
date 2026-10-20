@@ -427,7 +427,11 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
                 {
                     menubar->pending = item->handler;
                     menubar->pendingId = item->id;
-                    closeMenu(menubar);
+
+                    // A toggle, or an item in a selection group, stays open
+                    // so several can be chosen in one visit.
+                    if(item->checked < 0 && category->selected < 0)
+                        closeMenu(menubar);
                 }
 
                 return;
@@ -480,7 +484,9 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
                 {
                     menubar->pending = item->handler;
                     menubar->pendingId = item->id;
-                    closeMenu(menubar);
+
+                    if(item->checked < 0 && category->selected < 0)
+                        closeMenu(menubar);
                 }
 
                 return;
@@ -569,8 +575,8 @@ static void drawPopup(tic_mem* tic, const MenuBarCategory* category,
                           rect.x + rect.w - ItemPad - accelWidth(item->accel),
                           rect.y + TextY,
                           !item->enabled ? tic_color_light_grey
-                          : over         ? tic_color_dark_grey
-                                         : tic_color_grey,
+                          : over         ? tic_color_grey
+                                         : tic_color_light_grey,
                           true, 1, true);
     }
 
