@@ -1954,9 +1954,13 @@ static bool initSquirrel(tic_mem* tic, const char* code)
 
         sq_settop(current, 0);
 
-        if((SQ_FAILED(sq_compilebuffer(current, code, strlen(code), "squirrel", SQTrue))) ||
-           (sq_pushroottable(current), false) ||
-           (SQ_FAILED(sq_call(current, 1, SQFalse, SQTrue))))
+        // compile error already reported
+        if(SQ_FAILED(sq_compilebuffer(current, code, strlen(code), "squirrel", SQTrue)))
+            return false;
+
+        sq_pushroottable(current);
+
+        if(SQ_FAILED(sq_call(current, 1, SQFalse, SQTrue)))
         {
             sq_getlasterror(current);
             sq_tostring(current, -1);
@@ -2259,9 +2263,13 @@ void evalSquirrel(tic_mem* tic, const char* code)
 
     sq_settop(vm, 0);
 
-    if((SQ_FAILED(sq_compilebuffer(vm, code, strlen(code), "squirrel", SQTrue))) ||
-       (sq_pushroottable(vm), false) ||
-       (SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue))))
+    // compile error already reported
+    if(SQ_FAILED(sq_compilebuffer(vm, code, strlen(code), "squirrel", SQTrue)))
+        return;
+
+    sq_pushroottable(vm);
+
+    if(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue)))
     {
         sq_getlasterror(vm);
         sq_tostring(vm, -1);
