@@ -3128,7 +3128,7 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
     {
         const char* temp_path = args.fs ? args.fs : folder;
         char path[1024];
-        strncpy(path, temp_path, sizeof(path));
+        strcpy(path, temp_path);
         for(int i = (int)strlen(path) - 1; i >= 0; i--)
         {
             if(path[i] == '\\' || path[i] == '/')
