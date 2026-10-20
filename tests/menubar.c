@@ -342,7 +342,7 @@ static void testSubmenuFollow(tic_mem* tic)
 
     // The submenu overlaps the parent's edge, so the border column is inside
     // it: crossing slowly does not close it.
-    moveTo(tic, PopupX + 81, itemY(4) + 3);
+    moveTo(tic, PopupX + 77, itemY(4) + 3);
     step(&bar, tic);
     assert(bar.sub == &SubAMenu);
 

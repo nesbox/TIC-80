@@ -68,6 +68,12 @@ static s32 textWidth(const char* text)
     return text ? (s32)strlen(text) * TIC_FONT_WIDTH : 0;
 }
 
+// The accelerators use the small font, so their right edge needs its width.
+static s32 accelWidth(const char* text)
+{
+    return text ? (s32)strlen(text) * TIC_ALTFONT_WIDTH : 0;
+}
+
 static bool hasIcons(const MenuBarCategory* category)
 {
     for(s32 i = 0; i < category->count; i++)
@@ -166,7 +172,7 @@ static tic_rect popupSize(const MenuBarCategory* category)
             continue;
 
         labels = MAX(labels, textWidth(item->label));
-        right = MAX(right, textWidth(item->accel));
+        right = MAX(right, accelWidth(item->accel));
     }
 
     if(hasSubmenus(category))
@@ -560,12 +566,12 @@ static void drawPopup(tic_mem* tic, const MenuBarCategory* category,
                           true, 1, false);
         else if(item->accel)
             tic_api_print(tic, item->accel,
-                          rect.x + rect.w - ItemPad - textWidth(item->accel),
+                          rect.x + rect.w - ItemPad - accelWidth(item->accel),
                           rect.y + TextY,
                           !item->enabled ? tic_color_light_grey
                           : over         ? tic_color_dark_grey
                                          : tic_color_grey,
-                          true, 1, false);
+                          true, 1, true);
     }
 
     // Last, so an icon's eighth row cannot dent the outline.

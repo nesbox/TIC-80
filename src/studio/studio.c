@@ -2301,7 +2301,7 @@ static MenuBarItem MenubarBanks[] =
         BANK_ITEM(6),
         BANK_ITEM(7),
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"CHAIN BANKS", NULL, menubarBankChain, BankActionChain, true, false, 0, 0, NULL, 0},
+        {"CHAIN", NULL, menubarBankChain, BankActionChain, true, false, 0, 0, NULL, 0},
 };
 #undef BANK_ITEM
 #endif
