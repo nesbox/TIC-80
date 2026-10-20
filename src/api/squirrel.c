@@ -102,15 +102,17 @@ static SQInteger squirrel_errorHandler(HSQUIRRELVM vm)
 
     SQStackInfos si;
     SQInteger level = 0;
+    char message[4096] = "squirrel stack trace:";
     while(SQ_SUCCEEDED(sq_stackinfos(vm, level, &si)))
     {
-        char buffer[100];
-        snprintf(buffer, 99, "%.40s %.40s %.6d\n", si.funcname, si.source, (int)si.line);
-
-        if(core->data)
-            core->data->error(core->data->data, buffer);
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer) - 1, "\n % .5d %.40s", (int)si.line, si.funcname);
+        strncat(message, buffer, sizeof(message) - strlen(message) - 1);
         ++level;
     }
+
+    if(core->data)
+        core->data->error(core->data->data, message);
 
     return 0;
 }
