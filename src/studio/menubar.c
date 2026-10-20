@@ -535,6 +535,13 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
     }
 }
 
+// A checked circle carries a power LED: a 3x3 green body with a lit corner.
+static void drawCheckLed(tic_mem* tic, s32 x, s32 y)
+{
+    tic_api_rect(tic, x + 2, y + 2, 3, 3, tic_color_green);
+    tic_api_pix(tic, x + 4, y + 2, tic_color_white, false);
+}
+
 static void drawPopup(tic_mem* tic, const MenuBarCategory* category,
                       const tic_rect* popup, const tic_point* pos, const tic_tiles* icons,
                       u8 checkIcon, s32 activeRow)
@@ -589,6 +596,9 @@ static void drawPopup(tic_mem* tic, const MenuBarCategory* category,
                     item->checked ? tic_color_dark_grey
                     : over        ? tic_color_grey
                                   : tic_color_light_grey);
+
+            if(item->checked)
+                drawCheckLed(tic, rect.x + ItemPad, rect.y);
         }
 
         tic_api_print(tic, item->label, rect.x + ItemPad + iconX, rect.y + TextY,

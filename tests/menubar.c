@@ -439,6 +439,12 @@ static void testChecked(tic_mem* tic)
     assert(screenAt(tic, ItemX + 3, itemY(6)) == tic_color_dark_grey);
     assert(screenAt(tic, ItemX + 3, itemY(7)) == tic_color_light_grey);
 
+    // The checked circle carries the 3x3 green LED and its lit corner; the
+    // off one stays a plain circle.
+    assert(screenAt(tic, ItemX + 5, itemY(6) + 2) == tic_color_green);
+    assert(screenAt(tic, ItemX + 7, itemY(6) + 2) == tic_color_white);
+    assert(screenAt(tic, ItemX + 7, itemY(7) + 2) == tic_color_light_grey);
+
     puts("checked ok");
 }
 
