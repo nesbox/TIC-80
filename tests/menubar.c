@@ -392,6 +392,36 @@ static void testPartialBar(tic_mem* tic)
     puts("partial bar ok");
 }
 
+static void testPointerOwnership(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+
+    // No bar on screen: the pointer is the editor's.
+    bar.mode = MENUBAR_NO_MODE;
+    moveTo(tic, 10, 3);
+    assert(!menubar_owns_pointer(&bar, tic));
+
+    // Over the bar and below it.
+    moveTo(tic, 10, 3);
+    step(&bar, tic);
+    assert(menubar_owns_pointer(&bar, tic));
+
+    moveTo(tic, 10, 20);
+    step(&bar, tic);
+    assert(!menubar_owns_pointer(&bar, tic));
+
+    // An open popup owns the pointer everywhere.
+    clickAt(tic, 10, 3);
+    step(&bar, tic);
+    assert(bar.open == AppMain);
+
+    moveTo(tic, 200, 130);
+    step(&bar, tic);
+    assert(menubar_owns_pointer(&bar, tic));
+
+    puts("pointer ownership ok");
+}
+
 static void testChecked(tic_mem* tic)
 {
     Menubar bar = makeMenubar();
@@ -552,6 +582,7 @@ int main(void)
     testGroupStaysOpen(tic);
     testAutohide(tic);
     testPartialBar(tic);
+    testPointerOwnership(tic);
     testChecked(tic);
     testSubmenuHover(tic);
     testSubmenuFollow(tic);

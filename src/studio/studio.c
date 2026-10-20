@@ -1315,6 +1315,12 @@ bool checkStudioViMode(Studio* studio, ViMode mode)
 
 bool checkMousePos(Studio* studio, const tic_rect* rect)
 {
+#if defined(BUILD_EDITORS)
+    // The menu owns the pointer: the editor must not draw hover under it.
+    if(menubar_owns_pointer(&studio->menubar, studio->tic))
+        return false;
+#endif
+
     return mouse_over(studio->tic, rect);
 }
 

@@ -276,6 +276,19 @@ static void closeMenu(Menubar* menubar)
     menubar->subItem = -1;
 }
 
+// The menu takes the pointer: while a popup is open anywhere, and over the
+// bar itself when one is drawn.
+bool menubar_owns_pointer(const Menubar* menubar, tic_mem* tic)
+{
+    if(menubar->mode == MENUBAR_NO_MODE)
+        return false;
+
+    if(menubar->open >= 0)
+        return true;
+
+    return tic_api_mouse(tic).y < menubar->y + MENUBAR_HEIGHT;
+}
+
 void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
 {
     menubar->escaped = false;

@@ -91,3 +91,4 @@ typedef struct
 void menubar_init(Menubar*, MenuBarCategory*, s32 count, MouseState*, void* data, u8 checkIcon);
 void menubar_step(Menubar*, tic_mem*, s32 mode);
 void menubar_draw(Menubar*, tic_mem*, s32 mode, const tic_tiles* icons);
+bool menubar_owns_pointer(const Menubar*, tic_mem* tic);
