@@ -35,7 +35,19 @@
 #define MAX_GUTTER_WIDTH         (TIC_ALTFONT_WIDTH * MAX_LINE_NUMBER_DIGITS + 1)
 #define CODE_EDITOR_HEIGHT       (TIC80_HEIGHT - STUDIO_BAR_HEIGHT - STUDIO_TEXT_HEIGHT)
 #define TEXT_BUFFER_HEIGHT       (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
-#define SIDEBAR_WIDTH            (12 * TIC_FONT_WIDTH)
+
+// The code area loses the status bar when it is hidden; the right outline
+// panel keeps its own height.
+static s32 getCodeHeight(const Code* code)
+{
+    return TIC80_HEIGHT - STUDIO_BAR_HEIGHT - (code->showStatusbar ? STUDIO_TEXT_HEIGHT : 0);
+}
+
+static s32 getCodeTextHeight(const Code* code)
+{
+    return getCodeHeight(code) / STUDIO_TEXT_HEIGHT;
+}
+#define SIDEBAR_WIDTH (12 * TIC_FONT_WIDTH)
 
 #if defined(TIC80_PRO)
 #define MAX_CODE sizeof(tic_code)
@@ -151,8 +163,9 @@ static s32 getLinesCount(Code* code)
 static void getWidths(Code* code, s32* gutterWidthOut, s32* codeWidthOut)
 {
     int charCount = code->lineNumbers ? ((int)log10(code->status.lineCount + 1) + 1) : 0;
-    int gutterWidth = code->lineNumbers ? 1 + charCount * TIC_ALTFONT_WIDTH : MIN_GUTTER_WIDTH;
-    gutterWidth = MAX(gutterWidth, MIN_GUTTER_WIDTH);
+    int gutterWidth = code->showSidebar
+                          ? MAX(code->lineNumbers ? 1 + charCount * TIC_ALTFONT_WIDTH : MIN_GUTTER_WIDTH, MIN_GUTTER_WIDTH)
+                          : 0;
     int codeWidth = TIC80_WIDTH - gutterWidth;
 
     if(gutterWidthOut) *gutterWidthOut = gutterWidth;
@@ -175,6 +188,9 @@ static inline s32 getGutterWidth(Code* code)
 
 static void drawStatus(Code* code)
 {
+    if(!code->showStatusbar)
+        return;
+
     enum
     {
         Height = TIC_FONT_HEIGHT + 1,
@@ -258,9 +274,12 @@ static void toggleBookmark(Code* code, char* codePos)
 
 static void drawGutter(Code* code)
 {
+    if(!code->showSidebar)
+        return;
+
     tic_mem* tic = code->tic;
     const s32 gutterWidth = getGutterWidth(code);
-    const s32 gutterHeight = TIC80_HEIGHT - STUDIO_BAR_HEIGHT * 2;
+    const s32 gutterHeight = getCodeHeight(code);
     tic_rect rect = {0, STUDIO_BAR_HEIGHT, gutterWidth, gutterHeight};
     s32 mouseOverLine = -1;
 
@@ -384,7 +403,7 @@ static void drawCode(Code* code, bool withCursor)
 {
     s32 gutterWidth, codeWidth;
     getWidths(code, &gutterWidth, &codeWidth);
-    tic_rect rect = {gutterWidth, STUDIO_BAR_HEIGHT, codeWidth, CODE_EDITOR_HEIGHT};
+    tic_rect rect = {gutterWidth, STUDIO_BAR_HEIGHT, codeWidth, getCodeHeight(code)};
 
     s32 xStart = rect.x - code->scroll.x * getFontWidth(code);
     s32 x = xStart;
@@ -620,8 +639,8 @@ static void updateEditor(Code* code)
 
     if(line < code->scroll.y)
         code->scroll.y = line;
-    else if(line >= code->scroll.y + TEXT_BUFFER_HEIGHT)
-        code->scroll.y = line - TEXT_BUFFER_HEIGHT + 1;
+    else if(line >= code->scroll.y + getCodeTextHeight(code))
+        code->scroll.y = line - getCodeTextHeight(code) + 1;
 
     code->cursor.delay = TEXT_CURSOR_DELAY;
 
@@ -1267,7 +1286,7 @@ static void pageUp(Code* code)
     s32 column = 0;
     s32 line = 0;
     getCursorPosition(code, &column, &line);
-    setCursorPosition(code, column, line > TEXT_BUFFER_HEIGHT ? line - TEXT_BUFFER_HEIGHT : 0);
+    setCursorPosition(code, column, line > getCodeTextHeight(code) ? line - getCodeTextHeight(code) : 0);
 }
 
 static void pageDown(Code* code)
@@ -1276,12 +1295,12 @@ static void pageDown(Code* code)
     s32 line = 0;
     getCursorPosition(code, &column, &line);
     s32 lines = getLinesCount(code);
-    setCursorPosition(code, column, line < lines - TEXT_BUFFER_HEIGHT ? line + TEXT_BUFFER_HEIGHT : lines);
+    setCursorPosition(code, column, line < lines - getCodeTextHeight(code) ? line + getCodeTextHeight(code) : lines);
 }
 
 static void halfPageUp(Code* code)
 {
-    s32 half = TEXT_BUFFER_HEIGHT / 2;
+    s32 half = getCodeTextHeight(code) / 2;
     s32 column = 0;
     s32 line = 0;
     getCursorPosition(code, &column, &line);
@@ -1289,7 +1308,7 @@ static void halfPageUp(Code* code)
 }
 static void halfPageDown(Code* code)
 {
-    s32 half = TEXT_BUFFER_HEIGHT / 2;
+    s32 half = getCodeTextHeight(code) / 2;
     s32 column = 0;
     s32 line = 0;
     getCursorPosition(code, &column, &line);
@@ -1937,7 +1956,7 @@ static void recenterScroll(Code* code, bool emacsMode)
     getCursorPosition(code, &col, &line);
 
     s32 desiredCol = col - getCodeEditorWidth(code) / getFontWidth(code) / 2;
-    s32 desiredLine = MAX(0, line - TEXT_BUFFER_HEIGHT / 2);
+    s32 desiredLine = MAX(0, line - getCodeTextHeight(code) / 2);
 
     if(emacsMode && code->scroll.y == desiredLine)
     {
@@ -1945,7 +1964,7 @@ static void recenterScroll(Code* code, bool emacsMode)
     }
     else if(emacsMode && code->scroll.y == line)
     {
-        desiredLine = line - TEXT_BUFFER_HEIGHT;
+        desiredLine = line - getCodeTextHeight(code);
     }
 
     code->scroll.x = desiredCol;
@@ -3538,7 +3557,7 @@ static void processMouse(Code* code)
     tic_mem* tic = code->tic;
     s32 gutterWidth, codeWidth;
     getWidths(code, &gutterWidth, &codeWidth);
-    tic_rect rect = {gutterWidth, STUDIO_BAR_HEIGHT, codeWidth, CODE_EDITOR_HEIGHT};
+    tic_rect rect = {gutterWidth, STUDIO_BAR_HEIGHT, codeWidth, getCodeHeight(code)};
 
     if(checkMousePos(code->studio, &rect))
     {
@@ -4192,6 +4211,8 @@ void initCode(Code* code, Studio* studio)
         .altFont = firstLoad ? getConfig(studio)->theme.code.altFont : code->altFont,
         .shadowText = getConfig(studio)->theme.code.shadow,
         .lineNumbers = firstLoad ? getConfig(studio)->theme.code.lineNumbers : code->lineNumbers,
+        .showSidebar = firstLoad ? getConfig(studio)->theme.code.lineNumbers : code->showSidebar,
+        .showStatusbar = firstLoad ? true : code->showStatusbar,
         .anim =
             {
                 .idle = {

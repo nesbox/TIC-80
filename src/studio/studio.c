@@ -1865,6 +1865,8 @@ enum
     CodeActionFont,
     CodeActionShadow,
     CodeActionLineNumbers,
+    CodeActionSidebar,
+    CodeActionStatusbar,
 };
 
 enum
@@ -1957,7 +1959,24 @@ static void menubarCodeAction(void* data, s32 id)
         case CodeActionOutline: codeOutline(code); break;
         case CodeActionFont: code->altFont = !code->altFont; break;
         case CodeActionShadow: code->shadowText = !code->shadowText; break;
-        case CodeActionLineNumbers: code->lineNumbers = !code->lineNumbers; break;
+
+        case CodeActionLineNumbers:
+            code->lineNumbers = !code->lineNumbers;
+
+            if(code->lineNumbers)
+                code->showSidebar = true;
+            break;
+
+        case CodeActionSidebar:
+            code->showSidebar = !code->showSidebar;
+
+            if(!code->showSidebar)
+                code->lineNumbers = false;
+            break;
+
+        case CodeActionStatusbar:
+            code->showStatusbar = !code->showStatusbar;
+            break;
     }
 }
 
@@ -2296,7 +2315,7 @@ static const MenuBarCategory MenubarEditorMenu = {"EDITOR", MenubarEditor, COUNT
 static MenuBarItem MenubarOptions[] =
     {
 #if defined(CRT_SHADER_SUPPORT)
-        {"CRT", "F6", menubarOption, OptionCrt, true, false, 0, 0, NULL, 0},
+        {"CRT MONITOR", "F6", menubarOption, OptionCrt, true, false, 0, 0, NULL, 0},
 #endif
         {"FULLSCREEN", "F11", menubarOption, OptionFullscreen, true, false, 0, 0, NULL, 0},
         {"INTEGER SCALE", NULL, menubarOption, OptionIntegerScale, true, false, 0, 0, NULL, 0},
@@ -2339,10 +2358,10 @@ static MenuBarItem MenubarCodeApp[] =
         {"TINY FONT", "ALT+F", menubarCodeAction, CodeActionFont, true, false, 0, 0, NULL, 0},
         {"SHADOW", "ALT+S", menubarCodeAction, CodeActionShadow, true, false, tic_icon_shadow, 0, NULL, 0},
         {"LINES", "ALT+L", menubarCodeAction, CodeActionLineNumbers, true, false, tic_icon_line_numbers, 0, NULL, 0},
+        {"SIDEBAR", NULL, menubarCodeAction, CodeActionSidebar, true, false, 0, 0, NULL, 0},
+        {"STATUSBAR", NULL, menubarCodeAction, CodeActionStatusbar, true, false, 0, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"OPTIONS", NULL, NULL, 0, true, false, 0, 0, &MenubarEditorMenu, -1},
-        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
 };
 
 static MenuBarItem MenubarBpp[] =
@@ -2382,8 +2401,6 @@ static MenuBarItem MenubarSpriteApp[] =
         {"BPP", NULL, NULL, 0, true, false, 0, 0, &MenubarBppMenu, -1},
         {"PALETTE", NULL, NULL, 0, true, false, 0, 0, &MenubarPaletteMenu, -1},
         {"SIZE", NULL, NULL, 0, true, false, 0, 0, &MenubarSizeMenu, -1},
-        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
 };
 
 static MenuBarItem MenubarMapApp[] =
@@ -2395,8 +2412,6 @@ static MenuBarItem MenubarMapApp[] =
         {"RANDOM", "R", menubarMapAction, MapActionRandom, true, false, tic_icon_random, 0, NULL, 0},
         {"TILESET", "SHIFT", menubarMapAction, MapActionTileset, true, false, 0, 0, NULL, 0},
         {"WORLD MAP", "TAB", menubarMapAction, MapActionWorld, true, false, tic_icon_world, 0, NULL, -1},
-        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
 };
 
 static MenuBarItem MenubarMusicApp[] =
@@ -2412,13 +2427,6 @@ static MenuBarItem MenubarMusicApp[] =
         {"PLAY FRAME", "ENTER", menubarMusicAction, MusicActionPlayFrame, true, false, tic_icon_playframe, 0, NULL, -1},
         {"PLAY TRACK", "SPACE", menubarMusicAction, MusicActionPlayTrack, true, false, tic_icon_right, 0, NULL, -1},
         {"STOP", "ENTER", menubarMusicAction, MusicActionStop, true, false, tic_icon_stop, 0, NULL, -1},
-        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
-};
-
-static const MenuBarItem MenubarDefaultApp[] =
-    {
-        {"RUN", "CTRL+R", menubarAction, MenuActionRun, true, false, tic_icon_run, 0, NULL, -1},
 };
 
 static const MenuBarItem MenubarEdit[] =
@@ -2518,7 +2526,7 @@ static MenuBarCategory MenubarCategories[] =
     {
         // The first title is the current editor's, set by updateMenubar.
         {"", MenubarApps, 0, false, 0, -1, 0, false},
-        {"MENU", MenubarDefaultApp, COUNT_OF(MenubarDefaultApp), false, 0, -1, 0, false},
+        {"MENU", NULL, 0, false, 0, -1, 0, false},
         {"EDIT", MenubarEdit, COUNT_OF(MenubarEdit), false, 0, -1, 0, false},
 #if defined(TIC80_PRO)
         {"BANK", MenubarBanks, COUNT_OF(MenubarBanks), false, tic_icon_bank, -1, tic_color_red, false},
@@ -2554,8 +2562,8 @@ static void updateMenubar(Studio* studio)
     MenubarCategories[0].count = MenubarAppsCount;
     MenubarCategories[0].selected = (s32)studio->mode;
 
-    const MenuBarItem* items = MenubarDefaultApp;
-    s32 count = COUNT_OF(MenubarDefaultApp);
+    const MenuBarItem* items = NULL;
+    s32 count = 0;
 
     switch(studio->mode)
     {
@@ -2572,6 +2580,8 @@ static void updateMenubar(Studio* studio)
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionFont, code->altFont);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionShadow, code->shadowText);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionLineNumbers, code->lineNumbers);
+            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionSidebar, code->showSidebar);
+            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionStatusbar, code->showStatusbar);
 
             items = MenubarCodeApp;
             count = COUNT_OF(MenubarCodeApp);
@@ -2640,6 +2650,7 @@ static void updateMenubar(Studio* studio)
     MenubarCategories[1].items = items;
     MenubarCategories[1].count = count;
     MenubarCategories[1].selected = -1;
+    MenubarCategories[1].hidden = count == 0;
 
 #if defined(CRT_SHADER_SUPPORT)
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionCrt, studio->config->data.options.crt);

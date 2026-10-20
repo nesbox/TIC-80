@@ -120,6 +120,8 @@ struct Code
     bool altFont;
     bool shadowText;
     bool lineNumbers;
+    bool showSidebar;
+    bool showStatusbar;
 
     struct
     {
