@@ -360,7 +360,7 @@ static SQInteger squirrel_rrect(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);
 
-    if(top >= 7 && top <= 8)
+    if(top >= 6 && top <= 8)
     {
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
@@ -385,7 +385,7 @@ static SQInteger squirrel_rrectb(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);
 
-    if(top >= 7 && top <= 8)
+    if(top >= 6 && top <= 8)
     {
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);

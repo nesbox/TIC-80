@@ -341,7 +341,7 @@ static s32 lua_rrect(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
 
-    if(top >= 6 && top <= 7)
+    if(top >= 5 && top <= 7)
     {
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
@@ -366,7 +366,7 @@ static s32 lua_rrectb(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
 
-    if(top >= 6 && top <= 7)
+    if(top >= 5 && top <= 7)
     {
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
