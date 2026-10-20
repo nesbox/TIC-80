@@ -1602,9 +1602,7 @@ static SQInteger squirrel_fget(HSQUIRRELVM vm)
         }
     }
 
-    sq_throwerror(vm, "invalid params, fget(index, flag) -> val\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, fget(index, flag) -> val\n");
 }
 
 static SQInteger squirrel_fset(HSQUIRRELVM vm)
@@ -1633,9 +1631,7 @@ static SQInteger squirrel_fset(HSQUIRRELVM vm)
         }
     }
 
-    sq_throwerror(vm, "invalid params, fset(index, flag, value)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, fset(index, flag, value)\n");
 }
 
 static SQInteger squirrel_vqt(HSQUIRRELVM vm)
@@ -1653,9 +1649,7 @@ static SQInteger squirrel_vqt(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqt(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqt(bin)\n");
 }
 
 static SQInteger squirrel_vqts(HSQUIRRELVM vm)
@@ -1673,9 +1667,7 @@ static SQInteger squirrel_vqts(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqts(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqts(bin)\n");
 }
 
 static SQInteger squirrel_vqtr(HSQUIRRELVM vm)
@@ -1693,9 +1685,7 @@ static SQInteger squirrel_vqtr(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtr(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtr(bin)\n");
 }
 
 static SQInteger squirrel_vqtrs(HSQUIRRELVM vm)
@@ -1713,9 +1703,7 @@ static SQInteger squirrel_vqtrs(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtrs(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtrs(bin)\n");
 }
 
 static SQInteger squirrel_vqtw(HSQUIRRELVM vm)
@@ -1733,9 +1721,7 @@ static SQInteger squirrel_vqtw(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtw(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtw(bin)\n");
 }
 
 static SQInteger squirrel_vqtsw(HSQUIRRELVM vm)
@@ -1753,9 +1739,7 @@ static SQInteger squirrel_vqtsw(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtsw(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtsw(bin)\n");
 }
 
 static SQInteger squirrel_vqtrw(HSQUIRRELVM vm)
@@ -1773,9 +1757,7 @@ static SQInteger squirrel_vqtrw(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtrw(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtrw(bin)\n");
 }
 
 static SQInteger squirrel_vqtrsw(HSQUIRRELVM vm)
@@ -1793,9 +1775,7 @@ static SQInteger squirrel_vqtrsw(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, vqtrsw(bin)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, vqtrsw(bin)\n");
 }
 
 static SQInteger squirrel_fft(HSQUIRRELVM vm)
@@ -1819,9 +1799,7 @@ static SQInteger squirrel_fft(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, fft(start_freq, end_freq)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, fft(start_freq, end_freq)\n");
 }
 
 static SQInteger squirrel_fftr(HSQUIRRELVM vm)
@@ -1845,9 +1823,7 @@ static SQInteger squirrel_fftr(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, fftr(start_freq, end_freq)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, fftr(start_freq, end_freq)\n");
 }
 
 static SQInteger squirrel_fftrs(HSQUIRRELVM vm)
@@ -1871,9 +1847,7 @@ static SQInteger squirrel_fftrs(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, fftrs(start_freq, end_freq)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, fftrs(start_freq, end_freq)\n");
 }
 
 static SQInteger squirrel_ffts(HSQUIRRELVM vm)
@@ -1897,9 +1871,7 @@ static SQInteger squirrel_ffts(HSQUIRRELVM vm)
         return 1;
     }
 
-    sq_throwerror(vm, "invalid params, ffts(start_freq, end_freq)\n");
-
-    return 0;
+    return sq_throwerror(vm, "invalid params, ffts(start_freq, end_freq)\n");
 }
 
 static SQInteger squirrel_dofile(HSQUIRRELVM vm)
