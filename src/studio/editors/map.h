@@ -71,7 +71,6 @@ struct Map
         tic_point start;
 
         bool active;
-        bool gesture;
 
     } scroll;
 

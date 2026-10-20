@@ -171,6 +171,9 @@ struct Studio
     // builds start their cart without runGame ever being called.
     bool playerRun;
     EditorMode runFrom;
+    // A run left for a menu, console or editor is paused and can be resumed;
+    // a new run or a loaded cart clears it.
+    bool paused;
     // Whether the menu was opened over that run (ESC in a game) rather than in
     // the studio (the `menu` command): only the first one has a game to go
     // back to.
@@ -729,20 +732,6 @@ static void md5(const void* voidData, s32 length, u8 digest[MD5_HASHSIZE])
     MD5_Final(digest, &c);
 }
 
-const char* md5str(const void* data, s32 length)
-{
-    static char res[MD5_HASHSIZE * 2 + 1];
-
-    u8 digest[MD5_HASHSIZE];
-
-    md5(data, length, digest);
-
-    for(s32 n = 0; n < MD5_HASHSIZE; ++n)
-        snprintf(res + n * 2, sizeof("ff"), "%02x", digest[n]);
-
-    return res;
-}
-
 #if defined(BUILD_EDITORS)
 void toClipboard(const void* data, s32 size, bool flip)
 {
@@ -806,10 +795,6 @@ void showTooltip(Studio* studio, const char* text)
              (s32)sizeof studio->tooltip.text - 1, text);
 }
 
-struct Sprite* getSpriteEditor(Studio* studio)
-{
-    return studio->banks.sprite[studio->bank.index.sprites];
-}
 #endif
 
 static inline s32 lerp(s32 a, s32 b, float d)
@@ -1126,6 +1111,8 @@ void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
 
 static void initRunMode(Studio* studio)
 {
+    studio->paused = false;
+
     initRun(studio->run,
 #if defined(BUILD_EDITORS)
             studio->console,
@@ -1199,7 +1186,10 @@ void setStudioMode(Studio* studio, EditorMode mode)
         EditorMode prev = studio->mode;
 
         if(prev == TIC_RUN_MODE)
+        {
             tic_core_pause(studio->tic);
+            studio->paused = true;
+        }
 
         if(mode != TIC_RUN_MODE)
             tic_api_reset(studio->tic);
@@ -1289,9 +1279,19 @@ static void changeStudioMode(Studio* studio, s32 dir)
 }
 #endif
 
+bool studio_run_paused(Studio* studio)
+{
+    return studio->paused;
+}
+
 void resumeGame(Studio* studio)
 {
+    if(!studio->paused)
+        return;
+
     tic_core_resume(studio->tic);
+    studio->run->exit = false;
+    studio->paused = false;
     studio->mode = TIC_RUN_MODE;
 }
 
@@ -1469,6 +1469,8 @@ void studioRomSaved(Studio* studio)
 
 void studioRomLoaded(Studio* studio)
 {
+    studio->paused = false;
+
     initModules(studio);
 
     updateTitle(studio);
@@ -1975,18 +1977,23 @@ static void menubarCodeAction(void* data, s32 id)
             code->lineNumbers = !code->lineNumbers;
 
             if(code->lineNumbers)
-                code->showSidebar = true;
+                code->showGutter = true;
+
+            code->update(code);
             break;
 
         case CodeActionSidebar:
-            code->showSidebar = !code->showSidebar;
+            code->showGutter = !code->showGutter;
 
-            if(!code->showSidebar)
+            if(!code->showGutter)
                 code->lineNumbers = false;
+
+            code->update(code);
             break;
 
         case CodeActionStatusbar:
             code->showStatusbar = !code->showStatusbar;
+            code->update(code);
             break;
     }
 }
@@ -2476,7 +2483,7 @@ static MenuBarItem MenubarTic[] =
 // The NEW item grows a submenu when the build has more than one language.
 enum
 {
-    MenubarNewMax = 16,
+    MenubarNewMax = MAX_SUPPORTED_LANGS,
     MenubarNewIndex = 0, // NEW, RUN, RESUME, SAVE, EXPORT
 };
 
@@ -2558,6 +2565,13 @@ static void menubarCheck(MenuBarItem* items, s32 count, s32 id, bool on)
             items[i].checked = on ? 1 : 0;
 }
 
+static void menubarEnable(MenuBarItem* items, s32 count, s32 id, bool enabled)
+{
+    for(s32 i = 0; i < count; i++)
+        if(items[i].id == id)
+            items[i].enabled = enabled;
+}
+
 static void menubarAccel(MenuBarItem* items, s32 count, s32 id, const char* accel)
 {
     for(s32 i = 0; i < count; i++)
@@ -2579,6 +2593,9 @@ static void updateMenubar(Studio* studio)
     MenubarCategories[0].count = MenubarAppsCount;
     MenubarCategories[0].selected = (s32)studio->mode;
 
+    // RESUME only means something while a paused run is still in the core.
+    menubarEnable(MenubarTic, COUNT_OF(MenubarTic), MenuActionResume, studio->paused);
+
     const MenuBarItem* items = NULL;
     s32 count = 0;
 
@@ -2597,7 +2614,7 @@ static void updateMenubar(Studio* studio)
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionFont, code->altFont);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionShadow, code->shadowText);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionLineNumbers, code->lineNumbers);
-            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionSidebar, code->showSidebar);
+            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionSidebar, code->showGutter);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionStatusbar, code->showStatusbar);
 
             items = MenubarCodeApp;
@@ -2794,7 +2811,7 @@ void gotoMenu(Studio* studio)
 // leave for the studio — the same step ESC takes in RUN mode (#2937).
 bool studio_menu_over_player_run(Studio* studio)
 {
-    return studio->playerRun && studio->menuOverRun;
+    return studio->playerRun && studio->menuOverRun && studio->paused;
 }
 
 // ESC in a dev run, and the back of the pause menu over one: the run was asked
@@ -3211,12 +3228,18 @@ static void renderStudio(Studio* studio)
 
         for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
         {
-            menuMasked[i] = menuOpen && menuMouse[i].down;
+            // With autohide the editor fills the screen under the bar, so a
+            // press that starts in the top strip belongs to the menu.
+            bool owner = menuOpen ||
+                         (studio->menubar.autohide && (menuMouse[i].down || menuMouse[i].click) &&
+                          menuMouse[i].start.y < MENUBAR_HEIGHT);
+
+            menuMasked[i] = owner && menuMouse[i].down;
 
             if(menuMasked[i])
                 menuMouse[i].down = false;
 
-            if(menuOpen)
+            if(owner)
             {
                 menuMouse[i].click = false;
                 menuMouse[i].dbl.click = false;

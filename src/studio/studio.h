@@ -201,8 +201,6 @@ enum
     tic_icon_undo = 83,
     tic_icon_redo = 84,
     tic_icon_bank = 85,
-    tic_icon_pin = 86,
-    tic_icon_tab = 87,
     tic_icon_code = 88,
     tic_icon_sprite = 89,
     tic_icon_map = 90,
@@ -212,19 +210,12 @@ enum
     tic_icon_rec2 = 94,
     tic_icon_bookmark = 95,
     tic_icon_shadow = 96,
-    tic_icon_shadow2 = 97,
-    tic_icon_run = 98,
-    tic_icon_hand = 99,
     tic_icon_find = 100,
     tic_icon_goto = 101,
     tic_icon_outline = 102,
     tic_icon_world = 103,
     tic_icon_grid = 104,
     tic_icon_down = 105,
-    tic_icon_up = 106,
-    tic_icon_fill = 107,
-    tic_icon_select = 108,
-    tic_icon_pen = 109,
     tic_icon_tiles = 110,
     tic_icon_sprites = 111,
     tic_icon_left = 112,
@@ -322,6 +313,7 @@ void exitSurf(Studio* studio);
 void runGame(Studio* studio, RunOrigin origin);
 void exitGame(Studio* studio);
 void resumeGame(Studio* studio);
+bool studio_run_paused(Studio* studio);
 void saveProject(Studio* studio);
 
 bool studio_menu_over_player_run(Studio* studio);
@@ -340,14 +332,12 @@ bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period);
 typedef struct Config Config;
 const StudioConfig* getConfig(Studio* studio);
 Config* studio_config_get(Studio* studio);
-struct Sprite* getSpriteEditor(Studio* studio);
 
 const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* filename);
 const char* studioExportSfx(Studio* studio, s32 sfx, const char* filename);
 
 tic_mem* getMemory(Studio* studio);
 
-const char* md5str(const void* data, s32 length);
 void sfx_stop(tic_mem* tic, s32 channel);
 s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);

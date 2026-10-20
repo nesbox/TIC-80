@@ -30,14 +30,12 @@
 
 #define TEXT_CURSOR_DELAY        (TIC80_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
-#define MAX_LINE_NUMBER_DIGITS   5
 #define MIN_GUTTER_WIDTH         7
-#define MAX_GUTTER_WIDTH         (TIC_ALTFONT_WIDTH * MAX_LINE_NUMBER_DIGITS + 1)
-#define CODE_EDITOR_HEIGHT       (TIC80_HEIGHT - STUDIO_BAR_HEIGHT - STUDIO_TEXT_HEIGHT)
-#define TEXT_BUFFER_HEIGHT       (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
 
-// The code area loses the status bar when it is hidden; the right outline
-// panel keeps its own height.
+// The right outline panel keeps its height when the status bar is hidden.
+#define OUTLINE_HEIGHT (TIC80_HEIGHT - STUDIO_BAR_HEIGHT - STUDIO_TEXT_HEIGHT)
+#define OUTLINE_ROWS   (OUTLINE_HEIGHT / STUDIO_TEXT_HEIGHT)
+
 static s32 getCodeHeight(const Code* code)
 {
     return TIC80_HEIGHT - getStudioEditorTop(code->studio) - (code->showStatusbar ? STUDIO_TEXT_HEIGHT : 0);
@@ -163,9 +161,12 @@ static s32 getLinesCount(Code* code)
 static void getWidths(Code* code, s32* gutterWidthOut, s32* codeWidthOut)
 {
     int charCount = code->lineNumbers ? ((int)log10(code->status.lineCount + 1) + 1) : 0;
-    int gutterWidth = code->showSidebar
-                          ? MAX(code->lineNumbers ? 1 + charCount * TIC_ALTFONT_WIDTH : MIN_GUTTER_WIDTH, MIN_GUTTER_WIDTH)
-                          : 0;
+    int gutterWidth = 0;
+
+    if(code->showGutter)
+        gutterWidth = code->lineNumbers
+                          ? MAX(1 + charCount * TIC_ALTFONT_WIDTH, MIN_GUTTER_WIDTH)
+                          : MIN_GUTTER_WIDTH;
     int codeWidth = TIC80_WIDTH - gutterWidth;
 
     if(gutterWidthOut) *gutterWidthOut = gutterWidth;
@@ -193,7 +194,7 @@ static void drawStatus(Code* code)
 
     enum
     {
-        Height = TIC_FONT_HEIGHT + 1,
+        Height = STUDIO_TEXT_HEIGHT,
         StatusY = TIC80_HEIGHT - TIC_FONT_HEIGHT
     };
 
@@ -274,7 +275,7 @@ static void toggleBookmark(Code* code, char* codePos)
 
 static void drawGutter(Code* code)
 {
-    if(!code->showSidebar)
+    if(!code->showGutter)
         return;
 
     tic_mem* tic = code->tic;
@@ -3967,8 +3968,8 @@ static void drawSidebarBar(Code* code, s32 x, s32 y)
 
 static void normSidebarScroll(Code* code)
 {
-    code->sidebar.scroll = code->sidebar.size > TEXT_BUFFER_HEIGHT
-                               ? CLAMP(code->sidebar.scroll, 0, code->sidebar.size - TEXT_BUFFER_HEIGHT)
+    code->sidebar.scroll = code->sidebar.size > OUTLINE_ROWS
+                               ? CLAMP(code->sidebar.scroll, 0, code->sidebar.size - OUTLINE_ROWS)
                                : 0;
 }
 
@@ -3980,9 +3981,9 @@ static void updateSidebarIndex(Code* code, s32 value)
     code->sidebar.index = CLAMP(value, 0, code->sidebar.size - 1);
 
     if(code->sidebar.index - code->sidebar.scroll < 0)
-        code->sidebar.scroll -= TEXT_BUFFER_HEIGHT;
-    else if(code->sidebar.index - code->sidebar.scroll >= TEXT_BUFFER_HEIGHT)
-        code->sidebar.scroll += TEXT_BUFFER_HEIGHT;
+        code->sidebar.scroll -= OUTLINE_ROWS;
+    else if(code->sidebar.index - code->sidebar.scroll >= OUTLINE_ROWS)
+        code->sidebar.scroll += OUTLINE_ROWS;
 
     updateSidebarCode(code);
     normSidebarScroll(code);
@@ -4013,10 +4014,10 @@ static void processSidebar(Code* code)
         updateSidebarIndex(code, code->sidebar.index + 1);
 
     else if(keyWasPressed(code->studio, tic_key_left) || keyWasPressed(code->studio, tic_key_pageup))
-        updateSidebarIndex(code, code->sidebar.index - TEXT_BUFFER_HEIGHT);
+        updateSidebarIndex(code, code->sidebar.index - OUTLINE_ROWS);
 
     else if(keyWasPressed(code->studio, tic_key_right) || keyWasPressed(code->studio, tic_key_pagedown))
-        updateSidebarIndex(code, code->sidebar.index + TEXT_BUFFER_HEIGHT);
+        updateSidebarIndex(code, code->sidebar.index + OUTLINE_ROWS);
 
     else if(keyWasPressed(code->studio, tic_key_home))
         updateSidebarIndex(code, 0);
@@ -4212,7 +4213,7 @@ void initCode(Code* code, Studio* studio)
         .altFont = firstLoad ? getConfig(studio)->theme.code.altFont : code->altFont,
         .shadowText = getConfig(studio)->theme.code.shadow,
         .lineNumbers = firstLoad ? getConfig(studio)->theme.code.lineNumbers : code->lineNumbers,
-        .showSidebar = firstLoad ? getConfig(studio)->theme.code.lineNumbers : code->showSidebar,
+        .showGutter = firstLoad ? getConfig(studio)->theme.code.lineNumbers : code->showGutter,
         .showStatusbar = firstLoad ? true : code->showStatusbar,
         .anim =
             {

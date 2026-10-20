@@ -1242,7 +1242,6 @@ void initMap(Map* map, Studio* studio, tic_map* src)
                 .x = 0,
                 .y = 0,
                 .active = false,
-                .gesture = false,
                 .start = {0, 0},
             },
         .history = history_create(src, sizeof(tic_map)),

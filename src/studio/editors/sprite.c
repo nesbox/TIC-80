@@ -47,8 +47,6 @@ enum
     PaletteH = PALETTE_HEIGHT,
     SheetX = TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1,
     SheetY = BarH,
-    SheetW = TIC_SPRITESHEET_SIZE,
-    SheetH = TIC_SPRITESHEET_SIZE,
 };
 
 // !TODO: move it to helpers place
@@ -2019,7 +2017,7 @@ static void tick(Sprite* sprite)
             : drawTools(sprite, 12, 96);
 
         drawPaletteVBank1(sprite, 24, 112);
-        drawSheetVBank1(sprite, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, 7);
+        drawSheetVBank1(sprite, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, SheetY);
     }
 
     sprite->tickCounter++;

@@ -296,7 +296,14 @@ static void gameMenuHandler(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     tic_mem* tic = main->tic;
-    resumeGame(main->studio);
+
+    // The menu can also be opened in the studio, where there is no pause to
+    // return to: start the cart as RUN would.
+    if(studio_run_paused(main->studio))
+        resumeGame(main->studio);
+    else
+        runGame(main->studio, RUN_FROM_STUDIO);
+
     tic_get_script(tic)->callback.menu(tic, pos, NULL);
 }
 
@@ -385,14 +392,20 @@ static void onResumeGame(void* data, s32 pos)
 {
     (void)pos;
     StudioMainMenu* main = data;
-    resumeGame(main->studio);
+
+    // Opened in the studio, there is no pause to return to; start the cart.
+    if(studio_run_paused(main->studio))
+        resumeGame(main->studio);
+    else
+        runGame(main->studio, RUN_FROM_STUDIO);
 }
 
 // The back of the top level menu (ESC or the gamepad's B): the menu sits over
 // a paused run and belongs to whoever started it — a player's run resumes
-// under it, while a dev run, and a menu opened in the studio, step out to the
-// editor. The same step ESC takes in RUN mode, so a run of a cart with a game
-// menu is left with ESC ESC instead of a walk to CLOSE GAME (#2937).
+// under it, while a dev run, a menu opened in the studio, and a run whose
+// pause a reload cleared step out to runFrom. The same step ESC takes in RUN
+// mode, so a run of a cart with a game menu is left with ESC ESC instead of a
+// walk to CLOSE GAME (#2937).
 static void onMenuBack(void* data, s32 pos)
 {
     StudioMainMenu* main = data;

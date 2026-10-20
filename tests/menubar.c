@@ -374,6 +374,24 @@ static void testAutohide(tic_mem* tic)
     puts("autohide ok");
 }
 
+static void testPartialBar(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    bar.y = -3;
+
+    // The title rows follow the bar: what is still on screen can be clicked.
+    clickAt(tic, 10, 0);
+    step(&bar, tic);
+
+    assert(bar.y == -1);
+    assert(bar.open == AppMain);
+
+    draw(&bar, tic);
+    assert(screenAt(tic, 0, 0) == tic_color_white);
+
+    puts("partial bar ok");
+}
+
 static void testChecked(tic_mem* tic)
 {
     Menubar bar = makeMenubar();
@@ -533,6 +551,7 @@ int main(void)
     testClickConsumption(tic);
     testGroupStaysOpen(tic);
     testAutohide(tic);
+    testPartialBar(tic);
     testChecked(tic);
     testSubmenuHover(tic);
     testSubmenuFollow(tic);
