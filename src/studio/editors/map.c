@@ -110,7 +110,7 @@ void map_select_bank(Map* map, s32 bank)
 
 void map_select_page(Map* map, s32 page)
 {
-    if(!isIdle(map))
+    if(!isIdle(map) || page < 0 || page >= map->sheet.blit.pages)
         return;
 
     Anim* anim = map->anim.page.items;
