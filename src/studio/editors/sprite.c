@@ -1716,6 +1716,12 @@ void spriteSelectBank(Sprite* sprite, s32 bank)
         switchBanks(sprite);
 }
 
+void spriteSelectPage(Sprite* sprite, s32 page)
+{
+    if(page >= 0 && page < sprite->blit.pages)
+        selectViewportPage(sprite, (u8)page);
+}
+
 void spriteSetBpp(Sprite* sprite, tic_bpp bpp)
 {
     switchBitMode(sprite, bpp);

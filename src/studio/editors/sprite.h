@@ -116,5 +116,6 @@ extern const ClipboardOps SpriteClipboard;
 void initSprite(Sprite*, Studio* studio, tic_tiles* src);
 void freeSprite(Sprite*);
 void spriteSelectBank(Sprite*, s32 bank);
+void spriteSelectPage(Sprite*, s32 page);
 void spriteSetBpp(Sprite*, tic_bpp);
 void spriteSetSize(Sprite*, s32 size);

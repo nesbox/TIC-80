@@ -1896,6 +1896,11 @@ enum
     SpriteActionSize16,
     SpriteActionSize32,
     SpriteActionSize64,
+    SpriteActionPages,
+    SpriteActionPage1,
+    SpriteActionPage2,
+    SpriteActionPage3,
+    SpriteActionPage4,
 };
 
 enum
@@ -1906,6 +1911,17 @@ enum
     MapActionRandom,
     MapActionTileset,
     MapActionWorld,
+    MapActionDraw,
+    MapActionDrag,
+    MapActionSelect,
+    MapActionFill,
+    MapActionDepth4,
+    MapActionDepth2,
+    MapActionDepth1,
+    MapActionPage1,
+    MapActionPage2,
+    MapActionPage3,
+    MapActionPage4,
 };
 
 enum
@@ -2017,6 +2033,11 @@ static void menubarSpriteAction(void* data, s32 id)
         case SpriteActionSize32: spriteSetSize(sprite, 32); break;
         case SpriteActionSize64: spriteSetSize(sprite, 64); break;
 
+        case SpriteActionPage1: spriteSelectPage(sprite, 0); break;
+        case SpriteActionPage2: spriteSelectPage(sprite, 1); break;
+        case SpriteActionPage3: spriteSelectPage(sprite, 2); break;
+        case SpriteActionPage4: spriteSelectPage(sprite, 3); break;
+
         case SpriteActionFlags:
             sprite->flags.show = !sprite->flags.show;
 
@@ -2039,6 +2060,20 @@ static void menubarMapAction(void* data, s32 id)
         case MapActionRandom: map->canvas.random = !map->canvas.random; break;
         case MapActionTileset: map_toggle_sheet(map); break;
         case MapActionWorld: studio->menubar.requested = TIC_WORLD_MODE; break;
+
+        case MapActionDraw: map->mode = MAP_DRAW_MODE; break;
+        case MapActionDrag: map->mode = MAP_DRAG_MODE; break;
+        case MapActionSelect: map->mode = MAP_SELECT_MODE; break;
+        case MapActionFill: map->mode = MAP_FILL_MODE; break;
+
+        case MapActionDepth4: mapSetBpp(map, tic_bpp_4); break;
+        case MapActionDepth2: mapSetBpp(map, tic_bpp_2); break;
+        case MapActionDepth1: mapSetBpp(map, tic_bpp_1); break;
+
+        case MapActionPage1: map_select_page(map, 0); break;
+        case MapActionPage2: map_select_page(map, 1); break;
+        case MapActionPage3: map_select_page(map, 2); break;
+        case MapActionPage4: map_select_page(map, 3); break;
     }
 }
 
@@ -2421,6 +2456,16 @@ static MenuBarItem MenubarSize[] =
 
 static const MenuBarCategory MenubarSizeMenu = {"SIZE", MenubarSize, COUNT_OF(MenubarSize), false, 0, -1, 0, false};
 
+static MenuBarItem MenubarSpritePages[] =
+    {
+        {"PAGE 1", NULL, menubarSpriteAction, SpriteActionPage1, true, false, 0, 0, NULL, 0},
+        {"PAGE 2", NULL, menubarSpriteAction, SpriteActionPage2, true, false, 0, 0, NULL, 0},
+        {"PAGE 3", NULL, menubarSpriteAction, SpriteActionPage3, true, false, 0, 0, NULL, 0},
+        {"PAGE 4", NULL, menubarSpriteAction, SpriteActionPage4, true, false, 0, 0, NULL, 0},
+};
+
+static const MenuBarCategory MenubarSpritePagesMenu = {"PAGES", MenubarSpritePages, COUNT_OF(MenubarSpritePages), false, 0, -1, 0, false};
+
 static MenuBarItem MenubarSpriteApp[] =
     {
         {"TILES", "TAB", menubarSpriteAction, SpriteActionTiles, true, false, tic_icon_tiles, 0, NULL, 0},
@@ -2429,18 +2474,41 @@ static MenuBarItem MenubarSpriteApp[] =
         {"FLAGS", NULL, menubarSpriteAction, SpriteActionFlags, true, false, 0, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"BPP", NULL, NULL, 0, true, false, 0, 0, &MenubarBppMenu, -1},
+        {"PAGES", NULL, NULL, SpriteActionPages, true, false, 0, 0, &MenubarSpritePagesMenu, -1},
         {"PALETTE", NULL, NULL, 0, true, false, 0, 0, &MenubarPaletteMenu, -1},
         {"SIZE", NULL, NULL, 0, true, false, 0, 0, &MenubarSizeMenu, -1},
 };
 
-static MenuBarItem MenubarMapApp[] =
+static MenuBarItem MenubarMapTileset[] =
     {
         {"TILES", NULL, menubarMapAction, MapActionTiles, true, false, tic_icon_tiles, 0, NULL, 0},
         {"SPRITES", NULL, menubarMapAction, MapActionSprites, true, false, tic_icon_sprites, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"4BPP", NULL, menubarMapAction, MapActionDepth4, true, false, 0, 0, NULL, 0},
+        {"2BPP", NULL, menubarMapAction, MapActionDepth2, true, false, 0, 0, NULL, 0},
+        {"1BPP", NULL, menubarMapAction, MapActionDepth1, true, false, 0, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"PAGE 1", NULL, menubarMapAction, MapActionPage1, true, false, 0, 0, NULL, 0},
+        {"PAGE 2", NULL, menubarMapAction, MapActionPage2, true, false, 0, 0, NULL, 0},
+        {"PAGE 3", NULL, menubarMapAction, MapActionPage3, true, false, 0, 0, NULL, 0},
+        {"PAGE 4", NULL, menubarMapAction, MapActionPage4, true, false, 0, 0, NULL, 0},
+};
+
+static const MenuBarCategory MenubarMapTilesetMenu = {"TILESET", MenubarMapTileset, COUNT_OF(MenubarMapTileset), false, 0, -1, 0, false};
+
+static MenuBarItem MenubarMapApp[] =
+    {
+        {"DRAW", "1", menubarMapAction, MapActionDraw, true, false, tic_icon_pen, 0, NULL, 0},
+        {"DRAG MAP", "2", menubarMapAction, MapActionDrag, true, false, tic_icon_hand, 0, NULL, 0},
+        {"SELECT", "3", menubarMapAction, MapActionSelect, true, false, tic_icon_select, 0, NULL, 0},
+        {"FILL", "4", menubarMapAction, MapActionFill, true, false, tic_icon_fill, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"TILESET", NULL, NULL, 0, true, false, 0, 0, &MenubarMapTilesetMenu, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"GRID", "`", menubarMapAction, MapActionGrid, true, false, tic_icon_grid, 0, NULL, 0},
         {"RANDOM", "R", menubarMapAction, MapActionRandom, true, false, tic_icon_random, 0, NULL, 0},
-        {"TILESET", "SHIFT", menubarMapAction, MapActionTileset, true, false, 0, 0, NULL, 0},
+        {"SHOW TILES", "SHIFT", menubarMapAction, MapActionTileset, true, false, 0, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"WORLD MAP", "TAB", menubarMapAction, MapActionWorld, true, false, tic_icon_world, 0, NULL, -1},
 };
 
@@ -2648,6 +2716,16 @@ static void updateMenubar(Studio* studio)
             menubarCheck(MenubarSize, COUNT_OF(MenubarSize), SpriteActionSize32, sprite->size == 32);
             menubarCheck(MenubarSize, COUNT_OF(MenubarSize), SpriteActionSize64, sprite->size == 64);
 
+            menubarEnable(MenubarSpriteApp, COUNT_OF(MenubarSpriteApp), SpriteActionPages, sprite->blit.pages > 1);
+
+            for(s32 page = 0; page < COUNT_OF(MenubarSpritePages); page++)
+            {
+                const s32 ids[] = {SpriteActionPage1, SpriteActionPage2, SpriteActionPage3, SpriteActionPage4};
+
+                menubarEnable(MenubarSpritePages, COUNT_OF(MenubarSpritePages), ids[page], page < sprite->blit.pages);
+                menubarCheck(MenubarSpritePages, COUNT_OF(MenubarSpritePages), ids[page], page == sprite->blit.page);
+            }
+
             items = MenubarSpriteApp;
             count = COUNT_OF(MenubarSpriteApp);
             break;
@@ -2657,11 +2735,30 @@ static void updateMenubar(Studio* studio)
         {
             Map* map = mapApp(studio);
 
-            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionTiles, map->sheet.blit.bank == 0);
-            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionSprites, map->sheet.blit.bank == 1);
             menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionGrid, map->canvas.grid);
             menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionRandom, map->canvas.random);
             menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionTileset, map->anim.pos.sheet >= 0);
+
+            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionDraw, map->mode == MAP_DRAW_MODE);
+            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionDrag, map->mode == MAP_DRAG_MODE);
+            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionSelect, map->mode == MAP_SELECT_MODE);
+            menubarCheck(MenubarMapApp, COUNT_OF(MenubarMapApp), MapActionFill, map->mode == MAP_FILL_MODE);
+
+            menubarCheck(MenubarMapTileset, COUNT_OF(MenubarMapTileset), MapActionTiles, map->sheet.blit.bank == 0);
+            menubarCheck(MenubarMapTileset, COUNT_OF(MenubarMapTileset), MapActionSprites, map->sheet.blit.bank == 1);
+            menubarCheck(MenubarMapTileset, COUNT_OF(MenubarMapTileset), MapActionDepth4, map->sheet.blit.mode == tic_bpp_4);
+            menubarCheck(MenubarMapTileset, COUNT_OF(MenubarMapTileset), MapActionDepth2, map->sheet.blit.mode == tic_bpp_2);
+            menubarCheck(MenubarMapTileset, COUNT_OF(MenubarMapTileset), MapActionDepth1, map->sheet.blit.mode == tic_bpp_1);
+
+            {
+                static const s32 Pages[] = {MapActionPage1, MapActionPage2, MapActionPage3, MapActionPage4};
+
+                for(s32 page = 0; page < (s32)COUNT_OF(Pages); page++)
+                {
+                    menubarEnable(MenubarMapTileset, COUNT_OF(MenubarMapTileset), Pages[page], page < map->sheet.blit.pages);
+                    menubarCheck(MenubarMapTileset, COUNT_OF(MenubarMapTileset), Pages[page], page == map->sheet.blit.page);
+                }
+            }
 
             items = MenubarMapApp;
             count = COUNT_OF(MenubarMapApp);

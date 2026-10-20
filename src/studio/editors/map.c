@@ -120,6 +120,12 @@ void map_select_page(Map* map, s32 page)
     map->sheet.blit.page = (u8)(page);
 }
 
+void mapSetBpp(Map* map, tic_bpp bpp)
+{
+    if(isIdle(map))
+        tic_blit_update_bpp(&map->sheet.blit, bpp);
+}
+
 void map_toggle_sheet(Map* map)
 {
     if(!isIdle(map))
