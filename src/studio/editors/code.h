@@ -84,7 +84,6 @@ struct Code
 
     enum
     {
-        TEXT_DRAG_CODE,
         TEXT_FIND_MODE,
         TEXT_GOTO_MODE,
         TEXT_BOOKMARK_MODE,

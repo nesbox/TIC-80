@@ -3562,8 +3562,8 @@ static void processMouse(Code* code)
 
     if(checkMousePos(code->studio, &rect))
     {
-        bool useDrag = (code->mode == TEXT_DRAG_CODE && checkMouseDown(code->studio, &rect, tic_mouse_left)) || checkMouseDown(code->studio, &rect, tic_mouse_right);
-        setCursor(code->studio, code->mode == TEXT_DRAG_CODE || useDrag ? tic_cursor_hand : tic_cursor_ibeam);
+        bool useDrag = checkMouseDown(code->studio, &rect, tic_mouse_right);
+        setCursor(code->studio, useDrag ? tic_cursor_hand : tic_cursor_ibeam);
 
         if(code->scroll.active)
         {
@@ -3625,17 +3625,6 @@ static void processMouse(Code* code)
             }
         }
     }
-}
-
-static void textDragTick(Code* code)
-{
-
-    processMouse(code);
-
-    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
-
-    drawCode(code, true);
-    drawStatus(code);
 }
 
 static void textEditTick(Code* code)
@@ -4085,7 +4074,6 @@ static void tick(Code* code)
 
     switch(code->mode)
     {
-        case TEXT_DRAG_CODE: textDragTick(code); break;
         case TEXT_EDIT_MODE: textEditTick(code); break;
         case TEXT_FIND_MODE: textFindTick(code); break;
         case TEXT_REPLACE_MODE: textReplaceTick(code); break;
@@ -4102,9 +4090,6 @@ static void escape(Code* code)
     switch(code->mode)
     {
         case TEXT_EDIT_MODE:
-            break;
-        case TEXT_DRAG_CODE:
-            setCodeMode(code, TEXT_EDIT_MODE);
             break;
         default:
             if(code->popup.prevPos == NULL)
