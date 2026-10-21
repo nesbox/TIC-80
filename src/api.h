@@ -736,7 +736,7 @@ enum
         "Things drawn outside of this area will not be visible.\n"                                                      \
         "Calling clip() with no parameters will reset the drawing area to the entire screen.",                          \
         4,                                                                                                              \
-        4,                                                                                                              \
+        0,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 width, s32 height)                                                                  \
