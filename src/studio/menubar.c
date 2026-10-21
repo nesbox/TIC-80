@@ -38,6 +38,7 @@ enum
     SubOverlap = 2,
     SubRise = 3,
     AutoHideSpeed = 2,
+    PageRows = 5,
 };
 
 static bool pointInRect(const tic_point* pt, const tic_rect* rect)
@@ -326,6 +327,28 @@ static s32 nextSelectable(const MenuBarCategory* category, s32 from, s32 dir)
     return -1;
 }
 
+// A page move: up to PageRows selectable rows in `dir`, stopping at the end
+// instead of wrapping around it.
+static s32 pageSelectable(const MenuBarCategory* category, s32 from, s32 dir)
+{
+    if(from < 0)
+        return nextSelectable(category, -1, dir);
+
+    s32 row = from;
+
+    for(s32 n = 0; n < PageRows; n++)
+    {
+        s32 next = nextSelectable(category, row, dir);
+
+        if(next < 0 || next == row || (dir > 0 ? next < row : next > row))
+            break;
+
+        row = next;
+    }
+
+    return row;
+}
+
 // The row a menu opens on: the selection group's mark, else the first or the
 // last selectable row for the opening direction.
 static s32 initialRow(const MenuBarCategory* category, s32 dir)
@@ -357,8 +380,8 @@ static s32 titleAt(const Menubar* menubar, s32 ordinal)
     return -1;
 }
 
-// Focus moves between visible titles and clamps at the ends, so it cannot
-// jump from TIC-80 across the screen to the app switcher.
+// Focus moves between visible titles and wraps: Right on TIC-80 lands on the
+// app switcher, Left on the first title lands on TIC-80.
 static s32 adjacentTitle(const Menubar* menubar, s32 from, s32 dir)
 {
     s32 visible = 0;
@@ -379,10 +402,24 @@ static s32 adjacentTitle(const Menubar* menubar, s32 from, s32 dir)
             visible++;
         }
 
+    if(visible <= 0)
+        return -1;
+
     if(ordinal < 0)
         return titleAt(menubar, dir > 0 ? 0 : visible - 1);
 
-    return titleAt(menubar, CLAMP(ordinal + dir, 0, visible - 1));
+    return titleAt(menubar, (ordinal + dir + visible) % visible);
+}
+
+static s32 visibleTitles(const Menubar* menubar)
+{
+    s32 count = 0;
+
+    for(s32 i = 0; i < menubar->count; i++)
+        if(!menubar->categories[i].hidden)
+            count++;
+
+    return count;
 }
 
 // The selectable row under the pointer, or -1; the keyboard starts here when
@@ -513,6 +550,8 @@ static bool navKey(tic_mem* tic)
 {
     return pressed(tic, tic_key_up) || pressed(tic, tic_key_down) ||
            pressed(tic, tic_key_left) || pressed(tic, tic_key_right) ||
+           pressed(tic, tic_key_home) || pressed(tic, tic_key_end) ||
+           pressed(tic, tic_key_pageup) || pressed(tic, tic_key_pagedown) ||
            enterPressed(tic) || pressed(tic, tic_key_space);
 }
 
@@ -605,6 +644,10 @@ static bool keyboardStep(Menubar* menubar, tic_mem* tic, MouseState* state, tic_
             menubar->focus = adjacentTitle(menubar, menubar->focus, -1);
         else if(repeated(tic, tic_key_right))
             menubar->focus = adjacentTitle(menubar, menubar->focus, +1);
+        else if(repeated(tic, tic_key_home) || repeated(tic, tic_key_pageup))
+            menubar->focus = titleAt(menubar, 0);
+        else if(repeated(tic, tic_key_end) || repeated(tic, tic_key_pagedown))
+            menubar->focus = titleAt(menubar, visibleTitles(menubar) - 1);
         else if(repeated(tic, tic_key_down) || enterPressed(tic))
             openCategory(menubar, menubar->focus, +1);
         else if(repeated(tic, tic_key_up))
@@ -622,6 +665,14 @@ static bool keyboardStep(Menubar* menubar, tic_mem* tic, MouseState* state, tic_
             menubar->subSelect = nextSelectable(category, menubar->subSelect, -1);
         else if(repeated(tic, tic_key_down))
             menubar->subSelect = nextSelectable(category, menubar->subSelect, +1);
+        else if(repeated(tic, tic_key_home))
+            menubar->subSelect = nextSelectable(category, -1, +1);
+        else if(repeated(tic, tic_key_end))
+            menubar->subSelect = nextSelectable(category, -1, -1);
+        else if(repeated(tic, tic_key_pageup))
+            menubar->subSelect = pageSelectable(category, menubar->subSelect, -1);
+        else if(repeated(tic, tic_key_pagedown))
+            menubar->subSelect = pageSelectable(category, menubar->subSelect, +1);
         else if(enterPressed(tic) || pressed(tic, tic_key_space))
         {
             if(menubar->subSelect < 0)
@@ -648,12 +699,18 @@ static bool keyboardStep(Menubar* menubar, tic_mem* tic, MouseState* state, tic_
             menubar->select = nextSelectable(category, menubar->select, -1);
         else if(repeated(tic, tic_key_down))
             menubar->select = nextSelectable(category, menubar->select, +1);
+        else if(repeated(tic, tic_key_home))
+            menubar->select = nextSelectable(category, -1, +1);
+        else if(repeated(tic, tic_key_end))
+            menubar->select = nextSelectable(category, -1, -1);
+        else if(repeated(tic, tic_key_pageup))
+            menubar->select = pageSelectable(category, menubar->select, -1);
+        else if(repeated(tic, tic_key_pagedown))
+            menubar->select = pageSelectable(category, menubar->select, +1);
         else if(repeated(tic, tic_key_left))
         {
             s32 index = adjacentTitle(menubar, menubar->open, -1);
 
-            // At the end of the row the focus clamps: the open menu stays as
-            // it is rather than reopening on its first row.
             if(index != menubar->open)
                 openCategory(menubar, index, +1);
         }

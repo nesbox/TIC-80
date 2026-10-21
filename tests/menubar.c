@@ -98,6 +98,34 @@ static MenuBarCategory Categories[] =
         {"RIGHT", RightItems, COUNT_OF(RightItems), true, 0, One, 0, false},
 };
 
+// Eight selectable rows: a five-row page lands inside the list. The first row
+// owns a submenu of the same length for the submenu cases.
+static const MenuBarItem LongSubItems[] =
+    {
+        {"S0", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"S1", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"S2", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"S3", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"S4", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"S5", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"S6", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"S7", NULL, hit, One, true, false, 0, 0, NULL, -1},
+};
+
+static const MenuBarCategory LongSubMenu = {"SUB", LongSubItems, COUNT_OF(LongSubItems), false, 0, -1, 0, false};
+
+static const MenuBarItem LongItems[] =
+    {
+        {"SUB", NULL, NULL, 0, true, false, 0, 0, &LongSubMenu, -1},
+        {"L1", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"L2", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"L3", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"L4", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"L5", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"L6", NULL, hit, One, true, false, 0, 0, NULL, -1},
+        {"L7", NULL, hit, One, true, false, 0, 0, NULL, -1},
+};
+
 static Menubar makeMenubar(void)
 {
     Menubar bar;
@@ -654,15 +682,21 @@ static void testKeyboardTitles(tic_mem* tic)
     keyPress(&bar, tic, tic_key_right);
     assert(bar.focus == AppRight);
 
-    // The ends clamp instead of wrapping.
+    // The ends wrap: Right on the last title reaches the first one, HIDDEN
+    // is never a stop.
     keyPress(&bar, tic, tic_key_right);
+    assert(bar.focus == AppMain);
+
+    keyPress(&bar, tic, tic_key_left);
     assert(bar.focus == AppRight);
 
     keyPress(&bar, tic, tic_key_left);
     assert(bar.focus == AppMain);
 
-    // HIDDEN is never a stop.
-    keyPress(&bar, tic, tic_key_left);
+    // Home and End reach the visible ends.
+    keyPress(&bar, tic, tic_key_end);
+    assert(bar.focus == AppRight);
+    keyPress(&bar, tic, tic_key_home);
     assert(bar.focus == AppMain);
 
     puts("keyboard titles ok");
@@ -728,6 +762,12 @@ static void testKeyboardRows(tic_mem* tic)
 
     // Wrapping lands on OFF, past the disabled rows again.
     keyPress(&bar, tic, tic_key_up);
+    assert(bar.select == 7);
+
+    // Home and End reach the ends, skipping the separator and disabled row.
+    keyPress(&bar, tic, tic_key_home);
+    assert(bar.select == 0);
+    keyPress(&bar, tic, tic_key_end);
     assert(bar.select == 7);
 
     puts("keyboard rows ok");
@@ -817,22 +857,26 @@ static void testKeyboardAdjacent(tic_mem* tic)
     assert(bar.select == 1);
     assert(bar.keyboard);
 
-    // At the last title Right clamps: the popup stays as it is, it does not
-    // reopen on its first row.
+    // Right on the last menu wraps to the first.
     keyPress(&bar, tic, tic_key_right);
+    assert(bar.open == AppMain);
+    assert(bar.select == 0);
+
+    // Left on the first menu wraps to the last.
+    keyPress(&bar, tic, tic_key_left);
     assert(bar.open == AppRight);
     assert(bar.select == 1);
+    assert(bar.keyboard);
 
     keyPress(&bar, tic, tic_key_left);
     assert(bar.open == AppMain);
     assert(bar.select == 0);
-    assert(bar.keyboard);
 
-    // The same at the first title.
+    // From a row, Left still wraps to the last menu.
     keyPress(&bar, tic, tic_key_down);
     assert(bar.select == 1);
     keyPress(&bar, tic, tic_key_left);
-    assert(bar.open == AppMain);
+    assert(bar.open == AppRight);
     assert(bar.select == 1);
 
     puts("keyboard adjacent ok");
@@ -931,8 +975,9 @@ static void testKeyboardCapture(tic_mem* tic)
     assert(!bar.keyboard);
     assert(bar.captured);
 
-    // The first arrow takes the menu over from outside the rows.
-    keyPress(&bar, tic, tic_key_down);
+    // The first navigation key takes the menu over from outside the rows; a
+    // page key starts on the first row.
+    keyPress(&bar, tic, tic_key_pagedown);
     assert(bar.keyboard);
     assert(bar.focus == AppMain);
     assert(bar.select == 0);
@@ -1005,6 +1050,60 @@ static void testKeyboardPointer(tic_mem* tic)
     puts("keyboard pointer handoff ok");
 }
 
+static void testKeyboardJumpKeys(tic_mem* tic)
+{
+    MenuBarCategory cats[] =
+        {
+            {"LONG", LongItems, COUNT_OF(LongItems), false, 0, -1, 0, false},
+        };
+
+    Menubar bar;
+    menubar_init(&bar, cats, COUNT_OF(cats), Mouse, Hits, CheckIcon);
+    bar.home = 0;
+
+    still(&bar, tic);
+    keyPress(&bar, tic, tic_key_f10);
+    assert(bar.open == 0 && bar.select == 0);
+
+    // A page is five selectable rows; the second one clamps at the end.
+    keyPress(&bar, tic, tic_key_pagedown);
+    assert(bar.select == 5);
+    keyPress(&bar, tic, tic_key_pagedown);
+    assert(bar.select == 7);
+
+    keyPress(&bar, tic, tic_key_pageup);
+    assert(bar.select == 2);
+    keyPress(&bar, tic, tic_key_pageup);
+    assert(bar.select == 0);
+
+    // Home and End.
+    keyPress(&bar, tic, tic_key_end);
+    assert(bar.select == 7);
+    keyPress(&bar, tic, tic_key_home);
+    assert(bar.select == 0);
+
+    // The same keys inside the submenu.
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.sub == &LongSubMenu);
+    assert(bar.subSelect == 0);
+
+    keyPress(&bar, tic, tic_key_pagedown);
+    assert(bar.subSelect == 5);
+    keyPress(&bar, tic, tic_key_end);
+    assert(bar.subSelect == 7);
+    keyPress(&bar, tic, tic_key_pageup);
+    assert(bar.subSelect == 2);
+    keyPress(&bar, tic, tic_key_home);
+    assert(bar.subSelect == 0);
+
+    // Left returns to the owner row.
+    keyPress(&bar, tic, tic_key_left);
+    assert(bar.sub == NULL);
+    assert(bar.select == 0);
+
+    puts("keyboard jump keys ok");
+}
+
 int main(void)
 {
     tic_mem* tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
@@ -1036,6 +1135,7 @@ int main(void)
     testKeyboardTitles(tic);
     testKeyboardOpen(tic);
     testKeyboardRows(tic);
+    testKeyboardJumpKeys(tic);
     testKeyboardDispatch(tic);
     testKeyboardToggle(tic);
     testKeyboardGroup(tic);
