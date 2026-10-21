@@ -111,9 +111,6 @@ extern "C"
 
                 u8 select;
                 u8 cursor;
-                bool shadow;
-                bool altFont;
-                bool lineNumbers;
                 bool altCaret;
                 bool matchDelimiters;
                 bool autoDelimiters;
@@ -157,6 +154,15 @@ extern "C"
             enum KeybindMode keybindMode;
             enum TabMode tabMode;
             s32 tabSize;
+
+            // The code editor's view and the bar's autohide, saved as the
+            // menubar toggles change.
+            bool codeAltFont;
+            bool codeShadow;
+            bool codeLineNumbers;
+            bool codeSidebar;
+            bool codeStatusbar;
+            bool autohide;
 #endif
         } options;
 

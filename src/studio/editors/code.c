@@ -3094,10 +3094,10 @@ static void processViKeyboard(Code* code)
                 copyFromClipboard(code, false);
         }
         else if(alt && keyWasPressed(code->studio, tic_key_f))
-            code->altFont = !code->altFont;
+            studioCodeViewToggle(code->studio, CodeViewFont);
 
         else if(alt && keyWasPressed(code->studio, tic_key_s))
-            code->shadowText = !code->shadowText;
+            studioCodeViewToggle(code->studio, CodeViewShadow);
 
         else if(clear && keyWasPressed(code->studio, tic_key_1))
             processViGoto(code, 1);
@@ -3482,7 +3482,7 @@ static void processKeyboard(Code* code)
             else if(keyWasPressed(code->studio, tic_key_semicolon))
                 emacsMode ? commentLine(code) : noop;
             else if(keyWasPressed(code->studio, tic_key_l) && !ctrl)
-                code->lineNumbers = !code->lineNumbers;
+                studioCodeViewToggle(code->studio, CodeViewLineNumbers);
             else
                 altHandled = false;
         }
@@ -4161,7 +4161,8 @@ const ClipboardOps CodeClipboard = {clipboardCut, clipboardCopy, clipboardPaste,
 
 void initCode(Code* code, Studio* studio)
 {
-    bool firstLoad = code->state == NULL;
+    const struct StudioOptions* options = &getConfig(studio)->options;
+
     FREE(code->state);
     freeAnim(code);
 
@@ -4195,11 +4196,11 @@ void initCode(Code* code, Studio* studio)
                 .scroll = 0,
             },
         .matchedDelim = NULL,
-        .altFont = firstLoad ? getConfig(studio)->theme.code.altFont : code->altFont,
-        .shadowText = getConfig(studio)->theme.code.shadow,
-        .lineNumbers = firstLoad ? getConfig(studio)->theme.code.lineNumbers : code->lineNumbers,
-        .showGutter = firstLoad ? getConfig(studio)->theme.code.lineNumbers : code->showGutter,
-        .showStatusbar = firstLoad ? true : code->showStatusbar,
+        .altFont = options->codeAltFont,
+        .shadowText = options->codeShadow,
+        .lineNumbers = options->codeLineNumbers,
+        .showGutter = options->codeSidebar,
+        .showStatusbar = options->codeStatusbar,
         .anim =
             {
                 .idle = {

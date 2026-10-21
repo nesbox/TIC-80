@@ -12,8 +12,6 @@
   "SIGN": 13,
   "SELECT": 14,
   "CURSOR": 2,
-  "SHADOW": true,
-  "ALT_FONT": false,
   "ALT_CARET": false,
   "MATCH_DELIMITERS": true,
   "AUTO_DELIMITERS": false,

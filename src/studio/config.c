@@ -63,9 +63,6 @@ static void readConfig(Config* config)
         config->data.theme.code.select = (u8)(json_int("SELECT", theme));
         config->data.theme.code.cursor = (u8)(json_int("CURSOR", theme));
 
-        config->data.theme.code.shadow = json_bool("SHADOW", theme);
-        config->data.theme.code.altFont = json_bool("ALT_FONT", theme);
-        config->data.theme.code.lineNumbers = json_bool("LINE_NUMBERS", theme);
         config->data.theme.code.altCaret = json_bool("ALT_CARET", theme);
         config->data.theme.code.matchDelimiters = json_bool("MATCH_DELIMITERS", theme);
         config->data.theme.code.autoDelimiters = json_bool("AUTO_DELIMITERS", theme);
@@ -106,6 +103,8 @@ static void setDefault(Config* config)
                 .keybindMode = KEYBIND_STANDARD,
                 .tabMode = TAB_AUTO,
                 .tabSize = 1,
+                .codeShadow = true,
+                .codeStatusbar = true,
 #endif
             },
     };
@@ -240,6 +239,24 @@ static void loadOptions(Config* config)
 
                 if(json_has("tabSize", 0))
                     options->tabSize = json_int("tabSize", 0);
+
+                if(json_has("codeAltFont", 0))
+                    options->codeAltFont = json_bool("codeAltFont", 0);
+
+                if(json_has("codeShadow", 0))
+                    options->codeShadow = json_bool("codeShadow", 0);
+
+                if(json_has("codeLineNumbers", 0))
+                    options->codeLineNumbers = json_bool("codeLineNumbers", 0);
+
+                if(json_has("codeSidebar", 0))
+                    options->codeSidebar = json_bool("codeSidebar", 0);
+
+                if(json_has("codeStatusbar", 0))
+                    options->codeStatusbar = json_bool("codeStatusbar", 0);
+
+                if(json_has("autohide", 0))
+                    options->autohide = json_bool("autohide", 0);
 #endif
             }
         }
@@ -283,7 +300,13 @@ static void saveOptions(Config* config)
             ", "
             "\"keybindMode\":%i, "
             "\"tabMode\":%i, "
-            "\"tabSize\":%i"
+            "\"tabSize\":%i, "
+            "\"codeAltFont\":%s, "
+            "\"codeShadow\":%s, "
+            "\"codeLineNumbers\":%s, "
+            "\"codeSidebar\":%s, "
+            "\"codeStatusbar\":%s, "
+            "\"autohide\":%s"
 #endif
             " }",
 #if defined(CRT_SHADER_SUPPORT)
@@ -305,7 +328,13 @@ static void saveOptions(Config* config)
             ,
             options->keybindMode,
             options->tabMode,
-            options->tabSize
+            options->tabSize,
+            bool2str(options->codeAltFont),
+            bool2str(options->codeShadow),
+            bool2str(options->codeLineNumbers),
+            bool2str(options->codeSidebar),
+            bool2str(options->codeStatusbar),
+            bool2str(options->autohide)
 #endif
     );
 
@@ -342,6 +371,12 @@ void initConfig(Config* config, Studio* studio, tic_fs* fs)
     }
 
     loadOptions(config);
+
+#if defined(BUILD_EDITORS)
+    // LINES implies SIDEBAR: a pair saved the other way is normalised.
+    if(config->data.options.codeLineNumbers)
+        config->data.options.codeSidebar = true;
+#endif
 
 #if defined(__TIC_LINUX__)
     // do not load fullscreen option on Linux

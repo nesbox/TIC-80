@@ -1988,6 +1988,55 @@ enum
     EditorKeybindVi,
 };
 
+void studioCodeViewToggle(Studio* studio, CodeViewOption option)
+{
+    Code* code = studio->code;
+    struct StudioOptions* options = &studio->config->data.options;
+
+    switch(option)
+    {
+        case CodeViewFont:
+            code->altFont = !code->altFont;
+            options->codeAltFont = code->altFont;
+            break;
+
+        case CodeViewShadow:
+            code->shadowText = !code->shadowText;
+            options->codeShadow = code->shadowText;
+            break;
+
+        case CodeViewLineNumbers:
+            code->lineNumbers = !code->lineNumbers;
+
+            if(code->lineNumbers)
+                code->showGutter = true;
+
+            options->codeLineNumbers = code->lineNumbers;
+            options->codeSidebar = code->showGutter;
+            code->update(code);
+            break;
+
+        case CodeViewSidebar:
+            code->showGutter = !code->showGutter;
+
+            if(!code->showGutter)
+                code->lineNumbers = false;
+
+            options->codeSidebar = code->showGutter;
+            options->codeLineNumbers = code->lineNumbers;
+            code->update(code);
+            break;
+
+        case CodeViewStatusbar:
+            code->showStatusbar = !code->showStatusbar;
+            options->codeStatusbar = code->showStatusbar;
+            code->update(code);
+            break;
+    }
+
+    studio->config->saveOptions(studio->config);
+}
+
 static void menubarCodeAction(void* data, s32 id)
 {
     Studio* studio = data;
@@ -1999,31 +2048,11 @@ static void menubarCodeAction(void* data, s32 id)
         case CodeActionGoto: codeGoto(code); break;
         case CodeActionBookmarks: codeBookmarks(code); break;
         case CodeActionOutline: codeOutline(code); break;
-        case CodeActionFont: code->altFont = !code->altFont; break;
-        case CodeActionShadow: code->shadowText = !code->shadowText; break;
-
-        case CodeActionLineNumbers:
-            code->lineNumbers = !code->lineNumbers;
-
-            if(code->lineNumbers)
-                code->showGutter = true;
-
-            code->update(code);
-            break;
-
-        case CodeActionSidebar:
-            code->showGutter = !code->showGutter;
-
-            if(!code->showGutter)
-                code->lineNumbers = false;
-
-            code->update(code);
-            break;
-
-        case CodeActionStatusbar:
-            code->showStatusbar = !code->showStatusbar;
-            code->update(code);
-            break;
+        case CodeActionFont: studioCodeViewToggle(studio, CodeViewFont); break;
+        case CodeActionShadow: studioCodeViewToggle(studio, CodeViewShadow); break;
+        case CodeActionLineNumbers: studioCodeViewToggle(studio, CodeViewLineNumbers); break;
+        case CodeActionSidebar: studioCodeViewToggle(studio, CodeViewSidebar); break;
+        case CodeActionStatusbar: studioCodeViewToggle(studio, CodeViewStatusbar); break;
     }
 }
 
@@ -2209,7 +2238,8 @@ static void menubarOption(void* data, s32 id)
 
         case OptionAutohide:
             studio->menubar.autohide = !studio->menubar.autohide;
-            return;
+            studio->config->data.options.autohide = studio->menubar.autohide;
+            break;
 
 #if defined(BUILD_SURF)
         case OptionAutosave:
@@ -4244,6 +4274,7 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
 
     // F10 opens the TIC-80 menu: the last category is the host's home.
     studio->menubar.home = COUNT_OF(MenubarCategories) - 1;
+    studio->menubar.autohide = studio->config->data.options.autohide;
 #endif
 
     if(studio->config->data.uiScale > maxscale)

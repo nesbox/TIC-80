@@ -350,6 +350,19 @@ void fadePalette(tic_palette* pal, s32 value);
 
 #if defined(BUILD_EDITORS)
 
+// The code editor's view toggles, shared by the bar's menu and the editor's
+// own hotkeys so both persist.
+typedef enum
+{
+    CodeViewFont,
+    CodeViewShadow,
+    CodeViewLineNumbers,
+    CodeViewSidebar,
+    CodeViewStatusbar,
+} CodeViewOption;
+
+void studioCodeViewToggle(Studio*, CodeViewOption);
+
 typedef struct
 {
     char* exp;
