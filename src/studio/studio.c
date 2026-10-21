@@ -657,6 +657,13 @@ void sfx_stop(tic_mem* tic, s32 channel)
 
 char getKeyboardText(Studio* studio)
 {
+#if defined(BUILD_EDITORS)
+    // The bar owns the frame's keys: nothing typed reaches the editor. The
+    // character stays unread, and the system layer drops it with the frame.
+    if(studio->menubar.captured)
+        return '\0';
+#endif
+
     return keyboard_text(studio->tic);
 }
 
@@ -3045,6 +3052,8 @@ static void processShortcuts(Studio* studio)
             runGame(studio, RUN_FROM_STUDIO);
         else if(keyboard_pressed_once(studio->tic, tic_key_s))
             saveProject(studio);
+        else if(keyboard_pressed_once(studio->tic, tic_key_f10))
+            hideBattleTime(studio);
 #endif
 
 #if defined(TIC80_PRO) && defined(BUILD_EDITORS)
@@ -3105,8 +3114,6 @@ static void processShortcuts(Studio* studio)
             takeScreenshot(studio);
         else if(keyboard_pressed_once(studio->tic, tic_key_f9))
             startVideoRecord(studio);
-        else if(keyboard_pressed_once(studio->tic, tic_key_f10))
-            hideBattleTime(studio);
         else if(keyboard_pressed_once(studio->tic, tic_key_f12))
             startBattle(studio);
         else if(studio->mode == TIC_RUN_MODE && keyboard_pressed_once(studio->tic, tic_key_f7))
@@ -3308,6 +3315,17 @@ static void renderStudio(Studio* studio)
     // to prevent misbehaving cartridges from having an opportunity to
     // tamper with the keyboard input.
     processShortcuts(studio);
+
+#if defined(BUILD_EDITORS)
+    // The bar owns the frame's keys: keep them from the editor's tick. This
+    // runs after tick_start's snapshot and the global shortcuts, so `now`
+    // keeps the real keys and the menu's repeats stay correct. Ctrl and Alt
+    // combinations type nothing and carry the accelerators the menu shows, so
+    // they pass; getKeyboardText() holds back typed text on its own.
+    if(studio->menubar.captured && !tic_api_key(tic, tic_key_ctrl) &&
+       !tic_api_key(tic, tic_key_alt))
+        tic->ram->input.keyboard.data = 0;
+#endif
 
     // clear screen for all the modes except the Run mode
     if(studio->mode != TIC_RUN_MODE)
@@ -3698,7 +3716,9 @@ void studio_tick(Studio* studio, tic80_input input)
     // A menu item lands here rather than switching mid-frame: the mode's blit
     // callback is chosen after its tick, so the switch has to wait for that.
 #if defined(BUILD_EDITORS)
-    if(studio->menubar.requested != MENUBAR_NO_MODE)
+    bool menubarSwitched = studio->menubar.requested != MENUBAR_NO_MODE;
+
+    if(menubarSwitched)
     {
         EditorMode mode = studio->menubar.requested;
 
@@ -3727,9 +3747,23 @@ void studio_tick(Studio* studio, tic80_input input)
     }
     else
         menubar_step(&studio->menubar, studio->tic, MENUBAR_NO_MODE);
+
+    // The item ran last frame; the key that ran it is still the bar's, not the
+    // editor it just opened. A mode change resets the core's key history, so
+    // a still-held Enter would read there as a new press. Text is muted for
+    // the console too, which reads the system queue directly.
+    if(menubarSwitched)
+    {
+        studio->menubar.captured = true;
+        keyboard_mute_text(true);
+    }
 #endif
 
     renderStudio(studio);
+
+#if defined(BUILD_EDITORS)
+    keyboard_mute_text(false);
+#endif
 
     {
         const EditorApp* app = &Apps[studio->mode];
@@ -4207,6 +4241,9 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
 
     menubar_init(&studio->menubar, MenubarCategories, COUNT_OF(MenubarCategories),
                  studio->mouse.state, studio, tic_icon_circle);
+
+    // F10 opens the TIC-80 menu: the last category is the host's home.
+    studio->menubar.home = COUNT_OF(MenubarCategories) - 1;
 #endif
 
     if(studio->config->data.uiScale > maxscale)

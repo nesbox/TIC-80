@@ -86,6 +86,14 @@ typedef struct
     MenuBarHandler pending;
     s32 pendingId;
     bool escaped; // ESC closed the menu this frame
+
+    bool keyboard;       // the bar is under keyboard control
+    s32 focus;           // the focused title, or -1
+    s32 home;            // the menu F10 opens, or -1 for the first title
+    s32 select;          // the popup row under the keyboard, or -1
+    s32 subSelect;       // the submenu row under the keyboard, or -1
+    bool captured;       // the bar owns this frame's keys
+    tic_point lastMouse; // the pointer's last position
 } Menubar;
 
 void menubar_init(Menubar*, MenuBarCategory*, s32 count, MouseState*, void* data, u8 checkIcon);

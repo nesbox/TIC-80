@@ -52,4 +52,9 @@ bool keyboard_pressed_once(tic_mem* tic, s32 key);
 
 bool keyboard_enter(tic_mem* tic, s32 hold, s32 period);
 char keyboard_text(tic_mem* tic);
+
+// Hides typed text for one frame: the key that ran a menu item must not type
+// into the screen the item just opened.
+void keyboard_mute_text(bool mute);
+
 ClipboardEvent keyboard_clipboard(tic_mem* tic);

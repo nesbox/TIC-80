@@ -187,6 +187,7 @@ static const struct HotkeysRowGeneral
         {"F7", "Assign cover image while in game."},
         {"F8", "Take a screenshot."},
         {"F9", "Start/stop GIF video recording."},
+        {"F10", "Focus the menu bar."},
         {"F11/ALT+ENTER", "Fullscreen/window mode."},
         {
             "CTRL+Q",

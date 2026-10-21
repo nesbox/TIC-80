@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "menubar.h"
+#include "keyboard.h"
 
 enum
 {
@@ -266,14 +267,216 @@ void menubar_init(Menubar* menubar, MenuBarCategory* categories, s32 count,
         .subItem = -1,
         .pending = NULL,
         .pendingId = 0,
+        .keyboard = false,
+        .focus = -1,
+        .home = -1,
+        .select = -1,
+        .subSelect = -1,
+        .captured = false,
+        .lastMouse = {-1, -1},
     };
 }
 
-static void closeMenu(Menubar* menubar)
+static void closePopup(Menubar* menubar)
 {
     menubar->open = -1;
     menubar->sub = NULL;
     menubar->subItem = -1;
+    menubar->select = -1;
+    menubar->subSelect = -1;
+}
+
+// Closing the menu ends keyboard control too; ESC's popup level uses
+// closePopup() to keep the bar focused.
+static void closeMenu(Menubar* menubar)
+{
+    closePopup(menubar);
+    menubar->keyboard = false;
+    menubar->focus = -1;
+}
+
+static void updateCaptured(Menubar* menubar)
+{
+    menubar->captured = menubar->keyboard || menubar->open >= 0;
+}
+
+static bool selectable(const MenuBarItem* item)
+{
+    return item->enabled && !item->separator;
+}
+
+// The next selectable row in `dir`, wrapping. A `from` of -1 starts outside
+// the list: the first row on the way down, the last one on the way up.
+static s32 nextSelectable(const MenuBarCategory* category, s32 from, s32 dir)
+{
+    if(category->count <= 0)
+        return -1;
+
+    s32 row = from;
+
+    for(s32 n = 0; n < category->count; n++)
+    {
+        row = row < 0 ? (dir > 0 ? 0 : category->count - 1)
+                      : (row + dir + category->count) % category->count;
+
+        if(selectable(&category->items[row]))
+            return row;
+    }
+
+    return -1;
+}
+
+// The row a menu opens on: the selection group's mark, else the first or the
+// last selectable row for the opening direction.
+static s32 initialRow(const MenuBarCategory* category, s32 dir)
+{
+    if(category->selected >= 0)
+        for(s32 i = 0; i < category->count; i++)
+            if(category->items[i].id == category->selected && selectable(&category->items[i]))
+                return i;
+
+    return nextSelectable(category, -1, dir);
+}
+
+// A title's place in visual order: the left-packed titles in index order,
+// then the right-packed ones.
+static s32 titleAt(const Menubar* menubar, s32 ordinal)
+{
+    for(s32 pass = 0; pass < 2; pass++)
+        for(s32 i = 0; i < menubar->count; i++)
+        {
+            const MenuBarCategory* category = &menubar->categories[i];
+
+            if(category->hidden || (!category->right) != (pass == 0))
+                continue;
+
+            if(ordinal-- == 0)
+                return i;
+        }
+
+    return -1;
+}
+
+// Focus moves between visible titles and clamps at the ends, so it cannot
+// jump from TIC-80 across the screen to the app switcher.
+static s32 adjacentTitle(const Menubar* menubar, s32 from, s32 dir)
+{
+    s32 visible = 0;
+    s32 ordinal = -1;
+
+    // The same two-pass order titleAt() uses.
+    for(s32 pass = 0; pass < 2; pass++)
+        for(s32 i = 0; i < menubar->count; i++)
+        {
+            const MenuBarCategory* category = &menubar->categories[i];
+
+            if(category->hidden || (!category->right) != (pass == 0))
+                continue;
+
+            if(i == from)
+                ordinal = visible;
+
+            visible++;
+        }
+
+    if(ordinal < 0)
+        return titleAt(menubar, dir > 0 ? 0 : visible - 1);
+
+    return titleAt(menubar, CLAMP(ordinal + dir, 0, visible - 1));
+}
+
+// The selectable row under the pointer, or -1; the keyboard starts here when
+// it takes over a mouse-opened popup.
+static s32 pointedRow(const Menubar* menubar, tic_point pos)
+{
+    tic_rect popup = popupRect(menubar);
+    const MenuBarCategory* category = &menubar->categories[menubar->open];
+
+    for(s32 i = 0; i < category->count; i++)
+    {
+        tic_rect rect = itemRect(&popup, i);
+
+        if(selectable(&category->items[i]) && pointInRect(&pos, &rect))
+            return i;
+    }
+
+    return -1;
+}
+
+static s32 pointedSubRow(const Menubar* menubar, tic_point pos)
+{
+    tic_rect popup = subPopupRect(menubar);
+
+    for(s32 i = 0; i < menubar->sub->count; i++)
+    {
+        tic_rect rect = itemRect(&popup, i);
+
+        if(selectable(&menubar->sub->items[i]) && pointInRect(&pos, &rect))
+            return i;
+    }
+
+    return -1;
+}
+
+static void openCategory(Menubar* menubar, s32 index, s32 dir)
+{
+    if(index < 0)
+        return;
+
+    const MenuBarCategory* category = &menubar->categories[index];
+    s32 row = initialRow(category, dir);
+
+    // A category with nothing to run does not open.
+    if(row < 0)
+        return;
+
+    menubar->open = index;
+    menubar->focus = index;
+    menubar->select = row;
+    menubar->sub = NULL;
+    menubar->subItem = -1;
+    menubar->subSelect = -1;
+}
+
+static void openSubmenu(Menubar* menubar, s32 row)
+{
+    const MenuBarItem* item = &menubar->categories[menubar->open].items[row];
+    s32 first = item->submenu ? nextSelectable(item->submenu, -1, +1) : -1;
+
+    if(first < 0)
+        return;
+
+    menubar->sub = item->submenu;
+    menubar->subItem = row;
+    menubar->subSelect = first;
+}
+
+// Running a row behaves exactly like clicking it: a submenu opens, a toggle or
+// a selection-group item stays open, anything else closes the menu.
+static void runRow(Menubar* menubar, const MenuBarCategory* category, s32 row)
+{
+    if(row < 0)
+        return;
+
+    const MenuBarItem* item = &category->items[row];
+
+    if(!selectable(item))
+        return;
+
+    if(item->submenu && category == &menubar->categories[menubar->open])
+    {
+        openSubmenu(menubar, row);
+        return;
+    }
+
+    if(item->handler)
+    {
+        menubar->pending = item->handler;
+        menubar->pendingId = item->id;
+
+        if(item->checked < 0 && category->selected < 0)
+            closeMenu(menubar);
+    }
 }
 
 // The menu takes the pointer: while a popup is open anywhere, and over the
@@ -289,6 +492,197 @@ bool menubar_owns_pointer(const Menubar* menubar, tic_mem* tic)
     return tic_api_mouse(tic).y < menubar->y + MENUBAR_HEIGHT;
 }
 
+static bool pressed(tic_mem* tic, tic_key key)
+{
+    return tic_api_keyp(tic, key, -1, -1);
+}
+
+static bool repeated(tic_mem* tic, tic_key key)
+{
+    return tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD);
+}
+
+static bool enterPressed(tic_mem* tic)
+{
+    return pressed(tic, tic_key_return) || pressed(tic, tic_key_numpadenter);
+}
+
+// A navigation key pressed while the pointer owns an open popup hands it to
+// the keyboard.
+static bool navKey(tic_mem* tic)
+{
+    return pressed(tic, tic_key_up) || pressed(tic, tic_key_down) ||
+           pressed(tic, tic_key_left) || pressed(tic, tic_key_right) ||
+           enterPressed(tic) || pressed(tic, tic_key_space);
+}
+
+// F10 is the bar's, Ctrl+F10 is the bytebattle toggle.
+static bool barKey(tic_mem* tic)
+{
+    return pressed(tic, tic_key_f10) &&
+           !tic_api_key(tic, tic_key_ctrl) && !tic_api_key(tic, tic_key_alt);
+}
+
+// The keyboard's frame: F10 and ESC, then the keys of the level focus is on.
+// Returns true when the bar owns the frame, so the pointer stays out of it.
+static bool keyboardStep(Menubar* menubar, tic_mem* tic, MouseState* state, tic_point pos)
+{
+    if(barKey(tic))
+    {
+        // F10 toggles the menu: it closes anything open, else opens the host's
+        // home category, the TIC-80 menu.
+        if(menubar->open >= 0)
+            closeMenu(menubar);
+        else
+        {
+            menubar->keyboard = true;
+
+            // An autohidden bar is shown at once, so the popup opens where the
+            // pointer would have opened it.
+            menubar->y = 0;
+
+            if(menubar->home >= 0 && !menubar->categories[menubar->home].hidden)
+            {
+                menubar->focus = menubar->home;
+                openCategory(menubar, menubar->home, +1);
+            }
+            else
+                menubar->focus = titleAt(menubar, 0);
+        }
+
+        return true;
+    }
+
+    if(pressed(tic, tic_key_escape) && (menubar->open >= 0 || menubar->keyboard))
+    {
+        if(menubar->sub)
+        {
+            // Back to the parent row; the popup and focus stay.
+            menubar->select = menubar->subItem;
+            menubar->sub = NULL;
+            menubar->subItem = -1;
+            menubar->subSelect = -1;
+        }
+        else if(menubar->open >= 0)
+        {
+            bool focused = menubar->keyboard;
+
+            closePopup(menubar);
+
+            if(!focused)
+                closeMenu(menubar);
+        }
+        else
+            closeMenu(menubar);
+
+        consumeClick(state);
+        menubar->escaped = true;
+        return true;
+    }
+
+    // The first navigation key on a mouse-opened popup takes it over from the
+    // row the pointer is on, or from outside the list.
+    if(!menubar->keyboard && menubar->open >= 0 && navKey(tic))
+    {
+        menubar->keyboard = true;
+        menubar->focus = menubar->open;
+        menubar->select = pointedRow(menubar, pos);
+
+        if(menubar->sub)
+            menubar->subSelect = pointedSubRow(menubar, pos);
+    }
+
+    if(!menubar->keyboard)
+        return false;
+
+    // The bar: titles, and the key that opens the focused menu.
+    if(menubar->open < 0)
+    {
+        if(menubar->focus < 0)
+            menubar->focus = titleAt(menubar, 0);
+
+        if(repeated(tic, tic_key_left))
+            menubar->focus = adjacentTitle(menubar, menubar->focus, -1);
+        else if(repeated(tic, tic_key_right))
+            menubar->focus = adjacentTitle(menubar, menubar->focus, +1);
+        else if(repeated(tic, tic_key_down) || enterPressed(tic))
+            openCategory(menubar, menubar->focus, +1);
+        else if(repeated(tic, tic_key_up))
+            openCategory(menubar, menubar->focus, -1);
+
+        return true;
+    }
+
+    // The submenu: rows, Left back to the parent.
+    if(menubar->sub)
+    {
+        const MenuBarCategory* category = menubar->sub;
+
+        if(repeated(tic, tic_key_up))
+            menubar->subSelect = nextSelectable(category, menubar->subSelect, -1);
+        else if(repeated(tic, tic_key_down))
+            menubar->subSelect = nextSelectable(category, menubar->subSelect, +1);
+        else if(enterPressed(tic) || pressed(tic, tic_key_space))
+        {
+            if(menubar->subSelect < 0)
+                menubar->subSelect = initialRow(category, +1);
+
+            runRow(menubar, category, menubar->subSelect);
+        }
+        else if(repeated(tic, tic_key_left))
+        {
+            menubar->select = menubar->subItem;
+            menubar->sub = NULL;
+            menubar->subItem = -1;
+            menubar->subSelect = -1;
+        }
+
+        return true;
+    }
+
+    // The popup: rows, adjacent menus, and a submenu on Right or Enter.
+    {
+        const MenuBarCategory* category = &menubar->categories[menubar->open];
+
+        if(repeated(tic, tic_key_up))
+            menubar->select = nextSelectable(category, menubar->select, -1);
+        else if(repeated(tic, tic_key_down))
+            menubar->select = nextSelectable(category, menubar->select, +1);
+        else if(repeated(tic, tic_key_left))
+        {
+            s32 index = adjacentTitle(menubar, menubar->open, -1);
+
+            // At the end of the row the focus clamps: the open menu stays as
+            // it is rather than reopening on its first row.
+            if(index != menubar->open)
+                openCategory(menubar, index, +1);
+        }
+        else if(repeated(tic, tic_key_right))
+        {
+            if(menubar->select >= 0 && category->items[menubar->select].submenu)
+                openSubmenu(menubar, menubar->select);
+            else
+            {
+                s32 index = adjacentTitle(menubar, menubar->open, +1);
+
+                if(index != menubar->open)
+                    openCategory(menubar, index, +1);
+            }
+        }
+        else if(enterPressed(tic) || pressed(tic, tic_key_space))
+        {
+            if(menubar->select < 0)
+                menubar->select = initialRow(category, +1);
+
+            runRow(menubar, category, menubar->select);
+        }
+    }
+
+    return true;
+}
+
+static void pointerStep(Menubar*, MouseState*, tic_point);
+
 void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
 {
     menubar->escaped = false;
@@ -301,7 +695,10 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
 
     // No bar on screen: it neither opens nor takes the pointer.
     if(mode == MENUBAR_NO_MODE)
+    {
+        menubar->captured = false;
         return;
+    }
 
     if(menubar->open >= 0 && menubar->categories[menubar->open].hidden)
         closeMenu(menubar);
@@ -309,9 +706,24 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
     MouseState* state = &menubar->mouse[tic_mouse_left];
     tic_point pos = tic_api_mouse(tic);
 
-    // Autohide follows the pointer: the bar is shown while a menu is open or
-    // the pointer is in the top strip, and slides away otherwise.
-    s32 target = menubar->autohide && menubar->open < 0 && pos.y >= MENUBAR_HEIGHT
+    bool moved = pos.x != menubar->lastMouse.x || pos.y != menubar->lastMouse.y;
+    menubar->lastMouse = pos;
+
+    // The pointer takes the menu back: a move or a press drops keyboard focus
+    // and hover behaves as before.
+    if(menubar->keyboard && (moved || state->down || state->click))
+    {
+        menubar->keyboard = false;
+        menubar->focus = -1;
+        menubar->select = -1;
+        menubar->subSelect = -1;
+    }
+
+    // Autohide follows the pointer: the bar is shown while a menu is open, the
+    // bar has focus, or the pointer is in the top strip, and slides away
+    // otherwise.
+    s32 target = menubar->autohide && menubar->open < 0 && !menubar->keyboard &&
+                         pos.y >= MENUBAR_HEIGHT
                      ? -MENUBAR_HEIGHT
                      : 0;
 
@@ -320,21 +732,20 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
     else if(menubar->y > target)
         menubar->y = MAX(menubar->y - AutoHideSpeed, target);
 
-    if(menubar->open >= 0 && tic_api_keyp(tic, tic_key_escape, -1, -1))
+    if(keyboardStep(menubar, tic, state, pos))
     {
-        if(menubar->sub)
-        {
-            menubar->sub = NULL;
-            menubar->subItem = -1;
-        }
-        else
-            closeMenu(menubar);
-
-        consumeClick(state);
-        menubar->escaped = true;
+        // The bar answered this frame's keys, even when the one that closed
+        // the menu left it unfocused: the editor must not see that key.
+        menubar->captured = true;
         return;
     }
 
+    pointerStep(menubar, state, pos);
+    updateCaptured(menubar);
+}
+
+static void pointerStep(Menubar* menubar, MouseState* state, tic_point pos)
+{
     if(menubar->open < 0)
     {
         for(s32 i = 0; i < menubar->count; i++)
@@ -653,10 +1064,11 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
 
         bool open = i == menubar->open;
         bool over = pointInRect(&pos, &rect);
+        bool focused = menubar->keyboard && i == menubar->focus;
 
         if(open)
             tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_dark_grey);
-        else if(over)
+        else if(over || focused)
             tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_light_grey);
 
         s32 textX = rect.x + TitlePadding;
@@ -680,12 +1092,15 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
         const MenuBarCategory* category = &menubar->categories[menubar->open];
 
         drawPopup(tic, category, &popup, &pos, icons, menubar->checkIcon,
-                  menubar->sub ? menubar->subItem : -1);
+                  menubar->sub        ? menubar->subItem
+                  : menubar->keyboard ? menubar->select
+                                      : -1);
 
         if(menubar->sub)
         {
             tic_rect sub = subPopupRect(menubar);
-            drawPopup(tic, menubar->sub, &sub, &pos, icons, menubar->checkIcon, -1);
+            drawPopup(tic, menubar->sub, &sub, &pos, icons, menubar->checkIcon,
+                      menubar->keyboard ? menubar->subSelect : -1);
         }
     }
 

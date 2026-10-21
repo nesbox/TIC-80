@@ -39,8 +39,18 @@ bool keyboard_enter(tic_mem* tic, s32 hold, s32 period)
            tic_api_keyp(tic, tic_key_numpadenter, hold, period);
 }
 
+static bool textMuted = false;
+
+void keyboard_mute_text(bool mute)
+{
+    textMuted = mute;
+}
+
 char keyboard_text(tic_mem* tic)
 {
+    if(textMuted)
+        return '\0';
+
     // Ctrl-based shortcuts should not also inject printable characters.
     if(tic_api_key(tic, tic_key_ctrl) && !tic_api_key(tic, tic_key_alt))
         return '\0';

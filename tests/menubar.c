@@ -85,6 +85,7 @@ static const MenuBarItem MainItems[] =
 static const MenuBarItem RightItems[] =
     {
         {"RIGHT ITEM", NULL, hit, Two, true, false, 0, 0, NULL, -1},
+        {"RIGHT MORE", NULL, hit, One, true, false, 0, 0, NULL, -1},
 };
 
 static MenuBarCategory Categories[] =
@@ -92,7 +93,9 @@ static MenuBarCategory Categories[] =
         // First, so a click on the bar would land on it if it were not skipped.
         {"HIDDEN", HiddenItems, COUNT_OF(HiddenItems), false, 0, -1, 0, true},
         {"APP", MainItems, COUNT_OF(MainItems), false, 0, -1, 0, false},
-        {"RIGHT", RightItems, COUNT_OF(RightItems), true, 0, Two, 0, false},
+        // A selection group marked on its second row, for the keyboard's
+        // opening row.
+        {"RIGHT", RightItems, COUNT_OF(RightItems), true, 0, One, 0, false},
 };
 
 static Menubar makeMenubar(void)
@@ -100,6 +103,9 @@ static Menubar makeMenubar(void)
     Menubar bar;
 
     menubar_init(&bar, Categories, COUNT_OF(Categories), Mouse, Hits, CheckIcon);
+
+    // F10 opens the host's home menu; APP here, as the studio's TIC-80 one.
+    bar.home = AppMain;
 
     return bar;
 }
@@ -135,6 +141,29 @@ static void step(Menubar* bar, tic_mem* tic)
 static void draw(Menubar* bar, tic_mem* tic)
 {
     menubar_draw(bar, tic, Mode, &Tiles);
+}
+
+// One key press for one frame: set it, step the module, clear it again. The
+// core's previous state stays empty, so every press reads as a fresh one.
+static void keyPress(Menubar* bar, tic_mem* tic, tic_key key)
+{
+    tic->ram->input.keyboard.keys[0] = key;
+    step(bar, tic);
+    memset(&tic->ram->input.keyboard, 0, sizeof tic->ram->input.keyboard);
+}
+
+// A key press whose handler the draw runs, as the studio does.
+static void keyDraw(Menubar* bar, tic_mem* tic, tic_key key)
+{
+    keyPress(bar, tic, key);
+    draw(bar, tic);
+}
+
+// The keyboard cases start from a still pointer out of the bar's way.
+static void still(Menubar* bar, tic_mem* tic)
+{
+    moveTo(tic, 200, 130);
+    step(bar, tic);
 }
 
 static u8 screenAt(tic_mem* tic, s32 x, s32 y)
@@ -569,6 +598,413 @@ static void testSubmenuDispatch(tic_mem* tic)
     puts("submenu dispatch ok");
 }
 
+static void testKeyboardFocus(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+
+    assert(!bar.keyboard);
+    assert(bar.focus == -1);
+    assert(!bar.captured);
+
+    // Ctrl+F10 is the bytebattle toggle, not the bar's.
+    tic->ram->input.keyboard.keys[0] = tic_key_ctrl;
+    tic->ram->input.keyboard.keys[1] = tic_key_f10;
+    step(&bar, tic);
+    memset(&tic->ram->input.keyboard, 0, sizeof tic->ram->input.keyboard);
+
+    assert(!bar.keyboard);
+    assert(!bar.captured);
+
+    // F10 opens the home menu on its first selectable row.
+    keyPress(&bar, tic, tic_key_f10);
+    assert(bar.keyboard);
+    assert(bar.open == AppMain);
+    assert(bar.focus == AppMain);
+    assert(bar.select == 0);
+    assert(bar.captured);
+
+    // A second F10 closes it and leaves the bar; that frame is still the
+    // bar's, so the editor does not see the F10 that closed the menu.
+    keyPress(&bar, tic, tic_key_f10);
+    assert(!bar.keyboard);
+    assert(bar.open == -1);
+    assert(bar.focus == -1);
+    assert(bar.captured);
+
+    step(&bar, tic);
+    assert(!bar.captured);
+
+    puts("keyboard focus ok");
+}
+
+static void testKeyboardTitles(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+    keyPress(&bar, tic, tic_key_f10);
+
+    // ESC closes the popup and leaves the title row focused, as the second
+    // ESC level.
+    keyPress(&bar, tic, tic_key_escape);
+    assert(bar.open == -1);
+    assert(bar.keyboard);
+    assert(bar.focus == AppMain);
+
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.focus == AppRight);
+
+    // The ends clamp instead of wrapping.
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.focus == AppRight);
+
+    keyPress(&bar, tic, tic_key_left);
+    assert(bar.focus == AppMain);
+
+    // HIDDEN is never a stop.
+    keyPress(&bar, tic, tic_key_left);
+    assert(bar.focus == AppMain);
+
+    puts("keyboard titles ok");
+}
+
+static void testKeyboardOpen(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+
+    // F10 opens on the first selectable row.
+    keyPress(&bar, tic, tic_key_f10);
+    assert(bar.open == AppMain);
+    assert(bar.select == 0);
+
+    // ESC leaves the bar focused; Up opens on the last selectable row.
+    keyPress(&bar, tic, tic_key_escape);
+    assert(bar.open == -1);
+    assert(bar.keyboard);
+
+    keyPress(&bar, tic, tic_key_up);
+    assert(bar.open == AppMain);
+    assert(bar.select == 7);
+
+    // Focus again, then a group opens on its marked row, not the first.
+    keyPress(&bar, tic, tic_key_escape);
+    keyPress(&bar, tic, tic_key_escape);
+    assert(!bar.keyboard);
+
+    keyPress(&bar, tic, tic_key_f10);
+    keyPress(&bar, tic, tic_key_escape);
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.focus == AppRight);
+
+    keyPress(&bar, tic, tic_key_down);
+    assert(bar.open == AppRight);
+    assert(bar.select == 1);
+
+    puts("keyboard open ok");
+}
+
+static void testKeyboardRows(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+    keyPress(&bar, tic, tic_key_f10);
+    assert(bar.select == 0);
+
+    // The separator (2) and the disabled row (3) are skipped.
+    keyPress(&bar, tic, tic_key_down);
+    assert(bar.select == 1);
+    keyPress(&bar, tic, tic_key_down);
+    assert(bar.select == 4);
+    keyPress(&bar, tic, tic_key_down);
+    assert(bar.select == 5);
+
+    keyPress(&bar, tic, tic_key_up);
+    assert(bar.select == 4);
+    keyPress(&bar, tic, tic_key_up);
+    assert(bar.select == 1);
+    keyPress(&bar, tic, tic_key_up);
+    assert(bar.select == 0);
+
+    // Wrapping lands on OFF, past the disabled rows again.
+    keyPress(&bar, tic, tic_key_up);
+    assert(bar.select == 7);
+
+    puts("keyboard rows ok");
+}
+
+static void testKeyboardDispatch(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+    keyPress(&bar, tic, tic_key_f10);
+    assert(bar.open == AppMain && bar.select == 0);
+
+    // Enter runs the row, closes the menu and drops focus; the frame still
+    // belongs to the bar, so the editor will not see that Enter.
+    s32 before = Hits[One];
+    keyPress(&bar, tic, tic_key_return);
+
+    assert(bar.open == -1);
+    assert(!bar.keyboard);
+    assert(bar.captured);
+    assert(Hits[One] == before);
+
+    draw(&bar, tic);
+    assert(Hits[One] == before + 1);
+
+    // The next frame is the editor's again.
+    step(&bar, tic);
+    assert(!bar.captured);
+
+    puts("keyboard dispatch ok");
+}
+
+static void testKeyboardToggle(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+    keyPress(&bar, tic, tic_key_f10);
+    keyPress(&bar, tic, tic_key_up);
+    assert(bar.select == 7);
+    keyPress(&bar, tic, tic_key_up);
+    assert(bar.select == 6);
+
+    // A toggle runs but leaves the menu focused and open.
+    s32 before = Hits[ToggleOn];
+    keyDraw(&bar, tic, tic_key_return);
+    assert(Hits[ToggleOn] == before + 1);
+    assert(bar.open == AppMain);
+    assert(bar.keyboard);
+    assert(bar.captured);
+
+    // Space does the same.
+    keyDraw(&bar, tic, tic_key_space);
+    assert(Hits[ToggleOn] == before + 2);
+
+    puts("keyboard toggle ok");
+}
+
+static void testKeyboardGroup(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+    keyPress(&bar, tic, tic_key_f10);
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.open == AppRight && bar.select == 1);
+
+    // A selection group runs its item and stays open.
+    s32 before = Hits[One];
+    keyDraw(&bar, tic, tic_key_return);
+    assert(Hits[One] == before + 1);
+    assert(bar.open == AppRight);
+    assert(bar.keyboard);
+
+    puts("keyboard group ok");
+}
+
+static void testKeyboardAdjacent(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+    keyPress(&bar, tic, tic_key_f10);
+    assert(bar.open == AppMain);
+
+    // The popup stays open while the keyboard switches menus. RIGHT opens on
+    // its marked row.
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.open == AppRight);
+    assert(bar.select == 1);
+    assert(bar.keyboard);
+
+    // At the last title Right clamps: the popup stays as it is, it does not
+    // reopen on its first row.
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.open == AppRight);
+    assert(bar.select == 1);
+
+    keyPress(&bar, tic, tic_key_left);
+    assert(bar.open == AppMain);
+    assert(bar.select == 0);
+    assert(bar.keyboard);
+
+    // The same at the first title.
+    keyPress(&bar, tic, tic_key_down);
+    assert(bar.select == 1);
+    keyPress(&bar, tic, tic_key_left);
+    assert(bar.open == AppMain);
+    assert(bar.select == 1);
+
+    puts("keyboard adjacent ok");
+}
+
+static void testKeyboardSubmenu(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+    keyPress(&bar, tic, tic_key_f10);
+    keyPress(&bar, tic, tic_key_down);
+    keyPress(&bar, tic, tic_key_down);
+    assert(bar.select == 4);
+
+    // Right opens the submenu on its first selectable row.
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.sub == &SubAMenu);
+    assert(bar.subItem == 4);
+    assert(bar.subSelect == 0);
+    assert(bar.open == AppMain);
+
+    keyPress(&bar, tic, tic_key_down);
+    assert(bar.subSelect == 1);
+
+    // Left returns to the parent row, with the popup still open.
+    keyPress(&bar, tic, tic_key_left);
+    assert(bar.sub == NULL);
+    assert(bar.select == 4);
+    assert(bar.open == AppMain);
+    assert(bar.keyboard);
+
+    // Running an item from the submenu closes the menu.
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.sub == &SubAMenu);
+
+    s32 before = Hits[SubAItem0];
+    keyPress(&bar, tic, tic_key_return);
+    assert(bar.open == -1);
+    assert(bar.sub == NULL);
+    assert(!bar.keyboard);
+
+    draw(&bar, tic);
+    assert(Hits[SubAItem0] == before + 1);
+
+    puts("keyboard submenu ok");
+}
+
+static void testKeyboardEscape(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+    keyPress(&bar, tic, tic_key_f10);
+    keyPress(&bar, tic, tic_key_down);
+    keyPress(&bar, tic, tic_key_down);
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.sub == &SubAMenu);
+
+    // Submenu -> popup, keeping the focus and the parent row.
+    keyPress(&bar, tic, tic_key_escape);
+    assert(bar.sub == NULL);
+    assert(bar.open == AppMain);
+    assert(bar.keyboard);
+    assert(bar.select == 4);
+    assert(bar.escaped);
+
+    // Popup -> bar focus.
+    keyPress(&bar, tic, tic_key_escape);
+    assert(bar.open == -1);
+    assert(bar.keyboard);
+    assert(bar.focus == AppMain);
+    assert(bar.captured);
+
+    // Bar focus -> editor. The ESC frame is still the bar's, so the editor
+    // does not see it either.
+    keyPress(&bar, tic, tic_key_escape);
+    assert(!bar.keyboard);
+    assert(bar.focus == -1);
+    assert(bar.captured);
+
+    step(&bar, tic);
+    assert(!bar.captured);
+
+    puts("keyboard escape ok");
+}
+
+static void testKeyboardCapture(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+    assert(!bar.captured);
+
+    // A mouse-opened popup captures keys too, without keyboard focus.
+    clickAt(tic, 10, 3);
+    step(&bar, tic);
+    assert(bar.open == AppMain);
+    assert(!bar.keyboard);
+    assert(bar.captured);
+
+    // The first arrow takes the menu over from outside the rows.
+    keyPress(&bar, tic, tic_key_down);
+    assert(bar.keyboard);
+    assert(bar.focus == AppMain);
+    assert(bar.select == 0);
+
+    puts("keyboard capture ok");
+}
+
+static void testKeyboardAutohide(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    bar.autohide = true;
+
+    moveTo(tic, 200, 100);
+
+    for(s32 i = 0; i < MENUBAR_HEIGHT + 1; i++)
+        step(&bar, tic);
+
+    assert(bar.y == -MENUBAR_HEIGHT);
+
+    // F10 snaps the hidden bar in and keeps it there.
+    tic->ram->input.keyboard.keys[0] = tic_key_f10;
+    step(&bar, tic);
+    memset(&tic->ram->input.keyboard, 0, sizeof tic->ram->input.keyboard);
+
+    assert(bar.keyboard);
+    assert(bar.open == AppMain);
+    assert(bar.y == 0);
+
+    for(s32 i = 0; i < MENUBAR_HEIGHT + 1; i++)
+        step(&bar, tic);
+
+    assert(bar.y == 0);
+
+    // Popup -> bar focus -> editor; then it slides away again.
+    keyPress(&bar, tic, tic_key_escape);
+    assert(bar.keyboard);
+    keyPress(&bar, tic, tic_key_escape);
+    assert(!bar.keyboard);
+
+    for(s32 i = 0; i < MENUBAR_HEIGHT + 1; i++)
+        step(&bar, tic);
+
+    assert(bar.y == -MENUBAR_HEIGHT);
+
+    puts("keyboard autohide ok");
+}
+
+static void testKeyboardPointer(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    still(&bar, tic);
+    keyPress(&bar, tic, tic_key_f10);
+    assert(bar.keyboard && bar.open == AppMain);
+
+    // A mouse move hands the bar back to the pointer; its menu stays open.
+    moveTo(tic, 100, 100);
+    step(&bar, tic);
+
+    assert(!bar.keyboard);
+    assert(bar.focus == -1);
+    assert(bar.open == AppMain);
+
+    // Pointer control behaves as before: a click on the open title closes it.
+    clickAt(tic, 10, 3);
+    step(&bar, tic);
+
+    assert(bar.open == -1);
+    assert(!bar.keyboard);
+
+    puts("keyboard pointer handoff ok");
+}
+
 int main(void)
 {
     tic_mem* tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
@@ -596,6 +1032,19 @@ int main(void)
     testOwnerClick(tic);
     testSubmenuToggleStaysOpen(tic);
     testSubmenuDispatch(tic);
+    testKeyboardFocus(tic);
+    testKeyboardTitles(tic);
+    testKeyboardOpen(tic);
+    testKeyboardRows(tic);
+    testKeyboardDispatch(tic);
+    testKeyboardToggle(tic);
+    testKeyboardGroup(tic);
+    testKeyboardAdjacent(tic);
+    testKeyboardSubmenu(tic);
+    testKeyboardEscape(tic);
+    testKeyboardCapture(tic);
+    testKeyboardAutohide(tic);
+    testKeyboardPointer(tic);
 
     tic_core_close(tic);
     puts("menubar ok");
