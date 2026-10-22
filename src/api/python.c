@@ -223,11 +223,21 @@ static bool py_circb(int argc, py_Ref argv)
     return true;
 }
 
-// clip(x: int, y: int, width: int, height: int)
+// clip(x: int | None = None, y: int | None = None, width: int | None = None, height: int | None = None)
 // void (*clip)(tic_mem*, s32, s32, s32, s32)
 static bool py_clip(int argc, py_Ref argv)
 {
     (void)argc;
+    tic_core* core = get_core();
+
+    // clip() with no arguments resets the clipping region to the whole screen
+    if(py_isnone(py_arg(0)) && py_isnone(py_arg(1)) && py_isnone(py_arg(2)) && py_isnone(py_arg(3)))
+    {
+        core->api.clip((tic_mem*)core, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+        py_newnone(py_retval());
+        return true;
+    }
+
     for(int i = 0; i < 4; i++)
     {
         PY_CHECK_ARG_TYPE(i, tp_int);
@@ -237,7 +247,6 @@ static bool py_clip(int argc, py_Ref argv)
     s32 width = (s32)(py_toint(py_arg(2)));
     s32 height = (s32)(py_toint(py_arg(3)));
 
-    tic_core* core = get_core();
     core->api.clip((tic_mem*)core, x, y, width, height);
     py_newnone(py_retval());
     return true;
@@ -1310,7 +1319,7 @@ static void bind_pkpy_v2()
     py_bind(mod, "print(text, x=0, y=0, color=15, fixed=False, scale=1, alt=False)", py_print);
     py_bind(mod, "circ(x: int, y: int, radius: int, color: int)", py_circ);
     py_bind(mod, "circb(x: int, y: int, radius: int, color: int)", py_circb);
-    py_bind(mod, "clip(x: int, y: int, width: int, height: int)", py_clip);
+    py_bind(mod, "clip(x: int | None = None, y: int | None = None, width: int | None = None, height: int | None = None)", py_clip);
     py_bind(mod, "elli(x: int, y: int, a: int, b: int, color: int)", py_elli);
     py_bind(mod, "ellib(x: int, y: int, a: int, b: int, color: int)", py_ellib);
     py_bind(mod, "exit()", py_exit);
