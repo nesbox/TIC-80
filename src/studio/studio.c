@@ -1900,16 +1900,28 @@ enum
     SpriteActionTiles = 200,
     SpriteActionSprites,
     SpriteActionFlags,
+    SpriteActionDraw,
+    SpriteActionPick,
+    SpriteActionSelect,
+    SpriteActionFill,
+    SpriteActionFlipHorz,
+    SpriteActionFlipVert,
+    SpriteActionRotate,
+    SpriteActionErase,
     SpriteActionBpp4,
     SpriteActionBpp2,
     SpriteActionBpp1,
     SpriteActionVbank0,
     SpriteActionVbank1,
+    SpriteActionPalette,
     SpriteActionSize8,
     SpriteActionSize16,
     SpriteActionSize32,
     SpriteActionSize64,
-    SpriteActionPages,
+    SpriteActionBrush1,
+    SpriteActionBrush2,
+    SpriteActionBrush3,
+    SpriteActionBrush4,
     SpriteActionPage1,
     SpriteActionPage2,
     SpriteActionPage3,
@@ -2065,15 +2077,33 @@ static void menubarSpriteAction(void* data, s32 id)
     {
         case SpriteActionTiles: spriteSelectBank(sprite, 0); break;
         case SpriteActionSprites: spriteSelectBank(sprite, 1); break;
+        case SpriteActionDraw: spriteSetMode(sprite, SPRITE_DRAW_MODE); break;
+        case SpriteActionPick: spriteSetMode(sprite, SPRITE_PICK_MODE); break;
+        case SpriteActionSelect: spriteSetMode(sprite, SPRITE_SELECT_MODE); break;
+        case SpriteActionFill: spriteSetMode(sprite, SPRITE_FILL_MODE); break;
+        case SpriteActionFlipHorz: spriteToolAction(sprite, SPRITE_TOOL_FLIP_HORZ); break;
+        case SpriteActionFlipVert: spriteToolAction(sprite, SPRITE_TOOL_FLIP_VERT); break;
+        case SpriteActionRotate: spriteToolAction(sprite, SPRITE_TOOL_ROTATE); break;
+        case SpriteActionErase: spriteToolAction(sprite, SPRITE_TOOL_ERASE); break;
         case SpriteActionBpp4: spriteSetBpp(sprite, tic_bpp_4); break;
         case SpriteActionBpp2: spriteSetBpp(sprite, tic_bpp_2); break;
         case SpriteActionBpp1: spriteSetBpp(sprite, tic_bpp_1); break;
         case SpriteActionVbank0: sprite->palette.vbank1 = false; break;
         case SpriteActionVbank1: sprite->palette.vbank1 = true; break;
+        case SpriteActionPalette:
+            sprite->palette.edit = !sprite->palette.edit;
+
+            if(!sprite->palette.edit)
+                sprite->palette.focus = -1;
+            break;
         case SpriteActionSize8: spriteSetSize(sprite, 8); break;
         case SpriteActionSize16: spriteSetSize(sprite, 16); break;
         case SpriteActionSize32: spriteSetSize(sprite, 32); break;
         case SpriteActionSize64: spriteSetSize(sprite, 64); break;
+        case SpriteActionBrush1: spriteSetBrushSize(sprite, 1); break;
+        case SpriteActionBrush2: spriteSetBrushSize(sprite, 2); break;
+        case SpriteActionBrush3: spriteSetBrushSize(sprite, 3); break;
+        case SpriteActionBrush4: spriteSetBrushSize(sprite, 4); break;
 
         case SpriteActionPage1: spriteSelectPage(sprite, 0); break;
         case SpriteActionPage2: spriteSelectPage(sprite, 1); break;
@@ -2368,11 +2398,11 @@ static void initMenubarApps(void)
     }
 
     MenubarApps[count++] = (MenuBarItem){"", NULL, NULL, 0, true, true, 0, 0, NULL, -1};
-    MenubarApps[count++] = (MenuBarItem){"CONSOLE", "ESC", menubarSetMode, TIC_CONSOLE_MODE, true, false, 0, 0, NULL, -1};
+    MenubarApps[count++] = (MenuBarItem){"CONSOLE", "ESC", menubarSetMode, TIC_CONSOLE_MODE, true, false, tic_icon_console, 0, NULL, -1};
 #if defined(BUILD_SURF)
-    MenubarApps[count++] = (MenuBarItem){"SURF", NULL, menubarSetMode, TIC_SURF_MODE, true, false, 0, 0, NULL, -1};
+    MenubarApps[count++] = (MenuBarItem){"SURF", NULL, menubarSetMode, TIC_SURF_MODE, true, false, tic_icon_surf, 0, NULL, -1};
 #endif
-    MenubarApps[count++] = (MenuBarItem){"GAME MENU", NULL, menubarSetMode, TIC_MENU_MODE, true, false, 0, 0, NULL, -1};
+    MenubarApps[count++] = (MenuBarItem){"GAME MENU", NULL, menubarSetMode, TIC_MENU_MODE, true, false, tic_icon_game_menu, 0, NULL, -1};
 
     MenubarAppsCount = count;
 }
@@ -2479,54 +2509,78 @@ static MenuBarItem MenubarCodeApp[] =
         {"OPTIONS", NULL, NULL, 0, true, false, 0, 0, &MenubarEditorMenu, -1},
 };
 
-static MenuBarItem MenubarBpp[] =
-    {
-        {"4BPP", NULL, menubarSpriteAction, SpriteActionBpp4, true, false, 0, 0, NULL, 0},
-        {"2BPP", NULL, menubarSpriteAction, SpriteActionBpp2, true, false, 0, 0, NULL, 0},
-        {"1BPP", NULL, menubarSpriteAction, SpriteActionBpp1, true, false, 0, 0, NULL, 0},
-};
-
-static const MenuBarCategory MenubarBppMenu = {"BPP", MenubarBpp, COUNT_OF(MenubarBpp), false, 0, -1, 0, false};
-
 static MenuBarItem MenubarPalette[] =
     {
         {"VBANK0", NULL, menubarSpriteAction, SpriteActionVbank0, true, false, 0, 0, NULL, 0},
         {"VBANK1", NULL, menubarSpriteAction, SpriteActionVbank1, true, false, 0, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"EDIT", NULL, menubarSpriteAction, SpriteActionPalette, true, false, 0, 0, NULL, 0},
 };
 
 static const MenuBarCategory MenubarPaletteMenu = {"PALETTE", MenubarPalette, COUNT_OF(MenubarPalette), false, 0, -1, 0, false};
 
-static MenuBarItem MenubarSize[] =
+static MenuBarItem MenubarCanvasSize[] =
     {
-        {"8X8", NULL, menubarSpriteAction, SpriteActionSize8, true, false, 0, 0, NULL, 0},
-        {"16X16", NULL, menubarSpriteAction, SpriteActionSize16, true, false, 0, 0, NULL, 0},
-        {"32X32", NULL, menubarSpriteAction, SpriteActionSize32, true, false, 0, 0, NULL, 0},
-        {"64X64", NULL, menubarSpriteAction, SpriteActionSize64, true, false, 0, 0, NULL, 0},
+        {"8x8", NULL, menubarSpriteAction, SpriteActionSize8, true, false, 0, 0, NULL, 0},
+        {"16x16", NULL, menubarSpriteAction, SpriteActionSize16, true, false, 0, 0, NULL, 0},
+        {"32x32", NULL, menubarSpriteAction, SpriteActionSize32, true, false, 0, 0, NULL, 0},
+        {"64x64", NULL, menubarSpriteAction, SpriteActionSize64, true, false, 0, 0, NULL, 0},
 };
 
-static const MenuBarCategory MenubarSizeMenu = {"SIZE", MenubarSize, COUNT_OF(MenubarSize), false, 0, -1, 0, false};
+static const MenuBarCategory MenubarCanvasSizeMenu = {"CANVAS", MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), false, 0, -1, 0, false};
 
-static MenuBarItem MenubarSpritePages[] =
+static MenuBarItem MenubarBrushSize[] =
     {
+        {"1x1", NULL, menubarSpriteAction, SpriteActionBrush1, true, false, 0, 0, NULL, 0},
+        {"2x2", NULL, menubarSpriteAction, SpriteActionBrush2, true, false, 0, 0, NULL, 0},
+        {"3x3", NULL, menubarSpriteAction, SpriteActionBrush3, true, false, 0, 0, NULL, 0},
+        {"4x4", NULL, menubarSpriteAction, SpriteActionBrush4, true, false, 0, 0, NULL, 0},
+};
+
+static const MenuBarCategory MenubarBrushSizeMenu = {"BRUSH", MenubarBrushSize, COUNT_OF(MenubarBrushSize), false, 0, -1, 0, false};
+
+static MenuBarItem MenubarSpriteTileset[] =
+    {
+        {"4BPP", NULL, menubarSpriteAction, SpriteActionBpp4, true, false, 0, 0, NULL, 0},
+        {"2BPP", NULL, menubarSpriteAction, SpriteActionBpp2, true, false, 0, 0, NULL, 0},
+        {"1BPP", NULL, menubarSpriteAction, SpriteActionBpp1, true, false, 0, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"PAGE 1", NULL, menubarSpriteAction, SpriteActionPage1, true, false, 0, 0, NULL, 0},
         {"PAGE 2", NULL, menubarSpriteAction, SpriteActionPage2, true, false, 0, 0, NULL, 0},
         {"PAGE 3", NULL, menubarSpriteAction, SpriteActionPage3, true, false, 0, 0, NULL, 0},
         {"PAGE 4", NULL, menubarSpriteAction, SpriteActionPage4, true, false, 0, 0, NULL, 0},
 };
 
-static const MenuBarCategory MenubarSpritePagesMenu = {"PAGES", MenubarSpritePages, COUNT_OF(MenubarSpritePages), false, 0, -1, 0, false};
+static const MenuBarCategory MenubarSpriteTilesetMenu = {"TILESET", MenubarSpriteTileset, COUNT_OF(MenubarSpriteTileset), false, 0, -1, 0, false};
+
+static MenuBarItem MenubarSpriteTools[] =
+    {
+        {"BRUSH", "1", menubarSpriteAction, SpriteActionDraw, true, false, tic_icon_pen, 0, NULL, 0},
+        {"PICKER", "2", menubarSpriteAction, SpriteActionPick, true, false, tic_icon_tinypicker, 0, NULL, 0},
+        {"SELECT", "3", menubarSpriteAction, SpriteActionSelect, true, false, tic_icon_select, 0, NULL, 0},
+        {"FILL", "4", menubarSpriteAction, SpriteActionFill, true, false, tic_icon_fill, 0, NULL, 0},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"FLIP HORZ", "5", menubarSpriteAction, SpriteActionFlipHorz, true, false, tic_icon_tinyfliphorz, 0, NULL, -1},
+        {"FLIP VERT", "6", menubarSpriteAction, SpriteActionFlipVert, true, false, tic_icon_tinyflipvert, 0, NULL, -1},
+        {"ROTATE", "7", menubarSpriteAction, SpriteActionRotate, true, false, tic_icon_tinyrotate, 0, NULL, -1},
+        {"ERASE", "8", menubarSpriteAction, SpriteActionErase, true, false, tic_icon_tinyerase, 0, NULL, -1},
+};
+
+static const MenuBarCategory MenubarSpriteToolsMenu = {"TOOLS", MenubarSpriteTools, COUNT_OF(MenubarSpriteTools), false, 0, -1, 0, false};
 
 static MenuBarItem MenubarSpriteApp[] =
     {
         {"TILES", "TAB", menubarSpriteAction, SpriteActionTiles, true, false, tic_icon_tiles, 0, NULL, 0},
         {"SPRITES", NULL, menubarSpriteAction, SpriteActionSprites, true, false, tic_icon_sprites, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+        {"TOOLS", NULL, NULL, 0, true, false, 0, 0, &MenubarSpriteToolsMenu, -1},
+        {"TILESET", NULL, NULL, 0, true, false, 0, 0, &MenubarSpriteTilesetMenu, -1},
+        {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"FLAGS", NULL, menubarSpriteAction, SpriteActionFlags, true, false, 0, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"BPP", NULL, NULL, 0, true, false, 0, 0, &MenubarBppMenu, -1},
-        {"PAGES", NULL, NULL, SpriteActionPages, true, false, 0, 0, &MenubarSpritePagesMenu, -1},
         {"PALETTE", NULL, NULL, 0, true, false, 0, 0, &MenubarPaletteMenu, -1},
-        {"SIZE", NULL, NULL, 0, true, false, 0, 0, &MenubarSizeMenu, -1},
+        {"CANVAS", NULL, NULL, 0, true, false, 0, 0, &MenubarCanvasSizeMenu, -1},
+        {"BRUSH", NULL, NULL, 0, true, false, 0, 0, &MenubarBrushSizeMenu, -1},
 };
 
 static MenuBarItem MenubarMapTileset[] =
@@ -2557,7 +2611,7 @@ static MenuBarItem MenubarMapApp[] =
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"GRID", "`", menubarMapAction, MapActionGrid, true, false, tic_icon_grid, 0, NULL, 0},
         {"RANDOM", "R", menubarMapAction, MapActionRandom, true, false, tic_icon_random, 0, NULL, 0},
-        {"SHOW TILES", "SHIFT", menubarMapAction, MapActionTileset, true, false, tic_icon_up, 0, NULL, 0},
+        {"SHOW TILES", "SHIFT", menubarMapAction, MapActionTileset, true, false, tic_icon_show_tiles, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"WORLD MAP", "TAB", menubarMapAction, MapActionWorld, true, false, tic_icon_world, 0, NULL, -1},
 };
@@ -2628,7 +2682,6 @@ static const MenuBarItem* const MenubarMapPins[] =
         &MenubarMapApp[2],            // SELECT
         &MenubarMapApp[3],            // FILL
         &MenubarMapApp[9],            // SHOW TILES
-        &MenubarMapApp[7],            // GRID
 };
 
 static const MenuBarItem* const MenubarMusicPins[] =
@@ -2807,26 +2860,37 @@ static void updateMenubar(Studio* studio)
             menubarCheck(MenubarSpriteApp, COUNT_OF(MenubarSpriteApp), SpriteActionSprites, sprite->blit.bank == 1);
             menubarCheck(MenubarSpriteApp, COUNT_OF(MenubarSpriteApp), SpriteActionFlags, sprite->flags.show);
 
-            menubarCheck(MenubarBpp, COUNT_OF(MenubarBpp), SpriteActionBpp4, sprite->blit.mode == tic_bpp_4);
-            menubarCheck(MenubarBpp, COUNT_OF(MenubarBpp), SpriteActionBpp2, sprite->blit.mode == tic_bpp_2);
-            menubarCheck(MenubarBpp, COUNT_OF(MenubarBpp), SpriteActionBpp1, sprite->blit.mode == tic_bpp_1);
+            menubarCheck(MenubarSpriteTools, COUNT_OF(MenubarSpriteTools), SpriteActionDraw, sprite->mode == SPRITE_DRAW_MODE);
+            menubarCheck(MenubarSpriteTools, COUNT_OF(MenubarSpriteTools), SpriteActionPick, sprite->mode == SPRITE_PICK_MODE);
+            menubarCheck(MenubarSpriteTools, COUNT_OF(MenubarSpriteTools), SpriteActionSelect, sprite->mode == SPRITE_SELECT_MODE);
+            menubarCheck(MenubarSpriteTools, COUNT_OF(MenubarSpriteTools), SpriteActionFill, sprite->mode == SPRITE_FILL_MODE);
+
+            menubarCheck(MenubarSpriteTileset, COUNT_OF(MenubarSpriteTileset), SpriteActionBpp4, sprite->blit.mode == tic_bpp_4);
+            menubarCheck(MenubarSpriteTileset, COUNT_OF(MenubarSpriteTileset), SpriteActionBpp2, sprite->blit.mode == tic_bpp_2);
+            menubarCheck(MenubarSpriteTileset, COUNT_OF(MenubarSpriteTileset), SpriteActionBpp1, sprite->blit.mode == tic_bpp_1);
 
             menubarCheck(MenubarPalette, COUNT_OF(MenubarPalette), SpriteActionVbank0, !sprite->palette.vbank1);
             menubarCheck(MenubarPalette, COUNT_OF(MenubarPalette), SpriteActionVbank1, sprite->palette.vbank1);
+            menubarCheck(MenubarPalette, COUNT_OF(MenubarPalette), SpriteActionPalette, sprite->palette.edit);
 
-            menubarCheck(MenubarSize, COUNT_OF(MenubarSize), SpriteActionSize8, sprite->size == 8);
-            menubarCheck(MenubarSize, COUNT_OF(MenubarSize), SpriteActionSize16, sprite->size == 16);
-            menubarCheck(MenubarSize, COUNT_OF(MenubarSize), SpriteActionSize32, sprite->size == 32);
-            menubarCheck(MenubarSize, COUNT_OF(MenubarSize), SpriteActionSize64, sprite->size == 64);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize8, sprite->size == 8);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize16, sprite->size == 16);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize32, sprite->size == 32);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize64, sprite->size == 64);
 
-            menubarEnable(MenubarSpriteApp, COUNT_OF(MenubarSpriteApp), SpriteActionPages, sprite->blit.pages > 1);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush1, sprite->brushSize == 1);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush2, sprite->brushSize == 2);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush3, sprite->brushSize == 3);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush4, sprite->brushSize == 4);
 
-            for(s32 page = 0; page < COUNT_OF(MenubarSpritePages); page++)
             {
-                const s32 ids[] = {SpriteActionPage1, SpriteActionPage2, SpriteActionPage3, SpriteActionPage4};
+                static const s32 Pages[] = {SpriteActionPage1, SpriteActionPage2, SpriteActionPage3, SpriteActionPage4};
 
-                menubarEnable(MenubarSpritePages, COUNT_OF(MenubarSpritePages), ids[page], page < sprite->blit.pages);
-                menubarCheck(MenubarSpritePages, COUNT_OF(MenubarSpritePages), ids[page], page == sprite->blit.page);
+                for(s32 page = 0; page < (s32)COUNT_OF(Pages); page++)
+                {
+                    menubarEnable(MenubarSpriteTileset, COUNT_OF(MenubarSpriteTileset), Pages[page], page < sprite->blit.pages);
+                    menubarCheck(MenubarSpriteTileset, COUNT_OF(MenubarSpriteTileset), Pages[page], page == sprite->blit.page);
+                }
             }
 
             items = MenubarSpriteApp;

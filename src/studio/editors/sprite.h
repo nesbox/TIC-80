@@ -115,7 +115,18 @@ extern const ClipboardOps SpriteClipboard;
 
 void initSprite(Sprite*, Studio* studio, tic_tiles* src);
 void freeSprite(Sprite*);
+enum
+{
+    SPRITE_TOOL_FLIP_HORZ,
+    SPRITE_TOOL_FLIP_VERT,
+    SPRITE_TOOL_ROTATE,
+    SPRITE_TOOL_ERASE,
+};
+
 void spriteSelectBank(Sprite*, s32 bank);
 void spriteSelectPage(Sprite*, s32 page);
 void spriteSetBpp(Sprite*, tic_bpp);
 void spriteSetSize(Sprite*, s32 size);
+void spriteSetBrushSize(Sprite*, s32 size);
+void spriteSetMode(Sprite*, s32 mode);
+void spriteToolAction(Sprite*, s32 tool);

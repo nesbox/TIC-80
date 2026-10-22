@@ -173,12 +173,14 @@ static bool focusableCategory(const Menubar* menubar, s32 index)
            !isTabs(menubar, &menubar->categories[index]);
 }
 
+// Tabs are the icon run before the first separator; what follows is the rest
+// of the apps menu, which the compact bar leaves out.
 static s32 tabsCount(const Menubar* menubar)
 {
     s32 count = 0;
 
     if(menubar->compact && menubar->tabs)
-        for(s32 i = 0; i < menubar->tabs->count; i++)
+        for(s32 i = 0; i < menubar->tabs->count && !menubar->tabs->items[i].separator; i++)
             if(menubar->tabs->items[i].icon)
                 count++;
 
@@ -187,7 +189,7 @@ static s32 tabsCount(const Menubar* menubar)
 
 static s32 tabItem(const Menubar* menubar, s32 tab)
 {
-    for(s32 i = 0; i < menubar->tabs->count; i++)
+    for(s32 i = 0; i < menubar->tabs->count && !menubar->tabs->items[i].separator; i++)
         if(menubar->tabs->items[i].icon && tab-- == 0)
             return i;
 
