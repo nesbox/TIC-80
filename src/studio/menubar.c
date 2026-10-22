@@ -1366,6 +1366,7 @@ static void drawCompactHint(Menubar* menubar, tic_mem* tic,
     char text[64];
     const char* hint = menubar->caption;
     bool tooltip = false;
+    s32 room = layout.hintWidth / TIC_FONT_WIDTH;
 
     if(hovered)
     {
@@ -1374,17 +1375,31 @@ static void drawCompactHint(Menubar* menubar, tic_mem* tic,
         else
             snprintf(text, sizeof text, "%s", hovered->label);
 
+        // Drop the accelerator rather than cut it in half.
+        if(hovered->accel && hovered->accel[0] && (s32)strlen(text) > room)
+            snprintf(text, sizeof text, "%s", hovered->label);
+
         hint = text;
         tooltip = true;
     }
     else if(hoveredTitle >= 0)
     {
         const MenuBarCategory* category = &menubar->categories[hoveredTitle];
+        const char* label = category->title;
+        bool home = isCompactHome(menubar, category);
 
-        if(isCompactHome(menubar, category))
-            snprintf(text, sizeof text, "%s [F10]", category->title);
+        // A stop that shows only its number (BANK) names itself by its
+        // selected item.
+        if(category->items && category->selected >= 0 && category->selected < category->count)
+            label = category->items[category->selected].label;
+
+        if(home)
+            snprintf(text, sizeof text, "%s [F10]", label);
         else
-            snprintf(text, sizeof text, "%s", category->title);
+            snprintf(text, sizeof text, "%s", label);
+
+        if(home && (s32)strlen(text) > room)
+            snprintf(text, sizeof text, "%s", label);
 
         hint = text;
         tooltip = true;
@@ -1398,7 +1413,7 @@ static void drawCompactHint(Menubar* menubar, tic_mem* tic,
 
     if(hint && hint[0])
     {
-        s32 len = MIN((s32)strlen(hint), layout.hintWidth / TIC_FONT_WIDTH);
+        s32 len = MIN((s32)strlen(hint), room);
 
         if(len > 0)
         {
@@ -1594,7 +1609,7 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
                         isCompactMore(menubar, category) ||
                         !category->title[0];
 
-        if(over && (isCompactHome(menubar, category) || isCompactMore(menubar, category)))
+        if(over)
             hoveredTitle = i;
 
         if(open)

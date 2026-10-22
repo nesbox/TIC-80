@@ -1170,6 +1170,10 @@ static void testCompact(tic_mem* tic)
     bar.buttonCount = COUNT_OF(CompactPins);
     bar.buttonSplit = 1;
 
+    // One inked pixel in the first tab's icon: the white glyph, its black
+    // shadow and the grey tab behind it are each visible.
+    tic_tool_poke4(Tiles.data[TabItems[0].icon].data, 0, 1);
+
     still(&bar, tic);
 
     // A tab click runs its app item; the tabs lead on the left.
@@ -1179,12 +1183,25 @@ static void testCompact(tic_mem* tic)
     draw(&bar, tic);
     assert(Hits[One] == before + 1);
 
+    // The active tab: the app icon in white, its black shadow a row down, and
+    // the grey tab glyph behind them.
+    assert(screenAt(tic, 2, 0) == tic_color_white);
+    assert(screenAt(tic, 2, 1) == tic_color_black);
+    assert(screenAt(tic, 3, 1) == tic_color_grey);
+
     // A pin click runs its menu item, after the tabs and the hint.
     before = Hits[One];
     clickAt(tic, 186, 3);
     step(&bar, tic);
     draw(&bar, tic);
     assert(Hits[One] == before + 1);
+
+    // The mode group has its own items.
+    before = Hits[ToggleOn];
+    clickAt(tic, 197, 3);
+    step(&bar, tic);
+    draw(&bar, tic);
+    assert(Hits[ToggleOn] == before + 1);
 
     // The idle hint is the full app name, right after the tabs, in grey.
     moveTo(tic, 120, 130);
@@ -1254,11 +1271,33 @@ static void testCompact(tic_mem* tic)
     assert(many.open == 1);
     assert(Hits[One] == before);
 
+    // A narrow hint drops the accelerator instead of cutting it: seven
+    // characters fit, and the pin's label is three.
+    Menubar medium;
+    menubar_init(&medium, manyCats, COUNT_OF(manyCats), Mouse, Hits, CheckIcon);
+    medium.compact = true;
+    medium.tabs = &manyCats[0];
+    medium.more = &manyCats[1];
+    medium.buttons = ManyPins;
+    medium.buttonCount = 19;
+    still(&medium, tic);
+    moveTo(tic, 71, 3);
+    step(&medium, tic);
+    draw(&medium, tic);
+    assert(anyInk(tic, 20, 1, 18, 6));
+    assert(!anyInk(tic, 38, 1, 26, 6));
+
     // The order is the menu's: titles leading (BANK), the pins, then MENU.
+    static const MenuBarItem BankItems[] =
+        {
+            {"BANK 0", NULL, hit, One, true, false, 0, 0, NULL, -1},
+            {"BANK 1", NULL, hit, Two, true, false, 0, 0, NULL, -1},
+        };
+
     MenuBarCategory orderCats[] =
         {
             {"APPS", TabItems, COUNT_OF(TabItems), false, 0, One, 0, false},
-            {"BANK", MainItems, COUNT_OF(MainItems), false, 0, -1, 0, false},
+            {"BANK", BankItems, COUNT_OF(BankItems), false, 0, 1, 0, false},
             {"MENU", MainItems, COUNT_OF(MainItems), false, CheckIcon, -1, 0, false},
             {"TIC", RightItems, COUNT_OF(RightItems), true, 0, -1, 0, false},
         };
@@ -1286,6 +1325,12 @@ static void testCompact(tic_mem* tic)
     clickAt(tic, 208, 3);
     step(&orderBar, tic);
     assert(orderBar.open == 2);
+
+    // The BANK stop names itself by its selected item.
+    moveTo(tic, 155, 3);
+    step(&orderBar, tic);
+    draw(&orderBar, tic);
+    assert(anyInk(tic, 50, 1, 6, 6));
 
     // An icon-only title is a pin-sized cell: the hover fill spans seven
     // pixels, so its last column is eight and the ninth stays white.
