@@ -126,6 +126,31 @@ static const MenuBarItem LongItems[] =
         {"L7", NULL, hit, One, true, false, 0, 0, NULL, -1},
 };
 
+// Compact mode: two icon items become tabs, the third (no icon) does not; pins
+// point at menu items, so their handlers are the test's counters.
+static const MenuBarItem TabItems[] =
+    {
+        {"TAB ONE", NULL, hit, One, true, false, 1, 0, NULL, -1},
+        {"TAB TWO", NULL, hit, Two, true, false, 2, 0, NULL, -1},
+        {"NO ICON", NULL, hit, Disabled, true, false, 0, 0, NULL, -1},
+};
+
+static const MenuBarItem* const CompactPins[] =
+    {
+        &MainItems[0], // ONE
+        &MainItems[6], // ON
+};
+
+#define MANY_PIN &MainItems[0],
+static const MenuBarItem* const ManyPins[] =
+    {
+        MANY_PIN MANY_PIN MANY_PIN MANY_PIN MANY_PIN MANY_PIN
+            MANY_PIN MANY_PIN MANY_PIN MANY_PIN MANY_PIN MANY_PIN
+                MANY_PIN MANY_PIN MANY_PIN MANY_PIN MANY_PIN MANY_PIN
+                    MANY_PIN MANY_PIN MANY_PIN MANY_PIN MANY_PIN MANY_PIN
+                        MANY_PIN MANY_PIN MANY_PIN MANY_PIN MANY_PIN MANY_PIN};
+#undef MANY_PIN
+
 static Menubar makeMenubar(void)
 {
     Menubar bar;
@@ -197,6 +222,26 @@ static void still(Menubar* bar, tic_mem* tic)
 static u8 screenAt(tic_mem* tic, s32 x, s32 y)
 {
     return tic_tool_peek4(tic->ram->vram.screen.data, y * TIC80_WIDTH + x);
+}
+
+static bool anyInk(tic_mem* tic, s32 x, s32 y, s32 w, s32 h)
+{
+    for(s32 j = y; j < y + h; j++)
+        for(s32 i = x; i < x + w; i++)
+            if(screenAt(tic, i, j) != tic_color_white)
+                return true;
+
+    return false;
+}
+
+static bool hasColor(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u8 color)
+{
+    for(s32 j = y; j < y + h; j++)
+        for(s32 i = x; i < x + w; i++)
+            if(screenAt(tic, i, j) == color)
+                return true;
+
+    return false;
 }
 
 // The APP popup's rows: its title is three characters wide, so the popup
@@ -1104,6 +1149,197 @@ static void testKeyboardJumpKeys(tic_mem* tic)
     puts("keyboard jump keys ok");
 }
 
+static void testCompact(tic_mem* tic)
+{
+    MenuBarCategory cats[] =
+        {
+            {"APPS", TabItems, COUNT_OF(TabItems), false, 0, One, 0, false},
+            {"MENU", MainItems, COUNT_OF(MainItems), false, CheckIcon, -1, 0, false},
+            {"TIC", RightItems, COUNT_OF(RightItems), true, 0, -1, 0, false},
+        };
+
+    Menubar bar;
+    menubar_init(&bar, cats, COUNT_OF(cats), Mouse, Hits, CheckIcon);
+    bar.compact = true;
+    bar.tabs = &cats[0];
+    bar.more = &cats[1];
+    bar.tabIcon = CheckIcon;
+    bar.caption = "TEST EDITOR";
+    bar.home = 2;
+    bar.buttons = CompactPins;
+    bar.buttonCount = COUNT_OF(CompactPins);
+    bar.buttonSplit = 1;
+
+    still(&bar, tic);
+
+    // A tab click runs its app item; the tabs lead on the left.
+    s32 before = Hits[One];
+    clickAt(tic, 2 + 3, 3);
+    step(&bar, tic);
+    draw(&bar, tic);
+    assert(Hits[One] == before + 1);
+
+    // A pin click runs its menu item, after the tabs and the hint.
+    before = Hits[One];
+    clickAt(tic, 186, 3);
+    step(&bar, tic);
+    draw(&bar, tic);
+    assert(Hits[One] == before + 1);
+
+    // The idle hint is the full app name, right after the tabs, in grey.
+    moveTo(tic, 120, 130);
+    step(&bar, tic);
+    draw(&bar, tic);
+    assert(anyInk(tic, 20, 1, 70, 6));
+    assert(hasColor(tic, 20, 1, 66, 6, tic_color_grey));
+    assert(!hasColor(tic, 20, 1, 66, 6, tic_color_dark_grey));
+
+    // The editor's own hover text fills the hint when no bar control is
+    // hovered, and it is a tooltip: darker than the app's name.
+    bar.tooltip = "LEFT STEREO";
+    moveTo(tic, 120, 130);
+    step(&bar, tic);
+    draw(&bar, tic);
+    assert(hasColor(tic, 20, 1, 66, 6, tic_color_dark_grey));
+    bar.tooltip = NULL;
+
+    // Hovering a pin replaces it with the label and the accelerator, darker.
+    moveTo(tic, 186, 3);
+    step(&bar, tic);
+    draw(&bar, tic);
+    assert(hasColor(tic, 20, 1, 48, 6, tic_color_dark_grey));
+    assert(!anyInk(tic, 70, 1, 16, 6));
+
+    // Hovering the MENU icon names it too.
+    moveTo(tic, 208, 3);
+    step(&bar, tic);
+    draw(&bar, tic);
+    assert(hasColor(tic, 20, 1, 24, 6, tic_color_dark_grey));
+    assert(!anyInk(tic, 46, 1, 40, 6));
+
+    // Keyboard: the tabs category is not a focus stop.
+    keyPress(&bar, tic, tic_key_f10);
+    assert(bar.open == 2);
+    keyPress(&bar, tic, tic_key_escape);
+    assert(bar.keyboard);
+    assert(bar.focus == 2);
+    keyPress(&bar, tic, tic_key_left);
+    assert(bar.focus == 1);
+    keyPress(&bar, tic, tic_key_home);
+    assert(bar.focus == 1);
+    keyPress(&bar, tic, tic_key_right);
+    assert(bar.focus == 2);
+
+    // Too many pins: the visible ones stop before the MENU title, and a click
+    // where the next pin would be opens MENU instead of running it.
+    MenuBarCategory manyCats[] =
+        {
+            {"APPS", TabItems, COUNT_OF(TabItems), false, 0, One, 0, false},
+            {"MENU", MainItems, COUNT_OF(MainItems), false, CheckIcon, -1, 0, false},
+            {"TIC", RightItems, COUNT_OF(RightItems), true, 0, -1, 0, false},
+        };
+
+    Menubar many;
+    menubar_init(&many, manyCats, COUNT_OF(manyCats), Mouse, Hits, CheckIcon);
+    many.compact = true;
+    many.tabs = &manyCats[0];
+    many.more = &manyCats[1];
+    many.buttons = ManyPins;
+    many.buttonCount = COUNT_OF(ManyPins);
+    still(&many, tic);
+
+    before = Hits[One];
+    clickAt(tic, 208, 3);
+    step(&many, tic);
+    assert(many.open == 1);
+    assert(Hits[One] == before);
+
+    // The order is the menu's: titles leading (BANK), the pins, then MENU.
+    MenuBarCategory orderCats[] =
+        {
+            {"APPS", TabItems, COUNT_OF(TabItems), false, 0, One, 0, false},
+            {"BANK", MainItems, COUNT_OF(MainItems), false, 0, -1, 0, false},
+            {"MENU", MainItems, COUNT_OF(MainItems), false, CheckIcon, -1, 0, false},
+            {"TIC", RightItems, COUNT_OF(RightItems), true, 0, -1, 0, false},
+        };
+
+    Menubar orderBar;
+    menubar_init(&orderBar, orderCats, COUNT_OF(orderCats), Mouse, Hits, CheckIcon);
+    orderBar.compact = true;
+    orderBar.tabs = &orderCats[0];
+    orderBar.more = &orderCats[2];
+    orderBar.buttons = CompactPins;
+    orderBar.buttonCount = COUNT_OF(CompactPins);
+    orderBar.buttonSplit = 1;
+    still(&orderBar, tic);
+
+    clickAt(tic, 155, 3);
+    step(&orderBar, tic);
+    assert(orderBar.open == 1);
+
+    before = Hits[One];
+    clickAt(tic, 186, 3);
+    step(&orderBar, tic);
+    draw(&orderBar, tic);
+    assert(Hits[One] == before + 1);
+
+    clickAt(tic, 208, 3);
+    step(&orderBar, tic);
+    assert(orderBar.open == 2);
+
+    // An icon-only title is a pin-sized cell: the hover fill spans seven
+    // pixels, so its last column is eight and the ninth stays white.
+    enum
+    {
+        IconOnly = 10
+    };
+
+    tic_tool_poke4(Tiles.data[IconOnly].data, 0, 1);
+
+    MenuBarCategory iconCats[] =
+        {
+            {"", NULL, 0, false, IconOnly, -1, 0, false},
+            {"TIC", RightItems, COUNT_OF(RightItems), true, 0, -1, 0, false},
+        };
+
+    Menubar iconBar;
+    menubar_init(&iconBar, iconCats, COUNT_OF(iconCats), Mouse, Hits, CheckIcon);
+    still(&iconBar, tic);
+    moveTo(tic, 3, 3);
+    step(&iconBar, tic);
+    draw(&iconBar, tic);
+    assert(screenAt(tic, 2, 0) == tic_color_dark_grey);
+    assert(screenAt(tic, 8, 1) == tic_color_light_grey);
+    assert(screenAt(tic, 9, 1) == tic_color_white);
+
+    // The home stop becomes a pin-sized icon in compact mode; hovering it names
+    // it in the hint, accelerator included.
+    MenuBarCategory homeCats[] =
+        {
+            {"APPS", TabItems, COUNT_OF(TabItems), false, 0, One, 0, false},
+            {"MENU", MainItems, COUNT_OF(MainItems), false, 0, -1, 0, false},
+            {"TIC-80", RightItems, COUNT_OF(RightItems), true, CheckIcon, -1, 0, false},
+        };
+
+    Menubar homeBar;
+    menubar_init(&homeBar, homeCats, COUNT_OF(homeCats), Mouse, Hits, CheckIcon);
+    homeBar.compact = true;
+    homeBar.tabs = &homeCats[0];
+    homeBar.caption = "TIP";
+    homeBar.home = 2;
+    still(&homeBar, tic);
+    draw(&homeBar, tic);
+    assert(!anyInk(tic, 40, 1, 60, 6));
+    assert(screenAt(tic, 239, 0) == tic_color_white);
+
+    moveTo(tic, 234, 3);
+    step(&homeBar, tic);
+    draw(&homeBar, tic);
+    assert(anyInk(tic, 40, 1, 60, 6));
+
+    puts("compact ok");
+}
+
 int main(void)
 {
     tic_mem* tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
@@ -1145,6 +1381,7 @@ int main(void)
     testKeyboardCapture(tic);
     testKeyboardAutohide(tic);
     testKeyboardPointer(tic);
+    testCompact(tic);
 
     tic_core_close(tic);
     puts("menubar ok");

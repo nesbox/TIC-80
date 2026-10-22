@@ -163,6 +163,7 @@ extern "C"
             bool codeSidebar;
             bool codeStatusbar;
             bool autohide;
+            bool compactBar;
 #endif
         } options;
 

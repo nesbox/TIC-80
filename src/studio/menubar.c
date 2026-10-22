@@ -23,6 +23,8 @@
 #include "menubar.h"
 #include "keyboard.h"
 
+#include <stdio.h>
+
 enum
 {
     TitleX = 2,
@@ -39,6 +41,8 @@ enum
     SubRise = 3,
     AutoHideSpeed = 2,
     PageRows = 5,
+    CompactCell = 7,
+    GroupGap = 4,
 };
 
 static bool pointInRect(const tic_point* pt, const tic_rect* rect)
@@ -106,8 +110,35 @@ static bool hasToggles(const MenuBarCategory* category)
 
 static s32 categoryWidth(const MenuBarCategory* category)
 {
-    return textWidth(category->title) + TitlePadding * 2 +
-           (category->icon ? IconWidth : 0);
+    s32 text = textWidth(category->title);
+
+    // An icon-only title is a compact cell, as a pin is.
+    if(category->icon && !text)
+        return CompactCell;
+
+    return text + TitlePadding * 2 + (category->icon ? IconWidth : 0);
+}
+
+// The home stop becomes its icon in compact mode; its title stays for the hint.
+static bool isCompactHome(const Menubar* menubar, const MenuBarCategory* category)
+{
+    return menubar->compact && menubar->home >= 0 && category->icon &&
+           category == &menubar->categories[menubar->home];
+}
+
+// The overflow menu becomes the three-dot icon; its title stays for the hint.
+static bool isCompactMore(const Menubar* menubar, const MenuBarCategory* category)
+{
+    return menubar->compact && menubar->more == category && category->icon;
+}
+
+static s32 stopWidth(const Menubar* menubar, s32 index)
+{
+    const MenuBarCategory* category = &menubar->categories[index];
+
+    return isCompactHome(menubar, category) || isCompactMore(menubar, category)
+               ? CompactCell
+               : categoryWidth(category);
 }
 
 static s32 rightWidth(const Menubar* menubar)
@@ -118,7 +149,7 @@ static s32 rightWidth(const Menubar* menubar)
     for(s32 i = 0; i < menubar->count; i++)
         if(menubar->categories[i].right && !menubar->categories[i].hidden)
         {
-            width += categoryWidth(&menubar->categories[i]);
+            width += stopWidth(menubar, i);
             count++;
         }
 
@@ -130,27 +161,182 @@ static s32 rightStart(const Menubar* menubar)
     return TIC80_WIDTH - TitleX - rightWidth(menubar);
 }
 
+// The host's tabs category trades its title for icon cells in compact mode.
+static bool isTabs(const Menubar* menubar, const MenuBarCategory* category)
+{
+    return menubar->compact && menubar->tabs == category;
+}
+
+static bool focusableCategory(const Menubar* menubar, s32 index)
+{
+    return !menubar->categories[index].hidden &&
+           !isTabs(menubar, &menubar->categories[index]);
+}
+
+static s32 tabsCount(const Menubar* menubar)
+{
+    s32 count = 0;
+
+    if(menubar->compact && menubar->tabs)
+        for(s32 i = 0; i < menubar->tabs->count; i++)
+            if(menubar->tabs->items[i].icon)
+                count++;
+
+    return count;
+}
+
+static s32 tabItem(const Menubar* menubar, s32 tab)
+{
+    for(s32 i = 0; i < menubar->tabs->count; i++)
+        if(menubar->tabs->items[i].icon && tab-- == 0)
+            return i;
+
+    return -1;
+}
+
+static tic_rect tabRect(const Menubar* menubar, s32 tab)
+{
+    return (tic_rect){TitleX + tab * CompactCell, menubar->y, CompactCell, MENUBAR_HEIGHT};
+}
+
+// The left titles' width on one side of the compact pins: the overflow menu
+// follows them, the rest lead.
+static s32 titleBlockWidth(const Menubar* menubar, bool afterPins)
+{
+    s32 width = 0;
+    s32 count = 0;
+
+    for(s32 i = 0; i < menubar->count; i++)
+    {
+        const MenuBarCategory* category = &menubar->categories[i];
+
+        if(category->hidden || category->right || isTabs(menubar, category))
+            continue;
+
+        if(isCompactMore(menubar, category) != afterPins)
+            continue;
+
+        width += stopWidth(menubar, i) + (count ? TitleGap : 0);
+        count++;
+    }
+
+    return width;
+}
+
+// The compact row: tabs, the hint, the titles that lead, the EDIT pins, the
+// mode pins, then the overflow menu and the right stops. Pins that do not fit
+// are left out of the second group first.
+typedef struct
+{
+    s32 tabs;
+    s32 tabsX;     // the first tab's x, left-packed
+    s32 hintX;     // the hint's left edge, right after the tabs
+    s32 hintWidth; // the room the controls leave for it
+    s32 beforeX;   // the first title before the pins
+    s32 editX;
+    s32 editCount;
+    s32 modeX;
+    s32 modeCount;
+    s32 titlesX; // the first title after the pins (the overflow menu)
+} Compact;
+
+static Compact compactLayout(const Menubar* menubar)
+{
+    Compact compact = {.titlesX = TitleX};
+
+    if(!menubar->compact)
+        return compact;
+
+    compact.tabs = tabsCount(menubar);
+    compact.tabsX = TitleX;
+    compact.hintX = TitleX + compact.tabs * CompactCell;
+
+    if(compact.tabs)
+        compact.hintX += GroupGap;
+
+    s32 beforeWidth = titleBlockWidth(menubar, false);
+    s32 afterWidth = titleBlockWidth(menubar, true);
+    s32 rightLimit = rightStart(menubar) - GroupGap;
+    s32 pinsStart = compact.hintX + beforeWidth + (beforeWidth ? GroupGap : 0);
+    s32 pinsLimit = rightLimit - afterWidth - (afterWidth ? GroupGap : 0);
+
+    s32 split = MIN(menubar->buttonSplit, menubar->buttonCount);
+    s32 modeCount = menubar->buttonCount - split;
+    s32 fit = (pinsLimit - pinsStart) / CompactCell;
+
+    if(fit > split && modeCount)
+        fit = (pinsLimit - pinsStart - GroupGap) / CompactCell;
+
+    fit = CLAMP(fit, 0, menubar->buttonCount);
+
+    compact.editCount = MIN(fit, split);
+    compact.modeCount = MIN(fit - compact.editCount, modeCount);
+
+    s32 pinsWidth = compact.editCount * CompactCell + compact.modeCount * CompactCell;
+
+    if(compact.editCount && compact.modeCount)
+        pinsWidth += GroupGap;
+
+    // The controls are packed after the hint; whatever they leave between the
+    // tabs and the right stops is the hint's room.
+    s32 controlsEnd = pinsWidth ? pinsStart + pinsWidth : compact.hintX + beforeWidth;
+
+    if(afterWidth)
+        controlsEnd += ((pinsWidth || beforeWidth) ? GroupGap : 0) + afterWidth;
+
+    s32 slack = rightLimit - controlsEnd;
+    compact.hintWidth = MAX(0, slack - GroupGap);
+    s32 shift = compact.hintWidth + (compact.hintWidth ? GroupGap : 0);
+
+    compact.beforeX = compact.hintX + shift;
+    compact.editX = compact.beforeX + beforeWidth + (beforeWidth && pinsWidth ? GroupGap : 0);
+    compact.modeX = compact.editX + compact.editCount * CompactCell;
+
+    if(compact.editCount && compact.modeCount)
+        compact.modeX += GroupGap;
+
+    compact.titlesX = pinsWidth ? compact.editX + pinsWidth : compact.beforeX + beforeWidth;
+
+    if(afterWidth && (pinsWidth || beforeWidth))
+        compact.titlesX += GroupGap;
+
+    return compact;
+}
+
 static bool titleRect(const Menubar* menubar, s32 index, tic_rect* rect)
 {
     *rect = (tic_rect){0};
 
-    s32 leftX = TitleX;
+    Compact compact = compactLayout(menubar);
+    s32 leftX = menubar->compact ? compact.beforeX : TitleX;
+    s32 afterX = compact.titlesX;
     s32 rightX = rightStart(menubar);
 
     for(s32 i = 0; i < menubar->count; i++)
     {
         const MenuBarCategory* category = &menubar->categories[i];
 
-        if(category->hidden)
+        if(category->hidden || isTabs(menubar, category))
             continue;
 
-        s32 width = categoryWidth(category);
-        s32 x = category->right ? rightX : leftX;
+        s32 width = stopWidth(menubar, i);
+        s32 x;
 
         if(category->right)
+        {
+            x = rightX;
             rightX += width + TitleGap;
+        }
+        else if(menubar->compact && isCompactMore(menubar, category))
+        {
+            x = afterX;
+            afterX += width + TitleGap;
+        }
         else
+        {
+            x = leftX;
             leftX += width + TitleGap;
+        }
 
         if(i == index)
         {
@@ -261,7 +447,16 @@ void menubar_init(Menubar* menubar, MenuBarCategory* categories, s32 count,
         .mode = MENUBAR_NO_MODE,
         .requested = MENUBAR_NO_MODE,
         .checkIcon = checkIcon,
+        .tabIcon = 0,
         .autohide = false,
+        .compact = false,
+        .tabs = NULL,
+        .more = NULL,
+        .caption = NULL,
+        .tooltip = NULL,
+        .buttons = NULL,
+        .buttonCount = 0,
+        .buttonSplit = 0,
         .y = 0,
         .open = -1,
         .sub = NULL,
@@ -370,7 +565,7 @@ static s32 titleAt(const Menubar* menubar, s32 ordinal)
         {
             const MenuBarCategory* category = &menubar->categories[i];
 
-            if(category->hidden || (!category->right) != (pass == 0))
+            if(!focusableCategory(menubar, i) || (!category->right) != (pass == 0))
                 continue;
 
             if(ordinal-- == 0)
@@ -393,7 +588,7 @@ static s32 adjacentTitle(const Menubar* menubar, s32 from, s32 dir)
         {
             const MenuBarCategory* category = &menubar->categories[i];
 
-            if(category->hidden || (!category->right) != (pass == 0))
+            if(!focusableCategory(menubar, i) || (!category->right) != (pass == 0))
                 continue;
 
             if(i == from)
@@ -416,7 +611,7 @@ static s32 visibleTitles(const Menubar* menubar)
     s32 count = 0;
 
     for(s32 i = 0; i < menubar->count; i++)
-        if(!menubar->categories[i].hidden)
+        if(focusableCategory(menubar, i))
             count++;
 
     return count;
@@ -738,6 +933,68 @@ static bool keyboardStep(Menubar* menubar, tic_mem* tic, MouseState* state, tic_
     return true;
 }
 
+static void runCompactItem(Menubar* menubar, const MenuBarItem* item)
+{
+    if(item->enabled && item->handler)
+    {
+        menubar->pending = item->handler;
+        menubar->pendingId = item->id;
+    }
+
+    closeMenu(menubar);
+}
+
+// A compact tab or pin under the click takes it; true when one did.
+static bool compactClick(Menubar* menubar, MouseState* state)
+{
+    if(!menubar->compact)
+        return false;
+
+    if(menubar->tabs)
+        for(s32 tab = 0; tab < tabsCount(menubar); tab++)
+        {
+            tic_rect rect = tabRect(menubar, tab);
+
+            if(menuClick(state, &rect))
+            {
+                s32 item = tabItem(menubar, tab);
+
+                if(item >= 0)
+                    runCompactItem(menubar, &menubar->tabs->items[item]);
+
+                return true;
+            }
+        }
+
+    Compact layout = compactLayout(menubar);
+
+    for(s32 i = 0; i < layout.editCount; i++)
+    {
+        tic_rect rect = {layout.editX + i * CompactCell, menubar->y,
+                         CompactCell, MENUBAR_HEIGHT};
+
+        if(menuClick(state, &rect))
+        {
+            runCompactItem(menubar, menubar->buttons[i]);
+            return true;
+        }
+    }
+
+    for(s32 i = 0; i < layout.modeCount; i++)
+    {
+        tic_rect rect = {layout.modeX + i * CompactCell, menubar->y,
+                         CompactCell, MENUBAR_HEIGHT};
+
+        if(menuClick(state, &rect))
+        {
+            runCompactItem(menubar, menubar->buttons[layout.editCount + i]);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static void pointerStep(Menubar*, MouseState*, tic_point);
 
 void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
@@ -803,6 +1060,9 @@ void menubar_step(Menubar* menubar, tic_mem* tic, s32 mode)
 
 static void pointerStep(Menubar* menubar, MouseState* state, tic_point pos)
 {
+    if(compactClick(menubar, state))
+        return;
+
     if(menubar->open < 0)
     {
         for(s32 i = 0; i < menubar->count; i++)
@@ -1010,6 +1270,150 @@ static void drawCheckLed(tic_mem* tic, s32 x, s32 y)
     tic_api_pix(tic, x + 4, y + 2, tic_color_white, false);
 }
 
+// The compact bar's tab cells and pinned buttons; the hovered item's label is
+// left for the caller to print in the free space.
+static void drawCompact(Menubar* menubar, tic_mem* tic, const tic_tiles* icons,
+                        tic_point pos, const MenuBarItem** hovered)
+{
+    *hovered = NULL;
+
+    if(!menubar->compact)
+        return;
+
+    for(s32 tab = 0; tab < tabsCount(menubar); tab++)
+    {
+        s32 index = tabItem(menubar, tab);
+
+        if(index < 0)
+            continue;
+
+        const MenuBarItem* item = &menubar->tabs->items[index];
+        tic_rect rect = tabRect(menubar, tab);
+        bool active = item->id == menubar->tabs->selected;
+        bool over = pointInRect(&pos, &rect);
+
+        if(active)
+        {
+            // The old toolbar's tab: a grey tab glyph, the icon's black shadow
+            // one row down, and the icon itself in white.
+            if(menubar->tabIcon)
+                ui_icon(tic, icons, menubar->tabIcon, rect.x, rect.y, tic_color_grey);
+
+            ui_icon(tic, icons, item->icon, rect.x, rect.y + 1, tic_color_black);
+        }
+
+        ui_icon(tic, icons, item->icon, rect.x, rect.y,
+                active ? tic_color_white
+                : over ? tic_color_grey
+                       : tic_color_light_grey);
+
+        if(over)
+            *hovered = item;
+    }
+
+    Compact layout = compactLayout(menubar);
+    const MouseState* mouse = &menubar->mouse[tic_mouse_left];
+
+    for(s32 group = 0; group < 2; group++)
+    {
+        s32 x = group ? layout.modeX : layout.editX;
+        s32 count = group ? layout.modeCount : layout.editCount;
+        s32 start = group ? layout.editCount : 0;
+
+        for(s32 i = 0; i < count; i++)
+        {
+            const MenuBarItem* item = menubar->buttons[start + i];
+            tic_rect rect = {x + i * CompactCell, menubar->y, CompactCell, MENUBAR_HEIGHT};
+            bool over = pointInRect(&pos, &rect);
+            bool held = mouse->down && pointInRect(&mouse->start, &rect);
+            u8 color = tic_color_light_grey;
+            u8 bg = 0;
+
+            if(!item->enabled)
+                color = tic_color_grey;
+            else if(held)
+            {
+                // A press fills the cell with the item's colour and flips the
+                // glyph to white, as the old toolbar did.
+                bg = item->color ? item->color : tic_color_dark_grey;
+                color = tic_color_white;
+            }
+            else if(item->checked > 0)
+                color = item->color ? item->color : tic_color_dark_grey;
+            else if(over)
+                color = item->color ? item->color : tic_color_grey;
+
+            if(bg)
+                tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, bg);
+
+            ui_icon(tic, icons, item->icon, rect.x, rect.y, color);
+
+            if(over)
+                *hovered = item;
+        }
+    }
+}
+
+// The hint follows the tabs: the hovered control's label and accelerator, the
+// editor's own hover text, or the current app's full name, in the wide font.
+static void drawCompactHint(Menubar* menubar, tic_mem* tic,
+                            const MenuBarItem* hovered, s32 hoveredTitle)
+{
+    if(!menubar->compact)
+        return;
+
+    Compact layout = compactLayout(menubar);
+    char text[64];
+    const char* hint = menubar->caption;
+    bool tooltip = false;
+
+    if(hovered)
+    {
+        if(hovered->accel && hovered->accel[0])
+            snprintf(text, sizeof text, "%s [%s]", hovered->label, hovered->accel);
+        else
+            snprintf(text, sizeof text, "%s", hovered->label);
+
+        hint = text;
+        tooltip = true;
+    }
+    else if(hoveredTitle >= 0)
+    {
+        const MenuBarCategory* category = &menubar->categories[hoveredTitle];
+
+        if(isCompactHome(menubar, category))
+            snprintf(text, sizeof text, "%s [F10]", category->title);
+        else
+            snprintf(text, sizeof text, "%s", category->title);
+
+        hint = text;
+        tooltip = true;
+    }
+    else if(menubar->tooltip && menubar->tooltip[0])
+    {
+        // The editor's own hover text, as the old toolbar showed it.
+        hint = menubar->tooltip;
+        tooltip = true;
+    }
+
+    if(hint && hint[0])
+    {
+        s32 len = MIN((s32)strlen(hint), layout.hintWidth / TIC_FONT_WIDTH);
+
+        if(len > 0)
+        {
+            char shown[64];
+            memcpy(shown, hint, len);
+            shown[len] = '\0';
+
+            // A tooltip is darker than the app's name.
+            tic_api_print(tic, shown, layout.hintX, menubar->y + TextY,
+                          tooltip ? tic_color_dark_grey : tic_color_grey,
+                          true, 1, false);
+        }
+    }
+}
+
 static void drawPopup(tic_mem* tic, const MenuBarCategory* category,
                       const tic_rect* popup, const tic_point* pos, const tic_tiles* icons,
                       u8 checkIcon, s32 activeRow)
@@ -1091,6 +1495,66 @@ static void drawPopup(tic_mem* tic, const MenuBarCategory* category,
     tic_api_rectb(tic, popup->x, popup->y, popup->w, popup->h, tic_color_dark_grey);
 }
 
+// Whether the pointer is over something the bar runs: a compact tab or pin, a
+// title, or an enabled popup row.
+static bool pointerHand(const Menubar* menubar, tic_point pos, const MenuBarItem* hovered)
+{
+    if(hovered)
+        return true;
+
+    if(pos.y >= menubar->y && pos.y < menubar->y + MENUBAR_HEIGHT)
+        for(s32 i = 0; i < menubar->count; i++)
+        {
+            if(!focusableCategory(menubar, i))
+                continue;
+
+            tic_rect rect;
+            titleRect(menubar, i, &rect);
+
+            if(pointInRect(&pos, &rect))
+                return true;
+        }
+
+    if(menubar->open >= 0)
+    {
+        tic_rect popup = popupRect(menubar);
+        const MenuBarCategory* category = &menubar->categories[menubar->open];
+
+        for(s32 i = 0; i < category->count; i++)
+        {
+            const MenuBarItem* item = &category->items[i];
+
+            if(item->separator || !item->enabled)
+                continue;
+
+            tic_rect rect = itemRect(&popup, i);
+
+            if(pointInRect(&pos, &rect))
+                return true;
+        }
+
+        if(menubar->sub)
+        {
+            tic_rect sub = subPopupRect(menubar);
+
+            for(s32 i = 0; i < menubar->sub->count; i++)
+            {
+                const MenuBarItem* item = &menubar->sub->items[i];
+
+                if(item->separator || !item->enabled)
+                    continue;
+
+                tic_rect rect = itemRect(&sub, i);
+
+                if(pointInRect(&pos, &rect))
+                    return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* icons)
 {
     if(mode == MENUBAR_NO_MODE)
@@ -1108,12 +1572,16 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
     tic_api_rect(tic, 0, menubar->y, TIC80_WIDTH, MENUBAR_HEIGHT, tic_color_white);
 
     tic_point pos = tic_api_mouse(tic);
+    const MenuBarItem* hovered = NULL;
+    s32 hoveredTitle = -1;
+
+    drawCompact(menubar, tic, icons, pos, &hovered);
 
     for(s32 i = 0; i < menubar->count; i++)
     {
         const MenuBarCategory* category = &menubar->categories[i];
 
-        if(category->hidden)
+        if(category->hidden || isTabs(menubar, category))
             continue;
 
         tic_rect rect;
@@ -1122,6 +1590,12 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
         bool open = i == menubar->open;
         bool over = pointInRect(&pos, &rect);
         bool focused = menubar->keyboard && i == menubar->focus;
+        bool iconStop = isCompactHome(menubar, category) ||
+                        isCompactMore(menubar, category) ||
+                        !category->title[0];
+
+        if(over && (isCompactHome(menubar, category) || isCompactMore(menubar, category)))
+            hoveredTitle = i;
 
         if(open)
             tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_dark_grey);
@@ -1132,16 +1606,21 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
 
         if(category->icon)
         {
-            ui_icon(tic, icons, category->icon, rect.x + TitlePadding, rect.y,
+            // An icon-only stop draws its glyph on the cell's edge, as a pin
+            // does.
+            ui_icon(tic, icons, category->icon, iconStop ? rect.x : textX, rect.y,
                     category->iconColor ? category->iconColor
                     : open              ? tic_color_white
                                         : tic_color_dark_grey);
             textX += IconWidth;
         }
 
-        tic_api_print(tic, category->title, textX, rect.y + TextY,
-                      open ? tic_color_white : tic_color_dark_grey, true, 1, false);
+        if(!iconStop)
+            tic_api_print(tic, category->title, textX, rect.y + TextY,
+                          open ? tic_color_white : tic_color_dark_grey, true, 1, false);
     }
+
+    drawCompactHint(menubar, tic, hovered, hoveredTitle);
 
     if(menubar->open >= 0)
     {
@@ -1162,7 +1641,10 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
     }
 
     // The menu owns the pointer: over the bar, or anywhere while it is open.
-    if(menubar->open >= 0 || pos.y < menubar->y + MENUBAR_HEIGHT)
+    // Titles, compact tabs/pins and enabled popup rows are buttons: the hand.
+    if(pointerHand(menubar, pos, hovered))
+        ui_cursor(tic, tic_cursor_hand);
+    else if(menubar->open >= 0 || pos.y < menubar->y + MENUBAR_HEIGHT)
         ui_cursor(tic, tic_cursor_arrow);
 
     if(menubar->pending)

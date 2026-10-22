@@ -2211,6 +2211,7 @@ enum
     OptionFullscreen,
     OptionIntegerScale,
     OptionAutohide,
+    OptionCompact,
 #if defined(BUILD_SURF)
     OptionAutosave,
 #endif
@@ -2239,6 +2240,11 @@ static void menubarOption(void* data, s32 id)
         case OptionAutohide:
             studio->menubar.autohide = !studio->menubar.autohide;
             studio->config->data.options.autohide = studio->menubar.autohide;
+            break;
+
+        case OptionCompact:
+            studio->menubar.compact = !studio->menubar.compact;
+            studio->config->data.options.compactBar = studio->menubar.compact;
             break;
 
 #if defined(BUILD_SURF)
@@ -2425,6 +2431,7 @@ static MenuBarItem MenubarOptions[] =
         {"FULLSCREEN", "F11", menubarOption, OptionFullscreen, true, false, 0, 0, NULL, 0},
         {"INTEGER SCALE", NULL, menubarOption, OptionIntegerScale, true, false, 0, 0, NULL, 0},
         {"AUTOHIDE MENU", NULL, menubarOption, OptionAutohide, true, false, 0, 0, NULL, 0},
+        {"COMPACT BAR", NULL, menubarOption, OptionCompact, true, false, 0, 0, NULL, 0},
 #if defined(BUILD_SURF)
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"SAVE SURF CARTS", NULL, menubarOption, OptionAutosave, true, false, 0, 0, NULL, 0},
@@ -2550,7 +2557,7 @@ static MenuBarItem MenubarMapApp[] =
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"GRID", "`", menubarMapAction, MapActionGrid, true, false, tic_icon_grid, 0, NULL, 0},
         {"RANDOM", "R", menubarMapAction, MapActionRandom, true, false, tic_icon_random, 0, NULL, 0},
-        {"SHOW TILES", "SHIFT", menubarMapAction, MapActionTileset, true, false, 0, 0, NULL, 0},
+        {"SHOW TILES", "SHIFT", menubarMapAction, MapActionTileset, true, false, tic_icon_up, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"WORLD MAP", "TAB", menubarMapAction, MapActionWorld, true, false, tic_icon_world, 0, NULL, -1},
 };
@@ -2596,6 +2603,48 @@ static MenuBarItem MenubarTic[] =
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
         {"QUIT", "CTRL+Q", menubarAction, MenuActionQuit, true, false, 0, 0, NULL, -1},
 };
+
+// The compact bar's pins: pointers at the menu items, so a pin and its menu row
+// share one state. EDIT is expanded into pins in every editor; RUN and SAVE
+// stay in the TIC-80 menu.
+#define EDIT_PINS &MenubarEdit[3], &MenubarEdit[4], &MenubarEdit[5], &MenubarEdit[0], &MenubarEdit[1],
+
+static const MenuBarItem* const MenubarCodePins[] =
+    {
+        EDIT_PINS & MenubarCodeApp[0], // FIND
+        &MenubarCodeApp[1],            // GOTO
+};
+
+static const MenuBarItem* const MenubarSpritePins[] =
+    {
+        EDIT_PINS & MenubarSpriteApp[0], // TILES
+        &MenubarSpriteApp[1],            // SPRITES
+};
+
+static const MenuBarItem* const MenubarMapPins[] =
+    {
+        EDIT_PINS & MenubarMapApp[0], // DRAW
+        &MenubarMapApp[1],            // DRAG MAP
+        &MenubarMapApp[2],            // SELECT
+        &MenubarMapApp[3],            // FILL
+        &MenubarMapApp[9],            // SHOW TILES
+        &MenubarMapApp[7],            // GRID
+};
+
+static const MenuBarItem* const MenubarMusicPins[] =
+    {
+        EDIT_PINS & MenubarMusicApp[0], // PIANO
+        &MenubarMusicApp[1],            // TRACKER
+        &MenubarMusicApp[4],            // LOOP
+        &MenubarMusicApp[9],            // PLAY TRACK
+        &MenubarMusicApp[10],           // STOP
+};
+
+static const MenuBarItem* const MenubarSfxPins[] =
+    {
+        EDIT_PINS};
+
+#undef EDIT_PINS
 
 // The NEW item grows a submenu when the build has more than one language.
 enum
@@ -2667,11 +2716,12 @@ static MenuBarCategory MenubarCategories[] =
     {
         // The first title is the current editor's, set by updateMenubar.
         {"", MenubarApps, 0, false, 0, -1, 0, false},
-        {"MENU", NULL, 0, false, 0, -1, 0, false},
-        {"EDIT", MenubarEdit, COUNT_OF(MenubarEdit), false, 0, -1, 0, false},
 #if defined(TIC80_PRO)
         {"BANK", MenubarBanks, COUNT_OF(MenubarBanks), false, tic_icon_bank, -1, tic_color_red, false},
 #endif
+        {"EDIT", MenubarEdit, COUNT_OF(MenubarEdit), false, 0, -1, 0, false},
+        // The overflow menu, second from the end; TIC-80 stays last.
+        {"MENU", NULL, 0, false, 0, -1, 0, false},
         {"TIC-80", MenubarTic, COUNT_OF(MenubarTic), true, 0, -1, 0, false},
 };
 
@@ -2704,6 +2754,10 @@ static void updateMenubar(Studio* studio)
 
     shortName(app->name, title, sizeof title);
 
+    // The compact bar shows the full app name beside the tabs; the title uses
+    // the short one.
+    studio->menubar.caption = app->name;
+
     MenubarCategories[0].title = title;
     MenubarCategories[0].icon = app->icon;
     MenubarCategories[0].items = MenubarApps;
@@ -2715,6 +2769,9 @@ static void updateMenubar(Studio* studio)
 
     const MenuBarItem* items = NULL;
     s32 count = 0;
+
+    studio->menubar.buttons = NULL;
+    studio->menubar.buttonCount = 0;
 
     switch(studio->mode)
     {
@@ -2736,6 +2793,9 @@ static void updateMenubar(Studio* studio)
 
             items = MenubarCodeApp;
             count = COUNT_OF(MenubarCodeApp);
+
+            studio->menubar.buttons = MenubarCodePins;
+            studio->menubar.buttonCount = COUNT_OF(MenubarCodePins);
             break;
         }
 
@@ -2771,6 +2831,9 @@ static void updateMenubar(Studio* studio)
 
             items = MenubarSpriteApp;
             count = COUNT_OF(MenubarSpriteApp);
+
+            studio->menubar.buttons = MenubarSpritePins;
+            studio->menubar.buttonCount = COUNT_OF(MenubarSpritePins);
             break;
         }
 
@@ -2805,6 +2868,9 @@ static void updateMenubar(Studio* studio)
 
             items = MenubarMapApp;
             count = COUNT_OF(MenubarMapApp);
+
+            studio->menubar.buttons = MenubarMapPins;
+            studio->menubar.buttonCount = COUNT_OF(MenubarMapPins);
             break;
         }
 
@@ -2820,17 +2886,44 @@ static void updateMenubar(Studio* studio)
 
             items = MenubarMusicApp;
             count = COUNT_OF(MenubarMusicApp);
+
+            studio->menubar.buttons = MenubarMusicPins;
+            studio->menubar.buttonCount = COUNT_OF(MenubarMusicPins);
             break;
         }
+
+        case TIC_SFX_MODE:
+            studio->menubar.buttons = MenubarSfxPins;
+            studio->menubar.buttonCount = COUNT_OF(MenubarSfxPins);
+            break;
 
         default:
             break;
     }
 
-    MenubarCategories[1].items = items;
-    MenubarCategories[1].count = count;
-    MenubarCategories[1].selected = -1;
-    MenubarCategories[1].hidden = count == 0;
+    // The first five pins of every list are EDIT's.
+    studio->menubar.buttonSplit = MIN(5, studio->menubar.buttonCount);
+
+    MenuBarCategory* menu = &MenubarCategories[COUNT_OF(MenubarCategories) - 2];
+
+    menu->title = "MENU";
+    menu->icon = studio->menubar.compact ? tic_icon_more : 0;
+    menu->items = items;
+    menu->count = count;
+    menu->selected = -1;
+    menu->hidden = count == 0;
+
+    // The home stop carries the TIC-80 mark in both layouts; compact draws the
+    // icon alone, full keeps the title beside it.
+    for(s32 i = 0; i < COUNT_OF(MenubarCategories); i++)
+        if(MenubarCategories[i].items == MenubarTic)
+            MenubarCategories[i].icon = tic_icon_tic80;
+
+    // In compact mode EDIT's items are pinned in every editor, so its title
+    // gives up the room.
+    for(s32 i = 0; i < COUNT_OF(MenubarCategories); i++)
+        if(MenubarCategories[i].items == MenubarEdit)
+            MenubarCategories[i].hidden = studio->menubar.compact;
 
 #if defined(CRT_SHADER_SUPPORT)
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionCrt, studio->config->data.options.crt);
@@ -2838,6 +2931,7 @@ static void updateMenubar(Studio* studio)
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionFullscreen, tic_sys_fullscreen_get());
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionIntegerScale, studio->config->data.options.integerScale);
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionAutohide, studio->menubar.autohide);
+    menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionCompact, studio->menubar.compact);
 #if defined(BUILD_SURF)
     menubarCheck(MenubarOptions, COUNT_OF(MenubarOptions), OptionAutosave, studio->config->data.options.autosave);
 #endif
@@ -2874,7 +2968,9 @@ static void updateMenubar(Studio* studio)
             break;
         }
 
-    snprintf(bankTitle, sizeof bankTitle, "BANK %i", bank);
+    // The compact bar has no room for the word: the bank icon and its number.
+    snprintf(bankTitle, sizeof bankTitle,
+             studio->menubar.compact ? "%i" : "BANK %i", bank);
 
     menubarCheck(MenubarBanks, COUNT_OF(MenubarBanks), BankActionChain, studio->bank.chained);
 
@@ -2894,6 +2990,7 @@ static void drawStudioMenubar(Studio* studio)
         return;
 
     updateMenubar(studio);
+    studio->menubar.tooltip = studio->tooltip.text[0] ? studio->tooltip.text : NULL;
     menubar_draw(&studio->menubar, studio->tic, studio->mode,
                  &getConfig(studio)->cart->bank0.tiles);
 }
@@ -3769,6 +3866,9 @@ void studio_tick(Studio* studio, tic80_input input)
     // before renderStudio. The menu takes the pointer here too, before the
     // editor under its popup sees it.
     processMouseStates(studio);
+
+    // The editors write it as they draw; the bar shows what this frame set.
+    studio->tooltip.text[0] = '\0';
 #if defined(BUILD_EDITORS)
     if(Apps[studio->mode].name)
     {
@@ -4274,7 +4374,12 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
 
     // F10 opens the TIC-80 menu: the last category is the host's home.
     studio->menubar.home = COUNT_OF(MenubarCategories) - 1;
+    // The overflow menu sits second from the end and turns into the icon stop.
+    studio->menubar.more = &MenubarCategories[COUNT_OF(MenubarCategories) - 2];
     studio->menubar.autohide = studio->config->data.options.autohide;
+    studio->menubar.compact = studio->config->data.options.compactBar;
+    studio->menubar.tabs = &MenubarCategories[0];
+    studio->menubar.tabIcon = tic_icon_tab;
 #endif
 
     if(studio->config->data.uiScale > maxscale)

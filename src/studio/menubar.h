@@ -76,9 +76,21 @@ typedef struct
     s32 mode;
     s32 requested; // MENUBAR_NO_MODE when nothing is asked
     u8 checkIcon;  // the host's atlas icon for a toggle without one; 0 for none
+    u8 tabIcon;    // the atlas icon drawn behind an active compact tab; 0 for none
 
-    bool autohide; // the host's toggle: slide the bar away when the pointer leaves
-    s32 y;         // bar offset: 0 shown, -MENUBAR_HEIGHT hidden
+    bool autohide;               // the host's toggle: slide the bar away when the pointer leaves
+    bool compact;                // tabs and pinned buttons instead of title menus
+    const MenuBarCategory* tabs; // the category drawn as tabs in compact mode
+    const MenuBarCategory* more; // the overflow menu, drawn as an icon after the pins
+    const char* caption;         // the current app's full name, or NULL
+    const char* tooltip;         // the editor's hover text for this frame, or NULL
+    s32 y;                       // bar offset: 0 shown, -MENUBAR_HEIGHT hidden
+
+    // The compact layout's pinned buttons, drawn as icon cells after the tabs.
+    // The first `buttonSplit` of them form the EDIT group.
+    const MenuBarItem* const* buttons;
+    s32 buttonCount;
+    s32 buttonSplit;
 
     s32 open;
     const MenuBarCategory* sub; // the open submenu

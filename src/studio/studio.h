@@ -201,6 +201,7 @@ enum
     tic_icon_undo = 83,
     tic_icon_redo = 84,
     tic_icon_bank = 85,
+    tic_icon_tab = 87,
     tic_icon_code = 88,
     tic_icon_sprite = 89,
     tic_icon_map = 90,
@@ -217,6 +218,7 @@ enum
     tic_icon_world = 103,
     tic_icon_grid = 104,
     tic_icon_down = 105,
+    tic_icon_up = 106,
     tic_icon_fill = 107,
     tic_icon_select = 108,
     tic_icon_pen = 109,
@@ -251,6 +253,8 @@ enum
     tic_icon_random = 138,
     tic_icon_line_numbers = 139,
     tic_icon_circle = 140,
+    tic_icon_more = 141,
+    tic_icon_tic80 = 142,
 };
 
 void setCursor(Studio* studio, tic_cursor id);
