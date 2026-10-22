@@ -23,7 +23,6 @@
 #pragma once
 
 #include "studio/studio.h"
-#include "studio/toolbar.h"
 
 typedef struct Code Code;
 
@@ -85,7 +84,6 @@ struct Code
 
     enum
     {
-        TEXT_DRAG_CODE,
         TEXT_FIND_MODE,
         TEXT_GOTO_MODE,
         TEXT_BOOKMARK_MODE,
@@ -121,6 +119,8 @@ struct Code
     bool altFont;
     bool shadowText;
     bool lineNumbers;
+    bool showGutter;
+    bool showStatusbar;
 
     struct
     {
@@ -142,10 +142,14 @@ struct Code
 
 extern const ClipboardOps CodeClipboard;
 
-void codeBand(void*, Toolbar*);
 void initCode(Code*, Studio* studio);
 void freeCode(Code*);
 void codeGetPos(Code*, s32* x, s32* y);
 void codeSetPos(Code*, s32 x, s32 y);
+
+void codeFind(Code*);
+void codeGoto(Code*);
+void codeBookmarks(Code*);
+void codeOutline(Code*);
 
 void trimWhitespace(Code*);

@@ -219,6 +219,8 @@ struct Console
         s32 count;
         s32 current;
         char** items;
+        char** owned; // the menu's commands, freed with the console
+        s32 ownedCount;
     } commands;
 
     CommandDesc* desc;
@@ -239,6 +241,10 @@ void console_error(Console* console, const char* info);
 // launch keeps its commands and they have all run, they are rewound and this
 // says so, and the host shows the console again.
 bool console_replay(Console* console);
+
+// Queues a command for a menu item that speaks the console's language instead
+// of carrying its own copy of the work.
+void console_exec(Console* console, const char* command);
 
 // Takes what the console wants served, if anything: the host takes it once,
 // does it, and answers through console_answer() — at once for a move, when the

@@ -25,8 +25,6 @@
 
 #include <stdio.h>
 
-#define MAX_SUPPORTED_LANGS (16)
-
 #if defined(TIC_RUNTIME_STATIC)
 
 #if defined(TIC_BUILD_WITH_LUA)

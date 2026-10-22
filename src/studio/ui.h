@@ -25,8 +25,8 @@
 #include "tic.h"
 #include "api.h"
 
-// What every screen draws and points with, out of the strip's file: the menu
-// needs both where no strip exists, and the strip and the panels use them too.
+// What every screen draws and points with, out of the shell's file: the bar
+// needs both, and the panels use them too.
 
 // Blits tile `id` of `tiles` at x, y; its zero pixels leave the screen alone.
 void ui_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color);

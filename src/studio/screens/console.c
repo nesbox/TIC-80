@@ -187,6 +187,7 @@ static const struct HotkeysRowGeneral
         {"F7", "Assign cover image while in game."},
         {"F8", "Take a screenshot."},
         {"F9", "Start/stop GIF video recording."},
+        {"F10", "Focus the menu bar."},
         {"F11/ALT+ENTER", "Fullscreen/window mode."},
         {
             "CTRL+Q",
@@ -254,6 +255,7 @@ static const struct HotkeysRowSpriteEditor
 } HotkeysTextSpriteEditor[] =
     {
         {"TAB", "Switch tiles/sprites."},
+        {"CTRL+LEFT/RIGHT", "Switch sheet page."},
         {"[]", "Choose previous/next palette color."},
         {"-/=", "Change brush size."},
         {"SCROLL", "Canvas zoom."},
@@ -4861,6 +4863,10 @@ void console_free(Console* console)
         free(console->history.items);
     }
 
+    for(s32 i = 0; i < console->commands.ownedCount; i++)
+        free(console->commands.owned[i]);
+
+    FREE(console->commands.owned);
     FREE(console->commands.items);
     free(console->desc);
     free(console);
@@ -4919,6 +4925,47 @@ bool console_replay(Console* console)
     }
 
     return false;
+}
+
+void console_exec(Console* console, const char* command)
+{
+    size_t length = strlen(command);
+
+    if(length >= TICNAME_MAX)
+        length = TICNAME_MAX - 1;
+
+    char* copy = malloc(length + 1);
+
+    if(!copy)
+        return;
+
+    memcpy(copy, command, length);
+    copy[length] = '\0';
+
+    char** items = realloc(console->commands.items,
+                           sizeof(char*) * (console->commands.count + 1));
+    char** owned = realloc(console->commands.owned,
+                           sizeof(char*) * (console->commands.ownedCount + 1));
+
+    if(!items || !owned)
+    {
+        free(copy);
+
+        if(items)
+            console->commands.items = items;
+
+        if(owned)
+            console->commands.owned = owned;
+
+        return;
+    }
+
+    console->commands.items = items;
+    console->commands.owned = owned;
+
+    console->commands.items[console->commands.count++] = copy;
+    console->commands.owned[console->commands.ownedCount++] = copy;
+    console->active = true;
 }
 
 void console_trace(Console* console, const char* text, u8 color)

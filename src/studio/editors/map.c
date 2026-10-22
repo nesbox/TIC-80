@@ -24,10 +24,23 @@
 #include "studio/keyboard.h"
 #include "ext/history.h"
 
-#define MAP_WIDTH  (TIC80_WIDTH)
-#define MAP_HEIGHT (TIC80_HEIGHT - TOOLBAR_SIZE)
-#define MAP_X      (0)
-#define MAP_Y      (TOOLBAR_SIZE)
+#define MAP_WIDTH (TIC80_WIDTH)
+#define MAP_X     (0)
+
+static s32 mapY(const Map* map)
+{
+    return getStudioEditorTop(map->studio);
+}
+
+static s32 mapHeight(const Map* map)
+{
+    return TIC80_HEIGHT - mapY(map);
+}
+
+// The map fills the screen under autohide, but its input stays below the bar:
+// the top strip is the menu's.
+#define MAP_INPUT_Y      (STUDIO_BAR_HEIGHT)
+#define MAP_INPUT_HEIGHT (TIC80_HEIGHT - STUDIO_BAR_HEIGHT)
 
 #define MAX_SCROLL_X (TIC_MAP_WIDTH * TIC_SPRITESIZE)
 #define MAX_SCROLL_Y (TIC_MAP_HEIGHT * TIC_SPRITESIZE)
@@ -81,47 +94,6 @@ static inline bool sheetVisible(Map* map)
     return map->anim.pos.sheet >= 0;
 }
 
-static void drawTileIndex(Map* map, s32 x, s32 y)
-{
-    tic_mem* tic = map->tic;
-    s32 index = -1;
-
-    if(sheetVisible(map))
-    {
-        tic_rect rect = {TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
-
-        if(checkMousePos(map->studio, &rect))
-        {
-            s32 mx = tic_api_mouse(tic).x - rect.x;
-            s32 my = tic_api_mouse(tic).y - rect.y;
-
-            mx /= TIC_SPRITESIZE;
-            my /= TIC_SPRITESIZE;
-
-            index = my * map->sheet.blit.pages * TIC_SPRITESHEET_COLS + mx + tic_blit_calc_index(&map->sheet.blit);
-        }
-    }
-    else
-    {
-        tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
-
-        if(checkMousePos(map->studio, &rect))
-        {
-            s32 tx = 0, ty = 0;
-            getMouseMap(map, &tx, &ty);
-            map2ram(tic->ram, map->src);
-            index = tic_api_mget(map->tic, tx, ty);
-        }
-    }
-
-    if(index >= 0)
-    {
-        char buf[sizeof "#-2147483648"];
-        sprintf(buf, "#%03i", index);
-        tic_api_print(map->tic, buf, x, y, tic_color_light_grey, true, 1, false);
-    }
-}
-
 // The sheet's own animation, so these stay here. The callers' idle gate is
 // inside, where selectViewportPage keeps it too.
 void map_select_bank(Map* map, s32 bank)
@@ -138,7 +110,7 @@ void map_select_bank(Map* map, s32 bank)
 
 void map_select_page(Map* map, s32 page)
 {
-    if(!isIdle(map))
+    if(!isIdle(map) || page < 0 || page >= map->sheet.blit.pages)
         return;
 
     Anim* anim = map->anim.page.items;
@@ -148,6 +120,12 @@ void map_select_page(Map* map, s32 page)
     map->sheet.blit.page = (u8)(page);
 }
 
+void mapSetBpp(Map* map, tic_bpp bpp)
+{
+    if(isIdle(map))
+        tic_blit_update_bpp(&map->sheet.blit, bpp);
+}
+
 void map_toggle_sheet(Map* map)
 {
     if(!isIdle(map))
@@ -155,224 +133,6 @@ void map_toggle_sheet(Map* map)
 
     map->anim.movie = resetMovie(sheetVisible(map) ? &map->anim.hide : &map->anim.show);
     map->sheet.keep = true;
-}
-
-typedef struct
-{
-    char label[2];
-    bool active;
-
-} PageTab;
-
-static void pageTab(Toolbar* tb, const tic_rect* rect, bool over, void* ctx)
-{
-    const PageTab* tab = ctx;
-
-    if(tab->active)
-        tic_api_rect(tb->tic, rect->x, rect->y + tb->y, rect->w, TOOLBAR_SIZE, tic_color_black);
-
-    tic_api_print(tb->tic, tab->label, rect->x + 1, rect->y + tb->y + 1,
-                  tab->active ? tic_color_white : over ? tic_color_grey
-                                                       : tic_color_light_grey,
-                  true, 1, true);
-}
-
-// Every widget was at an absolute x before — 233, 222/213, 199, 183 with the
-// sheet up, plus a five-pixel gap before the grid. The rail packs flush now.
-void mapBand(void* app, Toolbar* tb)
-{
-    Map* map = app;
-
-    drawTileIndex(map, TIC80_WIDTH / 2 - TIC_FONT_WIDTH, 1);
-
-    {
-        ToolbarButton button =
-            {
-                .icon = sheetVisible(map) ? tic_icon_up : tic_icon_down,
-                .tip = "SHOW TILES [shift]",
-                .width = ICON_SIZE,
-                .color = tic_color_light_grey,
-                .enabled = true,
-            };
-
-        if(toolbar_button(tb, &button))
-            map_toggle_sheet(map);
-    }
-
-    if(sheetVisible(map))
-    {
-        // pages = 4/bpp, so switching depth adds or removes tabs. Room for
-        // four is reserved either way, or the labels and banks slide too.
-        enum
-        {
-            TabW = TIC_ALTFONT_WIDTH + 1,
-            MaxPages = 4,
-            GapBeforeDepth = 1,
-            GapBeforeBank = 4
-        };
-
-        s32 tabsRight = tb->railX - GapBeforeDepth;
-
-        tb->railX = tabsRight;
-
-        if(map->sheet.blit.pages > 1)
-            for(s32 i = map->sheet.blit.pages - 1; i >= 0; i--)
-            {
-                static char tip[sizeof "PAGE " + sizeof "-2147483648"];
-                sprintf(tip, "PAGE %i", i);
-
-                PageTab tab = {{(char)('1' + i), '\0'}, i == map->sheet.blit.page};
-
-                ToolbarButton button =
-                    {
-                        .tip = tip,
-                        .width = TIC_ALTFONT_WIDTH + 1,
-                        .enabled = true,
-                        .draw = pageTab,
-                        .ctx = &tab,
-                    };
-
-                if(toolbar_button(tb, &button))
-                    map_select_page(map, i);
-            }
-
-        tb->railX = tabsRight - MaxPages * TabW - GapBeforeDepth;
-
-        // The bit depths, widest first so the rail puts "4" leftmost.
-        static const char Depths[] = "421";
-
-        for(s32 i = COUNT_OF(Depths) - 2; i >= 0; i--)
-        {
-            tic_bpp mode = 1 << (2 - i);
-            bool active = mode == map->sheet.blit.mode;
-
-            static char tip[sizeof "%iBITS PER PIXEL" + sizeof "-2147483648"];
-            sprintf(tip, mode > 1 ? "%iBITS PER PIXEL" : "%iBIT PER PIXEL", mode);
-
-            char label[2] = {Depths[i], '\0'};
-
-            ToolbarButton button =
-                {
-                    .label = label,
-                    .altFont = true,
-                    .tip = tip,
-                    .width = TIC_ALTFONT_WIDTH,
-                    .y = 1,
-                    .color = active ? tic_color_dark_grey : tic_color_light_grey,
-                    .over = active ? tic_color_dark_grey : 0,
-                    .enabled = true,
-                };
-
-            if(toolbar_button(tb, &button))
-                tic_blit_update_bpp(&map->sheet.blit, mode);
-        }
-
-        tb->railX -= GapBeforeBank;
-
-        static const u8 Banks[] = {tic_icon_tiles, tic_icon_sprites};
-
-        for(s32 i = COUNT_OF(Banks) - 1; i >= 0; i--)
-        {
-            bool active = i == map->sheet.blit.bank;
-
-            ToolbarButton button =
-                {
-                    .icon = Banks[i],
-                    .tip = i ? "SPRITES" : "TILES",
-                    .width = 6,
-                    .color = active ? tic_color_dark_grey : tic_color_light_grey,
-                    .over = active ? tic_color_dark_grey : 0,
-                    .enabled = true,
-                };
-
-            if(toolbar_button(tb, &button))
-                map_select_bank(map, i);
-        }
-    }
-    else
-    {
-        static const struct
-        {
-            u8 icon;
-            const char* tip;
-            s32 mode;
-            s32 width;
-        } Tools[] =
-            {
-                {tic_icon_fill, "FILL [4]", MAP_FILL_MODE, TIC_SPRITESIZE},
-                {tic_icon_select, "SELECT [3]", MAP_SELECT_MODE, ICON_SIZE},
-                {tic_icon_hand, "DRAG MAP [2]", MAP_DRAG_MODE, ICON_SIZE},
-                {tic_icon_pen, "DRAW [1]", MAP_DRAW_MODE, ICON_SIZE},
-            };
-
-        // Ascending: fill is the rightmost, as it was, and the row reads
-        // DRAW, DRAG MAP, SELECT, FILL left to right.
-        for(s32 i = 0; i < COUNT_OF(Tools); i++)
-        {
-            bool active = (s32)map->mode == Tools[i].mode;
-
-            ToolbarButton button =
-                {
-                    .icon = Tools[i].icon,
-                    .tip = Tools[i].tip,
-                    .width = Tools[i].width,
-                    .color = active ? tic_color_black : tic_color_light_grey,
-                    .over = active ? tic_color_black : 0,
-                    .enabled = true,
-                };
-
-            if(toolbar_button(tb, &button))
-                map->mode = Tools[i].mode;
-        }
-
-        {
-            bool on = map->canvas.grid;
-
-            ToolbarButton button =
-                {
-                    .icon = tic_icon_grid,
-                    .tip = "SHOW/HIDE GRID [`]",
-                    .width = ICON_SIZE,
-                    .color = on ? tic_color_black : tic_color_light_grey,
-                    .over = on ? tic_color_black : 0,
-                    .enabled = true,
-                };
-
-            if(toolbar_button(tb, &button))
-                map->canvas.grid = !on;
-        }
-
-        {
-            bool on = map->canvas.random;
-
-            ToolbarButton button =
-                {
-                    .icon = tic_icon_random,
-                    .tip = "RANDOM BRUSH [R]",
-                    .width = ICON_SIZE,
-                    .color = on ? tic_color_black : tic_color_light_grey,
-                    .over = on ? tic_color_black : 0,
-                    .enabled = true,
-                };
-
-            if(toolbar_button(tb, &button))
-                map->canvas.random = !on;
-        }
-
-        {
-            ToolbarButton button =
-                {
-                    .icon = tic_icon_world,
-                    .tip = "WORLD MAP [tab]",
-                    .width = TIC_SPRITESIZE,
-                    .color = tic_color_light_grey,
-                    .enabled = true,
-                };
-
-            if(toolbar_button(tb, &button))
-                setStudioMode(map->studio, TIC_WORLD_MODE);
-        }
-    }
 }
 
 static void drawSheetVBank1(Map* map, s32 x, s32 y)
@@ -502,7 +262,7 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
     if(px + width >= TIC80_WIDTH) px = x - (width + 2);
 
     s32 py = y - (TIC_FONT_HEIGHT + 2);
-    if(py <= TOOLBAR_SIZE) py = y + (TIC_SPRITESIZE + 3);
+    if(py <= MAP_INPUT_Y) py = y + (TIC_SPRITESIZE + 3);
 
     tic_api_rect(map->tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, tic_color_white);
     tic_api_print(map->tic, pos, px, py, tic_color_light_grey, true, 1, false);
@@ -598,7 +358,7 @@ static void drawTileCursorVBank1(Map* map)
 
 static void processMouseDrawMode(Map* map)
 {
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     setCursor(map->studio, tic_cursor_hand);
 
@@ -652,7 +412,7 @@ static void processMouseDrawMode(Map* map)
 static void processScrolling(Map* map, bool pressed)
 {
     tic_mem* tic = map->tic;
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     if(map->scroll.active)
     {
@@ -682,7 +442,7 @@ static void processScrolling(Map* map, bool pressed)
 
 static void processMouseDragMode(Map* map)
 {
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     processScrolling(map, checkMouseDown(map->studio, &rect, tic_mouse_left) ||
                               checkMouseDown(map->studio, &rect, tic_mouse_right));
@@ -735,7 +495,7 @@ static void drawPasteData(Map* map)
     s32 mx = tic_api_mouse(tic).x + map->scroll.x - (w - 1) * TIC_SPRITESIZE / 2;
     s32 my = tic_api_mouse(tic).y + map->scroll.y - (h - 1) * TIC_SPRITESIZE / 2;
 
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     if(checkMouseClick(map->studio, &rect, tic_mouse_left))
     {
@@ -812,7 +572,7 @@ static void normalizeMapRect(s32* x, s32* y)
 static void processMouseSelectMode(Map* map)
 {
     tic_mem* tic = map->tic;
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     if(checkMousePos(map->studio, &rect))
     {
@@ -1028,7 +788,7 @@ static void replaceTile(Map* map, s32 x, s32 y, u8 tile)
 
 static void processMouseFillMode(Map* map)
 {
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     setCursor(map->studio, tic_cursor_hand);
 
@@ -1111,7 +871,7 @@ static void drawGrid(Map* map)
 static void drawMapReg(Map* map)
 {
     tic_mem* tic = map->tic;
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+    tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
 
     bool handle = !sheetVisible(map) && checkMousePos(map->studio, &rect);
     bool space = tic_api_key(tic, tic_key_space);
@@ -1345,7 +1105,7 @@ static void tick(Map* map)
     processKeyboard(map);
 
     drawMapReg(map);
-    drawSheetReg(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
+    drawSheetReg(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, STUDIO_BAR_HEIGHT);
 
     VBANK(tic, 1)
     {
@@ -1353,7 +1113,7 @@ static void tick(Map* map)
 
         memcpy(tic->ram->vram.palette.data, getConfig(map->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
-        tic_api_clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE + 2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
+        tic_api_clip(tic, 0, mapY(map), TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE + 2 : 0), mapHeight(map));
         {
             s32 screenScrollX = map->scroll.x % TIC80_WIDTH;
             s32 screenScrollY = map->scroll.y % TIC80_HEIGHT;
@@ -1363,10 +1123,10 @@ static void tick(Map* map)
         }
         tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
-        drawSheetVBank1(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
+        drawSheetVBank1(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, STUDIO_BAR_HEIGHT);
 
         {
-            tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+            tic_rect rect = {MAP_X, MAP_INPUT_Y, MAP_WIDTH, MAP_INPUT_HEIGHT};
             if(!sheetVisible(map) && checkMousePos(map->studio, &rect) && !tic_api_key(tic, tic_key_space))
             {
                 switch(map->mode)
@@ -1450,7 +1210,7 @@ void initMap(Map* map, Studio* studio, tic_map* src)
 {
     enum
     {
-        SheetStart = -(TIC_SPRITESHEET_SIZE + TOOLBAR_SIZE)
+        SheetStart = -(TIC_SPRITESHEET_SIZE + STUDIO_BAR_HEIGHT) - 1
     };
 
     if(map->history) history_delete(map->history);
@@ -1488,7 +1248,6 @@ void initMap(Map* map, Studio* studio, tic_map* src)
                 .x = 0,
                 .y = 0,
                 .active = false,
-                .gesture = false,
                 .start = {0, 0},
             },
         .history = history_create(src, sizeof(tic_map)),

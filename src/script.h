@@ -24,6 +24,8 @@
 
 #include "api.h"
 
+#define MAX_SUPPORTED_LANGS 16
+
 struct tic_script
 {
     u8 id;

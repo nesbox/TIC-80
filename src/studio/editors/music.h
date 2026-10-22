@@ -23,7 +23,6 @@
 #pragma once
 
 #include "studio/studio.h"
-#include "studio/toolbar.h"
 
 typedef struct Music Music;
 
@@ -99,6 +98,12 @@ struct Music
 
 extern const ClipboardOps MusicClipboard;
 
-void musicBand(void*, Toolbar*);
 void initMusic(Music*, Studio* studio, tic_music* src);
 void freeMusic(Music* music);
+void musicToggleFollow(Music*);
+void musicToggleLoop(Music*);
+void musicToggleSustain(Music*);
+void musicPlayFromNow(Music*);
+void musicPlayFrame(Music*);
+void musicPlayTrack(Music*);
+void musicStop(Music*);

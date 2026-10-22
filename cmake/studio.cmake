@@ -19,7 +19,7 @@ set(TIC80STUDIO_SRC
     # reach: every build has a reason to hear it.
     ${TIC80LIB_DIR}/studio/sound.c
     # The icon and the cursor every screen draws with: the menu needs both in
-    # builds that have no strip and never will.
+    # builds that have no bar and never will.
     ${TIC80LIB_DIR}/studio/ui.c
     # What the machine's keyboard says, which the editors and the console ask
     # about more than any other one thing.
@@ -50,8 +50,8 @@ endif()
 
 if(BUILD_EDITORS)
     set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
-        # The strip is the editors' band: a build without them never draws it.
-        ${TIC80LIB_DIR}/studio/toolbar.c
+        # The bar is the editors' shell: a build without them never draws it.
+        ${TIC80LIB_DIR}/studio/menubar.c
         ${TIC80LIB_DIR}/studio/screens/console.c
         ${TIC80LIB_DIR}/studio/editors/code.c
         ${TIC80LIB_DIR}/studio/editors/sprite.c

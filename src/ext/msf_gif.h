@@ -597,13 +597,16 @@ int msf_gif_begin(MsfGifState * handle, int width, int height) { MsfTimeFunc
 
     //setup header buffer header (lol)
     handle->listHead = (MsfGifBuffer *) MSF_GIF_MALLOC(handle->customAllocatorContext, offsetof(MsfGifBuffer, data) + 32);
+    // The failure path frees the list: terminate and size the head first.
+    if (handle->listHead) {
+        handle->listHead->next = NULL;
+        handle->listHead->size = 32;
+    }
     if (!handle->listHead || !handle->lzwMem || !handle->previousFrame.pixels || !handle->currentFrame.pixels) {
         msf_free_gif_state(handle);
         return 0;
     }
     handle->listTail = handle->listHead;
-    handle->listHead->next = NULL;
-    handle->listHead->size = 32;
 
     //NOTE: because __attribute__((__packed__)) is annoyingly compiler-specific, we do this unreadable weirdness
     char headerBytes[33] = "GIF89a\0\0\0\0\x70\0\0" "\x21\xFF\x0BNETSCAPE2.0\x03\x01\0\0\0";

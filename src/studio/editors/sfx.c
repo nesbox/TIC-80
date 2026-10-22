@@ -991,7 +991,6 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
         WhiteWidthGap = WhiteWidth + Gap,
         BlackWidth = 3,
         BlackHeight = 4,
-        BlackCount = 6,
         BlackOffset = WhiteWidth - (BlackWidth - Gap) / 2,
         Width = WhiteCount * WhiteWidthGap - Gap,
         Height = WhiteHeight

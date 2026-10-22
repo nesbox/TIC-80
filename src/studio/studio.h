@@ -72,7 +72,7 @@
 #define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_HASH "/"
 #define TIC_CACHE         TIC_LOCAL "cache/"
 
-#define TOOLBAR_SIZE              7
+#define STUDIO_BAR_HEIGHT         7
 #define STUDIO_TEXT_WIDTH         (TIC_FONT_WIDTH)
 #define STUDIO_TEXT_HEIGHT        (TIC_FONT_HEIGHT + 1)
 #define STUDIO_TEXT_BUFFER_WIDTH  (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
@@ -201,7 +201,6 @@ enum
     tic_icon_undo = 83,
     tic_icon_redo = 84,
     tic_icon_bank = 85,
-    tic_icon_pin = 86,
     tic_icon_tab = 87,
     tic_icon_code = 88,
     tic_icon_sprite = 89,
@@ -212,8 +211,6 @@ enum
     tic_icon_rec2 = 94,
     tic_icon_bookmark = 95,
     tic_icon_shadow = 96,
-    tic_icon_shadow2 = 97,
-    tic_icon_run = 98,
     tic_icon_hand = 99,
     tic_icon_find = 100,
     tic_icon_goto = 101,
@@ -255,6 +252,9 @@ enum
     tic_icon_loop = 137,
     tic_icon_random = 138,
     tic_icon_line_numbers = 139,
+    tic_icon_circle = 140,
+    tic_icon_more = 141,
+    tic_icon_tic80 = 142,
 };
 
 void setCursor(Studio* studio, tic_cursor id);
@@ -273,6 +273,9 @@ void studioConfigChanged(Studio* studio);
 
 void setStudioMode(Studio* studio, EditorMode mode);
 EditorMode getStudioMode(Studio* studio);
+
+// Where CODE and MAP content starts: 0 with autohide, 7 otherwise.
+s32 getStudioEditorTop(Studio* studio);
 void exitStudio(Studio* studio);
 
 void setStudioViMode(Studio* studio, ViMode mode);
@@ -282,8 +285,8 @@ bool checkStudioViMode(Studio* studio, ViMode mode);
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize);
 
-// The five operations the toolbar's clipboard buttons perform. Each editor
-// supplies its own; a mode with none leaves it NULL.
+// The five operations the Edit menu performs. Each editor supplies its own; a
+// mode with none leaves it NULL.
 typedef struct
 {
     void (*cut)(void*);
@@ -318,6 +321,7 @@ void exitSurf(Studio* studio);
 void runGame(Studio* studio, RunOrigin origin);
 void exitGame(Studio* studio);
 void resumeGame(Studio* studio);
+bool studio_run_paused(Studio* studio);
 void saveProject(Studio* studio);
 
 bool studio_menu_over_player_run(Studio* studio);
@@ -336,14 +340,12 @@ bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period);
 typedef struct Config Config;
 const StudioConfig* getConfig(Studio* studio);
 Config* studio_config_get(Studio* studio);
-struct Sprite* getSpriteEditor(Studio* studio);
 
 const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* filename);
 const char* studioExportSfx(Studio* studio, s32 sfx, const char* filename);
 
 tic_mem* getMemory(Studio* studio);
 
-const char* md5str(const void* data, s32 length);
 void sfx_stop(tic_mem* tic, s32 channel);
 s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);
@@ -351,6 +353,19 @@ void tiles2ram(tic_ram* ram, const tic_tiles* src);
 void fadePalette(tic_palette* pal, s32 value);
 
 #if defined(BUILD_EDITORS)
+
+// The code editor's view toggles, shared by the bar's menu and the editor's
+// own hotkeys so both persist.
+typedef enum
+{
+    CodeViewFont,
+    CodeViewShadow,
+    CodeViewLineNumbers,
+    CodeViewSidebar,
+    CodeViewStatusbar,
+} CodeViewOption;
+
+void studioCodeViewToggle(Studio*, CodeViewOption);
 
 typedef struct
 {
