@@ -1356,91 +1356,61 @@ static void drawCompact(Menubar* menubar, tic_mem* tic, const tic_tiles* icons,
     }
 }
 
-// The hint follows the titles: the hovered control's label and accelerator, the
+// The hint follows the tabs: the hovered control's label and accelerator, the
 // editor's own hover text, or the current app's full name, in the wide font.
-static void drawHint(Menubar* menubar, tic_mem* tic,
-                     const MenuBarItem* hovered, s32 hoveredTitle)
+static void drawCompactHint(Menubar* menubar, tic_mem* tic,
+                            const MenuBarItem* hovered, s32 hoveredTitle)
 {
+    if(!menubar->compact)
+        return;
+
+    Compact layout = compactLayout(menubar);
     char text[64];
-    const char* hint = NULL;
+    const char* hint = menubar->caption;
     bool tooltip = false;
-    s32 hintX = 0;
-    s32 room = 0;
+    s32 room = layout.hintWidth / TIC_FONT_WIDTH;
 
-    if(menubar->compact)
+    if(hovered)
     {
-        Compact layout = compactLayout(menubar);
+        if(hovered->accel && hovered->accel[0])
+            snprintf(text, sizeof text, "%s [%s]", hovered->label, hovered->accel);
+        else
+            snprintf(text, sizeof text, "%s", hovered->label);
 
-        hint = menubar->caption;
-        hintX = layout.hintX;
-        room = layout.hintWidth / TIC_FONT_WIDTH;
+        // Drop the accelerator rather than cut it in half.
+        if(hovered->accel && hovered->accel[0] && (s32)strlen(text) > room)
+            snprintf(text, sizeof text, "%s", hovered->label);
 
-        if(hovered)
-        {
-            if(hovered->accel && hovered->accel[0])
-                snprintf(text, sizeof text, "%s [%s]", hovered->label, hovered->accel);
-            else
-                snprintf(text, sizeof text, "%s", hovered->label);
-
-            // Drop the accelerator rather than cut it in half.
-            if(hovered->accel && hovered->accel[0] && (s32)strlen(text) > room)
-                snprintf(text, sizeof text, "%s", hovered->label);
-
-            hint = text;
-            tooltip = true;
-        }
-        else if(hoveredTitle >= 0)
-        {
-            const MenuBarCategory* category = &menubar->categories[hoveredTitle];
-            const char* label = category->title;
-            bool home = isCompactHome(menubar, category);
-
-            // A stop that shows only its number (BANK) names itself by its
-            // selected item.
-            if(category->items && category->selected >= 0 && category->selected < category->count)
-                label = category->items[category->selected].label;
-
-            if(home)
-                snprintf(text, sizeof text, "%s [F10]", label);
-            else
-                snprintf(text, sizeof text, "%s", label);
-
-            if(home && (s32)strlen(text) > room)
-                snprintf(text, sizeof text, "%s", label);
-
-            hint = text;
-            tooltip = true;
-        }
-        else if(menubar->tooltip && menubar->tooltip[0])
-        {
-            // The editor's own hover text, as the old toolbar showed it.
-            hint = menubar->tooltip;
-            tooltip = true;
-        }
+        hint = text;
+        tooltip = true;
     }
-    else
+    else if(hoveredTitle >= 0)
     {
-        s32 left = TitleX;
+        const MenuBarCategory* category = &menubar->categories[hoveredTitle];
+        const char* label = category->title;
+        bool home = isCompactHome(menubar, category);
 
-        for(s32 i = 0; i < menubar->count; i++)
-        {
-            const MenuBarCategory* category = &menubar->categories[i];
+        // A stop that shows only its number (BANK) names itself by its
+        // selected item.
+        if(category->items && category->selected >= 0 && category->selected < category->count)
+            label = category->items[category->selected].label;
 
-            if(category->hidden || category->right)
-                continue;
+        if(home)
+            snprintf(text, sizeof text, "%s [F10]", label);
+        else
+            snprintf(text, sizeof text, "%s", label);
 
-            left += stopWidth(menubar, i) + TitleGap;
-        }
+        if(home && (s32)strlen(text) > room)
+            snprintf(text, sizeof text, "%s", label);
 
-        hintX = left + GroupGap;
-        room = MAX(0, (rightStart(menubar) - hintX) / TIC_FONT_WIDTH);
-
+        hint = text;
+        tooltip = true;
+    }
+    else if(menubar->tooltip && menubar->tooltip[0])
+    {
         // The editor's own hover text, as the old toolbar showed it.
-        if(menubar->tooltip && menubar->tooltip[0])
-        {
-            hint = menubar->tooltip;
-            tooltip = true;
-        }
+        hint = menubar->tooltip;
+        tooltip = true;
     }
 
     if(hint && hint[0])
@@ -1454,7 +1424,7 @@ static void drawHint(Menubar* menubar, tic_mem* tic,
             shown[len] = '\0';
 
             // A tooltip is darker than the app's name.
-            tic_api_print(tic, shown, hintX, menubar->y + TextY,
+            tic_api_print(tic, shown, layout.hintX, menubar->y + TextY,
                           tooltip ? tic_color_dark_grey : tic_color_grey,
                           true, 1, false);
         }
@@ -1667,7 +1637,7 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
                           open ? tic_color_white : tic_color_dark_grey, true, 1, false);
     }
 
-    drawHint(menubar, tic, hovered, hoveredTitle);
+    drawCompactHint(menubar, tic, hovered, hoveredTitle);
 
     if(menubar->open >= 0)
     {
