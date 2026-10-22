@@ -193,6 +193,9 @@ endif()
                     "${PFORTH_DIR}/pfdicdat.h"
         )
 
+        # We don't need the exe any more, remove it to prevent dirty submodule.
+        FILE(REMOVE "${_pforth_exe}")
+        
         if(NOT EXISTS ${PFORTH_DICDAT})
             if(CMAKE_SIZEOF_VOID_P EQUAL 4 AND CMAKE_CROSSCOMPILING)
                 message(FATAL_ERROR
