@@ -173,12 +173,14 @@ static bool focusableCategory(const Menubar* menubar, s32 index)
            !isTabs(menubar, &menubar->categories[index]);
 }
 
+// Tabs are the icon run before the first separator; what follows is the rest
+// of the apps menu, which the compact bar leaves out.
 static s32 tabsCount(const Menubar* menubar)
 {
     s32 count = 0;
 
     if(menubar->compact && menubar->tabs)
-        for(s32 i = 0; i < menubar->tabs->count; i++)
+        for(s32 i = 0; i < menubar->tabs->count && !menubar->tabs->items[i].separator; i++)
             if(menubar->tabs->items[i].icon)
                 count++;
 
@@ -187,7 +189,7 @@ static s32 tabsCount(const Menubar* menubar)
 
 static s32 tabItem(const Menubar* menubar, s32 tab)
 {
-    for(s32 i = 0; i < menubar->tabs->count; i++)
+    for(s32 i = 0; i < menubar->tabs->count && !menubar->tabs->items[i].separator; i++)
         if(menubar->tabs->items[i].icon && tab-- == 0)
             return i;
 
@@ -1354,61 +1356,91 @@ static void drawCompact(Menubar* menubar, tic_mem* tic, const tic_tiles* icons,
     }
 }
 
-// The hint follows the tabs: the hovered control's label and accelerator, the
+// The hint follows the titles: the hovered control's label and accelerator, the
 // editor's own hover text, or the current app's full name, in the wide font.
-static void drawCompactHint(Menubar* menubar, tic_mem* tic,
-                            const MenuBarItem* hovered, s32 hoveredTitle)
+static void drawHint(Menubar* menubar, tic_mem* tic,
+                     const MenuBarItem* hovered, s32 hoveredTitle)
 {
-    if(!menubar->compact)
-        return;
-
-    Compact layout = compactLayout(menubar);
     char text[64];
-    const char* hint = menubar->caption;
+    const char* hint = NULL;
     bool tooltip = false;
-    s32 room = layout.hintWidth / TIC_FONT_WIDTH;
+    s32 hintX = 0;
+    s32 room = 0;
 
-    if(hovered)
+    if(menubar->compact)
     {
-        if(hovered->accel && hovered->accel[0])
-            snprintf(text, sizeof text, "%s [%s]", hovered->label, hovered->accel);
-        else
-            snprintf(text, sizeof text, "%s", hovered->label);
+        Compact layout = compactLayout(menubar);
 
-        // Drop the accelerator rather than cut it in half.
-        if(hovered->accel && hovered->accel[0] && (s32)strlen(text) > room)
-            snprintf(text, sizeof text, "%s", hovered->label);
+        hint = menubar->caption;
+        hintX = layout.hintX;
+        room = layout.hintWidth / TIC_FONT_WIDTH;
 
-        hint = text;
-        tooltip = true;
+        if(hovered)
+        {
+            if(hovered->accel && hovered->accel[0])
+                snprintf(text, sizeof text, "%s [%s]", hovered->label, hovered->accel);
+            else
+                snprintf(text, sizeof text, "%s", hovered->label);
+
+            // Drop the accelerator rather than cut it in half.
+            if(hovered->accel && hovered->accel[0] && (s32)strlen(text) > room)
+                snprintf(text, sizeof text, "%s", hovered->label);
+
+            hint = text;
+            tooltip = true;
+        }
+        else if(hoveredTitle >= 0)
+        {
+            const MenuBarCategory* category = &menubar->categories[hoveredTitle];
+            const char* label = category->title;
+            bool home = isCompactHome(menubar, category);
+
+            // A stop that shows only its number (BANK) names itself by its
+            // selected item.
+            if(category->items && category->selected >= 0 && category->selected < category->count)
+                label = category->items[category->selected].label;
+
+            if(home)
+                snprintf(text, sizeof text, "%s [F10]", label);
+            else
+                snprintf(text, sizeof text, "%s", label);
+
+            if(home && (s32)strlen(text) > room)
+                snprintf(text, sizeof text, "%s", label);
+
+            hint = text;
+            tooltip = true;
+        }
+        else if(menubar->tooltip && menubar->tooltip[0])
+        {
+            // The editor's own hover text, as the old toolbar showed it.
+            hint = menubar->tooltip;
+            tooltip = true;
+        }
     }
-    else if(hoveredTitle >= 0)
+    else
     {
-        const MenuBarCategory* category = &menubar->categories[hoveredTitle];
-        const char* label = category->title;
-        bool home = isCompactHome(menubar, category);
+        s32 left = TitleX;
 
-        // A stop that shows only its number (BANK) names itself by its
-        // selected item.
-        if(category->items && category->selected >= 0 && category->selected < category->count)
-            label = category->items[category->selected].label;
+        for(s32 i = 0; i < menubar->count; i++)
+        {
+            const MenuBarCategory* category = &menubar->categories[i];
 
-        if(home)
-            snprintf(text, sizeof text, "%s [F10]", label);
-        else
-            snprintf(text, sizeof text, "%s", label);
+            if(category->hidden || category->right)
+                continue;
 
-        if(home && (s32)strlen(text) > room)
-            snprintf(text, sizeof text, "%s", label);
+            left += stopWidth(menubar, i) + TitleGap;
+        }
 
-        hint = text;
-        tooltip = true;
-    }
-    else if(menubar->tooltip && menubar->tooltip[0])
-    {
+        hintX = left + GroupGap;
+        room = MAX(0, (rightStart(menubar) - hintX) / TIC_FONT_WIDTH);
+
         // The editor's own hover text, as the old toolbar showed it.
-        hint = menubar->tooltip;
-        tooltip = true;
+        if(menubar->tooltip && menubar->tooltip[0])
+        {
+            hint = menubar->tooltip;
+            tooltip = true;
+        }
     }
 
     if(hint && hint[0])
@@ -1422,7 +1454,7 @@ static void drawCompactHint(Menubar* menubar, tic_mem* tic,
             shown[len] = '\0';
 
             // A tooltip is darker than the app's name.
-            tic_api_print(tic, shown, layout.hintX, menubar->y + TextY,
+            tic_api_print(tic, shown, hintX, menubar->y + TextY,
                           tooltip ? tic_color_dark_grey : tic_color_grey,
                           true, 1, false);
         }
@@ -1635,7 +1667,7 @@ void menubar_draw(Menubar* menubar, tic_mem* tic, s32 mode, const tic_tiles* ico
                           open ? tic_color_white : tic_color_dark_grey, true, 1, false);
     }
 
-    drawCompactHint(menubar, tic, hovered, hoveredTitle);
+    drawHint(menubar, tic, hovered, hoveredTitle);
 
     if(menubar->open >= 0)
     {

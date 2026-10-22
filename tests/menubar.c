@@ -1382,7 +1382,43 @@ static void testCompact(tic_mem* tic)
     draw(&homeBar, tic);
     assert(anyInk(tic, 40, 1, 60, 6));
 
-    puts("compact ok");
+    // A separator ends the tabs: the icon after it is a menu row, and its
+    // cell runs nothing.
+    static const MenuBarItem SplitTabItems[] =
+        {
+            {"TAB ONE", NULL, hit, One, true, false, 1, 0, NULL, -1},
+            {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
+            {"TAB TWO", NULL, hit, Two, true, false, 2, 0, NULL, -1},
+        };
+
+    MenuBarCategory splitCats[] =
+        {
+            {"APPS", SplitTabItems, COUNT_OF(SplitTabItems), false, 0, One, 0, false},
+            {"MENU", MainItems, COUNT_OF(MainItems), false, CheckIcon, -1, 0, false},
+            {"TIC", RightItems, COUNT_OF(RightItems), true, 0, -1, 0, false},
+        };
+
+    Menubar splitBar;
+    menubar_init(&splitBar, splitCats, COUNT_OF(splitCats), Mouse, Hits, CheckIcon);
+    splitBar.compact = true;
+    splitBar.tabs = &splitCats[0];
+    splitBar.more = &splitCats[1];
+    splitBar.caption = "TEST";
+    still(&splitBar, tic);
+
+    before = Hits[One];
+    clickAt(tic, 3, 3);
+    step(&splitBar, tic);
+    draw(&splitBar, tic);
+    assert(Hits[One] == before + 1);
+
+    before = Hits[Two];
+    clickAt(tic, 10, 3);
+    step(&splitBar, tic);
+    draw(&splitBar, tic);
+    assert(Hits[Two] == before);
+
+    puts("compact separator ok");
 }
 
 int main(void)

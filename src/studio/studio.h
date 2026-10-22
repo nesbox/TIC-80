@@ -255,6 +255,15 @@ enum
     tic_icon_circle = 140,
     tic_icon_more = 141,
     tic_icon_tic80 = 142,
+    tic_icon_show_tiles = 143,
+    tic_icon_console = 144,
+    tic_icon_surf = 145,
+    tic_icon_game_menu = 146,
+    tic_icon_tinypicker = 147,
+    tic_icon_tinyfliphorz = 148,
+    tic_icon_tinyflipvert = 149,
+    tic_icon_tinyerase = 150,
+    tic_icon_tinyrotate = 151,
 };
 
 void setCursor(Studio* studio, tic_cursor id);

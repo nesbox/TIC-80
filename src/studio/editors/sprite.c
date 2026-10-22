@@ -1249,41 +1249,6 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
             tic_api_pix(tic, offsetX + palette.cell_w - 1, offsetY + i - 1, tic_color_white, false);
         }
     }
-
-    {
-        tic_rect editRect = {x + PALETTE_WIDTH + 3, y + (PALETTE_HEIGHT - 8) / 2 - 1, 8, 8};
-
-        bool down = false;
-        bool over = false;
-        if(checkMousePos(sprite->studio, &editRect))
-        {
-            setCursor(sprite->studio, tic_cursor_hand);
-            over = true;
-
-            showTooltip(sprite->studio, "EDIT PALETTE");
-
-            if(checkMouseDown(sprite->studio, &editRect, tic_mouse_left))
-                down = true;
-
-            if(checkMouseClick(sprite->studio, &editRect, tic_mouse_left))
-            {
-                sprite->palette.edit = !sprite->palette.edit;
-
-                if(!sprite->palette.edit)
-                    sprite->palette.focus = -1;
-            }
-        }
-
-        if(sprite->palette.edit || down)
-        {
-            drawBitIcon(sprite->studio, tic_icon_rgb, editRect.x, editRect.y + 1, (over ? tic_color_light_grey : tic_color_white));
-        }
-        else
-        {
-            drawBitIcon(sprite->studio, tic_icon_rgb, editRect.x, editRect.y + 1, tic_color_black);
-            drawBitIcon(sprite->studio, tic_icon_rgb, editRect.x, editRect.y, (over ? tic_color_light_grey : tic_color_white));
-        }
-    }
 }
 
 static void drawPalette(Sprite* sprite, s32 x, s32 y)
@@ -1578,6 +1543,17 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
     drawSpriteTools(sprite, x + COUNT_OF(Icons) * Gap + 1, y);
 }
 
+void spriteToolAction(Sprite* sprite, s32 tool)
+{
+    if(hasCanvasSelection(sprite))
+        CanvasToolsFunc[tool](sprite);
+    else
+    {
+        SpriteToolsFunc[tool](sprite);
+        clearCanvasSelection(sprite);
+    }
+}
+
 static inline s32 getClipboardSpritesSize(Sprite* sprite)
 {
     return sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
@@ -1730,6 +1706,17 @@ void spriteSetBpp(Sprite* sprite, tic_bpp bpp)
 void spriteSetSize(Sprite* sprite, s32 size)
 {
     updateSpriteSize(sprite, size);
+}
+
+void spriteSetBrushSize(Sprite* sprite, s32 size)
+{
+    sprite->brushSize = (u8)CLAMP(size, 1, BRUSH_SIZES);
+}
+
+void spriteSetMode(Sprite* sprite, s32 mode)
+{
+    sprite->mode = mode;
+    clearCanvasSelection(sprite);
 }
 
 static void updateBrushSize(Sprite* sprite, s32 val)
