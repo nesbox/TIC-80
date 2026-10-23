@@ -3,50 +3,44 @@
     [
         {
             "name": "build",
-            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .. && ninja",
+            "shell_cmd": "cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .. && ninja",
             "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
-            "working_dir": "${file_path}",
+            "working_dir": "${project_path}/build",
             "variants":
             [
                 {
                     "name": "fresh",
-                    "shell_cmd": "cd ${project_path}/build && cmake -G Ninja .. --fresh"
+                    "shell_cmd": "cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .. --fresh"
                 },
                 {
-                    "name": "BUILD_STATIC=ON",
-                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_STATIC=ON .."
+                    "name": "configure: BUILD_PRO=ON",
+                    "shell_cmd": "cmake -DBUILD_PRO=ON .."
                 },
                 {
-                    "name": "BUILD_STATIC=OFF",
-                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_STATIC=OFF .."
-                },
-                {
-                    "name": "BUILD_PRO=ON",
-                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_PRO=ON .."
-                },
-                {
-                    "name": "BUILD_PRO=OFF",
-                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_PRO=OFF .."
-                },
-                {
-                    "name": "make",
-                    "shell_cmd": "cd ${project_path}/build && ninja"
+                    "name": "ninja",
+                    "shell_cmd": "ninja"
                 },
                 {
                     "name": "run",
-                    "shell_cmd": "cd ${project_path}/build && ninja tic80 && ${project_path}/build/bin/tic80 --skip"
+                    "shell_cmd": "ninja tic80 && bin/tic80 --skip"
                 },
                 {
-                    "name": "clean",
-                    "shell_cmd": "cd ${project_path}/build && ninja -t clean"
+                    "name": "tests",
+                    "shell_cmd": "cmake -S .. -B ../build-tests -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DBUILD_TESTS=ON && cmake --build ../build-tests --parallel --target tic80-tests && ctest --test-dir ../build-tests --output-on-failure -E api-conformance && ../build-tests/bin/api-conformance ../tests/conformance/probes"
                 },
+                {
+                    "name": "conformance",
+                    "shell_cmd": "cmake -S .. -B ../build-tests -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DBUILD_TESTS=ON && cmake --build ../build-tests --parallel --target api-conformance && ../build-tests/bin/api-conformance ../tests/conformance/probes"
+                }
             ]
         }
     ],
     "folders":
     [
         {
-            "path": "."
+            "path": ".",
+            "folder_exclude_patterns": ["build-*", "CMakeFiles"],
+            "file_exclude_patterns": ["*.sublime-workspace"]
         }
     ]
 }

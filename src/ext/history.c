@@ -23,93 +23,107 @@
 #include "history.h"
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
-typedef struct
+// The tests point these at a counting allocator; the studio uses the defaults.
+#if defined(HISTORY_TEST_ALLOC)
+void* history_test_malloc(size_t size);
+void history_test_free(void* ptr);
+
+#define HISTORY_MALLOC history_test_malloc
+#define HISTORY_FREE   history_test_free
+#else
+#define HISTORY_MALLOC malloc
+#define HISTORY_FREE   free
+#endif
+
+// Stored deltas stay under this budget; the oldest steps are dropped first.
+#ifndef HISTORY_MAX_BYTES
+#define HISTORY_MAX_BYTES (64ull * 1024 * 1024)
+#endif
+
+// One undo step: the XOR of the states on its two sides over [start, end).
+typedef struct Item
 {
-    u8* buffer;
+    struct Item* prev;
+    struct Item* next;
+
+    u8* delta;
     u32 start;
     u32 end;
-} Data;
-
-typedef struct Item Item;
-
-struct Item
-{
-    Item* next;
-    Item* prev;
-
-    Data data;
-};
-
-static void list_delete(Item* list, Item* from)
-{
-    (void)list;
-    Item* it = from;
-
-    while(it)
-    {
-        Item* next = it->next;
-
-        if(it->data.buffer) free(it->data.buffer);
-
-        free(it);
-
-        it = next;
-    }
-}
-
-static Item* list_insert(Item* list, Data* data)
-{
-    Item* item = (Item*)malloc(sizeof(Item));
-    item->next = NULL;
-    item->prev = NULL;
-    item->data = *data;
-
-    if(list)
-    {
-        list_delete(list, list->next);
-
-        list->next = item;
-        item->prev = list;
-    }
-
-    return item;
-}
-
-static Item* list_first(Item* list)
-{
-    Item* it = list;
-    while(it->prev)
-        it = it->prev;
-
-    return it;
-}
+} Item;
 
 struct History
 {
-    Item* list;
-
+    void* data;
     u32 size;
+
+    // The last committed state: what a new commit is diffed against.
     u8* state;
 
-    void* data;
+    Item* first;
+    Item* current;
+    u64 bytes;
 };
+
+// Frees a chain and returns the delta bytes it held.
+static u64 items_delete(Item* item)
+{
+    u64 bytes = 0;
+
+    while(item)
+    {
+        Item* next = item->next;
+
+        bytes += item->end - item->start;
+
+        HISTORY_FREE(item->delta);
+        HISTORY_FREE(item);
+
+        item = next;
+    }
+
+    return bytes;
+}
+
+static void apply(const Item* item, u8* state)
+{
+    for(u32 i = item->start; i < item->end; i++)
+        state[i] ^= item->delta[i - item->start];
+}
 
 History* history_create(void* data, u32 size)
 {
-    History* history = (History*)malloc(sizeof(History));
-    history->data = data;
+    History* history = HISTORY_MALLOC(sizeof(History));
 
-    history->list = NULL;
+    if(!history) return NULL;
+
+    // One byte for an empty buffer, so no copy or delta ever sees NULL.
+    history->state = HISTORY_MALLOC(size ? size : 1);
+    history->current = HISTORY_MALLOC(sizeof(Item));
+
+    if(!history->state || !history->current)
+    {
+        HISTORY_FREE(history->state);
+        HISTORY_FREE(history->current);
+        HISTORY_FREE(history);
+
+        return NULL;
+    }
+
+    history->data = data;
     history->size = size;
 
-    history->state = malloc(size);
-    memcpy(history->state, data, history->size);
+    if(size) memcpy(history->state, data, size);
 
-    // empty diff
-    history->list = list_insert(history->list, &(Data){NULL, 0, 0});
+    history->current->prev = NULL;
+    history->current->next = NULL;
+    history->current->delta = NULL;
+    history->current->start = 0;
+    history->current->end = 0;
+
+    history->first = history->current;
+    history->bytes = 0;
 
     return history;
 }
@@ -118,79 +132,102 @@ void history_delete(History* history)
 {
     if(history)
     {
-        free(history->state);
+        items_delete(history->first);
 
-        list_delete(history->list, list_first(history->list));
-
-        free(history);
+        HISTORY_FREE(history->state);
+        HISTORY_FREE(history);
     }
-}
-
-static void history_diff(History* history, Data* data)
-{
-    for(u32 i = data->start, k = 0; i < data->end; ++i, ++k)
-        history->state[i] ^= data->buffer[k];
-}
-
-static u32 trim_left(u8* data, u32 size)
-{
-    for(u32 i = 0; i < size; i++)
-        if(data[i]) return i;
-
-    return size;
-}
-
-static u32 trim_right(u8* data, u32 size)
-{
-    for(u32 i = 0; i < size; i++)
-        if(data[size - i - 1]) return size - i;
-
-    return 0;
 }
 
 bool history_add(History* history)
 {
-    if(memcmp(history->state, history->data, history->size) == 0) return false;
+    if(!history) return false;
 
-    history_diff(history, &(Data){history->data, 0, history->size});
+    const u8* state = history->state;
+    const u8* data = history->data;
+    u32 size = history->size;
 
+    u32 start = 0;
+    while(start < size && state[start] == data[start])
+        start++;
+
+    if(start == size) return false;
+
+    u32 end = size;
+    while(end > start && state[end - 1] == data[end - 1])
+        end--;
+
+    u8* delta = HISTORY_MALLOC(end - start);
+
+    if(!delta) return false;
+
+    for(u32 i = start; i < end; i++)
+        delta[i - start] = state[i] ^ data[i];
+
+    Item* item = HISTORY_MALLOC(sizeof(Item));
+
+    if(!item)
     {
-        Data data;
-        data.start = trim_left(history->state, history->size);
-        data.end = trim_right(history->state, history->size);
-        u32 size = data.end - data.start;
-        data.buffer = malloc(size);
-
-        memcpy(data.buffer, (u8*)history->state + data.start, size);
-
-        history->list = list_insert(history->list, &data);
+        HISTORY_FREE(delta);
+        return false;
     }
 
-    memcpy(history->state, history->data, history->size);
+    item->prev = history->current;
+    item->next = NULL;
+    item->delta = delta;
+    item->start = start;
+    item->end = end;
+
+    // A new step replaces the redo branch it was made after.
+    history->bytes -= items_delete(history->current->next);
+    history->current->next = item;
+    history->current = item;
+    history->bytes += item->end - item->start;
+
+    // Keep the deltas under the budget, dropping the oldest steps; the
+    // current step is always kept, even when it exceeds the budget alone.
+    while(history->bytes > HISTORY_MAX_BYTES && history->first != history->current)
+    {
+        Item* first = history->first;
+
+        history->first = first->next;
+        history->first->prev = NULL;
+        history->bytes -= first->end - first->start;
+
+        first->next = NULL;
+        HISTORY_FREE(first->delta);
+        HISTORY_FREE(first);
+    }
+
+    if(size) memcpy(history->state, history->data, size);
 
     return true;
 }
 
 void history_undo(History* history)
 {
-    if(history->list->prev)
+    if(history)
     {
-        history_diff(history, &history->list->data);
+        if(history->current->prev)
+        {
+            apply(history->current, history->state);
+            history->current = history->current->prev;
+        }
 
-        history->list = history->list->prev;
+        if(history->size) memcpy(history->data, history->state, history->size);
     }
-
-    memcpy(history->data, history->state, history->size);
 }
 
 void history_redo(History* history)
 {
-    if(history->list->next)
+    if(history)
     {
-        history->list = history->list->next;
+        if(history->current->next)
+        {
+            history->current = history->current->next;
+            apply(history->current, history->state);
+        }
 
-        history_diff(history, &history->list->data);
+        if(history->size) memcpy(history->data, history->state, history->size);
     }
-
-    memcpy(history->data, history->state, history->size);
 }

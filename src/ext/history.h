@@ -26,7 +26,10 @@
 
 typedef struct History History;
 
+// `data` is held by pointer and restored whole on undo/redo: it must outlive
+// the history and never move.
 History* history_create(void* data, u32 size);
+
 bool history_add(History* history);
 void history_undo(History* history);
 void history_redo(History* history);
