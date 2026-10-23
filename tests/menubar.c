@@ -590,13 +590,38 @@ static void testSubmenuFollow(tic_mem* tic)
     step(&bar, tic);
     assert(bar.sub == &SubAMenu);
 
-    // Away from the owner and the submenu, it closes at once.
+    // In the popup, away from the owner and the submenu, it closes at once.
     moveTo(tic, ItemX + 5, itemY(3) + 3);
     step(&bar, tic);
     assert(bar.sub == NULL);
     assert(bar.open == AppMain);
 
     puts("submenu follow ok");
+}
+
+static void testSubmenuSticky(tic_mem* tic)
+{
+    Menubar bar = makeMenubar();
+    openSubmenu(tic, &bar);
+
+    // Out of the popup into the void, the submenu stays: only a hover inside
+    // the popup takes it away.
+    moveTo(tic, 200, 130);
+    step(&bar, tic);
+
+    assert(bar.open == AppMain);
+    assert(bar.sub == &SubAMenu);
+    assert(bar.subItem == 4);
+
+    // A click there still closes the menu, submenu and all.
+    clickAt(tic, 200, 130);
+    step(&bar, tic);
+
+    assert(bar.open == -1);
+    assert(bar.sub == NULL);
+    assert(!Mouse[tic_mouse_left].click);
+
+    puts("submenu sticky ok");
 }
 
 static void testSubmenuSwitch(tic_mem* tic)
@@ -1444,6 +1469,7 @@ int main(void)
     testChecked(tic);
     testSubmenuHover(tic);
     testSubmenuFollow(tic);
+    testSubmenuSticky(tic);
     testSubmenuSwitch(tic);
     testOwnerClick(tic);
     testSubmenuToggleStaysOpen(tic);
