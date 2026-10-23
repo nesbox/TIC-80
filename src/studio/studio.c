@@ -486,6 +486,20 @@ void* studiomenu_editor(Studio* studio, EditorMode mode)
     return Apps[mode].instance ? Apps[mode].instance(studio) : NULL;
 }
 
+s32 studiomenu_editor_bank(Studio* studio, EditorMode mode)
+{
+    switch(mode)
+    {
+        case TIC_SPRITE_MODE: return studio->bank.index.sprites;
+        case TIC_MAP_MODE: return studio->bank.index.map;
+        case TIC_MUSIC_MODE: return studio->bank.index.music;
+        case TIC_SFX_MODE: return studio->bank.index.sfx;
+        default: break;
+    }
+
+    return 0;
+}
+
 void studiomenu_command(Studio* studio, const char* command)
 {
     console_exec(studio->console, command);

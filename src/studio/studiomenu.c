@@ -27,6 +27,8 @@
 #include "editors/sprite.h"
 #include "editors/map.h"
 #include "editors/music.h"
+#include "editors/sfx.h"
+#include "screens/console.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -190,28 +192,21 @@ enum
     MusicActionStop,
 };
 
+// clang-format off
 enum
 {
-    ExportWin,
-    ExportLinux,
-    ExportLinuxArm,
-    ExportMac,
-    ExportMacIntel,
-    ExportHtml,
+#define EXPORT_ENUM(name, label) Export_##name,
+    EXPORT_CMD_LIST(EXPORT_ENUM)
+#undef EXPORT_ENUM
+    ExportActionAlone,
 };
+// clang-format on
 
 enum
 {
-    HelpCommands,
-    HelpApi,
-    HelpHotkeys,
-    HelpKeys,
-    HelpButtons,
-    HelpSpec,
-    HelpRam,
-    HelpVram,
-    HelpTerms,
-    HelpLicense,
+#define HELP_ENUM(name, label) Help_##name,
+    HELP_CMD_LIST(HELP_ENUM)
+#undef HELP_ENUM
 };
 
 enum
@@ -351,27 +346,200 @@ static void menubarMusicAction(void* data, s32 id)
     }
 }
 
+#if defined(TIC80_PRO)
+static bool ExportAlone;
+#endif
+
+static const char* const ExportTypes[] =
+    {
+#define EXPORT_TYPE(name, label) #name,
+        EXPORT_CMD_LIST(EXPORT_TYPE)
+#undef EXPORT_TYPE
+};
+
+static const char* exportSuffix(Studio* studio, s32 id, char* buffer, s32 size)
+{
+    switch(id)
+    {
+        case Export_win: return "-win";
+        case Export_linux: return "-linux";
+        case Export_linuxarm: return "-linuxarm";
+        case Export_mac: return "-macos";
+        case Export_macintel: return "-macintel";
+        case Export_html: return "-html";
+        case Export_tiles: return "-tiles";
+        case Export_sprites: return "-sprites";
+        case Export_map: return "-map";
+        case Export_mapimg: return "-map";
+        case Export_screen: return "-screen";
+
+        case Export_sfx:
+        {
+            Sfx* sfx = studiomenu_editor(studio, TIC_SFX_MODE);
+
+            snprintf(buffer, size, "-sfx-%02i", sfx ? sfx->index : 0);
+            return buffer;
+        }
+
+        case Export_music:
+        {
+            Music* music = studiomenu_editor(studio, TIC_MUSIC_MODE);
+
+            snprintf(buffer, size, "-music-%02i", music ? music->track : 0);
+            return buffer;
+        }
+
+        default:
+            return "";
+    }
+}
+
+#if defined(TIC80_PRO)
+static s32 exportBank(Studio* studio, s32 id)
+{
+    switch(id)
+    {
+        case Export_tiles:
+        case Export_sprites:
+            return studiomenu_editor_bank(studio, TIC_SPRITE_MODE);
+
+        case Export_map:
+        case Export_mapimg:
+        case Export_screen:
+            return studiomenu_editor_bank(studio, TIC_MAP_MODE);
+
+        case Export_music:
+            return studiomenu_editor_bank(studio, TIC_MUSIC_MODE);
+
+        default:
+            return 0;
+    }
+}
+#endif
+
+static s32 exportIndex(Studio* studio, s32 id)
+{
+    switch(id)
+    {
+        case Export_sfx:
+        {
+            Sfx* sfx = studiomenu_editor(studio, TIC_SFX_MODE);
+            return sfx ? sfx->index : 0;
+        }
+
+        case Export_music:
+        {
+            Music* music = studiomenu_editor(studio, TIC_MUSIC_MODE);
+            return music ? music->track : 0;
+        }
+
+        default:
+            return -1;
+    }
+}
+
+static s32 exportVbank(Studio* studio)
+{
+    Sprite* sprite = studiomenu_editor(studio, TIC_SPRITE_MODE);
+
+    return sprite && sprite->palette.vbank1 ? 1 : 0;
+}
+
 static void menubarExport(void* data, s32 id)
 {
     StudioMenuContext* ctx = data;
     Studio* studio = ctx->studio;
 
-    static const char* Types[] = {"win", "linux", "linuxarm", "mac", "macintel", "html"};
-    const CartName* cart = studioCart(studio);
-    const char* name = cart->name[0] && !strchr(cart->name, ' ')
-                           ? cart->name
-                           : "game";
+    if(id < 0 || id >= (s32)COUNT_OF(ExportTypes))
+        return;
 
-    char command[TICNAME_MAX + 16];
-    int length = snprintf(command, sizeof command, "export %s ", Types[id]);
+    char suffix[16];
+    char filename[TICNAME_MAX + 16];
+
+    if(id == Export_help)
+        snprintf(filename, sizeof filename, "tic80-help");
+    else
+    {
+        const CartName* cart = studioCart(studio);
+        const char* base = cart->name[0] && !strchr(cart->name, ' ') ? cart->name : "game";
+
+        snprintf(filename, sizeof filename, "%s%s", base, exportSuffix(studio, id, suffix, sizeof suffix));
+    }
+
+    char command[TICNAME_MAX + 64];
+    s32 length = snprintf(command, sizeof command, "export %s %s", ExportTypes[id], filename);
 
     if(length < 0 || (size_t)length >= sizeof command)
         return;
 
-    snprintf(command + length, sizeof command - (size_t)length, "%s", name);
+    switch(id)
+    {
+        case Export_tiles:
+        case Export_sprites:
+        case Export_map:
+        case Export_mapimg:
+#if defined(TIC80_PRO)
+            length += snprintf(command + length, sizeof command - (size_t)length,
+                               " bank=%i", exportBank(studio, id));
+#endif
+            break;
+
+        case Export_screen:
+#if defined(TIC80_PRO)
+            length += snprintf(command + length, sizeof command - (size_t)length,
+                               " bank=%i", exportBank(studio, id));
+#endif
+            length += snprintf(command + length, sizeof command - (size_t)length,
+                               " vbank=%i", exportVbank(studio));
+            break;
+
+        case Export_sfx:
+            length += snprintf(command + length, sizeof command - (size_t)length,
+                               " id=%i", exportIndex(studio, id));
+            break;
+
+        case Export_music:
+            length += snprintf(command + length, sizeof command - (size_t)length,
+                               " id=%i", exportIndex(studio, id));
+#if defined(TIC80_PRO)
+            length += snprintf(command + length, sizeof command - (size_t)length,
+                               " bank=%i", exportBank(studio, id));
+#endif
+            break;
+
+        default:
+            break;
+    }
+
+#if defined(TIC80_PRO)
+    if(ExportAlone)
+        switch(id)
+        {
+            case Export_win:
+            case Export_linux:
+            case Export_linuxarm:
+            case Export_mac:
+            case Export_macintel:
+                snprintf(command + length, sizeof command - (size_t)length, " alone=1");
+                break;
+
+            default:
+                break;
+        }
+#endif
 
     studiomenu_command(studio, command);
 }
+
+#if defined(TIC80_PRO)
+static void menubarExportAlone(void* data, s32 id)
+{
+    (void)data;
+    (void)id;
+
+    ExportAlone = !ExportAlone;
+}
+#endif
 
 static void menubarNew(void* data, s32 id)
 {
@@ -394,27 +562,23 @@ static void menubarNew(void* data, s32 id)
     studiomenu_command(studio, command);
 }
 
+static const char* const HelpTopics[] =
+    {
+#define HELP_TOPIC(name, label) #name,
+        HELP_CMD_LIST(HELP_TOPIC)
+#undef HELP_TOPIC
+};
+
 static void menubarHelp(void* data, s32 id)
 {
     StudioMenuContext* ctx = data;
     Studio* studio = ctx->studio;
 
-    static const char* Topics[] =
-        {
-            "commands",
-            "api",
-            "hotkeys",
-            "keys",
-            "buttons",
-            "spec",
-            "ram",
-            "vram",
-            "terms",
-            "license",
-        };
+    if(id < 0 || id >= (s32)COUNT_OF(HelpTopics))
+        return;
 
     char command[64];
-    snprintf(command, sizeof command, "help %s", Topics[id]);
+    snprintf(command, sizeof command, "help %s", HelpTopics[id]);
 
     studiomenu_command(studio, command);
 }
@@ -583,30 +747,30 @@ static void initMenubarApps(void)
     MenubarAppsCount = count;
 }
 
-static const MenuBarItem MenubarExport[] =
+// clang-format off
+static MenuBarItem MenubarExport[] =
     {
-        MENU_ITEM("WIN", NULL, menubarExport, ExportWin),
-        MENU_ITEM("LINUX", NULL, menubarExport, ExportLinux),
-        MENU_ITEM("LINUX ARM", NULL, menubarExport, ExportLinuxArm),
-        MENU_ITEM("MACOS", NULL, menubarExport, ExportMac),
-        MENU_ITEM("MAC INTEL", NULL, menubarExport, ExportMacIntel),
-        MENU_ITEM("HTML", NULL, menubarExport, ExportHtml),
+#define EXPORT_ASSET_ITEM(name, label) MENU_ITEM(label, NULL, menubarExport, Export_##name),
+        EXPORT_ASSET_LIST(EXPORT_ASSET_ITEM)
+#undef EXPORT_ASSET_ITEM
+        MENU_SEPARATOR,
+#define EXPORT_GAME_ITEM(name, label) MENU_ITEM(label, NULL, menubarExport, Export_##name),
+        EXPORT_GAME_LIST(EXPORT_GAME_ITEM)
+#undef EXPORT_GAME_ITEM
+#if defined(TIC80_PRO)
+        MENU_SEPARATOR,
+        MENU_TOGGLE("ALONE", NULL, menubarExportAlone, ExportActionAlone),
+#endif
 };
+// clang-format on
 
 static const MenuBarCategory MenubarExportMenu = MENU_CATEGORY("EXPORT", MenubarExport);
 
 static const MenuBarItem MenubarHelp[] =
     {
-        MENU_ITEM("COMMANDS", NULL, menubarHelp, HelpCommands),
-        MENU_ITEM("API", NULL, menubarHelp, HelpApi),
-        MENU_ITEM("HOTKEYS", NULL, menubarHelp, HelpHotkeys),
-        MENU_ITEM("KEYS", NULL, menubarHelp, HelpKeys),
-        MENU_ITEM("BUTTONS", NULL, menubarHelp, HelpButtons),
-        MENU_ITEM("SPEC", NULL, menubarHelp, HelpSpec),
-        MENU_ITEM("RAM", NULL, menubarHelp, HelpRam),
-        MENU_ITEM("VRAM", NULL, menubarHelp, HelpVram),
-        MENU_ITEM("TERMS", NULL, menubarHelp, HelpTerms),
-        MENU_ITEM("LICENSE", NULL, menubarHelp, HelpLicense),
+#define HELP_ITEM(name, label) MENU_ITEM(label, NULL, menubarHelp, Help_##name),
+        HELP_CMD_LIST(HELP_ITEM)
+#undef HELP_ITEM
 };
 
 static const MenuBarCategory MenubarHelpMenu = MENU_CATEGORY("HELP", MenubarHelp);
@@ -1062,6 +1226,8 @@ void studiomenu_sync(Studio* studio, Menubar* bar, EditorMode mode, const Editor
                  config->data.options.keybindMode == KEYBIND_VI);
 
 #if defined(TIC80_PRO)
+    menubarCheck(MenubarExport, COUNT_OF(MenubarExport), ExportActionAlone, ExportAlone);
+
     s32 bank = 0;
     bool chained = false;
     bool banked = false;

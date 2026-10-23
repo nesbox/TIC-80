@@ -46,6 +46,7 @@ void studiomenu_sync_editor(Studio*, Menubar*, EditorMode, void* instance);
 
 // The host's side, implemented in studio.c.
 void* studiomenu_editor(Studio*, EditorMode);
+s32 studiomenu_editor_bank(Studio*, EditorMode);
 void studiomenu_command(Studio*, const char* command);
 
 void takeScreenshot(Studio*);

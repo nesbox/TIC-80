@@ -77,23 +77,6 @@
 #define DEFAULT_CHMOD               0755
 
 // clang-format off
-#define HELP_CMD_LIST(macro)    \
-    macro(version)              \
-    macro(welcome)              \
-    macro(spec)                 \
-    macro(ram)                  \
-    macro(vram)                 \
-    macro(commands)             \
-    macro(api)                  \
-    macro(keys)                 \
-    macro(buttons)              \
-    macro(startup)              \
-    macro(hotkeys)              \
-    macro(terms)                \
-    macro(license)
-// clang-format on
-
-// clang-format off
 #define IMPORT_CMD_LIST(macro)  \
     macro(binary)               \
     macro(tiles)                \
@@ -112,25 +95,6 @@
     macro(h)                    \
     macro(vbank)                \
     macro(bpp)
-// clang-format on
-
-// clang-format off
-#define EXPORT_CMD_LIST(macro)  \
-    macro(win)                  \
-    macro(linux)                \
-    macro(linuxarm)             \
-    macro(mac)                  \
-    macro(macintel)             \
-    macro(html)                 \
-    macro(binary)               \
-    macro(tiles)                \
-    macro(sprites)              \
-    macro(map)                  \
-    macro(mapimg)               \
-    macro(sfx)                  \
-    macro(music)                \
-    macro(screen)               \
-    macro(help)
 // clang-format on
 
 #if defined(TIC80_PRO)
@@ -1394,7 +1358,7 @@ static void tabCompleteLanguages(TabCompleteData* data)
 
 static void tabCompleteExport(TabCompleteData* data)
 {
-#define EXPORT_CMD_DEF(name) addTabCompleteOption(data, #name);
+#define EXPORT_CMD_DEF(name, label) addTabCompleteOption(data, #name);
     EXPORT_CMD_LIST(EXPORT_CMD_DEF)
 #undef EXPORT_CMD_DEF
     finishTabComplete(data);
@@ -2698,7 +2662,7 @@ static void onExportCommand(Console* console)
             void (*handler)(Console*, const char*, const char*, ExportParams);
         } Handlers[] =
             {
-#define EXPORT_CMD_DEF(name) {#name, onExport_##name},
+#define EXPORT_CMD_DEF(name, label) {#name, onExport_##name},
                 EXPORT_CMD_LIST(EXPORT_CMD_DEF)
 #undef EXPORT_CMD_DEF
             };
@@ -2982,7 +2946,7 @@ static void onGetCommand(Console* console)
 static void tabCompleteHelp(TabCompleteData* data);
 
 static const char HelpUsage[] = "help [<text>"
-#define HELP_CMD_DEF(name) " " #name
+#define HELP_CMD_DEF(name, label) " " #name
     HELP_CMD_LIST(HELP_CMD_DEF)
 #undef HELP_CMD_DEF
         "]";
@@ -2991,11 +2955,11 @@ static const char HelpUsage[] = "help [<text>"
 // "|": the line needs somewhere to wrap, in the console and in the
 // markdown tables of the /learn page, where one long run of names used to
 // push the table past the page container.
-#define SECTION_DEF(NAME, ...) " " #NAME
-#define EXPORT_CMD_DEF(name)   #name " "
-#define EXPORT_KEYS_DEF(name)  #name "=0 "
-#define IMPORT_CMD_DEF(name)   #name " "
-#define IMPORT_KEYS_DEF(key)   #key "=0 "
+#define SECTION_DEF(NAME, ...)      " " #NAME
+#define EXPORT_CMD_DEF(name, label) #name " "
+#define EXPORT_KEYS_DEF(name)       #name "=0 "
+#define IMPORT_CMD_DEF(name)        #name " "
+#define IMPORT_KEYS_DEF(key)        #key "=0 "
 
 #if defined(CAN_ADDGET_FILE)
 // clang-format off
@@ -3266,7 +3230,7 @@ typedef struct ApiItem ApiItem;
 
 static void tabCompleteHelp(TabCompleteData* data)
 {
-#define HELP_CMD_DEF(name) addTabCompleteOption(data, #name);
+#define HELP_CMD_DEF(name, label) addTabCompleteOption(data, #name);
     HELP_CMD_LIST(HELP_CMD_DEF)
 #undef HELP_CMD_DEF
 
@@ -4112,7 +4076,7 @@ static void onHelpCommand(Console* console)
             void (*handler)(Console*);
         } Handlers[] =
             {
-#define HELP_CMD_DEF(name) {#name, onHelp_##name},
+#define HELP_CMD_DEF(name, label) {#name, onHelp_##name},
                 HELP_CMD_LIST(HELP_CMD_DEF)
 #undef HELP_CMD_DEF
             };
