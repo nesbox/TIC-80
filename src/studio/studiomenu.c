@@ -965,9 +965,9 @@ static MenuBarItem MenubarMusicApp[] =
         MENU_TOGGLE_ICON("LOOP", NULL, menubarMusicAction, MusicActionLoop, tic_icon_loop),
         MENU_TOGGLE_ICON("SUSTAIN", NULL, menubarMusicAction, MusicActionSustain, tic_icon_sustain),
         MENU_SEPARATOR,
-        MENU_ITEM_ICON("PLAY FROM NOW", "SPACE", menubarMusicAction, MusicActionPlayNow, tic_icon_playnow),
-        MENU_ITEM_ICON("PLAY FRAME", "SHIFT+SPACE", menubarMusicAction, MusicActionPlayFrame, tic_icon_playframe),
-        MENU_ITEM_ICON("PLAY TRACK", "CTRL+SPACE", menubarMusicAction, MusicActionPlayTrack, tic_icon_right),
+        MENU_ITEM_ICON("PLAY FROM NOW", "SHIFT+SPACE", menubarMusicAction, MusicActionPlayNow, tic_icon_playnow),
+        MENU_ITEM_ICON("PLAY FRAME", "ENTER", menubarMusicAction, MusicActionPlayFrame, tic_icon_playframe),
+        MENU_ITEM_ICON("PLAY TRACK", "SPACE", menubarMusicAction, MusicActionPlayTrack, tic_icon_right),
         MENU_ITEM_ICON("STOP", "SPACE", menubarMusicAction, MusicActionStop, tic_icon_stop),
 };
 

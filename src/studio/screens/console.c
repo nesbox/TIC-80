@@ -275,9 +275,9 @@ static const struct HotkeysRowMusicEditor
     const char* info;
 } HotkeysTextMusicEditor[] =
     {
-        {"SPACE", "Play pattern from cursor position in the music editor."},
-        {"SHIFT+SPACE", "Play frame."},
-        {"CTRL+SPACE", "Play track."},
+        {"SHIFT+SPACE", "Play pattern from cursor position in the music editor."},
+        {"ENTER", "Play frame."},
+        {"SPACE", "Play track."},
         {"CTRL+F", "Follow."},
         {"Z,X,C,V,B,N,M", "Play notes corresponding to one octave (bottom row of QWERTY layout) in tracker mode."},
         {"S,D,G,H,J", "Play notes corresponding to sharps and flats (home row of QWERTY layout) in tracker mode."},
