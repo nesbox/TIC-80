@@ -678,6 +678,17 @@ bool keyWasPressed(Studio* studio, tic_key key)
     return keyboard_pressed(studio->tic, key);
 }
 
+bool keyWasPressedOnce(Studio* studio, tic_key key)
+{
+#if defined(BUILD_EDITORS)
+    // The menu closed on ESC this frame; the editor must not see the same key.
+    if(key == tic_key_escape && studio->menubar.escaped)
+        return false;
+#endif
+
+    return keyboard_pressed_once(studio->tic, key);
+}
+
 bool enterWasPressed(Studio* studio)
 {
     return ticEnterWasPressed(studio->tic, KEYBOARD_HOLD, KEYBOARD_PERIOD);
@@ -3131,7 +3142,7 @@ void leaveRun(Studio* studio)
     setStudioMode(studio, studio->runFrom);
 }
 
-static bool enterWasPressedOnce(Studio* studio)
+bool enterWasPressedOnce(Studio* studio)
 {
     return keyboard_pressed_once(studio->tic, tic_key_return) ||
            keyboard_pressed_once(studio->tic, tic_key_numpadenter);

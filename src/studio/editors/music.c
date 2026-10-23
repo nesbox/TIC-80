@@ -1625,7 +1625,7 @@ static void processKeyboard(Music* music)
             redo(music);
         else if(keyWasPressed(music->studio, tic_key_f))
             toggleFollowMode(music);
-        else if(keyWasPressed(music->studio, tic_key_space) || enterWasPressed(music->studio))
+        else if(keyWasPressedOnce(music->studio, tic_key_space) || enterWasPressedOnce(music->studio))
         {
             stopped
                 ? playTrack(music)
@@ -1634,7 +1634,7 @@ static void processKeyboard(Music* music)
     }
     else
     {
-        if(keyWasPressed(music->studio, tic_key_space) || enterWasPressed(music->studio))
+        if(keyWasPressedOnce(music->studio, tic_key_space) || enterWasPressedOnce(music->studio))
         {
             stopped
                 ? (shift
