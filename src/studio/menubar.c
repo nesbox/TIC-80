@@ -1145,7 +1145,7 @@ static void pointerStep(Menubar* menubar, MouseState* state, tic_point pos)
         {
             tic_rect sub = subPopupRect(menubar);
 
-            if(!pointInRect(&pos, &sub) && row != menubar->subItem)
+            if(!pointInRect(&pos, &sub) && pointInRect(&pos, &popup) && row != menubar->subItem)
             {
                 if(row >= 0 && category->items[row].enabled && category->items[row].submenu)
                 {
