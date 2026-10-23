@@ -315,7 +315,7 @@ static void updateTracker(Music* music)
     {
         Threshold = TRACKER_ROWS / 2
     };
-    if (row < music->scroll.pos || row >= music->scroll.pos + Threshold)
+    if(row < music->scroll.pos || row >= music->scroll.pos + Threshold)
         music->scroll.pos = CLAMP(music->scroll.pos, row - (TRACKER_ROWS - Threshold), row - Threshold);
 
     {
@@ -603,9 +603,9 @@ static void playTrackFromNow(Music* music)
     tic_mem* tic = music->tic;
 
     // reset to the beginning of the frame if we're at the end of it
-    if (music->tracker.edit.y == MUSIC_PATTERN_ROWS - 1)
+    if(music->tracker.edit.y == MUSIC_PATTERN_ROWS - 1)
         music->tracker.edit.y = 0;
-    
+
     tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, music->loop, music->sustain, -1, -1);
 }
 
