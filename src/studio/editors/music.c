@@ -2188,17 +2188,28 @@ static void drawPianoRowColumn(Music* music, s32 x, s32 y)
 
             if(music->scroll.active)
             {
-                music->scroll.pos = (music->scroll.start - tic_api_mouse(tic).y) / TIC_FONT_HEIGHT;
-                updateScroll(music);
+                s32 newPos = (music->scroll.start - tic_api_mouse(tic).y) / TIC_FONT_HEIGHT;
+                if(music->scroll.pos != newPos)
+                {
+                    music->scroll.pos = newPos;
+                    music->scroll.changed = true;
+                    updateScroll(music);
+                }
             }
             else
             {
                 music->scroll.active = true;
+                music->scroll.changed = false;
                 music->scroll.start = tic_api_mouse(tic).y + music->scroll.pos * TIC_FONT_HEIGHT;
             }
         }
         else
+        {
+            if(music->scroll.active && !music->scroll.changed)
+                music->tracker.edit.y = music->scroll.pos + (tic_api_mouse(tic).y - rect.y - Header) / TIC_FONT_HEIGHT;
+            music->scroll.changed = false;
             music->scroll.active = false;
+        }
     }
 
     tic_api_print(tic, "ROW", x + 1, y + 2, tic_color_grey, true, 1, true);

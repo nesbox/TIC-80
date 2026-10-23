@@ -40,7 +40,7 @@ struct Music
         s32 pos;
         s32 start;
         bool active;
-
+        bool changed;
     } scroll;
 
     bool beat34;
