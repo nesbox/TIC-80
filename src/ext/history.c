@@ -37,6 +37,11 @@ void history_test_free(void* ptr);
 #define HISTORY_FREE   free
 #endif
 
+// Stored deltas stay under this budget; the oldest steps are dropped first.
+#ifndef HISTORY_MAX_BYTES
+#define HISTORY_MAX_BYTES (64ull * 1024 * 1024)
+#endif
+
 // One undo step: the XOR of the states on its two sides over [start, end).
 typedef struct Item
 {
@@ -56,28 +61,29 @@ struct History
     // The last committed state: what a new commit is diffed against.
     u8* state;
 
+    Item* first;
     Item* current;
+    u64 bytes;
 };
 
-static void items_delete(Item* item)
+// Frees a chain and returns the delta bytes it held.
+static u64 items_delete(Item* item)
 {
+    u64 bytes = 0;
+
     while(item)
     {
         Item* next = item->next;
+
+        bytes += item->end - item->start;
 
         HISTORY_FREE(item->delta);
         HISTORY_FREE(item);
 
         item = next;
     }
-}
 
-static Item* items_first(Item* item)
-{
-    while(item->prev)
-        item = item->prev;
-
-    return item;
+    return bytes;
 }
 
 static void apply(const Item* item, u8* state)
@@ -116,6 +122,9 @@ History* history_create(void* data, u32 size)
     history->current->start = 0;
     history->current->end = 0;
 
+    history->first = history->current;
+    history->bytes = 0;
+
     return history;
 }
 
@@ -123,7 +132,7 @@ void history_delete(History* history)
 {
     if(history)
     {
-        items_delete(items_first(history->current));
+        items_delete(history->first);
 
         HISTORY_FREE(history->state);
         HISTORY_FREE(history);
@@ -170,9 +179,25 @@ bool history_add(History* history)
     item->end = end;
 
     // A new step replaces the redo branch it was made after.
-    items_delete(history->current->next);
+    history->bytes -= items_delete(history->current->next);
     history->current->next = item;
     history->current = item;
+    history->bytes += item->end - item->start;
+
+    // Keep the deltas under the budget, dropping the oldest steps; the
+    // current step is always kept, even when it exceeds the budget alone.
+    while(history->bytes > HISTORY_MAX_BYTES && history->first != history->current)
+    {
+        Item* first = history->first;
+
+        history->first = first->next;
+        history->first->prev = NULL;
+        history->bytes -= first->end - first->start;
+
+        first->next = NULL;
+        HISTORY_FREE(first->delta);
+        HISTORY_FREE(first);
+    }
 
     if(size) memcpy(history->state, history->data, size);
 

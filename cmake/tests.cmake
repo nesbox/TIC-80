@@ -138,6 +138,15 @@ if(BUILD_TESTS)
 
     tic80_add_test(history-test)
 
+    # The same module with a budget small enough that a few commits evict.
+    add_executable(history-limit-test
+        ${CMAKE_SOURCE_DIR}/tests/history_limit.c
+        ${CMAKE_SOURCE_DIR}/src/ext/history.c
+    )
+
+    target_compile_definitions(history-limit-test PRIVATE HISTORY_MAX_BYTES=25)
+    tic80_add_test(history-limit-test)
+
     # The console is the module whose face is a request the host answers, and
     # this test is its host: it builds the module with the core and the modules
     # it names — no studio anywhere — and every command it is given ends in an
