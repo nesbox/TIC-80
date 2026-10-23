@@ -2636,10 +2636,10 @@ static MenuBarItem MenubarMusicApp[] =
         {"LOOP", NULL, menubarMusicAction, MusicActionLoop, true, false, tic_icon_loop, 0, NULL, 0},
         {"SUSTAIN", NULL, menubarMusicAction, MusicActionSustain, true, false, tic_icon_sustain, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"PLAY FROM NOW", "SHIFT+ENTER", menubarMusicAction, MusicActionPlayNow, true, false, tic_icon_playnow, 0, NULL, -1},
-        {"PLAY FRAME", "ENTER", menubarMusicAction, MusicActionPlayFrame, true, false, tic_icon_playframe, 0, NULL, -1},
-        {"PLAY TRACK", "SPACE", menubarMusicAction, MusicActionPlayTrack, true, false, tic_icon_right, 0, NULL, -1},
-        {"STOP", "ENTER", menubarMusicAction, MusicActionStop, true, false, tic_icon_stop, 0, NULL, -1},
+        {"PLAY FROM NOW", "SPACE", menubarMusicAction, MusicActionPlayNow, true, false, tic_icon_playnow, 0, NULL, -1},
+        {"PLAY FRAME", "SHIFT+SPACE", menubarMusicAction, MusicActionPlayFrame, true, false, tic_icon_playframe, 0, NULL, -1},
+        {"PLAY TRACK", "CTRL+SPACE", menubarMusicAction, MusicActionPlayTrack, true, false, tic_icon_right, 0, NULL, -1},
+        {"STOP", "SPACE", menubarMusicAction, MusicActionStop, true, false, tic_icon_stop, 0, NULL, -1},
 };
 
 static const MenuBarItem MenubarEdit[] =
