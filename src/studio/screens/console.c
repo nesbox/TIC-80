@@ -491,6 +491,18 @@ static tic_point cursorPos(Console* console)
         offset / CONSOLE_BUFFER_WIDTH};
 }
 
+// Where the next symbol lands: the input's cursor while it is being typed,
+// the output's own head otherwise.
+static s32 printOffset(Console* console)
+{
+    return cursorOffset(console) + (s32)console->input.pos;
+}
+
+static s32 printColumn(Console* console)
+{
+    return printOffset(console) % CONSOLE_BUFFER_WIDTH;
+}
+
 static void nextLine(Console* console)
 {
     console->cursor.pos.x = 0;
@@ -589,6 +601,14 @@ static void printLine(Console* console)
     consolePrint(console, "\n", 0);
 }
 
+// Ends the current line only if it has something on it: an async flow may
+// already have ended it, and a second newline is a blank one.
+static void printNewLine(Console* console)
+{
+    if(printColumn(console))
+        printLine(console);
+}
+
 static void clearSelection(Console* console)
 {
     ZEROMEM(console->select);
@@ -596,6 +616,8 @@ static void clearSelection(Console* console)
 
 static void commandDoneLine(Console* console, bool newLine)
 {
+    console->progressLine = -1;
+
     if(!console->args.cli)
     {
         if(newLine)
@@ -811,6 +833,8 @@ static void onDemoLoaded(Console* console, const ConsoleAnswer* answer)
     printBack(console, "\ncart ");
     printFront(console, answer->name);
     printBack(console, " loaded!\n");
+
+    commandDone(console);
 }
 
 static void onLoadDemoCommandConfirmed(Console* console, const void* data)
@@ -844,6 +868,10 @@ static void printCartLoaded(Console* console, const char* name)
 static void onLoaded(Console* console, const ConsoleAnswer* answer)
 {
     printCartLoaded(console, answer->name);
+
+    // The host gives the cart its name: the load is over here, not where it
+    // asked.
+    commandDone(console);
 }
 
 static void onCartLoaded(Console* console, const char* name, const char* section)
@@ -1073,7 +1101,10 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
     else
         printUsage(console, console->desc->command);
 
-    commandDone(console);
+    // A load that asked the host for the cart's name finishes on that answer,
+    // where the message and the prompt are printed.
+    if(console->ask.kind == CONSOLE_ASK_NONE)
+        commandDone(console);
 }
 
 typedef void (*ConsoleConfirmCallback)(Console* console, const void* data);
@@ -1703,16 +1734,20 @@ static void onConfigCommand(Console* console)
         }
         else if(strcmp(console->desc->params->key, "default") == 0)
         {
+            // The demo load finishes on the host's answer, where the prompt is
+            // printed: none of it is left for this command to end.
             if(console->desc->count == 1)
             {
                 onLoadDemoCommand(console, tic_get_script(console->tic));
+                return;
             }
-            else
+
+            FOREACH_LANG(script)
             {
-                FOREACH_LANG(script)
+                if(strcmp(console->desc->params[1].key, script->name) == 0)
                 {
-                    if(strcmp(console->desc->params[1].key, script->name) == 0)
-                        onLoadDemoCommand(console, script);
+                    onLoadDemoCommand(console, script);
+                    return;
                 }
             }
         }
@@ -1750,16 +1785,17 @@ typedef struct
 
 static void onFileImported(Console* console, const char* filename, bool result)
 {
+    printNewLine(console);
+
     if(result)
     {
-        printLine(console);
         printBack(console, filename);
         printBack(console, " imported :)");
     }
     else
     {
-        char buf[TICNAME_MAX];
-        sprintf(buf, "\nerror: %s not imported :(", filename);
+        char buf[TICNAME_MAX + sizeof "error:  not imported :("];
+        sprintf(buf, "error: %s not imported :(", filename);
         printError(console, buf);
     }
 
@@ -2005,16 +2041,19 @@ static void onImportCommand(Console* console)
 
 static void onFileExported(Console* console, const char* filename, bool result)
 {
+    // The export may have waited on the network: its own line is where this
+    // one starts, and it is already ended then.
+    printNewLine(console);
+
     if(result)
     {
-        printLine(console);
         printBack(console, filename);
         printBack(console, " exported :)");
     }
     else
     {
-        char buf[TICNAME_MAX + sizeof "\nerror:  not exported :("];
-        sprintf(buf, "\nerror: %s not exported :(", filename);
+        char buf[TICNAME_MAX + sizeof "error:  not exported :("];
+        sprintf(buf, "error: %s not exported :(", filename);
         printError(console, buf);
     }
 
@@ -2066,7 +2105,20 @@ static void onExportGet(const net_get_data* data)
     {
         case net_get_progress:
         {
-            console->cursor.pos.x = 0;
+            // A trailing newline can leave the cursor on the row past the
+            // buffer: scroll before measuring, or the row would be outside it.
+            scrollConsole(console);
+
+            // Redraw the GET line in place: a fetch reports every chunk, and a
+            // line per report buries the result. The first report marks its row.
+            if(console->progressLine < 0)
+                console->progressLine = printOffset(console) / CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_WIDTH;
+
+            console->cursor.pos = (tic_point){0, console->progressLine / CONSOLE_BUFFER_WIDTH};
+            console->input.text = console->text + console->progressLine;
+            console->input.pos = 0;
+            memset(console->input.text, 0, CONSOLE_BUFFER_WIDTH);
+
             printf("\r");
             printBack(console, "GET ");
             printFront(console, data->url);
@@ -2077,6 +2129,7 @@ static void onExportGet(const net_get_data* data)
         }
         break;
         case net_get_error:
+            printNewLine(console);
             printError(console, "file downloading error :(");
             commandDone(console);
             free(exportData);
@@ -2101,7 +2154,7 @@ static void onNativeExportGet(const net_get_data* data)
 
             s32 size = data->done.size;
 
-            printLine(console);
+            printNewLine(console);
 
             const char* path = tic_fs_path(console->fs, filename);
             void* buf = NULL;
@@ -2197,8 +2250,8 @@ static bool tryExportNativeFromLocalTemplate(Console* console, const char* name,
                 {
                     chmod(path, DEFAULT_CHMOD);
 
-                    printLine(console);
-                    printBack(console, "\nusing local native template...");
+                    printNewLine(console);
+                    printBack(console, "using local native template...");
                     onFileExported(console, name, true);
                 }
             }
@@ -2222,8 +2275,8 @@ static inline void exportNativeGame(Console* console, const char* name, const ch
 
     if(local && canExportNativeFromLocalTemplate(system))
     {
-        printLine(console);
-        printBack(console, "\nlocal native template failed, using server template...");
+        printNewLine(console);
+        printBack(console, "local native template failed, using server template...");
     }
 
     exportGame(console, name, system, onNativeExportGet, params);
@@ -2317,6 +2370,7 @@ static void onHtmlPageGet(const net_get_data* data)
     // the freed struct (a 404 on the page, or an offline run, is enough).
     if(data->type == net_get_error)
     {
+        printNewLine(console);
         printError(console, "file downloading error :(");
         commandDone(console);
         free(exportData->stub); // set by the stub stage; free(NULL) is fine
@@ -4773,6 +4827,7 @@ Console* console_create(const ConsoleDeps* deps)
     console->cursor.pos = (tic_point){1, 3};
     console->input.text = console->text;
     console->active = !console->boot;
+    console->progressLine = -1;
 
     // parse --cmd param
     {

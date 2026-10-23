@@ -150,8 +150,8 @@ if(BUILD_TESTS)
     # The console is the module whose face is a request the host answers, and
     # this test is its host: it builds the module with the core and the modules
     # it names — no studio anywhere — and every command it is given ends in an
-    # ask the test takes and answers. Net is compiled without USE_NAETT, which
-    # is net's own no-network shape: the test opens no sockets either.
+    # ask the test takes and answers. Net is the test's own (tests/console.c):
+    # a request is held until the test answers it, and no socket is opened.
     add_executable(console-test
         ${CMAKE_SOURCE_DIR}/tests/console.c
         ${CMAKE_SOURCE_DIR}/src/studio/screens/console.c
@@ -161,7 +161,6 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src/studio/screens/start.c
         ${CMAKE_SOURCE_DIR}/src/studio/embed.c
         ${CMAKE_SOURCE_DIR}/src/studio/fs.c
-        ${CMAKE_SOURCE_DIR}/src/studio/net.c
         ${CMAKE_SOURCE_DIR}/src/ext/json.c
     )
 
