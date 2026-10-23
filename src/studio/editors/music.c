@@ -602,6 +602,10 @@ static void playTrackFromNow(Music* music)
 {
     tic_mem* tic = music->tic;
 
+    // reset to the beginning of the frame if we're at the end of it
+    if (music->tracker.edit.y == MUSIC_PATTERN_ROWS - 1)
+        music->tracker.edit.y = 0;
+    
     tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, music->loop, music->sustain, -1, -1);
 }
 
