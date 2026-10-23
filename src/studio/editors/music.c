@@ -2209,7 +2209,8 @@ static void drawPianoRowColumn(Music* music, s32 x, s32 y)
 
         char label[sizeof "00"];
         sprintf(label, "%02i", index);
-        tic_api_print(tic, label, x + 1, y + Header + r * TIC_FONT_HEIGHT, pattern && noteBeat(music, index) ? tic_color_grey : tic_color_dark_grey, true, 1, false);
+        u8 color = pattern && noteBeat(music, index) ? tic_color_grey : tic_color_dark_grey;
+        tic_api_print(tic, label, x + 1, y + Header + r * TIC_FONT_HEIGHT, index == music->tracker.edit.y ? tic_color_white : color, true, 1, false);
     }
 }
 
