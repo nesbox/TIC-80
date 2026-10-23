@@ -315,7 +315,8 @@ static void updateTracker(Music* music)
     {
         Threshold = TRACKER_ROWS / 2
     };
-    music->scroll.pos = CLAMP(music->scroll.pos, row - (TRACKER_ROWS - Threshold), row - Threshold);
+    if(row < music->scroll.pos || row >= music->scroll.pos + Threshold)
+        music->scroll.pos = CLAMP(music->scroll.pos, row - (TRACKER_ROWS - Threshold), row - Threshold);
 
     {
         s32 rows = getRows(music);
@@ -601,7 +602,11 @@ static void playTrackFromNow(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->frame, music->tab == MUSIC_TRACKER_TAB ? music->tracker.edit.y : -1, music->loop, music->sustain, -1, -1);
+    // reset to the beginning of the frame if we're at the end of it
+    if(music->tracker.edit.y == MUSIC_PATTERN_ROWS - 1)
+        music->tracker.edit.y = 0;
+
+    tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, music->loop, music->sustain, -1, -1);
 }
 
 static void playFrame(Music* music)
@@ -1188,7 +1193,7 @@ static void processTrackerKeyboard(Music* music)
         }
 
     static const u8 newOctaveIndex = 16;
-    static const u8 keboardShift = 5;
+    static const u8 keyboardShift = 5;
 
     static const u8 Piano[] =
         {
@@ -1257,7 +1262,7 @@ static void processTrackerKeyboard(Music* music)
                     {
                         if(keyWasPressed(music->studio, Piano[i]) && !shift)
                         {
-                            s32 note = (i > newOctaveIndex ? i - keboardShift : i) % NOTES;
+                            s32 note = (i > newOctaveIndex ? i - keyboardShift : i) % NOTES;
                             s32 octave = (i - note) / NOTES + music->last.octave;
                             s32 sfx = music->last.sfx;
                             setNote(music, note, octave, sfx);
@@ -1613,6 +1618,8 @@ static void processKeyboard(Music* music)
     if(tic_api_key(tic, tic_key_alt))
         return;
 
+    bool stopped = !checkPlaying(music);
+
     if(ctrl)
     {
         if(keyWasPressed(music->studio, tic_key_a))
@@ -1623,23 +1630,21 @@ static void processKeyboard(Music* music)
             redo(music);
         else if(keyWasPressed(music->studio, tic_key_f))
             toggleFollowMode(music);
-    }
-    else
-    {
-        bool stopped = !checkPlaying(music);
-
-        if(keyWasPressed(music->studio, tic_key_space))
+        else if(keyWasPressedOnce(music->studio, tic_key_space) || enterWasPressedOnce(music->studio))
         {
             stopped
                 ? playTrack(music)
                 : stopTrack(music);
         }
-        else if(enterWasPressed(music->studio))
+    }
+    else
+    {
+        if(keyWasPressedOnce(music->studio, tic_key_space) || enterWasPressedOnce(music->studio))
         {
             stopped
                 ? (shift
-                       ? playTrackFromNow(music)
-                       : playFrame(music))
+                       ? playFrame(music)
+                       : playTrackFromNow(music))
                 : stopTrack(music);
         }
     }
@@ -2188,17 +2193,28 @@ static void drawPianoRowColumn(Music* music, s32 x, s32 y)
 
             if(music->scroll.active)
             {
-                music->scroll.pos = (music->scroll.start - tic_api_mouse(tic).y) / TIC_FONT_HEIGHT;
-                updateScroll(music);
+                s32 newPos = (music->scroll.start - tic_api_mouse(tic).y) / TIC_FONT_HEIGHT;
+                if(music->scroll.pos != newPos)
+                {
+                    music->scroll.pos = newPos;
+                    music->scroll.changed = true;
+                    updateScroll(music);
+                }
             }
             else
             {
                 music->scroll.active = true;
+                music->scroll.changed = false;
                 music->scroll.start = tic_api_mouse(tic).y + music->scroll.pos * TIC_FONT_HEIGHT;
             }
         }
         else
+        {
+            if(music->scroll.active && !music->scroll.changed)
+                music->tracker.edit.y = music->scroll.pos + (tic_api_mouse(tic).y - rect.y - Header) / TIC_FONT_HEIGHT;
+            music->scroll.changed = false;
             music->scroll.active = false;
+        }
     }
 
     tic_api_print(tic, "ROW", x + 1, y + 2, tic_color_grey, true, 1, true);
@@ -2209,7 +2225,8 @@ static void drawPianoRowColumn(Music* music, s32 x, s32 y)
 
         char label[sizeof "00"];
         sprintf(label, "%02i", index);
-        tic_api_print(tic, label, x + 1, y + Header + r * TIC_FONT_HEIGHT, pattern && noteBeat(music, index) ? tic_color_grey : tic_color_dark_grey, true, 1, false);
+        u8 color = pattern && noteBeat(music, index) ? tic_color_grey : tic_color_dark_grey;
+        tic_api_print(tic, label, x + 1, y + Header + r * TIC_FONT_HEIGHT, index == music->tracker.edit.y ? tic_color_white : color, true, 1, false);
     }
 }
 

@@ -678,6 +678,17 @@ bool keyWasPressed(Studio* studio, tic_key key)
     return keyboard_pressed(studio->tic, key);
 }
 
+bool keyWasPressedOnce(Studio* studio, tic_key key)
+{
+#if defined(BUILD_EDITORS)
+    // The menu closed on ESC this frame; the editor must not see the same key.
+    if(key == tic_key_escape && studio->menubar.escaped)
+        return false;
+#endif
+
+    return keyboard_pressed_once(studio->tic, key);
+}
+
 bool enterWasPressed(Studio* studio)
 {
     return ticEnterWasPressed(studio->tic, KEYBOARD_HOLD, KEYBOARD_PERIOD);
@@ -2625,10 +2636,10 @@ static MenuBarItem MenubarMusicApp[] =
         {"LOOP", NULL, menubarMusicAction, MusicActionLoop, true, false, tic_icon_loop, 0, NULL, 0},
         {"SUSTAIN", NULL, menubarMusicAction, MusicActionSustain, true, false, tic_icon_sustain, 0, NULL, 0},
         {"", NULL, NULL, 0, true, true, 0, 0, NULL, -1},
-        {"PLAY FROM NOW", "SHIFT+ENTER", menubarMusicAction, MusicActionPlayNow, true, false, tic_icon_playnow, 0, NULL, -1},
-        {"PLAY FRAME", "ENTER", menubarMusicAction, MusicActionPlayFrame, true, false, tic_icon_playframe, 0, NULL, -1},
-        {"PLAY TRACK", "SPACE", menubarMusicAction, MusicActionPlayTrack, true, false, tic_icon_right, 0, NULL, -1},
-        {"STOP", "ENTER", menubarMusicAction, MusicActionStop, true, false, tic_icon_stop, 0, NULL, -1},
+        {"PLAY FROM NOW", "SPACE", menubarMusicAction, MusicActionPlayNow, true, false, tic_icon_playnow, 0, NULL, -1},
+        {"PLAY FRAME", "SHIFT+SPACE", menubarMusicAction, MusicActionPlayFrame, true, false, tic_icon_playframe, 0, NULL, -1},
+        {"PLAY TRACK", "CTRL+SPACE", menubarMusicAction, MusicActionPlayTrack, true, false, tic_icon_right, 0, NULL, -1},
+        {"STOP", "SPACE", menubarMusicAction, MusicActionStop, true, false, tic_icon_stop, 0, NULL, -1},
 };
 
 static const MenuBarItem MenubarEdit[] =
@@ -3131,7 +3142,7 @@ void leaveRun(Studio* studio)
     setStudioMode(studio, studio->runFrom);
 }
 
-static bool enterWasPressedOnce(Studio* studio)
+bool enterWasPressedOnce(Studio* studio)
 {
     return keyboard_pressed_once(studio->tic, tic_key_return) ||
            keyboard_pressed_once(studio->tic, tic_key_numpadenter);

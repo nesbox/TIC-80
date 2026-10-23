@@ -343,7 +343,9 @@ tic_map* getBankMap(Studio* studio);
 
 char getKeyboardText(Studio* studio);
 bool keyWasPressed(Studio* studio, tic_key key);
+bool keyWasPressedOnce(Studio* studio, tic_key key);
 bool enterWasPressed(Studio* studio);
+bool enterWasPressedOnce(Studio* studio);
 bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period);
 
 typedef struct Config Config;
