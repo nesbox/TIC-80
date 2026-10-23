@@ -1236,7 +1236,7 @@ void studiomenu_sync(Studio* studio, Menubar* bar, EditorMode mode, const Editor
     studiomenu_bank_state(studio, &bank, &chained, &banked);
 
     // The compact bar has no room for the word: the bank icon and its number.
-    snprintf(bankTitle, sizeof bankTitle, bar->compact ? "%i" : "BANK %i", bank);
+    snprintf(bankTitle, sizeof bankTitle, bar->compact ? "%i" : "BANK%i", bank);
 
     menubarCheck(MenubarBanks, COUNT_OF(MenubarBanks), BankActionChain, chained);
 
