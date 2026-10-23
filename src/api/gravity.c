@@ -168,6 +168,20 @@ static bool grav_btnp(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uin
     RETURN_VALUE(value, rindex);
 }
 
+// MARK: btnr
+static bool grav_btnr(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uint32_t rindex)
+{
+    TIC_GRAVITY_GET_CORE(vm, tic, core);
+
+    if(nargs > 2) RETURN_ERROR("invalid parameters, btnr [id]");
+
+    s32 index = nargs == 2 ? grav_get_int(args[1]) & 0x1f : -1;
+    u32 result = core->api.btnr(tic, index);
+
+    gravity_value_t value = nargs == 1 ? VALUE_FROM_INT(result) : VALUE_FROM_BOOL(result);
+    RETURN_VALUE(value, rindex);
+}
+
 // MARK: circ
 static bool grav_circ(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uint32_t rindex)
 {
@@ -364,6 +378,19 @@ static bool grav_keyp(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uin
     s32 period = nargs > 3 ? grav_get_int(args[3]) : -1;
 
     RETURN_VALUE(VALUE_FROM_BOOL(core->api.keyp(tic, key, hold, period)), rindex);
+}
+
+// MARK: keyr
+static bool grav_keyr(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uint32_t rindex)
+{
+    TIC_GRAVITY_GET_CORE(vm, tic, core);
+
+    if(nargs > 2) RETURN_ERROR("invalid parameters, keyr [code]");
+
+    tic_key key = nargs == 2 ? (tic_key)grav_get_int(args[1]) : tic_key_unknown;
+    if(key >= tic_keys_count) RETURN_ERROR("unknown keyboard code");
+
+    RETURN_VALUE(VALUE_FROM_BOOL(core->api.keyr(tic, key)), rindex);
 }
 
 // MARK: line

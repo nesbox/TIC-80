@@ -76,6 +76,15 @@ u32 tic_api_btn(tic_mem* tic, s32 index)
     }
 }
 
+u32 tic_api_btnr(tic_mem* tic, s32 index)
+{
+    tic_core* core = (tic_core*)tic;
+
+    u32 released = core->state.gamepads.previous.data & (~core->memory.ram->input.gamepads.data);
+
+    return index < 0 ? released : released & (1 << index);
+}
+
 bool tic_api_key(tic_mem* tic, tic_key key)
 {
     return key > tic_key_unknown
@@ -118,6 +127,43 @@ bool tic_api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
             }
 
             if(!wasPressed)
+                return true;
+        }
+    }
+
+    return false;
+}
+
+bool tic_api_keyr(tic_mem* tic, tic_key key)
+{
+    tic_core* core = (tic_core*)tic;
+
+    if(key > tic_key_unknown)
+    {
+        bool prevDown = isKeyPressed(&core->state.keyboard.previous, key);
+        bool down = isKeyPressed(&tic->ram->input.keyboard, key);
+
+        return prevDown && !down;
+    }
+
+    for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+    {
+        tic_key keyCode = core->state.keyboard.previous.keys[i];
+
+        if(keyCode)
+        {
+            bool isPressed = false;
+
+            for(s32 p = 0; p < TIC80_KEY_BUFFER; p++)
+            {
+                if(tic->ram->input.keyboard.keys[p] == keyCode)
+                {
+                    isPressed = true;
+                    break;
+                }
+            }
+
+            if(!isPressed)
                 return true;
         }
     }

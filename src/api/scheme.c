@@ -224,6 +224,15 @@ s7_pointer scheme_btnp(s7_scheme* sc, s7_pointer args)
 
     return s7_make_boolean(sc, core->api.btnp(tic, id, hold, period));
 }
+s7_pointer scheme_btnr(s7_scheme* sc, s7_pointer args)
+{
+    // btnr(id) -> released
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const s32 id = (s32)(s7_integer(s7_car(args)));
+
+    return s7_make_boolean(sc, core->api.btnr(tic, id));
+}
 
 u8 get_note_base(char c)
 {
@@ -852,6 +861,15 @@ s7_pointer scheme_keyp(s7_scheme* sc, s7_pointer args)
     const s32 hold = argn > 1 ? (s32)(s7_integer(s7_cadr(args))) : -1;
     const s32 period = argn > 2 ? (s32)(s7_integer(s7_caddr(args))) : -1;
     return s7_make_boolean(sc, core->api.keyp(tic, code, hold, period));
+}
+s7_pointer scheme_keyr(s7_scheme* sc, s7_pointer args)
+{
+    //keyr(code=-1) -> released
+    tic_core* core = getSchemeCore(sc);
+    tic_mem* tic = (tic_mem*)core;
+    const int argn = (s32)(s7_list_length(sc, args));
+    const tic_key code = argn > 0 ? (tic_key)(s7_integer(s7_car(args))) : -1;
+    return s7_make_boolean(sc, core->api.keyr(tic, code));
 }
 s7_pointer scheme_fget(s7_scheme* sc, s7_pointer args)
 {

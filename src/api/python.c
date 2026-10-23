@@ -107,6 +107,20 @@ static bool py_btnp(int argc, py_Ref argv)
     return true;
 }
 
+// btnr(id: int) -> bool
+// u32 (*btnr)(tic_mem*, s32)
+static bool py_btnr(int argc, py_Ref argv)
+{
+    (void)argc;
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 button_id = (s32)(py_toint(py_arg(0)));
+
+    tic_core* core = get_core();
+    u32 released = core->api.btnr((tic_mem*)core, button_id & 0x1f);
+    py_newbool(py_retval(), released);
+    return true;
+}
+
 // cls(color=0)
 // void (*cls)(tic_mem*, u8)
 static bool py_cls(int argc, py_Ref argv)
@@ -410,6 +424,25 @@ static bool py_keyp(int argc, py_Ref argv)
     tic_core* core = get_core();
     bool pressed = core->api.keyp((tic_mem*)core, (tic_key)code, hold, period);
     py_newbool(py_retval(), pressed);
+    return true;
+}
+
+// keyr(code=-1) -> bool
+// bool (*keyr)(tic_mem*, tic_key)
+static bool py_keyr(int argc, py_Ref argv)
+{
+    (void)argc;
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    s32 code = (s32)(py_toint(py_arg(0)));
+
+    if(code <= -1 || code >= tic_keys_count)
+    {
+        code = tic_key_unknown;
+    }
+
+    tic_core* core = get_core();
+    bool released = core->api.keyr((tic_mem*)core, (tic_key)code);
+    py_newbool(py_retval(), released);
     return true;
 }
 
@@ -1313,6 +1346,7 @@ static void bind_pkpy_v2()
     py_GlobalRef mod = py_getmodule("__main__");
     py_bind(mod, "btn(id: int) -> bool", py_btn);
     py_bind(mod, "btnp(id: int, hold=-1, period=-1) -> bool", py_btnp);
+    py_bind(mod, "btnr(id: int) -> bool", py_btnr);
     py_bind(mod, "cls(color=0)", py_cls);
     py_bind(mod, "spr(id: int, x: int, y: int, colorkey=-1, scale=1, flip=0, rotate=0, w=1, h=1)",
             py_spr);
@@ -1328,6 +1362,7 @@ static void bind_pkpy_v2()
     py_bind(mod, "font(text: str, x: int, y: int, chromakey: int, char_width=8, char_height=8, fixed=False, scale=1, alt=False) -> int", py_font);
     py_bind(mod, "key(code=-1) -> bool", py_key);
     py_bind(mod, "keyp(code=-1, hold=-1, period=-17) -> bool", py_keyp);
+    py_bind(mod, "keyr(code=-1) -> bool", py_keyr);
     py_bind(mod, "line(x0: float, y0: float, x1: float, y1: float, color: int)", py_line);
     py_bind(mod, "map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap=None)", py_map);
     py_bind(mod, "memcpy(dest: int, source: int, size: int)", py_memcpy);

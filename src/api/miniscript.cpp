@@ -178,6 +178,26 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     });
     tic80Module.SetValue("btnp", i.GetFunc());
 
+    // btnr
+    i = Intrinsic::Create("");
+    i.AddParam("id", Value::Null);
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        Value idValue = context.GetArg(0);
+
+        if(idValue.IsNull())
+        {
+            return IntrinsicResult(core->api.btnr(tic, -1));
+        }
+        else
+        {
+            bool released = core->api.btnr(tic, idValue.IntValue() & 0x1f);
+            return IntrinsicResult(released);
+        }
+    });
+    tic80Module.SetValue("btnr", i.GetFunc());
+
     // circ
     i = Intrinsic::Create("");
     i.AddParam("x");
@@ -424,17 +444,42 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
             }
             if(holdValue.IsNull() || periodValue.IsNull())
             {
-                bool pressed = core->api.btnp(tic, code, -1, -1);
+                bool pressed = core->api.keyp(tic, code, -1, -1);
                 return IntrinsicResult(pressed);
             }
             else
             {
-                bool pressed = core->api.btnp(tic, code, holdValue.IntValue(), periodValue.IntValue());
+                bool pressed = core->api.keyp(tic, code, holdValue.IntValue(), periodValue.IntValue());
                 return IntrinsicResult(pressed);
             }
         }
     });
     tic80Module.SetValue("keyp", i.GetFunc());
+
+    // keyr
+    i = Intrinsic::Create("");
+    i.AddParam("code", Value::Null);
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        Value codeValue = context.GetArg(0);
+
+        if(codeValue.IsNull())
+        {
+            return IntrinsicResult(core->api.keyr(tic, tic_key_unknown));
+        }
+        else
+        {
+            tic_key code = (tic_key)(codeValue.IntValue());
+            if(code < tic_keys_count)
+            {
+                return IntrinsicResult(core->api.keyr(tic, code));
+            }
+            context.vm.RaiseRuntimeError("unknown keyboard code");
+            return IntrinsicResult::Null;
+        }
+    });
+    tic80Module.SetValue("keyr", i.GetFunc());
 
     // line
     i = Intrinsic::Create("");
