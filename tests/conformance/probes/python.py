@@ -493,6 +493,18 @@ def p_btnp_hold_period():
 
 probe('btnp/hold-period', p_btnp_hold_period)
 
+# ---- btnr
+
+def p_btnr_released():
+    btnr(0)
+
+probe('btnr/released', p_btnr_released)
+
+def p_btnr_missing_id():
+    btnr()
+
+probe('btnr/missing-id', p_btnr_missing_id)
+
 # ---- key
 
 def p_key_no_key():
@@ -516,6 +528,18 @@ def p_keyp_hold_period():
     keyp(1, 10, 5)
 
 probe('keyp/hold-period', p_keyp_hold_period)
+
+# ---- keyr
+
+def p_keyr_no_key():
+    keyr()
+
+probe('keyr/no-key', p_keyr_no_key)
+
+def p_keyr_code():
+    keyr(1)
+
+probe('keyr/code', p_keyr_code)
 
 # ---- mouse
 

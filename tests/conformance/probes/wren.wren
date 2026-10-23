@@ -398,6 +398,15 @@ class Game is TIC {
       TIC.btnp(0, 10, 5)
     }
 
+    // ---- btnr
+    probe("btnr/released") {
+      TIC.btnr(0)
+    }
+
+    probe("btnr/missing-id") {
+      TIC.btnr()
+    }
+
     // ---- key
     probe("key/no-key") {
       TIC.key()
@@ -414,6 +423,15 @@ class Game is TIC {
 
     probe("keyp/hold-period") {
       TIC.keyp(1, 10, 5)
+    }
+
+    // ---- keyr
+    probe("keyr/no-key") {
+      TIC.keyr()
+    }
+
+    probe("keyr/code") {
+      TIC.keyr(1)
     }
 
     // ---- mouse

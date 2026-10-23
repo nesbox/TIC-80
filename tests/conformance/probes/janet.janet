@@ -419,6 +419,16 @@
   (tic80/btnp 0 10 5)
   ))
 
+# ---- btnr
+
+(probe "btnr/released" (fn []
+  (tic80/btnr 0)
+  ))
+
+(probe "btnr/missing-id" (fn []
+  (tic80/btnr)
+  ))
+
 # ---- key
 
 (probe "key/no-key" (fn []
@@ -437,6 +447,16 @@
 
 (probe "keyp/hold-period" (fn []
   (tic80/keyp 1 10 5)
+  ))
+
+# ---- keyr
+
+(probe "keyr/no-key" (fn []
+  (tic80/keyr)
+  ))
+
+(probe "keyr/code" (fn []
+  (tic80/keyr 1)
   ))
 
 # ---- mouse

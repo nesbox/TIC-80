@@ -360,6 +360,17 @@
 ;
 
 
+\ ---- btnr
+
+: P_BTNR_RELEASED
+    0 BTNR DROP
+;
+
+: P_BTNR_MISSING_ID
+    -1 BTNR DROP
+;
+
+
 \ ---- key
 
 : P_KEY_NO_KEY
@@ -379,6 +390,17 @@
 
 : P_KEYP_HOLD_PERIOD
     1 10 5 KEYP DROP
+;
+
+
+\ ---- keyr
+
+: P_KEYR_NO_KEY
+    0 KEYR DROP
+;
+
+: P_KEYR_CODE
+    1 KEYR DROP
 ;
 
 
@@ -765,10 +787,14 @@
     ['] P_BTN_MISSING_ID S" #btn/missing-id" PROBE
     ['] P_BTNP_PRESSED S" #btnp/pressed" PROBE
     ['] P_BTNP_HOLD_PERIOD S" #btnp/hold-period" PROBE
+    ['] P_BTNR_RELEASED S" #btnr/released" PROBE
+    ['] P_BTNR_MISSING_ID S" #btnr/missing-id" PROBE
     ['] P_KEY_NO_KEY S" #key/no-key" PROBE
     ['] P_KEY_CODE S" #key/code" PROBE
     ['] P_KEYP_NO_KEY S" #keyp/no-key" PROBE
     ['] P_KEYP_HOLD_PERIOD S" #keyp/hold-period" PROBE
+    ['] P_KEYR_NO_KEY S" #keyr/no-key" PROBE
+    ['] P_KEYR_CODE S" #keyr/code" PROBE
     ['] P_MOUSE_IDLE S" #mouse/idle" PROBE
     ['] P_CIRC_FILL S" #circ/fill" PROBE
     ['] P_CIRC_ZERO_RADIUS S" #circ/zero-radius" PROBE

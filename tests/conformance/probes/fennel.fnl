@@ -482,6 +482,18 @@
     (btnp 0 10 5)
     ))
 
+;; btnr
+
+(probe :btnr/released
+  (fn []
+    (btnr 0)
+    ))
+
+(probe :btnr/missing-id
+  (fn []
+    (btnr)
+    ))
+
 ;; key
 
 (probe :key/no-key
@@ -504,6 +516,18 @@
 (probe :keyp/hold-period
   (fn []
     (keyp 1 10 5)
+    ))
+
+;; keyr
+
+(probe :keyr/no-key
+  (fn []
+    (keyr)
+    ))
+
+(probe :keyr/code
+  (fn []
+    (keyr 1)
     ))
 
 ;; mouse

@@ -428,6 +428,16 @@ probe("btnp/hold-period", function() {
     btnp(0, 10, 5);
 });
 
+// ---- btnr
+
+probe("btnr/released", function() {
+    btnr(0);
+});
+
+probe("btnr/missing-id", function() {
+    btnr();
+});
+
 // ---- key
 
 probe("key/no-key", function() {
@@ -446,6 +456,16 @@ probe("keyp/no-key", function() {
 
 probe("keyp/hold-period", function() {
     keyp(1, 10, 5);
+});
+
+// ---- keyr
+
+probe("keyr/no-key", function() {
+    keyr();
+});
+
+probe("keyr/code", function() {
+    keyr(1);
 });
 
 // ---- mouse

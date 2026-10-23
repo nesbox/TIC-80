@@ -408,6 +408,17 @@ func TIC() {
         btnp(0, 10, 5)
     }
     probe("btnp/hold-period", p_btnp_hold_period)
+    // ---- btnr
+
+    func p_btnr_released() {
+        btnr(0)
+    }
+    probe("btnr/released", p_btnr_released)
+
+    func p_btnr_missing_id() {
+        btnr()
+    }
+    probe("btnr/missing-id", p_btnr_missing_id)
     // ---- key
 
     func p_key_no_key() {
@@ -430,6 +441,17 @@ func TIC() {
         keyp(1, 10, 5)
     }
     probe("keyp/hold-period", p_keyp_hold_period)
+    // ---- keyr
+
+    func p_keyr_no_key() {
+        keyr()
+    }
+    probe("keyr/no-key", p_keyr_no_key)
+
+    func p_keyr_code() {
+        keyr(1)
+    }
+    probe("keyr/code", p_keyr_code)
     // ---- mouse
 
     func p_mouse_idle() {
