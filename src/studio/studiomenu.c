@@ -1110,13 +1110,22 @@ static MenuBarCategory MenubarCategories[] =
         // The first title is the current editor's, set by updateMenubar.
         {"", MenubarApps, 0, false, 0, -1, 0, false},
         {"EDIT", MenubarEdit, COUNT_OF(MenubarEdit), false, 0, -1, 0, false},
+        // The overflow menu; the bank follows it, and TIC-80 stays last.
+        {"MENU", NULL, 0, false, 0, -1, 0, false},
 #if defined(TIC80_PRO)
         {"BANK", MenubarBanks, COUNT_OF(MenubarBanks), false, tic_icon_bank, -1, tic_color_red, false},
 #endif
-        // The overflow menu, second from the end; TIC-80 stays last.
-        {"MENU", NULL, 0, false, 0, -1, 0, false},
         {"TIC-80", MenubarTic, COUNT_OF(MenubarTic), true, 0, -1, 0, false},
 };
+
+MenuBarCategory* studiomenu_more(void)
+{
+#if defined(TIC80_PRO)
+    return &MenubarCategories[COUNT_OF(MenubarCategories) - 3];
+#else
+    return &MenubarCategories[COUNT_OF(MenubarCategories) - 2];
+#endif
+}
 
 static void menubarCheck(MenuBarItem* items, s32 count, s32 id, bool on)
 {
@@ -1400,7 +1409,7 @@ void studiomenu_sync_editor(Studio* studio, Menubar* bar, EditorMode mode, void*
     // The first five pins of every list are EDIT's.
     bar->buttonSplit = MIN(5, bar->buttonCount);
 
-    MenuBarCategory* menu = &MenubarCategories[COUNT_OF(MenubarCategories) - 2];
+    MenuBarCategory* menu = studiomenu_more();
 
     menu->title = "MENU";
     menu->icon = bar->compact ? tic_icon_more : 0;

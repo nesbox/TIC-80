@@ -41,6 +41,7 @@ typedef struct
 // The module's side.
 void* studiomenu_init(Studio*, Menubar*, const EditorMode* modes, s32 modeCount, const EditorApp* apps);
 MenuBarCategory* studiomenu_categories(s32* count);
+MenuBarCategory* studiomenu_more(void);
 void studiomenu_sync(Studio*, Menubar*, EditorMode, const EditorApp*);
 void studiomenu_sync_editor(Studio*, Menubar*, EditorMode, void* instance);
 

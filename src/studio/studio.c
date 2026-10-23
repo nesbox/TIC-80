@@ -3352,8 +3352,8 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
 
     // F10 opens the TIC-80 menu: the last category is the host's home.
     studio->menubar.home = categoriesCount - 1;
-    // The overflow menu sits second from the end and turns into the icon stop.
-    studio->menubar.more = &categories[categoriesCount - 2];
+    // The overflow menu sits before the bank and TIC-80; the module knows where.
+    studio->menubar.more = studiomenu_more();
     studio->menubar.autohide = studio->config->data.options.autohide;
     studio->menubar.compact = studio->config->data.options.compactBar;
     studio->menubar.tabs = &categories[0];
