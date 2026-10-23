@@ -315,7 +315,8 @@ static void updateTracker(Music* music)
     {
         Threshold = TRACKER_ROWS / 2
     };
-    music->scroll.pos = CLAMP(music->scroll.pos, row - (TRACKER_ROWS - Threshold), row - Threshold);
+    if (row < music->scroll.pos || row >= music->scroll.pos + Threshold)
+        music->scroll.pos = CLAMP(music->scroll.pos, row - (TRACKER_ROWS - Threshold), row - Threshold);
 
     {
         s32 rows = getRows(music);
