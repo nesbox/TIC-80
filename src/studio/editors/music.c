@@ -601,7 +601,7 @@ static void playTrackFromNow(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->frame, music->tab == MUSIC_TRACKER_TAB ? music->tracker.edit.y : -1, music->loop, music->sustain, -1, -1);
+    tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, music->loop, music->sustain, -1, -1);
 }
 
 static void playFrame(Music* music)
