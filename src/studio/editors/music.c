@@ -1188,7 +1188,7 @@ static void processTrackerKeyboard(Music* music)
         }
 
     static const u8 newOctaveIndex = 16;
-    static const u8 keboardShift = 5;
+    static const u8 keyboardShift = 5;
 
     static const u8 Piano[] =
         {
@@ -1257,7 +1257,7 @@ static void processTrackerKeyboard(Music* music)
                     {
                         if(keyWasPressed(music->studio, Piano[i]) && !shift)
                         {
-                            s32 note = (i > newOctaveIndex ? i - keboardShift : i) % NOTES;
+                            s32 note = (i > newOctaveIndex ? i - keyboardShift : i) % NOTES;
                             s32 octave = (i - note) / NOTES + music->last.octave;
                             s32 sfx = music->last.sfx;
                             setNote(music, note, octave, sfx);
