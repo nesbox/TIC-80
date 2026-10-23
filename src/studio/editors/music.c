@@ -1613,6 +1613,8 @@ static void processKeyboard(Music* music)
     if(tic_api_key(tic, tic_key_alt))
         return;
 
+    bool stopped = !checkPlaying(music);
+
     if(ctrl)
     {
         if(keyWasPressed(music->studio, tic_key_a))
@@ -1623,23 +1625,21 @@ static void processKeyboard(Music* music)
             redo(music);
         else if(keyWasPressed(music->studio, tic_key_f))
             toggleFollowMode(music);
-    }
-    else
-    {
-        bool stopped = !checkPlaying(music);
-
-        if(keyWasPressed(music->studio, tic_key_space))
+        else if(keyWasPressed(music->studio, tic_key_space) || enterWasPressed(music->studio))
         {
             stopped
                 ? playTrack(music)
                 : stopTrack(music);
         }
-        else if(enterWasPressed(music->studio))
+    }
+    else
+    {
+        if(keyWasPressed(music->studio, tic_key_space) || enterWasPressed(music->studio))
         {
             stopped
                 ? (shift
-                       ? playTrackFromNow(music)
-                       : playFrame(music))
+                       ? playFrame(music)
+                       : playTrackFromNow(music))
                 : stopTrack(music);
         }
     }
