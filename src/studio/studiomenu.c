@@ -1109,10 +1109,10 @@ static MenuBarCategory MenubarCategories[] =
     {
         // The first title is the current editor's, set by updateMenubar.
         {"", MenubarApps, 0, false, 0, -1, 0, false},
+        {"EDIT", MenubarEdit, COUNT_OF(MenubarEdit), false, 0, -1, 0, false},
 #if defined(TIC80_PRO)
         {"BANK", MenubarBanks, COUNT_OF(MenubarBanks), false, tic_icon_bank, -1, tic_color_red, false},
 #endif
-        {"EDIT", MenubarEdit, COUNT_OF(MenubarEdit), false, 0, -1, 0, false},
         // The overflow menu, second from the end; TIC-80 stays last.
         {"MENU", NULL, 0, false, 0, -1, 0, false},
         {"TIC-80", MenubarTic, COUNT_OF(MenubarTic), true, 0, -1, 0, false},
