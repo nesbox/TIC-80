@@ -193,7 +193,7 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
 
 static void paintPoint(Sprite* sprite, u8 color, s32 x, s32 y)
 {
-    s32 pixels = sprite->brushSize;
+    s32 pixels = sprite->brush.size;
 
     for(s32 j = 0; j < pixels; j++)
         for(s32 i = 0; i < pixels; i++)
@@ -256,7 +256,7 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
     {
         setCursor(sprite->studio, tic_cursor_hand);
 
-        s32 brushSize = sprite->brushSize * Size;
+        s32 brushSize = sprite->brush.size * Size;
         tic_point mouse = tic_api_mouse(tic);
 
         s32 mx = toCanvasCoord(Size, brushSize, x, mouse.x);
@@ -495,7 +495,7 @@ static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
         {
             s32 my = tic_api_mouse(tic).y - y;
 
-            sprite->brushSize = (u8)(Count - my / (Size + 1));
+            sprite->brush.size = (u8)(Count - my / (Size + 1));
         }
     }
 
@@ -511,7 +511,7 @@ static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
 
     tic_api_rect(tic, x + 2, y + 1, 1, Size * Count + 1, (over ? tic_color_white : tic_color_grey));
 
-    s32 offset = y + (Count - sprite->brushSize) * (Size + 1);
+    s32 offset = y + (Count - sprite->brush.size) * (Size + 1);
     tic_api_rect(tic, x, offset, Size, Size, tic_color_black);
     tic_api_rect(tic, x + 1, offset + 1, Size - 2, Size - 2, (over ? tic_color_white : tic_color_grey));
 }
@@ -1710,7 +1710,7 @@ void spriteSetSize(Sprite* sprite, s32 size)
 
 void spriteSetBrushSize(Sprite* sprite, s32 size)
 {
-    sprite->brushSize = (u8)CLAMP(size, 1, BRUSH_SIZES);
+    sprite->brush.size = (u8)CLAMP(size, 1, BRUSH_SIZES);
 }
 
 void spriteSetMode(Sprite* sprite, s32 mode)
@@ -1721,7 +1721,7 @@ void spriteSetMode(Sprite* sprite, s32 mode)
 
 static void updateBrushSize(Sprite* sprite, s32 val)
 {
-    sprite->brushSize = (sprite->brushSize + val + (BRUSH_SIZES - 1)) % BRUSH_SIZES + 1;
+    sprite->brush.size = (sprite->brush.size + val + (BRUSH_SIZES - 1)) % BRUSH_SIZES + 1;
 }
 
 static void updateColorIndex(Sprite* sprite, s32 val)
@@ -2093,7 +2093,7 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
                 .edit = false,
                 .focus = -1,
             },
-        .brushSize = 1,
+        .brush.size = 1,
         .select =
             {
                 .rect = {0, 0, 0, 0},

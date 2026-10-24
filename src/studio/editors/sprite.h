@@ -47,12 +47,16 @@ struct Sprite
     u8 color;
     u8 color2;
     u8 canvasSize;
-    u8 brushSize;
     u16 x, y;
     bool hexindex;
 
     tic_blit blit;
 
+    struct
+    {
+        u8 size;
+    } brush;
+    
     struct
     {
         bool edit;

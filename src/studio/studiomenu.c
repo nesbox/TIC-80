@@ -1401,10 +1401,10 @@ void studiomenu_sync_editor(Studio* studio, Menubar* bar, EditorMode mode, void*
             menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize32, sprite->canvasSize == 32);
             menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize64, sprite->canvasSize == 64);
 
-            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush1, sprite->brushSize == 1);
-            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush2, sprite->brushSize == 2);
-            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush3, sprite->brushSize == 3);
-            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush4, sprite->brushSize == 4);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush1, sprite->brush.size == 1);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush2, sprite->brush.size == 2);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush3, sprite->brush.size == 3);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush4, sprite->brush.size == 4);
 
             {
                 static const s32 Pages[] = {SpriteActionPage1, SpriteActionPage2, SpriteActionPage3, SpriteActionPage4};
