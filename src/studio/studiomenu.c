@@ -1092,8 +1092,8 @@ static const MenuBarItem* const MenubarMusicPins[] =
         EDIT_PINS & MenubarMusicApp[0], // PIANO
         &MenubarMusicApp[1],            // TRACKER
         &MenubarMusicApp[9],            // PLAY TRACK
-        &MenubarMusicApp[11],           // STOP
         &MenubarMusicApp[10],           // RESET TRACK
+        &MenubarMusicApp[11],           // STOP
 };
 
 static const MenuBarItem* const MenubarSfxPins[] =
