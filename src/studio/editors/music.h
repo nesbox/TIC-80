@@ -34,6 +34,7 @@ struct Music
 
     u8 track;
     s32 frame;
+    s32 row;
 
     struct
     {
