@@ -189,6 +189,7 @@ enum
     MusicActionPlayNow,
     MusicActionPlayFrame,
     MusicActionPlayTrack,
+    MusicActionResetTrack,
     MusicActionStop,
 };
 
@@ -341,7 +342,8 @@ static void menubarMusicAction(void* data, s32 id)
         case MusicActionSustain: musicToggleSustain(music); break;
         case MusicActionPlayNow: musicPlayFromNow(music); break;
         case MusicActionPlayFrame: musicPlayFrame(music); break;
-        case MusicActionPlayTrack: musicPlayTrack(music); break;
+        case MusicActionPlayTrack: musicPlayTrack(music, false); break;
+        case MusicActionResetTrack: musicPlayTrack(music, true); break;
         case MusicActionStop: musicStop(music); break;
     }
 }
@@ -750,11 +752,11 @@ static void initMenubarApps(void)
 // clang-format off
 static MenuBarItem MenubarExport[] =
     {
-#define EXPORT_ASSET_ITEM(name, label) MENU_ITEM(label, NULL, menubarExport, Export_##name),
+#define EXPORT_ASSET_ITEM(name, label) MENU_ITEM(label, NULL, menubarExport, Export_## name),
         EXPORT_ASSET_LIST(EXPORT_ASSET_ITEM)
 #undef EXPORT_ASSET_ITEM
         MENU_SEPARATOR,
-#define EXPORT_GAME_ITEM(name, label) MENU_ITEM(label, NULL, menubarExport, Export_##name),
+#define EXPORT_GAME_ITEM(name, label) MENU_ITEM(label, NULL, menubarExport, Export_## name),
         EXPORT_GAME_LIST(EXPORT_GAME_ITEM)
 #undef EXPORT_GAME_ITEM
 #if defined(TIC80_PRO)
@@ -965,9 +967,10 @@ static MenuBarItem MenubarMusicApp[] =
         MENU_TOGGLE_ICON("LOOP", NULL, menubarMusicAction, MusicActionLoop, tic_icon_loop),
         MENU_TOGGLE_ICON("SUSTAIN", NULL, menubarMusicAction, MusicActionSustain, tic_icon_sustain),
         MENU_SEPARATOR,
-        MENU_ITEM_ICON("PLAY FROM NOW", "SPACE", menubarMusicAction, MusicActionPlayNow, tic_icon_playnow),
-        MENU_ITEM_ICON("PLAY FRAME", "SHIFT+SPACE", menubarMusicAction, MusicActionPlayFrame, tic_icon_playframe),
-        MENU_ITEM_ICON("PLAY TRACK", "CTRL+SPACE", menubarMusicAction, MusicActionPlayTrack, tic_icon_right),
+        MENU_ITEM_ICON("PLAY FROM NOW", "SHIFT+ENTER", menubarMusicAction, MusicActionPlayNow, tic_icon_playnow),
+        MENU_ITEM_ICON("PLAY FRAME", "ENTER", menubarMusicAction, MusicActionPlayFrame, tic_icon_playframe),
+        MENU_ITEM_ICON("PLAY TRACK", "SPACE", menubarMusicAction, MusicActionPlayTrack, tic_icon_right),
+        MENU_ITEM_ICON("RESET TRACK", "SHIFT+SPACE", menubarMusicAction, MusicActionResetTrack, tic_icon_tinyrotate),
         MENU_ITEM_ICON("STOP", "SPACE", menubarMusicAction, MusicActionStop, tic_icon_stop),
 };
 
