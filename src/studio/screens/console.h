@@ -244,6 +244,7 @@ struct Console
     char* text;
     u8* color;
     char exportName[TICNAME_MAX]; // the export's file, until it is answered
+    s32 progressLine;             // the export's GET row, -1 before the first report
 
     struct
     {
