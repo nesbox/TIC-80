@@ -1072,8 +1072,9 @@ static void frame_cb(void)
     // in which nothing took one — the browsers, the menus — drops what it was
     // carrying, or the next text field would get a pocketful typed somewhere
     // else. A frame that took some keeps the rest of the burst, since a slow
-    // text field reads one character a tick.
-    if(!platform.keyboard.taken)
+    // text field reads one character a tick. A frame with no tick has nobody
+    // to take them, so they wait.
+    if(ticked && !platform.keyboard.taken)
         platform.keyboard.head = platform.keyboard.tail = 0;
 
     platform.keyboard.taken = false;
@@ -1560,8 +1561,13 @@ void tic_sys_preseed(void)
 
 bool tic_sys_keyboard_text(char* text)
 {
+    // Text belongs to this layer: an empty queue is an empty answer, not a
+    // reason to rebuild the character from the keys and lose the OS's case.
     if(platform.keyboard.tail == platform.keyboard.head)
-        return false;
+    {
+        *text = '\0';
+        return true;
+    }
 
     *text = platform.keyboard.queue[platform.keyboard.tail++ % COUNT_OF(platform.keyboard.queue)];
     platform.keyboard.taken = true;
