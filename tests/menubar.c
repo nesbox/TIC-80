@@ -1271,6 +1271,26 @@ static void testCompact(tic_mem* tic)
     assert(bar.focus == 1);
     keyPress(&bar, tic, tic_key_right);
     assert(bar.focus == 2);
+    keyPress(&bar, tic, tic_key_escape);
+    assert(!bar.keyboard);
+
+    // An open menu does not follow the pointer to another title here; a click
+    // on it still switches, and is consumed.
+    clickAt(tic, 208, 3);
+    step(&bar, tic);
+    assert(bar.open == 1);
+
+    moveTo(tic, 230, 3);
+    step(&bar, tic);
+    assert(bar.open == 1);
+
+    clickAt(tic, 230, 3);
+    step(&bar, tic);
+    assert(bar.open == 2);
+    assert(!Mouse[tic_mouse_left].click);
+
+    keyPress(&bar, tic, tic_key_escape);
+    assert(bar.open == -1);
 
     // Too many pins: the visible ones stop before the MENU title, and a click
     // where the next pin would be opens MENU instead of running it.
