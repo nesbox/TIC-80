@@ -774,6 +774,15 @@ static MenuBarItem MenubarExport[] =
 
 static const MenuBarCategory MenubarExportMenu = MENU_CATEGORY("EXPORT", MenubarExport);
 
+// Both captures are GIFs: a screenshot is a GIF of one frame.
+static const MenuBarItem MenubarCapture[] =
+    {
+        MENU_ITEM("SCREENSHOT", "F8", menubarAction, MenuActionScreenshot),
+        MENU_ITEM("RECORD GIF", "F9", menubarAction, MenuActionRecord),
+};
+
+static const MenuBarCategory MenubarCaptureMenu = MENU_CATEGORY("CAPTURE", MenubarCapture);
+
 static const MenuBarItem MenubarHelp[] =
     {
 #define HELP_ITEM(name, label) MENU_ITEM(label, NULL, menubarHelp, Help_##name),
@@ -996,10 +1005,9 @@ static MenuBarItem MenubarTic[] =
         MENU_ITEM("RUN", "CTRL+R", menubarAction, MenuActionRun),
         MENU_ITEM("RESUME", NULL, menubarAction, MenuActionResume),
         MENU_ITEM("SAVE", "CTRL+S", menubarAction, MenuActionSave),
-        MENU_SUBMENU("EXPORT", &MenubarExportMenu),
         MENU_SEPARATOR,
-        MENU_ITEM("SCREENSHOT", "F8", menubarAction, MenuActionScreenshot),
-        MENU_ITEM("RECORD GIF", "F9", menubarAction, MenuActionRecord),
+        MENU_SUBMENU("EXPORT", &MenubarExportMenu),
+        MENU_SUBMENU("CAPTURE", &MenubarCaptureMenu),
         MENU_SEPARATOR,
         MENU_SUBMENU("OPTIONS", &MenubarOptionsMenu),
         MENU_SUBMENU("HELP", &MenubarHelpMenu),
