@@ -703,6 +703,30 @@ static SQInteger squirrel_btnp(HSQUIRRELVM vm)
     return 1;
 }
 
+static SQInteger squirrel_btnr(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if(top == 1)
+    {
+        sq_pushinteger(vm, core->api.btnr(tic, -1));
+    }
+    else if(top == 2)
+    {
+        bool released = core->api.btnr(tic, getSquirrelNumber(vm, 2) & 0x1f);
+        sq_pushbool(vm, released ? SQTrue : SQFalse);
+    }
+    else
+    {
+        return sq_throwerror(vm, "invalid params, btnr [ id ]\n");
+    }
+
+    return 1;
+}
+
 static SQInteger squirrel_btn(HSQUIRRELVM vm)
 {
     tic_core* core = getSquirrelCore(vm);
@@ -1280,6 +1304,36 @@ static SQInteger squirrel_keyp(HSQUIRRELVM vm)
                 return sq_throwerror(vm, "invalid params, keyp [ code [ hold period ] ]\n");
             }
         }
+    }
+
+    return 1;
+}
+
+static SQInteger squirrel_keyr(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = &core->memory;
+
+    SQInteger top = sq_gettop(vm);
+
+    if(top == 1)
+    {
+        sq_pushbool(vm, core->api.keyr(tic, tic_key_unknown) ? SQTrue : SQFalse);
+    }
+    else if(top == 2)
+    {
+        tic_key key = (tic_key)(getSquirrelNumber(vm, 2));
+
+        if(key < tic_keys_count)
+            sq_pushbool(vm, core->api.keyr(tic, key) ? SQTrue : SQFalse);
+        else
+        {
+            return sq_throwerror(vm, "unknown keyboard code\n");
+        }
+    }
+    else
+    {
+        return sq_throwerror(vm, "invalid params, keyr [code]\n");
     }
 
     return 1;

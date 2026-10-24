@@ -503,8 +503,8 @@ static mrb_value mrb_btn(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    mrb_int index, hold, period;
-    mrb_int argc = mrb_get_args(mrb, "|i", &index, &hold, &period);
+    mrb_int index;
+    mrb_int argc = mrb_get_args(mrb, "|i", &index);
 
     if(argc == 0)
     {
@@ -517,6 +517,30 @@ static mrb_value mrb_btn(mrb_state* mrb, mrb_value self)
     else
     {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, btn [ id ]\n");
+        return mrb_nil_value();
+    }
+}
+
+static mrb_value mrb_btnr(mrb_state* mrb, mrb_value self)
+{
+    (void)self;
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    mrb_int index;
+    mrb_int argc = mrb_get_args(mrb, "|i", &index);
+
+    if(argc == 0)
+    {
+        return mrb_bool_value(core->api.btnr(tic, -1) != 0);
+    }
+    else if(argc == 1)
+    {
+        return mrb_bool_value(core->api.btnr(tic, index & 0x1f) != 0);
+    }
+    else
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, btnr [ id ]\n");
         return mrb_nil_value();
     }
 }
@@ -1183,6 +1207,29 @@ static mrb_value mrb_keyp(mrb_state* mrb, mrb_value self)
     {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, btnp [ id [ hold period ] ]");
         return mrb_nil_value();
+    }
+}
+
+static mrb_value mrb_keyr(mrb_state* mrb, mrb_value self)
+{
+    (void)self;
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    mrb_int key;
+    mrb_int argc = mrb_get_args(mrb, "|i", &key);
+
+    if(argc == 0)
+        return mrb_bool_value(core->api.keyr(tic, tic_key_unknown));
+    else
+    {
+        if(key < tic_key_escape)
+            return mrb_bool_value(core->api.keyr(tic, (tic_key)(key)));
+        else
+        {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "unknown keyboard code");
+            return mrb_nil_value();
+        }
     }
 }
 

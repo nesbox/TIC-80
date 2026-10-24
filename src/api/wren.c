@@ -81,9 +81,11 @@ class TIC {\n\
     foreign static btn(id)\n\
     foreign static btnp(id)\n\
     foreign static btnp(id, hold, period)\n\
+    foreign static btnr(id)\n\
     foreign static key(id)\n\
     foreign static keyp(id)\n\
     foreign static keyp(id, hold, period)\n\
+    foreign static keyr(id)\n\
     foreign static mouse()\n\
     foreign static font(text)\n\
     foreign static font(text, x, y)\n\
@@ -391,6 +393,24 @@ static void wren_btnp(WrenVM* vm)
     }
 }
 
+static void wren_btnr(WrenVM* vm)
+{
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    s32 top = wrenGetSlotCount(vm);
+
+    if(top == 1)
+    {
+        wrenSetSlotDouble(vm, 0, core->api.btnr(tic, -1));
+    }
+    else if(top == 2)
+    {
+        bool released = core->api.btnr(tic, getWrenNumber(vm, 1) & 0x1f);
+        wrenSetSlotBool(vm, 0, released);
+    }
+}
+
 static void wren_key(WrenVM* vm)
 {
     tic_core* core = getWrenCore(vm);
@@ -448,6 +468,31 @@ static void wren_keyp(WrenVM* vm)
 
                 wrenSetSlotBool(vm, 0, core->api.keyp(tic, key, hold, period));
             }
+        }
+    }
+}
+
+static void wren_keyr(WrenVM* vm)
+{
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = &core->memory;
+
+    s32 top = wrenGetSlotCount(vm);
+
+    if(top == 1)
+    {
+        wrenSetSlotBool(vm, 0, core->api.keyr(tic, tic_key_unknown));
+    }
+    else if(top == 2)
+    {
+        tic_key key = (tic_key)(getWrenNumber(vm, 1));
+
+        if(key < tic_keys_count)
+            wrenSetSlotBool(vm, 0, core->api.keyr(tic, key));
+        else
+        {
+            wrenError(vm, "unknown keyboard code\n");
+            return;
         }
     }
 }
@@ -1849,9 +1894,11 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if(strcmp(signature, "static TIC.btn(_)") == 0) return wren_btn;
     if(strcmp(signature, "static TIC.btnp(_)") == 0) return wren_btnp;
     if(strcmp(signature, "static TIC.btnp(_,_,_)") == 0) return wren_btnp;
+    if(strcmp(signature, "static TIC.btnr(_)") == 0) return wren_btnr;
     if(strcmp(signature, "static TIC.key(_)") == 0) return wren_key;
     if(strcmp(signature, "static TIC.keyp(_)") == 0) return wren_keyp;
     if(strcmp(signature, "static TIC.keyp(_,_,_)") == 0) return wren_keyp;
+    if(strcmp(signature, "static TIC.keyr(_)") == 0) return wren_keyr;
     if(strcmp(signature, "static TIC.mouse()") == 0) return wren_mouse;
 
     if(strcmp(signature, "static TIC.font(_)") == 0) return wren_font;

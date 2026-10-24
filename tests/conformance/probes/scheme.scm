@@ -419,6 +419,16 @@
   (t80::btnp 0 10 5)
   ))
 
+;; ---- btnr
+
+(probe "btnr/released" (lambda ()
+  (t80::btnr 0)
+  ))
+
+(probe "btnr/missing-id" (lambda ()
+  (t80::btnr)
+  ))
+
 ;; ---- key
 
 (probe "key/no-key" (lambda ()
@@ -437,6 +447,16 @@
 
 (probe "keyp/hold-period" (lambda ()
   (t80::keyp 1 10 5)
+  ))
+
+;; ---- keyr
+
+(probe "keyr/no-key" (lambda ()
+  (t80::keyr)
+  ))
+
+(probe "keyr/code" (lambda ()
+  (t80::keyr 1)
   ))
 
 ;; ---- mouse

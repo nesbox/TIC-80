@@ -41,6 +41,7 @@ static Janet janet_rectb(int32_t argc, Janet* argv);
 static Janet janet_spr(int32_t argc, Janet* argv);
 static Janet janet_btn(int32_t argc, Janet* argv);
 static Janet janet_btnp(int32_t argc, Janet* argv);
+static Janet janet_btnr(int32_t argc, Janet* argv);
 static Janet janet_sfx(int32_t argc, Janet* argv);
 static Janet janet_map(int32_t argc, Janet* argv);
 static Janet janet_mget(int32_t argc, Janet* argv);
@@ -77,6 +78,7 @@ static Janet janet_vbank(int32_t argc, Janet* argv);
 static Janet janet_reset(int32_t argc, Janet* argv);
 static Janet janet_key(int32_t argc, Janet* argv);
 static Janet janet_keyp(int32_t argc, Janet* argv);
+static Janet janet_keyr(int32_t argc, Janet* argv);
 static Janet janet_fget(int32_t argc, Janet* argv);
 static Janet janet_fset(int32_t argc, Janet* argv);
 static Janet janet_fft(int32_t argc, Janet* argv);
@@ -118,6 +120,7 @@ static const JanetReg janet_c_functions[] =
         {"spr", janet_spr, NULL},
         {"btn", janet_btn, NULL},
         {"btnp", janet_btnp, NULL},
+        {"btnr", janet_btnr, NULL},
         {"sfx", janet_sfx, NULL},
         {"map", janet_map, NULL},
         {"mget", janet_mget, NULL},
@@ -154,6 +157,7 @@ static const JanetReg janet_c_functions[] =
         {"reset", janet_reset, NULL},
         {"key", janet_key, NULL},
         {"keyp", janet_keyp, NULL},
+        {"keyr", janet_keyr, NULL},
         {"fget", janet_fget, NULL},
         {"fset", janet_fset, NULL},
         {"fft", janet_fft, NULL},
@@ -493,6 +497,17 @@ static Janet janet_btnp(int32_t argc, Janet* argv)
     tic_mem* tic = (tic_mem*)core;
 
     return janet_wrap_boolean(core->api.btnp(tic, id, hold, period));
+}
+
+static Janet janet_btnr(int32_t argc, Janet* argv)
+{
+    janet_fixarity(argc, 1);
+
+    s32 id = (s32)janet_getinteger(argv, 0);
+
+    tic_core* core = getJanetMachine();
+    tic_mem* tic = (tic_mem*)core;
+    return janet_wrap_boolean(core->api.btnr(tic, id));
 }
 
 static Janet janet_sfx(int32_t argc, Janet* argv)
@@ -1148,6 +1163,18 @@ static Janet janet_keyp(int32_t argc, Janet* argv)
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
     return janet_wrap_boolean(core->api.keyp(tic, key, hold, period));
+}
+
+static Janet janet_keyr(int32_t argc, Janet* argv)
+{
+    janet_arity(argc, 0, 1);
+    tic_key key = (tic_key)-1;
+
+    if(argc >= 1) key = (tic_key)janet_getinteger(argv, 0);
+
+    tic_core* core = getJanetMachine();
+    tic_mem* tic = (tic_mem*)core;
+    return janet_wrap_boolean(core->api.keyr(tic, key));
 }
 
 static Janet janet_fget(int32_t argc, Janet* argv)

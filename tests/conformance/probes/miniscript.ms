@@ -554,6 +554,20 @@ end function
 
 probe("btnp/hold-period", @p_btnp_hold_period)
 
+// ---- btnr
+
+p_btnr_released = function
+    tic80.btnr(0)
+end function
+
+probe("btnr/released", @p_btnr_released)
+
+p_btnr_missing_id = function
+    tic80.btnr()
+end function
+
+probe("btnr/missing-id", @p_btnr_missing_id)
+
 // ---- key
 
 p_key_no_key = function
@@ -581,6 +595,20 @@ p_keyp_hold_period = function
 end function
 
 probe("keyp/hold-period", @p_keyp_hold_period)
+
+// ---- keyr
+
+p_keyr_no_key = function
+    tic80.keyr()
+end function
+
+probe("keyr/no-key", @p_keyr_no_key)
+
+p_keyr_code = function
+    tic80.keyr(1)
+end function
+
+probe("keyr/code", @p_keyr_code)
 
 // ---- mouse
 

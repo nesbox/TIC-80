@@ -366,6 +366,18 @@ static JSValue js_btnp(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
     return JS_NewBool(ctx, core->api.btnp(tic, index & 0x1f, hold, period));
 }
 
+static JSValue js_btnr(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
+{
+    (void)argc;
+    (void)this_val;
+    tic_core* core = getCore(ctx);
+    tic_mem* tic = (tic_mem*)core;
+
+    return JS_IsUndefined(argv[0])
+               ? JS_NewUint32(ctx, core->api.btnr(tic, -1))
+               : JS_NewBool(ctx, core->api.btnr(tic, getInteger(ctx, argv[0]) & 0x1f));
+}
+
 static JSValue js_key(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
     (void)argc;
@@ -380,6 +392,30 @@ static JSValue js_key(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
 
     if(key < tic_keys_count)
         return JS_NewBool(ctx, core->api.key(tic, key));
+    else
+    {
+        JSValue err = JS_NewError(ctx);
+        JS_SetPropertyStr(ctx, err, "message", JS_NewString(ctx, "unknown keyboard code"));
+        JS_Throw(ctx, err);
+    }
+
+    return JS_UNDEFINED;
+}
+
+static JSValue js_keyr(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
+{
+    (void)argc;
+    (void)this_val;
+    tic_core* core = getCore(ctx);
+    tic_mem* tic = &core->memory;
+
+    if(JS_IsUndefined(argv[0]))
+        return JS_NewBool(ctx, core->api.keyr(tic, tic_key_unknown));
+
+    tic_key key = (tic_key)(getInteger(ctx, argv[0]));
+
+    if(key < tic_keys_count)
+        return JS_NewBool(ctx, core->api.keyr(tic, key));
     else
     {
         JSValue err = JS_NewError(ctx);

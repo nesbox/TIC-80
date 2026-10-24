@@ -369,6 +369,13 @@ static cell_t tic_forth_btnp(void)
     return (cell_t)gForthCore->api.btnp((tic_mem*)gForthCore, id, hold, period);
 }
 
+// btnr ( id -- released )
+static cell_t tic_forth_btnr(void)
+{
+    s32 id = (s32)pfPopFromStack();
+    return (cell_t)gForthCore->api.btnr((tic_mem*)gForthCore, id);
+}
+
 // sfx ( id note octave duration channel volume speed -- )
 // note: 0..11 (C=0..B=11), octave: 0..8, or both -1 to use stored note
 static cell_t tic_forth_sfx(void)
@@ -799,6 +806,13 @@ static cell_t tic_forth_keyp(void)
     return (cell_t)gForthCore->api.keyp((tic_mem*)gForthCore, k, hold, period);
 }
 
+// keyr ( keycode -- released )
+static cell_t tic_forth_keyr(void)
+{
+    tic_key k = (tic_key)pfPopFromStack();
+    return (cell_t)gForthCore->api.keyr((tic_mem*)gForthCore, k);
+}
+
 // fget ( sprite_id flag -- bool )
 static cell_t tic_forth_fget(void)
 {
@@ -898,6 +912,8 @@ CFunc0 CustomFunctionTable[] =
         (CFunc0)tic_forth_ffts,     // 51  FFTS
         (CFunc0)tic_forth_rrect,    // 52  RRECT
         (CFunc0)tic_forth_rrectb,   // 53  RRECTB
+        (CFunc0)tic_forth_btnr,     // 54  BTNR
+        (CFunc0)tic_forth_keyr,     // 55  KEYR
 };
 
 // Called during dictionary build (pfBuildDictionary) and manually after
@@ -966,6 +982,8 @@ Err CompileCustomFunctions(void)
     if(CreateGlueToC("FFTS", i++, C_RETURNS_VALUE, 0) < 0) return -1;
     if(CreateGlueToC("RRECT", i++, C_RETURNS_VOID, 0) < 0) return -1;
     if(CreateGlueToC("RRECTB", i++, C_RETURNS_VOID, 0) < 0) return -1;
+    if(CreateGlueToC("BTNR", i++, C_RETURNS_VALUE, 0) < 0) return -1;
+    if(CreateGlueToC("KEYR", i++, C_RETURNS_VALUE, 0) < 0) return -1;
     return 0;
 }
 
@@ -1388,6 +1406,8 @@ static const char* ForthAPIKeywords[] = {
     "FFTS",
     "RRECT",
     "RRECTB",
+    "BTNR",
+    "KEYR",
 };
 
 // =============================================================================

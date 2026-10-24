@@ -140,6 +140,15 @@ static u32 trap_btnp(tic_mem* tic, s32 id, s32 hold, s32 period)
     return pressed;
 }
 
+static u32 trap_btnr(tic_mem* tic, s32 id)
+{
+    u32 released = Real_btnr(tic, id);
+
+    api_record("btnr(%d) -> %u", id, released);
+
+    return released;
+}
+
 static void trap_sfx(tic_mem* tic, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 left, s32 right, s32 speed)
 {
     Real_sfx(tic, index, note, octave, duration, channel, left, right, speed);
@@ -403,6 +412,15 @@ static bool trap_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
     api_record("keyp(%d,%d,%d) -> %s", (int)key, hold, period, b2s(down));
 
     return down;
+}
+
+static bool trap_keyr(tic_mem* tic, tic_key key)
+{
+    bool released = Real_keyr(tic, key);
+
+    api_record("keyr(%d) -> %s", (int)key, b2s(released));
+
+    return released;
 }
 
 static bool trap_fget(tic_mem* tic, s32 index, u8 flag)

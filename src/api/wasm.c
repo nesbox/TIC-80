@@ -485,6 +485,22 @@ m3ApiRawFunction(wasmtic_btnp)
     m3ApiReturn((int32_t)(pressed ? 1 : 0));
 }
 
+m3ApiRawFunction(wasmtic_btnr)
+{
+    (void)_ctx;
+    (void)_mem;
+    m3ApiReturnType(int32_t);
+
+    m3ApiGetArg(int32_t, index);
+
+    tic_core* core = getWasmCore(runtime);
+
+    // -1 is a default placeholder here for `id`, but one that `core->api.btnr` already understands, so
+    // it just gets passed straight thru
+
+    m3ApiReturn(core->api.btnr((tic_mem*)core, index));
+}
+
 m3ApiRawFunction(wasmtic_key)
 {
     (void)_ctx;
@@ -521,6 +537,24 @@ m3ApiRawFunction(wasmtic_keyp)
     tic_core* core = getWasmCore(runtime);
 
     m3ApiReturn(core->api.keyp((tic_mem*)core, index, hold, period));
+}
+
+m3ApiRawFunction(wasmtic_keyr)
+{
+    (void)_ctx;
+    (void)_mem;
+    m3ApiReturnType(int32_t);
+
+    m3ApiGetArg(int32_t, index);
+
+    if(index == -1)
+    {
+        index = tic_key_unknown;
+    }
+
+    tic_core* core = getWasmCore(runtime);
+
+    m3ApiReturn(core->api.keyr((tic_mem*)core, (tic_key)(index)));
 }
 
 m3ApiRawFunction(wasmtic_fget)
@@ -1236,6 +1270,7 @@ M3Result linkTicAPI(IM3Module module)
     M3Result result = m3Err_none;
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "btn", "i(i)", &wasmtic_btn)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "btnp", "i(iii)", &wasmtic_btnp)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "btnr", "i(i)", &wasmtic_btnr)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "clip", "v(iiii)", &wasmtic_clip)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "cls", "v(i)", &wasmtic_cls)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "circ", "v(iiii)", &wasmtic_circ)));
@@ -1248,6 +1283,7 @@ M3Result linkTicAPI(IM3Module module)
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "font", "i(*iiiiiiiii)", &wasmtic_font)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "key", "i(i)", &wasmtic_key)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "keyp", "i(iii)", &wasmtic_keyp)));
+    _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "keyr", "i(i)", &wasmtic_keyr)));
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "line", "v(ffffi)", &wasmtic_line)));
     // TODO: needs a lot of help for all the optional arguments
     _(SuppressLookupFailure(m3_LinkRawFunction(module, "env", "map", "v(iiiiiiiiii)", &wasmtic_map)));

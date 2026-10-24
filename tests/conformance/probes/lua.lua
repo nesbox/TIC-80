@@ -427,6 +427,16 @@ probe('btnp/hold-period', function()
     btnp(0, 10, 5)
 end)
 
+---- btnr
+
+probe('btnr/released', function()
+    btnr(0)
+end)
+
+probe('btnr/missing-id', function()
+    btnr()
+end)
+
 ---- key
 
 probe('key/no-key', function()
@@ -445,6 +455,16 @@ end)
 
 probe('keyp/hold-period', function()
     keyp(1, 10, 5)
+end)
+
+---- keyr
+
+probe('keyr/no-key', function()
+    keyr()
+end)
+
+probe('keyr/code', function()
+    keyr(1)
 end)
 
 ---- mouse

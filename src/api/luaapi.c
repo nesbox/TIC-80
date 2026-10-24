@@ -732,6 +732,31 @@ static s32 lua_btnp(lua_State* lua)
     return 1;
 }
 
+static s32 lua_btnr(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+
+    s32 top = lua_gettop(lua);
+
+    if(top == 0)
+    {
+        lua_pushinteger(lua, core->api.btnr(tic, -1));
+    }
+    else if(top == 1)
+    {
+        bool released = core->api.btnr(tic, getLuaNumber(lua, 1) & 0x1f);
+        lua_pushboolean(lua, released);
+    }
+    else
+    {
+        luaL_error(lua, "invalid params, btnr [ id ]\n");
+        return 0;
+    }
+
+    return 1;
+}
+
 static s32 lua_btn(lua_State* lua)
 {
     tic_core* core = getLuaCore(lua);
@@ -1278,6 +1303,38 @@ static s32 lua_keyp(lua_State* lua)
                 return 0;
             }
         }
+    }
+
+    return 1;
+}
+
+static s32 lua_keyr(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = &core->memory;
+
+    s32 top = lua_gettop(lua);
+
+    if(top == 0)
+    {
+        lua_pushboolean(lua, core->api.keyr(tic, tic_key_unknown));
+    }
+    else if(top == 1)
+    {
+        tic_key key = (tic_key)(getLuaNumber(lua, 1));
+
+        if(key < tic_keys_count)
+            lua_pushboolean(lua, core->api.keyr(tic, key));
+        else
+        {
+            luaL_error(lua, "unknown keyboard code\n");
+            return 0;
+        }
+    }
+    else
+    {
+        luaL_error(lua, "invalid params, keyr [code]\n");
+        return 0;
     }
 
     return 1;

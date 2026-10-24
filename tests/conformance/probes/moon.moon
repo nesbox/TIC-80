@@ -357,6 +357,14 @@ probe "btnp/pressed", ->
 probe "btnp/hold-period", ->
   btnp(0, 10, 5)
 
+-- btnr
+
+probe "btnr/released", ->
+  btnr(0)
+
+probe "btnr/missing-id", ->
+  btnr()
+
 -- key
 
 probe "key/no-key", ->
@@ -372,6 +380,14 @@ probe "keyp/no-key", ->
 
 probe "keyp/hold-period", ->
   keyp(1, 10, 5)
+
+-- keyr
+
+probe "keyr/no-key", ->
+  keyr()
+
+probe "keyr/code", ->
+  keyr(1)
 
 -- mouse
 
