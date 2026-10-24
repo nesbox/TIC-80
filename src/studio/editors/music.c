@@ -1145,6 +1145,9 @@ static void processTrackerKeyboard(Music* music)
     bool shift = tic_api_key(tic, tic_key_shift);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
+    // One character a tick: the platform's text may be consumed by the read.
+    char sym = getKeyboardText(music->studio);
+
     static const struct Handler
     {
         u8 key;
@@ -1280,8 +1283,6 @@ static void processTrackerKeyboard(Music* music)
                 {
                     s32 octave = -1;
 
-                    char sym = getKeyboardText(music->studio);
-
                     if(sym >= '1' && sym <= '8') octave = sym - '1';
 
                     if(octave >= 0)
@@ -1295,7 +1296,7 @@ static void processTrackerKeyboard(Music* music)
             case ColumnSfxLow:
                 if(getNote(music) >= 0)
                 {
-                    s32 val = sym2dec(getKeyboardText(music->studio));
+                    s32 val = sym2dec(sym);
 
                     if(val >= 0)
                     {
@@ -1312,8 +1313,6 @@ static void processTrackerKeyboard(Music* music)
                 break;
             case ColumnCommand:
             {
-                char sym = getKeyboardText(music->studio);
-
                 if(sym)
                 {
                     const char* val = strchr(MusicCommands, toupper((u8)sym));
@@ -1326,7 +1325,7 @@ static void processTrackerKeyboard(Music* music)
             case ColumnParameter1:
             case ColumnParameter2:
             {
-                s32 val = sym2hex(getKeyboardText(music->studio));
+                s32 val = sym2hex(sym);
 
                 if(val >= 0)
                 {
@@ -1341,7 +1340,7 @@ static void processTrackerKeyboard(Music* music)
         history_add(music->history);
     }
 
-    switch(getKeyboardText(music->studio))
+    switch(sym)
     {
         case '+': setChannelPattern(music, +1, music->tracker.edit.x / CHANNEL_COLS); break;
         case '-': setChannelPattern(music, -1, music->tracker.edit.x / CHANNEL_COLS); break;
@@ -1356,6 +1355,9 @@ static void processPatternKeyboard(Music* music)
     if(tic_api_key(tic, tic_key_ctrl) || tic_api_key(tic, tic_key_alt))
         return;
 
+    // One character a tick: the platform's text may be consumed by the read.
+    char sym = getKeyboardText(music->studio);
+
     if(keyWasPressed(music->studio, tic_key_delete))
         setChannelPatternValue(music, 0, music->frame, channel);
     else if(keyWasPressed(music->studio, tic_key_tab))
@@ -1368,7 +1370,7 @@ static void processPatternKeyboard(Music* music)
         music->tracker.edit.y = music->scroll.pos;
     else
     {
-        s32 val = sym2dec(getKeyboardText(music->studio));
+        s32 val = sym2dec(sym);
 
         if(val >= 0)
         {
@@ -1384,7 +1386,7 @@ static void processPatternKeyboard(Music* music)
         }
     }
 
-    switch(getKeyboardText(music->studio))
+    switch(sym)
     {
         case '+': setChannelPattern(music, +1, music->tracker.edit.x / CHANNEL_COLS); break;
         case '-': setChannelPattern(music, -1, music->tracker.edit.x / CHANNEL_COLS); break;
@@ -1584,8 +1586,9 @@ static void processPianoKeyboard(Music* music)
         }
     }
 
-    if(getKeyboardText(music->studio))
-        setPianoValue(music, getKeyboardText(music->studio));
+    char sym = getKeyboardText(music->studio);
+    if(sym)
+        setPianoValue(music, sym);
 }
 
 static void selectAll(Music* music)

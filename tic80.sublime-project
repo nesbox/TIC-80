@@ -9,20 +9,12 @@
             "variants":
             [
                 {
-                    "name": "fresh",
-                    "shell_cmd": "cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .. --fresh"
-                },
-                {
-                    "name": "configure: BUILD_PRO=ON",
-                    "shell_cmd": "cmake -DBUILD_PRO=ON .."
-                },
-                {
-                    "name": "ninja",
-                    "shell_cmd": "ninja"
-                },
-                {
                     "name": "run",
                     "shell_cmd": "ninja tic80 && bin/tic80 --skip"
+                },
+                {
+                    "name": "fresh",
+                    "shell_cmd": "cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .. --fresh"
                 },
                 {
                     "name": "tests",
@@ -31,6 +23,10 @@
                 {
                     "name": "conformance",
                     "shell_cmd": "cmake -S .. -B ../build-tests -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC=ON -DBUILD_WITH_ALL=ON -DBUILD_TESTS=ON && cmake --build ../build-tests --parallel --target api-conformance && ../build-tests/bin/api-conformance ../tests/conformance/probes"
+                },
+                {
+                    "name": "configure: BUILD_PRO=ON",
+                    "shell_cmd": "cmake -DBUILD_PRO=ON .."
                 }
             ]
         }

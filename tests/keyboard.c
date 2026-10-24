@@ -10,11 +10,19 @@
 #include <stdio.h>
 
 // The platform's own text input, which the module asks before its fallback: the
-// studio's test is the one place that answers it.
+// studio's test is the one place that answers it. A layer that speaks text
+// answers even when it has none for this tick.
+static bool systemTextOwned = false;
+static char systemText = '\0';
+
 bool tic_sys_keyboard_text(char* text)
 {
-    (void)text;
-    return false;
+    if(!systemTextOwned)
+        return false;
+
+    *text = systemText;
+    systemText = '\0';
+    return true;
 }
 
 // One key held this frame, with the previous frame's keys empty — which is what
@@ -111,6 +119,25 @@ static void testText(tic_mem* tic)
     puts("text ok");
 }
 
+// A layer that owns text answers on every tick, even with nothing to give: the
+// studio must not type what the keys say behind the layer's back.
+static void testSystemText(tic_mem* tic)
+{
+    press(tic, tic_key_b);
+    alsoDown(tic, tic_key_shift);
+
+    systemTextOwned = true;
+    assert(keyboard_text(tic) == '\0');
+
+    systemText = 'x';
+    assert(keyboard_text(tic) == 'x');
+
+    systemTextOwned = false;
+    assert(keyboard_text(tic) == 'B');
+
+    puts("system text ok");
+}
+
 static void testClipboard(tic_mem* tic)
 {
     press(tic, tic_key_c);
@@ -140,6 +167,7 @@ int main(void)
     testRepeat(tic);
     testEnter(tic);
     testText(tic);
+    testSystemText(tic);
     testClipboard(tic);
 
     tic_core_close(tic);
