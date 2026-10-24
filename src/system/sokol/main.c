@@ -1388,6 +1388,45 @@ static bool run_cli(void)
     return true;
 }
 
+#if defined(_WIN32)
+
+// A command-line run keeps the console it was given, and so does a terminal
+// launch; only a GUI launch that owns its console loses it.
+static bool command_requested(s32 argc, char** argv)
+{
+    for(s32 i = 1; i < argc; i++)
+        if(!strcmp(argv[i], "--cmd") || !strncmp(argv[i], "--cmd=", 6))
+            return true;
+
+    return false;
+}
+
+// One attached process means Windows made this console for the app alone, as
+// it does for an Explorer launch. A shell or terminal is a second one, and
+// that console is not ours to close.
+static bool win32_console_owned(void)
+{
+    DWORD pids[2];
+
+    return GetConsoleProcessList(pids, 2) == 1;
+}
+
+static void win32_console_detach_if_gui(bool command_line)
+{
+    if(command_line || !win32_console_owned())
+        return;
+
+    const HWND console = GetConsoleWindow();
+
+    if(console)
+        ShowWindow(console, SW_HIDE);
+
+    if(!FreeConsole() && console)
+        ShowWindow(console, SW_SHOW);
+}
+
+#endif
+
 // The layer owns the entry point: sokol_app makes the window before anything
 // of ours runs, and the console-only run must not make one.
 int main(int argc, char* argv[])
@@ -1409,8 +1448,21 @@ int main(int argc, char* argv[])
     platform.appFolder = getAppFolder();
     make_folder(platform.appFolder);
 
-    if(cli_requested(argc, argv) && run_cli())
+    // The flags are read before run_cli: the studio's argparse rewrites argv
+    // in place, and a second scan after it declines would walk the compacted
+    // array to its NULL.
+    const bool cli = cli_requested(argc, argv);
+
+#if defined(_WIN32)
+    const bool command = command_requested(argc, argv);
+#endif
+
+    if(cli && run_cli())
         return 0;
+
+#if defined(_WIN32)
+    win32_console_detach_if_gui(cli || command);
+#endif
 
     sapp_desc desc = app_desc();
     sapp_run(&desc);
