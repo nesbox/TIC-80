@@ -46,7 +46,7 @@ struct Sprite
     u16 index;
     u8 color;
     u8 color2;
-    u8 size;
+    u8 canvasSize;
     u8 brushSize;
     u16 x, y;
     bool hexindex;

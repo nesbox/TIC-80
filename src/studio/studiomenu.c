@@ -1396,10 +1396,10 @@ void studiomenu_sync_editor(Studio* studio, Menubar* bar, EditorMode mode, void*
                                  memcmp(&PalettePresets[i].palette, palette, sizeof(tic_palette)) == 0);
             }
 
-            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize8, sprite->size == 8);
-            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize16, sprite->size == 16);
-            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize32, sprite->size == 32);
-            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize64, sprite->size == 64);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize8, sprite->canvasSize == 8);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize16, sprite->canvasSize == 16);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize32, sprite->canvasSize == 32);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize64, sprite->canvasSize == 64);
 
             menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush1, sprite->brushSize == 1);
             menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush2, sprite->brushSize == 2);

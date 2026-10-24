@@ -154,7 +154,7 @@ static tic_rect getSpriteRect(Sprite* sprite)
     s32 x = getIndexPosX(sprite);
     s32 y = getIndexPosY(sprite);
 
-    return (tic_rect){x, y, sprite->size, sprite->size};
+    return (tic_rect){x, y, sprite->canvasSize, sprite->canvasSize};
 }
 
 static void drawCursorBorder(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
@@ -169,7 +169,7 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
 {
     tic_mem* tic = sprite->tic;
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
-    const s32 Size = CANVAS_SIZE / sprite->size;
+    const s32 Size = CANVAS_SIZE / sprite->canvasSize;
 
     if(checkMousePos(sprite->studio, &rect))
     {
@@ -250,7 +250,7 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 {
     tic_mem* tic = sprite->tic;
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
-    const s32 Size = CANVAS_SIZE / sprite->size;
+    const s32 Size = CANVAS_SIZE / sprite->canvasSize;
 
     if(checkMousePos(sprite->studio, &rect))
     {
@@ -302,8 +302,8 @@ static void pasteSelection(Sprite* sprite)
 {
     s32 l = getIndexPosX(sprite);
     s32 t = getIndexPosY(sprite);
-    s32 r = l + sprite->size;
-    s32 b = t + sprite->size;
+    s32 r = l + sprite->canvasSize;
+    s32 b = t + sprite->canvasSize;
 
     for(s32 sy = t, i = 0; sy < b; sy++)
         for(s32 sx = l; sx < r; sx++)
@@ -340,7 +340,7 @@ static void copySelection(Sprite* sprite)
         for(s32 j = selRect->y, index = 0; j < (selRect->y + selRect->h); j++)
             for(s32 i = selRect->x; i < (selRect->x + selRect->w); i++)
             {
-                u8* color = &sprite->select.back[i + j * sprite->size];
+                u8* color = &sprite->select.back[i + j * sprite->canvasSize];
                 sprite->select.front[index++] = *color;
                 *color = sprite->color2;
             }
@@ -352,7 +352,7 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
     tic_mem* tic = sprite->tic;
 
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
-    const s32 Size = CANVAS_SIZE / sprite->size;
+    const s32 Size = CANVAS_SIZE / sprite->canvasSize;
 
     bool endDrag = false;
 
@@ -429,7 +429,7 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
 {
     tic_mem* tic = sprite->tic;
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
-    const s32 Size = CANVAS_SIZE / sprite->size;
+    const s32 Size = CANVAS_SIZE / sprite->canvasSize;
 
     if(checkMousePos(sprite->studio, &rect))
     {
@@ -457,8 +457,8 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
             if(color != fill)
             {
                 tic_api_key(tic, tic_key_ctrl)
-                    ? replaceColor(sprite, l, t, l + sprite->size - 1, t + sprite->size - 1, sx, sy, color, fill)
-                    : floodFill(sprite, l, t, l + sprite->size - 1, t + sprite->size - 1, sx, sy, color, fill);
+                    ? replaceColor(sprite, l, t, l + sprite->canvasSize - 1, t + sprite->canvasSize - 1, sx, sy, color, fill)
+                    : floodFill(sprite, l, t, l + sprite->canvasSize - 1, t + sprite->canvasSize - 1, sx, sy, color, fill);
             }
 
             history_add(sprite->history);
@@ -520,7 +520,7 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
 {
     tic_mem* tic = sprite->tic;
 
-    const s32 Size = CANVAS_SIZE / sprite->size;
+    const s32 Size = CANVAS_SIZE / sprite->canvasSize;
     const tic_rect rect = getSpriteRect(sprite);
 
     const tic_rect canvasRect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
@@ -583,7 +583,7 @@ static void drawCanvas(Sprite* sprite, s32 x, s32 y)
     s32 r = rect.x + rect.w;
     s32 b = rect.y + rect.h;
 
-    const s32 Size = CANVAS_SIZE / sprite->size;
+    const s32 Size = CANVAS_SIZE / sprite->canvasSize;
 
     for(s32 sy = rect.y, j = y; sy < b; sy++, j += Size)
         for(s32 sx = rect.x, i = x; sx < r; sx++, i += Size)
@@ -600,7 +600,7 @@ static void upCanvas(Sprite* sprite)
 static void downCanvas(Sprite* sprite)
 {
     tic_rect* rect = &sprite->select.rect;
-    if(rect->y + rect->h < sprite->size) rect->y++;
+    if(rect->y + rect->h < sprite->canvasSize) rect->y++;
     pasteSelection(sprite);
 }
 
@@ -614,7 +614,7 @@ static void leftCanvas(Sprite* sprite)
 static void rightCanvas(Sprite* sprite)
 {
     tic_rect* rect = &sprite->select.rect;
-    if(rect->x + rect->w < sprite->size) rect->x++;
+    if(rect->x + rect->w < sprite->canvasSize) rect->x++;
     pasteSelection(sprite);
 }
 
@@ -637,14 +637,14 @@ static void rotateSelectRect(Sprite* sprite)
     if(sprite->select.rect.x < 0) sprite->select.rect.x = 0;
     if(sprite->select.rect.y < 0) sprite->select.rect.y = 0;
 
-    if(sprite->select.rect.x + sprite->select.rect.w >= sprite->size)
+    if(sprite->select.rect.x + sprite->select.rect.w >= sprite->canvasSize)
     {
-        sprite->select.rect.x -= sprite->select.rect.x + sprite->select.rect.w - sprite->size;
+        sprite->select.rect.x -= sprite->select.rect.x + sprite->select.rect.w - sprite->canvasSize;
     }
 
-    if(sprite->select.rect.y + sprite->select.rect.h >= sprite->size)
+    if(sprite->select.rect.y + sprite->select.rect.h >= sprite->canvasSize)
     {
-        sprite->select.rect.y -= sprite->select.rect.y + sprite->select.rect.h - sprite->size;
+        sprite->select.rect.y -= sprite->select.rect.y + sprite->select.rect.h - sprite->canvasSize;
     }
 }
 
@@ -749,7 +749,7 @@ static s32* getSpriteIndexes(Sprite* sprite)
     u16 sheet_cols = TIC_SPRITESHEET_COLS * sprite->blit.pages;
 
     {
-        tic_rect r = {sprite->index % sheet_cols, sprite->index / sheet_cols, sprite->size / TIC_SPRITESIZE, sprite->size / TIC_SPRITESIZE};
+        tic_rect r = {sprite->index % sheet_cols, sprite->index / sheet_cols, sprite->canvasSize / TIC_SPRITESIZE, sprite->canvasSize / TIC_SPRITESIZE};
 
         s32 c = 0;
         for(s32 j = r.y; j < r.h + r.y; j++)
@@ -1264,7 +1264,7 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 static void selectSprite(Sprite* sprite, s32 x, s32 y)
 {
     {
-        s32 size = TIC_SPRITESHEET_SIZE - sprite->size;
+        s32 size = TIC_SPRITESHEET_SIZE - sprite->canvasSize;
         if(x < 0) x = 0;
         if(y < 0) y = 0;
         if(x > size) x = size;
@@ -1277,9 +1277,9 @@ static void selectSprite(Sprite* sprite, s32 x, s32 y)
 
 static void updateSpriteSize(Sprite* sprite, s32 size)
 {
-    if(size != sprite->size)
+    if(size != sprite->canvasSize)
     {
-        sprite->size = (u8)(size);
+        sprite->canvasSize = (u8)(size);
         selectSprite(sprite, sprite->x * TIC_SPRITESIZE, sprite->y * TIC_SPRITESIZE);
     }
 }
@@ -1313,7 +1313,7 @@ static void drawSheetVBank1(Sprite* sprite, s32 x, s32 y)
 
         if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
         {
-            s32 offset = (sprite->size - TIC_SPRITESIZE) / 2;
+            s32 offset = (sprite->canvasSize - TIC_SPRITESIZE) / 2;
             selectSprite(sprite, tic_api_mouse(tic).x - x - offset, tic_api_mouse(tic).y - y - offset);
         }
     }
@@ -1321,7 +1321,7 @@ static void drawSheetVBank1(Sprite* sprite, s32 x, s32 y)
     s32 bx = sprite->x * TIC_SPRITESIZE + x - 1;
     s32 by = sprite->y * TIC_SPRITESIZE + y - 1;
 
-    tic_api_rectb(tic, bx, by, sprite->size + 2, sprite->size + 2, tic_color_white);
+    tic_api_rectb(tic, bx, by, sprite->canvasSize + 2, sprite->canvasSize + 2, tic_color_white);
 }
 
 static void drawSheet(Sprite* sprite, s32 x, s32 y)
@@ -1385,7 +1385,7 @@ static void flipSpriteVert(Sprite* sprite)
 
 static void rotateSprite(Sprite* sprite)
 {
-    const s32 Size = sprite->size;
+    const s32 Size = sprite->canvasSize;
     u8* buffer = (u8*)malloc(Size * Size);
 
     if(buffer)
@@ -1556,12 +1556,12 @@ void spriteToolAction(Sprite* sprite, s32 tool)
 
 static inline s32 getClipboardSpritesSize(Sprite* sprite)
 {
-    return sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
+    return sprite->canvasSize * sprite->canvasSize * TIC_PALETTE_BPP / BITS_IN_BYTE;
 }
 
 static inline s32 getClipboardFlagsSize(Sprite* sprite)
 {
-    return is4bpp(sprite) ? sprite->size * sprite->size / (TIC_SPRITESIZE * TIC_SPRITESIZE) : 0;
+    return is4bpp(sprite) ? sprite->canvasSize * sprite->canvasSize / (TIC_SPRITESIZE * TIC_SPRITESIZE) : 0;
 }
 
 static inline s32 getClipboardSize(Sprite* sprite)
@@ -1644,7 +1644,7 @@ static void upSprite(Sprite* sprite)
 
 static void downSprite(Sprite* sprite)
 {
-    if((sprite->y + sprite->size / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->y++;
+    if((sprite->y + sprite->canvasSize / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->y++;
     updateIndex(sprite);
 }
 
@@ -1656,7 +1656,7 @@ static void leftSprite(Sprite* sprite)
 
 static void rightSprite(Sprite* sprite)
 {
-    if((sprite->x + sprite->size / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->x++;
+    if((sprite->x + sprite->canvasSize / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->x++;
     updateIndex(sprite);
 }
 
@@ -1956,7 +1956,7 @@ static void tick(Sprite* sprite)
 
         if(input->mouse.scrolly)
         {
-            s32 size = sprite->size;
+            s32 size = sprite->canvasSize;
             s32 delta = input->mouse.scrolly;
 
             if(delta > 0)
@@ -2087,7 +2087,7 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
         .blit = {0},
         .color = 2,
         .color2 = 0,
-        .size = TIC_SPRITESIZE,
+        .canvasSize = TIC_SPRITESIZE,
         .palette =
             {
                 .edit = false,
