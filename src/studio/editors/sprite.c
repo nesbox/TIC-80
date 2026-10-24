@@ -1935,7 +1935,13 @@ static void scanline(tic_mem* tic, s32 row, void* data)
     Sprite* sprite = (Sprite*)data;
 
     if(row == 0)
-        memcpy(&tic->ram->vram.palette, getBankPalette(sprite->studio, sprite->palette.vbank1), sizeof(tic_palette));
+    {
+        const tic_palette* palette = sprite->palette.preview
+                                         ? sprite->palette.preview
+                                         : getBankPalette(sprite->studio, sprite->palette.vbank1);
+
+        memcpy(&tic->ram->vram.palette, palette, sizeof(tic_palette));
+    }
 }
 
 static void tick(Sprite* sprite)

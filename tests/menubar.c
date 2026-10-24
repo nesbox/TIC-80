@@ -571,6 +571,14 @@ static void testSubmenuHover(tic_mem* tic)
     // The submenu opens on hover, with no click and no delay.
     assert(!Mouse[tic_mouse_left].click);
 
+    // The row under the pointer is the submenu's selected row, so a host can
+    // read the hover from the bar; the keyboard case starts from the same field.
+    moveTo(tic, 89, itemY(4) + 3);
+    step(&bar, tic);
+
+    assert(bar.sub == &SubAMenu);
+    assert(bar.subSelect == 0);
+
     puts("submenu hover ok");
 }
 

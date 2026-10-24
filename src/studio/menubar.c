@@ -1173,6 +1173,8 @@ static void pointerStep(Menubar* menubar, MouseState* state, tic_point pos)
 
     if(menubar->sub)
     {
+        menubar->subSelect = pointedSubRow(menubar, pos);
+
         tic_rect popup = subPopupRect(menubar);
         const MenuBarCategory* category = menubar->sub;
 

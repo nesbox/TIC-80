@@ -58,6 +58,7 @@ struct Sprite
         bool edit;
         bool vbank1;
         s32 focus;
+        const tic_palette* preview;
     } palette;
 
     struct
