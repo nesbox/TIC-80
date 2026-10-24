@@ -1086,13 +1086,14 @@ static const MenuBarItem* const MenubarMapPins[] =
         &MenubarMapApp[9],            // SHOW TILES
 };
 
+// LOOP stays in the menu: a session preference, not a transport action.
 static const MenuBarItem* const MenubarMusicPins[] =
     {
         EDIT_PINS & MenubarMusicApp[0], // PIANO
         &MenubarMusicApp[1],            // TRACKER
-        &MenubarMusicApp[4],            // LOOP
         &MenubarMusicApp[9],            // PLAY TRACK
-        &MenubarMusicApp[10],           // STOP
+        &MenubarMusicApp[11],           // STOP
+        &MenubarMusicApp[10],           // RESET TRACK
 };
 
 static const MenuBarItem* const MenubarSfxPins[] =
