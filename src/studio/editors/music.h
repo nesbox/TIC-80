@@ -36,6 +36,9 @@ struct Music
     s32 frame;
     s32 row;
 
+    s32 startFrame;
+    s32 startRow;
+
     struct
     {
         s32 pos;
@@ -106,5 +109,5 @@ void musicToggleLoop(Music*);
 void musicToggleSustain(Music*);
 void musicPlayFromNow(Music*);
 void musicPlayFrame(Music*);
-void musicPlayTrack(Music*);
+void musicPlayTrack(Music*, bool);
 void musicStop(Music*);
