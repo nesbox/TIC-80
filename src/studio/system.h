@@ -155,6 +155,9 @@ extern "C"
             enum TabMode tabMode;
             s32 tabSize;
 
+            // The music editor's tab, saved as the menubar switches it.
+            bool musicTracker;
+
             // The code editor's view and the bar's autohide, saved as the
             // menubar toggles change.
             bool codeAltFont;

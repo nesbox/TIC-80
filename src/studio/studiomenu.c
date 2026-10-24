@@ -333,10 +333,16 @@ static void menubarMusicAction(void* data, s32 id)
     Studio* studio = ctx->studio;
     Music* music = studiomenu_editor(studio, TIC_MUSIC_MODE);
 
+    Config* config = studio_config_get(studio);
+
     switch(id)
     {
-        case MusicActionPiano: music->tab = MUSIC_PIANO_TAB; break;
-        case MusicActionTracker: music->tab = MUSIC_TRACKER_TAB; break;
+        case MusicActionPiano:
+        case MusicActionTracker:
+            music->tab = id == MusicActionPiano ? MUSIC_PIANO_TAB : MUSIC_TRACKER_TAB;
+            config->data.options.musicTracker = id == MusicActionTracker;
+            config->saveOptions(config);
+            break;
         case MusicActionFollow: musicToggleFollow(music); break;
         case MusicActionLoop: musicToggleLoop(music); break;
         case MusicActionSustain: musicToggleSustain(music); break;
