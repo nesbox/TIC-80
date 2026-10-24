@@ -541,6 +541,7 @@ typedef struct
     bool enhanced;  // the pad sends its extended report, so it is one the keepalive is for
     DWORD last;     // when a report last arrived, for the Bluetooth keepalive
     sgamepad_hid_family family;
+    sgamepad_hid_switch_model model;  // which Switch layout, for the pads that use one
     wchar_t path[_SGAMEPAD_HID_PATH]; // the interface, which is what tells two of them apart
     uint8_t report[_SGAMEPAD_HID_ARRAY];
 } _sgamepad_hid_device;
@@ -606,12 +607,13 @@ static bool _sgamepad_hid_read(_sgamepad_hid_device* pad)
     if(bytes == 0)
         return true;
 
-    // The report id says which wire the pad is on, and only a Bluetooth one
+    // The report id says which wire the pad is on, and only a PlayStation one
     // wants the keepalive: `1` is the state report a cable delivers, and the
-    // bands the Bluetooth stack wraps around it are the others.
+    // bands the Bluetooth stack wraps around it are the others. A Switch pad's
+    // `0x31` shares the DualSense's id and is not a Bluetooth state.
     pad->bluetooth = pad->family == SGAMEPAD_HID_PS4
                          ? (pad->report[0] >= _SGAMEPAD_HID_PS4_BT_STATE_1 && pad->report[0] <= _SGAMEPAD_HID_PS4_BT_STATE_9)
-                         : pad->report[0] == _SGAMEPAD_HID_PS5_BT_STATE;
+                         : pad->family == SGAMEPAD_HID_PS5 && pad->report[0] == _SGAMEPAD_HID_PS5_BT_STATE;
 
     sgamepad_hid_state state = {0};
 
@@ -621,7 +623,7 @@ static bool _sgamepad_hid_read(_sgamepad_hid_device* pad)
     {
         case SGAMEPAD_HID_PS4: read = sgamepad_hid_ps4_report(pad->report, bytes, &state); break;
         case SGAMEPAD_HID_PS5: read = sgamepad_hid_ps5_report(pad->report, bytes, &state); break;
-        case SGAMEPAD_HID_SWITCH: read = sgamepad_hid_switch_report(pad->report, bytes, &state); break;
+        case SGAMEPAD_HID_SWITCH: read = sgamepad_hid_switch_report(pad->report, bytes, pad->model, &state); break;
         default: break;
     }
 
@@ -739,6 +741,9 @@ static bool _sgamepad_hid_open(const wchar_t* path)
     pad->file = file;
     pad->family = family;
     pad->last = GetTickCount();
+
+    if(family == SGAMEPAD_HID_SWITCH)
+        pad->model = sgamepad_hid_switch_model_of(attributes.VendorID, attributes.ProductID);
     pad->overlapped.hEvent = CreateEventW(NULL, TRUE, FALSE, NULL);
 
     // A second handle for the keepalive's writes, without the overlapped flag:

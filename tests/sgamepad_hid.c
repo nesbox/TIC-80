@@ -36,11 +36,11 @@ static sgamepad_hid_state read_ps5(const uint8_t* report, size_t length)
     return state;
 }
 
-static sgamepad_hid_state read_switch(const uint8_t* report, size_t length)
+static sgamepad_hid_state read_switch(const uint8_t* report, size_t length, sgamepad_hid_switch_model model)
 {
     sgamepad_hid_state state = {0};
 
-    assert(sgamepad_hid_switch_report(report, length, &state));
+    assert(sgamepad_hid_switch_report(report, length, model, &state));
     return state;
 }
 
@@ -451,6 +451,31 @@ static void switch_state(uint8_t* report, uint8_t low, uint8_t high, uint8_t hat
     }
 }
 
+// The full-state report: a counter, the battery/connection byte, three button
+// bytes, then the sticks as 12-bit values packed three bytes per pair.
+#define SWITCH_FULL_REPORT_SIZE 64
+
+static void switch_full_state(uint8_t* report, uint8_t report_id, uint8_t buttons0, uint8_t buttons1, uint8_t buttons2,
+                              uint16_t lx, uint16_t ly, uint16_t rx, uint16_t ry)
+{
+    memset(report, 0, SWITCH_FULL_REPORT_SIZE);
+
+    report[0] = report_id;
+    report[1] = 0x42; // the counter
+    report[2] = 0x70; // the battery and connection
+    report[3] = buttons0;
+    report[4] = buttons1;
+    report[5] = buttons2;
+
+    report[6] = (uint8_t)(lx);
+    report[7] = (uint8_t)(((lx >> 8) & 0x0F) | ((ly & 0x0F) << 4));
+    report[8] = (uint8_t)(ly >> 4);
+    report[9] = (uint8_t)(rx);
+    report[10] = (uint8_t)(((rx >> 8) & 0x0F) | ((ry & 0x0F) << 4));
+    report[11] = (uint8_t)(ry >> 4);
+    report[12] = 0x0B; // the vibration byte the capture carries
+}
+
 static void testSwitchFaceButtons(void)
 {
     // The pad names its buttons the other way round from where they sit: `b`
@@ -474,7 +499,7 @@ static void testSwitchFaceButtons(void)
 
         switch_state(report, Cases[i].byte, 0x00, 0x08, 0x8000, 0x8000, 0x8000, 0x8000);
 
-        assert(buttons(read_switch(report, sizeof report)) == Cases[i].expected);
+        assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == Cases[i].expected);
     }
 
     puts("switch face buttons ok");
@@ -487,22 +512,22 @@ static void testSwitchHatAndSticks(void)
     // The minus and plus buttons, which the machine reads as back and start,
     // sharing their byte with the stick-presses the layer does not read.
     switch_state(report, 0x00, 0x01, 0x08, 0x8000, 0x8000, 0x8000, 0x8000);
-    assert(buttons(read_switch(report, sizeof report)) == BACK);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == BACK);
 
     switch_state(report, 0x00, 0x02, 0x08, 0x8000, 0x8000, 0x8000, 0x8000);
-    assert(buttons(read_switch(report, sizeof report)) == START);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == START);
 
     // A stick pressed in shares that byte, and reads as nothing either.
     switch_state(report, 0x00, 0x04, 0x08, 0x8000, 0x8000, 0x8000, 0x8000);
-    assert(buttons(read_switch(report, sizeof report)) == 0);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == 0);
 
     // The hat: a direction, both of its bits on the diagonals, and nothing.
     switch_state(report, 0x00, 0x00, 0x01, 0x8000, 0x8000, 0x8000, 0x8000);
-    assert(buttons(read_switch(report, sizeof report)) == (UP | RIGHT));
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == (UP | RIGHT));
 
     switch_state(report, 0x00, 0x00, 0x08, 0x8000, 0x8000, 0x8000, 0x8000);
 
-    const sgamepad_hid_state centered = read_switch(report, sizeof report);
+    const sgamepad_hid_state centered = read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO);
 
     assert(buttons(centered) == 0);
     assert(centered.right_x == 0.0f && centered.right_y == 0.0f);
@@ -510,12 +535,183 @@ static void testSwitchHatAndSticks(void)
     // A stick held hard right and down, which the pad sends as the larger y.
     switch_state(report, 0x00, 0x00, 0x08, 0x8000, 0x8000, 0xFFFF, 0xFFFF);
 
-    const sgamepad_hid_state pushed = read_switch(report, sizeof report);
+    const sgamepad_hid_state pushed = read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO);
 
     assert(pushed.right_x > 0.99f);
     assert(pushed.right_y > 0.99f);
 
     puts("switch hat and sticks ok");
+}
+
+// The full-state report the S-mode 8BitDo sends over USB: the captured idle
+// packet, the face buttons in the first button byte, back/start in the second,
+// the d-pad in the third, and the 12-bit sticks.
+static void testSwitchFullPro(void)
+{
+    uint8_t report[SWITCH_FULL_REPORT_SIZE];
+
+    // The bench's idle packet: buttons clear, sticks at 0x7F0/0x800. The
+    // paper's center is 0x800, so the small x offset is inside the reader's
+    // threshold and the right stick is near zero, not exactly zero.
+    switch_full_state(report, 0x30, 0x00, 0x00, 0x00, 0x7F0, 0x800, 0x7F0, 0x800);
+
+    const sgamepad_hid_state idle = read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO);
+
+    assert(buttons(idle) == 0);
+    assert(idle.right_x > -0.01f && idle.right_x < 0.01f);
+    assert(idle.right_y > -0.01f && idle.right_y < 0.01f);
+
+    // Face buttons: the bit SDL labels B is the bottom one, A the right, Y the
+    // left and X the top.
+    static const struct
+    {
+        uint8_t byte;
+        unsigned expected;
+    } Face[] = {
+        {0x04, A}, // the bottom one
+        {0x08, B}, // the right one
+        {0x01, X}, // the left one
+        {0x02, Y}, // the top one
+    };
+
+    for(size_t i = 0; i < sizeof Face / sizeof Face[0]; i++)
+    {
+        switch_full_state(report, 0x30, Face[i].byte, 0x00, 0x00, 0x800, 0x800, 0x800, 0x800);
+        assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == Face[i].expected);
+    }
+
+    // Back and start are the minus and plus bits in the second button byte.
+    switch_full_state(report, 0x30, 0x00, 0x01, 0x00, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == BACK);
+
+    switch_full_state(report, 0x30, 0x00, 0x02, 0x00, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == START);
+
+    // The d-pad is in the third button byte.
+    switch_full_state(report, 0x30, 0x00, 0x00, 0x01, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == DOWN);
+
+    switch_full_state(report, 0x30, 0x00, 0x00, 0x02, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == UP);
+
+    switch_full_state(report, 0x30, 0x00, 0x00, 0x04, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == RIGHT);
+
+    switch_full_state(report, 0x30, 0x00, 0x00, 0x08, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == LEFT);
+
+    // Distinct axes, so a reader that took the right stick from the left
+    // stick's bytes cannot pass: the left is hard right and up, the right is
+    // centered on x and hard up on y.
+    switch_full_state(report, 0x30, 0x00, 0x00, 0x00, 0xFFF, 0xFFF, 0x800, 0xFFF);
+
+    const sgamepad_hid_state pushed = read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO);
+
+    assert(pushed.right && pushed.up);
+    assert(pushed.right_x > -0.01f && pushed.right_x < 0.01f);
+    assert(pushed.right_y < -0.99f);
+
+    // 0x31 carries the same controller state before the MCU's data.
+    switch_full_state(report, 0x31, 0x00, 0x00, 0x02, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO)) == UP);
+
+    // A full report too short to hold the controller state is not read.
+    sgamepad_hid_state short_state = {0};
+
+    assert(!sgamepad_hid_switch_report(report, 12, SGAMEPAD_HID_SWITCH_PRO, &short_state));
+
+    puts("switch full pro ok");
+}
+
+// A single Joy-Con uses SDL's mini layouts: the left unit's d-pad is the face
+// buttons and its minus is start, the right unit keeps its face buttons and
+// its plus is start, and each stick is rotated a quarter turn. A single unit
+// has no back and no right stick.
+static void testSwitchJoyCon(void)
+{
+    uint8_t report[SWITCH_FULL_REPORT_SIZE];
+
+    static const struct
+    {
+        uint8_t byte;
+        unsigned expected;
+    } LeftFace[] = {
+        {0x08, A}, // the bottom one
+        {0x01, B}, // the right one
+        {0x02, X}, // the left one
+        {0x04, Y}, // the top one
+    };
+
+    for(size_t i = 0; i < sizeof LeftFace / sizeof LeftFace[0]; i++)
+    {
+        switch_full_state(report, 0x30, 0x00, 0x00, LeftFace[i].byte, 0x800, 0x800, 0x800, 0x800);
+        assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_JOYCON_L)) == LeftFace[i].expected);
+    }
+
+    switch_full_state(report, 0x30, 0x00, 0x01, 0x00, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_JOYCON_L)) == START);
+
+    // The left stick is rotated: its X is the machine's y and its Y is the
+    // machine's x, both inverted. X at maximum means up.
+    switch_full_state(report, 0x30, 0x00, 0x00, 0x00, 0xFFF, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_JOYCON_L)) == UP);
+
+    static const struct
+    {
+        uint8_t byte;
+        unsigned expected;
+    } RightFace[] = {
+        {0x08, A}, // the bottom one
+        {0x04, X}, // the left one
+        {0x02, B}, // the right one
+        {0x01, Y}, // the top one
+    };
+
+    for(size_t i = 0; i < sizeof RightFace / sizeof RightFace[0]; i++)
+    {
+        switch_full_state(report, 0x30, RightFace[i].byte, 0x00, 0x00, 0x800, 0x800, 0x800, 0x800);
+        assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_JOYCON_R)) == RightFace[i].expected);
+    }
+
+    switch_full_state(report, 0x30, 0x00, 0x02, 0x00, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_JOYCON_R)) == START);
+
+    // The right stick is rotated the other way: its X is the machine's y and
+    // its Y the machine's x, neither inverted. X at maximum means down.
+    switch_full_state(report, 0x30, 0x00, 0x00, 0x00, 0x800, 0x800, 0xFFF, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_JOYCON_R)) == DOWN);
+
+    // 0x31 carries the same controller state before the MCU's data, for the
+    // mini layouts too.
+    switch_full_state(report, 0x31, 0x00, 0x00, 0x08, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_JOYCON_L)) == A);
+
+    switch_full_state(report, 0x31, 0x08, 0x00, 0x00, 0x800, 0x800, 0x800, 0x800);
+    assert(buttons(read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_JOYCON_R)) == A);
+
+    // A single unit has no back bit and no right stick to move the mouse.
+    switch_full_state(report, 0x30, 0x00, 0x01, 0x00, 0x800, 0x800, 0x800, 0x800);
+
+    const sgamepad_hid_state left = read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_JOYCON_L);
+
+    assert(!left.back);
+    assert(left.right_x == 0.0f && left.right_y == 0.0f);
+
+    switch_full_state(report, 0x30, 0x00, 0x02, 0x00, 0x800, 0x800, 0x800, 0x800);
+
+    const sgamepad_hid_state right = read_switch(report, sizeof report, SGAMEPAD_HID_SWITCH_JOYCON_R);
+
+    assert(!right.back);
+    assert(right.right_x == 0.0f && right.right_y == 0.0f);
+
+    // The simple report is the Pro's, not a Joy-Con's.
+    uint8_t simple[12];
+    sgamepad_hid_state state = {0};
+
+    switch_state(simple, 0x00, 0x00, 0x08, 0x8000, 0x8000, 0x8000, 0x8000);
+    assert(!sgamepad_hid_switch_report(simple, sizeof simple, SGAMEPAD_HID_SWITCH_JOYCON_L, &state));
+
+    puts("switch joy-con ok");
 }
 
 // A report of another id, or one too short to hold what it must, is left
@@ -526,12 +722,16 @@ static void testUnknownReports(void)
 
     memset(report, 0, sizeof report);
 
-    report[0] = 0x30; // the Switch full report, which is not read here
+    report[0] = 0x30; // the full-state report, too short in the calls below
 
     sgamepad_hid_state state = {0};
 
-    assert(!sgamepad_hid_switch_report(report, 12, &state));
-    assert(!sgamepad_hid_switch_report(report, 3, &state));
+    assert(!sgamepad_hid_switch_report(report, 12, SGAMEPAD_HID_SWITCH_PRO, &state));
+    assert(!sgamepad_hid_switch_report(report, 3, SGAMEPAD_HID_SWITCH_PRO, &state));
+
+    report[0] = 0x3E; // a report id neither reader knows
+
+    assert(!sgamepad_hid_switch_report(report, sizeof report, SGAMEPAD_HID_SWITCH_PRO, &state));
     assert(!sgamepad_hid_ps4_report(report, sizeof report, &state));
     assert(!sgamepad_hid_ps5_report(report, sizeof report, &state));
     assert(!sgamepad_hid_ps4_report(report, 2, &state));
@@ -554,7 +754,17 @@ static void testFamilies(void)
     assert(sgamepad_hid_family_of(0x054C, 0x0CE6) == SGAMEPAD_HID_PS5);
     assert(sgamepad_hid_family_of(0x054C, 0x0DF2) == SGAMEPAD_HID_PS5);
     assert(sgamepad_hid_family_of(0x057E, 0x2009) == SGAMEPAD_HID_SWITCH);
+    assert(sgamepad_hid_family_of(0x057E, 0x2006) == SGAMEPAD_HID_SWITCH);
     assert(sgamepad_hid_family_of(0x057E, 0x2007) == SGAMEPAD_HID_SWITCH);
+
+    // The pair and the charging grip are not one pad here: combining them is
+    // not this reader's job, so they are left unclaimed.
+    assert(sgamepad_hid_family_of(0x057E, 0x2008) == SGAMEPAD_HID_NONE);
+    assert(sgamepad_hid_family_of(0x057E, 0x200E) == SGAMEPAD_HID_NONE);
+
+    assert(sgamepad_hid_switch_model_of(0x057E, 0x2009) == SGAMEPAD_HID_SWITCH_PRO);
+    assert(sgamepad_hid_switch_model_of(0x057E, 0x2006) == SGAMEPAD_HID_SWITCH_JOYCON_L);
+    assert(sgamepad_hid_switch_model_of(0x057E, 0x2007) == SGAMEPAD_HID_SWITCH_JOYCON_R);
 
     // A wheel, a keyboard, and XInput's own pads are none of these readers'.
     assert(sgamepad_hid_family_of(0x045E, 0x028E) == SGAMEPAD_HID_NONE);
@@ -655,6 +865,8 @@ int main(void)
     testPS5Bluetooth();
     testSwitchFaceButtons();
     testSwitchHatAndSticks();
+    testSwitchFullPro();
+    testSwitchJoyCon();
     testUnknownReports();
     testFamilies();
     testCrcIsSdls();
