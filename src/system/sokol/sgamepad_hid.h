@@ -39,6 +39,17 @@ typedef enum
     SGAMEPAD_HID_SWITCH, // Switch Pro, Joy-Con, and pads presenting as one
 } sgamepad_hid_family;
 
+// Which Switch layout the device speaks. The product id names it: the Pro and
+// the third-party pads presenting as one use the Pro layout, and a Joy-Con
+// uses its own side's — SDL's mini handlers, not the Pro one. A pair and a
+// charging grip are not claimed: a pair is two pads here, not one.
+typedef enum
+{
+    SGAMEPAD_HID_SWITCH_PRO = 0,
+    SGAMEPAD_HID_SWITCH_JOYCON_L,
+    SGAMEPAD_HID_SWITCH_JOYCON_R,
+} sgamepad_hid_switch_model;
+
 typedef struct
 {
     // The direction pad, and the left stick pushed past the threshold below:
@@ -65,11 +76,15 @@ typedef struct
 // one is caught here too.
 sgamepad_hid_family sgamepad_hid_family_of(uint16_t vendor, uint16_t product);
 
+// Which Switch layout the ids name. Only meaningful for a product the family
+// function has already placed in SGAMEPAD_HID_SWITCH.
+sgamepad_hid_switch_model sgamepad_hid_switch_model_of(uint16_t vendor, uint16_t product);
+
 // A report the reader does not know — another report id, a length that cannot
 // hold what it must — is left alone: false, and `state` is not touched.
 bool sgamepad_hid_ps4_report(const uint8_t* report, size_t length, sgamepad_hid_state* state);
 bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_state* state);
-bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_hid_state* state);
+bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_hid_switch_model model, sgamepad_hid_state* state);
 
 // The host writes one of these to a PlayStation pad on Bluetooth to keep it
 // sending: without it such a pad works on a cable and stalls on a couch. The
@@ -115,18 +130,29 @@ uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length);
 #define _SGAMEPAD_HID_SWITCH_PRO   0x2009
 #define _SGAMEPAD_HID_SWITCH_LEFT  0x2006
 #define _SGAMEPAD_HID_SWITCH_RIGHT 0x2007
-#define _SGAMEPAD_HID_SWITCH_PAIR  0x2008
-#define _SGAMEPAD_HID_SWITCH_GRIP  0x200E
+
+// The pair and the charging grip are not claimed: a pair is two pads here,
+// and combining them into one is a change of its own.
+#define _SGAMEPAD_HID_SWITCH_PAIR 0x2008
+#define _SGAMEPAD_HID_SWITCH_GRIP 0x200E
 
 // The report ids. The PlayStation state reports are `1` over USB and `0x11`
 // over Bluetooth for the DualShock 4 — SDL accepts the whole `0x11`..`0x19`
 // band — and `1` and `0x31` for the DualSense.
-#define _SGAMEPAD_HID_PS4_USB_STATE  0x01
-#define _SGAMEPAD_HID_PS4_BT_STATE_1 0x11
-#define _SGAMEPAD_HID_PS4_BT_STATE_9 0x19
-#define _SGAMEPAD_HID_PS5_STATE      0x01
-#define _SGAMEPAD_HID_PS5_BT_STATE   0x31
-#define _SGAMEPAD_HID_SWITCH_SIMPLE  0x3F
+#define _SGAMEPAD_HID_PS4_USB_STATE   0x01
+#define _SGAMEPAD_HID_PS4_BT_STATE_1  0x11
+#define _SGAMEPAD_HID_PS4_BT_STATE_9  0x19
+#define _SGAMEPAD_HID_PS5_STATE       0x01
+#define _SGAMEPAD_HID_PS5_BT_STATE    0x31
+#define _SGAMEPAD_HID_SWITCH_SIMPLE   0x3F
+#define _SGAMEPAD_HID_SWITCH_FULL     0x30
+#define _SGAMEPAD_HID_SWITCH_FULL_MCU 0x31
+
+// The controller state a full report starts with: a counter, the battery and
+// connection byte, three button bytes, two three-byte sticks and a vibration
+// byte. The rest is IMU data, and the MCU variant only adds more, so the
+// reader takes the prefix it needs and ignores the rest.
+#define _SGAMEPAD_HID_SWITCH_FULL_SIZE 13
 
 // What the CRC32 of a packet coming in is summed with: the HIDP header is part
 // of the sum. `0xA1` is the one for a packet coming in, and nothing here sends
@@ -156,9 +182,15 @@ uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length);
 #define _SGAMEPAD_HID_STICK8_CENTER  0x80
 #define _SGAMEPAD_HID_STICK16_CENTER 0x8000
 
-// A 16-bit stick is read in the share of its travel SDL's own writers give it
-//: half the range reads as full, which is where the calibrated extents settle.
+// A 16-bit stick is read in the share of its travel SDL's own writers give it:
+// half the range reads as full, which is where the calibrated extents settle.
 #define _SGAMEPAD_HID_STICK16_RANGE 0x4000
+
+// The full-state report's sticks are 12-bit and centered on 0x800. Its y grows
+// upwards, where the simple report's does not: SDL negates the full one with
+// `~axis`, and so does the reader, which makes the smallest raw value down.
+#define _SGAMEPAD_HID_STICK12_CENTER 0x800
+#define _SGAMEPAD_HID_STICK12_RANGE  0x800
 
 // The direction pad both families send as a nibble, where this is nothing held
 // and the rest count clockwise from up.
@@ -227,6 +259,26 @@ static float _sgamepad_hid_stick16(const uint8_t* bytes)
     return value > 1.0f ? 1.0f : (value < -1.0f ? -1.0f : value);
 }
 
+// The same for the full-state report's 12-bit sticks, which are packed across
+// three bytes per pair and centered on 0x800.
+static float _sgamepad_hid_stick12(uint16_t raw)
+{
+    const int32_t centered = (int32_t)raw - _SGAMEPAD_HID_STICK12_CENTER;
+    const float value = centered / (float)_SGAMEPAD_HID_STICK12_RANGE;
+
+    return value > 1.0f ? 1.0f : (value < -1.0f ? -1.0f : value);
+}
+
+static float _sgamepad_hid_stick12_x(const uint8_t* bytes)
+{
+    return _sgamepad_hid_stick12((uint16_t)(bytes[0] | ((bytes[1] & 0x0F) << 8)));
+}
+
+static float _sgamepad_hid_stick12_y(const uint8_t* bytes)
+{
+    return _sgamepad_hid_stick12((uint16_t)((bytes[1] >> 4) | (bytes[2] << 4)));
+}
+
 // The direction a nibble names, where nothing held is its own value and the
 // rest count clockwise from up; the diagonals set both of their bits.
 static void _sgamepad_hid_hat(uint8_t hat, sgamepad_hid_state* state)
@@ -268,6 +320,79 @@ static void _sgamepad_hid_ps_buttons(const uint8_t* buttons, sgamepad_hid_state*
     state->start = (buttons[1] & 0x20) != 0;
 }
 
+// The Pro's full-state packet: three button bytes with the face buttons in
+// the first and the d-pad in the third, then the two 12-bit sticks. SDL's
+// HandleFullControllerState reads the same fields and inverts y with `~axis`;
+// the fixed center stands in for its SPI calibration.
+static void _sgamepad_hid_switch_pro_full(const uint8_t* packet, sgamepad_hid_state* state)
+{
+    const uint8_t buttons0 = packet[2];
+    const uint8_t buttons1 = packet[3];
+    const uint8_t buttons2 = packet[4];
+
+    // Positions, not labels: SDL's `b` is the bottom one, `a` the right, `y`
+    // the left and `x` the top.
+    state->a = (buttons0 & 0x04) != 0;
+    state->b = (buttons0 & 0x08) != 0;
+    state->x = (buttons0 & 0x01) != 0;
+    state->y = (buttons0 & 0x02) != 0;
+
+    state->back = (buttons1 & 0x01) != 0;
+    state->start = (buttons1 & 0x02) != 0;
+
+    state->down = (buttons2 & 0x01) != 0;
+    state->up = (buttons2 & 0x02) != 0;
+    state->right = (buttons2 & 0x04) != 0;
+    state->left = (buttons2 & 0x08) != 0;
+
+    _sgamepad_hid_left_stick(_sgamepad_hid_stick12_x(packet + 5), -_sgamepad_hid_stick12_y(packet + 5), state);
+
+    state->right_x = _sgamepad_hid_stick12_x(packet + 8);
+    state->right_y = -_sgamepad_hid_stick12_y(packet + 8);
+}
+
+// A single left Joy-Con, read with SDL's HandleMiniControllerStateL: its
+// d-pad is the face buttons, its minus button is start, and its stick is
+// rotated a quarter turn. It has no back and no right stick.
+static void _sgamepad_hid_switch_joycon_l(const uint8_t* packet, sgamepad_hid_state* state)
+{
+    const uint8_t buttons1 = packet[3];
+    const uint8_t buttons2 = packet[4];
+
+    // SDL's mini handler reads the d-pad through RemapButton for positions:
+    // its A is the right bit, B the bottom, X the top and Y the left.
+    state->b = (buttons2 & 0x01) != 0;
+    state->x = (buttons2 & 0x02) != 0;
+    state->y = (buttons2 & 0x04) != 0;
+    state->a = (buttons2 & 0x08) != 0;
+
+    state->start = (buttons1 & 0x01) != 0;
+
+    // SDL maps the left unit's stick X to the machine's y and its Y to the
+    // machine's x, both inverted.
+    _sgamepad_hid_left_stick(-_sgamepad_hid_stick12_y(packet + 5), -_sgamepad_hid_stick12_x(packet + 5), state);
+}
+
+// A single right Joy-Con, read with SDL's HandleMiniControllerStateR: its
+// face buttons are the Pro positions, its plus button is start, and its stick
+// is rotated the other way. It has no back and no right stick.
+static void _sgamepad_hid_switch_joycon_r(const uint8_t* packet, sgamepad_hid_state* state)
+{
+    const uint8_t buttons0 = packet[2];
+    const uint8_t buttons1 = packet[3];
+
+    state->a = (buttons0 & 0x08) != 0;
+    state->x = (buttons0 & 0x04) != 0;
+    state->b = (buttons0 & 0x02) != 0;
+    state->y = (buttons0 & 0x01) != 0;
+
+    state->start = (buttons1 & 0x02) != 0;
+
+    // SDL maps the right unit's stick X to the machine's y and its Y to the
+    // machine's x, neither inverted.
+    _sgamepad_hid_left_stick(_sgamepad_hid_stick12_y(packet + 8), _sgamepad_hid_stick12_x(packet + 8), state);
+}
+
 sgamepad_hid_family sgamepad_hid_family_of(uint16_t vendor, uint16_t product)
 {
     if(vendor == _SGAMEPAD_HID_SONY)
@@ -294,8 +419,6 @@ sgamepad_hid_family sgamepad_hid_family_of(uint16_t vendor, uint16_t product)
             case _SGAMEPAD_HID_SWITCH_PRO:
             case _SGAMEPAD_HID_SWITCH_LEFT:
             case _SGAMEPAD_HID_SWITCH_RIGHT:
-            case _SGAMEPAD_HID_SWITCH_PAIR:
-            case _SGAMEPAD_HID_SWITCH_GRIP:
                 return SGAMEPAD_HID_SWITCH;
 
             default:
@@ -304,6 +427,26 @@ sgamepad_hid_family sgamepad_hid_family_of(uint16_t vendor, uint16_t product)
     }
 
     return SGAMEPAD_HID_NONE;
+}
+
+sgamepad_hid_switch_model sgamepad_hid_switch_model_of(uint16_t vendor, uint16_t product)
+{
+    if(vendor == _SGAMEPAD_HID_NINTENDO)
+    {
+        switch(product)
+        {
+            case _SGAMEPAD_HID_SWITCH_LEFT:
+                return SGAMEPAD_HID_SWITCH_JOYCON_L;
+
+            case _SGAMEPAD_HID_SWITCH_RIGHT:
+                return SGAMEPAD_HID_SWITCH_JOYCON_R;
+
+            default:
+                break;
+        }
+    }
+
+    return SGAMEPAD_HID_SWITCH_PRO;
 }
 
 bool sgamepad_hid_ps4_report(const uint8_t* report, size_t length, sgamepad_hid_state* state)
@@ -402,40 +545,74 @@ bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_
     return true;
 }
 
-bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_hid_state* state)
+bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_hid_switch_model model, sgamepad_hid_state* state)
 {
-    // The simple report is the only one read: the buttons, the hat and the
-    // sticks, with no mode command and no calibration to ask for.
-    if(report[0] != _SGAMEPAD_HID_SWITCH_SIMPLE || length < 12)
-        return false;
+    if(report[0] == _SGAMEPAD_HID_SWITCH_SIMPLE)
+    {
+        // The simple report is the Pro's: two button bytes, the hat and the
+        // 16-bit sticks. A Joy-Con is read from the full report, where its own
+        // layout lives; the simple one is not its layout.
+        if(model != SGAMEPAD_HID_SWITCH_PRO || length < 12)
+            return false;
 
-    const uint8_t* packet = report + 1;
+        const uint8_t* packet = report + 1;
 
-    // The pad names its buttons by the labels printed on them, which is the
-    // other way round from where they sit: the one it calls `b` is the bottom
-    // one, `a` the right, `y` the left and `x` the top. The machine reads
-    // positions, so all four are read where they are rather than by what the
-    // pad calls them — which is the swap SDL makes when it is asked for
-    // positions, and the one TIC-80's own Switch build makes.
-    state->a = (packet[0] & 0x01) != 0; // the bottom one
-    state->b = (packet[0] & 0x02) != 0; // the right one
-    state->x = (packet[0] & 0x04) != 0; // the left one
-    state->y = (packet[0] & 0x08) != 0; // the top one
-    // (which is where the pad's own labels put `b`, `a`, `y` and `x`)
+        // The pad names its buttons by the labels printed on them, which is
+        // the other way round from where they sit: the one it calls `b` is the
+        // bottom one, `a` the right, `y` the left and `x` the top. The machine
+        // reads positions, so all four are read where they are rather than by
+        // what the pad calls them — which is the swap SDL makes when it is
+        // asked for positions, and the one TIC-80's own Switch build makes.
+        state->a = (packet[0] & 0x01) != 0; // the bottom one
+        state->b = (packet[0] & 0x02) != 0; // the right one
+        state->x = (packet[0] & 0x04) != 0; // the left one
+        state->y = (packet[0] & 0x08) != 0; // the top one
+        // (which is where the pad's own labels put `b`, `a`, `y` and `x`)
 
-    state->back = (packet[1] & 0x01) != 0;
-    state->start = (packet[1] & 0x02) != 0;
+        state->back = (packet[1] & 0x01) != 0;
+        state->start = (packet[1] & 0x02) != 0;
 
-    _sgamepad_hid_hat(packet[2], state);
+        _sgamepad_hid_hat(packet[2], state);
 
-    _sgamepad_hid_left_stick(_sgamepad_hid_stick16(packet + 3), _sgamepad_hid_stick16(packet + 5), state);
+        _sgamepad_hid_left_stick(_sgamepad_hid_stick16(packet + 3), _sgamepad_hid_stick16(packet + 5), state);
 
-    // The two button bytes and the hat, then the sticks: four 16-bit axes,
-    // the right pair last.
-    state->right_x = _sgamepad_hid_stick16(packet + 7);
-    state->right_y = _sgamepad_hid_stick16(packet + 9);
+        // The two button bytes and the hat, then the sticks: four 16-bit axes,
+        // the right pair last.
+        state->right_x = _sgamepad_hid_stick16(packet + 7);
+        state->right_y = _sgamepad_hid_stick16(packet + 9);
 
-    return true;
+        return true;
+    }
+
+    if(report[0] == _SGAMEPAD_HID_SWITCH_FULL || report[0] == _SGAMEPAD_HID_SWITCH_FULL_MCU)
+    {
+        // The controller state is the first 12 bytes after the report id; the
+        // rest is IMU data, and the MCU variant only adds more.
+        if(length < _SGAMEPAD_HID_SWITCH_FULL_SIZE)
+            return false;
+
+        const uint8_t* packet = report + 1;
+
+        switch(model)
+        {
+            case SGAMEPAD_HID_SWITCH_JOYCON_L:
+                _sgamepad_hid_switch_joycon_l(packet, state);
+                break;
+
+            case SGAMEPAD_HID_SWITCH_JOYCON_R:
+                _sgamepad_hid_switch_joycon_r(packet, state);
+                break;
+
+            case SGAMEPAD_HID_SWITCH_PRO:
+            default:
+                _sgamepad_hid_switch_pro_full(packet, state);
+                break;
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 void sgamepad_hid_ps4_keepalive(uint8_t* report, size_t length)
