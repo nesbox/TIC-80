@@ -3095,7 +3095,7 @@ void initMusic(Music* music, Studio* studio, tic_music* src)
             },
 
         .tickCounter = 0,
-        .tab = MUSIC_PIANO_TAB,
+        .tab = getConfig(studio)->options.musicTracker ? MUSIC_TRACKER_TAB : MUSIC_PIANO_TAB,
         .history = history_create(src, sizeof(tic_music)),
     };
 

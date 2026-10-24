@@ -1298,6 +1298,9 @@ void setStudioMode(Studio* studio, EditorMode mode)
     {
         Music* music = studio->banks.music[studio->bank.index.music];
         music->tab = (music->tab + 1) % MUSIC_TAB_COUNT;
+
+        studio->config->data.options.musicTracker = music->tab == MUSIC_TRACKER_TAB;
+        studio->config->saveOptions(studio->config);
     }
 #endif
 

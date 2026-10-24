@@ -103,6 +103,7 @@ static void setDefault(Config* config)
                 .keybindMode = KEYBIND_STANDARD,
                 .tabMode = TAB_AUTO,
                 .tabSize = 1,
+                .musicTracker = false,
                 .codeShadow = true,
                 .codeStatusbar = true,
 #endif
@@ -240,6 +241,9 @@ static void loadOptions(Config* config)
                 if(json_has("tabSize", 0))
                     options->tabSize = json_int("tabSize", 0);
 
+                if(json_has("musicTracker", 0))
+                    options->musicTracker = json_bool("musicTracker", 0);
+
                 if(json_has("codeAltFont", 0))
                     options->codeAltFont = json_bool("codeAltFont", 0);
 
@@ -304,6 +308,7 @@ static void saveOptions(Config* config)
             "\"keybindMode\":%i, "
             "\"tabMode\":%i, "
             "\"tabSize\":%i, "
+            "\"musicTracker\":%s, "
             "\"codeAltFont\":%s, "
             "\"codeShadow\":%s, "
             "\"codeLineNumbers\":%s, "
@@ -333,6 +338,7 @@ static void saveOptions(Config* config)
             options->keybindMode,
             options->tabMode,
             options->tabSize,
+            bool2str(options->musicTracker),
             bool2str(options->codeAltFont),
             bool2str(options->codeShadow),
             bool2str(options->codeLineNumbers),
