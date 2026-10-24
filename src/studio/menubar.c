@@ -1087,16 +1087,21 @@ static void pointerStep(Menubar* menubar, MouseState* state, tic_point pos)
         return;
     }
 
-    // An open menu follows the pointer to another title, as macOS does.
+    // An open menu follows the pointer to another title, as macOS does; the
+    // compact bar's titles sit among its tabs and pins, so there it takes a click.
     for(s32 i = 0; i < menubar->count; i++)
     {
-        if(menubar->categories[i].hidden)
+        if(menubar->categories[i].hidden || i == menubar->open)
             continue;
 
         tic_rect rect;
         titleRect(menubar, i, &rect);
 
-        if(pos.y < menubar->y + MENUBAR_HEIGHT && pointInRect(&pos, &rect) && i != menubar->open)
+        bool switched = menubar->compact
+                            ? menuClick(state, &rect)
+                            : pos.y < menubar->y + MENUBAR_HEIGHT && pointInRect(&pos, &rect);
+
+        if(switched)
         {
             menubar->open = i;
             menubar->sub = NULL;
