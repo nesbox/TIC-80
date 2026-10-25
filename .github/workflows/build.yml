@@ -107,7 +107,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/stubs"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
           for lang in "${langs[@]}"; do
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
@@ -262,7 +262,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/stubs"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
           for lang in "${langs[@]}"; do
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
@@ -403,7 +403,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/stubs"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
           for lang in "${langs[@]}"; do
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
@@ -667,7 +667,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/stubs"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
           for lang in "${langs[@]}"; do
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
@@ -810,7 +810,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/stubs"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
           for lang in "${langs[@]}"; do
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
@@ -1152,7 +1152,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
           stage="$GITHUB_WORKSPACE/build/players"
           rm -rf "$stage"
           for lang in "${langs[@]}"; do
@@ -1189,7 +1189,7 @@ jobs:
           # back the same way: the SDL layer's "Unable to initialize SDL Video"
           # is in a build of it and in no build of the sokol layer, which is
           # what these three passes now build.
-          files=("$stage"/{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,forth,gravity}/tic80*.wasm)
+          files=("$stage"/{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,gravity}/tic80*.wasm)
           for f in "${files[@]}"; do
             if ! grep -qa "SPRITE EDITOR" "$f"; then
               echo "player without editors: $f — BUILD_EDITORS=ON did not take" >&2
@@ -1231,7 +1231,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
           for lang in "${langs[@]}"; do
             flags=(-DBUILD_WITH_ALL=OFF)
             for l in "${langs[@]}"; do
@@ -1246,7 +1246,7 @@ jobs:
           # An identical pair means a language flag did not take, the same guard
           # the native jobs run on their binaries: a wasm stub carries one
           # runtime, so fourteen of them cannot be alike.
-          files=("$GITHUB_WORKSPACE"/build/bin/tic80{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,forth,gravity}.wasm)
+          files=("$GITHUB_WORKSPACE"/build/bin/tic80{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,gravity}.wasm)
           for f in "${files[@]}"; do
             if [ ! -f "$f" ]; then echo "missing stub: $f" >&2; exit 1; fi
           done
@@ -1345,7 +1345,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
           stage="$GITHUB_WORKSPACE/build/players-webgpu"
           rm -rf "$stage"
           for lang in "${langs[@]}"; do
@@ -1385,7 +1385,7 @@ jobs:
         run: |
           set -euo pipefail
           stage="$GITHUB_WORKSPACE/build/players-webgpu"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
           files=()
           for lang in "${langs[@]}"; do
             js="$stage/$lang/webgpu/tic80.js"
