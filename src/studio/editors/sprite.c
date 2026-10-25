@@ -191,13 +191,32 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
     }
 }
 
-static void paintPoint(Sprite* sprite, u8 color, s32 x, s32 y)
+static void paintBrush(Sprite* sprite, u8 color, s32 x, s32 y)
 {
     s32 pixels = sprite->brush.size;
 
     for(s32 j = 0; j < pixels; j++)
         for(s32 i = 0; i < pixels; i++)
             tic_tilesheet_setpix(&sprite->sheet, x + i, y + j, color);
+}
+
+static void paintPoint(Sprite* sprite, u8 color, s32 x, s32 y)
+{
+    paintBrush(sprite, color, x, y);
+
+    // mirror the brush across the centre of the canvas
+    tic_rect rect = getSpriteRect(sprite);
+    s32 hx = 2 * rect.x + rect.w - sprite->brush.size - x;
+    s32 vy = 2 * rect.y + rect.h - sprite->brush.size - y;
+
+    if(sprite->brush.symmetryHorizontal)
+        paintBrush(sprite, color, hx, y);
+
+    if(sprite->brush.symmetryVertical)
+        paintBrush(sprite, color, x, vy);
+
+    if(sprite->brush.symmetryHorizontal && sprite->brush.symmetryVertical)
+        paintBrush(sprite, color, hx, vy);
 }
 
 static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
