@@ -102,12 +102,10 @@ static void unpackState(Code* code, bool pos_undo)
 
     if(first_change != NULL)
     {
-
-        //we actually will want to go the one before the first change, as if
-        //we were about to make the change
-        //ternary to make sure we don't go one before the beginning
+        //the first differing character is exactly where the change was made,
+        //so the cursor goes there, as if we were about to make the change
         if(pos_undo)
-            code->cursor.position = first_change == code->src ? code->src : (first_change - 1);
+            code->cursor.position = first_change;
 
         else
             //a state that stored no cursor leaves the position at the start
