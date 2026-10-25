@@ -1803,7 +1803,7 @@ static void processKeyboard(Sprite* sprite)
                 u8* flags = getBankFlags(sprite->studio)->data;
                 const s32* indexes = getSpriteIndexes(sprite);
 
-                for(const s32* i = indexes; *i; i++)
+                for(const s32* i = indexes; *i >= 0; i++)
                     mask &= flags[*i];
 
                 char buf[sizeof "FF"];
@@ -1811,7 +1811,7 @@ static void processKeyboard(Sprite* sprite)
                 buf[sprite->flags.pos] = (char)(toupper((u8)sym));
                 u8 value = (u8)(strtol(buf, NULL, 16));
 
-                for(const s32* i = indexes; *i; i++)
+                for(const s32* i = indexes; *i >= 0; i++)
                     flags[*i] = value;
 
                 if(!sprite->flags.pos)
