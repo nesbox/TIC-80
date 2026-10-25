@@ -58,7 +58,7 @@ struct Sprite
         bool symmetryHorizontal;
         bool symmetryVertical;
     } brush;
-    
+
     struct
     {
         bool edit;

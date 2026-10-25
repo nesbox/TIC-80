@@ -152,6 +152,8 @@ enum
     SpriteActionBrush2,
     SpriteActionBrush3,
     SpriteActionBrush4,
+    SpriteActionSymmetryHorz,
+    SpriteActionSymmetryVert,
     SpriteActionPage1,
     SpriteActionPage2,
     SpriteActionPage3,
@@ -317,6 +319,8 @@ static void menubarSpriteAction(void* data, s32 id)
         case SpriteActionBrush2: spriteSetBrushSize(sprite, 2); break;
         case SpriteActionBrush3: spriteSetBrushSize(sprite, 3); break;
         case SpriteActionBrush4: spriteSetBrushSize(sprite, 4); break;
+        case SpriteActionSymmetryHorz: sprite->brush.symmetryHorizontal = !sprite->brush.symmetryHorizontal; break;
+        case SpriteActionSymmetryVert: sprite->brush.symmetryVertical = !sprite->brush.symmetryVertical; break;
 
         case SpriteActionPage1: spriteSelectPage(sprite, 0); break;
         case SpriteActionPage2: spriteSelectPage(sprite, 1); break;
@@ -937,6 +941,9 @@ static MenuBarItem MenubarBrushSize[] =
         MENU_TOGGLE("2x2", NULL, menubarSpriteAction, SpriteActionBrush2),
         MENU_TOGGLE("3x3", NULL, menubarSpriteAction, SpriteActionBrush3),
         MENU_TOGGLE("4x4", NULL, menubarSpriteAction, SpriteActionBrush4),
+        MENU_SEPARATOR,
+        MENU_TOGGLE("HORZ SYMMETRY", NULL, menubarSpriteAction, SpriteActionSymmetryHorz),
+        MENU_TOGGLE("VERT SYMMETRY", NULL, menubarSpriteAction, SpriteActionSymmetryVert),
 };
 
 static const MenuBarCategory MenubarBrushSizeMenu = MENU_CATEGORY("BRUSH", MenubarBrushSize);
@@ -1405,6 +1412,8 @@ void studiomenu_sync_editor(Studio* studio, Menubar* bar, EditorMode mode, void*
             menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush2, sprite->brush.size == 2);
             menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush3, sprite->brush.size == 3);
             menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush4, sprite->brush.size == 4);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionSymmetryHorz, sprite->brush.symmetryHorizontal);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionSymmetryVert, sprite->brush.symmetryVertical);
 
             {
                 static const s32 Pages[] = {SpriteActionPage1, SpriteActionPage2, SpriteActionPage3, SpriteActionPage4};
