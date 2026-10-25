@@ -10,6 +10,15 @@ name: Release PRO
 on:
   release:
     types: [published]
+  # a dispatch retries a failed push for a tag; a re-run keeps the old workflow file
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and push (e.g. v1.4.0)'
+        required: true
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
 
 jobs:
   windows-pro:
@@ -17,6 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
           submodules: recursive
           fetch-depth: 0
 
@@ -40,7 +50,7 @@ jobs:
             echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
             exit 1
           fi
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           curl -L -o butler.zip https://broth.itch.zone/butler/windows-amd64/LATEST/archive/default
           unzip -q butler.zip
           # The layouts itch needs, explained in bin/release/stage-itch.sh:
@@ -54,6 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
           submodules: recursive
           fetch-depth: 0
 
@@ -64,7 +75,7 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-12 g++-12 libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
+          sudo apt-get install -y gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
           sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
           sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
 
@@ -76,7 +87,7 @@ jobs:
 
       - name: Build deb
         run: |
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           SHORT="${VER%.*}"
           bash bin/release/make-deb.sh build/bin out/tic80-v$SHORT-linux-pro.deb amd64 "$VER"
 
@@ -88,7 +99,7 @@ jobs:
             echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
             exit 1
           fi
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip
@@ -111,6 +122,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
           submodules: recursive
           fetch-depth: 0
 
@@ -125,7 +137,7 @@ jobs:
           sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome* 2>/dev/null || true
           sudo sed -i '/dl\.google\.com/d' /etc/apt/sources.list 2>/dev/null || true
           sudo apt-get update
-          sudo apt-get install -y gcc-12 g++-12 libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
+          sudo apt-get install -y gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
           sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
           sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
           # the generator the arm64 builds use; the image carries it already
@@ -139,7 +151,7 @@ jobs:
 
       - name: Build deb
         run: |
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           SHORT="${VER%.*}"
           bash bin/release/make-deb.sh build/bin out/tic80-v$SHORT-linux-arm64-pro.deb arm64 "$VER"
 
@@ -151,7 +163,7 @@ jobs:
             echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
             exit 1
           fi
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           SHORT="${VER%.*}"
           # butler for the runner's own architecture: the paid build never
           # leaves the runner (see the header), so the push happens here, and
@@ -172,6 +184,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
           submodules: recursive
           fetch-depth: 0
 
@@ -186,7 +199,7 @@ jobs:
 
       - name: Build dmg
         run: |
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           SHORT="${VER%.*}"
           bash bin/release/make-dmg.sh build/bin out "$VER" "$SHORT" "-arm64"
 
@@ -198,7 +211,7 @@ jobs:
             echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
             exit 1
           fi
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.zone/butler/darwin-arm64/LATEST/archive/default
           unzip -q butler.zip
@@ -216,6 +229,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
           submodules: recursive
           fetch-depth: 0
 
@@ -230,7 +244,7 @@ jobs:
 
       - name: Build dmg
         run: |
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           SHORT="${VER%.*}"
           bash bin/release/make-dmg.sh build/bin out "$VER" "$SHORT" ""
 
@@ -242,7 +256,7 @@ jobs:
             echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
             exit 1
           fi
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.zone/butler/darwin-amd64/LATEST/archive/default
           unzip -q butler.zip
@@ -259,6 +273,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
           submodules: recursive
           fetch-depth: 0
 
@@ -307,7 +322,7 @@ jobs:
             echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
             exit 1
           fi
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip
           chmod +x butler
@@ -322,12 +337,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
 
       - name: Download release assets
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download "$GITHUB_REF_NAME" --repo nesbox/TIC-80 --dir flat \
+          gh release download "$TAG" --repo nesbox/TIC-80 --dir flat \
             --pattern 'tic80-v*-win.zip' \
             --pattern 'tic80-v*-linux.zip' \
             --pattern 'tic80-v*-linux.deb' \
@@ -342,7 +359,7 @@ jobs:
 
       - name: Stage the itch.io layouts
         run: |
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           bash bin/release/stage-itch.sh flat stage "$VER"
 
       - name: Push free builds to itch.io
@@ -353,7 +370,7 @@ jobs:
             echo "BUTLER_API_KEY is not set — refusing to report success for a push that never happened" >&2
             exit 1
           fi
-          VER="${GITHUB_REF_NAME#v}"
+          VER="${TAG#v}"
           SHORT="${VER%.*}"
           curl -L -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip -d butler
