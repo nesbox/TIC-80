@@ -55,6 +55,8 @@ struct Sprite
     struct
     {
         u8 size;
+        bool symmetryHorizontal;
+        bool symmetryVertical;
     } brush;
     
     struct
