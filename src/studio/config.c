@@ -383,12 +383,6 @@ void initConfig(Config* config, Studio* studio, tic_fs* fs)
 
     loadOptions(config);
 
-#if defined(BUILD_EDITORS)
-    // LINES implies SIDEBAR: a pair saved the other way is normalised.
-    if(config->data.options.codeLineNumbers)
-        config->data.options.codeSidebar = true;
-#endif
-
 #if defined(__TIC_LINUX__)
     // do not load fullscreen option on Linux
     config->data.options.fullscreen = false;

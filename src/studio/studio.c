@@ -1879,10 +1879,11 @@ void studioCodeViewToggle(Studio* studio, CodeViewOption option)
             break;
 
         case CodeViewLineNumbers:
-            code->lineNumbers = !code->lineNumbers;
-
-            if(code->lineNumbers)
-                code->showGutter = true;
+            // LINES with the sidebar hidden brings the sidebar back with them on
+            if(code->showGutter)
+                code->lineNumbers = !code->lineNumbers;
+            else
+                code->showGutter = code->lineNumbers = true;
 
             options->codeLineNumbers = code->lineNumbers;
             options->codeSidebar = code->showGutter;
@@ -1890,10 +1891,8 @@ void studioCodeViewToggle(Studio* studio, CodeViewOption option)
             break;
 
         case CodeViewSidebar:
+            // the line numbers setting is kept, so it returns with the sidebar
             code->showGutter = !code->showGutter;
-
-            if(!code->showGutter)
-                code->lineNumbers = false;
 
             options->codeSidebar = code->showGutter;
             options->codeLineNumbers = code->lineNumbers;
