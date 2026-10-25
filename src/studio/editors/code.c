@@ -2309,14 +2309,21 @@ static void commentLine(Code* code)
     bool anyText = false;
     bool allCommented = true;
 
+    // comments all go in at the smallest indent of the non-blank lines, so
+    // they line up; no indent is longer than the code
+    s32 minIndent = TIC_CODE_SIZE;
+
     for(char* line = first; line <= last; line += getLineSize(line) + 1)
     {
         lines++;
 
         if(!isBlankLine(line))
         {
+            char* text = skipIndent(line);
+
             anyText = true;
-            allCommented &= isLineCommented(comment, skipIndent(line));
+            allCommented &= isLineCommented(comment, text);
+            minIndent = MIN(minIndent, (s32)(text - line));
         }
     }
 
@@ -2343,6 +2350,10 @@ static void commentLine(Code* code)
 
         if(commentAll)
         {
+            // a blank line shorter than the smallest indent takes the comment
+            // at its end
+            text = line + MIN(minIndent, (s32)(text - line));
+
             insertCode(code, text, comment);
             shiftCursorEnd(&code->cursor.position, text, size);
             shiftCursorEnd(&code->cursor.selection, text, size);
