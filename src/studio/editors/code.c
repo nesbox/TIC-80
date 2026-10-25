@@ -2306,29 +2306,33 @@ static void commentLine(Code* code)
     char* last = getLineByPos(code, end);
 
     s32 lines = 0;
-    bool anyText = false;
     bool allCommented = true;
+
+    // the first and last non-blank lines, or -1 when there are none
+    s32 firstText = -1;
+    s32 lastText = -1;
 
     // comments all go in at the smallest indent of the non-blank lines, so
     // they line up; no indent is longer than the code
     s32 minIndent = TIC_CODE_SIZE;
 
-    for(char* line = first; line <= last; line += getLineSize(line) + 1)
+    for(char* line = first; line <= last; line += getLineSize(line) + 1, lines++)
     {
-        lines++;
-
         if(!isBlankLine(line))
         {
             char* text = skipIndent(line);
 
-            anyText = true;
+            if(firstText < 0)
+                firstText = lines;
+
+            lastText = lines;
             allCommented &= isLineCommented(comment, text);
             minIndent = MIN(minIndent, (s32)(text - line));
         }
     }
 
     // every non-blank line already commented makes this an uncomment
-    bool commentAll = !(anyText && allCommented);
+    bool commentAll = !(firstText >= 0 && allCommented);
 
     if(commentAll && strlen(code->src) + lines * size >= MAX_CODE)
         return;
@@ -2338,12 +2342,13 @@ static void commentLine(Code* code)
     char* line = first;
     for(s32 i = 0; i < lines; i++, line += getLineSize(line) + 1)
     {
-        // a blank line at either end of a selection is left alone, but one
-        // inside it is commented along with the rest; with no selection the
-        // cursor line is always toggled
-        bool edge = selected && (i == 0 || i == lines - 1);
+        // blank lines before the first or after the last non-blank line of a
+        // selection are left alone, so an all-blank selection does nothing;
+        // those between are commented along with the rest; with no selection
+        // the cursor line is always toggled
+        bool outside = selected && (i < firstText || i > lastText);
 
-        if(isBlankLine(line) && (edge || !commentAll))
+        if(isBlankLine(line) && (outside || !commentAll))
             continue;
 
         char* text = skipIndent(line);
