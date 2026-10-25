@@ -266,6 +266,19 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
         drawCursorBorder(sprite, x + mx, y + my, brushSize, brushSize);
 
+        // mirrored brush positions
+        s32 hx = CANVAS_SIZE - brushSize - mx;
+        s32 vy = CANVAS_SIZE - brushSize - my;
+
+        if(sprite->brush.symmetryHorizontal)
+            drawCursorBorder(sprite, x + hx, y + my, brushSize, brushSize);
+
+        if(sprite->brush.symmetryVertical)
+            drawCursorBorder(sprite, x + mx, y + vy, brushSize, brushSize);
+
+        if(sprite->brush.symmetryHorizontal && sprite->brush.symmetryVertical)
+            drawCursorBorder(sprite, x + hx, y + vy, brushSize, brushSize);
+
         bool left = checkMouseDown(sprite->studio, &rect, tic_mouse_left);
         bool right = checkMouseDown(sprite->studio, &rect, tic_mouse_right);
 
