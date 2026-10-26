@@ -274,11 +274,11 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
             if(!sprite->draw.start)
             {
                 sprite->draw.start = true;
-                sprite->draw.last = tic_api_mouse(tic);
+                sprite->draw.lastMouse = tic_api_mouse(tic);
             }
 
-            s32 lx = toCanvasCoord(Size, brushSize, x, sprite->draw.last.x);
-            s32 ly = toCanvasCoord(Size, brushSize, y, sprite->draw.last.y);
+            s32 lx = toCanvasCoord(Size, brushSize, x, sprite->draw.lastMouse.x);
+            s32 ly = toCanvasCoord(Size, brushSize, y, sprite->draw.lastMouse.y);
 
             u8 color = left ? sprite->color : sprite->color2;
             paintLine(sprite, color,
@@ -289,7 +289,7 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
             history_add(sprite->history);
 
-            sprite->draw.last = tic_api_mouse(tic);
+            sprite->draw.lastMouse = tic_api_mouse(tic);
         }
         else
         {

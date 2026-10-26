@@ -40,7 +40,7 @@ struct Sprite
     struct
     {
         bool start;
-        tic_point last;
+        tic_point lastMouse;
     } draw;
 
     u16 index;
