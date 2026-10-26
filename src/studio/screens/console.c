@@ -234,6 +234,14 @@ static const struct HotkeysRowSpriteEditor
             "8/DELETE",
             "Erase.",
         },
+        {
+            "H",
+            "Toggle horizontal symmetry.",
+        },
+        {
+            "V",
+            "Toggle vertical symmetry.",
+        },
 };
 
 static const struct HotkeysRowMapEditor

@@ -942,8 +942,8 @@ static MenuBarItem MenubarBrushSize[] =
         MENU_TOGGLE("3x3", NULL, menubarSpriteAction, SpriteActionBrush3),
         MENU_TOGGLE("4x4", NULL, menubarSpriteAction, SpriteActionBrush4),
         MENU_SEPARATOR,
-        MENU_TOGGLE("HORZ SYMMETRY", NULL, menubarSpriteAction, SpriteActionSymmetryHorz),
-        MENU_TOGGLE("VERT SYMMETRY", NULL, menubarSpriteAction, SpriteActionSymmetryVert),
+        MENU_TOGGLE("HORZ SYMM", "H", menubarSpriteAction, SpriteActionSymmetryHorz),
+        MENU_TOGGLE("VERT SYMM", "V", menubarSpriteAction, SpriteActionSymmetryVert),
 };
 
 static const MenuBarCategory MenubarBrushSizeMenu = MENU_CATEGORY("BRUSH", MenubarBrushSize);

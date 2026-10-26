@@ -1955,6 +1955,10 @@ static void processKeyboard(Sprite* sprite)
                             updateColorIndex(sprite, -1);
                         else if(keyWasPressed(sprite->studio, tic_key_rightbracket))
                             updateColorIndex(sprite, +1);
+                        else if(keyWasPressed(sprite->studio, tic_key_h))
+                            sprite->brush.symmetryHorizontal = !sprite->brush.symmetryHorizontal;
+                        else if(keyWasPressed(sprite->studio, tic_key_v))
+                            sprite->brush.symmetryVertical = !sprite->brush.symmetryVertical;
                     }
                 }
             }
