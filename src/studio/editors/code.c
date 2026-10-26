@@ -534,25 +534,48 @@ static void drawCode(Code* code, bool withCursor)
 
 static void getCursorPosition(Code* code, s32* x, s32* y)
 {
-    *x = 0;
-    *y = 0;
+    s32 column = 0;
+    s32 line = 0;
 
     const char* pointer = code->src;
 
-    while(*pointer)
+    while(*pointer && code->cursor.position != pointer)
     {
-        if(code->cursor.position == pointer) return;
-
         if(*pointer == '\n')
         {
-            *x = 0;
-            (*y)++;
+            column = 0;
+            line++;
         }
         else
-            (*x)++;
+            column++;
 
         pointer++;
     }
+
+    if(x) *x = column;
+    if(y) *y = line;
+}
+
+// The column the caret is drawn in: a tab covers the cells up to its stop, so
+// the screen math counts it as the width it takes.
+static s32 getVisualCursorColumn(Code* code)
+{
+    const char* pointer = code->src;
+    s32 column = 0;
+
+    while(*pointer && code->cursor.position != pointer)
+    {
+        if(*pointer == '\n')
+            column = 0;
+        else if(*pointer == '\t')
+            column += getTabColumnWidth(code, column);
+        else
+            column++;
+
+        pointer++;
+    }
+
+    return column;
 }
 
 void codeGetPos(Code* code, s32* x, s32* y)
@@ -630,11 +653,12 @@ static void updateEditor(Code* code)
         code->matchedDelim = findMatchedDelim(code, code->cursor.position);
 
     const s32 BufferWidth = getCodeEditorWidth(code) / getFontWidth(code);
+    const s32 visualColumn = getVisualCursorColumn(code);
 
-    if(column < code->scroll.x)
-        code->scroll.x = column;
-    else if(column >= code->scroll.x + BufferWidth)
-        code->scroll.x = column - BufferWidth + 1;
+    if(visualColumn < code->scroll.x)
+        code->scroll.x = visualColumn;
+    else if(visualColumn >= code->scroll.x + BufferWidth)
+        code->scroll.x = visualColumn - BufferWidth + 1;
 
     if(line < code->scroll.y)
         code->scroll.y = line;
@@ -1951,10 +1975,10 @@ static void normalizeScroll(Code* code)
 
 static void recenterScroll(Code* code, bool emacsMode)
 {
-    s32 col, line;
-    getCursorPosition(code, &col, &line);
+    s32 line = 0;
+    getCursorPosition(code, NULL, &line);
 
-    s32 desiredCol = col - getCodeEditorWidth(code) / getFontWidth(code) / 2;
+    s32 desiredCol = getVisualCursorColumn(code) - getCodeEditorWidth(code) / getFontWidth(code) / 2;
     s32 desiredLine = MAX(0, line - getCodeTextHeight(code) / 2);
 
     if(emacsMode && code->scroll.y == desiredLine)
