@@ -1613,10 +1613,20 @@ void tic_sys_preseed(void)
 
 bool tic_sys_keyboard_text(char* text)
 {
-    // Text belongs to this layer: an empty queue is an empty answer, not a
-    // reason to rebuild the character from the keys and lose the OS's case.
     if(platform.keyboard.tail == platform.keyboard.head)
     {
+#if defined(TOUCH_INPUT_SUPPORT)
+        // The on-screen keyboard sends no character events; like the SDL touch
+        // keyboard, its keys are what the studio's fallback reads.
+        const ControlsState* controls = controls_state();
+
+        for(s32 i = 0; i < tic_keys_count; i++)
+            if(controls->keys[i])
+                return false;
+#endif
+
+        // Text belongs to this layer: an empty queue is an empty answer, not a
+        // reason to rebuild the character from the keys and lose the OS's case.
         *text = '\0';
         return true;
     }

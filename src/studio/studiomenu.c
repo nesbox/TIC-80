@@ -1351,7 +1351,7 @@ void studiomenu_sync_editor(Studio* studio, Menubar* bar, EditorMode mode, void*
 
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionFont, code->altFont);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionShadow, code->shadowText);
-            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionLineNumbers, code->lineNumbers);
+            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionLineNumbers, code->lineNumbers && code->showGutter);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionSidebar, code->showGutter);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionStatusbar, code->showStatusbar);
 

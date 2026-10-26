@@ -102,12 +102,10 @@ static void unpackState(Code* code, bool pos_undo)
 
     if(first_change != NULL)
     {
-
-        //we actually will want to go the one before the first change, as if
-        //we were about to make the change
-        //ternary to make sure we don't go one before the beginning
+        //the first differing character is exactly where the change was made,
+        //so the cursor goes there, as if we were about to make the change
         if(pos_undo)
-            code->cursor.position = first_change == code->src ? code->src : (first_change - 1);
+            code->cursor.position = first_change;
 
         else
             //a state that stored no cursor leaves the position at the start
@@ -2153,94 +2151,33 @@ void codeOutline(Code* code)
     setCodeMode(code, TEXT_OUTLINE_MODE);
 }
 
-static int getNumberOfLines(Code* code)
+static char* skipIndent(char* line)
 {
-    char* pos = code->cursor.position;
-    char* sel = code->cursor.selection;
+    while(*line == ' ' || *line == '\t')
+        line++;
 
-    char* start = MIN(pos, sel);
-    while(*start == '\n')
-        start++;
-
-    char* end = MAX(pos, sel);
-    while(*end == '\n')
-        end--;
-
-    char* iter = start;
-    size_t lines = 1;
-    while(iter <= end)
-    {
-        if(*iter == '\n')
-        {
-            ++lines;
-        }
-        ++iter;
-    }
-    return (s32)lines;
+    return line;
 }
 
-static char** getLines(Code* code, int lines)
+static inline bool isBlankLine(char* line)
 {
-    char* pos = code->cursor.position;
-    char* sel = code->cursor.selection;
-
-    char* start = MIN(pos, sel);
-    while(*start == '\n')
-        ++start;
-
-    char* end = MAX(pos, sel);
-    while(*end == '\n')
-        --end;
-
-    char* iter = start;
-
-    char** line_locations = malloc(sizeof(char*) * lines + 1);
-    line_locations[0] = start;
-
-    for(int i = 1; i < lines; ++i)
-    {
-        while(iter <= end && *iter != '\n')
-            ++iter;
-        line_locations[i] = ++iter;
-    }
-    return line_locations;
+    char* text = skipIndent(line);
+    return *text == '\n' || *text == '\0';
 }
 
 static inline bool isLineCommented(const char* comment, const char* line)
 {
-    size_t size = strlen(comment);
-    return memcmp(line, comment, size) == 0;
-};
+    // strncmp stops at the end of the text, where memcmp could read past it
+    return strncmp(line, comment, strlen(comment)) == 0;
+}
 
-static void addCommentToLine(Code* code, char* line, size_t size, const char* comment)
+// moves a cursor end past an edit of delta chars at at, so that it stays with
+// its text: an insert pushes later ends on, a delete pulls the ends inside it
+// back to its start
+static void shiftCursorEnd(char** end, char* at, s32 delta)
 {
-
-    const char* end = line + getLineSize(line);
-
-    while((*line == ' ' || *line == '\t') && line < end)
-        line++;
-
-    if(!isLineCommented(comment, line))
-    {
-        if(strlen(code->src) + size >= MAX_CODE)
-            return;
-
-        insertCode(code, line, comment);
-
-        if(code->cursor.position > line)
-            code->cursor.position += size;
-    }
-    else
-    {
-        deleteCode(code, line, line + size);
-
-        if(code->cursor.position > line + size)
-            code->cursor.position -= size;
-    }
-
-    code->cursor.selection = NULL;
-
-    parseSyntaxColor(code);
+    if(*end && *end > at)
+        *end = delta < 0 && *end - at < -delta ? at : *end + delta;
 }
 
 static void sexpify(Code* code)
@@ -2345,44 +2282,94 @@ static void toggleMark(Code* code)
 static void commentLine(Code* code)
 {
     const char* comment = tic_get_script(code->tic)->singleComment;
-    size_t size = strlen(comment);
+    s32 size = (s32)strlen(comment);
 
-    if(code->cursor.selection)
+    char* pos = code->cursor.position;
+    char* sel = code->cursor.selection;
+
+    // a cursor that is not in the text has no line to comment
+    if(!pos)
+        return;
+
+    bool selected = sel && sel != pos;
+
+    char* start = selected ? MIN(pos, sel) : pos;
+    char* end = selected ? MAX(pos, sel) : pos;
+
+    // a selection that ends at the start of a line covers none of that line
+    if(selected && end[-1] == '\n')
+        end--;
+
+    char* first = getLineByPos(code, start);
+    char* last = getLineByPos(code, end);
+
+    s32 lines = 0;
+    bool allCommented = true;
+
+    // the first and last non-blank lines, or -1 when there are none
+    s32 firstText = -1;
+    s32 lastText = -1;
+
+    // comments all go in at the smallest indent of the non-blank lines, so
+    // they line up; no indent is longer than the code
+    s32 minIndent = TIC_CODE_SIZE;
+
+    for(char* line = first; line <= last; line += getLineSize(line) + 1, lines++)
     {
-        int selectionLines = getNumberOfLines(code);
-        char** lines = getLines(code, selectionLines);
-
-        int comment_cursor = 0;
-
-        for(int i = 0; i < selectionLines; ++i)
+        if(!isBlankLine(line))
         {
+            char* text = skipIndent(line);
 
-            char* first = lines[i];
-            while(*first == ' ' || *first == '\t')
-                ++first;
-            bool lineIsComment = isLineCommented(comment, first);
+            if(firstText < 0)
+                firstText = lines;
 
-            if(i < selectionLines - 1)
-            {
-                if(*first != '\n' && lineIsComment)
-                    --comment_cursor;
-                else if(*first != '\n')
-                    ++comment_cursor;
-
-                lines[i + 1] += (size * comment_cursor);
-            }
-
-            if(*first != '\n')
-            {
-                addCommentToLine(code, lines[i], size, comment);
-            }
+            lastText = lines;
+            allCommented &= isLineCommented(comment, text);
+            minIndent = MIN(minIndent, (s32)(text - line));
         }
-
-        free(lines);
     }
-    else
-        addCommentToLine(code, getLine(code), size, comment);
 
+    // every non-blank line already commented makes this an uncomment
+    bool commentAll = !(firstText >= 0 && allCommented);
+
+    if(commentAll && strlen(code->src) + lines * size >= MAX_CODE)
+        return;
+
+    // each edit is made before the next line is found, so the walk follows
+    // the text as it moves
+    char* line = first;
+    for(s32 i = 0; i < lines; i++, line += getLineSize(line) + 1)
+    {
+        // blank lines before the first or after the last non-blank line of a
+        // selection are left alone, so an all-blank selection does nothing;
+        // those between are commented along with the rest; with no selection
+        // the cursor line is always toggled
+        bool outside = selected && (i < firstText || i > lastText);
+
+        if(isBlankLine(line) && (outside || !commentAll))
+            continue;
+
+        char* text = skipIndent(line);
+
+        if(commentAll)
+        {
+            // a blank line shorter than the smallest indent takes the comment
+            // at its end
+            text = line + MIN(minIndent, (s32)(text - line));
+
+            insertCode(code, text, comment);
+            shiftCursorEnd(&code->cursor.position, text, size);
+            shiftCursorEnd(&code->cursor.selection, text, size);
+        }
+        else
+        {
+            deleteCode(code, text, text + size);
+            shiftCursorEnd(&code->cursor.position, text, -size);
+            shiftCursorEnd(&code->cursor.selection, text, -size);
+        }
+    }
+
+    parseSyntaxColor(code);
     history(code);
 }
 

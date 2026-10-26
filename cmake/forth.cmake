@@ -2,10 +2,13 @@
 # Forth (pForth)
 ################################
 
-option(BUILD_WITH_FORTH "Forth Enabled" ${BUILD_WITH_ALL})
+# Off even in a Build all tree: pForth gives cartridges raw access to the
+# host's memory, so a Forth cart is native code, not a sandboxed script.
+option(BUILD_WITH_FORTH "Forth Enabled (unsafe: pForth has no memory sandbox)" OFF)
 message("BUILD_WITH_FORTH: ${BUILD_WITH_FORTH}")
 
 if(BUILD_WITH_FORTH)
+    message(WARNING "BUILD_WITH_FORTH: pForth reads and writes host memory directly; cartridges are not sandboxed")
 
     set(PFORTH_DIR ${THIRDPARTY_DIR}/pforth/csrc)
     set(PFORTH_FTH_DIR ${THIRDPARTY_DIR}/pforth/fth)
