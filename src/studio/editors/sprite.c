@@ -287,12 +287,15 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
                       sx + mx / Size,
                       sy + my / Size);
 
-            history_add(sprite->history);
+            sprite->needsHistoryUpdate = true;
 
             sprite->draw.last = tic_api_mouse(tic);
         }
         else
         {
+            if (sprite->needsHistoryUpdate)
+                history_add(sprite->history);
+            sprite->needsHistoryUpdate = false;
             sprite->draw.start = false;
         }
     }
@@ -2104,6 +2107,7 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
             },
         .mode = SPRITE_DRAW_MODE,
         .history = history_create(src, TIC_SPRITES * sizeof(tic_tile)),
+        .needsHistoryUpdate = false,
         .anim =
             {
                 .idle = {
