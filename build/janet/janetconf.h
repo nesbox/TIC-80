@@ -4,39 +4,40 @@
 #define JANETCONF_H
 
 #define JANET_VERSION_MAJOR 1
-#define JANET_VERSION_MINOR 31
-#define JANET_VERSION_PATCH 0
+#define JANET_VERSION_MINOR 42
+#define JANET_VERSION_PATCH 1
 #define JANET_VERSION_EXTRA ""
-#define JANET_VERSION "1.31.0"
+#define JANET_VERSION       "1.42.1"
 
 /* #define JANET_BUILD "local" */
 
 /* These settings all affect linking, so use cautiously. */
 #define JANET_SINGLE_THREADED
+/* #define JANET_THREAD_LOCAL _Thread_local */
 #define JANET_NO_DYNAMIC_MODULES
-
 /* #define JANET_NO_NANBOX */
+/* #define JANET_NANBOX_64_POINTER_SHIFT 0 */
 /* #define JANET_API __attribute__((visibility ("default"))) */
 
 /* These settings should be specified before amalgamation is
  * built. Any build with these set should be considered non-standard, and
  * certain Janet libraries should be expected not to work. */
-#define JANET_REDUCED_OS
-#define JANET_NO_ASSEMBLER
-#define JANET_NO_NET
-#define JANET_NO_FFI
-#define JANET_NO_FFI_JIT
-#define JANET_NO_EV
-#define JANET_NO_THREADS
-
 /* #define JANET_NO_DOCSTRINGS */
 /* #define JANET_NO_SOURCEMAPS */
+#define JANET_REDUCED_OS
+/* #define JANET_NO_PROCESSES */
+#define JANET_NO_ASSEMBLER
 /* #define JANET_NO_PEG */
+#define JANET_NO_NET
 /* #define JANET_NO_INT_TYPES */
+#define JANET_NO_EV
+/* #define JANET_NO_FILEWATCH */
 /* #define JANET_NO_REALPATH */
 /* #define JANET_NO_SYMLINKS */
 /* #define JANET_NO_UMASK */
-/* #define JANET_NO_PROCESSES */
+#define JANET_NO_THREADS
+#define JANET_NO_FFI
+#define JANET_NO_FFI_JIT
 
 /* Other settings */
 /* #define JANET_DEBUG */
@@ -54,6 +55,9 @@
 /* #define JANET_EV_NO_EPOLL */
 /* #define JANET_EV_NO_KQUEUE */
 /* #define JANET_NO_INTERPRETER_INTERRUPT */
+/* #define JANET_NO_IPV6 */
+/* #define JANET_NO_CRYPTORAND */
+/* #define JANET_USE_STDATOMIC */
 
 /* Custom vm allocator support */
 /* #include <mimalloc.h> */
