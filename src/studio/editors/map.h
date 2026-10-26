@@ -84,7 +84,8 @@ struct Map
     u8* paste;
 
     struct History* history;
-
+    bool needsHistoryUpdate;
+    
     struct
     {
         struct
