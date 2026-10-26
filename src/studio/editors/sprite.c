@@ -252,6 +252,8 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->size;
 
+    bool drawing = false;
+
     if(checkMousePos(sprite->studio, &rect))
     {
         setCursor(sprite->studio, tic_cursor_hand);
@@ -271,6 +273,8 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
         if(left || right)
         {
+            drawing = true;
+
             if(!sprite->draw.start)
             {
                 sprite->draw.start = true;
@@ -293,11 +297,14 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
         }
         else
         {
-            if (sprite->needsHistoryUpdate)
-                history_add(sprite->history);
-            sprite->needsHistoryUpdate = false;
             sprite->draw.start = false;
         }
+    }
+
+    if(!drawing && sprite->needsHistoryUpdate)
+    {
+        history_add(sprite->history);
+        sprite->needsHistoryUpdate = false;
     }
 }
 

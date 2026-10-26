@@ -300,7 +300,7 @@ static void setMapSprite(Map* map, s32 x, s32 y, bool recordHistory)
     ram2map(map->tic->ram, map->src);
 
     map->needsHistoryUpdate = !recordHistory;
-    if (recordHistory)
+    if(recordHistory)
         history_add(map->history);
 }
 
@@ -365,9 +365,11 @@ static void processMouseDrawMode(Map* map)
     setCursor(map->studio, tic_cursor_hand);
 
     drawTileCursor(map);
+    bool drawing = false;
 
     if(checkMouseDown(map->studio, &rect, tic_mouse_left))
     {
+        drawing = true;
         s32 tx = 0, ty = 0;
         getMouseMap(map, &tx, &ty);
 
@@ -395,10 +397,13 @@ static void processMouseDrawMode(Map* map)
     }
     else
     {
-        if (map->needsHistoryUpdate)
-            history_add(map->history);
-        map->needsHistoryUpdate = false;
         map->canvas.draw = false;
+    }
+
+    if(!drawing && map->needsHistoryUpdate)
+    {
+        history_add(map->history);
+        map->needsHistoryUpdate = false;
     }
 
     if(checkMouseDown(map->studio, &rect, tic_mouse_middle))
