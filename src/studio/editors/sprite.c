@@ -71,7 +71,7 @@ static void initTileSheet(Sprite* sprite)
 
 static void updateIndex(Sprite* sprite)
 {
-    sprite->index = sprite->y * sprite->blit.pages * TIC_SPRITESHEET_COLS + sprite->x;
+    sprite->index = sprite->spritePos.y * sprite->blit.pages * TIC_SPRITESHEET_COLS + sprite->spritePos.x;
     // index has changed, clear selection
     clearCanvasSelection(sprite);
 }
@@ -109,12 +109,12 @@ static void rightViewport(Sprite* sprite)
 
 static s32 getIndexPosX(Sprite* sprite)
 {
-    return sprite->x * TIC_SPRITESIZE;
+    return sprite->spritePos.x * TIC_SPRITESIZE;
 }
 
 static s32 getIndexPosY(Sprite* sprite)
 {
-    return sprite->y * TIC_SPRITESIZE;
+    return sprite->spritePos.y * TIC_SPRITESIZE;
 }
 
 static void drawSelection(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
@@ -1270,8 +1270,8 @@ static void selectSprite(Sprite* sprite, s32 x, s32 y)
         if(x > size) x = size;
         if(y > size) y = size;
     }
-    sprite->x = (u16)(x / TIC_SPRITESIZE);
-    sprite->y = (u16)(y / TIC_SPRITESIZE);
+    sprite->spritePos.x = (u16)(x / TIC_SPRITESIZE);
+    sprite->spritePos.y = (u16)(y / TIC_SPRITESIZE);
     updateIndex(sprite);
 }
 
@@ -1280,7 +1280,7 @@ static void updateSpriteSize(Sprite* sprite, s32 size)
     if(size != sprite->size)
     {
         sprite->size = (u8)(size);
-        selectSprite(sprite, sprite->x * TIC_SPRITESIZE, sprite->y * TIC_SPRITESIZE);
+        selectSprite(sprite, sprite->spritePos.x * TIC_SPRITESIZE, sprite->spritePos.y * TIC_SPRITESIZE);
     }
 }
 
@@ -1318,8 +1318,8 @@ static void drawSheetVBank1(Sprite* sprite, s32 x, s32 y)
         }
     }
 
-    s32 bx = sprite->x * TIC_SPRITESIZE + x - 1;
-    s32 by = sprite->y * TIC_SPRITESIZE + y - 1;
+    s32 bx = sprite->spritePos.x * TIC_SPRITESIZE + x - 1;
+    s32 by = sprite->spritePos.y * TIC_SPRITESIZE + y - 1;
 
     tic_api_rectb(tic, bx, by, sprite->size + 2, sprite->size + 2, tic_color_white);
 }
@@ -1638,25 +1638,25 @@ static void copyFromClipboard(Sprite* sprite)
 
 static void upSprite(Sprite* sprite)
 {
-    if(sprite->y > 0) sprite->y--;
+    if(sprite->spritePos.y > 0) sprite->spritePos.y--;
     updateIndex(sprite);
 }
 
 static void downSprite(Sprite* sprite)
 {
-    if((sprite->y + sprite->size / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->y++;
+    if((sprite->spritePos.y + sprite->size / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->spritePos.y++;
     updateIndex(sprite);
 }
 
 static void leftSprite(Sprite* sprite)
 {
-    if(sprite->x > 0) sprite->x--;
+    if(sprite->spritePos.x > 0) sprite->spritePos.x--;
     updateIndex(sprite);
 }
 
 static void rightSprite(Sprite* sprite)
 {
-    if((sprite->x + sprite->size / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->x++;
+    if((sprite->spritePos.x + sprite->size / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->spritePos.x++;
     updateIndex(sprite);
 }
 
@@ -2082,8 +2082,7 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
         .tick = tick,
         .tickCounter = 0,
         .src = src,
-        .x = 1,
-        .y = 0,
+        .spritePos = {0, 0},
         .blit = {0},
         .color = 2,
         .color2 = 0,

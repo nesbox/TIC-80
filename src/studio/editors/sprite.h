@@ -48,7 +48,7 @@ struct Sprite
     u8 color2;
     u8 size;
     u8 brushSize;
-    u16 x, y;
+    tic_point spritePos;
     bool hexindex;
 
     tic_blit blit;
