@@ -87,7 +87,7 @@ struct Sprite
 
     struct History* history;
     bool needsHistoryUpdate;
-    
+
     struct
     {
         struct

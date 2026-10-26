@@ -85,7 +85,7 @@ struct Map
 
     struct History* history;
     bool needsHistoryUpdate;
-    
+
     struct
     {
         struct
