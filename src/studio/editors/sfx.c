@@ -113,6 +113,7 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 
     tic_sample* effect = getEffect(sfx);
     tic_rect border = {.x = -1};
+    bool drawing = false;
 
     if(checkMousePos(sfx->studio, &rect))
     {
@@ -138,6 +139,8 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
         if(checkMouseDown(sfx->studio, &rect, tic_mouse_left))
         {
             my = hold(sfx, my);
+            drawing = true;
+            sfx->lastEditCanvasTab = canvasTab;
 
             switch(canvasTab)
             {
@@ -148,10 +151,17 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
                 default: break;
             }
 
-            history_add(sfx->history);
+            sfx->needsHistoryUpdate = true;
         }
         else
             unhold(sfx);
+    }
+
+    if(!drawing && sfx->lastEditCanvasTab == canvasTab && sfx->needsHistoryUpdate)
+    {
+        history_add(sfx->history);
+        sfx->needsHistoryUpdate = false;
+        sfx->lastEditCanvasTab = -1;
     }
 
     for(s32 i = 0; i < Cols; i++)
@@ -919,6 +929,8 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
 
         drawPanelBorder(tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, tic_color_light_green);
 
+        bool drawing = false;
+
         if(sfx->play.active)
         {
             for(s32 i = 0; i < WAVE_VALUES; i++)
@@ -948,11 +960,12 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
                 if(checkMouseDown(sfx->studio, &rect, tic_mouse_left))
                 {
                     cy = hold(sfx, cy);
+                    drawing = true;
 
                     if(tic_tool_peek4(wave->data, cx) != cy)
                     {
                         tic_tool_poke4(wave->data, cx, (u8)(cy));
-                        history_add(sfx->waveHistory);
+                        sfx->needsWaveHistoryUpdate = true;
                     }
                 }
                 else
@@ -964,6 +977,12 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
                 s32 value = tic_tool_peek4(wave->data, i);
                 tic_api_rect(tic, rect.x + i * Scale, rect.y + (MaxValue - value) * Scale, Scale, Scale, tic_color_dark_green);
             }
+        }
+
+        if(!drawing && sfx->needsWaveHistoryUpdate)
+        {
+            history_add(sfx->waveHistory);
+            sfx->needsWaveHistoryUpdate = false;
         }
 
         // draw flare
@@ -1302,6 +1321,9 @@ void initSfx(Sfx* sfx, Studio* studio, tic_sfx* src)
 
         .history = history_create(&src->samples, sizeof(tic_samples)),
         .waveHistory = history_create(&src->waveforms, sizeof(tic_waveforms)),
+        .needsHistoryUpdate = false,
+        .needsWaveHistoryUpdate = false,
+        .lastEditCanvasTab = -1,
     };
 }
 

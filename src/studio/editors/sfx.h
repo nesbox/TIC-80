@@ -47,6 +47,9 @@ struct Sfx
 
     struct History* history;
     struct History* waveHistory;
+    bool needsHistoryUpdate;
+    bool needsWaveHistoryUpdate;
+    s32 lastEditCanvasTab;
 
     void (*tick)(Sfx*);
 };
