@@ -1,8 +1,9 @@
 // sgamepad_hid.h -- the PlayStation and Switch report readers.
 //
 // The pads XInput does not report, read from the reports they send: Sony's
-// DualShock 4 and DualSense, Nintendo's Switch Pro and Joy-Con, and anything
-// presenting as one — which is how an 8BitDo in its S mode arrives.
+// DualShock 4, DualSense and the digital pad the PlayStation Classic shipped
+// with, Nintendo's Switch Pro and Joy-Con, and anything presenting as one —
+// which is how an 8BitDo in its S mode arrives.
 //
 // The decoding is ported from the vendors' own drivers rather than derived:
 // SDL's `SDL_hidapi_ps4.c`, `SDL_hidapi_ps5.c` and `SDL_hidapi_switch.c`, which
@@ -36,6 +37,7 @@ typedef enum
     SGAMEPAD_HID_NONE = 0,
     SGAMEPAD_HID_PS4,    // DualShock 4, over USB or Bluetooth
     SGAMEPAD_HID_PS5,    // DualSense and DualSense Edge
+    SGAMEPAD_HID_PSC,    // the PlayStation Classic pad: digital only, its own layout
     SGAMEPAD_HID_SWITCH, // Switch Pro, Joy-Con, and pads presenting as one
 } sgamepad_hid_family;
 
@@ -84,6 +86,7 @@ sgamepad_hid_switch_model sgamepad_hid_switch_model_of(uint16_t vendor, uint16_t
 // hold what it must — is left alone: false, and `state` is not touched.
 bool sgamepad_hid_ps4_report(const uint8_t* report, size_t length, sgamepad_hid_state* state);
 bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_state* state);
+bool sgamepad_hid_psc_report(const uint8_t* report, size_t length, sgamepad_hid_state* state);
 bool sgamepad_hid_switch_report(const uint8_t* report, size_t length, sgamepad_hid_switch_model model, sgamepad_hid_state* state);
 
 // The host writes one of these to a PlayStation pad on Bluetooth to keep it
@@ -126,6 +129,7 @@ uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length);
 #define _SGAMEPAD_HID_SONY_DS4_PRO  0x05C5 // the officially licensed third-party pad
 #define _SGAMEPAD_HID_SONY_DS5      0x0CE6
 #define _SGAMEPAD_HID_SONY_DS5_EDGE 0x0DF2
+#define _SGAMEPAD_HID_SONY_PSC      0x0CDA // the digital pad the PlayStation Classic ships with
 
 #define _SGAMEPAD_HID_SWITCH_PRO   0x2009
 #define _SGAMEPAD_HID_SWITCH_LEFT  0x2006
@@ -168,6 +172,12 @@ uint32_t sgamepad_hid_crc32(uint32_t crc, const uint8_t* data, size_t length);
 // size the same way — the simple report is 10 bytes on its own, and 78 when
 // the Bluetooth stack has added its header and the CRC.
 #define _SGAMEPAD_HID_PS5_SIMPLE_SIZE 10
+
+// The PlayStation Classic pad's input report: a byte of buttons and a byte
+// holding the direction pad, share and option, with a counter after them on
+// some units. It states no report id, so the zero Windows puts in its place
+// leads and the size here is the data alone.
+#define _SGAMEPAD_HID_PSC_SIZE 2
 
 // The wires carry the pads' sticks as 8-bit values centered on 0x80 and as
 // 16-bit ones centered on 0x8000, and both families send y growing *upwards*:
@@ -408,6 +418,9 @@ sgamepad_hid_family sgamepad_hid_family_of(uint16_t vendor, uint16_t product)
             case _SGAMEPAD_HID_SONY_DS5_EDGE:
                 return SGAMEPAD_HID_PS5;
 
+            case _SGAMEPAD_HID_SONY_PSC:
+                return SGAMEPAD_HID_PSC;
+
             default:
                 break;
         }
@@ -541,6 +554,41 @@ bool sgamepad_hid_ps5_report(const uint8_t* report, size_t length, sgamepad_hid_
     // Past the hat byte the DualSense carries one more byte of buttons than
     // the DualShock 4; what the machine reads of them is the same three.
     _sgamepad_hid_ps_buttons(packet + buttons, state);
+
+    return true;
+}
+
+bool sgamepad_hid_psc_report(const uint8_t* report, size_t length, sgamepad_hid_state* state)
+{
+    // The zero is the report id Windows puts in place of the one the pad does
+    // not state; a report led by anything else is not this pad's.
+    if(length < _SGAMEPAD_HID_PSC_SIZE + 1 || report[0] != 0)
+        return false;
+
+    const uint8_t buttons = report[1];
+    const uint8_t directions = report[2];
+
+    // Positions, as everywhere else: the bottom face button is `a`, the right
+    // one `b`, the left `x` and the top `y`.
+    state->a = (buttons & 0x04) != 0; // cross
+    state->b = (buttons & 0x02) != 0; // circle
+    state->x = (buttons & 0x08) != 0; // square
+    state->y = (buttons & 0x01) != 0; // triangle
+
+    state->back = (directions & 0x01) != 0;  // share
+    state->start = (directions & 0x02) != 0; // option
+
+    // The direction pad is two two-bit axes in the nibble above share and
+    // option: the low pair runs left, none, right, and the high pair up, none,
+    // down.
+    const uint8_t dpad = (directions >> 2) & 0x0F;
+    const uint8_t horizontal = dpad & 0x03;
+    const uint8_t vertical = (dpad >> 2) & 0x03;
+
+    state->left = horizontal == 0;
+    state->right = horizontal == 2;
+    state->up = vertical == 0;
+    state->down = vertical == 2;
 
     return true;
 }

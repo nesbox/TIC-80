@@ -623,6 +623,7 @@ static bool _sgamepad_hid_read(_sgamepad_hid_device* pad)
     {
         case SGAMEPAD_HID_PS4: read = sgamepad_hid_ps4_report(pad->report, bytes, &state); break;
         case SGAMEPAD_HID_PS5: read = sgamepad_hid_ps5_report(pad->report, bytes, &state); break;
+        case SGAMEPAD_HID_PSC: read = sgamepad_hid_psc_report(pad->report, bytes, &state); break;
         case SGAMEPAD_HID_SWITCH: read = sgamepad_hid_switch_report(pad->report, bytes, pad->model, &state); break;
         default: break;
     }
