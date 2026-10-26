@@ -336,6 +336,9 @@ static const u8 Keymap[] =
         [SAPP_KEYCODE_RIGHT_CONTROL] = tic_key_ctrl,
         [SAPP_KEYCODE_LEFT_ALT] = tic_key_alt,
         [SAPP_KEYCODE_RIGHT_ALT] = tic_key_alt,
+        // Cmd is the Mac's shortcut key, and is control here like SDL's GUI.
+        [SAPP_KEYCODE_LEFT_SUPER] = tic_key_ctrl,
+        [SAPP_KEYCODE_RIGHT_SUPER] = tic_key_ctrl,
 };
 
 static tic_key translate_key(sapp_keycode code)
@@ -855,6 +858,11 @@ static void event_cb(const sapp_event* event)
             platform.keyboard.lastCode = event->key_code;
             handle_key(event->key_code, true);
 
+            // A Cmd press after a focus change can evade sokol's flag tracking,
+            // but every key held with it carries it in its modifiers.
+            if(event->modifiers & SAPP_MODIFIER_SUPER)
+                platform.keyboard.state[tic_key_ctrl] = true;
+
 #if defined(__EMSCRIPTEN__)
             if(machine_key(event->key_code, event->modifiers))
                 sapp_consume_event();
@@ -866,6 +874,10 @@ static void event_cb(const sapp_event* event)
             break;
 
         case SAPP_EVENTTYPE_CHAR:
+            // A Command combination is a shortcut, not text.
+            if(event->modifiers & SAPP_MODIFIER_SUPER)
+                break;
+
             // Control characters are keys of their own, not text.
             if(event->char_code >= 32 && event->char_code < 127 && platform.keyboard.head - platform.keyboard.tail < (s32)COUNT_OF(platform.keyboard.queue))
                 platform.keyboard.queue[platform.keyboard.head++ % COUNT_OF(platform.keyboard.queue)] = (char)event->char_code;
