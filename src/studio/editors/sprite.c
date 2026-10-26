@@ -503,61 +503,15 @@ static bool hasCanvasSelection(Sprite* sprite)
     return sprite->mode == SPRITE_SELECT_MODE && sprite->select.rect.w && sprite->select.rect.h;
 }
 
-static void drawSymmetryButton(Sprite* sprite, s32 x, s32 y, u8 icon, const char* tooltip, bool* value)
-{
-    tic_rect rect = {x, y, TIC_SPRITESIZE, TIC_SPRITESIZE};
-
-    bool over = false;
-    if(checkMousePos(sprite->studio, &rect))
-    {
-        setCursor(sprite->studio, tic_cursor_hand);
-        over = true;
-
-        showTooltip(sprite->studio, tooltip);
-
-        if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
-            *value = !*value;
-    }
-
-    u8 color = (over || !*value) ? tic_color_light_grey : tic_color_white;
-
-    if(!*value)
-    {
-        drawBitIcon(sprite->studio, icon, x, y + 1, color);
-    }
-    else
-    {
-        drawBitIcon(sprite->studio, icon, x, y + 1, tic_color_black);
-        drawBitIcon(sprite->studio, icon, x, y, color);
-    }
-}
-
-// draws the brush size slider and the symmetry toggles as a column centred on the canvas height
-static void drawBrushSlider(Sprite* sprite, s32 x, s32 canvasY)
+static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
 {
     tic_mem* tic = sprite->tic;
 
     enum
     {
         Count = BRUSH_SIZES,
-        Size = 5,
-        SliderHeight = (Size + 1) * Count - 1,
-        // buttons take an extra row for the shadow
-        ButtonHeight = TIC_SPRITESIZE + 1,
-        Gap = 3,
-        ColumnHeight = SliderHeight + 2 * (Gap + ButtonHeight),
+        Size = 5
     };
-
-    s32 y = canvasY + (CANVAS_SIZE - ColumnHeight) / 2;
-
-    {
-        // centre the buttons on the slider track, ignoring the tick marks
-        s32 bx = x - (TIC_SPRITESIZE - Size) / 2;
-        s32 by = y + SliderHeight + Gap;
-
-        drawSymmetryButton(sprite, bx, by, tic_icon_fliphorz, "HORZ SYMMETRY", &sprite->brush.symmetryHorizontal);
-        drawSymmetryButton(sprite, bx, by + ButtonHeight + Gap, tic_icon_flipvert, "VERT SYMMETRY", &sprite->brush.symmetryVertical);
-    }
 
     tic_rect rect = {x, y, Size, (Size + 1) * Count};
 
@@ -618,7 +572,7 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
         {
             case SPRITE_DRAW_MODE:
                 processDrawCanvasMouse(sprite, x, y, rect.x, rect.y);
-                drawBrushSlider(sprite, x - 15, y);
+                drawBrushSlider(sprite, x - 15, y + 20);
                 break;
             case SPRITE_PICK_MODE: processPickerCanvasMouse(sprite, x, y, rect.x, rect.y); break;
             case SPRITE_SELECT_MODE: processSelectCanvasMouse(sprite, x, y); break;
