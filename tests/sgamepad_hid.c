@@ -36,6 +36,14 @@ static sgamepad_hid_state read_ps5(const uint8_t* report, size_t length)
     return state;
 }
 
+static sgamepad_hid_state read_psc(const uint8_t* report, size_t length)
+{
+    sgamepad_hid_state state = {0};
+
+    assert(sgamepad_hid_psc_report(report, length, &state));
+    return state;
+}
+
 static sgamepad_hid_state read_switch(const uint8_t* report, size_t length, sgamepad_hid_switch_model model)
 {
     sgamepad_hid_state state = {0};
@@ -427,6 +435,122 @@ static void testPS5Bluetooth(void)
     puts("ps5 bluetooth ok");
 }
 
+// -------------------------------------------------------- PlayStation Classic
+
+// What Windows hands over: the zero it puts in place of the report id the pad
+// does not state, then the buttons and the direction pad.
+static void psc_report(uint8_t* report, uint8_t buttons, uint8_t directions)
+{
+    report[0] = 0x00;
+    report[1] = buttons;
+    report[2] = directions;
+}
+
+static void testPSCFaceButtons(void)
+{
+    static const struct
+    {
+        uint8_t byte;
+        unsigned expected;
+    } Cases[] = {
+        {0x04, A}, // cross, the bottom one
+        {0x02, B}, // circle, the right one
+        {0x08, X}, // square, the left one
+        {0x01, Y}, // triangle, the top one
+    };
+
+    for(size_t i = 0; i < sizeof Cases / sizeof Cases[0]; i++)
+    {
+        uint8_t report[3];
+
+        // 0x14 is the pad at rest: the direction pad centered, share and
+        // option up.
+        psc_report(report, Cases[i].byte, 0x14);
+
+        assert(buttons(read_psc(report, sizeof report)) == Cases[i].expected);
+    }
+
+    puts("psc face buttons ok");
+}
+
+// The direction pad is two two-bit axes in the nibble above share and option:
+// the low pair runs left, none, right, and the high pair up, none, down.
+static void testPSCDirections(void)
+{
+    static const struct
+    {
+        uint8_t byte;
+        unsigned expected;
+    } Cases[] = {
+        {0x00, UP | LEFT},
+        {0x04, UP},
+        {0x08, UP | RIGHT},
+        {0x10, LEFT},
+        {0x14, 0},
+        {0x18, RIGHT},
+        {0x20, DOWN | LEFT},
+        {0x24, DOWN},
+        {0x28, DOWN | RIGHT},
+    };
+
+    for(size_t i = 0; i < sizeof Cases / sizeof Cases[0]; i++)
+    {
+        uint8_t report[3];
+
+        psc_report(report, 0, Cases[i].byte);
+
+        assert(buttons(read_psc(report, sizeof report)) == Cases[i].expected);
+    }
+
+    puts("psc directions ok");
+}
+
+static void testPSCShareOption(void)
+{
+    static const struct
+    {
+        uint8_t byte;
+        unsigned expected;
+    } Cases[] = {
+        {0x15, BACK},  // share, beside a centered direction pad
+        {0x16, START}, // option
+        {0x17, BACK | START},
+    };
+
+    for(size_t i = 0; i < sizeof Cases / sizeof Cases[0]; i++)
+    {
+        uint8_t report[3];
+
+        psc_report(report, 0, Cases[i].byte);
+
+        assert(buttons(read_psc(report, sizeof report)) == Cases[i].expected);
+    }
+
+    puts("psc share and option ok");
+}
+
+static void testPSCReportShape(void)
+{
+    sgamepad_hid_state state = {0};
+
+    // The counter some units send after the two bytes is the reader's to
+    // ignore, not to read buttons from.
+    uint8_t counted[4] = {0x00, 0x04, 0x14, 0x2A};
+    assert(sgamepad_hid_psc_report(counted, sizeof counted, &state));
+    assert(buttons(state) == A);
+
+    // A report without the leading zero is not one this pad sent, and one
+    // too short to hold the two bytes is nothing at all.
+    memset(&state, 0, sizeof state);
+    uint8_t unled[3] = {0x04, 0x14, 0x00};
+    assert(!sgamepad_hid_psc_report(unled, sizeof unled, &state));
+
+    uint8_t shortReport[2] = {0x00, 0x04};
+    assert(!sgamepad_hid_psc_report(shortReport, sizeof shortReport, &state));
+
+    puts("psc report shape ok");
+}
+
 // ------------------------------------------------------------------- Switch
 
 // The simple report: two button bytes, the hat, then the sticks as 16-bit
@@ -753,6 +877,7 @@ static void testFamilies(void)
     assert(sgamepad_hid_family_of(0x054C, 0x09CC) == SGAMEPAD_HID_PS4);
     assert(sgamepad_hid_family_of(0x054C, 0x0CE6) == SGAMEPAD_HID_PS5);
     assert(sgamepad_hid_family_of(0x054C, 0x0DF2) == SGAMEPAD_HID_PS5);
+    assert(sgamepad_hid_family_of(0x054C, 0x0CDA) == SGAMEPAD_HID_PSC);
     assert(sgamepad_hid_family_of(0x057E, 0x2009) == SGAMEPAD_HID_SWITCH);
     assert(sgamepad_hid_family_of(0x057E, 0x2006) == SGAMEPAD_HID_SWITCH);
     assert(sgamepad_hid_family_of(0x057E, 0x2007) == SGAMEPAD_HID_SWITCH);
@@ -863,6 +988,10 @@ int main(void)
     testPS5DualSense();
     testPS5SimpleReport();
     testPS5Bluetooth();
+    testPSCFaceButtons();
+    testPSCDirections();
+    testPSCShareOption();
+    testPSCReportShape();
     testSwitchFaceButtons();
     testSwitchHatAndSticks();
     testSwitchFullPro();
