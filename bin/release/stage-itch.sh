@@ -22,7 +22,7 @@
 #   → stage/windows/tic80-win.exe, stage/linux/tic80-linux,
 #     stage/linux-arm64/tic80-linux-arm64, stage/osx/TIC-80.app,
 #     stage/osx-arm64/TIC-80.app, stage/android/tic80-android.apk,
-#     stage/html/{index.html,tic80.js,tic80.wasm},
+#     stage/html/{index.html,favicon.ico,tic80.js,tic80.wasm},
 #     stage/deb-amd64/tic80-linux.deb, stage/deb-arm64/tic80-linux-arm64.deb,
 #     stage/dmg-intel/tic80-mac.dmg, stage/dmg-arm64/tic80-mac-arm64.dmg
 
