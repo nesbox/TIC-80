@@ -590,9 +590,9 @@ static bool evaluate(LugforthVM* vm, const char* code)
 
     if(ok && thrown)
     {
-        char code[32];
-        snprintf(code, sizeof code, "THROW %d", (int)thrown);
-        reportError(vm, code, NULL);
+        char what[32];
+        snprintf(what, sizeof what, "THROW %d", (int)thrown);
+        reportError(vm, what, NULL);
         return false;
     }
 
