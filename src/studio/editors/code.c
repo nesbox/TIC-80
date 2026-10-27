@@ -48,7 +48,8 @@ static s32 getCodeTextHeight(const Code* code)
 #define SIDEBAR_WIDTH (12 * TIC_FONT_WIDTH)
 
 #if defined(TIC80_PRO)
-#define MAX_CODE sizeof(tic_code)
+// The terminator needs a byte of the same array.
+#define MAX_CODE (sizeof(tic_code) - 1)
 #else
 #define MAX_CODE TIC_BANK_SIZE
 #endif
@@ -1593,17 +1594,20 @@ static void deleteLine(Code* code)
 
 static void inputSymbolBase(Code* code, char sym)
 {
-    if(strlen(code->src) >= MAX_CODE)
-        return;
-
+    const size_t codeSize = strlen(code->src);
     const bool useStructuredEdit = shouldUseStructuredEdit(code);
     const bool isOpeningDelimiter = sym == '(' || sym == '[' || sym == '{';
+    const bool pairDelimiter = (useStructuredEdit || getConfig(code->studio)->theme.code.autoDelimiters) && isOpeningDelimiter;
+    const bool pairQuote = useStructuredEdit && isdoublequote(sym);
 
-    if((useStructuredEdit || getConfig(code->studio)->theme.code.autoDelimiters) && isOpeningDelimiter)
+    if(codeSize + ((pairDelimiter || pairQuote) ? 2 : 1) > MAX_CODE)
+        return;
+
+    if(pairDelimiter)
     {
         insertCode(code, code->cursor.position++, (const char[]){sym, matchingDelim(sym), '\0'});
     }
-    else if(useStructuredEdit && isdoublequote(sym))
+    else if(pairQuote)
     {
         insertCode(code, code->cursor.position++, (const char[]){sym, sym, '\0'});
     }
@@ -1795,12 +1799,20 @@ static bool useSpacesForTab(Code* code)
 
 static s32 insertTab(Code* code, char* line_start, char* pos)
 {
+    const size_t codeSize = strlen(code->src);
+
+    // A cart may carry more code than this build's cap allows.
+    if(codeSize >= MAX_CODE)
+        return 0;
+
+    const s32 room = (s32)(MAX_CODE - codeSize);
+
     if(useSpacesForTab(code))
     {
         s32 tab_size = getConfig(code->studio)->options.tabSize;
         s32 count = 0;
 
-        while(count < tab_size)
+        while(count < tab_size && count < room)
         {
             insertCode(code, pos++, " ");
             count++;
@@ -2237,6 +2249,9 @@ static void sexpify(Code* code)
     if(start == NULL || end == NULL)
         return;
 
+    if(strlen(code->src) + 2 > MAX_CODE)
+        return;
+
     insertCode(code, start, (const char[]){'(', '\0'});
     insertCode(code, end + 1, (const char[]){')', '\0'});
 
@@ -2403,6 +2418,9 @@ static void dupLine(Code* code)
     if(*start)
     {
         s32 size = getLineSize(start) + 1;
+
+        if(strlen(code->src) + size > MAX_CODE)
+            return;
 
         insertCodeSize(code, start, start, size);
 
@@ -3797,6 +3815,9 @@ static void textReplaceTick(Code* code)
             size_t src_length = strlen(code->src);
             while(pos != NULL)
             {
+                if(strlen(code->src) + strlen(code->popup.offset) - strlen(code->popup.text) > MAX_CODE)
+                    break;
+
                 deleteCode(code, pos, pos + strlen(code->popup.text));
                 insertCode(code, pos, code->popup.offset);
                 pos += strlen(code->popup.offset);
@@ -4299,7 +4320,8 @@ void trimWhitespace(Code* code)
     while(dst[-1] == '\n')
         --dst;
     if(dst < limit) ++dst;
-    if(dst < limit) *dst = '\0';
+    // limit is inside the array: MAX_CODE leaves a byte for the terminator.
+    *dst = '\0';
 
     // Move the cursor back if it was on one of the trimmed newlines.
     if(code->cursor.position > dst) code->cursor.position = dst;
