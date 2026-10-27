@@ -1243,7 +1243,8 @@ static sapp_desc app_desc(void)
         .swap_interval = 1,
         .html5.canvas_resize = false,
         .enable_clipboard = true,
-        .clipboard_size = 4096,
+        // The largest code the editor takes, PRO's TIC_CODE_SIZE, plus the terminator.
+        .clipboard_size = TIC_CODE_SIZE + 1,
 #if !defined(__EMSCRIPTEN__)
         // A handful; the layer still loads the first of them only.
         .enable_dragndrop = true,
