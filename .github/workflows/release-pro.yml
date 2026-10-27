@@ -281,7 +281,8 @@ jobs:
           ./butler push stage/dmg-intel-pro nesbox/tic80:dmg-intel-pro --userversion "$VER"
 
   android-pro:
-    runs-on: ubuntu-latest
+    # 24.04, not -latest: setup-ruby has no 2.6.10 for 26.04 (#3107).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
         with:
