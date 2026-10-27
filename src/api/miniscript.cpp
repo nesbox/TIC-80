@@ -1295,7 +1295,7 @@ void StaticInitMiniScript()
     ErrorTypes::Init();
 
     MiniScript::hostName = "TIC-80";
-    MiniScript::hostVersion = DEF2STR(TIC_VERSION);
+    MiniScript::hostVersion = TIC_VERSION;
     MiniScript::hostInfo = "https://tic80.com/";
 
     auto f = Intrinsic::Create("tic80");
