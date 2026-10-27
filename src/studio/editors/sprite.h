@@ -40,7 +40,7 @@ struct Sprite
     struct
     {
         bool start;
-        tic_point lastMouse;
+        tic_point lastPos; // brush cell on the canvas, or -1 if none
     } draw;
 
     u16 index;

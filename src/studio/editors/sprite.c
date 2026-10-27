@@ -72,8 +72,9 @@ static void initTileSheet(Sprite* sprite)
 static void updateIndex(Sprite* sprite)
 {
     sprite->index = sprite->spritePos.y * sprite->blit.pages * TIC_SPRITESHEET_COLS + sprite->spritePos.x;
-    // index has changed, clear selection
+    // index has changed, clear selection and the line start
     clearCanvasSelection(sprite);
+    sprite->draw.lastPos.x = sprite->draw.lastPos.y = -1;
 }
 
 static inline bool isIdle(Sprite* sprite)
@@ -251,11 +252,32 @@ static s32 toCanvasCoord(s32 Size, s32 brushSize, s32 canvas_x, s32 x)
     return x;
 }
 
+// the stored line start, clamped so a brush that grew since then stays on the canvas
+static tic_point getLastDrawPos(Sprite* sprite)
+{
+    s32 max = sprite->size - sprite->brushSize;
+    tic_point pos = sprite->draw.lastPos;
+
+    return (tic_point){MIN(pos.x, max), MIN(pos.y, max)};
+}
+
+static inline bool hasLastDrawPos(Sprite* sprite)
+{
+    return sprite->draw.lastPos.x >= 0 && sprite->draw.lastPos.y >= 0;
+}
+
 static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 {
     tic_mem* tic = sprite->tic;
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->size;
+
+    bool left = checkMouseDown(sprite->studio, &rect, tic_mouse_left);
+    bool right = checkMouseDown(sprite->studio, &rect, tic_mouse_right);
+
+    // end the stroke even if the button was released off the canvas
+    if(!left && !right)
+        sprite->draw.start = false;
 
     if(checkMousePos(sprite->studio, &rect))
     {
@@ -271,38 +293,23 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
         drawCursorBorder(sprite, x + mx, y + my, brushSize, brushSize);
 
-        bool left = checkMouseDown(sprite->studio, &rect, tic_mouse_left);
-        bool right = checkMouseDown(sprite->studio, &rect, tic_mouse_right);
-
         if(left || right)
         {
-            tic_point from = sprite->draw.lastMouse;
+            tic_point pos = {mx / Size, my / Size};
+            tic_point from = pos;
 
-            if(!sprite->draw.start)
-            {
-                sprite->draw.lastMouse = tic_api_mouse(tic);
-                if(!tic_api_key(tic, tic_key_shift) || from.x < 0 || from.y < 0)
-                    from = sprite->draw.lastMouse;
-                sprite->draw.start = true;
-            }
+            // continue the stroke, or start a line from the last stroke when shift is held
+            if(sprite->draw.start || (tic_api_key(tic, tic_key_shift) && hasLastDrawPos(sprite)))
+                from = getLastDrawPos(sprite);
 
-            s32 lx = toCanvasCoord(Size, brushSize, x, from.x);
-            s32 ly = toCanvasCoord(Size, brushSize, y, from.y);
+            sprite->draw.start = true;
 
             u8 color = left ? sprite->color : sprite->color2;
-            paintLine(sprite, setSheetPixel, color,
-                      sx + lx / Size,
-                      sy + ly / Size,
-                      sx + mx / Size,
-                      sy + my / Size);
+            paintLine(sprite, setSheetPixel, color, sx + from.x, sy + from.y, sx + pos.x, sy + pos.y);
 
             history_add(sprite->history);
 
-            sprite->draw.lastMouse = tic_api_mouse(tic);
-        }
-        else
-        {
-            sprite->draw.start = false;
+            sprite->draw.lastPos = pos;
         }
     }
 }
@@ -614,24 +621,23 @@ static void drawCanvas(Sprite* sprite, s32 x, s32 y)
         for(s32 sx = spriteRect.x, i = x; sx < r; sx++, i += Size)
             tic_api_rect(tic, i, j, Size, Size, tic_tilesheet_getpix(&sprite->sheet, sx, sy));
 
-    if(checkMousePos(sprite->studio, &canvasRect))
+    // preview the shift-click line, only where processDrawCanvasMouse would draw it
+    if(sprite->mode == SPRITE_DRAW_MODE && !sprite->palette.edit && checkMousePos(sprite->studio, &canvasRect))
     {
         bool left = checkMouseDown(sprite->studio, &canvasRect, tic_mouse_left);
         bool right = checkMouseDown(sprite->studio, &canvasRect, tic_mouse_right);
-        tic_point thisMouse = tic_api_mouse(tic);
-        tic_point lastMouse = sprite->draw.lastMouse;
-        if(!left && !right && tic_api_key(tic, tic_key_shift) && lastMouse.x != -1 && lastMouse.y != -1)
+        if(!left && !right && tic_api_key(tic, tic_key_shift) && hasLastDrawPos(sprite))
         {
-            // convert screen coordinates to sheet coordinates the same way processDrawCanvasMouse does
+            // convert the mouse to a brush cell the same way processDrawCanvasMouse does
             s32 brushSize = sprite->brushSize * Size;
-            s32 lx = toCanvasCoord(Size, brushSize, x, lastMouse.x);
-            s32 ly = toCanvasCoord(Size, brushSize, y, lastMouse.y);
-            s32 mx = toCanvasCoord(Size, brushSize, x, thisMouse.x);
-            s32 my = toCanvasCoord(Size, brushSize, y, thisMouse.y);
+            tic_point mouse = tic_api_mouse(tic);
+            s32 mx = toCanvasCoord(Size, brushSize, x, mouse.x);
+            s32 my = toCanvasCoord(Size, brushSize, y, mouse.y);
+            tic_point from = getLastDrawPos(sprite);
 
             paintLine(sprite, drawPreviewPixel, sprite->color,
-                      spriteRect.x + lx / Size,
-                      spriteRect.y + ly / Size,
+                      spriteRect.x + from.x,
+                      spriteRect.y + from.y,
                       spriteRect.x + mx / Size,
                       spriteRect.y + my / Size);
         }
@@ -1318,7 +1324,6 @@ static void selectSprite(Sprite* sprite, s32 x, s32 y)
         if(x > size) x = size;
         if(y > size) y = size;
     }
-    sprite->draw.lastMouse.x = sprite->draw.lastMouse.y = -1;
     sprite->spritePos.x = (u16)(x / TIC_SPRITESIZE);
     sprite->spritePos.y = (u16)(y / TIC_SPRITESIZE);
     updateIndex(sprite);
@@ -2145,7 +2150,7 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
         .draw =
             {
                 .start = false,
-                .lastMouse = {-1, -1},
+                .lastPos = {-1, -1},
             },
         .select =
             {
