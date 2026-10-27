@@ -584,19 +584,58 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
     }
 }
 
+static void drawPreviewPixel(Sprite* sprite, s32 x, s32 y, u8 color)
+{
+    tic_mem* tic = sprite->tic;
+    const s32 Size = CANVAS_SIZE / sprite->size;
+    tic_rect rect = getSpriteRect(sprite);
+
+    // x, y are sheet coordinates, convert them to the canvas cell on screen
+    s32 cx = x - rect.x;
+    s32 cy = y - rect.y;
+
+    if(cx < 0 || cy < 0 || cx >= rect.w || cy >= rect.h)
+        return;
+
+    tic_api_rect(tic, CanvasX + cx * Size, CanvasY + cy * Size, Size, Size, color);
+}
+
 static void drawCanvas(Sprite* sprite, s32 x, s32 y)
 {
     tic_mem* tic = sprite->tic;
-
-    tic_rect rect = getSpriteRect(sprite);
-    s32 r = rect.x + rect.w;
-    s32 b = rect.y + rect.h;
-
     const s32 Size = CANVAS_SIZE / sprite->size;
 
-    for(s32 sy = rect.y, j = y; sy < b; sy++, j += Size)
-        for(s32 sx = rect.x, i = x; sx < r; sx++, i += Size)
+    tic_rect canvasRect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
+    tic_rect spriteRect = getSpriteRect(sprite);
+    s32 r = spriteRect.x + spriteRect.w;
+    s32 b = spriteRect.y + spriteRect.h;
+
+    for(s32 sy = spriteRect.y, j = y; sy < b; sy++, j += Size)
+        for(s32 sx = spriteRect.x, i = x; sx < r; sx++, i += Size)
             tic_api_rect(tic, i, j, Size, Size, tic_tilesheet_getpix(&sprite->sheet, sx, sy));
+
+    if(checkMousePos(sprite->studio, &canvasRect))
+    {
+        bool left = checkMouseDown(sprite->studio, &canvasRect, tic_mouse_left);
+        bool right = checkMouseDown(sprite->studio, &canvasRect, tic_mouse_right);
+        tic_point thisMouse = tic_api_mouse(tic);
+        tic_point lastMouse = sprite->draw.lastMouse;
+        if(!left && !right && tic_api_key(tic, tic_key_shift) && lastMouse.x != -1 && lastMouse.y != -1)
+        {
+            // convert screen coordinates to sheet coordinates the same way processDrawCanvasMouse does
+            s32 brushSize = sprite->brushSize * Size;
+            s32 lx = toCanvasCoord(Size, brushSize, x, lastMouse.x);
+            s32 ly = toCanvasCoord(Size, brushSize, y, lastMouse.y);
+            s32 mx = toCanvasCoord(Size, brushSize, x, thisMouse.x);
+            s32 my = toCanvasCoord(Size, brushSize, y, thisMouse.y);
+
+            paintLine(sprite, drawPreviewPixel, sprite->color,
+                      spriteRect.x + lx / Size,
+                      spriteRect.y + ly / Size,
+                      spriteRect.x + mx / Size,
+                      spriteRect.y + my / Size);
+        }
+    }
 }
 
 static void upCanvas(Sprite* sprite)
