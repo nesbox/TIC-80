@@ -156,6 +156,12 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/pforth/csrc/pf_guts.h")
     endif()
 endif()
 
+# A Lugforth build reports its own Forth, whatever the pforth submodule holds.
+if(BUILD_WITH_LUGFORTH AND EXISTS "${CMAKE_SOURCE_DIR}/vendor/lugforth/VERSION")
+    file(STRINGS "${CMAKE_SOURCE_DIR}/vendor/lugforth/VERSION" LUGFORTH_VERSION LIMIT_COUNT 1)
+    set(TIC_RT_FORTH "Lugforth ${LUGFORTH_VERSION}")
+endif()
+
 if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/gravity/src/shared/gravity_value.h")
     file(STRINGS "${CMAKE_SOURCE_DIR}/vendor/gravity/src/shared/gravity_value.h" GRAVITY_VERSION_LINE REGEX "^#define GRAVITY_VERSION[^\"]*\"[^\"]+\"")
 

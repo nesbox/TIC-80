@@ -217,6 +217,7 @@ include(cmake/quickjs.cmake)
 include(cmake/janet.cmake)
 include(cmake/gravity.cmake)
 include(cmake/forth.cmake)
+include(cmake/lugforth.cmake)
 include(cmake/miniscript.cmake)
 
 include(cmake/runtime_versions.cmake)

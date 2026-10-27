@@ -28,7 +28,7 @@
 # carts come out code-only, missing the banks — silently, with no error, and
 # every file in build/assets/ rewritten wrong.
 #
-#   cmake -DBUILD_TOOLS=ON -DBUILD_WITH_ALL=ON -DBUILD_WITH_FORTH=ON -DBUILD_STATIC=ON .. && cmake --build .
+#   cmake -DBUILD_TOOLS=ON -DBUILD_WITH_ALL=ON -DBUILD_STATIC=ON .. && cmake --build .
 set -eu
 
 cd "$(dirname "$0")"

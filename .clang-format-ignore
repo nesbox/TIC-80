@@ -22,3 +22,7 @@ src/ext/md5.h
 src/system/libretro/libretro-common/**
 src/system/libretro/libretro_core_options.h
 src/system/libretro/libretro_core_options_intl.h
+
+# Lugforth's module translated by wasm2c, its runtime and its API list, built
+# in the Lugforth repository and copied here as they come.
+vendor/lugforth/**
