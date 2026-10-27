@@ -191,16 +191,21 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
     }
 }
 
-static void paintPoint(Sprite* sprite, u8 color, s32 x, s32 y)
+static void setSheetPixel(Sprite* sprite, s32 x, s32 y, u8 color)
+{
+    tic_tilesheet_setpix(&sprite->sheet, x, y, color);
+}
+
+static void paintPoint(Sprite* sprite, SpritePaintPixel paintPixel, u8 color, s32 x, s32 y)
 {
     s32 pixels = sprite->brushSize;
 
     for(s32 j = 0; j < pixels; j++)
         for(s32 i = 0; i < pixels; i++)
-            tic_tilesheet_setpix(&sprite->sheet, x + i, y + j, color);
+            paintPixel(sprite, x + i, y + j, color);
 }
 
-static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
+static void paintLine(Sprite* sprite, SpritePaintPixel paintPixel, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
 {
     float dx = (float)(x2 - x1);
     float dy = (float)(y2 - y1);
@@ -210,7 +215,7 @@ static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
     {
         s32 step = y2 > y1 ? 1 : -1;
         for(s32 ly = y1; y2 > y1 ? ly <= y2 : ly >= y2; ly += step)
-            paintPoint(sprite, color, x1, ly);
+            paintPoint(sprite, paintPixel, color, x1, ly);
     }
     else
     {
@@ -222,13 +227,13 @@ static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
         {
             s32 step = x2 > x1 ? 1 : -1;
             for(s32 lx = x1; x2 > x1 ? lx <= x2 : lx >= x2; lx += step)
-                paintPoint(sprite, color, lx, (s32)(slope * lx + intercept));
+                paintPoint(sprite, paintPixel, color, lx, (s32)(slope * lx + intercept));
         }
         else
         {
             s32 step = y2 > y1 ? 1 : -1;
             for(s32 ly = y1; y2 > y1 ? ly <= y2 : ly >= y2; ly += step)
-                paintPoint(sprite, color, (s32)((ly - intercept) / slope), ly);
+                paintPoint(sprite, paintPixel, color, (s32)((ly - intercept) / slope), ly);
         }
     }
 }

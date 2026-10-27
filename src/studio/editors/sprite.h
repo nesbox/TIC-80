@@ -107,6 +107,8 @@ struct Sprite
     void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
 
+typedef void (*SpritePaintPixel)(Sprite*, s32 x, s32 y, u8 color);
+
 typedef struct
 {
     s32 cell_w, cell_h, cols, rows, length;
