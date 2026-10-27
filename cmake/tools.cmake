@@ -26,10 +26,6 @@ if(BUILD_TOOLS)
     set(TIC80_TOOLS_LANGS_OFF "")
 
     foreach(lang ${TIC80_TOOLS_LANGS})
-        # Forth is either binding: Lugforth or pForth.
-        if(lang STREQUAL "FORTH" AND BUILD_WITH_LUGFORTH)
-            continue()
-        endif()
         if(NOT BUILD_WITH_${lang})
             list(APPEND TIC80_TOOLS_LANGS_OFF ${lang})
         endif()
@@ -39,8 +35,8 @@ if(BUILD_TOOLS)
         message(FATAL_ERROR
             "BUILD_TOOLS requires every language; ${TIC80_TOOLS_LANGS_OFF} is off, and a project in "
             "one of them converts to a code-only cart without a word. -DBUILD_WITH_ALL=ON covers a "
-            "build directory that has none yet (its Forth is Lugforth): in one configured before, the "
-            "per-language options kept that first configure's defaults and have to be named one by one.")
+            "build directory that has none yet: in one configured before, the per-language options "
+            "kept that first configure's defaults and have to be named one by one.")
     endif()
 
     set(TOOLS_DIR ${CMAKE_SOURCE_DIR}/build/tools)

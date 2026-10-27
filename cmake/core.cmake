@@ -128,10 +128,6 @@ if(BUILD_STATIC)
         target_link_libraries(tic80core PRIVATE forth)
     endif()
 
-    if(BUILD_WITH_LUGFORTH)
-        target_link_libraries(tic80core PRIVATE lugforth)
-    endif()
-
     if(BUILD_WITH_GRAVITY)
         target_link_libraries(tic80core PRIVATE gravity)
     endif()

@@ -1,5 +1,5 @@
-/* Run the Lugforth binding against the core without a window or audio device.
- * Configure with -DBUILD_WITH_LUGFORTH=ON -DBUILD_TESTS=ON; ctest -R lugforth-test runs it.
+/* Run the Forth binding (Lugforth) against the core without a window or audio device.
+ * Configure with -DBUILD_WITH_FORTH=ON -DBUILD_TESTS=ON; ctest -R forth-test runs it.
  * Besides the callbacks, it checks what the binding is for: a cartridge that
  * reaches for memory outside the module stops with an error, not the player.
  */
@@ -109,7 +109,7 @@ int main(void)
     assert(strstr(Errors, "nosuchword"));
     assert(core->currentVM == NULL);
 
-    // A word that leaves cells on the stack is reported, as with pForth.
+    // A word that leaves cells on the stack is reported, as it was with pForth.
     clearErrors();
     assert(Script->init(tic, ": TIC 1 2 ;"));
     Script->tick(tic);
@@ -154,6 +154,6 @@ int main(void)
     assert(tic->ram->persistent.data[10] == 0);
 
     tic_core_close(tic);
-    puts("Lugforth runtime tests passed");
+    puts("Forth runtime tests passed");
     return 0;
 }

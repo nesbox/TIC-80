@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2024 TIC-80 contributors
+// Copyright (c) 2026 TIC-80 contributors
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,1398 +20,905 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// Forth language integration for TIC-80 using pForth.
+// Forth, sandboxed: the engine is Lugforth, an ANS Forth.
 //
-// This file serves three roles:
-//   1. pforth I/O layer: routes pforth output to TIC-80 trace, stubs file I/O.
-//   2. Replacement for pForth's pfcustom.c: defines CustomFunctionTable[] and
-//      CompileCustomFunctions() which register TIC-80 API words in the Forth
-//      dictionary.
-//   3. TIC-80 tic_script implementation: lifecycle (init/close/tick/boot/etc.)
-//      and the exported tic_script descriptor.
-//
-// Stack convention used by all wrappers:
-//   All words are registered with NumParams=0. Each wrapper pops its own
-//   arguments from the pforth data stack with pfPopFromStack(). Arguments are
-//   popped in reverse order (TOS = last/rightmost parameter in Forth notation).
-//   Example: for ( x y color -- ), pop color first, then y, then x.
+// pForth, the engine before, ran a cartridge as native code: its @ and ! took
+// the player's own addresses. Here the Forth system is a WebAssembly module,
+// built in the Lugforth repository and translated to C by wasm2c
+// (vendor/lugforth/): it runs natively, but every address a cartridge makes is
+// an offset in the module's memory, each access is checked against its bounds
+// and traps past them, and the only ways out of the module are the imports
+// below, which check the addresses they are handed. The API words, their
+// names and their stack effects are those of the pForth binding, so the
+// cartridges written for it run unchanged.
 
 #include "core/core.h"
 
-// pf_all.h is pforth's internal umbrella header; it defines Err, cell_t,
-// CFunc0 and everything needed by pfcustom.c replacements.
-// Undefine TIC-80's MIN/MAX first to avoid redefinition warnings from
-// pforth's pf_guts.h, which defines its own versions.
-#undef MIN
-#undef MAX
-#include "pf_all.h"
+// The core types of wasm2c are TIC-80's own, but for the floats.
+#define WASM_RT_CORE_TYPES_DEFINED 1
+typedef float f32;
+typedef double f64;
 
-#include <stdint.h>
+#include "lugforth_w2c.h"
+#include "wasm-rt-exceptions.h"
+#include "wasm-rt-impl.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
-extern bool parse_note(const char* noteStr, s32* note, s32* octave);
+#include "tic80_api.h"
 
-// =============================================================================
-// pforth I/O layer
-//
-// Routes all pforth terminal output to the TIC-80 trace callback.
-// File I/O is stubbed out (not needed for cartridge execution).
-// =============================================================================
+#define LUGFORTH_OUT_SIZE 256
+#define LUGFORTH_STR_SIZE 1024
 
-#define FORTH_IO_BUF 256
-
-static char gOutBuf[FORTH_IO_BUF];
-static int gOutLen = 0;
-static tic_tick_data* gTickData = NULL;
-
-static void flushOut(void)
+// The instance of the imports: wasm2c hands it to each of them.
+typedef struct w2c_tic80
 {
-    if(gOutLen > 0 && gTickData && gTickData->trace)
+    tic_core* core;
+    w2c_lugforth module;
+    bool instantiated;
+
+    // Execution tokens of the callbacks, looked up after each evaluation.
+    s32 tic, boot, scn, bdr, menu;
+
+    // A trap leaves the module half way through a word: nothing more runs.
+    bool broken;
+
+    char out[LUGFORTH_OUT_SIZE];
+    s32 outLen;
+
+    // The output of the command running, for its error: the line that says
+    // what went wrong has usually gone to the console already.
+    char recent[LUGFORTH_OUT_SIZE];
+    s32 recentLen;
+} LugforthVM;
+
+typedef enum
+{
+    Export_init,
+    Export_alloc,
+    Export_free,
+    Export_eval,
+    Export_find,
+    Export_call,
+    Export_call1,
+    Export_depth,
+} Export;
+
+static LugforthVM* getVM(tic_core* core)
+{
+    return (LugforthVM*)core->currentVM;
+}
+
+// =============================================================================
+// Output: TYPE goes to the console, a line at a time, and is kept for errors.
+// =============================================================================
+
+static void flushOut(LugforthVM* vm)
+{
+    if(vm->outLen > 0 && vm->core->data && vm->core->data->trace)
     {
-        gOutBuf[gOutLen] = '\0';
-        gTickData->trace(gTickData->data, gOutBuf, 15);
-        gOutLen = 0;
+        vm->out[vm->outLen] = '\0';
+        vm->core->data->trace(vm->core->data->data, vm->out, 15);
     }
+    vm->outLen = 0;
 }
 
-static void forthInitIO(tic_tick_data* tickData)
+static void keepRecent(LugforthVM* vm, char c)
 {
-    gTickData = tickData;
-    gOutLen = 0;
-}
-
-static void forthTermIO(void)
-{
-    flushOut();
-    gTickData = NULL;
-}
-
-// Returns buffered output as a C string; used for error reporting.
-static const char* forthGetOutputBuffer(void)
-{
-    gOutBuf[gOutLen] = '\0';
-    return gOutBuf;
-}
-
-static void forthClearOutputBuffer(void)
-{
-    gOutLen = 0;
-}
-
-static void forthFlushOutput(void)
-{
-    flushOut();
-}
-
-// ---- pforth terminal I/O callbacks ------------------------------------------
-
-int sdTerminalOut(char c)
-{
-    if(gOutLen < FORTH_IO_BUF - 1)
-        gOutBuf[gOutLen++] = c;
-
-    if(c == '\n' || gOutLen >= FORTH_IO_BUF - 1)
-        flushOut();
-
-    return 0;
-}
-
-int sdTerminalEcho(char c)
-{
-    return sdTerminalOut(c);
-}
-
-int sdTerminalIn(void)
-{
-    return -1;
-}
-
-int sdTerminalFlush(void)
-{
-    flushOut();
-    return 0;
-}
-
-int sdQueryTerminal(void)
-{
-    return 0;
-}
-
-void sdTerminalInit(void)
-{
-}
-void sdTerminalTerm(void)
-{
-}
-
-cell_t sdSleepMillis(cell_t msec)
-{
-    (void)msec;
-    return 0;
-}
-
-// =============================================================================
-// Global state
-// pforth is single-instance (global variables in its C implementation), so one
-// global pointer to the active TIC-80 core is sufficient.
-// =============================================================================
-
-static tic_core* gForthCore = NULL;
-static PForthTask gForthTask = NULL;
-
-// Scratch buffer for converting Forth counted strings ( c-addr u ) to C strings
-#define FORTH_STR_BUF 1024
-static char gStrBuf[FORTH_STR_BUF];
-
-// pfInterpretText is limited to TIB_SIZE (256) characters per call, but pforth
-// preserves compiler state (gVarState, dictionary position) across calls, so
-// feeding one line at a time works correctly for multi-line definitions.
-static ThrowCode forthInterpretLines(const char* source)
-{
-    char line[TIB_SIZE];
-
-    const char* p = source;
-    while(*p)
+    if(vm->recentLen >= LUGFORTH_OUT_SIZE - 1)
     {
-        const char* end = strchr(p, '\n');
-        if(!end) end = p + strlen(p);
-
-        // Strip trailing CR so Windows line endings (\r\n) work too.
-        const char* lineEnd = end;
-        if(lineEnd > p && *(lineEnd - 1) == '\r') lineEnd--;
-
-        size_t len = (size_t)(lineEnd - p);
-        if(len >= TIB_SIZE) len = TIB_SIZE - 1;
-
-        memcpy(line, p, len);
-        line[len] = '\0';
-
-        if(len > 0)
-        {
-            ThrowCode r = pfInterpretText(line);
-            if(r != 0) return r;
-        }
-
-        p = (*end == '\n') ? end + 1 : end;
-    }
-    return 0;
-}
-
-static const char* forthCountedToC(cell_t addr, cell_t len)
-{
-    if(len < 0) len = 0;
-    if(len >= FORTH_STR_BUF) len = FORTH_STR_BUF - 1;
-    memcpy(gStrBuf, (const char*)(uintptr_t)addr, (size_t)len);
-    gStrBuf[len] = '\0';
-    return gStrBuf;
-}
-
-// =============================================================================
-// TIC-80 API wrappers
-//
-// Each wrapper function is registered with NumParams=0 in CompileCustomFunctions
-// and therefore receives no C arguments. It pops all Forth stack arguments
-// manually via pfPopFromStack().
-//
-// Return value: non-zero values are pushed to the data stack by CreateGlueToC
-// when C_RETURNS_VALUE is used; void wrappers return 0 but are registered with
-// C_RETURNS_VOID so no push occurs.
-// =============================================================================
-
-// cls ( color -- )
-static cell_t tic_forth_cls(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    gForthCore->api.cls((tic_mem*)gForthCore, color);
-    return 0;
-}
-
-// print ( c-addr u x y color fixed scale alt -- width )
-static cell_t tic_forth_print(void)
-{
-    bool alt = (bool)pfPopFromStack();
-    s32 scale = (s32)pfPopFromStack();
-    bool fixed = (bool)pfPopFromStack();
-    u8 color = (u8)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    cell_t len = pfPopFromStack();
-    cell_t addr = pfPopFromStack();
-    const char* text = forthCountedToC(addr, len);
-    return (cell_t)gForthCore->api.print((tic_mem*)gForthCore,
-                                         text, x, y, color, fixed, scale, alt);
-}
-
-// pix ( x y -- color )   read pixel
-static cell_t tic_forth_pix_get(void)
-{
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.pix((tic_mem*)gForthCore, x, y, 0, true);
-}
-
-// pix! ( x y color -- )  write pixel
-static cell_t tic_forth_pix_set(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.pix((tic_mem*)gForthCore, x, y, color, false);
-    return 0;
-}
-
-// line ( x0 y0 x1 y1 color -- )
-static cell_t tic_forth_line(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    float y1 = (float)(s32)pfPopFromStack();
-    float x1 = (float)(s32)pfPopFromStack();
-    float y0 = (float)(s32)pfPopFromStack();
-    float x0 = (float)(s32)pfPopFromStack();
-    gForthCore->api.line((tic_mem*)gForthCore, x0, y0, x1, y1, color);
-    return 0;
-}
-
-// rect ( x y w h color -- )
-static cell_t tic_forth_rect(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    s32 height = (s32)pfPopFromStack();
-    s32 width = (s32)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.rect((tic_mem*)gForthCore, x, y, width, height, color);
-    return 0;
-}
-
-// rectb ( x y w h color -- )
-static cell_t tic_forth_rectb(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    s32 height = (s32)pfPopFromStack();
-    s32 width = (s32)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.rectb((tic_mem*)gForthCore, x, y, width, height, color);
-    return 0;
-}
-
-// rrect ( x y w h color radius exponent -- )
-static cell_t tic_forth_rrect(void)
-{
-    float exponent = (float)pfPopFromStack();
-    s32 radius = (s32)pfPopFromStack();
-    u8 color = (u8)pfPopFromStack();
-    s32 height = (s32)pfPopFromStack();
-    s32 width = (s32)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.rrect((tic_mem*)gForthCore, x, y, width, height, color, radius, exponent);
-    return 0;
-}
-
-// rrectb ( x y w h color radius exponent -- )
-static cell_t tic_forth_rrectb(void)
-{
-    float exponent = (float)pfPopFromStack();
-    s32 radius = (s32)pfPopFromStack();
-    u8 color = (u8)pfPopFromStack();
-    s32 height = (s32)pfPopFromStack();
-    s32 width = (s32)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.rrectb((tic_mem*)gForthCore, x, y, width, height, color, radius, exponent);
-    return 0;
-}
-
-// spr ( id x y colorkey scale flip rotate w h -- )
-// colorkey: -1 = opaque, 0..15 = transparent color index
-static cell_t tic_forth_spr(void)
-{
-    s32 h = (s32)pfPopFromStack();
-    s32 w = (s32)pfPopFromStack();
-    tic_rotate rotate = (tic_rotate)pfPopFromStack();
-    tic_flip flip = (tic_flip)pfPopFromStack();
-    s32 scale = (s32)pfPopFromStack();
-    s32 colorkey = (s32)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    s32 id = (s32)pfPopFromStack();
-
-    static u8 trans[1];
-    u8 count = 0;
-    if(colorkey >= 0)
-    {
-        trans[0] = (u8)colorkey;
-        count = 1;
+        s32 half = vm->recentLen / 2;
+        memmove(vm->recent, vm->recent + half, vm->recentLen - half);
+        vm->recentLen -= half;
     }
 
-    gForthCore->api.spr((tic_mem*)gForthCore,
-                        id, x, y, w, h, trans, count, scale, flip, rotate);
-    return 0;
-}
-
-// btn ( id -- pressed )
-static cell_t tic_forth_btn(void)
-{
-    s32 id = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.btn((tic_mem*)gForthCore, id);
-}
-
-// btnp ( id hold period -- pressed )
-static cell_t tic_forth_btnp(void)
-{
-    s32 period = (s32)pfPopFromStack();
-    s32 hold = (s32)pfPopFromStack();
-    s32 id = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.btnp((tic_mem*)gForthCore, id, hold, period);
-}
-
-// btnr ( id -- released )
-static cell_t tic_forth_btnr(void)
-{
-    s32 id = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.btnr((tic_mem*)gForthCore, id);
-}
-
-// sfx ( id note octave duration channel volume speed -- )
-// note: 0..11 (C=0..B=11), octave: 0..8, or both -1 to use stored note
-static cell_t tic_forth_sfx(void)
-{
-    s32 speed = (s32)pfPopFromStack();
-    s32 volume = (s32)pfPopFromStack();
-    s32 channel = (s32)pfPopFromStack();
-    s32 duration = (s32)pfPopFromStack();
-    s32 octave = (s32)pfPopFromStack();
-    s32 note = (s32)pfPopFromStack();
-    s32 id = (s32)pfPopFromStack();
-    gForthCore->api.sfx((tic_mem*)gForthCore,
-                        id, note, octave, duration, channel, volume, volume, speed);
-    return 0;
-}
-
-// map ( cellx celly cellw cellh sx sy colorkey scale -- )
-// No remap callback in this version.
-static cell_t tic_forth_map(void)
-{
-    s32 scale = (s32)pfPopFromStack();
-    s32 colorkey = (s32)pfPopFromStack();
-    s32 sy = (s32)pfPopFromStack();
-    s32 sx = (s32)pfPopFromStack();
-    s32 cellh = (s32)pfPopFromStack();
-    s32 cellw = (s32)pfPopFromStack();
-    s32 celly = (s32)pfPopFromStack();
-    s32 cellx = (s32)pfPopFromStack();
-
-    static u8 trans[1];
-    u8 count = 0;
-    if(colorkey >= 0)
+    // Lines are kept as one, without the empty ones.
+    if(c == '\n')
     {
-        trans[0] = (u8)colorkey;
-        count = 1;
+        if(vm->recentLen == 0 || vm->recent[vm->recentLen - 1] == ' ')
+            return;
+        c = ' ';
     }
 
-    gForthCore->api.map((tic_mem*)gForthCore,
-                        cellx, celly, cellw, cellh, sx, sy,
-                        trans, count, scale, NULL, NULL);
-    return 0;
+    vm->recent[vm->recentLen++] = c;
 }
 
-// mget ( x y -- tile_id )
-static cell_t tic_forth_mget(void)
+static void putOut(LugforthVM* vm, char c)
 {
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.mget((tic_mem*)gForthCore, x, y);
-}
+    if(c == '\r')
+        return;
 
-// mset ( x y tile_id -- )
-static cell_t tic_forth_mset(void)
-{
-    u8 tile = (u8)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.mset((tic_mem*)gForthCore, x, y, tile);
-    return 0;
-}
+    keepRecent(vm, c);
 
-// peek ( addr bits -- value )
-static cell_t tic_forth_peek(void)
-{
-    s32 bits = (s32)pfPopFromStack();
-    s32 addr = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.peek((tic_mem*)gForthCore, addr, bits);
-}
-
-// poke ( addr value bits -- )
-static cell_t tic_forth_poke(void)
-{
-    s32 bits = (s32)pfPopFromStack();
-    u8 value = (u8)pfPopFromStack();
-    s32 addr = (s32)pfPopFromStack();
-    gForthCore->api.poke((tic_mem*)gForthCore, addr, value, bits);
-    return 0;
-}
-
-// peek1 ( addr -- value )
-static cell_t tic_forth_peek1(void)
-{
-    s32 addr = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.peek1((tic_mem*)gForthCore, addr);
-}
-
-// poke1 ( addr value -- )
-static cell_t tic_forth_poke1(void)
-{
-    u8 value = (u8)pfPopFromStack();
-    s32 addr = (s32)pfPopFromStack();
-    gForthCore->api.poke1((tic_mem*)gForthCore, addr, value);
-    return 0;
-}
-
-// peek2 ( addr -- value )
-static cell_t tic_forth_peek2(void)
-{
-    s32 addr = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.peek2((tic_mem*)gForthCore, addr);
-}
-
-// poke2 ( addr value -- )
-static cell_t tic_forth_poke2(void)
-{
-    u8 value = (u8)pfPopFromStack();
-    s32 addr = (s32)pfPopFromStack();
-    gForthCore->api.poke2((tic_mem*)gForthCore, addr, value);
-    return 0;
-}
-
-// peek4 ( addr -- value )
-static cell_t tic_forth_peek4(void)
-{
-    s32 addr = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.peek4((tic_mem*)gForthCore, addr);
-}
-
-// poke4 ( addr value -- )
-static cell_t tic_forth_poke4(void)
-{
-    u8 value = (u8)pfPopFromStack();
-    s32 addr = (s32)pfPopFromStack();
-    gForthCore->api.poke4((tic_mem*)gForthCore, addr, value);
-    return 0;
-}
-
-// memcpy ( dst src size -- )
-static cell_t tic_forth_memcpy(void)
-{
-    s32 size = (s32)pfPopFromStack();
-    s32 src = (s32)pfPopFromStack();
-    s32 dst = (s32)pfPopFromStack();
-    gForthCore->api.memcpy((tic_mem*)gForthCore, dst, src, size);
-    return 0;
-}
-
-// memset ( dst value size -- )
-static cell_t tic_forth_memset(void)
-{
-    s32 size = (s32)pfPopFromStack();
-    u8 value = (u8)pfPopFromStack();
-    s32 dst = (s32)pfPopFromStack();
-    gForthCore->api.memset((tic_mem*)gForthCore, dst, value, size);
-    return 0;
-}
-
-// trace ( c-addr u color -- )
-static cell_t tic_forth_trace(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    cell_t len = pfPopFromStack();
-    cell_t addr = pfPopFromStack();
-    const char* text = forthCountedToC(addr, len);
-    gForthCore->api.trace((tic_mem*)gForthCore, text, color);
-    return 0;
-}
-
-// pmem ( index -- value )  get persistent memory slot
-static cell_t tic_forth_pmem_get(void)
-{
-    s32 index = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.pmem((tic_mem*)gForthCore, index, 0, false);
-}
-
-// pmem! ( value index -- )  set persistent memory slot
-static cell_t tic_forth_pmem_set(void)
-{
-    s32 index = (s32)pfPopFromStack();
-    u32 value = (u32)pfPopFromStack();
-    gForthCore->api.pmem((tic_mem*)gForthCore, index, value, true);
-    return 0;
-}
-
-// time ( -- ms )
-static cell_t tic_forth_time(void)
-{
-    return (cell_t)(s32)gForthCore->api.time((tic_mem*)gForthCore);
-}
-
-// tstamp ( -- seconds )
-static cell_t tic_forth_tstamp(void)
-{
-    return (cell_t)gForthCore->api.tstamp((tic_mem*)gForthCore);
-}
-
-// exit ( -- )
-static cell_t tic_forth_exit(void)
-{
-    gForthCore->api.exit((tic_mem*)gForthCore);
-    return 0;
-}
-
-// font ( c-addr u x y chromakey cw ch fixed scale alt -- width )
-static cell_t tic_forth_font(void)
-{
-    bool alt = (bool)pfPopFromStack();
-    s32 scale = (s32)pfPopFromStack();
-    bool fixed = (bool)pfPopFromStack();
-    s32 ch = (s32)pfPopFromStack();
-    s32 cw = (s32)pfPopFromStack();
-    u8 chromakey = (u8)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    cell_t len = pfPopFromStack();
-    cell_t addr = pfPopFromStack();
-    const char* text = forthCountedToC(addr, len);
-
-    static u8 trans[1];
-    trans[0] = chromakey;
-
-    return (cell_t)gForthCore->api.font((tic_mem*)gForthCore,
-                                        text, x, y, trans, 1, cw, ch, fixed, scale, alt);
-}
-
-// mouse ( -- x y left mid right scrollx scrolly )
-// All 7 values are pushed onto the stack.
-static cell_t tic_forth_mouse(void)
-{
-    tic_point pos = gForthCore->api.mouse((tic_mem*)gForthCore);
-    const tic80_mouse* m = &gForthCore->memory.ram->input.mouse;
-
-    pfPushToStack((cell_t)pos.x);
-    pfPushToStack((cell_t)pos.y);
-    pfPushToStack((cell_t)m->left);
-    pfPushToStack((cell_t)m->middle);
-    pfPushToStack((cell_t)m->right);
-    pfPushToStack((cell_t)m->scrollx);
-    pfPushToStack((cell_t)m->scrolly);
-    return 0; // C_RETURNS_VOID: the 7 pushes above are the return values
-}
-
-// circ ( x y radius color -- )
-static cell_t tic_forth_circ(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    s32 radius = (s32)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.circ((tic_mem*)gForthCore, x, y, radius, color);
-    return 0;
-}
-
-// circb ( x y radius color -- )
-static cell_t tic_forth_circb(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    s32 radius = (s32)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.circb((tic_mem*)gForthCore, x, y, radius, color);
-    return 0;
-}
-
-// elli ( x y a b color -- )
-static cell_t tic_forth_elli(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    s32 b = (s32)pfPopFromStack();
-    s32 a = (s32)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.elli((tic_mem*)gForthCore, x, y, a, b, color);
-    return 0;
-}
-
-// ellib ( x y a b color -- )
-static cell_t tic_forth_ellib(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    s32 b = (s32)pfPopFromStack();
-    s32 a = (s32)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.ellib((tic_mem*)gForthCore, x, y, a, b, color);
-    return 0;
-}
-
-// paint ( x y color bordercolor -- )
-static cell_t tic_forth_paint(void)
-{
-    u8 bordercolor = (u8)pfPopFromStack();
-    u8 color = (u8)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.paint((tic_mem*)gForthCore, x, y, color, bordercolor);
-    return 0;
-}
-
-// tri ( x1 y1 x2 y2 x3 y3 color -- )
-// Integer coordinates are cast to float (sub-pixel precision not required here).
-static cell_t tic_forth_tri(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    float y3 = (float)(s32)pfPopFromStack();
-    float x3 = (float)(s32)pfPopFromStack();
-    float y2 = (float)(s32)pfPopFromStack();
-    float x2 = (float)(s32)pfPopFromStack();
-    float y1 = (float)(s32)pfPopFromStack();
-    float x1 = (float)(s32)pfPopFromStack();
-    gForthCore->api.tri((tic_mem*)gForthCore, x1, y1, x2, y2, x3, y3, color);
-    return 0;
-}
-
-// trib ( x1 y1 x2 y2 x3 y3 color -- )
-static cell_t tic_forth_trib(void)
-{
-    u8 color = (u8)pfPopFromStack();
-    float y3 = (float)(s32)pfPopFromStack();
-    float x3 = (float)(s32)pfPopFromStack();
-    float y2 = (float)(s32)pfPopFromStack();
-    float x2 = (float)(s32)pfPopFromStack();
-    float y1 = (float)(s32)pfPopFromStack();
-    float x1 = (float)(s32)pfPopFromStack();
-    gForthCore->api.trib((tic_mem*)gForthCore, x1, y1, x2, y2, x3, y3, color);
-    return 0;
-}
-
-// ttri ( x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc colorkey z1 z2 z3 depth -- )
-// texsrc: 0=tiles, 1=map, 2=vbank; colorkey: -1=opaque, 0..15=transparent index
-static cell_t tic_forth_ttri(void)
-{
-    bool depth = (bool)pfPopFromStack();
-    float z3 = (float)(s32)pfPopFromStack();
-    float z2 = (float)(s32)pfPopFromStack();
-    float z1 = (float)(s32)pfPopFromStack();
-    s32 colorkey = (s32)pfPopFromStack();
-    tic_texture_src texsrc = (tic_texture_src)pfPopFromStack();
-    float v3 = (float)(s32)pfPopFromStack();
-    float u3 = (float)(s32)pfPopFromStack();
-    float v2 = (float)(s32)pfPopFromStack();
-    float u2 = (float)(s32)pfPopFromStack();
-    float v1 = (float)(s32)pfPopFromStack();
-    float u1 = (float)(s32)pfPopFromStack();
-    float y3 = (float)(s32)pfPopFromStack();
-    float x3 = (float)(s32)pfPopFromStack();
-    float y2 = (float)(s32)pfPopFromStack();
-    float x2 = (float)(s32)pfPopFromStack();
-    float y1 = (float)(s32)pfPopFromStack();
-    float x1 = (float)(s32)pfPopFromStack();
-
-    static u8 trans[1];
-    u8 count = 0;
-    if(colorkey >= 0)
+    if(c == '\n')
     {
-        trans[0] = (u8)colorkey;
-        count = 1;
-    }
-
-    gForthCore->api.ttri((tic_mem*)gForthCore,
-                         x1, y1, x2, y2, x3, y3,
-                         u1, v1, u2, v2, u3, v3,
-                         texsrc, trans, count, z1, z2, z3, depth);
-    return 0;
-}
-
-// clip ( x y w h -- )
-static cell_t tic_forth_clip(void)
-{
-    s32 h = (s32)pfPopFromStack();
-    s32 w = (s32)pfPopFromStack();
-    s32 y = (s32)pfPopFromStack();
-    s32 x = (s32)pfPopFromStack();
-    gForthCore->api.clip((tic_mem*)gForthCore, x, y, w, h);
-    return 0;
-}
-
-// clip0 ( -- )  reset clip region to full screen
-static cell_t tic_forth_clip0(void)
-{
-    gForthCore->api.clip((tic_mem*)gForthCore, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
-    return 0;
-}
-
-// music ( track frame row loop sustain tempo speed -- )
-// Pass -1 for any value to use defaults.  Call with track=-1 to stop.
-static cell_t tic_forth_music(void)
-{
-    s32 speed = (s32)pfPopFromStack();
-    s32 tempo = (s32)pfPopFromStack();
-    bool sustain = (bool)pfPopFromStack();
-    bool loop = (bool)pfPopFromStack();
-    s32 row = (s32)pfPopFromStack();
-    s32 frame = (s32)pfPopFromStack();
-    s32 track = (s32)pfPopFromStack();
-    gForthCore->api.music((tic_mem*)gForthCore,
-                          track, frame, row, loop, sustain, tempo, speed);
-    return 0;
-}
-
-// sync ( mask bank tocart -- )
-static cell_t tic_forth_sync(void)
-{
-    bool toCart = (bool)pfPopFromStack();
-    s32 bank = (s32)pfPopFromStack();
-    u32 mask = (u32)pfPopFromStack();
-    gForthCore->api.sync((tic_mem*)gForthCore, mask, bank, toCart);
-    return 0;
-}
-
-// vbank ( bank -- prev )
-static cell_t tic_forth_vbank(void)
-{
-    s32 bank = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.vbank((tic_mem*)gForthCore, bank);
-}
-
-// reset ( -- )
-static cell_t tic_forth_reset(void)
-{
-    gForthCore->api.reset((tic_mem*)gForthCore);
-    return 0;
-}
-
-// key ( keycode -- pressed )
-static cell_t tic_forth_key(void)
-{
-    tic_key k = (tic_key)pfPopFromStack();
-    return (cell_t)gForthCore->api.key((tic_mem*)gForthCore, k);
-}
-
-// keyp ( keycode hold period -- pressed )
-static cell_t tic_forth_keyp(void)
-{
-    s32 period = (s32)pfPopFromStack();
-    s32 hold = (s32)pfPopFromStack();
-    tic_key k = (tic_key)pfPopFromStack();
-    return (cell_t)gForthCore->api.keyp((tic_mem*)gForthCore, k, hold, period);
-}
-
-// keyr ( keycode -- released )
-static cell_t tic_forth_keyr(void)
-{
-    tic_key k = (tic_key)pfPopFromStack();
-    return (cell_t)gForthCore->api.keyr((tic_mem*)gForthCore, k);
-}
-
-// fget ( sprite_id flag -- bool )
-static cell_t tic_forth_fget(void)
-{
-    u8 flag = (u8)pfPopFromStack();
-    s32 id = (s32)pfPopFromStack();
-    return (cell_t)gForthCore->api.fget((tic_mem*)gForthCore, id, flag);
-}
-
-// fset ( sprite_id flag value -- )
-static cell_t tic_forth_fset(void)
-{
-    bool value = (bool)pfPopFromStack();
-    u8 flag = (u8)pfPopFromStack();
-    s32 id = (s32)pfPopFromStack();
-    gForthCore->api.fset((tic_mem*)gForthCore, id, flag, value);
-    return 0;
-}
-
-// fft ( start_freq end_freq -- value )  value scaled to 0..65535
-static cell_t tic_forth_fft(void)
-{
-    s32 endFreq = (s32)pfPopFromStack();
-    s32 startFreq = (s32)pfPopFromStack();
-    double v = gForthCore->api.fft((tic_mem*)gForthCore, startFreq, endFreq);
-    return (cell_t)(s32)(v * 65535.0);
-}
-
-// ffts ( start_freq end_freq -- value )  smoothed, value scaled to 0..65535
-static cell_t tic_forth_ffts(void)
-{
-    s32 endFreq = (s32)pfPopFromStack();
-    s32 startFreq = (s32)pfPopFromStack();
-    double v = gForthCore->api.ffts((tic_mem*)gForthCore, startFreq, endFreq);
-    return (cell_t)(s32)(v * 65535.0);
-}
-
-// =============================================================================
-// pForth custom function table
-//
-// IMPORTANT: the order here MUST match the index assignments in
-// CompileCustomFunctions() below. Adding a function requires updating both.
-// =============================================================================
-
-CFunc0 CustomFunctionTable[] =
-    {
-        (CFunc0)tic_forth_cls,      //  0  CLS
-        (CFunc0)tic_forth_print,    //  1  PRINT
-        (CFunc0)tic_forth_pix_get,  //  2  PIX
-        (CFunc0)tic_forth_pix_set,  //  3  PIX!
-        (CFunc0)tic_forth_line,     //  4  LINE
-        (CFunc0)tic_forth_rect,     //  5  RECT
-        (CFunc0)tic_forth_rectb,    //  6  RECTB
-        (CFunc0)tic_forth_spr,      //  7  SPR
-        (CFunc0)tic_forth_btn,      //  8  BTN
-        (CFunc0)tic_forth_btnp,     //  9  BTNP
-        (CFunc0)tic_forth_sfx,      // 10  SFX
-        (CFunc0)tic_forth_map,      // 11  MAP
-        (CFunc0)tic_forth_mget,     // 12  MGET
-        (CFunc0)tic_forth_mset,     // 13  MSET
-        (CFunc0)tic_forth_peek,     // 14  PEEK
-        (CFunc0)tic_forth_poke,     // 15  POKE
-        (CFunc0)tic_forth_peek1,    // 16  PEEK1
-        (CFunc0)tic_forth_poke1,    // 17  POKE1
-        (CFunc0)tic_forth_peek2,    // 18  PEEK2
-        (CFunc0)tic_forth_poke2,    // 19  POKE2
-        (CFunc0)tic_forth_peek4,    // 20  PEEK4
-        (CFunc0)tic_forth_poke4,    // 21  POKE4
-        (CFunc0)tic_forth_memcpy,   // 22  MEMCPY
-        (CFunc0)tic_forth_memset,   // 23  MEMSET
-        (CFunc0)tic_forth_trace,    // 24  TRACE
-        (CFunc0)tic_forth_pmem_get, // 25  PMEM
-        (CFunc0)tic_forth_pmem_set, // 26  PMEM!
-        (CFunc0)tic_forth_time,     // 27  TIME
-        (CFunc0)tic_forth_tstamp,   // 28  TSTAMP
-        (CFunc0)tic_forth_exit,     // 29  EXITGAME (Forth word; C API is exit)
-        (CFunc0)tic_forth_font,     // 30  FONT
-        (CFunc0)tic_forth_mouse,    // 31  MOUSE
-        (CFunc0)tic_forth_circ,     // 32  CIRC
-        (CFunc0)tic_forth_circb,    // 33  CIRCB
-        (CFunc0)tic_forth_elli,     // 34  ELLI
-        (CFunc0)tic_forth_ellib,    // 35  ELLIB
-        (CFunc0)tic_forth_paint,    // 36  PAINT
-        (CFunc0)tic_forth_tri,      // 37  TRI
-        (CFunc0)tic_forth_trib,     // 38  TRIB
-        (CFunc0)tic_forth_ttri,     // 39  TTRI
-        (CFunc0)tic_forth_clip,     // 40  CLIP
-        (CFunc0)tic_forth_clip0,    // 41  CLIP0
-        (CFunc0)tic_forth_music,    // 42  MUSIC
-        (CFunc0)tic_forth_sync,     // 43  SYNC
-        (CFunc0)tic_forth_vbank,    // 44  VBANK
-        (CFunc0)tic_forth_reset,    // 45  RESET
-        (CFunc0)tic_forth_key,      // 46  KEYPRESSED (Forth word; C API is key)
-        (CFunc0)tic_forth_keyp,     // 47  KEYP
-        (CFunc0)tic_forth_fget,     // 48  FGET
-        (CFunc0)tic_forth_fset,     // 49  FSET
-        (CFunc0)tic_forth_fft,      // 50  FFT
-        (CFunc0)tic_forth_ffts,     // 51  FFTS
-        (CFunc0)tic_forth_rrect,    // 52  RRECT
-        (CFunc0)tic_forth_rrectb,   // 53  RRECTB
-        (CFunc0)tic_forth_btnr,     // 54  BTNR
-        (CFunc0)tic_forth_keyr,     // 55  KEYR
-};
-
-// Called during dictionary build (pfBuildDictionary) and manually after
-// pfLoadStaticDictionary to add TIC-80 API words to the dictionary.
-// Index values MUST match the CustomFunctionTable order above.
-Err CompileCustomFunctions(void)
-{
-    int i = 0;
-    // All words use NumParams=0: wrappers pop arguments themselves.
-    if(CreateGlueToC("CLS", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("PRINT", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("PIX", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("PIX!", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("LINE", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("RECT", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("RECTB", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("SPR", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("BTN", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("BTNP", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("SFX", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("MAP", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("MGET", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("MSET", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("PEEK", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("POKE", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("PEEK1", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("POKE1", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("PEEK2", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("POKE2", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("PEEK4", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("POKE4", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("MEMCPY", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("MEMSET", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("TRACE", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("PMEM", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("PMEM!", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("TIME", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("TSTAMP", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    // Renamed from "EXIT": EXIT is a core Forth word (return from the current
-    // definition). Binding the TIC-80 quit-to-console API to that name shadowed
-    // it, so any "... IF ... EXIT THEN ..." early-return silently quit the cart.
-    if(CreateGlueToC("EXITGAME", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("FONT", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("MOUSE", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("CIRC", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("CIRCB", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("ELLI", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("ELLIB", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("PAINT", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("TRI", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("TRIB", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("TTRI", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("CLIP", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("CLIP0", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("MUSIC", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("SYNC", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("VBANK", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("RESET", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    // Renamed from "KEY": KEY is a standard Forth word (read one character of
-    // input). Use KEYPRESSED for TIC-80's "is this key down?" query.
-    if(CreateGlueToC("KEYPRESSED", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("KEYP", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("FGET", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("FSET", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("FFT", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("FFTS", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("RRECT", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("RRECTB", i++, C_RETURNS_VOID, 0) < 0) return -1;
-    if(CreateGlueToC("BTNR", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    if(CreateGlueToC("KEYR", i++, C_RETURNS_VALUE, 0) < 0) return -1;
-    return 0;
-}
-
-// Required when PF_NO_GLOBAL_INIT is defined (rare embedded loaders).
-Err LoadCustomFunctionTable(void)
-{
-    return 0;
-}
-
-// =============================================================================
-// Error reporting helpers
-// =============================================================================
-
-static void reportForthError(tic_core* core, ThrowCode code)
-{
-    if(!core->data) return;
-
-    const char* msg = forthGetOutputBuffer();
-    if(msg && msg[0])
-        core->data->error(core->data->data, msg);
-    else
-    {
-        // pforth throw codes are negative integers; format a basic message.
-        char buf[64];
-        snprintf(buf, sizeof(buf), "Forth error: THROW %ld", (long)code);
-        core->data->error(core->data->data, buf);
-    }
-    forthClearOutputBuffer();
-}
-
-// =============================================================================
-// TIC-80 callback helpers
-// =============================================================================
-
-// Validate that the data stack depth is exactly 'expected' after a Forth call.
-// Stack imbalance in SCN (called 240 times/frame) would corrupt state.
-static void checkStackBalance(tic_core* core, cell_t before, const char* name)
-{
-    cell_t after = pfGetStackDepth();
-    if(after != before && core->data)
-    {
-        char buf[128];
-        cell_t delta = after - before;
-        if(delta > 0)
-            snprintf(buf, sizeof(buf),
-                     "Forth: stack overflow in %s (%ld extra item%s left)",
-                     name, (long)delta, delta == 1 ? "" : "s");
-        else
-            snprintf(buf, sizeof(buf),
-                     "Forth: stack underflow in %s (%ld item%s missing)",
-                     name, (long)-delta, -delta == 1 ? "" : "s");
-        core->data->error(core->data->data, buf);
-        // Discard leftover stack items to avoid cascading errors.
-        while(pfGetStackDepth() > before)
-            pfPopFromStack();
-    }
-}
-
-static void callForthWord(tic_mem* tic, const char* name, s32 param, bool hasParam)
-{
-    tic_core* core = (tic_core*)tic;
-    if(!core->currentVM) return;
-
-    cell_t depthBefore = pfGetStackDepth();
-
-    if(hasParam)
-        pfPushToStack((cell_t)param);
-
-    forthClearOutputBuffer();
-    ThrowCode result = pfExecIfDefined(name);
-    if(result != 0)
-        reportForthError(core, result);
-
-    cell_t depthAfter = pfGetStackDepth();
-
-    // If the word was not defined, pfExecIfDefined is a no-op and the pushed
-    // param is still on the stack (depthAfter == depthBefore + 1).  That is
-    // not a user error — silently clean up and return.
-    bool paramLeaked = hasParam && (depthAfter == depthBefore + 1);
-    if(paramLeaked)
-    {
-        pfPopFromStack();
+        flushOut(vm);
         return;
     }
 
-    // Any other imbalance is a real stack error in the user's word.
-    checkStackBalance(core, depthBefore, name);
+    vm->out[vm->outLen++] = c;
+    if(vm->outLen >= LUGFORTH_OUT_SIZE - 1)
+        flushOut(vm);
+}
+
+static void reportError(LugforthVM* vm, const char* what, const char* detail)
+{
+    tic_core* core = vm->core;
+    if(!core->data)
+        return;
+
+    char buf[1024];
+    while(vm->recentLen && vm->recent[vm->recentLen - 1] == ' ')
+        vm->recentLen--;
+    vm->recent[vm->recentLen] = '\0';
+    snprintf(buf, sizeof buf, "Forth: %.200s%s%.200s%s%.255s", what,
+             detail ? ": " : "", detail ? detail : "",
+             vm->recentLen ? "\n" : "", vm->recent);
+    vm->outLen = 0;
+    vm->recentLen = 0;
+    core->data->error(core->data->data, buf);
 }
 
 // =============================================================================
-// TIC-80 language lifecycle
+// Imports of the module "tic80"
 // =============================================================================
 
-static void closeForth(tic_mem* tic)
+static const struct
 {
-    tic_core* core = (tic_core*)tic;
-    if(core->currentVM)
+    const char* name;
+    s32 args;
+    s32 results;
+} ApiWords[] =
     {
-        forthTermIO();
-        // pfTerminate() frees both the current task and the dictionary.
-        // Do NOT call pfDeleteTask separately — that would double-free.
-        pfTerminate();
-        gForthTask = NULL;
-        core->currentVM = NULL;
-        gForthCore = NULL;
-    }
+#define API(id, name, op, nargs, nres) [id] = {name, nargs, nres},
+        TIC80_API_LIST
+#undef API
+};
+
+enum
+{
+#define API(id, name, op, nargs, nres) Api_##op = id,
+    TIC80_API_LIST
+#undef API
+        ApiCount
+};
+
+// The memory of the module, little endian as WebAssembly's on the hosts TIC-80
+// runs on. An address and a length from the module are checked against it.
+static u8* moduleBytes(LugforthVM* vm, u32 addr, u32 len)
+{
+    wasm_rt_memory_t* mem = w2c_lugforth_memory(&vm->module);
+    if(addr > mem->size || len > mem->size - addr)
+        wasm_rt_trap(WASM_RT_TRAP_OOB);
+    return mem->data + addr;
 }
 
-static bool initForth(tic_mem* tic, const char* code)
+// Copies a string of the module ( a n ) out, bounded: the API takes C strings.
+static const char* moduleString(LugforthVM* vm, u32 addr, s32 len, char* buf)
 {
-    tic_core* core = (tic_core*)tic;
-    closeForth(tic);
+    if(len < 0)
+        wasm_rt_trap(WASM_RT_TRAP_OOB);
+    const u8* text = moduleBytes(vm, addr, len);
+    if(len >= LUGFORTH_STR_SIZE)
+        len = LUGFORTH_STR_SIZE - 1;
+    memcpy(buf, text, len);
+    buf[len] = '\0';
+    return buf;
+}
 
-    gForthCore = core;
-    forthInitIO(core->data);
-    pfSetQuiet(1);
+static s32 transparent(s32 colorkey, u8* trans)
+{
+    if(colorkey < 0)
+        return 0;
+    trans[0] = (u8)colorkey;
+    return 1;
+}
 
-    // pfInitialize(NULL, 0, NULL):
-    //   - calls pfInitSystem() which sets gVarBase=10 and inits the allocator
-    //   - creates the execution task and calls pfSetCurrentTask
-    //   - loads the pre-compiled static dictionary (pfdicdat.h)
-    //   - runs AUTO.INIT if defined (no-op in standard pforth)
-    // Using pfInitialize instead of the individual calls is required because
-    // pfInitSystem() is private to pf_core.c.
-    ThrowCode initResult = pfInitialize(NULL, 0, NULL);
-    if(initResult != 0)
+// api ( id base n -- results ): runs API word id on the n cells at base, the
+// last one the top of the Forth stack, and writes its results from base.
+u32 w2c_tic80_api(LugforthVM* vm, u32 id, u32 base, u32 n)
+{
+    tic_core* core = vm->core;
+    tic_mem* tic = (tic_mem*)core;
+
+    if(id >= ApiCount || n != (u32)ApiWords[id].args || (base & 3))
+        wasm_rt_trap(WASM_RT_TRAP_UNREACHABLE);
+
+    s32 cells = MAX(ApiWords[id].args, ApiWords[id].results);
+    u8* cell = moduleBytes(vm, base, cells * 4);
+    s32 a[18] = {0};
+    memcpy(a, cell, n * 4);
+
+    s32 r[7] = {0};
+    s32 results = 0;
+    char str[LUGFORTH_STR_SIZE];
+    u8 trans[1];
+
+#define RESULT(v) (r[results++] = (s32)(v))
+
+    switch(id)
     {
-        if(core->data)
-            core->data->error(core->data->data, "Forth: pfInitialize failed");
-        gForthCore = NULL;
-        forthTermIO();
+        case Api_CLS:
+            core->api.cls(tic, a[0]);
+            break;
+        case Api_PRINT:
+        {
+            const char* text = moduleString(vm, a[0], a[1], str);
+            RESULT(core->api.print(tic, text, a[2], a[3], a[4], a[5] != 0, a[6], a[7] != 0));
+            break;
+        }
+        case Api_PIX:
+            RESULT(core->api.pix(tic, a[0], a[1], 0, true));
+            break;
+        case Api_PIX_STORE:
+            core->api.pix(tic, a[0], a[1], a[2], false);
+            break;
+        case Api_LINE:
+            core->api.line(tic, a[0], a[1], a[2], a[3], a[4]);
+            break;
+        case Api_RECT:
+            core->api.rect(tic, a[0], a[1], a[2], a[3], a[4]);
+            break;
+        case Api_RECTB:
+            core->api.rectb(tic, a[0], a[1], a[2], a[3], a[4]);
+            break;
+        case Api_SPR:
+        {
+            s32 count = transparent(a[3], trans);
+            core->api.spr(tic, a[0], a[1], a[2], a[7], a[8], trans, count, a[4], a[5], a[6]);
+            break;
+        }
+        case Api_BTN:
+            RESULT(core->api.btn(tic, a[0]));
+            break;
+        case Api_BTNP:
+            RESULT(core->api.btnp(tic, a[0], a[1], a[2]));
+            break;
+        case Api_SFX:
+            core->api.sfx(tic, a[0], a[1], a[2], a[3], a[4], a[5], a[5], a[6]);
+            break;
+        case Api_MAP:
+        {
+            s32 count = transparent(a[6], trans);
+            core->api.map(tic, a[0], a[1], a[2], a[3], a[4], a[5], trans, count, a[7], NULL, NULL);
+            break;
+        }
+        case Api_MGET:
+            RESULT(core->api.mget(tic, a[0], a[1]));
+            break;
+        case Api_MSET:
+            core->api.mset(tic, a[0], a[1], a[2]);
+            break;
+        case Api_PEEK:
+            RESULT(core->api.peek(tic, a[0], a[1]));
+            break;
+        case Api_POKE:
+            core->api.poke(tic, a[0], a[1], a[2]);
+            break;
+        case Api_PEEK1:
+            RESULT(core->api.peek1(tic, a[0]));
+            break;
+        case Api_POKE1:
+            core->api.poke1(tic, a[0], a[1]);
+            break;
+        case Api_PEEK2:
+            RESULT(core->api.peek2(tic, a[0]));
+            break;
+        case Api_POKE2:
+            core->api.poke2(tic, a[0], a[1]);
+            break;
+        case Api_PEEK4:
+            RESULT(core->api.peek4(tic, a[0]));
+            break;
+        case Api_POKE4:
+            core->api.poke4(tic, a[0], a[1]);
+            break;
+        case Api_MEMCPY:
+            core->api.memcpy(tic, a[0], a[1], a[2]);
+            break;
+        case Api_MEMSET:
+            core->api.memset(tic, a[0], a[1], a[2]);
+            break;
+        case Api_TRACE:
+        {
+            const char* text = moduleString(vm, a[0], a[1], str);
+            core->api.trace(tic, text, a[2]);
+            break;
+        }
+        case Api_PMEM:
+            RESULT(core->api.pmem(tic, a[0], 0, false));
+            break;
+        case Api_PMEM_STORE:
+            core->api.pmem(tic, a[1], (u32)a[0], true);
+            break;
+        case Api_TIME:
+            RESULT(core->api.time(tic));
+            break;
+        case Api_TSTAMP:
+            RESULT(core->api.tstamp(tic));
+            break;
+        case Api_EXITGAME:
+            core->api.exit(tic);
+            break;
+        case Api_FONT:
+        {
+            const char* text = moduleString(vm, a[0], a[1], str);
+            trans[0] = (u8)a[4];
+            RESULT(core->api.font(tic, text, a[2], a[3], trans, 1, a[5], a[6], a[7] != 0, a[8], a[9] != 0));
+            break;
+        }
+        case Api_MOUSE:
+        {
+            tic_point pos = core->api.mouse(tic);
+            const tic80_mouse* m = &core->memory.ram->input.mouse;
+            RESULT(pos.x);
+            RESULT(pos.y);
+            RESULT(m->left);
+            RESULT(m->middle);
+            RESULT(m->right);
+            RESULT(m->scrollx);
+            RESULT(m->scrolly);
+            break;
+        }
+        case Api_CIRC:
+            core->api.circ(tic, a[0], a[1], a[2], a[3]);
+            break;
+        case Api_CIRCB:
+            core->api.circb(tic, a[0], a[1], a[2], a[3]);
+            break;
+        case Api_ELLI:
+            core->api.elli(tic, a[0], a[1], a[2], a[3], a[4]);
+            break;
+        case Api_ELLIB:
+            core->api.ellib(tic, a[0], a[1], a[2], a[3], a[4]);
+            break;
+        case Api_PAINT:
+            core->api.paint(tic, a[0], a[1], a[2], a[3]);
+            break;
+        case Api_TRI:
+            core->api.tri(tic, a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
+            break;
+        case Api_TRIB:
+            core->api.trib(tic, a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
+            break;
+        case Api_TTRI:
+        {
+            s32 count = transparent(a[13], trans);
+            core->api.ttri(tic, a[0], a[1], a[2], a[3], a[4], a[5],
+                           a[6], a[7], a[8], a[9], a[10], a[11],
+                           (tic_texture_src)a[12], trans, count, a[14], a[15], a[16], a[17] != 0);
+            break;
+        }
+        case Api_CLIP:
+            core->api.clip(tic, a[0], a[1], a[2], a[3]);
+            break;
+        case Api_CLIP0:
+            core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+            break;
+        case Api_MUSIC:
+            core->api.music(tic, a[0], a[1], a[2], a[3] != 0, a[4] != 0, a[5], a[6]);
+            break;
+        case Api_SYNC:
+            core->api.sync(tic, (u32)a[0], a[1], a[2] != 0);
+            break;
+        case Api_VBANK:
+            RESULT(core->api.vbank(tic, a[0]));
+            break;
+        case Api_RESET:
+            // As every other binding: the cart restarts at the next tick.
+            core->state.initialized = false;
+            break;
+        case Api_KEYPRESSED:
+            RESULT(core->api.key(tic, (tic_key)a[0]));
+            break;
+        case Api_KEYP:
+            RESULT(core->api.keyp(tic, (tic_key)a[0], a[1], a[2]));
+            break;
+        case Api_FGET:
+            RESULT(core->api.fget(tic, a[0], a[1]));
+            break;
+        case Api_FSET:
+            core->api.fset(tic, a[0], a[1], a[2] != 0);
+            break;
+        case Api_FFT:
+            RESULT(core->api.fft(tic, a[0], a[1]) * 65535.0);
+            break;
+        case Api_FFTS:
+            RESULT(core->api.ffts(tic, a[0], a[1]) * 65535.0);
+            break;
+        case Api_RRECT:
+            core->api.rrect(tic, a[0], a[1], a[2], a[3], a[4], a[5], (float)a[6]);
+            break;
+        case Api_RRECTB:
+            core->api.rrectb(tic, a[0], a[1], a[2], a[3], a[4], a[5], (float)a[6]);
+            break;
+        case Api_BTNR:
+            RESULT(core->api.btnr(tic, a[0]));
+            break;
+        case Api_KEYR:
+            RESULT(core->api.keyr(tic, (tic_key)a[0]));
+            break;
+    }
+
+#undef RESULT
+
+    // An API word never grows the memory of the module, but the bounds are
+    // taken again anyway.
+    memcpy(moduleBytes(vm, base, cells * 4), r, results * 4);
+    return results;
+}
+
+// type ( a n -- ): the text of TYPE.
+void w2c_tic80_type(LugforthVM* vm, u32 addr, u32 len)
+{
+    const char* text = (const char*)moduleBytes(vm, addr, len);
+    for(u32 i = 0; i < len; i++)
+        putOut(vm, text[i]);
+}
+
+u32 w2c_tic80_ticks(LugforthVM* vm)
+{
+    return (u32)(s32)vm->core->api.time((tic_mem*)vm->core);
+}
+
+#define MATH1(name)                             \
+    f64 w2c_tic80_##name(LugforthVM* vm, f64 x) \
+    {                                           \
+        (void)vm;                               \
+        return name(x);                         \
+    }
+
+#define MATH2(name)                                    \
+    f64 w2c_tic80_##name(LugforthVM* vm, f64 x, f64 y) \
+    {                                                  \
+        (void)vm;                                      \
+        return name(x, y);                             \
+    }
+
+MATH1(sin)
+MATH1(cos)
+MATH1(exp)
+MATH1(log)
+MATH2(atan2)
+MATH2(pow)
+
+// =============================================================================
+// Calls into the module
+// =============================================================================
+
+// Runs an export; on a trap, says so and stops the module.
+static bool callModule(LugforthVM* vm, Export fn, s32* ret, const char* what, s32 a, s32 b)
+{
+    if(vm->broken)
+        return false;
+
+    wasm_rt_trap_t trap = wasm_rt_impl_try();
+    if(trap)
+    {
+        vm->broken = true;
+        reportError(vm, what, wasm_rt_strerror(trap));
         return false;
     }
 
-    gForthTask = pfGetCurrentTask();
-    core->currentVM = gForthTask;
-
-    // Add TIC-80 API words to the already-loaded dictionary.
-    if(CompileCustomFunctions() < 0)
+    w2c_lugforth* m = &vm->module;
+    u32 r = 0;
+    switch(fn)
     {
-        closeForth(tic);
-        if(core->data)
-            core->data->error(core->data->data,
-                              "Forth: failed to compile API words");
-        return false;
+        case Export_init: r = w2c_lugforth_lf_init(m); break;
+        case Export_alloc: r = w2c_lugforth_lf_alloc(m, a); break;
+        case Export_free: w2c_lugforth_lf_free(m, a); break;
+        case Export_eval: r = w2c_lugforth_lf_eval(m, a, b); break;
+        case Export_find: r = w2c_lugforth_lf_find(m, a, b); break;
+        case Export_call: r = w2c_lugforth_lf_call(m, a); break;
+        case Export_call1: r = w2c_lugforth_lf_call1(m, a, b); break;
+        case Export_depth: r = w2c_lugforth_lf_depth(m); break;
     }
 
-    // Interpret the cartridge source code.
-    forthClearOutputBuffer();
-    ThrowCode result = forthInterpretLines(code);
-    if(result != 0)
-    {
-        reportForthError(core, result);
-        closeForth(tic);
-        return false;
-    }
-
-#if defined(BUILD_RENDER_CACHE)
-    ExecToken xt;
-    core->state.has_scn = (ffFindC(SCN_FN, &xt) != 0) || (ffFindC("scanline", &xt) != 0);
-    core->state.has_bdr = (ffFindC(BDR_FN, &xt) != 0) || (ffFindC("border", &xt) != 0);
-#endif
+    if(ret)
+        *ret = (s32)r;
 
     return true;
 }
 
-static void callForthTick(tic_mem* tic)
+// Copies a text into the module: its address there, or 0.
+static s32 toModule(LugforthVM* vm, const char* text, s32 len)
 {
-    callForthWord(tic, TIC_FN, 0, false);
-    forthFlushOutput(); // flush '.' output that has no trailing CR
+    s32 addr = 0;
+    if(!callModule(vm, Export_alloc, &addr, "out of memory", len ? len : 1, 0) || !addr)
+        return 0;
+
+    wasm_rt_memory_t* mem = w2c_lugforth_memory(&vm->module);
+    if((u32)addr > mem->size || (u32)len > mem->size - (u32)addr)
+        return 0;
+
+    memcpy(mem->data + addr, text, len);
+    return addr;
 }
 
-static void callForthBoot(tic_mem* tic)
+static s32 findWord(LugforthVM* vm, const char* name)
 {
-    callForthWord(tic, BOOT_FN, 0, false);
+    s32 len = (s32)strlen(name);
+    s32 addr = toModule(vm, name, len);
+    if(!addr)
+        return 0;
+
+    s32 xt = 0;
+    callModule(vm, Export_find, &xt, "find", addr, len);
+    callModule(vm, Export_free, NULL, "free", addr, 0);
+    return xt;
 }
 
-static void callForthScanline(tic_mem* tic, s32 row, void* data)
+static void findCallbacks(LugforthVM* vm)
 {
-    (void)data;
-    callForthWord(tic, SCN_FN, row, true);
+    vm->tic = findWord(vm, TIC_FN);
+    vm->boot = findWord(vm, BOOT_FN);
+    vm->scn = findWord(vm, SCN_FN);
+    vm->bdr = findWord(vm, BDR_FN);
+    vm->menu = findWord(vm, MENU_FN);
+
+#if defined(BUILD_RENDER_CACHE)
+    vm->core->state.has_scn = vm->scn != 0;
+    vm->core->state.has_bdr = vm->bdr != 0;
+#endif
 }
 
-static void callForthBorder(tic_mem* tic, s32 row, void* data)
+static bool evaluate(LugforthVM* vm, const char* code)
 {
-    (void)data;
-    callForthWord(tic, BDR_FN, row, true);
+    s32 len = (s32)strlen(code);
+    s32 addr = toModule(vm, code, len);
+    if(!addr)
+    {
+        if(!vm->broken)
+            reportError(vm, "out of memory", NULL);
+        return false;
+    }
+
+    s32 thrown = 0;
+    vm->recentLen = 0;
+    bool ok = callModule(vm, Export_eval, &thrown, "evaluate", addr, len);
+    if(ok)
+        callModule(vm, Export_free, NULL, "free", addr, 0);
+
+    if(ok && thrown)
+    {
+        char code[32];
+        snprintf(code, sizeof code, "THROW %d", (int)thrown);
+        reportError(vm, code, NULL);
+        return false;
+    }
+
+    flushOut(vm);
+    return ok;
 }
 
-static void callForthMenu(tic_mem* tic, s32 index, void* data)
-{
-    (void)data;
-    callForthWord(tic, MENU_FN, index, true);
-}
-
-static void evalForth(tic_mem* tic, const char* code)
+// Runs a callback; a word that leaves or takes cells is an error, as in the
+// pForth binding had it (the module empties the stack before each call anyway).
+static void callWord(tic_mem* tic, s32 xt, const char* name, s32 param, bool hasParam)
 {
     tic_core* core = (tic_core*)tic;
-    if(!core->currentVM)
+    LugforthVM* vm = getVM(core);
+    if(!vm || !xt || vm->broken)
+        return;
+
+    s32 thrown = 0;
+    vm->recentLen = 0;
+    bool ok = hasParam
+                  ? callModule(vm, Export_call1, &thrown, name, xt, param)
+                  : callModule(vm, Export_call, &thrown, name, xt, 0);
+
+    if(!ok)
+        return;
+
+    if(thrown)
     {
-        if(!initForth(tic, ""))
-            return;
+        char what[64];
+        snprintf(what, sizeof what, "THROW %d in %s", (int)thrown, name);
+        reportError(vm, what, NULL);
+        return;
     }
-    forthClearOutputBuffer();
-    ThrowCode result = forthInterpretLines(code);
-    if(result != 0)
-        reportForthError(core, result);
+
+    s32 depth = 0;
+    if(callModule(vm, Export_depth, &depth, "depth", 0, 0) && depth != 0)
+    {
+        char what[128];
+        snprintf(what, sizeof what, "stack %s in %s (%d item%s %s)",
+                 depth > 0 ? "overflow" : "underflow", name, (int)abs(depth),
+                 abs(depth) == 1 ? "" : "s", depth > 0 ? "extra left" : "missing");
+        reportError(vm, what, NULL);
+    }
 }
 
 // =============================================================================
-// Editor outline: extract word names from ': NAME ... ;' definitions
+// Lifecycle
 // =============================================================================
 
-static const tic_outline_item* getForthOutline(const char* code, s32* size)
+static void closeLugforth(tic_mem* tic)
 {
-    // Pattern: lines starting with ': ' introduce a new word definition.
+    tic_core* core = (tic_core*)tic;
+    LugforthVM* vm = getVM(core);
+
+    if(vm)
+    {
+        flushOut(vm);
+        if(vm->instantiated)
+            wasm2c_lugforth_free(&vm->module);
+        free(vm);
+        core->currentVM = NULL;
+    }
+}
+
+static bool initLugforth(tic_mem* tic, const char* code)
+{
+    tic_core* core = (tic_core*)tic;
+    closeLugforth(tic);
+
+    LugforthVM* vm = calloc(1, sizeof(LugforthVM));
+    if(!vm)
+        return false;
+
+    vm->core = core;
+    core->currentVM = vm;
+
+    static bool runtimeReady;
+    if(!runtimeReady)
+    {
+        wasm_rt_init();
+        runtimeReady = true;
+    }
+
+    wasm_rt_trap_t trap = wasm_rt_impl_try();
+    if(trap)
+    {
+        reportError(vm, "cannot load the Lugforth module", wasm_rt_strerror(trap));
+        closeLugforth(tic);
+        return false;
+    }
+
+    wasm2c_lugforth_instantiate(&vm->module, vm);
+    vm->instantiated = true;
+
+    s32 ready = -1;
+    if(!callModule(vm, Export_init, &ready, "boot", 0, 0) || ready != 0)
+    {
+        if(!vm->broken)
+            reportError(vm, "the boot of Lugforth failed", NULL);
+        closeLugforth(tic);
+        return false;
+    }
+
+    if(!evaluate(vm, code))
+    {
+        closeLugforth(tic);
+        return false;
+    }
+
+    findCallbacks(vm);
+    return true;
+}
+
+static void callLugforthTick(tic_mem* tic)
+{
+    LugforthVM* vm = getVM((tic_core*)tic);
+    if(!vm)
+        return;
+
+    callWord(tic, vm->tic, TIC_FN, 0, false);
+    // '.' output that has no line end yet.
+    flushOut(vm);
+}
+
+static void callLugforthBoot(tic_mem* tic)
+{
+    LugforthVM* vm = getVM((tic_core*)tic);
+    if(vm)
+        callWord(tic, vm->boot, BOOT_FN, 0, false);
+}
+
+static void callLugforthScanline(tic_mem* tic, s32 row, void* data)
+{
+    (void)data;
+    LugforthVM* vm = getVM((tic_core*)tic);
+    if(vm)
+        callWord(tic, vm->scn, SCN_FN, row, true);
+}
+
+static void callLugforthBorder(tic_mem* tic, s32 row, void* data)
+{
+    (void)data;
+    LugforthVM* vm = getVM((tic_core*)tic);
+    if(vm)
+        callWord(tic, vm->bdr, BDR_FN, row, true);
+}
+
+static void callLugforthMenu(tic_mem* tic, s32 index, void* data)
+{
+    (void)data;
+    LugforthVM* vm = getVM((tic_core*)tic);
+    if(vm)
+        callWord(tic, vm->menu, MENU_FN, index, true);
+}
+
+static void evalLugforth(tic_mem* tic, const char* code)
+{
+    tic_core* core = (tic_core*)tic;
+    if(!getVM(core) && !initLugforth(tic, ""))
+        return;
+
+    LugforthVM* vm = getVM(core);
+    if(evaluate(vm, code))
+        findCallbacks(vm);
+}
+
+// =============================================================================
+// Editor support
+// =============================================================================
+
+// Lines that start with ': NAME' are the outline.
+static const tic_outline_item* getLugforthOutline(const char* code, s32* size)
+{
     static tic_outline_item items[128];
     *size = 0;
 
-    const char* p = code;
-    while(*p)
+    for(const char* p = code; *p;)
     {
-        // Skip to next line that starts with ': '
-        while(*p && !(*p == ':' && (p == code || *(p - 1) == '\n')))
-            p++;
-        if(!*p) break;
-
-        p++; // skip ':'
-        while(*p == ' ' || *p == '\t')
-            p++;
-
-        const char* start = p;
-        while(*p && *p != ' ' && *p != '\t' && *p != '\n' && *p != '\r')
-            p++;
-        const char* end = p;
-
-        if(end > start && *size < 128)
+        if(*p == ':' && (p == code || p[-1] == '\n'))
         {
-            items[*size].pos = start;
-            items[*size].size = (s32)(end - start);
-            (*size)++;
+            p++;
+            while(*p == ' ' || *p == '\t')
+                p++;
+
+            const char* start = p;
+            while(*p && *p != ' ' && *p != '\t' && *p != '\n' && *p != '\r')
+                p++;
+
+            if(p > start && *size < COUNT_OF(items))
+            {
+                items[*size].pos = start;
+                items[*size].size = (s32)(p - start);
+                (*size)++;
+            }
         }
 
-        // Skip to end of line.
         while(*p && *p != '\n')
             p++;
-        if(*p) p++;
+        if(*p)
+            p++;
     }
 
     return *size ? items : NULL;
 }
 
-// =============================================================================
-// Keyword lists for syntax highlighting
-// =============================================================================
-
-static const char* const ForthKeywords[] = {
-    // ANS Forth core control flow
-    "IF",
-    "THEN",
-    "ELSE",
-    "BEGIN",
-    "UNTIL",
-    "WHILE",
-    "REPEAT",
-    "DO",
-    "LOOP",
-    "+LOOP",
-    "LEAVE",
-    "EXIT",
-    "RECURSE",
-    // Defining words
-    ":",
-    ";",
-    "VARIABLE",
-    "CONSTANT",
-    "CREATE",
-    "DOES>",
-    "VALUE",
-    "TO",
-    // Stack manipulation
-    "DUP",
-    "DROP",
-    "SWAP",
-    "OVER",
-    "ROT",
-    "-ROT",
-    "NIP",
-    "TUCK",
-    "2DUP",
-    "2DROP",
-    "2SWAP",
-    "2OVER",
-    "PICK",
-    "ROLL",
-    // Arithmetic
-    "+",
-    "-",
-    "*",
-    "/",
-    "MOD",
-    "/MOD",
-    "*/",
-    "*/MOD",
-    "MAX",
-    "MIN",
-    "ABS",
-    "NEGATE",
-    "1+",
-    "1-",
-    "2*",
-    "2/",
-    // Logical / bitwise
-    "AND",
-    "OR",
-    "XOR",
-    "INVERT",
-    "LSHIFT",
-    "RSHIFT",
-    // Comparison
-    "=",
-    "<>",
-    "<",
-    ">",
-    "<=",
-    ">=",
-    "0=",
-    "0<",
-    "0>",
-    // Memory
-    "@",
-    "!",
-    "C@",
-    "C!",
-    "+!",
-    "W@",
-    "W!",
-    "MOVE",
-    // I/O
-    ".",
-    ".\"",
-    "EMIT",
-    "CR",
-    "SPACE",
-    "SPACES",
-    "TYPE",
-    // String
-    "S\"",
-    "C\"",
-    "CHAR",
-    // Misc
-    "TRUE",
-    "FALSE",
-    "CELL",
-    "HERE",
-    "ALLOT",
-    "CELLS",
-    "CHARS",
-    "LITERAL",
-    "POSTPONE",
-    "IMMEDIATE",
+static const char* const LugforthKeywords[] =
+    {
+        "IF",
+        "THEN",
+        "ELSE",
+        "BEGIN",
+        "UNTIL",
+        "WHILE",
+        "REPEAT",
+        "AGAIN",
+        "DO",
+        "?DO",
+        "LOOP",
+        "+LOOP",
+        "LEAVE",
+        "UNLOOP",
+        "I",
+        "J",
+        "EXIT",
+        "RECURSE",
+        "CASE",
+        "OF",
+        "ENDOF",
+        "ENDCASE",
+        ":",
+        ";",
+        ":NONAME",
+        "VARIABLE",
+        "CONSTANT",
+        "VALUE",
+        "TO",
+        "CREATE",
+        "DOES>",
+        "DEFER",
+        "IS",
+        "IMMEDIATE",
+        "POSTPONE",
+        "LITERAL",
+        "[",
+        "]",
+        "DUP",
+        "DROP",
+        "SWAP",
+        "OVER",
+        "ROT",
+        "-ROT",
+        "NIP",
+        "TUCK",
+        "PICK",
+        "ROLL",
+        "2DUP",
+        "2DROP",
+        "2SWAP",
+        "2OVER",
+        ">R",
+        "R>",
+        "R@",
+        "+",
+        "-",
+        "*",
+        "/",
+        "MOD",
+        "/MOD",
+        "*/",
+        "*/MOD",
+        "MAX",
+        "MIN",
+        "ABS",
+        "NEGATE",
+        "1+",
+        "1-",
+        "2*",
+        "2/",
+        "AND",
+        "OR",
+        "XOR",
+        "INVERT",
+        "LSHIFT",
+        "RSHIFT",
+        "=",
+        "<>",
+        "<",
+        ">",
+        "<=",
+        ">=",
+        "0=",
+        "0<",
+        "0>",
+        "@",
+        "!",
+        "C@",
+        "C!",
+        "+!",
+        "MOVE",
+        "FILL",
+        ".",
+        ".\"",
+        "EMIT",
+        "CR",
+        "SPACE",
+        "SPACES",
+        "TYPE",
+        "S\"",
+        "C\"",
+        "CHAR",
+        "[CHAR]",
+        "TRUE",
+        "FALSE",
+        "CELL",
+        "CELLS",
+        "HERE",
+        "ALLOT",
+        ",",
+        "CATCH",
+        "THROW",
+        "{:",
+        ":}",
 };
 
-static const char* ForthAPIKeywords[] = {
+static const char* LugforthApiKeywords[] =
+    {
 #define TIC_CALLBACK_DEF(name, ...) #name,
-    TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
+        TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
 #undef TIC_CALLBACK_DEF
-    // TIC-80 API words in UPPERCASE (Forth convention)
-    "CLS",
-    "PRINT",
-    "PIX",
-    "PIX!",
-    "LINE",
-    "RECT",
-    "RECTB",
-    "SPR",
-    "BTN",
-    "BTNP",
-    "SFX",
-    "MAP",
-    "MGET",
-    "MSET",
-    "PEEK",
-    "POKE",
-    "PEEK1",
-    "POKE1",
-    "PEEK2",
-    "POKE2",
-    "PEEK4",
-    "POKE4",
-    "MEMCPY",
-    "MEMSET",
-    "TRACE",
-    "PMEM",
-    "PMEM!",
-    "TIME",
-    "TSTAMP",
-    "EXITGAME",
-    "FONT",
-    "MOUSE",
-    "CIRC",
-    "CIRCB",
-    "ELLI",
-    "ELLIB",
-    "PAINT",
-    "TRI",
-    "TRIB",
-    "TTRI",
-    "CLIP",
-    "CLIP0",
-    "MUSIC",
-    "SYNC",
-    "VBANK",
-    "RESET",
-    "KEYPRESSED",
-    "KEYP",
-    "FGET",
-    "FSET",
-    "FFT",
-    "FFTS",
-    "RRECT",
-    "RRECTB",
-    "BTNR",
-    "KEYR",
+#define API(id, name, op, nargs, nres) name,
+            TIC80_API_LIST
+#undef API
 };
-
-// =============================================================================
-// =============================================================================
 
 static const u8 DemoRom[] =
     {
@@ -1423,30 +930,27 @@ static const u8 MarkRom[] =
 #include "../build/assets/forthmark.tic.dat"
 };
 
-// =============================================================================
-// tic_script descriptor
-// =============================================================================
-
+// The id, name and extension the Forth script has always had.
 TIC_EXPORT const tic_script EXPORT_SCRIPT(Forth) =
     {
-        .id = 22, // 21 has been yue's since 1.2.0 (nesbox/TIC-80#3024)
+        .id = 22,
         .name = "forth",
         .fileExtension = ".fth",
         .projectComment = "\\",
         {
-            .init = initForth,
-            .close = closeForth,
-            .tick = callForthTick,
-            .boot = callForthBoot,
+            .init = initLugforth,
+            .close = closeLugforth,
+            .tick = callLugforthTick,
+            .boot = callLugforthBoot,
             .callback =
                 {
-                    .scanline = callForthScanline,
-                    .border = callForthBorder,
-                    .menu = callForthMenu,
+                    .scanline = callLugforthScanline,
+                    .border = callLugforthBorder,
+                    .menu = callLugforthMenu,
                 },
         },
-        .getOutline = getForthOutline,
-        .eval = evalForth,
+        .getOutline = getLugforthOutline,
+        .eval = evalLugforth,
 
         .blockCommentStart = NULL,
         .blockCommentEnd = NULL,
@@ -1458,11 +962,11 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Forth) =
         .stdStringStartEnd = NULL,
         .blockEnd = NULL,
 
-        .keywords = ForthKeywords,
-        .keywordsCount = COUNT_OF(ForthKeywords),
+        .keywords = LugforthKeywords,
+        .keywordsCount = COUNT_OF(LugforthKeywords),
 
-        .api_keywords = ForthAPIKeywords,
-        .api_keywordsCount = COUNT_OF(ForthAPIKeywords),
+        .api_keywords = LugforthApiKeywords,
+        .api_keywordsCount = COUNT_OF(LugforthApiKeywords),
 
         .demo = {DemoRom, sizeof DemoRom, "forthdemo.tic"},
         .mark = {MarkRom, sizeof MarkRom, "forthmark.tic"},

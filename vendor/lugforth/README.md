@@ -1,6 +1,6 @@
 # Lugforth for TIC-80
 
-The Forth of TIC-80 when it is built with `-DBUILD_WITH_LUGFORTH=ON` (on in a Build all tree):
+The Forth engine of TIC-80 (`-DBUILD_WITH_FORTH=ON`, on in a Build all tree):
 [Lugforth](https://github.com/luginf/lugforth) compiled to a WebAssembly module, then translated to C by
 `wasm2c` (from [WABT](https://github.com/WebAssembly/wabt)). The Forth runs natively, but inside the module's own
 memory: every address a cartridge makes is an offset in it, each access is checked against its bounds and traps
@@ -15,7 +15,7 @@ every address they are handed. A trap stops the cartridge with an error; the pla
 | `VERSION` | the Lugforth version the module was built from | |
 | `LICENSE` | Apache 2.0: Lugforth (a fork of uEforth) and the WABT runtime | |
 
-TIC-80 builds them with `WASM_RT_USE_MMAP=0` and `WASM_RT_MEMCHECK_BOUNDS_CHECK=1` (`cmake/lugforth.cmake`): memory
+TIC-80 builds them with `WASM_RT_USE_MMAP=0` and `WASM_RT_MEMCHECK_BOUNDS_CHECK=1` (`cmake/forth.cmake`): memory
 from malloc and an explicit bounds check, portable to every platform, where guard pages need mmap and a signal
 handler. The one change to the runtime is in `wasm-rt-impl.c`: its `os_` functions (mmap, signals) are compiled
 only when those modes use them, so that this build needs neither `sys/mman.h` nor `windows.h`.
