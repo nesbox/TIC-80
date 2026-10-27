@@ -43,6 +43,12 @@ typedef double f64;
 #include "wasm-rt-exceptions.h"
 #include "wasm-rt-impl.h"
 
+// A trap of the module comes back through setjmp (wasm_rt_impl_try): there is
+// no C++ object here for MSVC to warn about.
+#if defined(_MSC_VER)
+#pragma warning(disable : 4611)
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -242,33 +248,33 @@ u32 w2c_tic80_api(LugforthVM* vm, u32 id, u32 base, u32 n)
     switch(id)
     {
         case Api_CLS:
-            core->api.cls(tic, a[0]);
+            core->api.cls(tic, (u8)a[0]);
             break;
         case Api_PRINT:
         {
             const char* text = moduleString(vm, a[0], a[1], str);
-            RESULT(core->api.print(tic, text, a[2], a[3], a[4], a[5] != 0, a[6], a[7] != 0));
+            RESULT(core->api.print(tic, text, a[2], a[3], (u8)a[4], a[5] != 0, a[6], a[7] != 0));
             break;
         }
         case Api_PIX:
             RESULT(core->api.pix(tic, a[0], a[1], 0, true));
             break;
         case Api_PIX_STORE:
-            core->api.pix(tic, a[0], a[1], a[2], false);
+            core->api.pix(tic, a[0], a[1], (u8)a[2], false);
             break;
         case Api_LINE:
-            core->api.line(tic, a[0], a[1], a[2], a[3], a[4]);
+            core->api.line(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (u8)a[4]);
             break;
         case Api_RECT:
-            core->api.rect(tic, a[0], a[1], a[2], a[3], a[4]);
+            core->api.rect(tic, a[0], a[1], a[2], a[3], (u8)a[4]);
             break;
         case Api_RECTB:
-            core->api.rectb(tic, a[0], a[1], a[2], a[3], a[4]);
+            core->api.rectb(tic, a[0], a[1], a[2], a[3], (u8)a[4]);
             break;
         case Api_SPR:
         {
             s32 count = transparent(a[3], trans);
-            core->api.spr(tic, a[0], a[1], a[2], a[7], a[8], trans, count, a[4], a[5], a[6]);
+            core->api.spr(tic, a[0], a[1], a[2], a[7], a[8], trans, (u8)count, a[4], a[5], a[6]);
             break;
         }
         case Api_BTN:
@@ -283,49 +289,49 @@ u32 w2c_tic80_api(LugforthVM* vm, u32 id, u32 base, u32 n)
         case Api_MAP:
         {
             s32 count = transparent(a[6], trans);
-            core->api.map(tic, a[0], a[1], a[2], a[3], a[4], a[5], trans, count, a[7], NULL, NULL);
+            core->api.map(tic, a[0], a[1], a[2], a[3], a[4], a[5], trans, (u8)count, a[7], NULL, NULL);
             break;
         }
         case Api_MGET:
             RESULT(core->api.mget(tic, a[0], a[1]));
             break;
         case Api_MSET:
-            core->api.mset(tic, a[0], a[1], a[2]);
+            core->api.mset(tic, a[0], a[1], (u8)a[2]);
             break;
         case Api_PEEK:
             RESULT(core->api.peek(tic, a[0], a[1]));
             break;
         case Api_POKE:
-            core->api.poke(tic, a[0], a[1], a[2]);
+            core->api.poke(tic, a[0], (u8)a[1], a[2]);
             break;
         case Api_PEEK1:
             RESULT(core->api.peek1(tic, a[0]));
             break;
         case Api_POKE1:
-            core->api.poke1(tic, a[0], a[1]);
+            core->api.poke1(tic, a[0], (u8)a[1]);
             break;
         case Api_PEEK2:
             RESULT(core->api.peek2(tic, a[0]));
             break;
         case Api_POKE2:
-            core->api.poke2(tic, a[0], a[1]);
+            core->api.poke2(tic, a[0], (u8)a[1]);
             break;
         case Api_PEEK4:
             RESULT(core->api.peek4(tic, a[0]));
             break;
         case Api_POKE4:
-            core->api.poke4(tic, a[0], a[1]);
+            core->api.poke4(tic, a[0], (u8)a[1]);
             break;
         case Api_MEMCPY:
             core->api.memcpy(tic, a[0], a[1], a[2]);
             break;
         case Api_MEMSET:
-            core->api.memset(tic, a[0], a[1], a[2]);
+            core->api.memset(tic, a[0], (u8)a[1], a[2]);
             break;
         case Api_TRACE:
         {
             const char* text = moduleString(vm, a[0], a[1], str);
-            core->api.trace(tic, text, a[2]);
+            core->api.trace(tic, text, (u8)a[2]);
             break;
         }
         case Api_PMEM:
@@ -364,32 +370,32 @@ u32 w2c_tic80_api(LugforthVM* vm, u32 id, u32 base, u32 n)
             break;
         }
         case Api_CIRC:
-            core->api.circ(tic, a[0], a[1], a[2], a[3]);
+            core->api.circ(tic, a[0], a[1], a[2], (u8)a[3]);
             break;
         case Api_CIRCB:
-            core->api.circb(tic, a[0], a[1], a[2], a[3]);
+            core->api.circb(tic, a[0], a[1], a[2], (u8)a[3]);
             break;
         case Api_ELLI:
-            core->api.elli(tic, a[0], a[1], a[2], a[3], a[4]);
+            core->api.elli(tic, a[0], a[1], a[2], a[3], (u8)a[4]);
             break;
         case Api_ELLIB:
-            core->api.ellib(tic, a[0], a[1], a[2], a[3], a[4]);
+            core->api.ellib(tic, a[0], a[1], a[2], a[3], (u8)a[4]);
             break;
         case Api_PAINT:
-            core->api.paint(tic, a[0], a[1], a[2], a[3]);
+            core->api.paint(tic, a[0], a[1], (u8)a[2], (u8)a[3]);
             break;
         case Api_TRI:
-            core->api.tri(tic, a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
+            core->api.tri(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (float)a[4], (float)a[5], (u8)a[6]);
             break;
         case Api_TRIB:
-            core->api.trib(tic, a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
+            core->api.trib(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (float)a[4], (float)a[5], (u8)a[6]);
             break;
         case Api_TTRI:
         {
             s32 count = transparent(a[13], trans);
-            core->api.ttri(tic, a[0], a[1], a[2], a[3], a[4], a[5],
-                           a[6], a[7], a[8], a[9], a[10], a[11],
-                           (tic_texture_src)a[12], trans, count, a[14], a[15], a[16], a[17] != 0);
+            core->api.ttri(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (float)a[4], (float)a[5],
+                           (float)a[6], (float)a[7], (float)a[8], (float)a[9], (float)a[10], (float)a[11],
+                           (tic_texture_src)a[12], trans, count, (float)a[14], (float)a[15], (float)a[16], a[17] != 0);
             break;
         }
         case Api_CLIP:
@@ -418,10 +424,10 @@ u32 w2c_tic80_api(LugforthVM* vm, u32 id, u32 base, u32 n)
             RESULT(core->api.keyp(tic, (tic_key)a[0], a[1], a[2]));
             break;
         case Api_FGET:
-            RESULT(core->api.fget(tic, a[0], a[1]));
+            RESULT(core->api.fget(tic, a[0], (u8)a[1]));
             break;
         case Api_FSET:
-            core->api.fset(tic, a[0], a[1], a[2] != 0);
+            core->api.fset(tic, a[0], (u8)a[1], a[2] != 0);
             break;
         case Api_FFT:
             RESULT(core->api.fft(tic, a[0], a[1]) * 65535.0);
@@ -430,10 +436,10 @@ u32 w2c_tic80_api(LugforthVM* vm, u32 id, u32 base, u32 n)
             RESULT(core->api.ffts(tic, a[0], a[1]) * 65535.0);
             break;
         case Api_RRECT:
-            core->api.rrect(tic, a[0], a[1], a[2], a[3], a[4], a[5], (float)a[6]);
+            core->api.rrect(tic, a[0], a[1], a[2], a[3], (u8)a[4], a[5], (float)a[6]);
             break;
         case Api_RRECTB:
-            core->api.rrectb(tic, a[0], a[1], a[2], a[3], a[4], a[5], (float)a[6]);
+            core->api.rrectb(tic, a[0], a[1], a[2], a[3], (u8)a[4], a[5], (float)a[6]);
             break;
         case Api_BTNR:
             RESULT(core->api.btnr(tic, a[0]));
