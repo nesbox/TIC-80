@@ -137,16 +137,28 @@ jobs:
           sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome* 2>/dev/null || true
           sudo sed -i '/dl\.google\.com/d' /etc/apt/sources.list 2>/dev/null || true
           sudo apt-get update
-          sudo apt-get install -y gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
+          sudo apt-get install -y gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libglu1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
           sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
           sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
           # the generator the arm64 builds use; the image carries it already
           command -v ninja >/dev/null || sudo apt-get install -y ninja-build
 
+      - name: Generate GLES/EGL stubs
+        run: |
+          for lib in /usr/lib/aarch64-linux-gnu/libGLESv2.so.2 /usr/lib/aarch64-linux-gnu/libEGL.so.1; do \
+              outname=$(basename $lib | sed 's/-2.0//; s/\.so\..*/.so/') && \
+              echo "Generating stubs for $outname from $lib" && \
+              nm -D $lib | grep " T " | awk '{print "void " $3 "(){}"}' > stubs.c && \
+              sudo rm -f /usr/lib/aarch64-linux-gnu/$outname && \
+              soname=$(basename $lib | sed 's/-2.0//') && \
+              sudo gcc -shared -Wl,-soname,$soname -o /usr/lib/aarch64-linux-gnu/$outname stubs.c; \
+          done
+
       - name: Build PRO
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          # GLES3/EGL, as in the free arm64 job: the Pis top out at GL 3.1.
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DUSE_GLES2=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       - name: Build deb
