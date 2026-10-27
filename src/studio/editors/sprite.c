@@ -276,17 +276,21 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
         if(left || right)
         {
+            tic_point from = sprite->draw.lastMouse;
+
             if(!sprite->draw.start)
             {
-                sprite->draw.start = true;
                 sprite->draw.lastMouse = tic_api_mouse(tic);
+                if(!tic_api_key(tic, tic_key_shift) || from.x < 0 || from.y < 0)
+                    from = sprite->draw.lastMouse;
+                sprite->draw.start = true;
             }
 
-            s32 lx = toCanvasCoord(Size, brushSize, x, sprite->draw.lastMouse.x);
-            s32 ly = toCanvasCoord(Size, brushSize, y, sprite->draw.lastMouse.y);
+            s32 lx = toCanvasCoord(Size, brushSize, x, from.x);
+            s32 ly = toCanvasCoord(Size, brushSize, y, from.y);
 
             u8 color = left ? sprite->color : sprite->color2;
-            paintLine(sprite, color,
+            paintLine(sprite, setSheetPixel, color,
                       sx + lx / Size,
                       sy + ly / Size,
                       sx + mx / Size,
@@ -1275,6 +1279,7 @@ static void selectSprite(Sprite* sprite, s32 x, s32 y)
         if(x > size) x = size;
         if(y > size) y = size;
     }
+    sprite->draw.lastMouse.x = sprite->draw.lastMouse.y = -1;
     sprite->spritePos.x = (u16)(x / TIC_SPRITESIZE);
     sprite->spritePos.y = (u16)(y / TIC_SPRITESIZE);
     updateIndex(sprite);
@@ -2098,6 +2103,11 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
                 .focus = -1,
             },
         .brushSize = 1,
+        .draw =
+            {
+                .start = false,
+                .lastMouse = {-1, -1},
+            },
         .select =
             {
                 .rect = {0, 0, 0, 0},
