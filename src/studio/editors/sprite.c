@@ -71,7 +71,7 @@ static void initTileSheet(Sprite* sprite)
 
 static void updateIndex(Sprite* sprite)
 {
-    sprite->index = sprite->spritePos.y * sprite->blit.pages * TIC_SPRITESHEET_COLS + sprite->spritePos.x;
+    sprite->index = (u16)(sprite->spritePos.y * (s32)sprite->blit.pages * TIC_SPRITESHEET_COLS + sprite->spritePos.x);
     // index has changed, clear selection and the line start
     clearCanvasSelection(sprite);
     sprite->draw.lastPos.x = sprite->draw.lastPos.y = -1;
