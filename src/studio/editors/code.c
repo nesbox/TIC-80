@@ -3385,6 +3385,8 @@ static void processKeyboard(Code* code)
     }
 
     bool usedKeybinding = true;
+    // The Alt branch reads the text even when no binding uses it.
+    char text = '\0';
 
     if(hasJustSwitchedToCodeMode(code->studio))
     {
@@ -3476,7 +3478,8 @@ static void processKeyboard(Code* code)
         bool altHandled = false;
         if(alt)
         {
-            char sym = getKeyboardText(code->studio);
+            text = getKeyboardText(code->studio);
+            char sym = text;
             altHandled = true;
             if(keyWasPressed(code->studio, tic_key_p))
                 pageUp(code);
@@ -3573,7 +3576,7 @@ static void processKeyboard(Code* code)
         updateEditor(code);
     else
     {
-        char sym = getKeyboardText(code->studio);
+        char sym = text ? text : getKeyboardText(code->studio);
         if(sym)
         {
             inputSymbol(code, sym);
