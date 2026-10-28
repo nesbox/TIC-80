@@ -148,7 +148,7 @@ int main(void)
 
     // Replacing a cartridge starts from a fresh dictionary.
     clearErrors();
-    assert(Script->init(tic, ": TIC [ [defined] frames ] literal 10 pmem! ;"));
+    assert(Script->init(tic, ": TIC [defined] frames [if] 1 [else] 0 [then] 10 pmem! ;"));
     Script->tick(tic);
     assert(ErrorCount == 0);
     assert(tic->ram->persistent.data[10] == 0);
