@@ -107,12 +107,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/stubs"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
           for lang in "${langs[@]}"; do
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
             # to buy, at the price of throwing SDL2 and the whole engine away
-            # fourteen times over. Without it a pass rebuilds only what its
+            # fifteen times over. Without it a pass rebuilds only what its
             # language actually changed (measured on this tree: 44 build steps
             # against 390 for a full one). BUILD_PRO is spelled out because the
             # Build Pro step above leaves it on in this same build directory.
@@ -262,12 +262,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/stubs"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
           for lang in "${langs[@]}"; do
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
             # to buy, at the price of throwing SDL2 and the whole engine away
-            # fourteen times over. Without it a pass rebuilds only what its
+            # fifteen times over. Without it a pass rebuilds only what its
             # language actually changed (measured on this tree: 44 build steps
             # against 390 for a full one). BUILD_PRO is spelled out because the
             # Build Pro step above leaves it on in this same build directory.
@@ -416,12 +416,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/stubs"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
           for lang in "${langs[@]}"; do
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
             # to buy, at the price of throwing SDL2 and the whole engine away
-            # fourteen times over. Without it a pass rebuilds only what its
+            # fifteen times over. Without it a pass rebuilds only what its
             # language actually changed (measured on this tree: 44 build steps
             # against 390 for a full one). BUILD_PRO is spelled out because the
             # Build Pro step above leaves it on in this same build directory.
@@ -681,12 +681,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/stubs"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
           for lang in "${langs[@]}"; do
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
             # to buy, at the price of throwing SDL2 and the whole engine away
-            # fourteen times over. Without it a pass rebuilds only what its
+            # fifteen times over. Without it a pass rebuilds only what its
             # language actually changed (measured on this tree: 44 build steps
             # against 390 for a full one). BUILD_PRO is spelled out because the
             # Build Pro step above leaves it on in this same build directory.
@@ -824,12 +824,12 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$GITHUB_WORKSPACE/stubs"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
           for lang in "${langs[@]}"; do
             # Every language flag on every pass, so nothing can stick in the
             # cache from the previous one — which is what the --fresh here used
             # to buy, at the price of throwing SDL2 and the whole engine away
-            # fourteen times over. Without it a pass rebuilds only what its
+            # fifteen times over. Without it a pass rebuilds only what its
             # language actually changed (measured on this tree: 44 build steps
             # against 390 for a full one). BUILD_PRO is spelled out because the
             # Build Pro step above leaves it on in this same build directory.
@@ -1168,7 +1168,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
           stage="$GITHUB_WORKSPACE/build/players"
           rm -rf "$stage"
           for lang in "${langs[@]}"; do
@@ -1179,7 +1179,7 @@ jobs:
             done
             cd "$GITHUB_WORKSPACE/build"
             # "Build all"'s flags with one language on: the site's player is
-            # that build, thirteen runtimes lighter.
+            # that build, fourteen runtimes lighter.
             emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=ON "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
             cmake --build . --parallel
             for f in "bin/tic80$lang.js" "bin/tic80$lang.wasm"; do
@@ -1205,7 +1205,7 @@ jobs:
           # back the same way: the SDL layer's "Unable to initialize SDL Video"
           # is in a build of it and in no build of the sokol layer, which is
           # what these three passes now build.
-          files=("$stage"/{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,gravity}/tic80*.wasm)
+          files=("$stage"/{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,forth,gravity}/tic80*.wasm)
           for f in "${files[@]}"; do
             if ! grep -qa "SPRITE EDITOR" "$f"; then
               echo "player without editors: $f — BUILD_EDITORS=ON did not take" >&2
@@ -1226,10 +1226,10 @@ jobs:
           done
           echo "checked ${#files[@]} wasm players, all distinct, all with editors"
 
-      # The fourteen per-language stubs the PRO alone export downloads — the
+      # The fifteen per-language stubs the PRO alone export downloads — the
       # same work as the native jobs' loop, in one directory: no --fresh
       # between the builds, so the system layer and whatever a language does
-      # not touch are compiled once (fifteen full builds used to run here, one
+      # not touch are compiled once (sixteen full builds used to run here, one
       # per language plus the one below). Every language flag is spelled out on
       # every pass, which is what --fresh used to buy, and it also clears the
       # BUILD_WITH_ALL the "Build all" step leaves on when the order is
@@ -1247,7 +1247,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
           for lang in "${langs[@]}"; do
             flags=(-DBUILD_WITH_ALL=OFF)
             for l in "${langs[@]}"; do
@@ -1261,8 +1261,8 @@ jobs:
 
           # An identical pair means a language flag did not take, the same guard
           # the native jobs run on their binaries: a wasm stub carries one
-          # runtime, so fourteen of them cannot be alike.
-          files=("$GITHUB_WORKSPACE"/build/bin/tic80{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,gravity}.wasm)
+          # runtime, so fifteen of them cannot be alike.
+          files=("$GITHUB_WORKSPACE"/build/bin/tic80{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,forth,gravity}.wasm)
           for f in "${files[@]}"; do
             if [ ! -f "$f" ]; then echo "missing stub: $f" >&2; exit 1; fi
           done
@@ -1364,7 +1364,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
           stage="$GITHUB_WORKSPACE/build/players-webgpu"
           rm -rf "$stage"
           for lang in "${langs[@]}"; do
@@ -1404,7 +1404,7 @@ jobs:
         run: |
           set -euo pipefail
           stage="$GITHUB_WORKSPACE/build/players-webgpu"
-          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript gravity)
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
           files=()
           for lang in "${langs[@]}"; do
             js="$stage/$lang/webgpu/tic80.js"
