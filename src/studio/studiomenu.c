@@ -152,6 +152,8 @@ enum
     SpriteActionBrush2,
     SpriteActionBrush3,
     SpriteActionBrush4,
+    SpriteActionSymmetryHorz,
+    SpriteActionSymmetryVert,
     SpriteActionPage1,
     SpriteActionPage2,
     SpriteActionPage3,
@@ -317,6 +319,8 @@ static void menubarSpriteAction(void* data, s32 id)
         case SpriteActionBrush2: spriteSetBrushSize(sprite, 2); break;
         case SpriteActionBrush3: spriteSetBrushSize(sprite, 3); break;
         case SpriteActionBrush4: spriteSetBrushSize(sprite, 4); break;
+        case SpriteActionSymmetryHorz: sprite->brush.symmetryHorizontal = !sprite->brush.symmetryHorizontal; break;
+        case SpriteActionSymmetryVert: sprite->brush.symmetryVertical = !sprite->brush.symmetryVertical; break;
 
         case SpriteActionPage1: spriteSelectPage(sprite, 0); break;
         case SpriteActionPage2: spriteSelectPage(sprite, 1); break;
@@ -937,6 +941,9 @@ static MenuBarItem MenubarBrushSize[] =
         MENU_TOGGLE("2x2", NULL, menubarSpriteAction, SpriteActionBrush2),
         MENU_TOGGLE("3x3", NULL, menubarSpriteAction, SpriteActionBrush3),
         MENU_TOGGLE("4x4", NULL, menubarSpriteAction, SpriteActionBrush4),
+        MENU_SEPARATOR,
+        MENU_TOGGLE("HORZ SYMM", "H", menubarSpriteAction, SpriteActionSymmetryHorz),
+        MENU_TOGGLE("VERT SYMM", "V", menubarSpriteAction, SpriteActionSymmetryVert),
 };
 
 static const MenuBarCategory MenubarBrushSizeMenu = MENU_CATEGORY("BRUSH", MenubarBrushSize);
@@ -1396,15 +1403,17 @@ void studiomenu_sync_editor(Studio* studio, Menubar* bar, EditorMode mode, void*
                                  memcmp(&PalettePresets[i].palette, palette, sizeof(tic_palette)) == 0);
             }
 
-            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize8, sprite->size == 8);
-            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize16, sprite->size == 16);
-            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize32, sprite->size == 32);
-            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize64, sprite->size == 64);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize8, sprite->canvasSize == 8);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize16, sprite->canvasSize == 16);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize32, sprite->canvasSize == 32);
+            menubarCheck(MenubarCanvasSize, COUNT_OF(MenubarCanvasSize), SpriteActionSize64, sprite->canvasSize == 64);
 
-            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush1, sprite->brushSize == 1);
-            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush2, sprite->brushSize == 2);
-            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush3, sprite->brushSize == 3);
-            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush4, sprite->brushSize == 4);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush1, sprite->brush.size == 1);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush2, sprite->brush.size == 2);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush3, sprite->brush.size == 3);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionBrush4, sprite->brush.size == 4);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionSymmetryHorz, sprite->brush.symmetryHorizontal);
+            menubarCheck(MenubarBrushSize, COUNT_OF(MenubarBrushSize), SpriteActionSymmetryVert, sprite->brush.symmetryVertical);
 
             {
                 static const s32 Pages[] = {SpriteActionPage1, SpriteActionPage2, SpriteActionPage3, SpriteActionPage4};
