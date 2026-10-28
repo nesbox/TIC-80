@@ -46,12 +46,18 @@ struct Sprite
     u16 index;
     u8 color;
     u8 color2;
-    u8 size;
-    u8 brushSize;
+    u8 canvasSize;
     tic_point spritePos;
     bool hexindex;
 
     tic_blit blit;
+
+    struct
+    {
+        u8 size;
+        bool symmetryHorizontal;
+        bool symmetryVertical;
+    } brush;
 
     struct
     {
@@ -86,6 +92,7 @@ struct Sprite
     } mode;
 
     struct History* history;
+    bool needsHistoryUpdate;
 
     struct
     {

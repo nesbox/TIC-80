@@ -3181,9 +3181,13 @@ static bool onEnumModule(const char* name, const char* title, const char* hash, 
     (void)hash;
     (void)id;
     (void)title;
+
     if(strstr(name, TIC_MODULE_EXT))
     {
-        void* module = dlopen(name, RTLD_NOW | RTLD_LOCAL);
+        char dlpath[TICNAME_MAX];
+        snprintf(dlpath, sizeof(dlpath), "%s/%s", fs_appfolder(), name);
+
+        void* module = dlopen(dlpath, RTLD_NOW | RTLD_LOCAL);
 
         if(module)
         {
@@ -3195,8 +3199,14 @@ static bool onEnumModule(const char* name, const char* title, const char* hash, 
             }
             else
             {
+                // The studio isn't running yet, so log straight to the host console
+                fprintf(stderr, "ERROR: %s not exported from %s\n", DEF2STR(SCRIPT_CONFIG), name);
                 dlclose(module);
             }
+        }
+        else
+        {
+            fprintf(stderr, "ERROR: Failed to load %s\n", name);
         }
     }
 
