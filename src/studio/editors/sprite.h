@@ -40,14 +40,14 @@ struct Sprite
     struct
     {
         bool start;
-        tic_point last;
+        tic_point lastPos; // brush cell on the canvas, or -1 if none
     } draw;
 
     u16 index;
     u8 color;
     u8 color2;
     u8 canvasSize;
-    u16 x, y;
+    tic_point spritePos;
     bool hexindex;
 
     tic_blit blit;
@@ -113,6 +113,8 @@ struct Sprite
     void (*tick)(Sprite*);
     void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
+
+typedef void (*SpritePaintPixel)(Sprite*, s32 x, s32 y, u8 color);
 
 typedef struct
 {

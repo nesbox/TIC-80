@@ -71,9 +71,10 @@ static void initTileSheet(Sprite* sprite)
 
 static void updateIndex(Sprite* sprite)
 {
-    sprite->index = sprite->y * sprite->blit.pages * TIC_SPRITESHEET_COLS + sprite->x;
-    // index has changed, clear selection
+    sprite->index = (u16)(sprite->spritePos.y * (s32)sprite->blit.pages * TIC_SPRITESHEET_COLS + sprite->spritePos.x);
+    // index has changed, clear selection and the line start
     clearCanvasSelection(sprite);
+    sprite->draw.lastPos.x = sprite->draw.lastPos.y = -1;
 }
 
 static inline bool isIdle(Sprite* sprite)
@@ -109,12 +110,12 @@ static void rightViewport(Sprite* sprite)
 
 static s32 getIndexPosX(Sprite* sprite)
 {
-    return sprite->x * TIC_SPRITESIZE;
+    return sprite->spritePos.x * TIC_SPRITESIZE;
 }
 
 static s32 getIndexPosY(Sprite* sprite)
 {
-    return sprite->y * TIC_SPRITESIZE;
+    return sprite->spritePos.y * TIC_SPRITESIZE;
 }
 
 static void drawSelection(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
@@ -191,18 +192,23 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
     }
 }
 
-static void paintBrush(Sprite* sprite, u8 color, s32 x, s32 y)
+static void setSheetPixel(Sprite* sprite, s32 x, s32 y, u8 color)
+{
+    tic_tilesheet_setpix(&sprite->sheet, x, y, color);
+}
+
+static void paintBrush(Sprite* sprite, SpritePaintPixel paintPixel, u8 color, s32 x, s32 y)
 {
     s32 pixels = sprite->brush.size;
 
     for(s32 j = 0; j < pixels; j++)
         for(s32 i = 0; i < pixels; i++)
-            tic_tilesheet_setpix(&sprite->sheet, x + i, y + j, color);
+            paintPixel(sprite, x + i, y + j, color);
 }
 
-static void paintPoint(Sprite* sprite, u8 color, s32 x, s32 y)
+static void paintPoint(Sprite* sprite, SpritePaintPixel paintPixel, u8 color, s32 x, s32 y)
 {
-    paintBrush(sprite, color, x, y);
+    paintBrush(sprite, paintPixel, color, x, y);
 
     // mirror the brush across the centre of the canvas
     tic_rect rect = getSpriteRect(sprite);
@@ -210,16 +216,16 @@ static void paintPoint(Sprite* sprite, u8 color, s32 x, s32 y)
     s32 vy = 2 * rect.y + rect.h - sprite->brush.size - y;
 
     if(sprite->brush.symmetryHorizontal)
-        paintBrush(sprite, color, hx, y);
+        paintBrush(sprite, paintPixel, color, hx, y);
 
     if(sprite->brush.symmetryVertical)
-        paintBrush(sprite, color, x, vy);
+        paintBrush(sprite, paintPixel, color, x, vy);
 
     if(sprite->brush.symmetryHorizontal && sprite->brush.symmetryVertical)
-        paintBrush(sprite, color, hx, vy);
+        paintBrush(sprite, paintPixel, color, hx, vy);
 }
 
-static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
+static void paintLine(Sprite* sprite, SpritePaintPixel paintPixel, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
 {
     float dx = (float)(x2 - x1);
     float dy = (float)(y2 - y1);
@@ -229,7 +235,7 @@ static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
     {
         s32 step = y2 > y1 ? 1 : -1;
         for(s32 ly = y1; y2 > y1 ? ly <= y2 : ly >= y2; ly += step)
-            paintPoint(sprite, color, x1, ly);
+            paintPoint(sprite, paintPixel, color, x1, ly);
     }
     else
     {
@@ -241,13 +247,13 @@ static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
         {
             s32 step = x2 > x1 ? 1 : -1;
             for(s32 lx = x1; x2 > x1 ? lx <= x2 : lx >= x2; lx += step)
-                paintPoint(sprite, color, lx, (s32)(slope * lx + intercept));
+                paintPoint(sprite, paintPixel, color, lx, (s32)(slope * lx + intercept));
         }
         else
         {
             s32 step = y2 > y1 ? 1 : -1;
             for(s32 ly = y1; y2 > y1 ? ly <= y2 : ly >= y2; ly += step)
-                paintPoint(sprite, color, (s32)((ly - intercept) / slope), ly);
+                paintPoint(sprite, paintPixel, color, (s32)((ly - intercept) / slope), ly);
         }
     }
 }
@@ -265,11 +271,32 @@ static s32 toCanvasCoord(s32 Size, s32 brushSize, s32 canvas_x, s32 x)
     return x;
 }
 
+// the stored line start, clamped so a brush that grew since then stays on the canvas
+static tic_point getLastDrawPos(Sprite* sprite)
+{
+    s32 max = sprite->canvasSize - sprite->brush.size;
+    tic_point pos = sprite->draw.lastPos;
+
+    return (tic_point){MIN(pos.x, max), MIN(pos.y, max)};
+}
+
+static inline bool hasLastDrawPos(Sprite* sprite)
+{
+    return sprite->draw.lastPos.x >= 0 && sprite->draw.lastPos.y >= 0;
+}
+
 static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 {
     tic_mem* tic = sprite->tic;
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->canvasSize;
+
+    bool left = checkMouseDown(sprite->studio, &rect, tic_mouse_left);
+    bool right = checkMouseDown(sprite->studio, &rect, tic_mouse_right);
+
+    // end the stroke even if the button was released off the canvas
+    if(!left && !right)
+        sprite->draw.start = false;
 
     bool drawing = false;
 
@@ -300,36 +327,25 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
         if(sprite->brush.symmetryHorizontal && sprite->brush.symmetryVertical)
             drawCursorBorder(sprite, x + hx, y + vy, brushSize, brushSize);
 
-        bool left = checkMouseDown(sprite->studio, &rect, tic_mouse_left);
-        bool right = checkMouseDown(sprite->studio, &rect, tic_mouse_right);
-
         if(left || right)
         {
             drawing = true;
 
-            if(!sprite->draw.start)
-            {
-                sprite->draw.start = true;
-                sprite->draw.last = tic_api_mouse(tic);
-            }
+            tic_point pos = {mx / Size, my / Size};
+            tic_point from = pos;
 
-            s32 lx = toCanvasCoord(Size, brushSize, x, sprite->draw.last.x);
-            s32 ly = toCanvasCoord(Size, brushSize, y, sprite->draw.last.y);
+            // continue the stroke, or start a line from the last stroke when shift is held
+            if(sprite->draw.start || (tic_api_key(tic, tic_key_shift) && hasLastDrawPos(sprite)))
+                from = getLastDrawPos(sprite);
+
+            sprite->draw.start = true;
 
             u8 color = left ? sprite->color : sprite->color2;
-            paintLine(sprite, color,
-                      sx + lx / Size,
-                      sy + ly / Size,
-                      sx + mx / Size,
-                      sy + my / Size);
+            paintLine(sprite, setSheetPixel, color, sx + from.x, sy + from.y, sx + pos.x, sy + pos.y);
 
             sprite->needsHistoryUpdate = true;
 
-            sprite->draw.last = tic_api_mouse(tic);
-        }
-        else
-        {
-            sprite->draw.start = false;
+            sprite->draw.lastPos = pos;
         }
     }
 
@@ -617,19 +633,57 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
     }
 }
 
+static void drawPreviewPixel(Sprite* sprite, s32 x, s32 y, u8 color)
+{
+    tic_mem* tic = sprite->tic;
+    const s32 Size = CANVAS_SIZE / sprite->canvasSize;
+    tic_rect rect = getSpriteRect(sprite);
+
+    // x, y are sheet coordinates, convert them to the canvas cell on screen
+    s32 cx = x - rect.x;
+    s32 cy = y - rect.y;
+
+    if(cx < 0 || cy < 0 || cx >= rect.w || cy >= rect.h)
+        return;
+
+    tic_api_rect(tic, CanvasX + cx * Size, CanvasY + cy * Size, Size, Size, color);
+}
+
 static void drawCanvas(Sprite* sprite, s32 x, s32 y)
 {
     tic_mem* tic = sprite->tic;
-
-    tic_rect rect = getSpriteRect(sprite);
-    s32 r = rect.x + rect.w;
-    s32 b = rect.y + rect.h;
-
     const s32 Size = CANVAS_SIZE / sprite->canvasSize;
 
-    for(s32 sy = rect.y, j = y; sy < b; sy++, j += Size)
-        for(s32 sx = rect.x, i = x; sx < r; sx++, i += Size)
+    tic_rect canvasRect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
+    tic_rect spriteRect = getSpriteRect(sprite);
+    s32 r = spriteRect.x + spriteRect.w;
+    s32 b = spriteRect.y + spriteRect.h;
+
+    for(s32 sy = spriteRect.y, j = y; sy < b; sy++, j += Size)
+        for(s32 sx = spriteRect.x, i = x; sx < r; sx++, i += Size)
             tic_api_rect(tic, i, j, Size, Size, tic_tilesheet_getpix(&sprite->sheet, sx, sy));
+
+    // preview the shift-click line, only where processDrawCanvasMouse would draw it
+    if(sprite->mode == SPRITE_DRAW_MODE && !sprite->palette.edit && checkMousePos(sprite->studio, &canvasRect))
+    {
+        bool left = checkMouseDown(sprite->studio, &canvasRect, tic_mouse_left);
+        bool right = checkMouseDown(sprite->studio, &canvasRect, tic_mouse_right);
+        if(!left && !right && tic_api_key(tic, tic_key_shift) && hasLastDrawPos(sprite))
+        {
+            // convert the mouse to a brush cell the same way processDrawCanvasMouse does
+            s32 brushSize = sprite->brush.size * Size;
+            tic_point mouse = tic_api_mouse(tic);
+            s32 mx = toCanvasCoord(Size, brushSize, x, mouse.x);
+            s32 my = toCanvasCoord(Size, brushSize, y, mouse.y);
+            tic_point from = getLastDrawPos(sprite);
+
+            paintLine(sprite, drawPreviewPixel, sprite->color,
+                      spriteRect.x + from.x,
+                      spriteRect.y + from.y,
+                      spriteRect.x + mx / Size,
+                      spriteRect.y + my / Size);
+        }
+    }
 }
 
 static void upCanvas(Sprite* sprite)
@@ -1312,8 +1366,8 @@ static void selectSprite(Sprite* sprite, s32 x, s32 y)
         if(x > size) x = size;
         if(y > size) y = size;
     }
-    sprite->x = (u16)(x / TIC_SPRITESIZE);
-    sprite->y = (u16)(y / TIC_SPRITESIZE);
+    sprite->spritePos.x = (u16)(x / TIC_SPRITESIZE);
+    sprite->spritePos.y = (u16)(y / TIC_SPRITESIZE);
     updateIndex(sprite);
 }
 
@@ -1322,7 +1376,7 @@ static void updateSpriteSize(Sprite* sprite, s32 size)
     if(size != sprite->canvasSize)
     {
         sprite->canvasSize = (u8)(size);
-        selectSprite(sprite, sprite->x * TIC_SPRITESIZE, sprite->y * TIC_SPRITESIZE);
+        selectSprite(sprite, sprite->spritePos.x * TIC_SPRITESIZE, sprite->spritePos.y * TIC_SPRITESIZE);
     }
 }
 
@@ -1360,8 +1414,8 @@ static void drawSheetVBank1(Sprite* sprite, s32 x, s32 y)
         }
     }
 
-    s32 bx = sprite->x * TIC_SPRITESIZE + x - 1;
-    s32 by = sprite->y * TIC_SPRITESIZE + y - 1;
+    s32 bx = sprite->spritePos.x * TIC_SPRITESIZE + x - 1;
+    s32 by = sprite->spritePos.y * TIC_SPRITESIZE + y - 1;
 
     tic_api_rectb(tic, bx, by, sprite->canvasSize + 2, sprite->canvasSize + 2, tic_color_white);
 }
@@ -1680,25 +1734,25 @@ static void copyFromClipboard(Sprite* sprite)
 
 static void upSprite(Sprite* sprite)
 {
-    if(sprite->y > 0) sprite->y--;
+    if(sprite->spritePos.y > 0) sprite->spritePos.y--;
     updateIndex(sprite);
 }
 
 static void downSprite(Sprite* sprite)
 {
-    if((sprite->y + sprite->canvasSize / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->y++;
+    if((sprite->spritePos.y + sprite->canvasSize / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->spritePos.y++;
     updateIndex(sprite);
 }
 
 static void leftSprite(Sprite* sprite)
 {
-    if(sprite->x > 0) sprite->x--;
+    if(sprite->spritePos.x > 0) sprite->spritePos.x--;
     updateIndex(sprite);
 }
 
 static void rightSprite(Sprite* sprite)
 {
-    if((sprite->x + sprite->canvasSize / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->x++;
+    if((sprite->spritePos.x + sprite->canvasSize / TIC_SPRITESIZE) < TIC_SPRITESHEET_COLS) sprite->spritePos.x++;
     updateIndex(sprite);
 }
 
@@ -2128,8 +2182,7 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
         .tick = tick,
         .tickCounter = 0,
         .src = src,
-        .x = 1,
-        .y = 0,
+        .spritePos = {1, 0},
         .blit = {0},
         .color = 2,
         .color2 = 0,
@@ -2140,6 +2193,11 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
                 .focus = -1,
             },
         .brush.size = 1,
+        .draw =
+            {
+                .start = false,
+                .lastPos = {-1, -1},
+            },
         .select =
             {
                 .rect = {0, 0, 0, 0},
