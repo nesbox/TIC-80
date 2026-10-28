@@ -89,9 +89,6 @@
 [submodule "vendor/lpeg"]
 	path = vendor/lpeg
 	url = https://github.com/roberto-ieru/LPeg.git
-[submodule "vendor/pforth"]
-	path = vendor/pforth
-	url = https://github.com/philburk/pforth.git
 [submodule "vendor/miniscript2"]
 	path = vendor/miniscript2
 	url = https://github.com/JoeStrout/miniscript2
@@ -106,3 +103,8 @@
 [submodule "vendor/gravity"]
 	path = vendor/gravity
 	url = https://github.com/marcobambini/gravity.git
+[submodule "vendor/lugforth"]
+	path = vendor/lugforth
+	url = https://github.com/luginf/lugforth.git
+	branch = tic80
+	shallow = true

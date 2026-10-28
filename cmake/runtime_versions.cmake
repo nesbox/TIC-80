@@ -148,12 +148,9 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/miniscript2/generated/CoreIntrinsics.g.cpp
     endif()
 endif()
 
-if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/pforth/csrc/pf_guts.h")
-    file(STRINGS "${CMAKE_SOURCE_DIR}/vendor/pforth/csrc/pf_guts.h" PFORTH_VERSION_LINE REGEX "^#define PFORTH_VERSION_NAME \"[^\"]+\"")
-    if(PFORTH_VERSION_LINE)
-        string(REGEX REPLACE ".*\"([^\"]+)\".*" "\\1" PFORTH_VERSION "${PFORTH_VERSION_LINE}")
-        set(TIC_RT_FORTH "pForth ${PFORTH_VERSION}")
-    endif()
+if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/lugforth/VERSION")
+    file(STRINGS "${CMAKE_SOURCE_DIR}/vendor/lugforth/VERSION" LUGFORTH_VERSION LIMIT_COUNT 1)
+    set(TIC_RT_FORTH "Lugforth ${LUGFORTH_VERSION}")
 endif()
 
 if(EXISTS "${CMAKE_SOURCE_DIR}/vendor/gravity/src/shared/gravity_value.h")

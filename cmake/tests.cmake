@@ -34,6 +34,12 @@ if(BUILD_TESTS)
         tic80_add_test(js-test)
     endif()
 
+    if(BUILD_WITH_FORTH)
+        add_executable(forth-test ${CMAKE_SOURCE_DIR}/tests/forth.c)
+        target_link_libraries(forth-test PRIVATE forth tic80core)
+        tic80_add_test(forth-test)
+    endif()
+
     # The menu bar is tested against the core alone: linking tic80studio instead
     # would hide a call into studio.c, which is the one thing this test is for.
     # The bar draws its icons and cursor through the ui module, so that builds
