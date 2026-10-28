@@ -1308,6 +1308,8 @@ jobs:
           # cartridge (console.c onHtmlPageGet). A second, export-only page
           # used to exist and drifted from this one.
           cp html/index.html bin/index.html
+          # The Windows executable's icon doubles as the site's favicon:
+          cp windows/icon.ico bin/favicon.ico
           # The universal artifact is the one a stray SDL build would slip
           # through unnoticed — the per-language passes above check their own
           # sets, and this one carries the markers of neither set to compare.

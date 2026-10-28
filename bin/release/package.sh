@@ -111,6 +111,7 @@ mkdir -p "$tmp"
 pack_file "$ART/tic80-html/tic80.js" "$tmp/"
 pack_file "$ART/tic80-html/tic80.wasm" "$tmp/"
 pack_file "$ART/tic80-html/index.html" "$tmp/"
+pack_file "$ART/tic80-html/favicon.ico" "$tmp/"
 zip_flat "$tmp" "$OUT/tic80-v$SHORT-html.zip"
 rm -rf "$tmp"
 
@@ -230,6 +231,8 @@ if [ -d "$ART" ]; then
         mkdir -p "$stage"
         cp "$loader" "$stage/tic80.js"
         cp "$wasm" "$stage/"
+        # the page's icon: an export gets the same favicon the site has
+        cp "$hdir/favicon.ico" "$stage/"
         # zip appends .zip to a name that lacks it; the client asks for
         # /export/<tag>/<system><lang> with no extension (console.c exportGame)
         zip_flat "$stage" "$tmp/$name.zip"

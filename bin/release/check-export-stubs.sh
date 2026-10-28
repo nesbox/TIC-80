@@ -123,6 +123,7 @@ for lang in $LANGS; do
     [ "$wasm" = "tic80$lang.wasm" ] || { bad "$lang: the client asked for '${wasm:-nothing}'"; continue; }
     editors "$d/x/$wasm" && { bad "$lang: the stub carries the editors"; continue; }
     [ -f "$d/x/index.html" ] || { bad "$lang: no page in the zip"; continue; }
+    [ -f "$d/x/favicon.ico" ] || { bad "$lang: no icon in the zip"; continue; }
     [ -f "$d/x/cart.tic" ] || { bad "$lang: no cartridge in the zip"; continue; }
 
     curl -fsS -o "$d/served" "$EXPORT/html$lang" || { bad "$lang: $EXPORT/html$lang did not download"; continue; }
