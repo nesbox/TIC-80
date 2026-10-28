@@ -24,7 +24,7 @@
 
 #include "api.h"
 
-#define MAX_SUPPORTED_LANGS 16
+#define MAX_SUPPORTED_LANGS 32
 
 struct tic_script
 {
