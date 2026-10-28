@@ -92,6 +92,7 @@ struct Sprite
     } mode;
 
     struct History* history;
+    bool needsHistoryUpdate;
 
     struct
     {

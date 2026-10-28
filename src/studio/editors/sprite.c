@@ -271,6 +271,8 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->canvasSize;
 
+    bool drawing = false;
+
     if(checkMousePos(sprite->studio, &rect))
     {
         setCursor(sprite->studio, tic_cursor_hand);
@@ -303,6 +305,8 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
         if(left || right)
         {
+            drawing = true;
+
             if(!sprite->draw.start)
             {
                 sprite->draw.start = true;
@@ -319,7 +323,7 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
                       sx + mx / Size,
                       sy + my / Size);
 
-            history_add(sprite->history);
+            sprite->needsHistoryUpdate = true;
 
             sprite->draw.last = tic_api_mouse(tic);
         }
@@ -327,6 +331,12 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
         {
             sprite->draw.start = false;
         }
+    }
+
+    if(!drawing && sprite->needsHistoryUpdate)
+    {
+        history_add(sprite->history);
+        sprite->needsHistoryUpdate = false;
     }
 }
 
@@ -2140,6 +2150,7 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
             },
         .mode = SPRITE_DRAW_MODE,
         .history = history_create(src, TIC_SPRITES * sizeof(tic_tile)),
+        .needsHistoryUpdate = false,
         .anim =
             {
                 .idle = {

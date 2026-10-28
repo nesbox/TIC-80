@@ -279,7 +279,7 @@ static inline void ram2map(const tic_ram* ram, tic_map* src)
     memcpy(src, ram->map.data, sizeof ram->map);
 }
 
-static void setMapSprite(Map* map, s32 x, s32 y)
+static void setMapSprite(Map* map, s32 x, s32 y, bool recordHistory)
 {
     s32 mx = map->sheet.rect.x;
     s32 my = map->sheet.rect.y;
@@ -299,7 +299,9 @@ static void setMapSprite(Map* map, s32 x, s32 y)
 
     ram2map(map->tic->ram, map->src);
 
-    history_add(map->history);
+    map->needsHistoryUpdate = !recordHistory;
+    if(recordHistory)
+        history_add(map->history);
 }
 
 static tic_point getCursorPos(Map* map)
@@ -363,9 +365,11 @@ static void processMouseDrawMode(Map* map)
     setCursor(map->studio, tic_cursor_hand);
 
     drawTileCursor(map);
+    bool drawing = false;
 
     if(checkMouseDown(map->studio, &rect, tic_mouse_left))
     {
+        drawing = true;
         s32 tx = 0, ty = 0;
         getMouseMap(map, &tx, &ty);
 
@@ -380,7 +384,7 @@ static void processMouseDrawMode(Map* map)
                 {
                     map->canvas.current.x = tx;
                     map->canvas.current.y = ty;
-                    setMapSprite(map, tx, ty);
+                    setMapSprite(map, tx, ty, false);
                 }
             }
         }
@@ -394,6 +398,12 @@ static void processMouseDrawMode(Map* map)
     else
     {
         map->canvas.draw = false;
+    }
+
+    if(!drawing && map->needsHistoryUpdate)
+    {
+        history_add(map->history);
+        map->needsHistoryUpdate = false;
     }
 
     if(checkMouseDown(map->studio, &rect, tic_mouse_middle))
