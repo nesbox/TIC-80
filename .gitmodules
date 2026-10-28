@@ -103,3 +103,8 @@
 [submodule "vendor/gravity"]
 	path = vendor/gravity
 	url = https://github.com/marcobambini/gravity.git
+[submodule "vendor/lugforth"]
+	path = vendor/lugforth
+	url = https://github.com/luginf/lugforth.git
+	branch = tic80
+	shallow = true
