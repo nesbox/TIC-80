@@ -1107,6 +1107,135 @@ jobs:
           name: "tic80-android-surf"
           path: build/android/tic80-surf.apk
 
+  # === Android (sokol) ===
+  android-sokol:
+    # As the android job: setup-ruby has no 2.6.10 for 26.04 (#3107).
+    runs-on: ubuntu-24.04
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r30
+          add-to-path: false
+          local-cache: true
+
+      - name: set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "build-tools;35.0.0 platforms;android-31"
+
+      - name: Install ccache
+        run: command -v ccache >/dev/null || { sudo apt-get update && sudo apt-get install -y ccache; }
+
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ runner.arch }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-${{ runner.arch }}-
+
+      - name: Build
+        env:
+          ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+              export UNSIGNED=1
+              echo "fork pull request: no repository secrets, the APKs are unsigned"
+          else
+              : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
+              : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
+          fi
+
+          common=(-DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK/build/cmake/android.toolchain.cmake"
+                  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26
+                  -DCMAKE_BUILD_TYPE=Release
+                  -DBUILD_SOKOL=ON -DBUILD_SDL=OFF
+                  -DBUILD_WITH_ALL=ON -DBUILD_TOUCH_INPUT=ON
+                  -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
+
+          cmake -S . -B build-android -G Ninja "${common[@]}"
+          cmake --build build-android --parallel
+          build/android-sokol/apk.sh build-android/bin/libtic80.so build/android-sokol/tic80.apk
+
+          cmake -S . -B build-android-surf -G Ninja "${common[@]}" -DBUILD_EDITORS=OFF -DBUILD_SURF=ON
+          cmake --build build-android-surf --parallel
+          build/android-sokol/apk.sh build-android-surf/bin/libtic80.so build/android-sokol/tic80-surf.apk com.nesbox.tic.surf
+
+      - name: Check what each APK carries
+        run: |
+          TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)
+
+          unzip -p build/android-sokol/tic80.apk lib/arm64-v8a/libtic80.so > editors.so
+          unzip -p build/android-sokol/tic80-surf.apk lib/arm64-v8a/libtic80.so > surf.so
+
+          grep -qa "SPRITE EDITOR" editors.so || {
+            echo "the APK has no editors — BUILD_EDITORS did not take" >&2
+            exit 1
+          }
+          grep -qa "You don't have any files" surf.so || {
+            echo "the browser-only APK has no browser — BUILD_EDITORS=OFF did not take" >&2
+            exit 1
+          }
+          grep -qa "SPRITE EDITOR" surf.so && {
+            echo "the browser-only APK carries the editors" >&2
+            exit 1
+          }
+
+          for apk in tic80 tic80-surf; do
+            unzip -l "build/android-sokol/$apk.apk" | grep -q "classes.dex" && {
+              echo "$apk carries a dex; the sokol APK is native only" >&2
+              exit 1
+            }
+            "$TOOLS/aapt2" dump badging "build/android-sokol/$apk.apk" | grep "^package:"
+          done
+
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80.apk | grep -q "package: name='com.nesbox.tic'" || {
+            echo "the editors APK has the wrong package id" >&2
+            exit 1
+          }
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80-surf.apk | grep -q "package: name='com.nesbox.tic.surf'" || {
+            echo "the browser-only APK has the wrong package id" >&2
+            exit 1
+          }
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80.apk | grep -q "sdkVersion:'26'" || {
+            echo "the APK's minSdk is not 26" >&2
+            exit 1
+          }
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-android-sokol"
+          path: build/android-sokol/tic80.apk
+
+      - name: Deploy the browser-only APK
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-android-sokol-surf"
+          path: build/android-sokol/tic80-surf.apk
+
   # === HTML ===
   html:
     # As the android job: setup-ruby has no 2.6.10 for 26.04 (#3107).
