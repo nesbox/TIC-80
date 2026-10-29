@@ -389,6 +389,33 @@ void android_fullscreen(void)
     android_end(env);
 }
 
+// sokol_app handles sapp_quit() on every platform but Android, whose loop
+// never looks at quit_ordered. The task is removed as well, or the app stays
+// in the recents list and starts again from there.
+void android_finish(void)
+{
+    JNIEnv* env = android_begin();
+
+    if(!env)
+        return;
+
+    jobject activity = android_activity();
+
+    if(activity)
+    {
+        jclass class = (*env)->GetObjectClass(env, activity);
+        jmethodID finish = (*env)->GetMethodID(env, class, "finishAndRemoveTask", "()V");
+
+        if(android_failed(env))
+            finish = NULL;
+
+        if(finish)
+            (*env)->CallVoidMethod(env, activity, finish);
+    }
+
+    android_end(env);
+}
+
 void android_insets(float* top, float* right, float* bottom, float* left)
 {
     *top = *right = *bottom = *left = 0.0f;

@@ -10,6 +10,7 @@
 const char* android_app_folder(void);
 void* android_java_vm(void);
 void android_fullscreen(void);
+void android_finish(void);
 void android_insets(float* top, float* right, float* bottom, float* left);
 void android_open_url(const char* url);
 bool android_clipboard_has(void);

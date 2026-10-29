@@ -1212,6 +1212,9 @@ static void frame_cb(void)
     if(studio_alive(platform.studio))
     {
         sapp_quit();
+#if defined(__ANDROID__)
+        android_finish();
+#endif
         return;
     }
 
