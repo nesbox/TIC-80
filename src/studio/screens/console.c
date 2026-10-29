@@ -4180,23 +4180,26 @@ static CommandDesc parseCommand(const char* input)
     CommandDesc desc = {.src = strdup(input),
                         .command = strdup(input)};
 
-    // the first token is the command's own name: strtok keeps the rest
-    strtok(desc.command, " ");
+    // the first token is the command's own name: tic_strtok_r keeps the rest
+    char* save = NULL;
+    tic_strtok_r(desc.command, " ", &save);
 
     char* token;
 
-    while((token = strtok(NULL, " ")))
+    while((token = tic_strtok_r(NULL, " ", &save)))
     {
         desc.params = realloc(desc.params, ++desc.count * sizeof *desc.params);
         desc.params[desc.count - 1].key = token;
     }
 
+    char* value = NULL;
+
     for(struct Param *it = desc.params, *end = it + desc.count; it < end; it++)
     {
         if(strcmp(it->key, "=") == 0) continue;
 
-        it->key = strtok(it->key, "=");
-        it->val = strtok(NULL, "=");
+        it->key = tic_strtok_r(it->key, "=", &value);
+        it->val = tic_strtok_r(NULL, "=", &value);
     }
 
     return desc;

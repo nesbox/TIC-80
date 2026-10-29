@@ -44,6 +44,14 @@
 #define DEF2STR(x)   DEF2STR2(x)
 #define STRLEN(str)  (sizeof str - 1)
 
+// strtok keeps its state in the libc, and bionic deprecates it for that;
+// Windows spells the re-entrant one strtok_s.
+#if defined(_MSC_VER)
+#define tic_strtok_r(str, delim, save) strtok_s(str, delim, save)
+#else
+#define tic_strtok_r(str, delim, save) strtok_r(str, delim, save)
+#endif
+
 // The longest name this project keeps in a buffer: a file, a cart, a screen.
 #define TICNAME_MAX          256
 #define CONCAT2(a, b)        a##b

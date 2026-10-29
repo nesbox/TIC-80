@@ -343,13 +343,14 @@ static void initGameMenu(StudioMainMenu* main)
             MenuItem* items = NULL;
             s32 count = 0;
 
-            char* label = strtok(menu, " ");
+            char* save = NULL;
+            char* label = tic_strtok_r(menu, " ", &save);
             while(label)
             {
                 items = realloc(items, sizeof(MenuItem) * ++count);
                 items[count - 1] = (MenuItem){.label = strdup(label), .handler = gameMenuHandler};
 
-                label = strtok(NULL, " ");
+                label = tic_strtok_r(NULL, " ", &save);
             }
 
             count += 2;
