@@ -40,7 +40,7 @@ index b539ff6..e26a14a 100644
  #define __func__    __FUNCTION__
  #define PATH_SEPARATOR  '\\'
  #else
-+#if _WIN32 && !defined(bzero)
++#if !defined(bzero)
 +#define bzero(b, len) memset((b), 0, (len))
 +#endif
  #include <unistd.h>
