@@ -18,6 +18,7 @@ build/uwp/tic/BundleArtifacts/
 build/android/gen/
 build/android/libs/
 build/android/obj/
+build/android-sokol/*.apk
 build/itch.io/tic.js
 build/itch.io/console.zip
 build/uwp/code8/ARM/
