@@ -444,8 +444,11 @@ static bool android_native_event(const void* native_event)
 {
     const AInputEvent* event = native_event;
     const int source = AInputEvent_getSource(event);
+
     // A DPAD-only source is a TV remote: its keys belong to the studio's menus.
-    const bool pad = (source & (AINPUT_SOURCE_GAMEPAD | AINPUT_SOURCE_JOYSTICK)) != 0;
+    // Matched whole: a keyboard (0x101) shares bit 0 with AINPUT_SOURCE_GAMEPAD.
+    const bool pad = (source & AINPUT_SOURCE_GAMEPAD) == AINPUT_SOURCE_GAMEPAD ||
+                     (source & AINPUT_SOURCE_JOYSTICK) == AINPUT_SOURCE_JOYSTICK;
 
     if(pad)
     {
