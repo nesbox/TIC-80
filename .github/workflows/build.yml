@@ -1211,7 +1211,7 @@ jobs:
             echo "the browser-only APK has the wrong package id" >&2
             exit 1
           }
-          "$TOOLS/aapt2" dump badging build/android-sokol/tic80.apk | grep -q "sdkVersion:'26'" || {
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80.apk | grep -q "minSdkVersion:'26'" || {
             echo "the APK's minSdk is not 26" >&2
             exit 1
           }
