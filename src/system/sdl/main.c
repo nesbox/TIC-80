@@ -46,6 +46,10 @@ extern void gotoMenu(Studio* studio);
 #include <SDL.h>
 #endif
 
+#if defined(__TIC_ANDROID__)
+#include <jni.h>
+#endif
+
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 #endif
@@ -1583,6 +1587,19 @@ static const char* getAppFolder()
 
     return appFolder;
 }
+
+#if defined(__TIC_ANDROID__)
+void* tic_sys_java_vm(void)
+{
+    JNIEnv* env = SDL_AndroidGetJNIEnv();
+    JavaVM* vm = NULL;
+
+    if(env)
+        (*env)->GetJavaVM(env, &vm);
+
+    return vm;
+}
+#endif
 
 void tic_sys_clipboard_set(const char* text)
 {

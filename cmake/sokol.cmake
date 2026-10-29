@@ -22,10 +22,15 @@ if(BUILD_SOKOL)
     target_include_directories(sokol SYSTEM PUBLIC ${THIRDPARTY_DIR}/sokol)
 
     # The layer's own entry point: the console-only run must make no window.
-    target_compile_definitions(sokol PUBLIC SOKOL_NO_ENTRY)
+    # Android has no SOKOL_NO_ENTRY: sokol_app owns the entry and calls sokol_main().
+    if(NOT ANDROID)
+        target_compile_definitions(sokol PUBLIC SOKOL_NO_ENTRY)
+    endif()
 
     if(APPLE)
         target_compile_definitions(sokol PUBLIC SOKOL_METAL)
+    elseif(ANDROID)
+        target_compile_definitions(sokol PUBLIC SOKOL_GLES3)
     elseif(WIN32)
         target_compile_definitions(sokol PUBLIC SOKOL_D3D11 UNICODE)
     elseif(EMSCRIPTEN AND BUILD_SOKOL_WGPU)
@@ -63,6 +68,9 @@ if(BUILD_SOKOL)
         # hid — the HID class calls — and setupapi — the device list — are for.
         # Both come with every Windows SDK, and neither is a redistributable.
         target_link_libraries(sokol PRIVATE d3d11 xinput hid setupapi)
+    elseif(ANDROID)
+        # GLES3 through EGL, and AAudio is the audio backend.
+        target_link_libraries(sokol PRIVATE android log aaudio EGL GLESv3 m)
     elseif(EMSCRIPTEN)
 
     else()
@@ -96,6 +104,10 @@ if(BUILD_SOKOL)
         set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol/controls.c)
     endif()
 
+    if(ANDROID)
+        set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol/android.c)
+    endif()
+
     if(WIN32)
 
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
@@ -103,9 +115,14 @@ if(BUILD_SOKOL)
 
     endif()
 
-    # No WIN32 keyword: it asks for the GUI subsystem, where --cli prints
-    # nothing from a terminal.
-    add_executable(${TIC80_TARGET} ${TIC80_SRC})
+    if(ANDROID)
+        # A NativeActivity loads libtic80.so; there is no executable.
+        add_library(${TIC80_TARGET} SHARED ${TIC80_SRC})
+    else()
+        # No WIN32 keyword: it asks for the GUI subsystem, where --cli prints
+        # nothing from a terminal.
+        add_executable(${TIC80_TARGET} ${TIC80_SRC})
+    endif()
 
     # clay comes in the same way, through the controls the app draws
     target_include_directories(${TIC80_TARGET} SYSTEM PRIVATE ${THIRDPARTY_DIR}/clay)

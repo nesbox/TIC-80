@@ -102,6 +102,13 @@ extern "C"
     // The slot's state; an unassigned slot reads back as nothing held.
     SGAMEPAD_API_DECL sgamepad_state sgamepad_gamepad_state(int slot);
 
+#if defined(__ANDROID__)
+
+    // The layer hands over the native input events the platform sends.
+    SGAMEPAD_API_DECL void sgamepad_android_event(const void* native_event);
+
+#endif
+
 #if defined(SGAMEPAD_TEST)
 
     // The backend the tests drive: the device at `index` is there or it is not,
@@ -176,7 +183,7 @@ static _sgamepad_t _sgamepad;
 // A backend that holds something of the platform's own — Linux with a file
 // per pad, Windows with a HID handle per pad — is told at setup and at
 // shutdown; the others have nothing to do.
-#if (defined(__linux__) || defined(_WIN32)) && !defined(SGAMEPAD_TEST)
+#if ((defined(__linux__) && !defined(__ANDROID__)) || defined(_WIN32)) && !defined(SGAMEPAD_TEST)
 static void _sgamepad_backend_setup(void);
 static void _sgamepad_backend_shutdown(void);
 #else
@@ -931,6 +938,131 @@ static void _sgamepad_backend_shutdown(void)
     for(int i = 0; i < _SGAMEPAD_HID_MAX; i++)
         if(_sgamepad_hid.devices[i].file)
             _sgamepad_hid_close(&_sgamepad_hid.devices[i]);
+}
+
+#elif defined(__ANDROID__)
+
+#include <android/input.h>
+#include <android/keycodes.h>
+
+// The input events arrive on the thread that also records the state, so a pad
+// is written in the callback and read back once a frame. A pad that goes away
+// keeps its entry: Android sends no disconnect through the input queue.
+typedef struct
+{
+    bool present;
+    int id; // the Android device the entry belongs to
+    bool used;
+    sgamepad_state state;
+    float x, y, z, rz, hat_x, hat_y;
+} _sgamepad_android_pad;
+
+static _sgamepad_android_pad _sgamepad_android[SGAMEPAD_MAX_DEVICES];
+
+static _sgamepad_android_pad* _sgamepad_android_pad_of(int id)
+{
+    for(int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
+        if(_sgamepad_android[i].present && _sgamepad_android[i].id == id)
+            return &_sgamepad_android[i];
+
+    for(int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
+        if(!_sgamepad_android[i].present)
+        {
+            _sgamepad_android[i].present = true;
+            _sgamepad_android[i].id = id;
+            return &_sgamepad_android[i];
+        }
+
+    return NULL;
+}
+
+SGAMEPAD_API_IMPL void sgamepad_android_event(const void* native_event)
+{
+    const AInputEvent* event = native_event;
+    _sgamepad_android_pad* pad = _sgamepad_android_pad_of(AInputEvent_getDeviceId(event));
+
+    if(!pad)
+        return;
+
+    if(AInputEvent_getType(event) == AINPUT_EVENT_TYPE_KEY)
+    {
+        const int action = AKeyEvent_getAction(event);
+
+        if(action != AKEY_EVENT_ACTION_DOWN && action != AKEY_EVENT_ACTION_UP)
+            return;
+
+        const bool down = action == AKEY_EVENT_ACTION_DOWN;
+
+        switch(AKeyEvent_getKeyCode(event))
+        {
+            case AKEYCODE_BUTTON_A: pad->state.a = down; break;
+            case AKEYCODE_BUTTON_B: pad->state.b = down; break;
+            case AKEYCODE_BUTTON_X: pad->state.x = down; break;
+            case AKEYCODE_BUTTON_Y: pad->state.y = down; break;
+            case AKEYCODE_BUTTON_START: pad->state.start = down; break;
+            case AKEYCODE_BUTTON_SELECT: pad->state.back = down; break;
+            case AKEYCODE_DPAD_UP: pad->state.up = down; break;
+            case AKEYCODE_DPAD_DOWN: pad->state.down = down; break;
+            case AKEYCODE_DPAD_LEFT: pad->state.left = down; break;
+            case AKEYCODE_DPAD_RIGHT: pad->state.right = down; break;
+            case AKEYCODE_BUTTON_L1:
+            case AKEYCODE_BUTTON_R1:
+            case AKEYCODE_BUTTON_L2:
+            case AKEYCODE_BUTTON_R2:
+            case AKEYCODE_BUTTON_THUMBL:
+            case AKEYCODE_BUTTON_THUMBR:
+                break;
+            default:
+                return;
+        }
+
+        pad->used = pad->used || down;
+        return;
+    }
+
+    if(AInputEvent_getType(event) != AINPUT_EVENT_TYPE_MOTION)
+        return;
+
+    pad->x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_X, 0);
+    pad->y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Y, 0);
+    pad->z = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Z, 0);
+    pad->rz = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_RZ, 0);
+    pad->hat_x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_HAT_X, 0);
+    pad->hat_y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_HAT_Y, 0);
+
+    pad->used = pad->used || pad->x > _sgamepad.deadzone || pad->x < -_sgamepad.deadzone || pad->y > _sgamepad.deadzone || pad->y < -_sgamepad.deadzone || pad->z > _sgamepad.deadzone || pad->z < -_sgamepad.deadzone || pad->rz > _sgamepad.deadzone || pad->rz < -_sgamepad.deadzone;
+}
+
+SGAMEPAD_API_IMPL void sgamepad_record_state(void)
+{
+    memset(_sgamepad.devices, 0, sizeof _sgamepad.devices);
+
+    for(int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
+    {
+        const _sgamepad_android_pad* pad = &_sgamepad_android[i];
+
+        if(!pad->present)
+            continue;
+
+        _sgamepad_device* device = &_sgamepad.devices[i];
+        sgamepad_state* state = &device->state;
+
+        *state = pad->state;
+
+        // Android's y grows downwards, the machine's too.
+        state->up = state->up || _sgamepad_direction(pad->hat_y, -1) || _sgamepad_direction(pad->y, -1);
+        state->down = state->down || _sgamepad_direction(pad->hat_y, +1) || _sgamepad_direction(pad->y, +1);
+        state->left = state->left || _sgamepad_direction(pad->hat_x, -1) || _sgamepad_direction(pad->x, -1);
+        state->right = state->right || _sgamepad_direction(pad->hat_x, +1) || _sgamepad_direction(pad->x, +1);
+
+        state->right_x = _sgamepad_deadzone(pad->z);
+        state->right_y = _sgamepad_deadzone(pad->rz);
+
+        device->present = true;
+        device->used = pad->used || _sgamepad_holding(state);
+    }
+
+    _sgamepad_assign(SGAMEPAD_MAX_DEVICES);
 }
 
 #elif defined(__linux__)

@@ -31,6 +31,13 @@
 #include "sgamepad.h"
 #include "sokol.h"
 
+#if defined(__ANDROID__)
+#include "android.h"
+
+#include <android/input.h>
+#include <android/keycodes.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -182,6 +189,12 @@ static const char* getAppFolder(void)
 
     // Mounted from IndexedDB by the page, see the change's M1 notes.
     snprintf(appFolder, sizeof appFolder, "/" TIC_PACKAGE "/" TIC_NAME "/");
+
+#elif defined(__ANDROID__)
+
+    // The same folder the SDL layer gives the gradle app.
+    const char* folder = android_app_folder();
+    snprintf(appFolder, sizeof appFolder, "%s", folder ? folder : "");
 
 #elif defined(__APPLE__)
 
@@ -361,6 +374,111 @@ static void handle_key(sapp_keycode code, bool down)
 
     platform.keyboard.state[key] = down;
 }
+
+#if defined(__ANDROID__)
+
+// The Android key codes the studio reads, in sokol's physical positions.
+static sapp_keycode android_keycode(int code)
+{
+    if(code >= AKEYCODE_A && code <= AKEYCODE_Z)
+        return (sapp_keycode)(SAPP_KEYCODE_A + (code - AKEYCODE_A));
+
+    if(code >= AKEYCODE_0 && code <= AKEYCODE_9)
+        return (sapp_keycode)(SAPP_KEYCODE_0 + (code - AKEYCODE_0));
+
+    if(code >= AKEYCODE_F1 && code <= AKEYCODE_F12)
+        return (sapp_keycode)(SAPP_KEYCODE_F1 + (code - AKEYCODE_F1));
+
+    if(code >= AKEYCODE_NUMPAD_0 && code <= AKEYCODE_NUMPAD_9)
+        return (sapp_keycode)(SAPP_KEYCODE_KP_0 + (code - AKEYCODE_NUMPAD_0));
+
+    switch(code)
+    {
+        case AKEYCODE_SPACE: return SAPP_KEYCODE_SPACE;
+        case AKEYCODE_APOSTROPHE: return SAPP_KEYCODE_APOSTROPHE;
+        case AKEYCODE_COMMA: return SAPP_KEYCODE_COMMA;
+        case AKEYCODE_MINUS: return SAPP_KEYCODE_MINUS;
+        case AKEYCODE_PERIOD: return SAPP_KEYCODE_PERIOD;
+        case AKEYCODE_SLASH: return SAPP_KEYCODE_SLASH;
+        case AKEYCODE_SEMICOLON: return SAPP_KEYCODE_SEMICOLON;
+        case AKEYCODE_EQUALS: return SAPP_KEYCODE_EQUAL;
+        case AKEYCODE_LEFT_BRACKET: return SAPP_KEYCODE_LEFT_BRACKET;
+        case AKEYCODE_BACKSLASH: return SAPP_KEYCODE_BACKSLASH;
+        case AKEYCODE_RIGHT_BRACKET: return SAPP_KEYCODE_RIGHT_BRACKET;
+        case AKEYCODE_GRAVE: return SAPP_KEYCODE_GRAVE_ACCENT;
+        case AKEYCODE_ESCAPE: return SAPP_KEYCODE_ESCAPE;
+        case AKEYCODE_ENTER: return SAPP_KEYCODE_ENTER;
+        case AKEYCODE_DPAD_CENTER: return SAPP_KEYCODE_ENTER;
+        case AKEYCODE_TAB: return SAPP_KEYCODE_TAB;
+        case AKEYCODE_DEL: return SAPP_KEYCODE_BACKSPACE;
+        case AKEYCODE_INSERT: return SAPP_KEYCODE_INSERT;
+        case AKEYCODE_FORWARD_DEL: return SAPP_KEYCODE_DELETE;
+        case AKEYCODE_DPAD_RIGHT: return SAPP_KEYCODE_RIGHT;
+        case AKEYCODE_DPAD_LEFT: return SAPP_KEYCODE_LEFT;
+        case AKEYCODE_DPAD_DOWN: return SAPP_KEYCODE_DOWN;
+        case AKEYCODE_DPAD_UP: return SAPP_KEYCODE_UP;
+        case AKEYCODE_PAGE_UP: return SAPP_KEYCODE_PAGE_UP;
+        case AKEYCODE_PAGE_DOWN: return SAPP_KEYCODE_PAGE_DOWN;
+        case AKEYCODE_MOVE_HOME: return SAPP_KEYCODE_HOME;
+        case AKEYCODE_MOVE_END: return SAPP_KEYCODE_END;
+        case AKEYCODE_CAPS_LOCK: return SAPP_KEYCODE_CAPS_LOCK;
+        case AKEYCODE_SHIFT_LEFT: return SAPP_KEYCODE_LEFT_SHIFT;
+        case AKEYCODE_SHIFT_RIGHT: return SAPP_KEYCODE_RIGHT_SHIFT;
+        case AKEYCODE_CTRL_LEFT: return SAPP_KEYCODE_LEFT_CONTROL;
+        case AKEYCODE_CTRL_RIGHT: return SAPP_KEYCODE_RIGHT_CONTROL;
+        case AKEYCODE_ALT_LEFT: return SAPP_KEYCODE_LEFT_ALT;
+        case AKEYCODE_ALT_RIGHT: return SAPP_KEYCODE_RIGHT_ALT;
+        case AKEYCODE_NUMPAD_ENTER: return SAPP_KEYCODE_KP_ENTER;
+        case AKEYCODE_NUMPAD_ADD: return SAPP_KEYCODE_KP_ADD;
+        case AKEYCODE_NUMPAD_SUBTRACT: return SAPP_KEYCODE_KP_SUBTRACT;
+        case AKEYCODE_NUMPAD_MULTIPLY: return SAPP_KEYCODE_KP_MULTIPLY;
+        case AKEYCODE_NUMPAD_DIVIDE: return SAPP_KEYCODE_KP_DIVIDE;
+        case AKEYCODE_NUMPAD_DOT: return SAPP_KEYCODE_KP_DECIMAL;
+        default: return SAPP_KEYCODE_INVALID;
+    }
+}
+
+// sokol_app reads only BACK on Android — and quits on it — so the keyboard and
+// the pads are read here, before its own handling.
+static bool android_native_event(const void* native_event)
+{
+    const AInputEvent* event = native_event;
+    const int source = AInputEvent_getSource(event);
+    // A DPAD-only source is a TV remote: its keys belong to the studio's menus.
+    const bool pad = (source & (AINPUT_SOURCE_GAMEPAD | AINPUT_SOURCE_JOYSTICK)) != 0;
+
+    if(pad)
+    {
+        sgamepad_android_event(event);
+        return true;
+    }
+
+    if(AInputEvent_getType(event) != AINPUT_EVENT_TYPE_KEY)
+        return false;
+
+    const int action = AKeyEvent_getAction(event);
+
+    if(action != AKEY_EVENT_ACTION_DOWN && action != AKEY_EVENT_ACTION_UP)
+        return false;
+
+    const bool down = action == AKEY_EVENT_ACTION_DOWN;
+    const int code = AKeyEvent_getKeyCode(event);
+
+    if(code == AKEYCODE_BACK)
+    {
+        handle_key(SAPP_KEYCODE_ESCAPE, down);
+        return true;
+    }
+
+    const sapp_keycode key = android_keycode(code);
+
+    if(key == SAPP_KEYCODE_INVALID)
+        return false;
+
+    handle_key(key, down);
+    return true;
+}
+#endif
 
 #if defined(__EMSCRIPTEN__)
 // Ctrl on a character key rides the bubble sokol leaves for text, and Ctrl+R
@@ -776,6 +894,25 @@ static void resume_audio(void)
 #endif
 }
 
+#if defined(__ANDROID__)
+static void update_insets(void)
+{
+    android_insets(&platform.insets.top, &platform.insets.right,
+                   &platform.insets.bottom, &platform.insets.left);
+}
+#endif
+
+static void setup_audio(void)
+{
+    if(saudio_isvalid())
+        return;
+
+    saudio_setup(&(saudio_desc){
+        .sample_rate = TIC80_SAMPLERATE,
+        .num_channels = TIC80_SAMPLE_CHANNELS,
+        TIC80_LOGGER});
+}
+
 #if defined(__EMSCRIPTEN__)
 // The browser gives its clipboard asynchronously and only on its own terms: a
 // paste attempt asks, and a press refreshes what the click on release reads.
@@ -960,6 +1097,15 @@ static void event_cb(const sapp_event* event)
         }
 
         case SAPP_EVENTTYPE_RESUMED:
+#if defined(__ANDROID__)
+            // Android keeps the EGL context across a pause; sokol_app makes the
+            // surface again, so the renderer is left as it is.
+            if(saudio_isvalid())
+                saudio_shutdown();
+
+            setup_audio();
+            update_insets();
+#else
             // A browser takes the GL context away when the page goes to the
             // background and hands a new one back on the way in — everything the
             // layer made belonged to the old one, so all of it is made again.
@@ -975,7 +1121,15 @@ static void event_cb(const sapp_event* event)
 #if defined(TOUCH_INPUT_SUPPORT)
             controls_init(studio_config(platform.studio)->cart);
 #endif
+#endif
             break;
+
+#if defined(__ANDROID__)
+        case SAPP_EVENTTYPE_SUSPENDED:
+            if(saudio_isvalid())
+                saudio_shutdown();
+            break;
+#endif
 
 #if defined(TOUCH_INPUT_SUPPORT)
         case SAPP_EVENTTYPE_TOUCHES_BEGAN:
@@ -1043,6 +1197,8 @@ static void event_cb(const sapp_event* event)
             // clang-format off
         EM_ASM(Module.tic80Viewport());
             // clang-format on
+#elif defined(__ANDROID__)
+            update_insets();
 #endif
             break;
 
@@ -1172,16 +1328,18 @@ static void init_cb(void)
     // The page mounts its own folder; elsewhere the entry point made it.
     platform.appFolder = getAppFolder();
 
+#if defined(__ANDROID__)
+    // The view is attached by now, which is when the insets can be read.
+    update_insets();
+#endif
+
     sg_setup(&(sg_desc){
         .environment = sglue_environment(),
         TIC80_LOGGER});
 
     render_init();
 
-    saudio_setup(&(saudio_desc){
-        .sample_rate = TIC80_SAMPLERATE,
-        .num_channels = TIC80_SAMPLE_CHANNELS,
-        TIC80_LOGGER});
+    setup_audio();
 
     platform.studio = create_studio(max_scale());
 
@@ -1211,7 +1369,8 @@ static void cleanup_cb(void)
 #if defined(TOUCH_INPUT_SUPPORT)
     controls_shutdown();
 #endif
-    saudio_shutdown();
+    if(saudio_isvalid())
+        saudio_shutdown();
     render_shutdown();
     sg_shutdown();
 }
@@ -1245,6 +1404,9 @@ static sapp_desc app_desc(void)
         .enable_clipboard = true,
         // The largest code the editor takes, PRO's TIC_CODE_SIZE, plus the terminator.
         .clipboard_size = TIC_CODE_SIZE + 1,
+#if defined(__ANDROID__)
+        .android.native_event_cb = android_native_event,
+#endif
 #if !defined(__EMSCRIPTEN__)
         // A handful; the layer still loads the first of them only.
         .enable_dragndrop = true,
@@ -1328,6 +1490,33 @@ int main(int argc, char* argv[])
     // clang-format on
 
     return 0;
+}
+
+#elif defined(__ANDROID__)
+
+// sokol_app owns the entry on Android: it calls this from ANativeActivity_onCreate.
+sapp_desc sokol_main(int argc, char* argv[])
+{
+    // sokol_app calls this with no arguments; the studio's parser wants one.
+    static char name[] = "tic80";
+    static char* none[] = {name, NULL};
+
+    if(argc < 1)
+    {
+        argc = 1;
+        argv = none;
+    }
+
+    platform.argc = argc;
+    platform.argv = argv;
+    platform.appFolder = getAppFolder();
+
+    make_folder(platform.appFolder);
+
+    android_fullscreen();
+    update_insets();
+
+    return app_desc();
 }
 
 #else
@@ -1490,12 +1679,20 @@ int main(int argc, char* argv[])
 // The window's own state, and the console-only run has no window.
 void tic_sys_clipboard_set(const char* text)
 {
+#if defined(__ANDROID__)
+    if(platform.started)
+        android_clipboard_set(text);
+#else
     if(platform.started)
         sapp_set_clipboard_string(text);
+#endif
 }
 
 bool tic_sys_clipboard_has(void)
 {
+#if defined(__ANDROID__)
+    return platform.started && android_clipboard_has();
+#else
     const char* text = platform.started ? sapp_get_clipboard_string() : NULL;
 
 #if defined(__EMSCRIPTEN__)
@@ -1505,10 +1702,14 @@ bool tic_sys_clipboard_has(void)
 #endif
 
     return text && *text;
+#endif
 }
 
 char* tic_sys_clipboard_get(void)
 {
+#if defined(__ANDROID__)
+    return platform.started ? android_clipboard_get() : NULL;
+#else
     const char* text = platform.started ? sapp_get_clipboard_string() : NULL;
 
     if(!text)
@@ -1517,12 +1718,24 @@ char* tic_sys_clipboard_get(void)
     char* copy = malloc(strlen(text) + 1);
     strcpy(copy, text);
     return copy;
+#endif
 }
 
 void tic_sys_clipboard_free(const char* text)
 {
+#if defined(__ANDROID__)
+    android_clipboard_free((char*)text);
+#else
     free((void*)text);
+#endif
 }
+
+#if defined(__ANDROID__)
+void* tic_sys_java_vm(void)
+{
+    return android_java_vm();
+}
+#endif
 
 u64 tic_sys_counter_get(void)
 {
@@ -1578,7 +1791,7 @@ static void open_target(const char* target)
     (void)ShellExecuteW(NULL, L"open", wide, NULL, NULL, SW_SHOWNORMAL);
 }
 
-#elif !defined(__EMSCRIPTEN__)
+#elif !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
 
 // The opener each desktop carries; both take one target.
 #if defined(__APPLE__)
@@ -1600,7 +1813,7 @@ static void open_target(const char* target)
 
 void tic_sys_open_path(const char* path)
 {
-#if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__) || defined(__ANDROID__)
     TIC_UNUSED(path);
 #else
     open_target(path);
@@ -1613,6 +1826,8 @@ void tic_sys_open_url(const char* url)
     // clang-format off
     EM_ASM({ window.open(UTF8ToString($0), '_blank'); }, url);
     // clang-format on
+#elif defined(__ANDROID__)
+    android_open_url(url);
 #else
     open_target(url);
 #endif
@@ -1635,6 +1850,14 @@ bool tic_sys_keyboard_text(char* text)
 
         for(s32 i = 0; i < tic_keys_count; i++)
             if(controls->keys[i])
+                return false;
+#endif
+
+#if defined(__ANDROID__)
+        // Android's key events carry no character; the held key is what the
+        // studio's fallback reads, as it does for the on-screen keyboard.
+        for(s32 i = tic_key_a; i <= tic_key_space; i++)
+            if(platform.keyboard.state[i])
                 return false;
 #endif
 
