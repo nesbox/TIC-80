@@ -58,15 +58,32 @@ static jobject android_activity(void)
     return activity ? activity->clazz : NULL;
 }
 
+// A JNI lookup that fails throws; the next call on the thread aborts, so the
+// exception is cleared here and the caller sees a null result instead.
+static bool android_failed(JNIEnv* env)
+{
+    if((*env)->ExceptionCheck(env))
+    {
+        (*env)->ExceptionClear(env);
+        return true;
+    }
+
+    return false;
+}
+
 static int android_sdk(JNIEnv* env)
 {
     jclass version = (*env)->FindClass(env, "android/os/Build$VERSION");
 
-    if(!version)
+    if(android_failed(env) || !version)
         return 0;
 
     jfieldID field = (*env)->GetStaticFieldID(env, version, "SDK_INT", "I");
-    return field ? (*env)->GetStaticIntField(env, version, field) : 0;
+
+    if(android_failed(env) || !field)
+        return 0;
+
+    return (*env)->GetStaticIntField(env, version, field);
 }
 
 static jobject android_decor(JNIEnv* env)
@@ -93,10 +110,25 @@ static jobject android_decor(JNIEnv* env)
     return getDecor ? (*env)->CallObjectMethod(env, window, getDecor) : NULL;
 }
 
-static float android_inset(JNIEnv* env, jobject values, jclass class, const char* name)
+static float android_method_int(JNIEnv* env, jobject values, jclass class, const char* name)
 {
     jmethodID method = (*env)->GetMethodID(env, class, name, "()I");
-    return method ? (float)(*env)->CallIntMethod(env, values, method) : 0.0f;
+
+    if(android_failed(env) || !method)
+        return 0.0f;
+
+    return (float)(*env)->CallIntMethod(env, values, method);
+}
+
+// Android 11's Insets carries the values in public fields; the getters arrive later.
+static float android_field_int(JNIEnv* env, jobject values, jclass class, const char* name)
+{
+    jfieldID field = (*env)->GetFieldID(env, class, name, "I");
+
+    if(android_failed(env) || !field)
+        return 0.0f;
+
+    return (float)(*env)->GetIntField(env, values, field);
 }
 
 const char* android_app_folder(void)
@@ -372,6 +404,10 @@ void android_insets(float* top, float* right, float* bottom, float* left)
     {
         jclass viewClass = (*env)->GetObjectClass(env, decor);
         jmethodID root = (*env)->GetMethodID(env, viewClass, "getRootWindowInsets", "()Landroid/view/WindowInsets;");
+
+        if(android_failed(env))
+            root = NULL;
+
         jobject insets = root ? (*env)->CallObjectMethod(env, decor, root) : NULL;
 
         if(insets)
@@ -381,9 +417,24 @@ void android_insets(float* top, float* right, float* bottom, float* left)
             if(android_sdk(env) >= 30)
             {
                 jclass typeClass = (*env)->FindClass(env, "android/view/WindowInsets$Type");
+
+                if(android_failed(env))
+                    typeClass = NULL;
+
                 jmethodID bars = typeClass ? (*env)->GetStaticMethodID(env, typeClass, "systemBars", "()I") : NULL;
+
+                if(android_failed(env))
+                    bars = NULL;
+
                 jmethodID cutout = typeClass ? (*env)->GetStaticMethodID(env, typeClass, "displayCutout", "()I") : NULL;
+
+                if(android_failed(env))
+                    cutout = NULL;
+
                 jmethodID get = (*env)->GetMethodID(env, insetsClass, "getInsets", "(I)Landroid/graphics/Insets;");
+
+                if(android_failed(env))
+                    get = NULL;
 
                 if(bars && cutout && get)
                 {
@@ -394,19 +445,19 @@ void android_insets(float* top, float* right, float* bottom, float* left)
                     {
                         jclass valuesClass = (*env)->GetObjectClass(env, values);
 
-                        *top = android_inset(env, values, valuesClass, "getTop");
-                        *right = android_inset(env, values, valuesClass, "getRight");
-                        *bottom = android_inset(env, values, valuesClass, "getBottom");
-                        *left = android_inset(env, values, valuesClass, "getLeft");
+                        *top = android_field_int(env, values, valuesClass, "top");
+                        *right = android_field_int(env, values, valuesClass, "right");
+                        *bottom = android_field_int(env, values, valuesClass, "bottom");
+                        *left = android_field_int(env, values, valuesClass, "left");
                     }
                 }
             }
             else
             {
-                *top = android_inset(env, insets, insetsClass, "getSystemWindowInsetTop");
-                *right = android_inset(env, insets, insetsClass, "getSystemWindowInsetRight");
-                *bottom = android_inset(env, insets, insetsClass, "getSystemWindowInsetBottom");
-                *left = android_inset(env, insets, insetsClass, "getSystemWindowInsetLeft");
+                *top = android_method_int(env, insets, insetsClass, "getSystemWindowInsetTop");
+                *right = android_method_int(env, insets, insetsClass, "getSystemWindowInsetRight");
+                *bottom = android_method_int(env, insets, insetsClass, "getSystemWindowInsetBottom");
+                *left = android_method_int(env, insets, insetsClass, "getSystemWindowInsetLeft");
             }
         }
     }
