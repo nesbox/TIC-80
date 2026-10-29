@@ -1125,13 +1125,6 @@ jobs:
         with:
           ruby-version: 2.6
 
-      - uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: r30
-          add-to-path: false
-          local-cache: true
-
       - name: set up JDK 17
         uses: actions/setup-java@v5
         with:
@@ -1140,7 +1133,7 @@ jobs:
 
       - uses: android-actions/setup-android@v3
         with:
-          packages: "build-tools;35.0.0 platforms;android-31"
+          packages: "build-tools;35.0.0 platforms;android-31 ndk;30.0.16248370"
 
       - name: Install ccache
         run: command -v ccache >/dev/null || { sudo apt-get update && sudo apt-get install -y ccache; }
@@ -1154,10 +1147,11 @@ jobs:
 
       - name: Build
         env:
-          ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
+          export ANDROID_NDK="$ANDROID_HOME/ndk/30.0.16248370"
+
           if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
               export UNSIGNED=1
               echo "fork pull request: no repository secrets, the APKs are unsigned"
