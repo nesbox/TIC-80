@@ -855,7 +855,9 @@ static MenuBarItem MenubarOptions[] =
 #if defined(CRT_SHADER_SUPPORT)
         MENU_TOGGLE("CRT MONITOR", "F6", menubarOption, OptionCrt),
 #endif
+#if !defined(__ANDROID__)
         MENU_TOGGLE("FULLSCREEN", "F11", menubarOption, OptionFullscreen),
+#endif
         MENU_TOGGLE("INTEGER SCALE", NULL, menubarOption, OptionIntegerScale),
         MENU_TOGGLE("AUTOHIDE MENU", NULL, menubarOption, OptionAutohide),
         MENU_TOGGLE("COMPACT BAR", NULL, menubarOption, OptionCompact),

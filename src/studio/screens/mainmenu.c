@@ -91,6 +91,10 @@ bool studio_mainmenu_keyboard(StudioMainMenu* main)
     return false;
 }
 
+static const char OffValue[] = "OFF";
+static const char OnValue[] = "ON";
+
+#if !defined(__ANDROID__)
 static s32 optionFullscreenGet(void* data)
 {
     (void)data;
@@ -103,15 +107,14 @@ static void optionFullscreenSet(void* data, s32 pos)
     tic_sys_fullscreen_set(main->options->fullscreen = (pos == 1));
 }
 
-static const char OffValue[] = "OFF";
-static const char OnValue[] = "ON";
-
 static MenuOption FullscreenOption =
     {
         OPTION_VALUES({OffValue, OnValue}),
         optionFullscreenGet,
         optionFullscreenSet,
 };
+
+#endif
 
 static s32 optionIntegerScaleGet(void* data)
 {
@@ -255,7 +258,9 @@ enum
 #if !defined(VSYNC_ALWAYS_ON)
     OptionsMenu_VSyncOption,
 #endif
+#if !defined(__ANDROID__)
     OptionsMenu_FullscreenOption,
+#endif
     OptionsMenu_IntegerScaleOption,
 #if defined(BUILD_RENDER_CACHE)
     OptionsMenu_DrawCacheOption,
@@ -274,7 +279,9 @@ static const MenuItem OptionMenu[] =
 #if !defined(VSYNC_ALWAYS_ON)
         {.label = "VSYNC", .option = &VSyncOption, .help = "VSYNC needs restart!"},
 #endif
+#if !defined(__ANDROID__)
         {.label = "FULLSCREEN", .option = &FullscreenOption},
+#endif
         {.label = "INTEGER SCALE", .option = &IntegerScaleOption},
 #if defined(BUILD_RENDER_CACHE)
         {.label = "DRAW CACHE", .option = &DrawCacheOption, .help = "Cache draw calls for CPU saving"},
@@ -343,13 +350,14 @@ static void initGameMenu(StudioMainMenu* main)
             MenuItem* items = NULL;
             s32 count = 0;
 
-            char* label = strtok(menu, " ");
+            char* save = NULL;
+            char* label = tic_strtok_r(menu, " ", &save);
             while(label)
             {
                 items = realloc(items, sizeof(MenuItem) * ++count);
                 items[count - 1] = (MenuItem){.label = strdup(label), .handler = gameMenuHandler};
 
-                label = strtok(NULL, " ");
+                label = tic_strtok_r(NULL, " ", &save);
             }
 
             count += 2;
