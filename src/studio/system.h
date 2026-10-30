@@ -78,18 +78,6 @@ extern "C"
     void* tic_sys_java_vm(void);
 #endif
 
-    // clang-format off
-#define CODE_COLORS_LIST(macro) \
-    macro(BG)       \
-    macro(FG)       \
-    macro(STRING)   \
-    macro(NUMBER)   \
-    macro(KEYWORD)  \
-    macro(API)      \
-    macro(COMMENT)  \
-    macro(SIGN)
-    // clang-format on
-
     enum KeybindMode
     {
         KEYBIND_STANDARD,

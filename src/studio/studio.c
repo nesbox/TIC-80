@@ -2670,17 +2670,17 @@ static void doCodeExport(Studio* studio)
         sprintf(pos, "-- pos: %i,%i\n", x, y);
     }
 
-    if(strcmp(studio->bytebattle.last.postag, pos) || strcmp(studio->bytebattle.last.code.data, studio->code->src))
+    if(strcmp(studio->bytebattle.last.postag, pos) || strcmp(studio->bytebattle.last.code.data, studio->code->text.src))
     {
         FILE* file = fopen(studio->bytebattle.exp, "wb");
 
         if(file)
         {
             strcpy(studio->bytebattle.last.postag, pos);
-            strcpy(studio->bytebattle.last.code.data, studio->code->src);
+            strcpy(studio->bytebattle.last.code.data, studio->code->text.src);
 
             fwrite(pos, 1, strlen(pos), file);
-            fwrite(studio->code->src, 1, strlen(studio->code->src), file);
+            fwrite(studio->code->text.src, 1, strlen(studio->code->text.src), file);
             fclose(file);
         }
     }
@@ -2719,7 +2719,7 @@ static void doCodeImport(Studio* studio)
                     s32 y = atoi(sep + 1);
 
                     s32 offset = (s32)(end - code.data + 1);
-                    memcpy(studio->code->src, code.data + offset, sizeof(tic_code) - offset);
+                    memcpy(studio->code->text.src, code.data + offset, sizeof(tic_code) - offset);
                     if(x == 0 && y == 0)
                     {
                         if(studio->mode != TIC_RUN_MODE)

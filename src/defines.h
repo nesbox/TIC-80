@@ -44,6 +44,21 @@
 #define DEF2STR(x)   DEF2STR2(x)
 #define STRLEN(str)  (sizeof str - 1)
 
+// The syntax colours, in the order the state stores them and the theme reads
+// them; the code editor's text model and the config's theme both use this one
+// list.
+// clang-format off
+#define CODE_COLORS_LIST(macro) \
+    macro(BG)       \
+    macro(FG)       \
+    macro(STRING)   \
+    macro(NUMBER)   \
+    macro(KEYWORD)  \
+    macro(API)      \
+    macro(COMMENT)  \
+    macro(SIGN)
+// clang-format on
+
 // strtok keeps its state in the libc, and bionic deprecates it for that;
 // Windows spells the re-entrant one strtok_s.
 #if defined(_MSC_VER)
