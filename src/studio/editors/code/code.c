@@ -24,6 +24,12 @@
 #include "find.h"
 #include "vi.h"
 #include "studio/ui.h"
+#include "studio/icons.h"
+#include "studio/system.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include <ctype.h>
 #include <math.h>
@@ -38,7 +44,7 @@
 
 static s32 getCodeHeight(const Code* code)
 {
-    return TIC80_HEIGHT - getStudioEditorTop(code->studio) - (code->showStatusbar ? STUDIO_TEXT_HEIGHT : 0);
+    return TIC80_HEIGHT - code->view->editorTop - (code->showStatusbar ? STUDIO_TEXT_HEIGHT : 0);
 }
 
 static s32 getCodeTextHeight(const Code* code)
@@ -46,6 +52,49 @@ static s32 getCodeTextHeight(const Code* code)
     return getCodeHeight(code) / STUDIO_TEXT_HEIGHT;
 }
 #define SIDEBAR_WIDTH (12 * TIC_FONT_WIDTH)
+
+static bool keyPressed(Code* code, tic_key key)
+{
+    if(key == tic_key_escape && code->view->frame.escaped)
+        return false;
+
+    return keyboard_pressed(code->tic, key);
+}
+
+static bool enterPressed(Code* code)
+{
+    return keyboard_enter(code->tic, KEYBOARD_HOLD, KEYBOARD_PERIOD);
+}
+
+static char keyboardText(Code* code)
+{
+    return code->view->frame.captured ? '\0' : keyboard_text(code->tic);
+}
+
+static bool mousePos(Code* code, const tic_rect* rect)
+{
+    return !code->view->frame.pointerOwned && mouse_over(code->tic, rect);
+}
+
+static bool mouseClicked(Code* code, const tic_rect* rect, tic_mouse_btn button)
+{
+    return mouse_click(&code->deps.mouse[button], rect);
+}
+
+static bool mouseDblClicked(Code* code, const tic_rect* rect, tic_mouse_btn button)
+{
+    return mouse_dblclick(&code->deps.mouse[button], rect);
+}
+
+static bool mouseDown(Code* code, const tic_rect* rect, tic_mouse_btn button)
+{
+    return mouse_down(&code->deps.mouse[button], rect);
+}
+
+static bool viModeIs(Code* code, ViMode mode)
+{
+    return code->view->options.vi && code->deps.getViMode(code->deps.host) == mode;
+}
 
 #if defined(TIC80_PRO)
 // The terminator needs a byte of the same array.
@@ -63,7 +112,7 @@ static s32 getCodeTextHeight(const Code* code)
 //(this occurs when there are no undo's or redo's left to apply)
 tic_color getCodeColor(Code* code)
 {
-    Bytebattle* bb = getBytebattle(code->studio);
+    const CodeBattle* bb = code->view->battle;
 
     if(bb)
     {
@@ -121,7 +170,7 @@ static void drawStatus(Code* code)
         StatusY = TIC80_HEIGHT - TIC_FONT_HEIGHT
     };
 
-    Bytebattle* bb = getBytebattle(code->studio);
+    const CodeBattle* bb = code->view->battle;
 
     if(bb)
     {
@@ -135,7 +184,7 @@ static void drawStatus(Code* code)
             sprintf(buf, "%02i:%02i", sec / 60, sec % 60);
 
             tic_api_print(code->tic, buf, (TIC80_WIDTH - sizeof "00:00" * TIC_FONT_WIDTH) / 2,
-                          StatusY, getConfig(code->studio)->theme.code.BG, true, 1, false);
+                          StatusY, code->view->theme.BG, true, 1, false);
         }
     }
     else
@@ -143,9 +192,9 @@ static void drawStatus(Code* code)
         tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, code->status.color);
     }
 
-    tic_api_print(code->tic, code->status.line, 0, StatusY, getConfig(code->studio)->theme.code.BG, true, 1, false);
+    tic_api_print(code->tic, code->status.line, 0, StatusY, code->view->theme.BG, true, 1, false);
     tic_api_print(code->tic, code->status.size, TIC80_WIDTH - (s32)strlen(code->status.size) * TIC_FONT_WIDTH,
-                  StatusY, getConfig(code->studio)->theme.code.BG, true, 1, false);
+                  StatusY, code->view->theme.BG, true, 1, false);
 }
 
 static void drawGutter(Code* code)
@@ -156,22 +205,22 @@ static void drawGutter(Code* code)
     tic_mem* tic = code->tic;
     const s32 gutterWidth = getGutterWidth(code);
     const s32 gutterHeight = getCodeHeight(code);
-    tic_rect rect = {0, getStudioEditorTop(code->studio), gutterWidth, gutterHeight};
+    tic_rect rect = {0, code->view->editorTop, gutterWidth, gutterHeight};
     s32 mouseOverLine = -1;
 
     // draw the background rectangle
     tic_api_rect(code->tic, rect.x, rect.y, rect.w, rect.h, tic_color_grey);
 
     // then if the mouse is hovering over the gutter...
-    if(checkMousePos(code->studio, &rect))
+    if(mousePos(code, &rect))
     {
         // draw a bookmark preview
-        setCursor(code->studio, tic_cursor_hand);
-        showTooltip(code->studio, "BOOKMARK [ctrl+f1]");
+        ui_cursor(code->tic, tic_cursor_hand);
+        code->deps.tooltip(code->deps.host, "BOOKMARK [ctrl+f1]");
         s32 line = mouseOverLine = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
-        drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
+        ui_icon(code->tic, code->deps.tiles, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
         // and toggle the bookmark if we clicked it
-        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
+        if(mouseClicked(code, &rect, tic_mouse_left))
             toggleBookmark(&code->text, getPosByLine(code->text.src, line + code->scroll.y));
     }
 
@@ -196,8 +245,8 @@ static void drawGutter(Code* code)
     {
         if(syntaxPointer++->bookmark)
         {
-            drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_black);
-            drawBitIcon(code->studio, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT - 1, tic_color_yellow);
+            ui_icon(code->tic, code->deps.tiles, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_black);
+            ui_icon(code->tic, code->deps.tiles, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT - 1, tic_color_yellow);
             somethingDrawn = true;
         }
         else if(!somethingDrawn && code->lineNumbers && y != mouseOverLine)
@@ -242,28 +291,28 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 {
     bool inverse = code->cursor.delay || code->tickCounter % TEXT_CURSOR_BLINK_PERIOD < TEXT_CURSOR_BLINK_PERIOD / 2;
 
-    if(checkStudioViMode(code->studio, VI_NORMAL))
+    if(viModeIs(code, VI_NORMAL))
         inverse = true;
 
     if(inverse)
     {
-        bool alt = getConfig(code->studio)->theme.code.altCaret;
+        bool alt = code->view->theme.altCaret;
         s32 width = alt ? (code->altFont ? 1 : 2) : getFontWidth(code) + 1;
 
         if(code->shadowText)
             tic_api_rect(code->tic, x, y, width, TIC_FONT_HEIGHT + 1, 0);
 
-        tic_api_rect(code->tic, x - 1, y - 1, width, TIC_FONT_HEIGHT + 1, getConfig(code->studio)->theme.code.cursor);
+        tic_api_rect(code->tic, x - 1, y - 1, width, TIC_FONT_HEIGHT + 1, code->view->theme.cursor);
 
         if(symbol && !alt)
-            drawChar(code->tic, symbol, x, y, getConfig(code->studio)->theme.code.BG, code->altFont);
+            drawChar(code->tic, symbol, x, y, code->view->theme.BG, code->altFont);
     }
 }
 
 static void drawMatchedDelim(Code* code, s32 x, s32 y, char symbol, u8 color)
 {
     tic_api_rectb(code->tic, x - 1, y - 1, (getFontWidth(code)) + 1, TIC_FONT_HEIGHT + 1,
-                  getConfig(code->studio)->theme.code.cursor);
+                  code->view->theme.cursor);
     drawChar(code->tic, symbol, x, y, color, code->altFont);
 }
 
@@ -271,16 +320,16 @@ static void drawCode(Code* code, bool withCursor)
 {
     s32 gutterWidth, codeWidth;
     getWidths(code, &gutterWidth, &codeWidth);
-    tic_rect rect = {gutterWidth, getStudioEditorTop(code->studio), codeWidth, getCodeHeight(code)};
+    tic_rect rect = {gutterWidth, code->view->editorTop, codeWidth, getCodeHeight(code)};
 
     s32 xStart = rect.x - code->scroll.x * getFontWidth(code);
     s32 x = xStart;
     s32 y = rect.y;
     const char* pointer = code->text.src;
 
-    u8 selectColor = getConfig(code->studio)->theme.code.select;
+    u8 selectColor = code->view->theme.select;
 
-    const u8* colors = (const u8*)&getConfig(code->studio)->theme.code;
+    const u8* colors = (const u8*)&code->view->theme;
     const CodeState* syntaxPointer = code->text.state;
 
     // Skip lines above the viewport
@@ -475,7 +524,7 @@ static void updateEditor(Code* code)
     s32 column = 0;
     s32 line = 0;
     getCursorPosition(code, &column, &line);
-    if(getConfig(code->studio)->theme.code.matchDelimiters)
+    if(code->view->options.matchDelimiters)
         code->matchedDelim = findMatchedDelim(&code->text, code->text.cursor.position);
 
     const s32 BufferWidth = getCodeEditorWidth(code) / getFontWidth(code);
@@ -596,11 +645,6 @@ static void halfPageDown(Code* code)
     getCursorPosition(code, &column, &line);
     s32 lines = getLinesCount(&code->text);
     setCursorPosition(code, column, line < lines - half ? line + half : lines);
-}
-
-static inline enum KeybindMode getKeybindMode(Code* code)
-{
-    return getConfig(code->studio)->options.keybindMode;
 }
 
 static void deleteChar(Code* code)
@@ -772,16 +816,22 @@ static void copyFromClipboard(Code* code, bool killSelection)
 
 static void updateTextOptions(Code* code)
 {
-    const struct StudioOptions* options = &getConfig(code->studio)->options;
-    const tic_script* script = tic_get_script(code->tic);
+    const CodeOptions* options = &code->view->options;
+    const struct tic_script* script = options->script;
+    const bool scriptChanged = code->text.options.script != script;
 
     code->text.options = (TextOptions){
         .script = script,
         .tabSize = options->tabSize,
-        .spacesForTab = options->tabMode == TAB_SPACE || (options->tabMode == TAB_AUTO && (script->id == 20 || script->id == 13)),
-        .structuredEdit = script->useStructuredEdition && options->keybindMode == KEYBIND_EMACS,
-        .autoDelimiters = getConfig(code->studio)->theme.code.autoDelimiters,
+        .spacesForTab = options->spacesForTab,
+        .structuredEdit = options->structuredEdit,
+        .autoDelimiters = options->autoDelimiters,
     };
+
+    // The language changed, or the first real view replaced the placeholder:
+    // re-colour the text; the edits parse on their own.
+    if(scriptChanged)
+        parseSyntaxColor(&code->text);
 }
 
 // A vi insert session keeps its edits out of the history until it ends.
@@ -789,7 +839,7 @@ static bool textHistoryEnabled(void* host)
 {
     Code* code = host;
 
-    return !checkStudioViMode(code->studio, VI_INSERT);
+    return !viModeIs(code, VI_INSERT);
 }
 
 static void update(Code* code)
@@ -1102,14 +1152,14 @@ static ViMode viGetViMode(void* host)
 {
     Code* code = host;
 
-    return getStudioViMode(code->studio);
+    return code->deps.getViMode(code->deps.host);
 }
 
 static void viSetViMode(void* host, ViMode mode)
 {
     Code* code = host;
 
-    setStudioViMode(code->studio, mode);
+    code->deps.setViMode(code->deps.host, mode);
 }
 
 static void viSetEditorMode(void* host, CodeViEdit mode)
@@ -1165,21 +1215,21 @@ static void viRunGame(void* host)
 {
     Code* code = host;
 
-    runGame(code->studio, RUN_FROM_STUDIO);
+    code->deps.runGame(code->deps.host);
 }
 
 static void viSaveProject(void* host)
 {
     Code* code = host;
 
-    saveProject(code->studio);
+    code->deps.saveProject(code->deps.host);
 }
 
 static void viViewToggle(void* host, bool font)
 {
     Code* code = host;
 
-    studioCodeViewToggle(code->studio, font ? CodeViewFont : CodeViewShadow);
+    code->deps.viewToggle(code->deps.host, font ? CODE_VIEW_FONT : CODE_VIEW_SHADOW);
 }
 
 static void viClipboard(void* host, CodeViClipboard op)
@@ -1205,17 +1255,17 @@ static void processKeyboard(Code* code)
 {
     tic_mem* tic = code->tic;
 
-    enum KeybindMode keymode = getKeybindMode(code);
+    const bool emacsMode = code->view->options.emacs;
 
-    if(keymode == KEYBIND_VI)
+    if(code->view->options.vi)
     {
         CodeViHost vi =
             {
                 .host = code,
                 .tic = code->tic,
-                .captured = studio_keys_captured(code->studio),
-                .escaped = studio_keys_escaped(code->studio),
-                .clipboardEvent = getClipboardEvent(code->studio),
+                .captured = code->view->frame.captured,
+                .escaped = code->view->frame.escaped,
+                .clipboardEvent = code->view->frame.clipboard,
                 .search = code->popup.text,
                 .searchSize = sizeof code->popup.text,
 
@@ -1237,12 +1287,10 @@ static void processKeyboard(Code* code)
         return;
     }
 
-    const bool emacsMode = keymode == KEYBIND_EMACS;
-
     if(!emacsMode)
     {
         bool usedClipboard = true;
-        switch(getClipboardEvent(code->studio))
+        switch(code->view->frame.clipboard)
         {
             case TIC_CLIPBOARD_CUT: cutToClipboard(code, false); break;
             case TIC_CLIPBOARD_COPY: copyToClipboard(code, false); break;
@@ -1263,14 +1311,14 @@ static void processKeyboard(Code* code)
 
     bool changedSelection = false;
     // clang-format off
-    if(keyWasPressed(code->studio, tic_key_up)
-        || keyWasPressed(code->studio, tic_key_down)
-        || keyWasPressed(code->studio, tic_key_left)
-        || keyWasPressed(code->studio, tic_key_right)
-        || keyWasPressed(code->studio, tic_key_home)
-        || keyWasPressed(code->studio, tic_key_end)
-        || keyWasPressed(code->studio, tic_key_pageup)
-        || keyWasPressed(code->studio, tic_key_pagedown))
+    if(keyPressed(code, tic_key_up)
+        || keyPressed(code, tic_key_down)
+        || keyPressed(code, tic_key_left)
+        || keyPressed(code, tic_key_right)
+        || keyPressed(code, tic_key_home)
+        || keyPressed(code, tic_key_end)
+        || keyPressed(code, tic_key_pageup)
+        || keyPressed(code, tic_key_pagedown))
     // clang-format on
     {
         changedSelection = true;
@@ -1286,14 +1334,14 @@ static void processKeyboard(Code* code)
     // The Alt branch reads the text even when no binding uses it.
     char text = '\0';
 
-    if(hasJustSwitchedToCodeMode(code->studio))
+    if(code->justSwitched)
     {
-        setJustSwitchedToCodeMode(code->studio, false);
+        code->justSwitched = false;
         return; // Skip processing other inputs for this frame
     }
 
     // handle bookmarks
-    if(keyWasPressed(code->studio, tic_key_f1))
+    if(keyPressed(code, tic_key_f1))
     {
         if(ctrl && shift)
         {
@@ -1321,53 +1369,53 @@ static void processKeyboard(Code* code)
         if(ctrl)
         {
             ctrlHandled = true;
-            if(keyWasPressed(code->studio, tic_key_tab))
+            if(keyPressed(code, tic_key_tab))
                 doTab(code, shift, ctrl);
-            else if(keyWasPressed(code->studio, tic_key_a))
+            else if(keyPressed(code, tic_key_a))
                 emacsMode ? startLine(&code->text) : selectAll(&code->text);
-            else if(keyWasPressed(code->studio, tic_key_z))
+            else if(keyPressed(code, tic_key_z))
                 undo(code);
-            else if(keyWasPressed(code->studio, tic_key_y))
+            else if(keyPressed(code, tic_key_y))
                 emacsMode ? copyFromClipboard(code, true) : redo(code);
-            else if(keyWasPressed(code->studio, tic_key_w))
+            else if(keyPressed(code, tic_key_w))
                 emacsMode ? cutToClipboard(code, true) : noop;
-            else if(keyWasPressed(code->studio, tic_key_f))
+            else if(keyPressed(code, tic_key_f))
                 emacsMode ? rightColumn(&code->text) : setCodeMode(code, TEXT_FIND_MODE);
-            else if(keyWasPressed(code->studio, tic_key_g))
+            else if(keyPressed(code, tic_key_g))
                 emacsMode ? killSelection(&code->text) : setCodeMode(code, TEXT_GOTO_MODE);
-            else if(keyWasPressed(code->studio, tic_key_b))
+            else if(keyPressed(code, tic_key_b))
                 emacsMode ? leftColumn(&code->text) : setCodeMode(code, TEXT_BOOKMARK_MODE);
-            else if(keyWasPressed(code->studio, tic_key_o))
+            else if(keyPressed(code, tic_key_o))
                 setCodeMode(code, TEXT_OUTLINE_MODE);
-            else if(keyWasPressed(code->studio, tic_key_n))
+            else if(keyPressed(code, tic_key_n))
                 downLine(&code->text);
-            else if(keyWasPressed(code->studio, tic_key_p))
+            else if(keyPressed(code, tic_key_p))
                 upLine(&code->text);
-            else if(keyWasPressed(code->studio, tic_key_e))
+            else if(keyPressed(code, tic_key_e))
                 endLine(&code->text);
-            else if(keyWasPressed(code->studio, tic_key_d))
+            else if(keyPressed(code, tic_key_d))
                 emacsMode ? deleteChar(code) : dupLine(code);
-            else if(keyWasPressed(code->studio, tic_key_j))
+            else if(keyPressed(code, tic_key_j))
                 newLine(code);
-            else if(keyWasPressed(code->studio, tic_key_slash))
+            else if(keyPressed(code, tic_key_slash))
                 emacsMode ? undo(code) : commentLine(&code->text);
-            else if(keyWasPressed(code->studio, tic_key_home))
+            else if(keyPressed(code, tic_key_home))
                 goCodeHome(&code->text);
-            else if(keyWasPressed(code->studio, tic_key_end))
+            else if(keyPressed(code, tic_key_end))
                 goCodeEnd(&code->text);
-            else if(keyWasPressed(code->studio, tic_key_up))
+            else if(keyPressed(code, tic_key_up))
                 extirpSExp(code);
-            else if(keyWasPressed(code->studio, tic_key_down))
+            else if(keyPressed(code, tic_key_down))
                 sexpify(code);
-            else if(keyWasPressed(code->studio, tic_key_k))
+            else if(keyPressed(code, tic_key_k))
                 deleteLine(code);
-            else if(keyWasPressed(code->studio, tic_key_space))
+            else if(keyPressed(code, tic_key_space))
                 emacsMode ? toggleMark(code) : noop;
-            else if(keyWasPressed(code->studio, tic_key_l))
+            else if(keyPressed(code, tic_key_l))
                 recenterScroll(code, emacsMode);
-            else if(keyWasPressed(code->studio, tic_key_v))
+            else if(keyPressed(code, tic_key_v))
                 emacsMode ? pageDown(code) : noop;
-            else if(shift && keyWasPressed(code->studio, tic_key_minus))
+            else if(shift && keyPressed(code, tic_key_minus))
                 emacsMode ? undo(code) : noop;
             else
                 ctrlHandled = false;
@@ -1376,30 +1424,30 @@ static void processKeyboard(Code* code)
         bool altHandled = false;
         if(alt)
         {
-            text = getKeyboardText(code->studio);
+            text = keyboardText(code);
             char sym = text;
             altHandled = true;
-            if(keyWasPressed(code->studio, tic_key_p))
+            if(keyPressed(code, tic_key_p))
                 pageUp(code);
-            else if(keyWasPressed(code->studio, tic_key_n))
+            else if(keyPressed(code, tic_key_n))
                 pageDown(code);
-            else if(keyWasPressed(code->studio, tic_key_v))
+            else if(keyPressed(code, tic_key_v))
                 emacsMode ? pageUp(code) : noop;
-            else if(keyWasPressed(code->studio, tic_key_b))
+            else if(keyPressed(code, tic_key_b))
                 leftWord(&code->text);
-            else if(keyWasPressed(code->studio, tic_key_f))
+            else if(keyPressed(code, tic_key_f))
                 rightWord(&code->text);
-            else if(keyWasPressed(code->studio, tic_key_k))
+            else if(keyPressed(code, tic_key_k))
                 emacsMode ? dupLine(code) : noop;
-            else if(keyWasPressed(code->studio, tic_key_d))
+            else if(keyPressed(code, tic_key_d))
                 emacsMode ? text_delete_word(&code->text) : noop;
-            else if(keyWasPressed(code->studio, tic_key_r))
+            else if(keyPressed(code, tic_key_r))
                 emacsMode ? extirpSExp(code) : noop;
-            else if(keyWasPressed(code->studio, tic_key_w))
+            else if(keyPressed(code, tic_key_w))
                 emacsMode ? copyToClipboard(code, true) : noop;
-            else if(keyWasPressed(code->studio, tic_key_g))
+            else if(keyPressed(code, tic_key_g))
                 emacsMode ? setCodeMode(code, TEXT_GOTO_MODE) : noop;
-            else if(keyWasPressed(code->studio, tic_key_s))
+            else if(keyPressed(code, tic_key_s))
                 emacsMode ? setCodeMode(code, TEXT_FIND_MODE) : noop;
             else if(shift && sym && sym == '<')
                 emacsMode ? goCodeHome(&code->text) : noop;
@@ -1407,24 +1455,24 @@ static void processKeyboard(Code* code)
                 emacsMode ? goCodeEnd(&code->text) : noop;
             else if(shift && sym && sym == '(')
                 emacsMode ? sexpify(code) : noop;
-            else if(keyWasPressed(code->studio, tic_key_slash))
+            else if(keyPressed(code, tic_key_slash))
                 emacsMode ? redo(code) : noop;
-            else if(keyWasPressed(code->studio, tic_key_semicolon))
+            else if(keyPressed(code, tic_key_semicolon))
                 emacsMode ? commentLine(&code->text) : noop;
-            else if(keyWasPressed(code->studio, tic_key_l) && !ctrl)
-                studioCodeViewToggle(code->studio, CodeViewLineNumbers);
+            else if(keyPressed(code, tic_key_l) && !ctrl)
+                code->deps.viewToggle(code->deps.host, CODE_VIEW_LINE_NUMBERS);
             else
                 altHandled = false;
         }
 
         bool ctrlAltHandled = true;
-        if(keyWasPressed(code->studio, tic_key_left))
+        if(keyPressed(code, tic_key_left))
             leftWord(&code->text);
-        else if(keyWasPressed(code->studio, tic_key_right))
+        else if(keyPressed(code, tic_key_right))
             rightWord(&code->text);
-        else if(keyWasPressed(code->studio, tic_key_delete))
+        else if(keyPressed(code, tic_key_delete))
             text_delete_word(&code->text);
-        else if(keyWasPressed(code->studio, tic_key_backspace))
+        else if(keyPressed(code, tic_key_backspace))
             text_backspace_word(&code->text);
         else
             ctrlAltHandled = false;
@@ -1433,29 +1481,29 @@ static void processKeyboard(Code* code)
     }
     else
     {
-        if(keyWasPressed(code->studio, tic_key_up))
+        if(keyPressed(code, tic_key_up))
             upLine(&code->text);
-        else if(keyWasPressed(code->studio, tic_key_down))
+        else if(keyPressed(code, tic_key_down))
             downLine(&code->text);
-        else if(keyWasPressed(code->studio, tic_key_left))
+        else if(keyPressed(code, tic_key_left))
             leftColumn(&code->text);
-        else if(keyWasPressed(code->studio, tic_key_right))
+        else if(keyPressed(code, tic_key_right))
             rightColumn(&code->text);
-        else if(keyWasPressed(code->studio, tic_key_home))
+        else if(keyPressed(code, tic_key_home))
             goHome(&code->text);
-        else if(keyWasPressed(code->studio, tic_key_end))
+        else if(keyPressed(code, tic_key_end))
             goEnd(&code->text);
-        else if(keyWasPressed(code->studio, tic_key_pageup))
+        else if(keyPressed(code, tic_key_pageup))
             pageUp(code);
-        else if(keyWasPressed(code->studio, tic_key_pagedown))
+        else if(keyPressed(code, tic_key_pagedown))
             pageDown(code);
-        else if(keyWasPressed(code->studio, tic_key_delete))
+        else if(keyPressed(code, tic_key_delete))
             deleteChar(code);
-        else if(keyWasPressed(code->studio, tic_key_backspace))
+        else if(keyPressed(code, tic_key_backspace))
             backspaceChar(code);
-        else if(enterWasPressed(code->studio))
+        else if(enterPressed(code))
             newLine(code);
-        else if(keyWasPressed(code->studio, tic_key_tab))
+        else if(keyPressed(code, tic_key_tab))
             doTab(code, shift, ctrl);
         else
             usedKeybinding = false;
@@ -1463,7 +1511,7 @@ static void processKeyboard(Code* code)
 
     if(!usedKeybinding)
     {
-        if(shift && enterWasPressed(code->studio))
+        if(shift && enterPressed(code))
         {
             newLineAutoClose(code);
             usedKeybinding = true;
@@ -1474,7 +1522,7 @@ static void processKeyboard(Code* code)
         updateEditor(code);
     else
     {
-        char sym = text ? text : getKeyboardText(code->studio);
+        char sym = text ? text : keyboardText(code);
         if(sym)
         {
             inputSymbol(&code->text, sym);
@@ -1488,12 +1536,12 @@ static void processMouse(Code* code)
     tic_mem* tic = code->tic;
     s32 gutterWidth, codeWidth;
     getWidths(code, &gutterWidth, &codeWidth);
-    tic_rect rect = {gutterWidth, getStudioEditorTop(code->studio), codeWidth, getCodeHeight(code)};
+    tic_rect rect = {gutterWidth, code->view->editorTop, codeWidth, getCodeHeight(code)};
 
-    if(checkMousePos(code->studio, &rect))
+    if(mousePos(code, &rect))
     {
-        bool useDrag = checkMouseDown(code->studio, &rect, tic_mouse_right);
-        setCursor(code->studio, useDrag ? tic_cursor_hand : tic_cursor_ibeam);
+        bool useDrag = mouseDown(code, &rect, tic_mouse_right);
+        ui_cursor(code->tic, useDrag ? tic_cursor_hand : tic_cursor_ibeam);
 
         if(code->scroll.active)
         {
@@ -1518,12 +1566,12 @@ static void processMouse(Code* code)
             }
             else
             {
-                if(checkMouseDblClick(code->studio, &rect, tic_mouse_left))
+                if(mouseDblClicked(code, &rect, tic_mouse_left))
                 {
                     code->text.cursor.selection = leftWordPos(&code->text);
                     code->text.cursor.position = rightWordPos(&code->text);
                 }
-                else if(checkMouseDown(code->studio, &rect, tic_mouse_left))
+                else if(mouseDown(code, &rect, tic_mouse_left))
                 {
                     s32 mx = tic_api_mouse(tic).x;
                     s32 my = tic_api_mouse(tic).y;
@@ -1588,7 +1636,7 @@ static void textEditTick(Code* code)
     processKeyboard(code);
     processMouse(code);
 
-    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
+    tic_api_cls(code->tic, code->view->theme.BG);
 
     drawCode(code, true);
     drawStatus(code);
@@ -1599,7 +1647,7 @@ static void drawPopupBar(Code* code, const char* title)
     s32 pos = code->anim.pos;
     const s32 TextX = getGutterWidth(code);
 
-    const s32 bar = getStudioEditorTop(code->studio);
+    const s32 bar = code->view->editorTop;
     tic_api_rect(code->tic, 0, bar + pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, tic_color_grey);
 
     s32 textY = (bar + 1) + pos;
@@ -1632,13 +1680,13 @@ static void updateFindCode(Code* code, const char* pos)
 
 static void textFindTick(Code* code)
 {
-    if(enterWasPressed(code->studio))
+    if(enterPressed(code))
         setCodeMode(code, TEXT_EDIT_MODE);
-    else if(keyWasPressed(code->studio, tic_key_up) || keyWasPressed(code->studio, tic_key_down) || keyWasPressed(code->studio, tic_key_left) || keyWasPressed(code->studio, tic_key_right))
+    else if(keyPressed(code, tic_key_up) || keyPressed(code, tic_key_down) || keyPressed(code, tic_key_left) || keyPressed(code, tic_key_right))
     {
         if(*code->popup.text)
         {
-            bool reverse = keyWasPressed(code->studio, tic_key_up) || keyWasPressed(code->studio, tic_key_left);
+            bool reverse = keyPressed(code, tic_key_up) || keyPressed(code, tic_key_left);
             const char* (*func)(const char*, const char*, const char*) = reverse ? code_search_up : code_search_down;
             char* from = reverse ? MIN(code->text.cursor.position, code->text.cursor.selection) : MAX(code->text.cursor.position, code->text.cursor.selection);
             const char* pos = func(code->text.src, from, code->popup.text);
@@ -1655,7 +1703,7 @@ static void textFindTick(Code* code)
             updateFindCode(code, pos);
         }
     }
-    else if(keyWasPressed(code->studio, tic_key_backspace))
+    else if(keyPressed(code, tic_key_backspace))
     {
         if(*code->popup.text)
         {
@@ -1664,7 +1712,7 @@ static void textFindTick(Code* code)
         }
     }
 
-    char sym = getKeyboardText(code->studio);
+    char sym = keyboardText(code);
     if(sym)
     {
         if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
@@ -1684,7 +1732,7 @@ static void textFindTick(Code* code)
         }
     }
 
-    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
+    tic_api_cls(code->tic, code->view->theme.BG);
 
     drawCode(code, false);
     drawPopupBar(code, "FIND:");
@@ -1694,7 +1742,7 @@ static void textFindTick(Code* code)
 static void textReplaceTick(Code* code)
 {
 
-    if(enterWasPressed(code->studio))
+    if(enterPressed(code))
     {
         if(*code->popup.text && code->popup.offset == NULL) //still in "find" mode
         {
@@ -1735,7 +1783,7 @@ static void textReplaceTick(Code* code)
         }
     }
 
-    else if(keyWasPressed(code->studio, tic_key_backspace))
+    else if(keyPressed(code, tic_key_backspace))
     {
         if(*code->popup.text && code->popup.offset == NULL)
         {
@@ -1748,7 +1796,7 @@ static void textReplaceTick(Code* code)
         }
     }
 
-    char sym = getKeyboardText(code->studio);
+    char sym = keyboardText(code);
     if(sym)
     {
         if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
@@ -1758,7 +1806,7 @@ static void textReplaceTick(Code* code)
         }
     }
 
-    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
+    tic_api_cls(code->tic, code->view->theme.BG);
 
     drawCode(code, false);
     drawPopupBar(code, "REPL:");
@@ -1785,14 +1833,14 @@ static void textGoToTick(Code* code)
 {
     tic_mem* tic = code->tic;
 
-    if(enterWasPressed(code->studio))
+    if(enterPressed(code))
     {
         if(*code->popup.text)
             updateGotoCode(code);
 
         setCodeMode(code, TEXT_EDIT_MODE);
     }
-    else if(keyWasPressed(code->studio, tic_key_backspace))
+    else if(keyPressed(code, tic_key_backspace))
     {
         if(*code->popup.text)
         {
@@ -1801,7 +1849,7 @@ static void textGoToTick(Code* code)
         }
     }
 
-    char sym = getKeyboardText(code->studio);
+    char sym = keyboardText(code);
 
     if(sym)
     {
@@ -1813,11 +1861,11 @@ static void textGoToTick(Code* code)
         }
     }
 
-    tic_api_cls(tic, getConfig(code->studio)->theme.code.BG);
+    tic_api_cls(tic, code->view->theme.BG);
 
     if(code->jump.line >= 0)
-        tic_api_rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT + 1) + getStudioEditorTop(code->studio),
-                     TIC80_WIDTH, TIC_FONT_HEIGHT + 2, getConfig(code->studio)->theme.code.select);
+        tic_api_rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT + 1) + code->view->editorTop,
+                     TIC80_WIDTH, TIC_FONT_HEIGHT + 2, code->view->theme.select);
 
     drawCode(code, false);
     drawPopupBar(code, "GOTO:");
@@ -1829,7 +1877,7 @@ static void drawSidebarBar(Code* code, s32 x, s32 y)
     tic_mem* tic = code->tic;
     tic_rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
 
-    if(checkMousePos(code->studio, &rect))
+    if(mousePos(code, &rect))
     {
         s32 mx = tic_api_mouse(tic).y - rect.y;
         mx /= STUDIO_TEXT_HEIGHT;
@@ -1837,15 +1885,15 @@ static void drawSidebarBar(Code* code, s32 x, s32 y)
 
         if(mx >= 0 && mx < code->sidebar.size && code->sidebar.items[mx].pos)
         {
-            setCursor(code->studio, tic_cursor_hand);
+            ui_cursor(code->tic, tic_cursor_hand);
 
-            if(checkMouseDown(code->studio, &rect, tic_mouse_left))
+            if(mouseDown(code, &rect, tic_mouse_left))
             {
                 code->sidebar.index = mx;
                 updateSidebarCode(code);
             }
 
-            if(checkMouseClick(code->studio, &rect, tic_mouse_left))
+            if(mouseClicked(code, &rect, tic_mouse_left))
                 setCodeMode(code, TEXT_EDIT_MODE);
         }
     }
@@ -1926,25 +1974,25 @@ static void processSidebar(Code* code)
         }
     }
 
-    if(keyWasPressed(code->studio, tic_key_up))
+    if(keyPressed(code, tic_key_up))
         updateSidebarIndex(code, code->sidebar.index - 1);
 
-    else if(keyWasPressed(code->studio, tic_key_down))
+    else if(keyPressed(code, tic_key_down))
         updateSidebarIndex(code, code->sidebar.index + 1);
 
-    else if(keyWasPressed(code->studio, tic_key_left) || keyWasPressed(code->studio, tic_key_pageup))
+    else if(keyPressed(code, tic_key_left) || keyPressed(code, tic_key_pageup))
         updateSidebarIndex(code, code->sidebar.index - OUTLINE_ROWS);
 
-    else if(keyWasPressed(code->studio, tic_key_right) || keyWasPressed(code->studio, tic_key_pagedown))
+    else if(keyPressed(code, tic_key_right) || keyPressed(code, tic_key_pagedown))
         updateSidebarIndex(code, code->sidebar.index + OUTLINE_ROWS);
 
-    else if(keyWasPressed(code->studio, tic_key_home))
+    else if(keyPressed(code, tic_key_home))
         updateSidebarIndex(code, 0);
 
-    else if(keyWasPressed(code->studio, tic_key_end))
+    else if(keyPressed(code, tic_key_end))
         updateSidebarIndex(code, code->sidebar.size - 1);
 
-    else if(enterWasPressed(code->studio))
+    else if(enterPressed(code))
     {
         updateSidebarCode(code);
         setCodeMode(code, TEXT_EDIT_MODE);
@@ -1955,7 +2003,7 @@ static void textBookmarkTick(Code* code)
 {
     processSidebar(code);
 
-    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
+    tic_api_cls(code->tic, code->view->theme.BG);
 
     drawCode(code, false);
     drawStatus(code);
@@ -1966,7 +2014,7 @@ static void textOutlineTick(Code* code)
 {
     processSidebar(code);
 
-    if(keyWasPressed(code->studio, tic_key_backspace))
+    if(keyPressed(code, tic_key_backspace))
     {
         if(*code->popup.text)
         {
@@ -1975,7 +2023,7 @@ static void textOutlineTick(Code* code)
         }
     }
 
-    char sym = getKeyboardText(code->studio);
+    char sym = keyboardText(code);
 
     if(sym)
     {
@@ -1987,7 +2035,7 @@ static void textOutlineTick(Code* code)
         }
     }
 
-    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
+    tic_api_cls(code->tic, code->view->theme.BG);
 
     drawCode(code, false);
     drawStatus(code);
@@ -1995,10 +2043,32 @@ static void textOutlineTick(Code* code)
     drawPopupBar(code, "FUNC:");
 }
 
-static void tick(Code* code)
+static void applyView(Code* code)
 {
-    // The menu's EDITOR settings change the config without re-initialising the
-    // editor: read them back every frame, as the old live reads did.
+    const CodeOptions* options = &code->view->options;
+
+    code->altFont = options->altFont;
+    code->shadowText = options->shadowText;
+    code->lineNumbers = options->lineNumbers;
+    code->showGutter = options->sidebar;
+    code->showStatusbar = options->statusbar;
+}
+
+void code_set_view(Code* code, const CodeView* view)
+{
+    code->view = view;
+}
+
+void code_just_switched(Code* code)
+{
+    code->justSwitched = true;
+}
+
+void code_tick(Code* code)
+{
+    // The host's view carries the config values the menubar may change without
+    // re-initialising the editor; apply them before anything reads them.
+    applyView(code);
     updateTextOptions(code);
 
     processAnim(code->anim.movie, code);
@@ -2093,19 +2163,16 @@ static void clipboardRedo(void* app)
 
 const ClipboardOps CodeClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
-void initCode(Code* code, Studio* studio)
+void initCode(Code* code, const CodeDeps* deps)
 {
-    const struct StudioOptions* options = &getConfig(studio)->options;
-
     text_free(&code->text);
     freeAnim(code);
 
-    tic_code* src = &getMemory(studio)->cart.code;
+    tic_code* src = &deps->tic->cart.code;
 
     *code = (Code){
-        .studio = studio,
-        .tic = getMemory(studio),
-        .tick = tick,
+        .deps = *deps,
+        .tic = deps->tic,
         .escape = escape,
         .scroll = {0, 0, {0, 0}, false},
         .tickCounter = 0,
@@ -2124,11 +2191,6 @@ void initCode(Code* code, Studio* studio)
                 .scroll = 0,
             },
         .matchedDelim = NULL,
-        .altFont = options->codeAltFont,
-        .shadowText = options->codeShadow,
-        .lineNumbers = options->codeLineNumbers,
-        .showGutter = options->codeSidebar,
-        .showStatusbar = options->codeStatusbar,
         .anim =
             {
                 .idle = {
@@ -2151,6 +2213,11 @@ void initCode(Code* code, Studio* studio)
     code->anim.movie = resetMovie(&code->anim.idle);
 
     text_init(&code->text, src->data, (TextOptions){0}, textHistoryEnabled, code);
+
+    // The host sets the real view at the first tick; this one keeps the initial
+    // update from reading a null view.
+    static const CodeView empty;
+    code_set_view(code, &empty);
 
     update(code);
 }

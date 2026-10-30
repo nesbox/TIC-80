@@ -213,6 +213,26 @@ if(BUILD_TESTS)
     target_link_libraries(code-vi-test PRIVATE tic80core)
     tic80_add_test(code-vi-test)
 
+    # The whole code editor links without the studio: the editor, its three
+    # models, the keyboard, the mouse and the ui modules, with a fake host that
+    # records what the editor asks for.
+    add_executable(code-editor-test
+        ${CMAKE_SOURCE_DIR}/tests/code_editor.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/code.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/text.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/find.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/vi.c
+        ${CMAKE_SOURCE_DIR}/src/studio/anim.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+        ${CMAKE_SOURCE_DIR}/src/ext/history.c
+    )
+
+    target_include_directories(code-editor-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(code-editor-test PRIVATE tic80core)
+    tic80_add_test(code-editor-test)
+
     add_executable(code-text-test ${CODE_TEXT_TEST_SRC})
     tic80_add_test(code-text-test)
 

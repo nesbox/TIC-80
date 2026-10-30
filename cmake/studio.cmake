@@ -12,6 +12,7 @@ set(TIC80STUDIO_SRC
     # The state of a launch that came with a cart: every build boots, so this
     # is not editors-only.
     ${TIC80LIB_DIR}/studio/boot.c
+    ${TIC80LIB_DIR}/studio/anim.c
     # The cart an app image carries, which `export game` writes and the launch
     # reads: bytes and the core's zipper, with no studio in it.
     ${TIC80LIB_DIR}/studio/embed.c
