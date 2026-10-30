@@ -23,6 +23,7 @@
 #pragma once
 
 #include "studio/studio.h"
+#include "code_text.h"
 
 typedef struct Code Code;
 
@@ -31,17 +32,10 @@ struct Code
     Studio* studio;
     tic_mem* tic;
 
-    char* src;
+    Text text;
 
     struct
     {
-        struct
-        {
-            char* position;
-            char* selection;
-            s32 column;
-        };
-
         char* mouseDownPosition;
         s32 delay;
     } cursor;
@@ -57,19 +51,6 @@ struct Code
 
     } scroll;
 
-    struct CodeState
-    {
-        struct
-        {
-            u8 syntax : 3;
-            u8 bookmark : 1;
-            u8 cursor : 1;
-            u8 temp : 3;
-        };
-
-        char sym;
-    }* state;
-
     struct
     {
         char line[STUDIO_TEXT_BUFFER_WIDTH + sizeof "-2147483648"];
@@ -79,8 +60,6 @@ struct Code
     } status;
 
     u32 tickCounter;
-
-    struct History* history;
 
     enum
     {

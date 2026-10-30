@@ -174,6 +174,23 @@ if(BUILD_TESTS)
     target_link_libraries(console-test PRIVATE tic80core zip)
     tic80_add_test(console-test)
 
+    # The code editor's text model links with the history module alone: the
+    # buffer, the state array, the cap and the caret are driven without the
+    # studio, a machine or a screen. The PRO target compiles the same model
+    # with the other cap (sizeof(tic_code) - 1) and reruns every test on it.
+    set(CODE_TEXT_TEST_SRC
+        ${CMAKE_SOURCE_DIR}/tests/code_text.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_text.c
+        ${CMAKE_SOURCE_DIR}/src/ext/history.c
+    )
+
+    add_executable(code-text-test ${CODE_TEXT_TEST_SRC})
+    tic80_add_test(code-text-test)
+
+    add_executable(code-text-test-pro ${CODE_TEXT_TEST_SRC})
+    target_compile_definitions(code-text-test-pro PRIVATE TIC80_PRO)
+    tic80_add_test(code-text-test-pro)
+
     # The FFT module, driven offline by both tests. They build its sources
     # rather than linking the core, because the stubs variant below has to
     # recompile them with TIC80_FFT_UNSUPPORTED. FFT_Open reaches VQT_Open, so
