@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "tic.h"
+
 typedef enum
 {
     AnimLinear,

@@ -23,7 +23,7 @@
 #pragma once
 
 #include "api.h"
-#include "code_text.h"
+#include "text.h"
 
 #include <stdbool.h>
 

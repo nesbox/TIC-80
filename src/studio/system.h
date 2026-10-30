@@ -176,8 +176,6 @@ extern "C"
 
     typedef struct Studio Studio;
 
-    void setJustSwitchedToCodeMode(Studio* studio, bool value);
-    bool hasJustSwitchedToCodeMode(Studio* studio);
     const tic_mem* studio_mem(Studio* studio);
     void studio_tick(Studio* studio, tic80_input input);
     void studio_sound(Studio* studio);

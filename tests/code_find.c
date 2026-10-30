@@ -4,7 +4,7 @@
  *
  * Target code-find-test in cmake/tests.cmake; `ctest -R code-find` runs it.
  */
-#include "studio/editors/code_find.h"
+#include "studio/editors/code/find.h"
 #include "script.h"
 
 #include <assert.h>

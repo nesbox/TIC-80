@@ -43,7 +43,7 @@ static void drawStudioMenubar(Studio* studio);
 #endif
 
 #if defined(BUILD_EDITORS)
-#include "editors/code.h"
+#include "editors/code/code.h"
 #include "editors/sprite.h"
 #include "editors/map.h"
 #include "editors/world.h"
@@ -211,6 +211,11 @@ struct Studio
     EditorMode menuMode;
 #if defined(BUILD_EDITORS)
     ViMode viMode;
+
+    // The code editor's frame, kept here so the editor's view pointer stays
+    // valid between ticks: a config change or a console save reads it too.
+    CodeView codeView;
+    CodeBattle codeBattle;
 #endif
     struct
     {
@@ -388,8 +393,7 @@ static void consoleTick(void* app)
 }
 static void codeTick(void* app)
 {
-    Code* code = app;
-    code->tick(code);
+    code_tick(app);
 }
 static void worldTick(void* app)
 {
@@ -863,195 +867,6 @@ void showTooltip(Studio* studio, const char* text)
 
 #endif
 
-static inline s32 lerp(s32 a, s32 b, float d)
-{
-    return (s32)((b - a) * d + a);
-}
-
-static inline float bounceOut(float x)
-{
-    const float n1 = 7.5625;
-    const float d1 = 2.75;
-
-    if(x < 1 / d1)
-        return n1 * x * x;
-    else if(x < 2 / d1)
-    {
-        x -= (float)(1.5 / d1);
-        return (float)(n1 * x * x + 0.75);
-    }
-    else if(x < 2.5 / d1)
-    {
-        x -= (float)(2.25 / d1);
-        return (float)(n1 * x * x + 0.9375);
-    }
-    else
-    {
-        x -= (float)(2.625 / d1);
-        return (float)(n1 * x * x + 0.984375);
-    }
-}
-
-static inline float animEffect(AnimEffect effect, float x)
-{
-    const float c1 = 1.70158f;
-    const float c2 = c1 * 1.525f;
-    const float c3 = c1 + 1;
-    const float c4 = (float)((2 * M_PI) / 3);
-    const float c5 = (float)((2 * M_PI) / 4.5);
-
-    switch(effect)
-    {
-        case AnimLinear:
-            return x;
-
-        case AnimEaseIn:
-            return x * x;
-
-        case AnimEaseOut:
-            return 1 - (1 - x) * (1 - x);
-
-        case AnimEaseInOut:
-            return x < 0.5 ? 2 * x * x : (float)(1 - pow(-2 * x + 2, 2) / 2);
-
-        case AnimEaseInCubic:
-            return x * x * x;
-
-        case AnimEaseOutCubic:
-            return (float)(1 - pow(1 - x, 3));
-
-        case AnimEaseInOutCubic:
-            return x < 0.5 ? 4 * x * x * x : (float)(1 - pow(-2 * x + 2, 3) / 2);
-
-        case AnimEaseInQuart:
-            return x * x * x * x;
-
-        case AnimEaseOutQuart:
-            return (float)(1 - pow(1 - x, 4));
-
-        case AnimEaseInOutQuart:
-            return x < 0.5 ? 8 * x * x * x * x : (float)(1 - pow(-2 * x + 2, 4) / 2);
-
-        case AnimEaseInQuint:
-            return x * x * x * x * x;
-
-        case AnimEaseOutQuint:
-            return (float)(1 - pow(1 - x, 5));
-
-        case AnimEaseInOutQuint:
-            return x < 0.5 ? 16 * x * x * x * x * x : (float)(1 - pow(-2 * x + 2, 5) / 2);
-
-        case AnimEaseInSine:
-            return (float)(1 - cos((x * M_PI) / 2));
-
-        case AnimEaseOutSine:
-            return (float)(sin((x * M_PI) / 2));
-
-        case AnimEaseInOutSine:
-            return (float)(-(cos(M_PI * x) - 1) / 2);
-
-        case AnimEaseInExpo:
-            return x == 0 ? 0 : (float)(pow(2, 10 * x - 10));
-
-        case AnimEaseOutExpo:
-            return x == 1 ? 1 : (float)(1 - pow(2, -10 * x));
-
-        case AnimEaseInOutExpo:
-            return (float)(x == 0
-                               ? 0
-                           : x == 1
-                               ? 1
-                           : x < 0.5
-                               ? pow(2, 20 * x - 10) / 2
-                               : (2 - pow(2, -20 * x + 10)) / 2);
-
-        case AnimEaseInCirc:
-            return (float)(1 - sqrt(1 - pow(x, 2)));
-
-        case AnimEaseOutCirc:
-            return (float)(sqrt(1 - pow(x - 1, 2)));
-
-        case AnimEaseInOutCirc:
-            return x < 0.5
-                       ? (float)((1 - sqrt(1 - pow(2 * x, 2))) / 2)
-                       : (float)((sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2);
-
-        case AnimEaseInBack:
-            return c3 * x * x * x - c1 * x * x;
-
-        case AnimEaseOutBack:
-            return (float)(1 + c3 * pow(x - 1, 3) + c1 * pow(x - 1, 2));
-
-        case AnimEaseInOutBack:
-            return x < 0.5
-                       ? (float)((pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2)) / 2)
-                       : (float)((pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2);
-
-        case AnimEaseInElastic:
-            return (float)(x == 0
-                               ? 0
-                           : x == 1
-                               ? 1
-                               : -pow(2, 10 * x - 10) * sin((x * 10 - 10.75) * c4));
-
-        case AnimEaseOutElastic:
-            return (float)(x == 0
-                               ? 0
-                           : x == 1
-                               ? 1
-                               : pow(2, -10 * x) * sin((x * 10 - 0.75) * c4) + 1);
-
-        case AnimEaseInOutElastic:
-            return (float)(x == 0
-                               ? 0
-                           : x == 1
-                               ? 1
-                           : x < 0.5
-                               ? -(pow(2, 20 * x - 10) * sin((20 * x - 11.125) * c5)) / 2
-                               : (pow(2, -20 * x + 10) * sin((20 * x - 11.125) * c5)) / 2 + 1);
-
-        case AnimEaseInBounce:
-            return 1 - bounceOut(1 - x);
-
-        case AnimEaseOutBounce:
-            return bounceOut(x);
-
-        case AnimEaseInOutBounce:
-            return x < 0.5
-                       ? (1 - bounceOut(1 - 2 * x)) / 2
-                       : (1 + bounceOut(2 * x - 1)) / 2;
-    }
-
-    return x;
-}
-
-static void animTick(Movie* movie)
-{
-    for(Anim *it = movie->items, *end = it + movie->count; it != end; ++it)
-    {
-        float tick = (float)(movie->tick < it->time ? movie->tick : it->time);
-        *it->value = lerp(it->start, it->end, animEffect(it->effect, tick / it->time));
-    }
-}
-
-void processAnim(Movie* movie, void* data)
-{
-    animTick(movie);
-
-    if(movie->tick == movie->time)
-        movie->done(data);
-
-    movie->tick++;
-}
-
-Movie* resetMovie(Movie* movie)
-{
-    movie->tick = 0;
-    animTick(movie);
-
-    return movie;
-}
-
 // The config's own accessors. They sit outside the editors guard on purpose:
 // main.c, rom.c and mainmenu.c read the config in a build with no editors, and
 // a browser-only build linked nowhere with them inside it.
@@ -1492,6 +1307,107 @@ static void resetBanks(Studio* studio)
 }
 #endif
 
+#if defined(BUILD_EDITORS)
+static Bytebattle* getBytebattle(Studio* studio);
+
+static ViMode codeGetViMode(void* host)
+{
+    return getStudioViMode(host);
+}
+
+static void codeSetViMode(void* host, ViMode mode)
+{
+    setStudioViMode(host, mode);
+}
+
+static void codeRunGame(void* host)
+{
+    runGame(host, RUN_FROM_STUDIO);
+}
+
+static void codeSaveProject(void* host)
+{
+    saveProject(host);
+}
+
+static void codeTooltip(void* host, const char* text)
+{
+    showTooltip(host, text);
+}
+
+static void codeViewToggle(void* host, CodeViewToggle option)
+{
+    static const CodeViewOption Options[] =
+        {
+            CodeViewFont,
+            CodeViewShadow,
+            CodeViewLineNumbers,
+            CodeViewSidebar,
+            CodeViewStatusbar,
+        };
+
+    studioCodeViewToggle(host, Options[option]);
+}
+
+// What the editor reads this frame: the bar's flags and the values the menu
+// may change while the editor is open.
+static CodeView codeFrame(Studio* studio, CodeBattle* battle)
+{
+    const StudioConfig* config = getConfig(studio);
+    const struct StudioOptions* options = &config->options;
+    const tic_script* script = tic_get_script(studio->tic);
+    const Bytebattle* bb = getBytebattle(studio);
+
+    CodeView view =
+        {
+            .frame =
+                {
+                    .captured = studio_keys_captured(studio),
+                    .escaped = studio_keys_escaped(studio),
+                    .pointerOwned = menubar_owns_pointer(&studio->menubar, studio->tic),
+                    .clipboard = getClipboardEvent(studio),
+                },
+            .options =
+                {
+                    .script = script,
+                    .tabSize = options->tabSize,
+                    .spacesForTab = options->tabMode == TAB_SPACE || (options->tabMode == TAB_AUTO && (script->id == 20 || script->id == 13)),
+                    .structuredEdit = script->useStructuredEdition && options->keybindMode == KEYBIND_EMACS,
+                    .autoDelimiters = config->theme.code.autoDelimiters,
+                    .matchDelimiters = config->theme.code.matchDelimiters,
+                    .vi = options->keybindMode == KEYBIND_VI,
+                    .emacs = options->keybindMode == KEYBIND_EMACS,
+                    .altFont = options->codeAltFont,
+                    .shadowText = options->codeShadow,
+                    .lineNumbers = options->codeLineNumbers,
+                    .sidebar = options->codeSidebar,
+                    .statusbar = options->codeStatusbar,
+                },
+            .editorTop = getStudioEditorTop(studio),
+            .battle = NULL,
+        };
+
+#define CODE_COLOR_DEF(VAR) view.theme.VAR = config->theme.code.VAR;
+    CODE_COLORS_LIST(CODE_COLOR_DEF)
+#undef CODE_COLOR_DEF
+
+    view.theme.select = config->theme.code.select;
+    view.theme.cursor = config->theme.code.cursor;
+    view.theme.altCaret = config->theme.code.altCaret;
+
+    if(bb)
+    {
+        *battle = (CodeBattle){
+            .limit = {.lower = bb->limit.lower, .current = bb->limit.current},
+            .battle = {.hidetime = bb->battle.hidetime, .left = bb->battle.left},
+        };
+        view.battle = battle;
+    }
+
+    return view;
+}
+#endif
+
 static void initModules(Studio* studio)
 {
 #if defined(BUILD_EDITORS)
@@ -1499,7 +1415,24 @@ static void initModules(Studio* studio)
 
     resetBanks(studio);
 
-    initCode(studio->code, studio);
+    CodeDeps deps =
+        {
+            .host = studio,
+            .tic = tic,
+            .mouse = studio->mouse.state,
+            .tiles = &getConfig(studio)->cart->bank0.tiles,
+            .getViMode = codeGetViMode,
+            .setViMode = codeSetViMode,
+            .runGame = codeRunGame,
+            .saveProject = codeSaveProject,
+            .viewToggle = codeViewToggle,
+            .tooltip = codeTooltip,
+        };
+
+    initCode(studio->code, &deps);
+
+    studio->codeView = (CodeView){0};
+    code_set_view(studio->code, &studio->codeView);
 
     for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
     {
@@ -1889,39 +1822,37 @@ void studioCodeViewToggle(Studio* studio, CodeViewOption option)
     switch(option)
     {
         case CodeViewFont:
-            code->altFont = !code->altFont;
-            options->codeAltFont = code->altFont;
+            options->codeAltFont = !options->codeAltFont;
+            code->altFont = options->codeAltFont;
             break;
 
         case CodeViewShadow:
-            code->shadowText = !code->shadowText;
-            options->codeShadow = code->shadowText;
+            options->codeShadow = !options->codeShadow;
+            code->shadowText = options->codeShadow;
             break;
 
         case CodeViewLineNumbers:
             // LINES with the sidebar hidden brings the sidebar back with them on
-            if(code->showGutter)
-                code->lineNumbers = !code->lineNumbers;
+            if(options->codeSidebar)
+                options->codeLineNumbers = !options->codeLineNumbers;
             else
-                code->showGutter = code->lineNumbers = true;
+                options->codeSidebar = options->codeLineNumbers = true;
 
-            options->codeLineNumbers = code->lineNumbers;
-            options->codeSidebar = code->showGutter;
+            code->lineNumbers = options->codeLineNumbers;
+            code->showGutter = options->codeSidebar;
             code->update(code);
             break;
 
         case CodeViewSidebar:
-            // the line numbers setting is kept, so it returns with the sidebar
-            code->showGutter = !code->showGutter;
+            options->codeSidebar = !options->codeSidebar;
 
-            options->codeSidebar = code->showGutter;
-            options->codeLineNumbers = code->lineNumbers;
+            code->showGutter = options->codeSidebar;
             code->update(code);
             break;
 
         case CodeViewStatusbar:
-            code->showStatusbar = !code->showStatusbar;
-            options->codeStatusbar = code->showStatusbar;
+            options->codeStatusbar = !options->codeStatusbar;
+            code->showStatusbar = options->codeStatusbar;
             code->update(code);
             break;
     }
@@ -2072,25 +2003,6 @@ bool enterWasPressedOnce(Studio* studio)
 }
 
 #if defined(BUILD_EDITORS)
-// These three are to fix the f1 hotkey conflict
-
-// Add a static variable in studio.c to track the mode switch
-static bool justSwitchedToCodeMode = false;
-
-void setJustSwitchedToCodeMode(Studio* studio, bool value)
-{
-    (void)studio;
-    justSwitchedToCodeMode = value;
-}
-
-bool hasJustSwitchedToCodeMode(Studio* studio)
-{
-    (void)studio;
-    return justSwitchedToCodeMode;
-}
-#endif
-
-#if defined(BUILD_EDITORS)
 
 static bool showGameMenu(Studio* studio)
 {
@@ -2145,7 +2057,7 @@ static void processShortcuts(Studio* studio)
                 if(studio->mode != TIC_CODE_MODE)
                 {
                     setStudioMode(studio, TIC_CODE_MODE);
-                    setJustSwitchedToCodeMode(studio, true);
+                    code_just_switched(studio->code);
                 }
             }
             else
@@ -2255,7 +2167,7 @@ static void processShortcuts(Studio* studio)
                 if(studio->mode != TIC_CODE_MODE)
                 {
                     setStudioMode(studio, TIC_CODE_MODE);
-                    setJustSwitchedToCodeMode(studio, true);
+                    code_just_switched(studio->code);
                 }
             }
             else
@@ -2500,6 +2412,14 @@ static void renderStudio(Studio* studio)
             }
         }
 
+#endif
+
+#if defined(BUILD_EDITORS)
+        if(studio->mode == TIC_CODE_MODE)
+        {
+            studio->codeView = codeFrame(studio, &studio->codeBattle);
+            code_set_view(studio->code, &studio->codeView);
+        }
 #endif
 
         if(app->tick)

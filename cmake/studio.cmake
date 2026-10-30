@@ -12,6 +12,7 @@ set(TIC80STUDIO_SRC
     # The state of a launch that came with a cart: every build boots, so this
     # is not editors-only.
     ${TIC80LIB_DIR}/studio/boot.c
+    ${TIC80LIB_DIR}/studio/anim.c
     # The cart an app image carries, which `export game` writes and the launch
     # reads: bytes and the core's zipper, with no studio in it.
     ${TIC80LIB_DIR}/studio/embed.c
@@ -54,10 +55,10 @@ if(BUILD_EDITORS)
         ${TIC80LIB_DIR}/studio/menubar.c
         ${TIC80LIB_DIR}/studio/studiomenu.c
         ${TIC80LIB_DIR}/studio/screens/console.c
-        ${TIC80LIB_DIR}/studio/editors/code_text.c
-        ${TIC80LIB_DIR}/studio/editors/code_find.c
-        ${TIC80LIB_DIR}/studio/editors/code_vi.c
-        ${TIC80LIB_DIR}/studio/editors/code.c
+        ${TIC80LIB_DIR}/studio/editors/code/text.c
+        ${TIC80LIB_DIR}/studio/editors/code/find.c
+        ${TIC80LIB_DIR}/studio/editors/code/vi.c
+        ${TIC80LIB_DIR}/studio/editors/code/code.c
         ${TIC80LIB_DIR}/studio/editors/sprite.c
         ${TIC80LIB_DIR}/studio/editors/map.c
         ${TIC80LIB_DIR}/studio/editors/world.c

@@ -4,7 +4,7 @@
  * Target code-text-test (and code-text-test-pro for the PRO cap) in
  * cmake/tests.cmake; `ctest -R code-text` runs both.
  */
-#include "studio/editors/code_text.h"
+#include "studio/editors/code/text.h"
 #include "script.h"
 
 #include <assert.h>

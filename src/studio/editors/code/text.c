@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "code_text.h"
+#include "text.h"
 #include "defines.h"
 #include "ext/history.h"
 #include "script.h"

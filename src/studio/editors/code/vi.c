@@ -20,8 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "code_vi.h"
-#include "code_find.h"
+#include "vi.h"
+#include "find.h"
 #include "script.h"
 
 #include <ctype.h>
