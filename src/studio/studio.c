@@ -43,7 +43,7 @@ static void drawStudioMenubar(Studio* studio);
 #endif
 
 #if defined(BUILD_EDITORS)
-#include "editors/code.h"
+#include "editors/code/code.h"
 #include "editors/sprite.h"
 #include "editors/map.h"
 #include "editors/world.h"

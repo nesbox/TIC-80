@@ -21,8 +21,8 @@
 // SOFTWARE.
 
 #include "code.h"
-#include "code_find.h"
-#include "code_vi.h"
+#include "find.h"
+#include "vi.h"
 #include "studio/ui.h"
 
 #include <ctype.h>

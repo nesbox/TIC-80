@@ -54,10 +54,10 @@ if(BUILD_EDITORS)
         ${TIC80LIB_DIR}/studio/menubar.c
         ${TIC80LIB_DIR}/studio/studiomenu.c
         ${TIC80LIB_DIR}/studio/screens/console.c
-        ${TIC80LIB_DIR}/studio/editors/code_text.c
-        ${TIC80LIB_DIR}/studio/editors/code_find.c
-        ${TIC80LIB_DIR}/studio/editors/code_vi.c
-        ${TIC80LIB_DIR}/studio/editors/code.c
+        ${TIC80LIB_DIR}/studio/editors/code/text.c
+        ${TIC80LIB_DIR}/studio/editors/code/find.c
+        ${TIC80LIB_DIR}/studio/editors/code/vi.c
+        ${TIC80LIB_DIR}/studio/editors/code/code.c
         ${TIC80LIB_DIR}/studio/editors/sprite.c
         ${TIC80LIB_DIR}/studio/editors/map.c
         ${TIC80LIB_DIR}/studio/editors/world.c

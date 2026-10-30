@@ -180,7 +180,7 @@ if(BUILD_TESTS)
     # with the other cap (sizeof(tic_code) - 1) and reruns every test on it.
     set(CODE_TEXT_TEST_SRC
         ${CMAKE_SOURCE_DIR}/tests/code_text.c
-        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_text.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/text.c
         ${CMAKE_SOURCE_DIR}/src/ext/history.c
     )
 
@@ -189,8 +189,8 @@ if(BUILD_TESTS)
     # or any screen.
     add_executable(code-find-test
         ${CMAKE_SOURCE_DIR}/tests/code_find.c
-        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_find.c
-        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_text.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/find.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/text.c
         ${CMAKE_SOURCE_DIR}/src/ext/history.c
     )
 
@@ -202,9 +202,9 @@ if(BUILD_TESTS)
     # buffers, as tests/keyboard.c does.
     add_executable(code-vi-test
         ${CMAKE_SOURCE_DIR}/tests/code_vi.c
-        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_vi.c
-        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_find.c
-        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_text.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/vi.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/find.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/text.c
         ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
         ${CMAKE_SOURCE_DIR}/src/ext/history.c
     )

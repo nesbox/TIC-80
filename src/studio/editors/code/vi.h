@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "code_text.h"
+#include "text.h"
 #include "studio/keyboard.h"
 #include "studio/vimode.h"
 
