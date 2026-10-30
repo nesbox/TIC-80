@@ -265,6 +265,20 @@ static void testDuplicate(void)
     puts("duplicate ok");
 }
 
+static void testLines(void)
+{
+    setup("a\nb\nc");
+    assert(getLinesCount(&Text_) == 2);
+
+    setup("a");
+    assert(getLinesCount(&Text_) == 0);
+
+    setup("");
+    assert(getLinesCount(&Text_) == 0);
+
+    puts("lines ok");
+}
+
 static void testTrim(void)
 {
     setup("a  \nb\t\n");
@@ -289,6 +303,7 @@ int main(void)
     testTab();
     testComment();
     testDuplicate();
+    testLines();
     testTrim();
 
     return 0;

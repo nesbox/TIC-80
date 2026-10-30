@@ -706,6 +706,26 @@ bool keyWasPressed(Studio* studio, tic_key key)
     return keyboard_pressed(studio->tic, key);
 }
 
+bool studio_keys_captured(Studio* studio)
+{
+#if defined(BUILD_EDITORS)
+    return studio->menubar.captured;
+#else
+    (void)studio;
+    return false;
+#endif
+}
+
+bool studio_keys_escaped(Studio* studio)
+{
+#if defined(BUILD_EDITORS)
+    return studio->menubar.escaped;
+#else
+    (void)studio;
+    return false;
+#endif
+}
+
 bool keyWasPressedOnce(Studio* studio, tic_key key)
 {
 #if defined(BUILD_EDITORS)

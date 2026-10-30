@@ -55,6 +55,8 @@ if(BUILD_EDITORS)
         ${TIC80LIB_DIR}/studio/studiomenu.c
         ${TIC80LIB_DIR}/studio/screens/console.c
         ${TIC80LIB_DIR}/studio/editors/code_text.c
+        ${TIC80LIB_DIR}/studio/editors/code_find.c
+        ${TIC80LIB_DIR}/studio/editors/code_vi.c
         ${TIC80LIB_DIR}/studio/editors/code.c
         ${TIC80LIB_DIR}/studio/editors/sprite.c
         ${TIC80LIB_DIR}/studio/editors/map.c

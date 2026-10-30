@@ -552,6 +552,18 @@ void updateColumn(Text* text)
     text->cursor.column = (s32)(text->cursor.position - getLine(text));
 }
 
+s32 getLinesCount(Text* text)
+{
+    const char* ptr = text->src;
+    s32 count = 0;
+
+    while(*ptr)
+        if(*ptr++ == '\n')
+            count++;
+
+    return count;
+}
+
 char* getPosByLine(char* ptr, s32 line)
 {
     s32 y = 0;

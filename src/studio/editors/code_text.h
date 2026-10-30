@@ -130,6 +130,7 @@ char* getPrevLine(Text* text);
 char* getNextLineByPos(Text* text, char* pos);
 char* getNextLine(Text* text);
 s32 getLineSize(const char* line);
+s32 getLinesCount(Text* text);
 char* getPosByLine(char* ptr, s32 line);
 s32 getTabColumnWidth(Text* text, s32 column);
 char* getVisualPosByLine(Text* text, char* line, s32 column);
