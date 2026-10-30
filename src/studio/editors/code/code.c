@@ -2216,7 +2216,7 @@ void initCode(Code* code, const CodeDeps* deps)
 
     // The host sets the real view at the first tick; this one keeps the initial
     // update from reading a null view.
-    static const CodeView empty;
+    static const CodeView empty = {0};
     code_set_view(code, &empty);
 
     update(code);
