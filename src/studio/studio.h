@@ -37,6 +37,7 @@
 #include "rom.h"
 #include "anim.h"
 #include "keyboard.h"
+#include "vimode.h"
 #include "ext/png.h"
 #include "core/core.h"
 
@@ -183,15 +184,6 @@ typedef enum
     RUN_FROM_STUDIO,
     RUN_FROM_PLAYER,
 } RunOrigin;
-
-typedef enum
-{
-    VI_NORMAL,
-    VI_INSERT,
-    VI_SELECT,
-    VI_SEEK,
-    VI_SEEK_BACK,
-} ViMode;
 
 enum
 {
@@ -377,6 +369,11 @@ typedef enum
 } CodeViewOption;
 
 void studioCodeViewToggle(Studio*, CodeViewOption);
+
+// The bar's frame: nothing typed reaches an editor while the bar owns the
+// keys, and the Escape that closed it is not seen either.
+bool studio_keys_captured(Studio* studio);
+bool studio_keys_escaped(Studio* studio);
 
 typedef struct
 {

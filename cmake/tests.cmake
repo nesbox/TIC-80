@@ -184,6 +184,35 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src/ext/history.c
     )
 
+    # The search model links with the text model alone: the outline, the
+    # bookmarks, goto and the plain-text search are driven without the studio
+    # or any screen.
+    add_executable(code-find-test
+        ${CMAKE_SOURCE_DIR}/tests/code_find.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_find.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_text.c
+        ${CMAKE_SOURCE_DIR}/src/ext/history.c
+    )
+
+    tic80_add_test(code-find-test)
+
+    # The vi machine links without the studio too: the text model, the search
+    # model, the keyboard module and the core, with a fake host that records
+    # what the machine asks for. Keys are pressed into the machine's input
+    # buffers, as tests/keyboard.c does.
+    add_executable(code-vi-test
+        ${CMAKE_SOURCE_DIR}/tests/code_vi.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_vi.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_find.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code_text.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/ext/history.c
+    )
+
+    target_include_directories(code-vi-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(code-vi-test PRIVATE tic80core)
+    tic80_add_test(code-vi-test)
+
     add_executable(code-text-test ${CODE_TEXT_TEST_SRC})
     tic80_add_test(code-text-test)
 
