@@ -582,6 +582,23 @@ static void testExport(bool written)
     hostFree(host);
 }
 
+// An alias names the same command, so help on it shows that command's page.
+static void testHelpAlias(void)
+{
+    Host* host = hostNew("help ls");
+    ConsoleAsk ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+
+    hostTick(host);
+
+    assert(said(host, "---=== COMMAND ===---"));
+    assert(!said(host, "unknown topic"));
+
+    hostFree(host);
+}
+
 int main(void)
 {
     testMoves();
@@ -596,6 +613,7 @@ int main(void)
     testRunCountsOnAnswer();
     testExport(true);
     testExport(false);
+    testHelpAlias();
 
     puts("moves ok / confirm ok / load ok / save ok / config ok / export ok / replay ok / run");
 

@@ -3788,7 +3788,7 @@ static bool printUsage(Console* console, const char* command)
 {
     FOR(const Command*, cmd, Commands)
     {
-        if(strcmp(command, cmd->name) == 0)
+        if(strcmp(command, cmd->name) == 0 || (cmd->alt && strcmp(command, cmd->alt) == 0))
         {
             consolePrint(console, "\n---=== COMMAND ===---\n", tic_color_green);
             char* helpReplaced = replaceHelpTokens(cmd->help);
