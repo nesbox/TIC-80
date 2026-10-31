@@ -321,6 +321,23 @@ if(BUILD_TESTS)
     target_link_libraries(music-editor-test PRIVATE tic80core)
     tic80_add_test(music-editor-test)
 
+    # The list menu links without the studio: the widget, the animation, the
+    # keyboard, the mouse, the ui and the sound modules, with a fake host that
+    # fills its view and records the handlers.
+    add_executable(menu-test
+        ${CMAKE_SOURCE_DIR}/tests/menu.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/menu.c
+        ${CMAKE_SOURCE_DIR}/src/studio/anim.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+        ${CMAKE_SOURCE_DIR}/src/studio/sound.c
+    )
+
+    target_include_directories(menu-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(menu-test PRIVATE tic80core)
+    tic80_add_test(menu-test)
+
     add_executable(code-text-test ${CODE_TEXT_TEST_SRC})
     tic80_add_test(code-text-test)
 
