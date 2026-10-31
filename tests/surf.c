@@ -53,6 +53,10 @@ static net_get_callback NetCallback;
 static void* NetCalldata;
 static char NetUrl[TICNAME_MAX];
 
+// The covers the screen asks for: answered with an error at once, so the
+// screen's own retry is the test's to watch.
+static s32 CoverRequests;
+
 static void fakeLoadCart(void* host, const char* name)
 {
     (void)host;
@@ -117,6 +121,8 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
 
     if(strncmp(url, "/cart/", 6) == 0)
     {
+        CoverRequests++;
+
         net_get_data answer = {.type = net_get_error, .error = {.code = 404}, .calldata = calldata, .url = url};
         callback(&answer);
         return;
@@ -189,6 +195,7 @@ static void setup(void)
 {
     LoadCartCalls = LoadByHashCalls = AutoSaveCalls = 0;
     RunCalls = ExitCalls = ConfirmCalls = 0;
+    CoverRequests = 0;
     LoadedName[0] = LoadedHash[0] = '\0';
     HashDone = NULL;
     HashDoneData = NULL;
@@ -284,6 +291,12 @@ enum
     RootCartIndex = 2,
 };
 
+// The screen's cover retry, five seconds: see COVER_RETRY_TICKS in surf.c.
+enum
+{
+    CoverRetryTicks = TIC80_FRAMERATE * 5,
+};
+
 static s32 channelNote(void)
 {
     return ((tic_core*)Tic)->state.sfx.channels[0].note;
@@ -367,6 +380,16 @@ static void testSiteListing(void)
     // The answered cart loads by hash, and the host's answer runs it.
     press(tic_key_down);
     settle();
+
+    // The cover the site did not give is asked for again once the retry is
+    // due, rather than staying blank for the session.
+    assert(CoverRequests == 1);
+
+    for(s32 i = 0; i <= CoverRetryTicks; i++)
+        frame();
+
+    assert(CoverRequests == 2);
+
     press(tic_key_return);
     settle();
 

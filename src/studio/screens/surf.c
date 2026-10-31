@@ -431,13 +431,17 @@ static void coverLoaded(const net_get_data* netData)
 
             // A cover the site did not give is asked for again later, rather than
             // staying blank for the session — but not before the retry is due, or
-            // a cursor resting on one item would ask the site every frame.
+            // a cursor resting on one item would ask the site every frame. The
+            // failed request leaves the item free to ask again.
             if(netData->type == net_get_error)
             {
                 SurfItem* item = coverItem(surf, coverLoadingData);
 
                 if(item)
+                {
+                    item->coverLoading = false;
                     item->coverRetry = surf->ticks + COVER_RETRY_TICKS;
+                }
             }
 
             if(surf->coversInFlight > 0)
