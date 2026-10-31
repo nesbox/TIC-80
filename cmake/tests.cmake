@@ -174,6 +174,21 @@ if(BUILD_TESTS)
     target_link_libraries(console-test PRIVATE tic80core zip)
     tic80_add_test(console-test)
 
+    # The studio's three services link without the studio: the filesystem, the
+    # config and the cart service, with the core, the zip and the json, over a
+    # root the test makes and wipes itself.
+    add_executable(studio-services-test
+        ${CMAKE_SOURCE_DIR}/tests/studio_services.c
+        ${CMAKE_SOURCE_DIR}/src/studio/fs.c
+        ${CMAKE_SOURCE_DIR}/src/studio/config.c
+        ${CMAKE_SOURCE_DIR}/src/studio/rom.c
+        ${CMAKE_SOURCE_DIR}/src/ext/json.c
+    )
+
+    target_include_directories(studio-services-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    target_link_libraries(studio-services-test PRIVATE tic80core zip)
+    tic80_add_test(studio-services-test)
+
     # The code editor's text model links with the history module alone: the
     # buffer, the state array, the cap and the caret are driven without the
     # studio, a machine or a screen. The PRO target compiles the same model
