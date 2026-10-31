@@ -192,7 +192,7 @@ jobs:
           ./butler push stage/deb-arm64-pro nesbox/tic80:deb-arm64-pro --userversion "$VER"
 
   macos-arm64-pro:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v6
         with:
