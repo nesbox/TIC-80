@@ -23,12 +23,26 @@
 // Loading a cart into the running machine and writing it back out: the console
 // and the browser both work on the loaded cart, so neither owns it.
 
-#include "studio.h"
 #include "rom.h"
+#include "studio/paths.h"
 #include "cart.h"
 #include "tools.h"
 #include "fs.h"
 #include "config.h"
+#include "defines.h"
+#include "script.h"
+#include "ext/png.h"
+
+#include <stdio.h>
+
+#if defined(BUILD_RENDER_CACHE)
+#include "core/core.h"
+
+// The cover is drawn inside the studio's frame: keep studio.h's redirects for
+// the two calls it uses, so the draw cache sees them.
+#define tic_api_cls(tic, ...)   (((tic_core*)(tic))->api.cls(tic, __VA_ARGS__))
+#define tic_api_print(tic, ...) (((tic_core*)(tic))->api.print(tic, __VA_ARGS__))
+#endif
 
 #if defined(TIC80_PRO)
 #include "project.h"
@@ -39,9 +53,9 @@ static inline tic_cartridge* newCart()
     return malloc(sizeof(tic_cartridge));
 }
 
-void studioSetCartName(Studio* studio, const char* name, const char* path)
+void rom_set_cart_name(const RomDeps* deps, const char* name, const char* path)
 {
-    CartName* rom = studioCart(studio);
+    CartName* rom = deps->cart;
 
     if(rom->name != name) strcpy(rom->name, name);
     if(rom->path != path) strcpy(rom->path, path);
@@ -49,7 +63,7 @@ void studioSetCartName(Studio* studio, const char* name, const char* path)
 
 typedef struct
 {
-    Studio* studio;
+    const RomDeps* deps;
     char* name;
     char* section;
     fs_done_callback callback;
@@ -59,21 +73,21 @@ typedef struct
 static void hashLoadDone(const u8* buffer, s32 size, void* data)
 {
     LoadByHashData* loadByHashData = data;
-    Studio* studio = loadByHashData->studio;
+    const RomDeps* deps = loadByHashData->deps;
 
     tic_cartridge* cart = newCart();
 
     SCOPE(free(cart))
     {
         tic_cart_load(cart, buffer, size);
-        tic_tool_load_section(getMemory(studio), cart, loadByHashData->section);
+        tic_tool_load_section(deps->tic, cart, loadByHashData->section);
 
-        tic_api_reset(getMemory(studio));
+        tic_api_reset(deps->tic);
 
         if(!loadByHashData->section)
-            studioSetCartName(studio, loadByHashData->name, tic_fs_path(studio_fs(studio), loadByHashData->name));
+            rom_set_cart_name(deps, loadByHashData->name, tic_fs_path(deps->fs, loadByHashData->name));
 
-        studioRomLoaded(studio);
+        deps->loaded(deps->host);
     }
 
     if(loadByHashData->callback)
@@ -84,18 +98,18 @@ static void hashLoadDone(const u8* buffer, s32 size, void* data)
     FREE(loadByHashData);
 }
 
-void studioLoadByHash(Studio* studio, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data)
+void rom_load_by_hash(const RomDeps* deps, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data)
 {
-    LoadByHashData loadByHashData = {studio, strdup(name), section ? strdup(section) : NULL, callback, data};
-    tic_fs_hashload(studio_fs(studio), name, hash, hashLoadDone, MOVE(loadByHashData));
+    LoadByHashData loadByHashData = {deps, strdup(name), section ? strdup(section) : NULL, callback, data};
+    tic_fs_hashload(deps->fs, name, hash, hashLoadDone, MOVE(loadByHashData));
 }
 
 // The cart's file changed under the studio — another editor, a build — and the
 // machine takes it again: the reload the console used to do for the host.
-void studioReloadCart(Studio* studio)
+void rom_reload_cart(const RomDeps* deps)
 {
-    tic_mem* tic = getMemory(studio);
-    const char* path = studioCart(studio)->path;
+    tic_mem* tic = deps->tic;
+    const char* path = deps->cart->path;
 
     if(*path)
     {
@@ -106,12 +120,12 @@ void studioReloadCart(Studio* studio)
             {
 #if defined(TIC80_PRO)
                 if(tic_tool_is_project(path))
-                    tic_project_load(studioCart(studio)->name, data, size, &tic->cart);
+                    tic_project_load(deps->cart->name, data, size, &tic->cart);
                 else
 #endif
                     tic_cart_load(&tic->cart, data, size);
 
-                studioRomLoaded(studio);
+                deps->loaded(deps->host);
             }
     }
 }
@@ -122,9 +136,9 @@ static void drawShadowText(tic_mem* tic, const char* text, s32 x, s32 y, tic_col
     tic_api_print(tic, text, x, y, color, false, scale, false);
 }
 
-CartSaveResult studioSaveCart(Studio* studio, const char* name)
+CartSaveResult rom_save_cart(const RomDeps* deps, const char* name)
 {
-    tic_mem* tic = getMemory(studio);
+    tic_mem* tic = deps->tic;
 
     bool success = false;
 
@@ -132,9 +146,9 @@ CartSaveResult studioSaveCart(Studio* studio, const char* name)
     {
         if(strcmp(name, CONFIG_TIC_PATH) == 0)
         {
-            Config* config = studio_config_get(studio);
+            Config* config = deps->config;
             config->saveConfigCart(config);
-            studioRomSaved(studio);
+            deps->saved(deps->host);
             return CART_SAVE_OK;
         }
         else
@@ -261,19 +275,19 @@ CartSaveResult studioSaveCart(Studio* studio, const char* name)
                 }
             }
 
-            if(size && tic_fs_save(studio_fs(studio), name, buffer, size, true))
+            if(size && tic_fs_save(deps->fs, name, buffer, size, true))
             {
-                studioSetCartName(studio, name, tic_fs_path(studio_fs(studio), name));
+                rom_set_cart_name(deps, name, tic_fs_path(deps->fs, name));
                 success = true;
-                studioRomSaved(studio);
+                deps->saved(deps->host);
             }
 
             free(buffer);
         }
     }
-    else if(strlen(studioCart(studio)->name))
+    else if(strlen(deps->cart->name))
     {
-        return studioSaveCart(studio, studioCart(studio)->name);
+        return rom_save_cart(deps, deps->cart->name);
     }
     else
         return CART_SAVE_MISSING_NAME;
@@ -286,14 +300,14 @@ static inline bool isslash(char c)
     return c == '/' || c == '\\';
 }
 
-bool studioLoadCart(Studio* studio, const char* path)
+bool rom_load_cart(const RomDeps* deps, const char* path)
 {
     bool done = false;
 
     s32 size = 0;
     // A name from the browser is relative to the cart folder, a path from the
     // command line or a drop is the process's own.
-    void* data = tic_fs_load(studio_fs(studio), path, &size);
+    void* data = tic_fs_load(deps->fs, path, &size);
 
     if(!data)
         data = fs_read(path, &size);
@@ -309,8 +323,8 @@ bool studioLoadCart(Studio* studio, const char* path)
             cartName = ptr + isslash(*ptr);
         }
 
-        studioSetCartName(studio, cartName, path);
-        tic_mem* tic = getMemory(studio);
+        rom_set_cart_name(deps, cartName, path);
+        tic_mem* tic = deps->tic;
 
         if(tic_tool_has_ext(cartName, PNG_EXT))
         {
@@ -340,16 +354,16 @@ bool studioLoadCart(Studio* studio, const char* path)
     }
 
     if(done)
-        studioRomLoaded(studio);
+        deps->loaded(deps->host);
 
     return done;
 }
 
-CartSaveResult studioAutoSave(Studio* studio)
+CartSaveResult rom_autosave(const RomDeps* deps)
 {
     char namepath[TICNAME_MAX];
     strcpy(namepath, "/downloads/");
-    strcat(namepath, studioCart(studio)->name);
+    strcat(namepath, deps->cart->name);
 
-    return studioSaveCart(studio, namepath);
+    return rom_save_cart(deps, namepath);
 }

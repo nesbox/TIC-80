@@ -22,13 +22,18 @@
 
 #pragma once
 
-#include "studio.h"
+#include "system.h"
 
 typedef struct Config Config;
 
+// The host's change notification, so the config never names the studio.
+typedef void (*ConfigChanged)(void* host);
+
 struct Config
 {
-    Studio* studio;
+    void* host;
+    ConfigChanged changed;
+
     tic_mem* tic;
     struct tic_fs* fs;
 
@@ -40,5 +45,5 @@ struct Config
     void (*reset)(Config*);
 };
 
-void initConfig(Config* config, Studio* studio, struct tic_fs* fs);
+void initConfig(Config* config, tic_mem* tic, struct tic_fs* fs, ConfigChanged changed, void* host);
 void freeConfig(Config* config);

@@ -96,6 +96,7 @@ void tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
 bool tic_tool_has_ext(const char* name, const char* ext);
 
 #define CART_EXT ".tic"
+#define PNG_EXT  ".png"
 
 // What a cart file is called: `name` with the extension, if it is missing. The
 // console and the browser both spell it, so neither owns it.

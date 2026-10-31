@@ -302,6 +302,10 @@ struct Studio
     // The loaded cart's identity, shared by the console and the browser.
     CartName rom;
 
+    // The cart service's inputs, kept here so a queued load-by-hash outlives
+    // the call that asked for it.
+    RomDeps romDeps;
+
 #if defined(BUILD_EDITORS)
     Console* console;
     // What the console reads of the host: the host refreshes it before every
@@ -1028,7 +1032,7 @@ void setStudioMode(Studio* studio, EditorMode mode)
             case TIC_RUN_MODE: initRunMode(studio); break;
             case TIC_MENU_MODE:
                 studio_mainmenu_free(studio->mainmenu);
-                studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+                studio->mainmenu = studio_mainmenu_init(studio->menu, studio);
                 break;
 #if defined(BUILD_EDITORS)
             case TIC_CONSOLE_MODE:
@@ -2079,7 +2083,7 @@ void gotoMenu(Studio* studio)
 
     setStudioMode(studio, TIC_MENU_MODE);
     studio_mainmenu_free(studio->mainmenu);
-    studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+    studio->mainmenu = studio_mainmenu_init(studio->menu, studio);
 }
 
 // Whether the menu's back resumes a game: it does when a player's run is
@@ -2626,6 +2630,21 @@ static void updateSystemFont(Studio* studio)
     tic->ram->font = studio->systemFont;
 }
 
+static void configChanged(void* host)
+{
+    studioConfigChanged(host);
+}
+
+static void romLoaded(void* host)
+{
+    studioRomLoaded(host);
+}
+
+static void romSaved(void* host)
+{
+    studioRomSaved(host);
+}
+
 void studioConfigChanged(Studio* studio)
 {
 #if defined(BUILD_EDITORS)
@@ -2842,6 +2861,37 @@ CartName* studioCart(Studio* studio)
 tic_fs* studio_fs(Studio* studio)
 {
     return studio->fs;
+}
+
+// The public cart API: the studio's names over the service's functions.
+void studioSetCartName(Studio* studio, const char* name, const char* path)
+{
+    rom_set_cart_name(&studio->romDeps, name, path);
+}
+
+bool studioLoadCart(Studio* studio, const char* path)
+{
+    return rom_load_cart(&studio->romDeps, path);
+}
+
+void studioReloadCart(Studio* studio)
+{
+    rom_reload_cart(&studio->romDeps);
+}
+
+void studioLoadByHash(Studio* studio, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data)
+{
+    rom_load_by_hash(&studio->romDeps, name, hash, section, callback, data);
+}
+
+CartSaveResult studioSaveCart(Studio* studio, const char* name)
+{
+    return rom_save_cart(&studio->romDeps, name);
+}
+
+CartSaveResult studioAutoSave(Studio* studio)
+{
+    return rom_autosave(&studio->romDeps);
 }
 
 const tic_mem* studio_mem(Studio* studio)
@@ -3395,7 +3445,17 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
     tic_fs_makedir(studio->fs, TIC_LOCAL);
     tic_fs_makedir(studio->fs, TIC_LOCAL_VERSION);
 
-    initConfig(studio->config, studio, studio->fs);
+    initConfig(studio->config, studio->tic, studio->fs, configChanged, studio);
+
+    studio->romDeps = (RomDeps){
+        .tic = studio->tic,
+        .fs = studio->fs,
+        .cart = &studio->rom,
+        .config = studio->config,
+        .host = studio,
+        .loaded = romLoaded,
+        .saved = romSaved,
+    };
 
 #if defined(BUILD_EDITORS)
     void* menuData = studiomenu_init(studio, &studio->menubar, Modes, COUNT_OF(Modes), Apps);
