@@ -252,6 +252,24 @@ if(BUILD_TESTS)
     target_link_libraries(map-editor-test PRIVATE tic80core)
     tic80_add_test(map-editor-test)
 
+    # The sfx editor links without the studio: the editor, the keyboard, the
+    # mouse, the ui, the clipboard, the sound and the history modules, with a
+    # fake host that records the tooltip.
+    add_executable(sfx-editor-test
+        ${CMAKE_SOURCE_DIR}/tests/sfx_editor.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/sfx/sfx.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+        ${CMAKE_SOURCE_DIR}/src/studio/clipboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/sound.c
+        ${CMAKE_SOURCE_DIR}/src/ext/history.c
+    )
+
+    target_include_directories(sfx-editor-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(sfx-editor-test PRIVATE tic80core)
+    tic80_add_test(sfx-editor-test)
+
     add_executable(code-text-test ${CODE_TEXT_TEST_SRC})
     tic80_add_test(code-text-test)
 

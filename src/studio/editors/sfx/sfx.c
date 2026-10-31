@@ -838,7 +838,7 @@ static void drawWavesBar(Sfx* sfx, s32 x, s32 y)
             ui_icon(sfx->tic, sfx->view->cartTiles, it->icon, rect.x, rect.y + 1, tic_color_black);
 
         ui_icon(sfx->tic, sfx->view->cartTiles, it->icon, rect.x, rect.y + push,
-                    over ? tic_color_white : tic_color_dark_grey);
+                over ? tic_color_white : tic_color_dark_grey);
 
         y += Size;
     }
