@@ -30,14 +30,6 @@
 
 #define PREVIEW_SIZE (TIC80_WIDTH * TIC80_HEIGHT * TIC_PALETTE_BPP / BITS_IN_BYTE)
 
-static bool keyPressed(World* world, tic_key key)
-{
-    if(key == tic_key_escape && world->map->view->frame.escaped)
-        return false;
-
-    return keyboard_pressed(world->tic, key);
-}
-
 static bool mousePos(World* world, const tic_rect* rect)
 {
     return !world->map->view->frame.pointerOwned && mouse_over(world->tic, rect);
@@ -121,7 +113,7 @@ void world_tick(World* world)
         return;
     }
 
-    if(keyPressed(world, tic_key_tab)) openMap(world);
+    if(keyboard_pressed(world->tic, tic_key_tab)) openMap(world);
 
     memcpy(&tic->ram->vram, world->preview, PREVIEW_SIZE);
 

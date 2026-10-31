@@ -1366,8 +1366,6 @@ static MapView mapFrame(Studio* studio)
     return (MapView){
         .frame =
             {
-                .captured = studio_keys_captured(studio),
-                .escaped = studio_keys_escaped(studio),
                 .pointerOwned = menubar_owns_pointer(&studio->menubar, studio->tic),
                 .clipboard = getClipboardEvent(studio),
             },
@@ -1425,7 +1423,12 @@ static void initModules(Studio* studio)
         initMusic(studio->banks.music[i], studio, &tic->cart.banks[i].music);
     }
 
+    // A confirmed reload calls this mid-frame: fill the view before the
+    // renderer can reach the map's scanline.
+    studio->mapView = mapFrame(studio);
+
     initWorldMap(studio);
+    worldRefresh(studio->world);
 #else
     (void)studio;
 #endif

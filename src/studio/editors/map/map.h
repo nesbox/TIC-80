@@ -44,13 +44,12 @@ typedef struct
 
 } MapDeps;
 
-// The frame: the bar's flags and the values the host refreshes every tick.
+// The frame: the bar's pointer flag, the clipboard gesture and the values the
+// host refreshes every tick.
 typedef struct
 {
     struct
     {
-        bool captured;
-        bool escaped;
         bool pointerOwned;
         ClipboardEvent clipboard;
 

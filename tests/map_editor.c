@@ -132,6 +132,16 @@ static void press(tic_key key)
     Tic->ram->input.keyboard.keys[0] = key;
 }
 
+static void alsoDown(tic_key key)
+{
+    for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+        if(!Tic->ram->input.keyboard.keys[i])
+        {
+            Tic->ram->input.keyboard.keys[i] = key;
+            return;
+        }
+}
+
 static void keyFrame(tic_key key)
 {
     press(key);
@@ -183,6 +193,8 @@ static void testDrawUndoRedo(void)
     frame();
 
     // The first held frame places the brush; the next one paints the cell.
+    assert(mapAt(1, 1) == 0);
+
     pointer(8, 8);
     leftDown(8, 8);
     frame();
@@ -254,6 +266,46 @@ static void testSelectionClipboard(void)
     assert(mapAt(5, 5) == 4);
 
     puts("selection clipboard ok");
+}
+
+static void testClipboardGesture(void)
+{
+    setup();
+
+    Map_.src->data[0] = 1;
+    Map_.src->data[1] = 2;
+    Map_.src->data[TIC_MAP_WIDTH] = 3;
+    Map_.src->data[TIC_MAP_WIDTH + 1] = 4;
+    Map_.select.rect = (tic_rect){0, 0, 2, 2};
+
+    noMouse();
+    View.frame.clipboard = TIC_CLIPBOARD_COPY;
+    // The host says copy while the keys say cut: only the view may decide.
+    press(tic_key_x);
+    alsoDown(tic_key_ctrl);
+    frame();
+    View.frame.clipboard = TIC_CLIPBOARD_NONE;
+    assert(Clipboard != NULL);
+    assert(mapAt(0, 0) == 1);
+
+    View.frame.clipboard = TIC_CLIPBOARD_CUT;
+    Map_.select.rect = (tic_rect){0, 0, 2, 2};
+    // The host says cut while the keys say copy.
+    press(tic_key_c);
+    alsoDown(tic_key_ctrl);
+    frame();
+    View.frame.clipboard = TIC_CLIPBOARD_NONE;
+    assert(mapAt(0, 0) == 0);
+    assert(mapAt(1, 1) == 0);
+
+    View.frame.clipboard = TIC_CLIPBOARD_PASTE;
+    press(tic_key_v);
+    alsoDown(tic_key_ctrl);
+    frame();
+    View.frame.clipboard = TIC_CLIPBOARD_NONE;
+    assert(Map_.paste != NULL);
+
+    puts("clipboard gesture ok");
 }
 
 static void testPointerOwned(void)
@@ -357,6 +409,7 @@ int main(void)
     testDrawUndoRedo();
     testFill();
     testSelectionClipboard();
+    testClipboardGesture();
     testPointerOwned();
     testAsks();
     testWorld();

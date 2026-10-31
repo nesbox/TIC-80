@@ -37,14 +37,6 @@
 #define MAP_WIDTH (TIC80_WIDTH)
 #define MAP_X     (0)
 
-static bool keyPressed(Map* map, tic_key key)
-{
-    if(key == tic_key_escape && map->view->frame.escaped)
-        return false;
-
-    return keyboard_pressed(map->tic, key);
-}
-
 static bool mousePos(Map* map, const tic_rect* rect)
 {
     return !map->view->frame.pointerOwned && mouse_over(map->tic, rect);
@@ -1086,28 +1078,28 @@ static void processKeyboard(Map* map)
 
     if(ctrl)
     {
-        if(keyPressed(map, tic_key_z))
+        if(keyboard_pressed(map->tic, tic_key_z))
             undo(map);
-        else if(keyPressed(map, tic_key_y))
+        else if(keyboard_pressed(map->tic, tic_key_y))
             redo(map);
     }
     else
     {
-        if(keyPressed(map, tic_key_tab))
+        if(keyboard_pressed(map->tic, tic_key_tab))
             map->deps.openWorld(map->deps.host);
-        else if(keyPressed(map, tic_key_1))
+        else if(keyboard_pressed(map->tic, tic_key_1))
             map->mode = MAP_DRAW_MODE;
-        else if(keyPressed(map, tic_key_2))
+        else if(keyboard_pressed(map->tic, tic_key_2))
             map->mode = MAP_DRAG_MODE;
-        else if(keyPressed(map, tic_key_3))
+        else if(keyboard_pressed(map->tic, tic_key_3))
             map->mode = MAP_SELECT_MODE;
-        else if(keyPressed(map, tic_key_4))
+        else if(keyboard_pressed(map->tic, tic_key_4))
             map->mode = MAP_FILL_MODE;
-        else if(keyPressed(map, tic_key_delete))
+        else if(keyboard_pressed(map->tic, tic_key_delete))
             deleteSelection(map);
-        else if(keyPressed(map, tic_key_grave))
+        else if(keyboard_pressed(map->tic, tic_key_grave))
             map->canvas.grid = !map->canvas.grid;
-        else if(keyPressed(map, tic_key_r))
+        else if(keyboard_pressed(map->tic, tic_key_r))
             map->canvas.random = !map->canvas.random;
     }
 
