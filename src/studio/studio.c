@@ -912,17 +912,54 @@ void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
     ui_icon(studio->tic, &getConfig(studio)->cart->bank0.tiles, id, x, y, color);
 }
 
+// The runner's host side: the console it reports to, the exit and the mode it
+// asks about, as one-line wrappers.
+#if defined(BUILD_EDITORS)
+static void runEnded(void* host)
+{
+    setStudioMode(host, TIC_CONSOLE_MODE);
+}
+
+static void runError(void* host, const char* info)
+{
+    console_error(((Studio*)host)->console, info);
+}
+
+static void runTrace(void* host, const char* text, u8 color)
+{
+    console_trace(((Studio*)host)->console, text, color);
+}
+#else
+static void runExited(void* host)
+{
+    studio_exit(host);
+}
+#endif
+
+static bool runIsActive(void* host)
+{
+    return getStudioMode(host) == TIC_RUN_MODE;
+}
+
 static void initRunMode(Studio* studio)
 {
     studio->paused = false;
 
-    initRun(studio->run,
+    RunDeps deps = {
+        .host = studio,
+        .tic = studio->tic,
+        .fs = studio->fs,
+        .isActive = runIsActive,
 #if defined(BUILD_EDITORS)
-            studio->console,
+        .ended = runEnded,
+        .error = runError,
+        .trace = runTrace,
 #else
-            NULL,
+        .exited = runExited,
 #endif
-            studio->fs, studio);
+    };
+
+    run_init(studio->run, &deps);
 }
 
 #if defined(BUILD_EDITORS)
@@ -3336,7 +3373,7 @@ void studio_delete(Studio* studio)
 #endif
 
         start_free(studio->start);
-        freeRun(studio->run);
+        run_free(studio->run);
         freeConfig(studio->config);
 
         mainmenu_free(studio->mainmenu);

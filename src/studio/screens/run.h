@@ -22,16 +22,32 @@
 
 #pragma once
 
-#include "../system.h"
-#include "studio/studio.h"
+#include "api.h"
+#include "studio/fs.h"
 
 typedef struct Run Run;
 
+// What the runner gets once: the machine, the filesystem and the host's
+// actions. A build without a console leaves the trace and the error empty; a
+// player build reports the exit where an editors build reports the end.
+typedef struct
+{
+    void* host;
+    tic_mem* tic;
+    tic_fs* fs;
+
+    void (*ended)(void* host);
+    void (*exited)(void* host);
+    void (*error)(void* host, const char* info);
+    void (*trace)(void* host, const char* text, u8 color);
+    bool (*isActive)(void* host);
+} RunDeps;
+
 struct Run
 {
-    Studio* studio;
+    RunDeps deps;
+
     tic_mem* tic;
-    struct Console* console;
     struct tic_fs* fs;
     tic_tick_data tickData;
 
@@ -43,5 +59,5 @@ struct Run
     void (*tick)(Run*);
 };
 
-void initRun(Run*, struct Console*, struct tic_fs*, Studio* studio);
-void freeRun(Run* run);
+void run_init(Run* run, const RunDeps* deps);
+void run_free(Run* run);
