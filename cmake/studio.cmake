@@ -60,7 +60,7 @@ if(BUILD_EDITORS)
         ${TIC80LIB_DIR}/studio/editors/code/find.c
         ${TIC80LIB_DIR}/studio/editors/code/vi.c
         ${TIC80LIB_DIR}/studio/editors/code/code.c
-        ${TIC80LIB_DIR}/studio/editors/sprite.c
+        ${TIC80LIB_DIR}/studio/editors/sprite/sprite.c
         ${TIC80LIB_DIR}/studio/editors/map/map.c
         ${TIC80LIB_DIR}/studio/editors/map/world.c
         ${TIC80LIB_DIR}/studio/editors/sfx/sfx.c
