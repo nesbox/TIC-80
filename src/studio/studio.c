@@ -76,6 +76,7 @@ static MapView mapFrame(Studio* studio);
 #include "cart.h"
 #include "screens/start.h"
 #include "screens/run.h"
+#include "modes.h"
 #include "screens/menu.h"
 #include "screens/mainmenu.h"
 
@@ -160,22 +161,13 @@ struct Studio
     bool alive;
 
     EditorMode mode;
-    EditorMode prevMode;
+    // Where a modal screen returns: set when the menu opens, kept while it is
+    // open (a confirm over it), used by its back with no handler.
+    EditorMode returnTo;
 
-    // The run ESC acts on: a player's run gets the pause menu and keeps it
-    // under ESC, the studio's own leaves back to runFrom — the editor or the
-    // console the run was asked from (see RunOrigin in studio.h, #2937). A
-    // run belongs to the player until the studio asks for one: the editorless
-    // builds start their cart without runGame ever being called.
-    bool playerRun;
-    EditorMode runFrom;
-    // A run left for a menu, console or editor is paused and can be resumed;
-    // a new run or a loaded cart clears it.
-    bool paused;
-    // Whether the menu was opened over that run (ESC in a game) rather than in
-    // the studio (the `menu` command): only the first one has a game to go
-    // back to.
-    bool menuOverRun;
+    // The run the studio may sit over: whose it is (#2937), where it belongs
+    // (#3015), and whether it is paused under the menu.
+    RunRecord runState;
 
     struct
     {
@@ -205,7 +197,6 @@ struct Studio
         char text[STUDIO_TEXT_BUFFER_WIDTH];
     } tooltip;
 
-    EditorMode menuMode;
 #if defined(BUILD_EDITORS)
     ViMode viMode;
 
@@ -468,15 +459,25 @@ static void surfScanline(tic_mem* tic, s32 row, void* data)
 
 // One entry per EditorMode; the editors are the entries with a name, in tab
 // order. Every other list of editors follows from this table.
+static void runEnter(Studio* studio, EditorMode from);
+static void menuEnter(Studio* studio, EditorMode from);
+#if defined(BUILD_EDITORS)
+static void consoleEnter(Studio* studio, EditorMode from);
+static void worldEnter(Studio* studio, EditorMode from);
+#endif
+#if defined(BUILD_SURF)
+static void surfEnter(Studio* studio, EditorMode from);
+#endif
+
 static const EditorApp Apps[TIC_MODES_COUNT] =
     {
         [TIC_START_MODE] = {.instance = startApp, .tick = startTick},
-        [TIC_RUN_MODE] = {.instance = runApp, .tick = runTick},
-        [TIC_MENU_MODE] = {.instance = menuApp, .tick = menuTick, .scanline = menuScanline},
+        [TIC_RUN_MODE] = {.instance = runApp, .tick = runTick, .enter = runEnter},
+        [TIC_MENU_MODE] = {.instance = menuApp, .tick = menuTick, .scanline = menuScanline, .enter = menuEnter},
 
 #if defined(BUILD_EDITORS)
-        [TIC_CONSOLE_MODE] = {.instance = consoleApp, .tick = consoleTick},
-        [TIC_WORLD_MODE] = {.instance = worldApp, .tick = worldTick, .scanline = worldScanline},
+        [TIC_CONSOLE_MODE] = {.instance = consoleApp, .tick = consoleTick, .enter = consoleEnter},
+        [TIC_WORLD_MODE] = {.instance = worldApp, .tick = worldTick, .scanline = worldScanline, .enter = worldEnter},
 
 // The parameters are capitalised: lowercase ones would be substituted inside
 // the `.name =` designators, which is not what an initialiser means.
@@ -490,9 +491,11 @@ static const EditorApp Apps[TIC_MODES_COUNT] =
 #undef APP_ENTRY
 #endif
 #if defined(BUILD_SURF)
-            [TIC_SURF_MODE] = {.instance = surfApp, .tick = surfTick, .scanline = surfScanline},
+            [TIC_SURF_MODE] = {.instance = surfApp, .tick = surfTick, .scanline = surfScanline, .enter = surfEnter},
 #endif
 };
+
+static void studioGoto(Studio* studio, EditorMode target, StudioGo intent);
 
 #if defined(BUILD_EDITORS)
 void* studiomenu_editor(Studio* studio, EditorMode mode)
@@ -917,7 +920,7 @@ void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
 #if defined(BUILD_EDITORS)
 static void runEnded(void* host)
 {
-    setStudioMode(host, TIC_CONSOLE_MODE);
+    studioGoto(host, TIC_CONSOLE_MODE, StudioGoScreen);
 }
 
 static void runError(void* host, const char* info)
@@ -943,7 +946,7 @@ static bool runIsActive(void* host)
 
 static void initRunMode(Studio* studio)
 {
-    studio->paused = false;
+    studio->runState.paused = false;
 
     RunDeps deps = {
         .host = studio,
@@ -970,7 +973,7 @@ static void initWorldMap(Studio* studio)
 
 void gotoCode(Studio* studio)
 {
-    setStudioMode(studio, TIC_CODE_MODE);
+    studioGoto(studio, TIC_CODE_MODE, StudioGoScreen);
 }
 #endif
 
@@ -1073,7 +1076,7 @@ void gotoSurf(Studio* studio)
     console_done(studio->console);
 #endif
     initSurfMode(studio);
-    setStudioMode(studio, TIC_SURF_MODE);
+    studioGoto(studio, TIC_SURF_MODE, StudioGoScreen);
 }
 
 // Out of the browser: home, which is the console in a build that has one. A
@@ -1081,7 +1084,7 @@ void gotoSurf(Studio* studio)
 void exitSurf(Studio* studio)
 {
 #if defined(BUILD_EDITORS)
-    setStudioMode(studio, TIC_HOME_MODE);
+    studioGoto(studio, TIC_HOME_MODE, StudioGoScreen);
 #else
     (void)studio;
 #endif
@@ -1140,7 +1143,7 @@ static void mainMenuExitGame(void* host)
 
 static void mainMenuSetRunMode(void* host)
 {
-    setStudioMode(host, TIC_RUN_MODE);
+    studioGoto(host, TIC_RUN_MODE, StudioGoScreen);
 }
 
 static bool mainMenuOverPlayerRun(void* host)
@@ -1193,93 +1196,169 @@ static void resetMainMenu(Studio* studio)
     studio->mainmenu = mainmenu_init(&deps);
 }
 
-void setStudioMode(Studio* studio, EditorMode mode)
+#if defined(BUILD_EDITORS)
+static MapView mapFrame(Studio* studio);
+static bool showGameMenu(Studio* studio);
+#endif
+
+// The modes' entries: what each sets up when the studio enters it. They live
+// with the app table, so the machine itself carries no build guards.
+
+static void runEnter(Studio* studio, EditorMode from)
 {
-    if(mode != studio->mode)
-    {
-        EditorMode prev = studio->mode;
+    (void)from;
+    initRunMode(studio);
+}
 
-        if(prev == TIC_RUN_MODE)
-        {
-            tic_core_pause(studio->tic);
-            studio->paused = true;
-        }
+static void menuEnter(Studio* studio, EditorMode from)
+{
+    (void)from;
+    resetMainMenu(studio);
+}
 
-        if(mode != TIC_RUN_MODE)
-            tic_api_reset(studio->tic);
+#if defined(BUILD_EDITORS)
+static void consoleEnter(Studio* studio, EditorMode from)
+{
+#if defined(BUILD_SURF)
+    // The console hands the browser over: end its command, or its active flag
+    // stays false and the shortcuts it gates never come back.
+    if(from == TIC_SURF_MODE)
+        console_done(studio->console);
+    else
+        (void)studio;
+#else
+    (void)studio;
+    (void)from;
+#endif
+}
 
-        switch(prev)
-        {
-            case TIC_START_MODE:
-            case TIC_CONSOLE_MODE:
-            case TIC_MENU_MODE:
-                break;
-            default: studio->prevMode = prev; break;
-        }
+static void worldEnter(Studio* studio, EditorMode from)
+{
+    (void)from;
+
+    studio->mapView = mapFrame(studio);
+    map_set_view(studio->banks.map[studio->bank.index.map], &studio->mapView);
+    initWorldMap(studio);
+    worldRefresh(studio->world);
+}
+#endif
+
+#if defined(BUILD_SURF)
+static void surfEnter(Studio* studio, EditorMode from)
+{
+    (void)from;
+    studio->surf->resume(studio->surf);
+}
+#endif
+
+// The machine's view of the studio, and the studio's of the machine.
+static ModeState modeState(const Studio* studio)
+{
+    return (ModeState){
+        .mode = studio->mode,
+        .returnTo = studio->returnTo,
+        .run = studio->runState,
+    };
+}
+
+// The door's effects: the machine first, as the old switch did, then the
+// mode's own entry, which may touch what the transition set.
+static void studioApply(Studio* studio, ModeState* state, const ModeAction* action, StudioGo intent)
+{
+    EditorMode from = studio->mode;
+
+    if(action->pauseCore)
+        tic_core_pause(studio->tic);
+
+    if(action->resumeCore)
+        tic_core_resume(studio->tic);
+
+    if(action->resetCore)
+        tic_api_reset(studio->tic);
+
+    if(action->clearExit)
+        studio->run->exit = false;
+
+    EditorMode target = action->target;
+
+    // A mode this build has not got falls back to the menu or the run.
+    if(target != from && Apps[target].instance == NULL)
+        target = studio_is_cart_loaded(studio) ? TIC_RUN_MODE : TIC_MENU_MODE;
+
+    studio->returnTo = state->returnTo;
+    studio->runState = state->run;
+
+    if(action->enter && Apps[target].enter)
+        Apps[target].enter(studio, from);
+
+    if(target != from)
+        studio->mode = target;
+
+    studio->menuView.active = studio->mode == TIC_MENU_MODE;
 
 #if !defined(BUILD_EDITORS)
-        switch(mode)
-        {
-            case TIC_START_MODE:
-            case TIC_MENU_MODE:
-#if defined(BUILD_SURF)
-            case TIC_SURF_MODE:
-#endif
-            case TIC_RUN_MODE:
-                break;
-            default:
-                if(!studio_is_cart_loaded(studio))
-                    mode = TIC_MENU_MODE;
-                else
-                    mode = TIC_RUN_MODE;
-                break;
-        }
-#endif
-
-        switch(mode)
-        {
-            case TIC_RUN_MODE: initRunMode(studio); break;
-            case TIC_MENU_MODE: resetMainMenu(studio); break;
-#if defined(BUILD_EDITORS)
-            case TIC_CONSOLE_MODE:
-#if defined(BUILD_SURF)
-                if(prev == TIC_SURF_MODE)
-                    console_done(studio->console);
-#endif
-                break;
-            case TIC_WORLD_MODE:
-                studio->mapView = mapFrame(studio);
-                map_set_view(studio->banks.map[studio->bank.index.map], &studio->mapView);
-                initWorldMap(studio);
-                worldRefresh(studio->world);
-                break;
-#endif
-#if defined(BUILD_SURF)
-            case TIC_SURF_MODE: studio->surf->resume(studio->surf); break;
-#endif
-            default: break;
-        }
-
-        studio->mode = mode;
-        // A handler can leave the menu inside its own tick; the view follows
-        // the mode here so the widget stops in that frame, not the next one.
-        studio->menuView.active = mode == TIC_MENU_MODE;
-    }
-
-#if defined(BUILD_EDITORS)
-    else if(mode == TIC_MUSIC_MODE)
+    (void)intent;
+#else
+    if(intent != StudioGoResume)
     {
-        Music* music = studio->banks.music[studio->bank.index.music];
-        music->tab = (music->tab + 1) % MUSIC_TAB_COUNT;
+        // The music editor's tab toggles when its own mode is asked for.
+        if(intent == StudioGoScreen && target == from && target == TIC_MUSIC_MODE)
+        {
+            Music* music = studio->banks.music[studio->bank.index.music];
+            music->tab = (music->tab + 1) % MUSIC_TAB_COUNT;
 
-        studio->config->data.options.musicTracker = music->tab == MUSIC_TRACKER_TAB;
-        studio->config->saveOptions(studio->config);
+            studio->config->data.options.musicTracker = music->tab == MUSIC_TRACKER_TAB;
+            studio->config->saveOptions(studio->config);
+        }
+
+        studio->viMode = 0;
+    }
+#endif
+}
+
+// The door: the only writer of the studio's mode. Every driver ends here.
+static void studioGoto(Studio* studio, EditorMode target, StudioGo intent)
+{
+    ModeState state = modeState(studio);
+    ModeAction action = modesGo(&state, target, intent);
+
+    studioApply(studio, &state, &action, intent);
+}
+
+// The run's start and restart: runGame's other half.
+static void studioRunGame(Studio* studio, RunOrigin origin)
+{
+    ModeState state = modeState(studio);
+    ModeAction action = modesRun(&state, origin);
+
+    studioApply(studio, &state, &action, StudioGoScreen);
+}
+
+// The ESC key: the screen first — the menu's back, the code editor's own
+// escape — then where the machine sends it.
+static void studioEscape(Studio* studio)
+{
+    if(studio->mode == TIC_MENU_MODE && menu_back(studio->menu))
+        return;
+
+#if defined(BUILD_EDITORS)
+    if(studio->mode == TIC_CODE_MODE && studio->code->mode != TEXT_EDIT_MODE)
+    {
+        studio->code->escape(studio->code);
+        return;
     }
 #endif
 
+    ModeState state = modeState(studio);
+
 #if defined(BUILD_EDITORS)
-    studio->viMode = 0;
+    EscapeAction escape = modesEscape(&state, showGameMenu(studio), false);
+#else
+    EscapeAction escape = modesEscape(&state, false, true);
 #endif
+
+    if(escape.go)
+        studioGoto(studio, escape.target, escape.intent);
 }
 
 EditorMode getStudioMode(Studio* studio)
@@ -1294,7 +1373,7 @@ static void changeStudioMode(Studio* studio, s32 dir)
     {
         if(studio->mode == Modes[i])
         {
-            setStudioMode(studio, Modes[(i + dir + COUNT_OF(Modes)) % COUNT_OF(Modes)]);
+            studioGoto(studio, Modes[(i + dir + COUNT_OF(Modes)) % COUNT_OF(Modes)], StudioGoScreen);
             return;
         }
     }
@@ -1303,19 +1382,12 @@ static void changeStudioMode(Studio* studio, s32 dir)
 
 bool studio_run_paused(Studio* studio)
 {
-    return studio->paused;
+    return studio->runState.paused;
 }
 
 void resumeGame(Studio* studio)
 {
-    if(!studio->paused)
-        return;
-
-    tic_core_resume(studio->tic);
-    studio->run->exit = false;
-    studio->paused = false;
-    studio->mode = TIC_RUN_MODE;
-    studio->menuView.active = false;
+    studioGoto(studio, TIC_RUN_MODE, StudioGoResume);
 }
 
 #if defined(BUILD_EDITORS)
@@ -1381,12 +1453,10 @@ static void confirmHandler(bool yes, void* data)
     {
         Studio* studio = confirmData->studio;
 
-        if(studio->menuMode == TIC_RUN_MODE)
-        {
+        if(studio->returnTo == TIC_RUN_MODE)
             resumeGame(studio);
-        }
         else
-            setStudioMode(studio, studio->menuMode);
+            studioGoto(studio, studio->returnTo, StudioGoScreen);
 
         confirmData->callback(studio, yes, confirmData->data);
     }
@@ -1406,12 +1476,7 @@ static void confirmYes(void* data, s32 pos)
 
 void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback callback, void* data)
 {
-    if(studio->mode != TIC_MENU_MODE)
-    {
-        studio->menuMode = studio->mode;
-    }
-
-    setStudioMode(studio, TIC_MENU_MODE);
+    studioGoto(studio, TIC_MENU_MODE, StudioGoConfirm);
 
     static MenuItem Answers[] =
         {
@@ -1560,12 +1625,12 @@ static CodeView codeFrame(Studio* studio, CodeBattle* battle)
 
 static void mapOpenWorld(void* host)
 {
-    setStudioMode(host, TIC_WORLD_MODE);
+    studioGoto(host, TIC_WORLD_MODE, StudioGoScreen);
 }
 
 static void mapOpenMap(void* host)
 {
-    setStudioMode(host, TIC_MAP_MODE);
+    studioGoto(host, TIC_MAP_MODE, StudioGoScreen);
 }
 
 // What the map and the world read this frame: the bar's flags, the editor top,
@@ -1803,7 +1868,7 @@ void studioRomSaved(Studio* studio)
 
 void studioRomLoaded(Studio* studio)
 {
-    studio->paused = false;
+    studio->runState.paused = false;
 
     initModules(studio);
 
@@ -1842,37 +1907,10 @@ void runGame(Studio* studio, RunOrigin origin)
     }
 
     if(console_replay(studio->console))
-        setStudioMode(studio, TIC_CONSOLE_MODE);
+        studioGoto(studio, TIC_CONSOLE_MODE, StudioGoScreen);
     else
 #endif
-    {
-        tic_api_reset(studio->tic);
-
-        if(studio->mode == TIC_RUN_MODE)
-        {
-            initRunMode(studio);
-            return;
-        }
-
-        // A run asked for from the pause menu is a restart of the run the
-        // menu sits over (menuOverRun): it keeps that run's origin, or the
-        // player's cart would become a studio run for the rest of the
-        // session — the pause menu would never come back and ESC would land
-        // in the editor. A menu opened in the studio is not that case: the
-        // run it starts is the studio's, like any other Ctrl+R.
-        if(studio->mode != TIC_MENU_MODE || !studio->menuOverRun)
-            studio->playerRun = origin == RUN_FROM_PLAYER;
-
-        // The pause menu is not a place to come back to either: runFrom keeps
-        // the origin of the run the menu sits over, or leaveRun would have
-        // nowhere to go (gotoMenu sets it for a menu opened in the studio).
-        // The startup screen is not an origin: that run belongs to the home
-        // screen it never left.
-        if(studio->mode != TIC_MENU_MODE && studio->mode != TIC_START_MODE)
-            studio->runFrom = studio->mode;
-
-        setStudioMode(studio, TIC_RUN_MODE);
-    }
+        studioRunGame(studio, origin);
 }
 
 #if defined(BUILD_EDITORS)
@@ -2296,14 +2334,9 @@ bool studiomenu_bank_state(Studio* studio, s32* index, bool* chained, bool* bank
 
 void gotoMenu(Studio* studio)
 {
-    studio->menuOverRun = studio->mode == TIC_RUN_MODE;
+    studioGoto(studio, TIC_MENU_MODE, StudioGoMenu);
 
-    // Opened in the studio, the menu's back is a step back to where it was
-    // opened; over a run, that run's own origin stands (set by runGame).
-    if(!studio->menuOverRun)
-        studio->runFrom = studio->mode;
-
-    setStudioMode(studio, TIC_MENU_MODE);
+    // A menu asked for while it is already the mode is rebuilt all the same.
     resetMainMenu(studio);
 }
 
@@ -2312,7 +2345,9 @@ void gotoMenu(Studio* studio)
 // leave for the studio — the same step ESC takes in RUN mode (#2937).
 bool studio_menu_over_player_run(Studio* studio)
 {
-    return studio->playerRun && studio->menuOverRun && studio->paused;
+    ModeState state = modeState(studio);
+
+    return modesMenuOverPlayerRun(&state);
 }
 
 // ESC in a dev run, and the back of the pause menu over one: the run was asked
@@ -2320,7 +2355,7 @@ bool studio_menu_over_player_run(Studio* studio)
 // no walk to CLOSE GAME (#2937).
 void leaveRun(Studio* studio)
 {
-    setStudioMode(studio, studio->runFrom);
+    studioGoto(studio, studio->runState.origin, StudioGoLeave);
 }
 
 bool enterWasPressedOnce(Studio* studio)
@@ -2378,12 +2413,12 @@ static void processShortcuts(Studio* studio)
         {
 #ifndef KEYBOARD_LAYOUT_ES
             if(keyboard_pressed_once(studio->tic, tic_key_grave))
-                setStudioMode(studio, TIC_CONSOLE_MODE);
+                studioGoto(studio, TIC_CONSOLE_MODE, StudioGoScreen);
             else if(keyboard_pressed_once(studio->tic, tic_key_1))
             {
                 if(studio->mode != TIC_CODE_MODE)
                 {
-                    setStudioMode(studio, TIC_CODE_MODE);
+                    studioGoto(studio, TIC_CODE_MODE, StudioGoScreen);
                     code_just_switched(studio->code);
                 }
             }
@@ -2394,7 +2429,7 @@ static void processShortcuts(Studio* studio)
                 for(s32 i = 1; i < COUNT_OF(Modes); i++)
                     if(keyboard_pressed_once(studio->tic, tic_key_1 + i))
                     {
-                        setStudioMode(studio, Modes[i]);
+                        studioGoto(studio, Modes[i], StudioGoScreen);
                         break;
                     }
             }
@@ -2439,40 +2474,7 @@ static void processShortcuts(Studio* studio)
                 getConfig(studio)->options.keybindMode == KEYBIND_VI && getStudioViMode(studio) != VI_NORMAL)
                 return;
 
-            switch(studio->mode)
-            {
-                case TIC_MENU_MODE:
-                    // The back callback knows where a menu belongs — see the main
-                    // menu's back. Without one there is no cart under the menu, and
-                    // it is left to where the studio was.
-                    if(!menu_back(studio->menu))
-                        setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
-                                                  ? TIC_CONSOLE_MODE
-                                                  : studio->prevMode);
-                    break;
-                case TIC_RUN_MODE:
-                    // A cart that declares a game menu asked to be played, and its
-                    // author needs to see that menu while iterating; anyone else in
-                    // RUN mode — a player's run, a dev's cart without a menu —
-                    // steps out, a player to the menu, the dev to the editor.
-                    if(studio->playerRun || showGameMenu(studio))
-                        gotoMenu(studio);
-                    else
-                        leaveRun(studio);
-                    break;
-                case TIC_CONSOLE_MODE:
-                    setStudioMode(studio, TIC_CODE_MODE);
-                    break;
-                case TIC_CODE_MODE:
-                    if(studio->code->mode != TEXT_EDIT_MODE)
-                    {
-                        studio->code->escape(studio->code);
-                        return;
-                    }
-                    // fall through - leaving the code editor lands in the console
-                default:
-                    setStudioMode(studio, TIC_CONSOLE_MODE);
-            }
+            studioEscape(studio);
         }
         else if(keyboard_pressed_once(studio->tic, tic_key_f8))
             takeScreenshot(studio);
@@ -2487,13 +2489,13 @@ static void processShortcuts(Studio* studio)
         // them over, and a cart that declares a game menu asks for them in a
         // dev's run as well. Leaving a run is ESC's job (see leaveRun), so the
         // studio has no use for them there.
-        if((!studio->playerRun && !showGameMenu(studio)) || studio->mode != TIC_RUN_MODE)
+        if((studio->runState.owner != RUN_FROM_PLAYER && !showGameMenu(studio)) || studio->mode != TIC_RUN_MODE)
         {
             if(keyboard_pressed_once(studio->tic, Apps[TIC_CODE_MODE].hotkey))
             {
                 if(studio->mode != TIC_CODE_MODE)
                 {
-                    setStudioMode(studio, TIC_CODE_MODE);
+                    studioGoto(studio, TIC_CODE_MODE, StudioGoScreen);
                     code_just_switched(studio->code);
                 }
             }
@@ -2503,28 +2505,14 @@ static void processShortcuts(Studio* studio)
                 for(s32 i = 1; i < COUNT_OF(Modes); i++)
                     if(keyboard_pressed_once(studio->tic, Apps[Modes[i]].hotkey))
                     {
-                        setStudioMode(studio, Modes[i]);
+                        studioGoto(studio, Modes[i], StudioGoScreen);
                         break;
                     }
             }
         }
 #else
         else if(keyboard_pressed_once(studio->tic, tic_key_escape))
-        {
-            switch(studio->mode)
-            {
-                case TIC_MENU_MODE: menu_back(studio->menu); break;
-                case TIC_RUN_MODE:
-                    gotoMenu(studio);
-                    break;
-#if defined(BUILD_SURF)
-                case TIC_SURF_MODE:
-                    exitSurf(studio);
-                    break;
-#endif
-                default: break;
-            }
-        }
+            studioEscape(studio);
 #endif
     }
 }
@@ -2776,7 +2764,7 @@ static void renderStudio(Studio* studio)
                 runGame(studio, RUN_FROM_PLAYER);
             else
 #endif
-                setStudioMode(studio, TIC_HOME_MODE);
+                studioGoto(studio, TIC_HOME_MODE, StudioGoScreen);
         }
 
         // The bar follows the live mode: the editor's tick may have switched
@@ -3018,7 +3006,7 @@ static void doCodeImport(Studio* studio)
                         codeSetPos(studio->code, x - 1, y - 1);
 
                         if(studio->mode == TIC_RUN_MODE)
-                            setStudioMode(studio, TIC_CODE_MODE);
+                            studioGoto(studio, TIC_CODE_MODE, StudioGoScreen);
                     }
                 }
             }
@@ -3155,7 +3143,7 @@ void studio_tick(Studio* studio, tic80_input input)
             gotoSurf(studio);
 #endif
         else
-            setStudioMode(studio, mode);
+            studioGoto(studio, mode, StudioGoScreen);
     }
 #endif
 
@@ -3338,14 +3326,7 @@ void studio_load(Studio* studio, const char* file)
 // makes RUN the previous mode, so prevMode has forgotten SURF by then (#3015).
 void exitGame(Studio* studio)
 {
-#if defined(BUILD_SURF)
-    if(studio->runFrom == TIC_SURF_MODE)
-    {
-        setStudioMode(studio, TIC_SURF_MODE);
-        return;
-    }
-#endif
-    setStudioMode(studio, TIC_HOME_MODE);
+    studioGoto(studio, studio->runState.origin, StudioGoClose);
 }
 
 void studio_delete(Studio* studio)
@@ -3556,10 +3537,8 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
         .mouse = {.idle = CURSOR_HIDE_TICKS},
 
         .mode = TIC_START_MODE,
-        .prevMode = TIC_HOME_MODE,
-        .playerRun = true,
-        .runFrom = TIC_HOME_MODE,
-        .menuMode = TIC_HOME_MODE,
+        .returnTo = TIC_HOME_MODE,
+        .runState = {.owner = RUN_FROM_PLAYER, .origin = TIC_HOME_MODE},
 #if defined(BUILD_EDITORS)
 
         .bank =
@@ -3835,7 +3814,7 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
             gotoCode(studio);
         }
         else
-            setStudioMode(studio, TIC_CONSOLE_MODE);
+            studioGoto(studio, TIC_CONSOLE_MODE, StudioGoScreen);
     }
 #endif
 
