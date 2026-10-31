@@ -21,14 +21,22 @@
 // SOFTWARE.
 
 #include "music.h"
+#include "api.h"
+#include "tools.h"
+#include "studio/icons.h"
 #include "studio/keyboard.h"
+#include "studio/layout.h"
 #include "studio/ui.h"
 #include "studio/clipboard.h"
+#include "studio/mouse.h"
 #include "studio/ram.h"
 #include "studio/sound.h"
+#include "studio/system.h"
 #include "ext/history.h"
 
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define TRACKER_ROWS         (MUSIC_PATTERN_ROWS / 4)
 #define CHANNEL_COLS         8
@@ -62,6 +70,36 @@ enum
     ColumnParameter1,
     ColumnParameter2,
 };
+
+static bool keyPressed(Music* music, tic_key key)
+{
+    return keyboard_pressed(music->tic, key);
+}
+
+static char keyboardText(Music* music)
+{
+    return music->view->frame.captured ? '\0' : keyboard_text(music->tic);
+}
+
+static bool enterPressed(Music* music)
+{
+    return keyboard_enter(music->tic, KEYBOARD_HOLD, KEYBOARD_PERIOD);
+}
+
+static bool mousePos(Music* music, const tic_rect* rect)
+{
+    return !music->view->frame.pointerOwned && mouse_over(music->tic, rect);
+}
+
+static bool mouseClicked(Music* music, const tic_rect* rect, tic_mouse_btn button)
+{
+    return mouse_click(&music->deps.mouse[button], rect);
+}
+
+static bool mouseDown(Music* music, const tic_rect* rect, tic_mouse_btn button)
+{
+    return mouse_down(&music->deps.mouse[button], rect);
+}
 
 static void undo(Music* music)
 {
@@ -112,33 +150,33 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void (*set)(Music
 
         bool over = false;
         bool down = false;
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
             over = true;
 
-            if(checkMouseDown(music->studio, &rect, tic_mouse_left))
+            if(mouseDown(music, &rect, tic_mouse_left))
                 down = true;
 
-            if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+            if(mouseClicked(music, &rect, tic_mouse_left))
                 set(music, -1, channel);
         }
 
-        drawBitIcon(music->studio, tic_icon_left, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
-        drawBitIcon(music->studio, tic_icon_left, rect.x - 2, rect.y + (down ? 0 : -1), (over ? tic_color_light_grey : tic_color_dark_grey));
+        ui_icon(music->tic, music->view->cartTiles, tic_icon_left, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
+        ui_icon(music->tic, music->view->cartTiles, tic_icon_left, rect.x - 2, rect.y + (down ? 0 : -1), (over ? tic_color_light_grey : tic_color_dark_grey));
     }
 
     {
         tic_rect rect = {x - 1, y - 1, TIC_FONT_WIDTH * 2 + 1, TIC_FONT_HEIGHT + 1};
 
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
 
-            showTooltip(music->studio, "select pattern ID");
+            music->deps.tooltip(music->deps.host, "select pattern ID");
 
-            bool left = checkMouseClick(music->studio, &rect, tic_mouse_left);
-            if(left || checkMouseClick(music->studio, &rect, tic_mouse_right))
+            bool left = mouseClicked(music, &rect, tic_mouse_left);
+            if(left || mouseClicked(music, &rect, tic_mouse_right))
             {
                 tic_point pos = {channel * CHANNEL_COLS, -1};
 
@@ -173,20 +211,20 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void (*set)(Music
 
         bool over = false;
         bool down = false;
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
             over = true;
 
-            if(checkMouseDown(music->studio, &rect, tic_mouse_left))
+            if(mouseDown(music, &rect, tic_mouse_left))
                 down = true;
 
-            if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+            if(mouseClicked(music, &rect, tic_mouse_left))
                 set(music, +1, channel);
         }
 
-        drawBitIcon(music->studio, tic_icon_right, rect.x - 1, rect.y + (down ? 1 : 0), tic_color_black);
-        drawBitIcon(music->studio, tic_icon_right, rect.x - 1, rect.y + (down ? 0 : -1), (over ? tic_color_light_grey : tic_color_dark_grey));
+        ui_icon(music->tic, music->view->cartTiles, tic_icon_right, rect.x - 1, rect.y + (down ? 1 : 0), tic_color_black);
+        ui_icon(music->tic, music->view->cartTiles, tic_icon_right, rect.x - 1, rect.y + (down ? 0 : -1), (over ? tic_color_light_grey : tic_color_dark_grey));
     }
 }
 
@@ -209,21 +247,21 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 
         bool over = false;
         bool down = false;
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
 
             over = true;
 
-            if(checkMouseDown(music->studio, &rect, tic_mouse_left))
+            if(mouseDown(music, &rect, tic_mouse_left))
                 down = true;
 
-            if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+            if(mouseClicked(music, &rect, tic_mouse_left))
                 set(music, value - getStep(music));
         }
 
-        drawBitIcon(music->studio, tic_icon_left, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
-        drawBitIcon(music->studio, tic_icon_left, rect.x - 2, rect.y + (down ? 0 : -1), over ? tic_color_light_grey : tic_color_dark_grey);
+        ui_icon(music->tic, music->view->cartTiles, tic_icon_left, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
+        ui_icon(music->tic, music->view->cartTiles, tic_icon_left, rect.x - 2, rect.y + (down ? 0 : -1), over ? tic_color_light_grey : tic_color_dark_grey);
     }
 
     {
@@ -242,11 +280,11 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
             set(music, music->drag.start + (m.x - music->drag.x) / Speed);
         }
 
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
 
-            if(checkMouseDown(music->studio, &rect, tic_mouse_left))
+            if(mouseDown(music, &rect, tic_mouse_left))
             {
                 if(!music->drag.label)
                 {
@@ -256,8 +294,8 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
                 }
             }
 
-            bool left = checkMouseClick(music->studio, &rect, tic_mouse_left);
-            if(left || checkMouseClick(music->studio, &rect, tic_mouse_right))
+            bool left = mouseClicked(music, &rect, tic_mouse_left);
+            if(left || mouseClicked(music, &rect, tic_mouse_right))
             {
                 s32 step = getStep(music);
                 set(music, value + (left ? +step : -step));
@@ -275,21 +313,21 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 
         bool over = false;
         bool down = false;
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
 
             over = true;
 
-            if(checkMouseDown(music->studio, &rect, tic_mouse_left))
+            if(mouseDown(music, &rect, tic_mouse_left))
                 down = true;
 
-            if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+            if(mouseClicked(music, &rect, tic_mouse_left))
                 set(music, value + getStep(music));
         }
 
-        drawBitIcon(music->studio, tic_icon_right, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
-        drawBitIcon(music->studio, tic_icon_right, rect.x - 2, rect.y + (down ? 0 : -1), over ? tic_color_light_grey : tic_color_dark_grey);
+        ui_icon(music->tic, music->view->cartTiles, tic_icon_right, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
+        ui_icon(music->tic, music->view->cartTiles, tic_icon_right, rect.x - 2, rect.y + (down ? 0 : -1), over ? tic_color_light_grey : tic_color_dark_grey);
     }
 }
 
@@ -1149,7 +1187,7 @@ static void processTrackerKeyboard(Music* music)
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
     // One character a tick: the platform's text may be consumed by the read.
-    char sym = getKeyboardText(music->studio);
+    char sym = keyboardText(music);
 
     static const struct Handler
     {
@@ -1182,7 +1220,7 @@ static void processTrackerKeyboard(Music* music)
         };
 
     for(const struct Handler *ptr = Handlers, *end = ptr + COUNT_OF(Handlers); ptr < end; ptr++)
-        if(keyWasPressed(music->studio, ptr->key))
+        if(keyPressed(music, ptr->key))
         {
             if(shift && ptr->select)
                 startSelection(music);
@@ -1257,7 +1295,7 @@ static void processTrackerKeyboard(Music* music)
                 else if(keyboard_pressed_once(tic, tic_key_x) && shift)
                     music->last.octave += 1;
 
-                if(keyWasPressed(music->studio, tic_key_a))
+                if(keyPressed(music, tic_key_a))
                 {
                     setStopNote(music);
                     downRow(music);
@@ -1267,7 +1305,7 @@ static void processTrackerKeyboard(Music* music)
 
                     for(s32 i = 0; i < COUNT_OF(Piano); i++)
                     {
-                        if(keyWasPressed(music->studio, Piano[i]) && !shift)
+                        if(keyPressed(music, Piano[i]) && !shift)
                         {
                             s32 note = (i > newOctaveIndex ? i - keyboardShift : i) % NOTES;
                             s32 octave = (i - note) / NOTES + music->last.octave;
@@ -1359,17 +1397,17 @@ static void processPatternKeyboard(Music* music)
         return;
 
     // One character a tick: the platform's text may be consumed by the read.
-    char sym = getKeyboardText(music->studio);
+    char sym = keyboardText(music);
 
-    if(keyWasPressed(music->studio, tic_key_delete))
+    if(keyPressed(music, tic_key_delete))
         setChannelPatternValue(music, 0, music->frame, channel);
-    else if(keyWasPressed(music->studio, tic_key_tab))
+    else if(keyPressed(music, tic_key_tab))
         nextPattern(music);
-    else if(keyWasPressed(music->studio, tic_key_left))
+    else if(keyPressed(music, tic_key_left))
         colLeft(music);
-    else if(keyWasPressed(music->studio, tic_key_right))
+    else if(keyPressed(music, tic_key_right))
         colRight(music);
-    else if(keyWasPressed(music->studio, tic_key_down) || enterWasPressed(music->studio))
+    else if(keyPressed(music, tic_key_down) || enterPressed(music))
         music->tracker.edit.y = music->scroll.pos;
     else
     {
@@ -1536,26 +1574,26 @@ static void processPianoKeyboard(Music* music)
     if(tic_api_key(tic, tic_key_ctrl) || tic_api_key(tic, tic_key_alt))
         return;
 
-    if(keyWasPressed(music->studio, tic_key_up))
+    if(keyPressed(music, tic_key_up))
         music->piano.edit.y--;
-    else if(keyWasPressed(music->studio, tic_key_down))
+    else if(keyPressed(music, tic_key_down))
         music->piano.edit.y++;
-    else if(keyWasPressed(music->studio, tic_key_left))
+    else if(keyPressed(music, tic_key_left))
         music->piano.edit.x--;
-    else if(keyWasPressed(music->studio, tic_key_right))
+    else if(keyPressed(music, tic_key_right))
         music->piano.edit.x++;
-    else if(keyWasPressed(music->studio, tic_key_home))
+    else if(keyPressed(music, tic_key_home))
         music->piano.edit.x = PianoChannel1Column;
-    else if(keyWasPressed(music->studio, tic_key_end))
+    else if(keyPressed(music, tic_key_end))
         music->piano.edit.x = PianoColumnsCount * 2 + 1;
-    else if(keyWasPressed(music->studio, tic_key_pageup))
+    else if(keyPressed(music, tic_key_pageup))
         music->piano.edit.y -= TRACKER_ROWS;
-    else if(keyWasPressed(music->studio, tic_key_pagedown))
+    else if(keyPressed(music, tic_key_pagedown))
         music->piano.edit.y += TRACKER_ROWS;
 
     updatePianoEditPos(music);
 
-    if(keyWasPressed(music->studio, tic_key_delete))
+    if(keyPressed(music, tic_key_delete))
     {
         s32 col = music->piano.edit.x / 2;
         switch(col)
@@ -1589,7 +1627,7 @@ static void processPianoKeyboard(Music* music)
         }
     }
 
-    char sym = getKeyboardText(music->studio);
+    char sym = keyboardText(music);
     if(sym)
         setPianoValue(music, sym);
 }
@@ -1611,7 +1649,7 @@ static void processKeyboard(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    switch(getClipboardEvent(music->studio))
+    switch(music->view->frame.clipboard)
     {
         case TIC_CLIPBOARD_CUT: copyToClipboard(music, true); break;
         case TIC_CLIPBOARD_COPY: copyToClipboard(music, false); break;
@@ -1627,26 +1665,26 @@ static void processKeyboard(Music* music)
 
     if(ctrl)
     {
-        if(keyWasPressed(music->studio, tic_key_a))
+        if(keyPressed(music, tic_key_a))
             selectAll(music);
-        else if(keyWasPressed(music->studio, tic_key_z))
+        else if(keyPressed(music, tic_key_z))
             undo(music);
-        else if(keyWasPressed(music->studio, tic_key_y))
+        else if(keyPressed(music, tic_key_y))
             redo(music);
-        else if(keyWasPressed(music->studio, tic_key_f))
+        else if(keyPressed(music, tic_key_f))
             toggleFollowMode(music);
     }
     else
     {
         bool stopped = !checkPlaying(music);
 
-        if(keyWasPressed(music->studio, tic_key_space))
+        if(keyPressed(music, tic_key_space))
         {
             stopped
                 ? playTrack(music, shift)
                 : stopTrack(music);
         }
-        else if(enterWasPressed(music->studio))
+        else if(enterPressed(music))
         {
             stopped
                 ? (shift
@@ -1746,13 +1784,13 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
     {
         tic_rect rect = {x - Border, y - Border, Width, MUSIC_FRAMES * TIC_FONT_HEIGHT + Border};
 
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
 
-            showTooltip(music->studio, "select frame");
+            music->deps.tooltip(music->deps.host, "select frame");
 
-            if(checkMouseDown(music->studio, &rect, tic_mouse_left))
+            if(mouseDown(music, &rect, tic_mouse_left))
             {
                 s32 my = tic_api_mouse(tic).y - rect.y - Border;
                 setFrame(music, my / TIC_FONT_HEIGHT);
@@ -1766,8 +1804,8 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
     {
         if(checkPlayFrame(music, i))
         {
-            drawBitIcon(music->studio, tic_icon_right, x - TIC_FONT_WIDTH - 2, y + i * TIC_FONT_HEIGHT, tic_color_black);
-            drawBitIcon(music->studio, tic_icon_right, x - TIC_FONT_WIDTH - 2, y - 1 + i * TIC_FONT_HEIGHT, tic_color_white);
+            ui_icon(music->tic, music->view->cartTiles, tic_icon_right, x - TIC_FONT_WIDTH - 2, y + i * TIC_FONT_HEIGHT, tic_color_black);
+            ui_icon(music->tic, music->view->cartTiles, tic_icon_right, x - TIC_FONT_WIDTH - 2, y - 1 + i * TIC_FONT_HEIGHT, tic_color_white);
         }
 
         char buf[sizeof "99"];
@@ -1808,11 +1846,11 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 
     tic_rect rect = {x - Border, y - Border, Width, Rows * TIC_FONT_HEIGHT + Border};
 
-    if(checkMousePos(music->studio, &rect))
+    if(mousePos(music, &rect))
     {
-        setCursor(music->studio, tic_cursor_hand);
+        ui_cursor(music->tic, tic_cursor_hand);
 
-        if(checkMouseDown(music->studio, &rect, tic_mouse_left))
+        if(mouseDown(music, &rect, tic_mouse_left))
         {
             s32 mx = tic_api_mouse(tic).x - rect.x - Border;
             s32 my = tic_api_mouse(tic).y - rect.y - Border;
@@ -1837,7 +1875,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
     if(music->tracker.select.drag)
     {
         tic_rect dragRect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-        if(!checkMouseDown(music->studio, &dragRect, tic_mouse_left))
+        if(!mouseDown(music, &dragRect, tic_mouse_left))
         {
             music->tracker.select.drag = false;
         }
@@ -1943,13 +1981,13 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
 
     tic_rect rect = {x, y, Width, Height};
 
-    if(checkMousePos(music->studio, &rect))
+    if(mousePos(music, &rect))
     {
-        setCursor(music->studio, tic_cursor_hand);
+        ui_cursor(music->tic, tic_cursor_hand);
 
-        showTooltip(music->studio, "on/off channel");
+        music->deps.tooltip(music->deps.host, "on/off channel");
 
-        if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+        if(mouseClicked(music, &rect, tic_mouse_left))
         {
             if(tic_api_key(tic, tic_key_ctrl))
             {
@@ -1964,7 +2002,7 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
     drawEditPanel(music, x, y, Width, Height);
 
     u8 color = tic_color_black;
-    tiles2ram(tic->ram, &getConfig(music->studio)->cart->bank0.tiles);
+    tiles2ram(tic->ram, music->view->cartTiles);
     tic_api_spr(tic, music->on[index] ? On : Off, x, y, 1, 1, &color, 1, 1, tic_no_flip, tic_no_rotate);
 }
 
@@ -2033,10 +2071,10 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
     {
         tic_rect rect = {x, y + Header - 1, TIC_FONT_WIDTH * 2 + 1, MUSIC_FRAMES * TIC_FONT_HEIGHT};
 
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
-            if(checkMouseDown(music->studio, &rect, tic_mouse_left) || checkMouseDown(music->studio, &rect, tic_mouse_right))
+            ui_cursor(music->tic, tic_cursor_hand);
+            if(mouseDown(music, &rect, tic_mouse_left) || mouseDown(music, &rect, tic_mouse_right))
             {
                 s32 row = (tic_api_mouse(tic).y - rect.y) * MUSIC_FRAMES / rect.h;
                 music->startFrame = row;
@@ -2045,7 +2083,7 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
         }
         else
         {
-            setCursor(music->studio, tic_cursor_arrow);
+            ui_cursor(music->tic, tic_cursor_arrow);
         }
     }
 
@@ -2066,8 +2104,8 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
 
         if(playFrame >= 0)
         {
-            drawBitIcon(music->studio, tic_icon_right, x - TIC_ALTFONT_WIDTH - 1, y + playFrame * TIC_FONT_HEIGHT + Header, tic_color_black);
-            drawBitIcon(music->studio, tic_icon_right, x - TIC_ALTFONT_WIDTH - 1, y + playFrame * TIC_FONT_HEIGHT + (Header - 1), tic_color_white);
+            ui_icon(music->tic, music->view->cartTiles, tic_icon_right, x - TIC_ALTFONT_WIDTH - 1, y + playFrame * TIC_FONT_HEIGHT + Header, tic_color_black);
+            ui_icon(music->tic, music->view->cartTiles, tic_icon_right, x - TIC_ALTFONT_WIDTH - 1, y + playFrame * TIC_FONT_HEIGHT + (Header - 1), tic_color_white);
         }
     }
 
@@ -2076,12 +2114,12 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
     {
         tic_rect rect = {x, y + Header - 1, (TIC_FONT_WIDTH * 2 + 1) * TIC_SOUND_CHANNELS, MUSIC_FRAMES * TIC_FONT_HEIGHT + 1};
 
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
 
-            bool left = checkMouseClick(music->studio, &rect, tic_mouse_left);
-            if(left || checkMouseClick(music->studio, &rect, tic_mouse_right))
+            bool left = mouseClicked(music, &rect, tic_mouse_left);
+            if(left || mouseClicked(music, &rect, tic_mouse_right))
             {
                 s32 col = (tic_api_mouse(tic).x - rect.x) * TIC_SOUND_CHANNELS / rect.w;
                 s32 row = (tic_api_mouse(tic).y - rect.y) * MUSIC_FRAMES / rect.h;
@@ -2192,7 +2230,7 @@ static void drawPianoRoll(Music* music, s32 x, s32 y)
             {10, 41, 42, 36, tic_no_flip},
         };
 
-    tiles2ram(tic->ram, &getConfig(music->studio)->cart->bank0.tiles);
+    tiles2ram(tic->ram, music->view->cartTiles);
 
     for(s32 i = 0; i < COUNT_OF(Buttons); i++)
     {
@@ -2214,11 +2252,11 @@ static void drawPianoRowColumn(Music* music, s32 x, s32 y)
 
     tic_rect rect = {x, y, TIC_FONT_WIDTH * 2 + 1, TRACKER_ROWS * TIC_FONT_HEIGHT + Header};
 
-    if(checkMousePos(music->studio, &rect))
+    if(mousePos(music, &rect))
     {
-        if(checkMouseDown(music->studio, &rect, tic_mouse_left) || checkMouseDown(music->studio, &rect, tic_mouse_right))
+        if(mouseDown(music, &rect, tic_mouse_left) || mouseDown(music, &rect, tic_mouse_right))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
 
             if(music->scroll.active)
             {
@@ -2276,14 +2314,14 @@ static void drawPianoNoteStatus(Music* music, s32 x, s32 y, s32 xpos, s32 ypos)
 
     tic_rect rect = {x, y + Header, NoteWidth * NOTES - 1, NoteHeight * TRACKER_ROWS - 1};
 
-    if(checkMousePos(music->studio, &rect))
+    if(mousePos(music, &rect))
     {
         {
             static const char Notes[] = "C D EF G A B";
             tic_api_print(tic, Notes, xpos, ypos, tic_color_dark_grey, true, 1, true);
         }
 
-        showTooltip(music->studio, "set note");
+        music->deps.tooltip(music->deps.host, "set note");
 
         static const char* Notes[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
         static const s32 Offsets[] = {0, 0, 2, 2, 4, 5, 5, 7, 7, 9, 9, 11};
@@ -2323,12 +2361,12 @@ static void drawPianoNoteColumn(Music* music, s32 x, s32 y)
                 tic_rect rect = {x + n * NoteWidth, y + Header + r * NoteHeight, NoteWidth - 1, NoteHeight - 1};
 
                 bool over = false;
-                if(checkMousePos(music->studio, &rect))
+                if(mousePos(music, &rect))
                 {
-                    setCursor(music->studio, tic_cursor_hand);
+                    ui_cursor(music->tic, tic_cursor_hand);
                     over = true;
 
-                    if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+                    if(mouseClicked(music, &rect, tic_mouse_left))
                     {
                         switch(row->note)
                         {
@@ -2357,7 +2395,7 @@ static void drawPianoNoteColumn(Music* music, s32 x, s32 y)
 
                         history_add(music->history);
                     }
-                    else if(checkMouseClick(music->studio, &rect, tic_mouse_right))
+                    else if(mouseClicked(music, &rect, tic_mouse_right))
                     {
                         switch(row->note)
                         {
@@ -2434,7 +2472,7 @@ static void drawPianoOctaveStatus(Music* music, s32 x, s32 y, s32 xpos, s32 ypos
 
     tic_rect rect = {x, y + Header, OctaveWidth * OCTAVES - 1, OctaveHeight * TRACKER_ROWS - 1};
 
-    if(checkMousePos(music->studio, &rect))
+    if(mousePos(music, &rect))
     {
         s32 octave = (tic_api_mouse(tic).x - rect.x) / OctaveWidth;
         s32 r = (tic_api_mouse(tic).y - rect.y) / OctaveHeight;
@@ -2444,7 +2482,7 @@ static void drawPianoOctaveStatus(Music* music, s32 x, s32 y, s32 xpos, s32 ypos
 
         if(row->note >= NoteStart)
         {
-            showTooltip(music->studio, "set octave");
+            music->deps.tooltip(music->deps.host, "set octave");
 
             tic_api_print(tic, "12345678", xpos, ypos, tic_color_dark_grey, true, 1, true);
             tic_api_print(tic, (char[]){(char)(octave + '1'), '\0'}, xpos + octave * OctaveWidth, ypos, tic_color_yellow, true, 1, true);
@@ -2483,12 +2521,12 @@ static void drawPianoOctaveColumn(Music* music, s32 x, s32 y)
                     tic_rect rect = {x + n * OctaveWidth, y + Header + r * OctaveHeight, OctaveWidth - 1, OctaveHeight - 1};
 
                     bool over = false;
-                    if(checkMousePos(music->studio, &rect))
+                    if(mousePos(music, &rect))
                     {
-                        setCursor(music->studio, tic_cursor_hand);
+                        ui_cursor(music->tic, tic_cursor_hand);
                         over = true;
 
-                        if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+                        if(mouseClicked(music, &rect, tic_mouse_left))
                         {
                             music->last.octave = row->octave = (u8)(n);
                             history_add(music->history);
@@ -2536,14 +2574,14 @@ static void drawPianoSfxColumn(Music* music, s32 x, s32 y)
     {
         tic_rect rect = {x, y + Header - 1, TIC_FONT_WIDTH * 2, TIC_FONT_HEIGHT * MUSIC_FRAMES};
 
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
 
-            showTooltip(music->studio, "set sfx");
+            music->deps.tooltip(music->deps.host, "set sfx");
 
-            bool left = checkMouseClick(music->studio, &rect, tic_mouse_left);
-            if(left || checkMouseClick(music->studio, &rect, tic_mouse_right))
+            bool left = mouseClicked(music, &rect, tic_mouse_left);
+            if(left || mouseClicked(music, &rect, tic_mouse_right))
             {
                 tic_point pos = {PianoSfxColumn * 2 + (tic_api_mouse(tic).x - rect.x) / TIC_FONT_WIDTH, (tic_api_mouse(tic).y - rect.y) / TIC_FONT_HEIGHT};
 
@@ -2624,11 +2662,11 @@ static void drawPianoCommandColumn(Music* music, s32 x, s32 y)
     {
         tic_rect rect = {x, y + Header - 1, TIC_FONT_WIDTH * (tic_music_cmd_count - 1), TIC_FONT_HEIGHT * MUSIC_FRAMES};
 
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
+            ui_cursor(music->tic, tic_cursor_hand);
 
-            showTooltip(music->studio, "set command");
+            music->deps.tooltip(music->deps.host, "set command");
 
             command = (tic_api_mouse(tic).x - rect.x) / TIC_FONT_WIDTH + 1;
             overRow = (tic_api_mouse(tic).y - rect.y) / TIC_FONT_HEIGHT;
@@ -2644,7 +2682,7 @@ static void drawPianoCommandColumn(Music* music, s32 x, s32 y)
                 tic_api_print(tic, Hints[command], 73, 129, tic_color_yellow, false, 1, true);
             }
 
-            if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+            if(mouseClicked(music, &rect, tic_mouse_left))
             {
                 tic_track_row* row = &pattern->rows[rowIndex(music, overRow)];
 
@@ -2705,10 +2743,10 @@ static void drawPianoXYColumn(Music* music, s32 x, s32 y)
     {
         tic_rect rect = {x, y + Header - 1, TIC_FONT_WIDTH * 2, TIC_FONT_HEIGHT * MUSIC_FRAMES};
 
-        if(checkMousePos(music->studio, &rect))
+        if(mousePos(music, &rect))
         {
-            setCursor(music->studio, tic_cursor_hand);
-            showTooltip(music->studio, "set command XY");
+            ui_cursor(music->tic, tic_cursor_hand);
+            music->deps.tooltip(music->deps.host, "set command XY");
 
             if(pattern)
             {
@@ -2723,8 +2761,8 @@ static void drawPianoXYColumn(Music* music, s32 x, s32 y)
                 }
             }
 
-            bool left = checkMouseClick(music->studio, &rect, tic_mouse_left);
-            if(left || checkMouseClick(music->studio, &rect, tic_mouse_right))
+            bool left = mouseClicked(music, &rect, tic_mouse_left);
+            if(left || mouseClicked(music, &rect, tic_mouse_right))
             {
                 tic_point pos = {PianoXYColumn * 2 + (tic_api_mouse(tic).x - rect.x) / TIC_FONT_WIDTH, (tic_api_mouse(tic).y - rect.y) / TIC_FONT_HEIGHT};
 
@@ -2829,15 +2867,15 @@ static void drawBeatButton(Music* music, s32 x, s32 y)
     tic_rect rect = {x, y, (sizeof Label44 - 1) * TIC_ALTFONT_WIDTH - 1, TIC_FONT_HEIGHT - 1};
 
     bool down = false;
-    if(checkMousePos(music->studio, &rect))
+    if(mousePos(music, &rect))
     {
-        setCursor(music->studio, tic_cursor_hand);
-        showTooltip(music->studio, music->beat34 ? "set 4 quarter note" : "set 3 quarter note");
+        ui_cursor(music->tic, tic_cursor_hand);
+        music->deps.tooltip(music->deps.host, music->beat34 ? "set 4 quarter note" : "set 3 quarter note");
 
-        if(checkMouseDown(music->studio, &rect, tic_mouse_left))
+        if(mouseDown(music, &rect, tic_mouse_left))
             down = true;
 
-        if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+        if(mouseClicked(music, &rect, tic_mouse_left))
             music->beat34 = !music->beat34;
     }
 
@@ -2954,7 +2992,7 @@ static void updatePianoRollState(Music* music)
         memset(music->piano.note, -1, sizeof music->piano.note);
 }
 
-static void tick(Music* music)
+void music_tick(Music* music)
 {
     tic_mem* tic = music->tic;
 
@@ -3049,14 +3087,18 @@ static void clipboardRedo(void* app)
 
 const ClipboardOps MusicClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
-void initMusic(Music* music, Studio* studio, tic_music* src)
+void music_set_view(Music* music, const MusicView* view)
+{
+    music->view = view;
+}
+
+void initMusic(Music* music, const MusicDeps* deps, tic_music* src)
 {
     if(music->history) history_delete(music->history);
 
     *music = (Music){
-        .studio = studio,
-        .tic = getMemory(studio),
-        .tick = tick,
+        .deps = *deps,
+        .tic = deps->tic,
         .src = src,
         .track = 0,
         .beat34 = false,
@@ -3098,7 +3140,7 @@ void initMusic(Music* music, Studio* studio, tic_music* src)
             },
 
         .tickCounter = 0,
-        .tab = getConfig(studio)->options.musicTracker ? MUSIC_TRACKER_TAB : MUSIC_PIANO_TAB,
+        .tab = deps->tracker ? MUSIC_TRACKER_TAB : MUSIC_PIANO_TAB,
         .history = history_create(src, sizeof(tic_music)),
     };
 
