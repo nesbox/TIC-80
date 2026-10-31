@@ -48,7 +48,7 @@ static void drawStudioMenubar(Studio* studio);
 #include "editors/map/map.h"
 #include "editors/map/world.h"
 #include "editors/sfx/sfx.h"
-#include "editors/music.h"
+#include "editors/music/music.h"
 #include "ext/history.h"
 #include "wave_writer.h"
 #include "ext/gif.h"
@@ -228,6 +228,9 @@ struct Studio
     // The sprite editor's frame; its scanline reads it, so it is filled at
     // init too.
     SpriteView spriteView;
+
+    // The music editor's frame, refreshed every tick like the others.
+    MusicView musicView;
 #endif
     struct
     {
@@ -425,8 +428,7 @@ static void sfxTick(void* app)
 }
 static void musicTick(void* app)
 {
-    Music* music = app;
-    music->tick(music);
+    music_tick(app);
 }
 
 static void spriteScanline(tic_mem* tic, s32 row, void* data)
@@ -1408,6 +1410,26 @@ static SpriteView spriteFrame(Studio* studio)
         .flags = getBankFlags(studio),
     };
 }
+
+static void musicTooltip(void* host, const char* text)
+{
+    showTooltip(host, text);
+}
+
+// What the music editor draws with this frame: the bar's flags and the cart's
+// bank0 tiles the icons come from.
+static MusicView musicFrame(Studio* studio)
+{
+    return (MusicView){
+        .frame =
+            {
+                .captured = studio_keys_captured(studio),
+                .pointerOwned = menubar_owns_pointer(&studio->menubar, studio->tic),
+                .clipboard = getClipboardEvent(studio),
+            },
+        .cartTiles = &getConfig(studio)->cart->bank0.tiles,
+    };
+}
 #endif
 
 static void initModules(Studio* studio)
@@ -1467,6 +1489,17 @@ static void initModules(Studio* studio)
 
     studio->spriteView = (SpriteView){0};
 
+    MusicDeps musicDeps =
+        {
+            .host = studio,
+            .tic = tic,
+            .mouse = studio->mouse.state,
+            .tracker = getConfig(studio)->options.musicTracker,
+            .tooltip = musicTooltip,
+        };
+
+    studio->musicView = (MusicView){0};
+
     for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
     {
         initSprite(studio->banks.sprite[i], &spriteDeps, &tic->cart.banks[i].tiles);
@@ -1475,7 +1508,8 @@ static void initModules(Studio* studio)
         map_set_view(studio->banks.map[i], &studio->mapView);
         initSfx(studio->banks.sfx[i], &sfxDeps, &tic->cart.banks[i].sfx);
         sfx_set_view(studio->banks.sfx[i], &studio->sfxView);
-        initMusic(studio->banks.music[i], studio, &tic->cart.banks[i].music);
+        initMusic(studio->banks.music[i], &musicDeps, &tic->cart.banks[i].music);
+        music_set_view(studio->banks.music[i], &studio->musicView);
     }
 
     // A confirmed reload calls this mid-frame: fill the views before the
@@ -2479,6 +2513,12 @@ static void renderStudio(Studio* studio)
         {
             studio->spriteView = spriteFrame(studio);
             sprite_set_view(studio->banks.sprite[studio->bank.index.sprites], &studio->spriteView);
+        }
+
+        if(studio->mode == TIC_MUSIC_MODE)
+        {
+            studio->musicView = musicFrame(studio);
+            music_set_view(studio->banks.music[studio->bank.index.music], &studio->musicView);
         }
 #endif
 

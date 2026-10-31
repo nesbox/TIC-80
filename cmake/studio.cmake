@@ -64,7 +64,7 @@ if(BUILD_EDITORS)
         ${TIC80LIB_DIR}/studio/editors/map/map.c
         ${TIC80LIB_DIR}/studio/editors/map/world.c
         ${TIC80LIB_DIR}/studio/editors/sfx/sfx.c
-        ${TIC80LIB_DIR}/studio/editors/music.c
+        ${TIC80LIB_DIR}/studio/editors/music/music.c
         ${TIC80LIB_DIR}/ext/history.c
         ${TIC80LIB_DIR}/ext/gif.c
     )

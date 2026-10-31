@@ -22,13 +22,46 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "tic.h"
+#include "studio/clipboard.h"
+#include "studio/keyboard.h"
+#include "studio/mouse.h"
 
 typedef struct Music Music;
 
+// What the host gives the editor once: the machine, the pointer states, the
+// tooltip ask and the option that picks the first tab.
+typedef struct
+{
+    void* host;
+    tic_mem* tic;
+    MouseState* mouse;
+    bool tracker;
+
+    void (*tooltip)(void* host, const char* text);
+
+} MusicDeps;
+
+// The frame: the bar's flags and the cart's bank0 tiles the icons come from.
+typedef struct
+{
+    struct
+    {
+        bool captured;
+        bool pointerOwned;
+        ClipboardEvent clipboard;
+
+    } frame;
+
+    const tic_tiles* cartTiles;
+
+} MusicView;
+
 struct Music
 {
-    Studio* studio;
+    MusicDeps deps;
+    const MusicView* view;
+
     tic_mem* tic;
     tic_music* src;
 
@@ -96,13 +129,13 @@ struct Music
     u32 tickCounter;
 
     struct History* history;
-
-    void (*tick)(Music*);
 };
 
 extern const ClipboardOps MusicClipboard;
 
-void initMusic(Music*, Studio* studio, tic_music* src);
+void initMusic(Music*, const MusicDeps*, tic_music* src);
+void music_set_view(Music*, const MusicView*);
+void music_tick(Music*);
 void freeMusic(Music* music);
 void musicToggleFollow(Music*);
 void musicToggleLoop(Music*);

@@ -26,7 +26,7 @@
 #include "editors/code/code.h"
 #include "editors/sprite/sprite.h"
 #include "editors/map/map.h"
-#include "editors/music.h"
+#include "editors/music/music.h"
 #include "editors/sfx/sfx.h"
 #include "screens/console.h"
 
