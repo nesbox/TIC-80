@@ -47,7 +47,7 @@ static void drawStudioMenubar(Studio* studio);
 #include "editors/sprite.h"
 #include "editors/map/map.h"
 #include "editors/map/world.h"
-#include "editors/sfx.h"
+#include "editors/sfx/sfx.h"
 #include "editors/music.h"
 #include "ext/history.h"
 #include "wave_writer.h"
@@ -221,6 +221,9 @@ struct Studio
 
     // The map and the world share one frame; the world reads it through its Map.
     MapView mapView;
+
+    // The sfx editor's frame, refreshed every tick like the others.
+    SfxView sfxView;
 #endif
     struct
     {
@@ -415,8 +418,7 @@ static void mapTick(void* app)
 }
 static void sfxTick(void* app)
 {
-    Sfx* sfx = app;
-    sfx->tick(sfx);
+    sfx_tick(app);
 }
 static void musicTick(void* app)
 {
@@ -535,17 +537,6 @@ static inline void music2ram(tic_ram* ram, const tic_music* src)
     memcpy(&ram->music, src, sizeof ram->music);
 }
 
-s32 calcWaveAnimation(tic_mem* tic, u32 offset, s32 channel)
-{
-    const tic_sound_register* reg = &tic->ram->registers[channel];
-
-    s32 val = tic_tool_noise(&reg->waveform)
-                  ? (rand() & 1) * MAX_VOLUME
-                  : tic_tool_peek4(reg->waveform.data, ((offset * tic_sound_register_get_freq(reg)) >> 7) % WAVE_VALUES);
-
-    return val * reg->volume;
-}
-
 #if defined(BUILD_EDITORS)
 static const tic_sfx* getSfxSrc(Studio* studio)
 {
@@ -584,7 +575,7 @@ const char* studioExportSfx(Studio* studio, s32 index, const char* filename)
             {
                 Channel = 0
             };
-            sfx_stop(tic, Channel);
+            sound_stop(tic, Channel);
             tic_api_sfx(tic, index, effect->note, effect->octave, -1, Channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
 
             for(s32 ticks = 0, pos = 0; pos < SFX_TICKS; pos = tic_tool_sfx_pos(effect->speed, ++ticks))
@@ -596,7 +587,7 @@ const char* studioExportSfx(Studio* studio, s32 index, const char* filename)
                 wave_write(tic->product.samples.buffer, tic->product.samples.count);
             }
 
-            sfx_stop(tic, Channel);
+            sound_stop(tic, Channel);
             memset(tic->ram->registers, 0, sizeof(tic_sound_register));
         }
 
@@ -672,11 +663,6 @@ const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* f
     return NULL;
 }
 #endif
-
-void sfx_stop(tic_mem* tic, s32 channel)
-{
-    sound_stop(tic, channel);
-}
 
 char getKeyboardText(Studio* studio)
 {
@@ -1375,6 +1361,25 @@ static MapView mapFrame(Studio* studio)
         .cartPalette = &config->cart->bank0.palette.vbank0,
     };
 }
+
+static void sfxTooltip(void* host, const char* text)
+{
+    showTooltip(host, text);
+}
+
+// What the sfx editor draws with this frame: the bar's pointer flag, the
+// clipboard gesture and the cart's bank0 tiles the icons come from.
+static SfxView sfxFrame(Studio* studio)
+{
+    return (SfxView){
+        .frame =
+            {
+                .pointerOwned = menubar_owns_pointer(&studio->menubar, studio->tic),
+                .clipboard = getClipboardEvent(studio),
+            },
+        .cartTiles = &getConfig(studio)->cart->bank0.tiles,
+    };
+}
 #endif
 
 static void initModules(Studio* studio)
@@ -1414,12 +1419,23 @@ static void initModules(Studio* studio)
 
     studio->mapView = (MapView){0};
 
+    SfxDeps sfxDeps =
+        {
+            .host = studio,
+            .tic = tic,
+            .mouse = studio->mouse.state,
+            .tooltip = sfxTooltip,
+        };
+
+    studio->sfxView = (SfxView){0};
+
     for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
     {
         initSprite(studio->banks.sprite[i], studio, &tic->cart.banks[i].tiles);
         initMap(studio->banks.map[i], &mapDeps, &tic->cart.banks[i].map);
         map_set_view(studio->banks.map[i], &studio->mapView);
-        initSfx(studio->banks.sfx[i], studio, &tic->cart.banks[i].sfx);
+        initSfx(studio->banks.sfx[i], &sfxDeps, &tic->cart.banks[i].sfx);
+        sfx_set_view(studio->banks.sfx[i], &studio->sfxView);
         initMusic(studio->banks.music[i], studio, &tic->cart.banks[i].music);
     }
 
@@ -2411,6 +2427,12 @@ static void renderStudio(Studio* studio)
         {
             studio->mapView = mapFrame(studio);
             map_set_view(studio->banks.map[studio->bank.index.map], &studio->mapView);
+        }
+
+        if(studio->mode == TIC_SFX_MODE)
+        {
+            studio->sfxView = sfxFrame(studio);
+            sfx_set_view(studio->banks.sfx[studio->bank.index.sfx], &studio->sfxView);
         }
 #endif
 

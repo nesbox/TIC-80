@@ -22,15 +22,46 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "tic.h"
+#include "studio/clipboard.h"
+#include "studio/keyboard.h"
+#include "studio/mouse.h"
 
 typedef struct Sfx Sfx;
 
+// What the host gives the editor once: the machine, the pointer states and the
+// tooltip ask.
+typedef struct
+{
+    void* host;
+    tic_mem* tic;
+    MouseState* mouse;
+
+    void (*tooltip)(void* host, const char* text);
+
+} SfxDeps;
+
+// The frame: the bar's pointer flag, the clipboard gesture and the cart's
+// bank0 tiles the icons are drawn from.
+typedef struct
+{
+    struct
+    {
+        bool pointerOwned;
+        ClipboardEvent clipboard;
+
+    } frame;
+
+    const tic_tiles* cartTiles;
+
+} SfxView;
+
 struct Sfx
 {
-    Studio* studio;
-    tic_mem* tic;
+    SfxDeps deps;
+    const SfxView* view;
 
+    tic_mem* tic;
     tic_sfx* src;
 
     u8 index : SFX_COUNT_BITS;
@@ -50,11 +81,11 @@ struct Sfx
     bool needsHistoryUpdate;
     bool needsWaveHistoryUpdate;
     s32 lastEditCanvasTab;
-
-    void (*tick)(Sfx*);
 };
 
 extern const ClipboardOps SfxClipboard;
 
-void initSfx(Sfx*, Studio* studio, tic_sfx* src);
+void initSfx(Sfx*, const SfxDeps*, tic_sfx* src);
+void sfx_set_view(Sfx*, const SfxView*);
+void sfx_tick(Sfx*);
 void freeSfx(Sfx* sfx);

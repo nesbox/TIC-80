@@ -21,6 +21,9 @@
 // SOFTWARE.
 
 #include "sound.h"
+#include "tools.h"
+
+#include <stdlib.h>
 
 void sound_play(tic_mem* tic, const tic_sfx* sfx, s32 id)
 {
@@ -32,4 +35,15 @@ void sound_play(tic_mem* tic, const tic_sfx* sfx, s32 id)
 void sound_stop(tic_mem* tic, s32 channel)
 {
     tic_api_sfx(tic, -1, 0, 0, -1, channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
+}
+
+s32 sound_wave_animation(tic_mem* tic, u32 offset, s32 channel)
+{
+    const tic_sound_register* reg = &tic->ram->registers[channel];
+
+    s32 val = tic_tool_noise(&reg->waveform)
+                  ? (rand() & 1) * MAX_VOLUME
+                  : tic_tool_peek4(reg->waveform.data, ((offset * tic_sound_register_get_freq(reg)) >> 7) % WAVE_VALUES);
+
+    return val * reg->volume;
 }
