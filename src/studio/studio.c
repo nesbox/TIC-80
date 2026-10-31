@@ -224,6 +224,10 @@ struct Studio
 
     // The sfx editor's frame, refreshed every tick like the others.
     SfxView sfxView;
+
+    // The sprite editor's frame; its scanline reads it, so it is filled at
+    // init too.
+    SpriteView spriteView;
 #endif
     struct
     {
@@ -409,8 +413,7 @@ static void worldTick(void* app)
 }
 static void spriteTick(void* app)
 {
-    Sprite* sprite = app;
-    sprite->tick(sprite);
+    sprite_tick(app);
 }
 static void mapTick(void* app)
 {
@@ -428,8 +431,7 @@ static void musicTick(void* app)
 
 static void spriteScanline(tic_mem* tic, s32 row, void* data)
 {
-    Sprite* sprite = data;
-    sprite->scanline(tic, row, sprite);
+    sprite_scanline(tic, row, data);
 }
 static void mapScanline(tic_mem* tic, s32 row, void* data)
 {
@@ -1380,6 +1382,32 @@ static SfxView sfxFrame(Studio* studio)
         .cartTiles = &getConfig(studio)->cart->bank0.tiles,
     };
 }
+
+static void spriteTooltip(void* host, const char* text)
+{
+    showTooltip(host, text);
+}
+
+// What the sprite editor draws with this frame: the bar's flags, the cart's
+// bank0 tiles and palette, and the current sprite bank's palettes and flags.
+static SpriteView spriteFrame(Studio* studio)
+{
+    const StudioConfig* config = getConfig(studio);
+
+    return (SpriteView){
+        .frame =
+            {
+                .captured = studio_keys_captured(studio),
+                .pointerOwned = menubar_owns_pointer(&studio->menubar, studio->tic),
+                .clipboard = getClipboardEvent(studio),
+            },
+        .cartTiles = &config->cart->bank0.tiles,
+        .cartPalette = &config->cart->bank0.palette.vbank0,
+        .vbank0 = getBankPalette(studio, false),
+        .vbank1 = getBankPalette(studio, true),
+        .flags = getBankFlags(studio),
+    };
+}
 #endif
 
 static void initModules(Studio* studio)
@@ -1429,9 +1457,20 @@ static void initModules(Studio* studio)
 
     studio->sfxView = (SfxView){0};
 
+    SpriteDeps spriteDeps =
+        {
+            .host = studio,
+            .tic = tic,
+            .mouse = studio->mouse.state,
+            .tooltip = spriteTooltip,
+        };
+
+    studio->spriteView = (SpriteView){0};
+
     for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
     {
-        initSprite(studio->banks.sprite[i], studio, &tic->cart.banks[i].tiles);
+        initSprite(studio->banks.sprite[i], &spriteDeps, &tic->cart.banks[i].tiles);
+        sprite_set_view(studio->banks.sprite[i], &studio->spriteView);
         initMap(studio->banks.map[i], &mapDeps, &tic->cart.banks[i].map);
         map_set_view(studio->banks.map[i], &studio->mapView);
         initSfx(studio->banks.sfx[i], &sfxDeps, &tic->cart.banks[i].sfx);
@@ -1439,9 +1478,10 @@ static void initModules(Studio* studio)
         initMusic(studio->banks.music[i], studio, &tic->cart.banks[i].music);
     }
 
-    // A confirmed reload calls this mid-frame: fill the view before the
-    // renderer can reach the map's scanline.
+    // A confirmed reload calls this mid-frame: fill the views before the
+    // renderer can reach their scanlines.
     studio->mapView = mapFrame(studio);
+    studio->spriteView = spriteFrame(studio);
 
     initWorldMap(studio);
     worldRefresh(studio->world);
@@ -2433,6 +2473,12 @@ static void renderStudio(Studio* studio)
         {
             studio->sfxView = sfxFrame(studio);
             sfx_set_view(studio->banks.sfx[studio->bank.index.sfx], &studio->sfxView);
+        }
+
+        if(studio->mode == TIC_SPRITE_MODE)
+        {
+            studio->spriteView = spriteFrame(studio);
+            sprite_set_view(studio->banks.sprite[studio->bank.index.sprites], &studio->spriteView);
         }
 #endif
 

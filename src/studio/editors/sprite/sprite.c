@@ -21,12 +21,19 @@
 // SOFTWARE.
 
 #include "sprite.h"
+#include "api.h"
 #include "studio/clipboard.h"
+#include "studio/icons.h"
+#include "studio/layout.h"
 #include "studio/ram.h"
+#include "studio/ui.h"
 #include "ext/history.h"
 
-#include <math.h>
 #include <ctype.h>
+#include <math.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define CANVAS_SIZE       (64)
 #define PALETTE_CELL_SIZE 8
@@ -50,6 +57,48 @@ enum
     SheetX = TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1,
     SheetY = BarH,
 };
+
+static bool keyPressed(Sprite* sprite, tic_key key)
+{
+    return keyboard_pressed(sprite->tic, key);
+}
+
+static char keyboardText(Sprite* sprite)
+{
+    return sprite->view->frame.captured ? '\0' : keyboard_text(sprite->tic);
+}
+
+static bool mousePos(Sprite* sprite, const tic_rect* rect)
+{
+    return !sprite->view->frame.pointerOwned && mouse_over(sprite->tic, rect);
+}
+
+static bool mouseClicked(Sprite* sprite, const tic_rect* rect, tic_mouse_btn button)
+{
+    return mouse_click(&sprite->deps.mouse[button], rect);
+}
+
+static bool mouseDown(Sprite* sprite, const tic_rect* rect, tic_mouse_btn button)
+{
+    return mouse_down(&sprite->deps.mouse[button], rect);
+}
+
+static tic_palette* bankPalette(Sprite* sprite, bool vbank1)
+{
+    return vbank1 ? sprite->view->vbank1 : sprite->view->vbank0;
+}
+
+static void tooltip(Sprite* sprite, const char* format, ...)
+{
+    char buf[STUDIO_TEXT_BUFFER_WIDTH];
+
+    va_list args;
+    va_start(args, format);
+    vsnprintf(buf, sizeof buf, format, args);
+    va_end(args);
+
+    sprite->deps.tooltip(sprite->deps.host, buf);
+}
 
 // !TODO: move it to helpers place
 static void drawPanelBorder(tic_mem* tic, s32 x, s32 y, s32 w, s32 h)
@@ -174,9 +223,9 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->canvasSize;
 
-    if(checkMousePos(sprite->studio, &rect))
+    if(mousePos(sprite, &rect))
     {
-        setCursor(sprite->studio, tic_cursor_hand);
+        ui_cursor(sprite->tic, tic_cursor_hand);
 
         s32 mx = tic_api_mouse(tic).x - x;
         s32 my = tic_api_mouse(tic).y - y;
@@ -186,10 +235,10 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
 
         drawCursorBorder(sprite, x + mx, y + my, Size, Size);
 
-        if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+        if(mouseDown(sprite, &rect, tic_mouse_left))
             sprite->color = tic_tilesheet_getpix(&sprite->sheet, sx + mx / Size, sy + my / Size);
 
-        if(checkMouseDown(sprite->studio, &rect, tic_mouse_right))
+        if(mouseDown(sprite, &rect, tic_mouse_right))
             sprite->color2 = tic_tilesheet_getpix(&sprite->sheet, sx + mx / Size, sy + my / Size);
     }
 }
@@ -293,8 +342,8 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->canvasSize;
 
-    bool left = checkMouseDown(sprite->studio, &rect, tic_mouse_left);
-    bool right = checkMouseDown(sprite->studio, &rect, tic_mouse_right);
+    bool left = mouseDown(sprite, &rect, tic_mouse_left);
+    bool right = mouseDown(sprite, &rect, tic_mouse_right);
 
     // end the stroke even if the button was released off the canvas
     if(!left && !right)
@@ -302,9 +351,9 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
     bool drawing = false;
 
-    if(checkMousePos(sprite->studio, &rect))
+    if(mousePos(sprite, &rect))
     {
-        setCursor(sprite->studio, tic_cursor_hand);
+        ui_cursor(sprite->tic, tic_cursor_hand);
 
         s32 brushSize = sprite->brush.size * Size;
         tic_point mouse = tic_api_mouse(tic);
@@ -312,7 +361,7 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
         s32 mx = toCanvasCoord(Size, brushSize, x, mouse.x);
         s32 my = toCanvasCoord(Size, brushSize, y, mouse.y);
 
-        SHOW_TOOLTIP(sprite->studio, "[x=%02i y=%02i]", mx / Size, my / Size);
+        tooltip(sprite, "[x=%02i y=%02i]", mx / Size, my / Size);
 
         drawCursorBorder(sprite, x + mx, y + my, brushSize, brushSize);
 
@@ -416,9 +465,9 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
 
     bool endDrag = false;
 
-    if(checkMousePos(sprite->studio, &rect))
+    if(mousePos(sprite, &rect))
     {
-        setCursor(sprite->studio, tic_cursor_hand);
+        ui_cursor(sprite->tic, tic_cursor_hand);
 
         s32 mx = tic_api_mouse(tic).x - x;
         s32 my = tic_api_mouse(tic).y - y;
@@ -428,7 +477,7 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
 
         drawCursorBorder(sprite, x + mx, y + my, Size, Size);
 
-        if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+        if(mouseDown(sprite, &rect, tic_mouse_left))
         {
             if(sprite->select.drag)
             {
@@ -491,9 +540,9 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->canvasSize;
 
-    if(checkMousePos(sprite->studio, &rect))
+    if(mousePos(sprite, &rect))
     {
-        setCursor(sprite->studio, tic_cursor_hand);
+        ui_cursor(sprite->tic, tic_cursor_hand);
 
         s32 mx = tic_api_mouse(tic).x - x;
         s32 my = tic_api_mouse(tic).y - y;
@@ -503,8 +552,8 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
 
         drawCursorBorder(sprite, x + mx, y + my, Size, Size);
 
-        bool left = checkMouseClick(sprite->studio, &rect, tic_mouse_left);
-        bool right = checkMouseClick(sprite->studio, &rect, tic_mouse_right);
+        bool left = mouseClicked(sprite, &rect, tic_mouse_left);
+        bool right = mouseClicked(sprite, &rect, tic_mouse_right);
 
         if(left || right)
         {
@@ -544,14 +593,14 @@ static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
     tic_rect rect = {x, y, Size, (Size + 1) * Count};
 
     bool over = false;
-    if(checkMousePos(sprite->studio, &rect))
+    if(mousePos(sprite, &rect))
     {
-        setCursor(sprite->studio, tic_cursor_hand);
+        ui_cursor(sprite->tic, tic_cursor_hand);
 
-        showTooltip(sprite->studio, "BRUSH SIZE");
+        sprite->deps.tooltip(sprite->deps.host, "BRUSH SIZE");
         over = true;
 
-        if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+        if(mouseDown(sprite, &rect, tic_mouse_left))
         {
             s32 my = tic_api_mouse(tic).y - y;
 
@@ -584,7 +633,7 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
     const tic_rect rect = getSpriteRect(sprite);
 
     const tic_rect canvasRect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
-    if(checkMouseDown(sprite->studio, &canvasRect, tic_mouse_middle))
+    if(mouseDown(sprite, &canvasRect, tic_mouse_middle))
     {
         s32 mx = tic_api_mouse(tic).x - x;
         s32 my = tic_api_mouse(tic).y - y;
@@ -620,11 +669,11 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
         s32 w = (s32)(CANVAS_SIZE - strlen(buf) * TIC_FONT_WIDTH);
         const tic_rect hexRect = {x + w / 2, TIC_SPRITESIZE + 2, w, TIC_FONT_HEIGHT};
 
-        if(checkMousePos(sprite->studio, &hexRect))
+        if(mousePos(sprite, &hexRect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
 
-            if(checkMouseClick(sprite->studio, &hexRect, tic_mouse_left))
+            if(mouseClicked(sprite, &hexRect, tic_mouse_left))
             {
                 sprite->hexindex = !sprite->hexindex;
             }
@@ -666,10 +715,10 @@ static void drawCanvas(Sprite* sprite, s32 x, s32 y)
             tic_api_rect(tic, i, j, Size, Size, tic_tilesheet_getpix(&sprite->sheet, sx, sy));
 
     // preview the shift-click line, only where processDrawCanvasMouse would draw it
-    if(sprite->mode == SPRITE_DRAW_MODE && !sprite->palette.edit && checkMousePos(sprite->studio, &canvasRect))
+    if(sprite->mode == SPRITE_DRAW_MODE && !sprite->palette.edit && mousePos(sprite, &canvasRect))
     {
-        bool left = checkMouseDown(sprite->studio, &canvasRect, tic_mouse_left);
-        bool right = checkMouseDown(sprite->studio, &canvasRect, tic_mouse_right);
+        bool left = mouseDown(sprite, &canvasRect, tic_mouse_left);
+        bool right = mouseDown(sprite, &canvasRect, tic_mouse_right);
         if(!left && !right && tic_api_key(tic, tic_key_shift) && hasLastDrawPos(sprite))
         {
             // convert the mouse to a brush cell the same way processDrawCanvasMouse does
@@ -869,7 +918,7 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
         Size = 5
     };
 
-    u8* flags = getBankFlags(sprite->studio)->data;
+    u8* flags = sprite->view->flags->data;
     u8 or = 0;
     u8 and = 0xff;
 
@@ -891,14 +940,14 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
         tic_rect rect = {x, y + (Size + 1) * i, Size, Size};
 
         bool over = false;
-        if(checkMousePos(sprite->studio, &rect))
+        if(mousePos(sprite, &rect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
             over = true;
 
-            SHOW_TOOLTIP(sprite->studio, "set flag [%i]", i);
+            tooltip(sprite, "set flag [%i]", i);
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(mouseClicked(sprite, &rect, tic_mouse_left))
             {
                 const s32* idx = indexes;
 
@@ -933,19 +982,19 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
     {
         tic_rect rect = {x, y + (Size + 1) * BITS_IN_BYTE + 2, TIC_ALTFONT_WIDTH * 2 + 1, TIC_FONT_HEIGHT + 1};
 
-        if(checkMousePos(sprite->studio, &rect))
+        if(mousePos(sprite, &rect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
 
-            showTooltip(sprite->studio, "flags hex value");
+            sprite->deps.tooltip(sprite->deps.host, "flags hex value");
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(mouseClicked(sprite, &rect, tic_mouse_left))
             {
                 sprite->flags.edit = true;
                 sprite->flags.pos = (tic_api_mouse(tic).x - rect.x) / (TIC_ALTFONT_WIDTH + 1);
             }
         }
-        else if(checkMouseDown(sprite->studio, &(tic_rect){0, 0, TIC80_WIDTH, TIC80_HEIGHT}, tic_mouse_left))
+        else if(mouseDown(sprite, &(tic_rect){0, 0, TIC80_WIDTH, TIC80_HEIGHT}, tic_mouse_left))
         {
             sprite->flags.edit = false;
         }
@@ -1008,19 +1057,19 @@ static void drawMoveButtons(Sprite* sprite)
         {
             down = false;
 
-            if(checkMousePos(sprite->studio, &Rects[i]))
+            if(mousePos(sprite, &Rects[i]))
             {
-                setCursor(sprite->studio, tic_cursor_hand);
+                ui_cursor(sprite->tic, tic_cursor_hand);
 
-                if(checkMouseDown(sprite->studio, &Rects[i], tic_mouse_left)) down = true;
+                if(mouseDown(sprite, &Rects[i], tic_mouse_left)) down = true;
 
-                if(checkMouseClick(sprite->studio, &Rects[i], tic_mouse_left))
+                if(mouseClicked(sprite, &Rects[i], tic_mouse_left))
                     Func[i](sprite);
             }
 
-            drawBitIcon(sprite->studio, Icons[i], Rects[i].x, Rects[i].y + 1, down ? tic_color_white : tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], Rects[i].x, Rects[i].y + 1, down ? tic_color_white : tic_color_black);
 
-            if(!down) drawBitIcon(sprite->studio, Icons[i], Rects[i].x, Rects[i].y, tic_color_white);
+            if(!down) ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], Rects[i].x, Rects[i].y, tic_color_white);
         }
     }
 }
@@ -1038,11 +1087,11 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
     {
         tic_rect rect = {x, y - 2, Size, 5};
 
-        if(checkMousePos(sprite->studio, &rect))
+        if(mousePos(sprite, &rect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+            if(mouseDown(sprite, &rect, tic_mouse_left))
             {
                 s32 mx = tic_api_mouse(tic).x - x;
                 *value = (u8)(mx * Max / (Size - 1));
@@ -1054,8 +1103,8 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
         {
             s32 offset = x + *value * (Size - 1) / Max - 2;
-            drawBitIcon(sprite->studio, tic_icon_pos, offset, y - 1, tic_color_black);
-            drawBitIcon(sprite->studio, tic_icon_pos, offset, y - 2, tic_color_white);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_pos, offset, y - 1, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_pos, offset, y - 2, tic_color_white);
         }
     }
 
@@ -1063,25 +1112,25 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
         tic_rect rect = {x - 4, y - 1, 2, 3};
 
         bool down = false;
-        if(checkMousePos(sprite->studio, &rect))
+        if(mousePos(sprite, &rect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+            if(mouseDown(sprite, &rect, tic_mouse_left))
                 down = true;
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(mouseClicked(sprite, &rect, tic_mouse_left))
                 (*value)--;
         }
 
         if(down)
         {
-            drawBitIcon(sprite->studio, tic_icon_tinyleft, rect.x - 1, rect.y, tic_color_white);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_tinyleft, rect.x - 1, rect.y, tic_color_white);
         }
         else
         {
-            drawBitIcon(sprite->studio, tic_icon_tinyleft, rect.x - 1, rect.y, tic_color_black);
-            drawBitIcon(sprite->studio, tic_icon_tinyleft, rect.x - 1, rect.y - 1, tic_color_white);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_tinyleft, rect.x - 1, rect.y, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_tinyleft, rect.x - 1, rect.y - 1, tic_color_white);
         }
     }
 
@@ -1089,25 +1138,25 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
         tic_rect rect = {x + Size + 2, y - 1, 2, 3};
 
         bool down = false;
-        if(checkMousePos(sprite->studio, &rect))
+        if(mousePos(sprite, &rect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+            if(mouseDown(sprite, &rect, tic_mouse_left))
                 down = true;
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(mouseClicked(sprite, &rect, tic_mouse_left))
                 (*value)++;
         }
 
         if(down)
         {
-            drawBitIcon(sprite->studio, tic_icon_tinyright, rect.x - 1, rect.y, tic_color_white);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_tinyright, rect.x - 1, rect.y, tic_color_white);
         }
         else
         {
-            drawBitIcon(sprite->studio, tic_icon_tinyright, rect.x - 1, rect.y, tic_color_black);
-            drawBitIcon(sprite->studio, tic_icon_tinyright, rect.x - 1, rect.y - 1, tic_color_white);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_tinyright, rect.x - 1, rect.y, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_tinyright, rect.x - 1, rect.y - 1, tic_color_white);
         }
     }
 }
@@ -1115,8 +1164,8 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 static void pasteColor(Sprite* sprite)
 {
     bool ovr = sprite->palette.vbank1;
-    if(!fromClipboard(&getBankPalette(sprite->studio, ovr)->colors[sprite->color], sizeof(tic_rgb), false, true, false))
-        fromClipboard(getBankPalette(sprite->studio, ovr)->data, sizeof(tic_palette), false, true, false);
+    if(!fromClipboard(&bankPalette(sprite, ovr)->colors[sprite->color], sizeof(tic_rgb), false, true, false))
+        fromClipboard(bankPalette(sprite, ovr)->data, sizeof(tic_palette), false, true, false);
 }
 
 static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
@@ -1132,28 +1181,28 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
         bool over = false;
         bool down = false;
 
-        if(checkMousePos(sprite->studio, &rect))
+        if(mousePos(sprite, &rect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
 
-            showTooltip(sprite->studio, "COPY PALETTE");
+            sprite->deps.tooltip(sprite->deps.host, "COPY PALETTE");
             over = true;
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+            if(mouseDown(sprite, &rect, tic_mouse_left))
                 down = true;
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
-                toClipboard(getBankPalette(sprite->studio, sprite->palette.vbank1)->data, sizeof(tic_palette), false);
+            if(mouseClicked(sprite, &rect, tic_mouse_left))
+                toClipboard(bankPalette(sprite, sprite->palette.vbank1)->data, sizeof(tic_palette), false);
         }
 
         if(down)
         {
-            drawBitIcon(sprite->studio, tic_icon_copy, rect.x - 1, rect.y, tic_color_light_grey);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_copy, rect.x - 1, rect.y, tic_color_light_grey);
         }
         else
         {
-            drawBitIcon(sprite->studio, tic_icon_copy, rect.x - 1, rect.y, tic_color_black);
-            drawBitIcon(sprite->studio, tic_icon_copy, rect.x - 1, rect.y - 1, (over ? tic_color_light_grey : tic_color_white));
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_copy, rect.x - 1, rect.y, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_copy, rect.x - 1, rect.y - 1, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 
@@ -1167,17 +1216,17 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
         bool over = false;
         bool down = false;
 
-        if(checkMousePos(sprite->studio, &rect))
+        if(mousePos(sprite, &rect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
 
-            showTooltip(sprite->studio, "PASTE PALETTE");
+            sprite->deps.tooltip(sprite->deps.host, "PASTE PALETTE");
             over = true;
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+            if(mouseDown(sprite, &rect, tic_mouse_left))
                 down = true;
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(mouseClicked(sprite, &rect, tic_mouse_left))
             {
                 pasteColor(sprite);
             }
@@ -1185,12 +1234,12 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 
         if(down)
         {
-            drawBitIcon(sprite->studio, tic_icon_paste, rect.x - 1, rect.y, tic_color_light_grey);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_paste, rect.x - 1, rect.y, tic_color_light_grey);
         }
         else
         {
-            drawBitIcon(sprite->studio, tic_icon_paste, rect.x - 1, rect.y, tic_color_black);
-            drawBitIcon(sprite->studio, tic_icon_paste, rect.x - 1, rect.y - 1, (over ? tic_color_light_grey : tic_color_white));
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_paste, rect.x - 1, rect.y, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_paste, rect.x - 1, rect.y - 1, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 }
@@ -1207,16 +1256,16 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
         Height = TIC_FONT_HEIGHT + 1
     };
 
-    u8* data = &getBankPalette(sprite->studio, sprite->palette.vbank1)->data[sprite->color * Rows];
+    u8* data = &bankPalette(sprite, sprite->palette.vbank1)->data[sprite->color * Rows];
 
     {
         tic_rect rect = {x - 20, y - 3, TIC_FONT_WIDTH * Cols + 1, TIC_FONT_HEIGHT * Rows + 1};
 
-        if(checkMousePos(sprite->studio, &rect))
+        if(mousePos(sprite, &rect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+            if(mouseDown(sprite, &rect, tic_mouse_left))
             {
                 s32 mx = tic_api_mouse(tic).x - rect.x;
                 s32 my = tic_api_mouse(tic).y - rect.y;
@@ -1224,7 +1273,7 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
                 sprite->palette.focus = mx / Width + my / Height * Cols;
             }
         }
-        else if(checkMouseDown(sprite->studio, &(tic_rect){0, 0, TIC80_WIDTH, TIC80_HEIGHT}, tic_mouse_left))
+        else if(mouseDown(sprite, &(tic_rect){0, 0, TIC80_WIDTH, TIC80_HEIGHT}, tic_mouse_left))
         {
             sprite->palette.focus = -1;
         }
@@ -1287,9 +1336,9 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
     tic_rect rect = {x, y, PALETTE_WIDTH - 1, PALETTE_HEIGHT - 1};
     tic_palette_dimensions palette = getPaletteDimensions(sprite);
 
-    if(checkMousePos(sprite->studio, &rect))
+    if(mousePos(sprite, &rect))
     {
-        setCursor(sprite->studio, tic_cursor_hand);
+        ui_cursor(sprite->tic, tic_cursor_hand);
 
         s32 mx = tic_api_mouse(tic).x - x;
         s32 my = tic_api_mouse(tic).y - y;
@@ -1299,10 +1348,10 @@ static void drawPaletteVBank1(Sprite* sprite, s32 x, s32 y)
 
         s32 index = mx + my * palette.cols;
 
-        SHOW_TOOLTIP(sprite->studio, "color [%02i]", index);
+        tooltip(sprite, "color [%02i]", index);
 
-        bool left = checkMouseDown(sprite->studio, &rect, tic_mouse_left);
-        bool right = checkMouseDown(sprite->studio, &rect, tic_mouse_right);
+        bool left = mouseDown(sprite, &rect, tic_mouse_left);
+        bool right = mouseDown(sprite, &rect, tic_mouse_right);
 
         if(left || right)
         {
@@ -1405,11 +1454,11 @@ static void drawSheetVBank1(Sprite* sprite, s32 x, s32 y)
         }
     }
 
-    if(checkMousePos(sprite->studio, &rect))
+    if(mousePos(sprite, &rect))
     {
-        setCursor(sprite->studio, tic_cursor_hand);
+        ui_cursor(sprite->tic, tic_cursor_hand);
 
-        if(checkMouseDown(sprite->studio, &rect, tic_mouse_left))
+        if(mouseDown(sprite, &rect, tic_mouse_left))
         {
             s32 offset = (sprite->canvasSize - TIC_SPRITESIZE) / 2;
             selectSprite(sprite, tic_api_mouse(tic).x - x - offset, tic_api_mouse(tic).y - y - offset);
@@ -1525,7 +1574,7 @@ static void deleteSprite(Sprite* sprite)
 
     if(is4bpp(sprite))
     {
-        u8* flags = getBankFlags(sprite->studio)->data;
+        u8* flags = sprite->view->flags->data;
         for(const s32* it = getSpriteIndexes(sprite); *it >= 0; ++it)
             flags[*it] = 0;
     }
@@ -1555,17 +1604,17 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 
         tic_rect rect = {x + i * Gap, y, TIC_SPRITESIZE, TIC_SPRITESIZE};
 
-        if(checkMousePos(sprite->studio, &rect))
+        if(mousePos(sprite, &rect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
 
             over = true;
 
-            showTooltip(sprite->studio, Tooltips[i]);
+            sprite->deps.tooltip(sprite->deps.host, Tooltips[i]);
 
-            if(checkMouseDown(sprite->studio, &rect, tic_mouse_left)) pushed = true;
+            if(mouseDown(sprite, &rect, tic_mouse_left)) pushed = true;
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(mouseClicked(sprite, &rect, tic_mouse_left))
             {
                 if(hasCanvasSelection(sprite))
                 {
@@ -1581,12 +1630,12 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 
         if(pushed)
         {
-            drawBitIcon(sprite->studio, Icons[i], rect.x, y + 1, (over ? tic_color_light_grey : tic_color_white));
+            ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], rect.x, y + 1, (over ? tic_color_light_grey : tic_color_white));
         }
         else
         {
-            drawBitIcon(sprite->studio, Icons[i], rect.x, y + 1, tic_color_black);
-            drawBitIcon(sprite->studio, Icons[i], rect.x, y, (over ? tic_color_light_grey : tic_color_white));
+            ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], rect.x, y + 1, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], rect.x, y, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 }
@@ -1605,16 +1654,16 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
         tic_rect rect = {x + i * Gap, y, TIC_SPRITESIZE, TIC_SPRITESIZE};
 
         bool over = false;
-        if(checkMousePos(sprite->studio, &rect))
+        if(mousePos(sprite, &rect))
         {
-            setCursor(sprite->studio, tic_cursor_hand);
+            ui_cursor(sprite->tic, tic_cursor_hand);
             over = true;
 
             static const char* Tooltips[] = {"BRUSH [1]", "COLOR PICKER [2]", "SELECT [3]", "FILL [4]"};
 
-            showTooltip(sprite->studio, Tooltips[i]);
+            sprite->deps.tooltip(sprite->deps.host, Tooltips[i]);
 
-            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            if(mouseClicked(sprite, &rect, tic_mouse_left))
             {
                 sprite->mode = i;
 
@@ -1626,15 +1675,15 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 
         if(pushed)
         {
-            drawBitIcon(sprite->studio, tic_icon_down, rect.x, y - 5, tic_color_black);
-            drawBitIcon(sprite->studio, tic_icon_down, rect.x, y - 6, tic_color_white);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_down, rect.x, y - 5, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_down, rect.x, y - 6, tic_color_white);
 
-            drawBitIcon(sprite->studio, Icons[i], rect.x, y + 1, (over ? tic_color_light_grey : tic_color_white));
+            ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], rect.x, y + 1, (over ? tic_color_light_grey : tic_color_white));
         }
         else
         {
-            drawBitIcon(sprite->studio, Icons[i], rect.x, y + 1, tic_color_black);
-            drawBitIcon(sprite->studio, Icons[i], rect.x, y, (over ? tic_color_light_grey : tic_color_white));
+            ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], rect.x, y + 1, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], rect.x, y, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 
@@ -1688,7 +1737,7 @@ static void copyToClipboard(Sprite* sprite)
         {
             u8* ptr = buffer + getClipboardSpritesSize(sprite);
 
-            const u8* flags = getBankFlags(sprite->studio)->data;
+            const u8* flags = sprite->view->flags->data;
             for(const s32* it = getSpriteIndexes(sprite); *it >= 0; ++it)
                 *ptr++ = flags[*it];
         }
@@ -1723,7 +1772,7 @@ static void copyFromClipboard(Sprite* sprite)
             if(is4bpp(sprite))
             {
                 const u8* ptr = buffer + getClipboardSpritesSize(sprite);
-                u8* flags = getBankFlags(sprite->studio)->data;
+                u8* flags = sprite->view->flags->data;
 
                 for(const s32* it = getSpriteIndexes(sprite); *it >= 0; ++it)
                     flags[*it] = *ptr++;
@@ -1832,7 +1881,7 @@ static void processKeyboard(Sprite* sprite)
 {
     tic_mem* tic = sprite->tic;
 
-    switch(getClipboardEvent(sprite->studio))
+    switch(sprite->view->frame.clipboard)
     {
         case TIC_CLIPBOARD_CUT: cutToClipboard(sprite); break;
         case TIC_CLIPBOARD_COPY: copyToClipboard(sprite); break;
@@ -1853,21 +1902,21 @@ static void processKeyboard(Sprite* sprite)
         s32 col = sprite->palette.focus % Cols;
         s32 row = sprite->palette.focus / Cols;
 
-        if(keyWasPressed(sprite->studio, tic_key_up))
+        if(keyPressed(sprite, tic_key_up))
             --row;
-        else if(keyWasPressed(sprite->studio, tic_key_down))
+        else if(keyPressed(sprite, tic_key_down))
             ++row;
-        else if(keyWasPressed(sprite->studio, tic_key_left))
+        else if(keyPressed(sprite, tic_key_left))
             --col;
-        else if(keyWasPressed(sprite->studio, tic_key_right))
+        else if(keyPressed(sprite, tic_key_right))
             ++col;
         else
         {
-            char sym = getKeyboardText(sprite->studio);
+            char sym = keyboardText(sprite);
 
             if(isxdigit((u8)sym))
             {
-                u8* data = &getBankPalette(sprite->studio, sprite->palette.vbank1)->data[sprite->color * Rows + row];
+                u8* data = &bankPalette(sprite, sprite->palette.vbank1)->data[sprite->color * Rows + row];
                 char buf[sizeof "FF"];
                 sprintf(buf, "%02X", *data);
                 buf[col] = (char)(toupper((u8)sym));
@@ -1880,25 +1929,25 @@ static void processKeyboard(Sprite* sprite)
     }
     else if(sprite->flags.edit)
     {
-        if(keyWasPressed(sprite->studio, tic_key_left))
+        if(keyPressed(sprite, tic_key_left))
         {
             if(sprite->flags.pos)
                 sprite->flags.pos--;
         }
-        else if(keyWasPressed(sprite->studio, tic_key_right))
+        else if(keyPressed(sprite, tic_key_right))
         {
             if(!sprite->flags.pos)
                 sprite->flags.pos++;
         }
         else
         {
-            char sym = getKeyboardText(sprite->studio);
+            char sym = keyboardText(sprite);
 
             if(isxdigit((u8)sym))
             {
                 u8 mask = 0xff;
 
-                u8* flags = getBankFlags(sprite->studio)->data;
+                u8* flags = sprite->view->flags->data;
                 const s32* indexes = getSpriteIndexes(sprite);
 
                 for(const s32* i = indexes; *i >= 0; i++)
@@ -1923,17 +1972,17 @@ static void processKeyboard(Sprite* sprite)
 
         if(ctrl)
         {
-            if(keyWasPressed(sprite->studio, tic_key_z))
+            if(keyPressed(sprite, tic_key_z))
                 undo(sprite);
-            else if(keyWasPressed(sprite->studio, tic_key_y))
+            else if(keyPressed(sprite, tic_key_y))
                 redo(sprite);
 
-            else if(keyWasPressed(sprite->studio, tic_key_left))
+            else if(keyPressed(sprite, tic_key_left))
                 leftViewport(sprite);
-            else if(keyWasPressed(sprite->studio, tic_key_right))
+            else if(keyPressed(sprite, tic_key_right))
                 rightViewport(sprite);
 
-            else if(keyWasPressed(sprite->studio, tic_key_tab))
+            else if(keyPressed(sprite, tic_key_tab))
                 switchBitMode(sprite, sprite->blit.mode == tic_bpp_4
                                           ? tic_bpp_2
                                       : sprite->blit.mode == tic_bpp_2
@@ -1946,84 +1995,84 @@ static void processKeyboard(Sprite* sprite)
             {
                 if(!sprite->select.drag)
                 {
-                    if(keyWasPressed(sprite->studio, tic_key_up))
+                    if(keyPressed(sprite, tic_key_up))
                         upCanvas(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_down))
+                    else if(keyPressed(sprite, tic_key_down))
                         downCanvas(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_left))
+                    else if(keyPressed(sprite, tic_key_left))
                         leftCanvas(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_right))
+                    else if(keyPressed(sprite, tic_key_right))
                         rightCanvas(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_delete))
+                    else if(keyPressed(sprite, tic_key_delete))
                         deleteCanvas(sprite);
                     // To be able to change tool after selection
-                    else if(keyWasPressed(sprite->studio, tic_key_1))
+                    else if(keyPressed(sprite, tic_key_1))
                         sprite->mode = SPRITE_DRAW_MODE;
-                    else if(keyWasPressed(sprite->studio, tic_key_2))
+                    else if(keyPressed(sprite, tic_key_2))
                         sprite->mode = SPRITE_PICK_MODE;
-                    else if(keyWasPressed(sprite->studio, tic_key_3))
+                    else if(keyPressed(sprite, tic_key_3))
                         sprite->mode = SPRITE_SELECT_MODE;
-                    else if(keyWasPressed(sprite->studio, tic_key_4))
+                    else if(keyPressed(sprite, tic_key_4))
                         sprite->mode = SPRITE_FILL_MODE;
-                    else if(keyWasPressed(sprite->studio, tic_key_5))
+                    else if(keyPressed(sprite, tic_key_5))
                         flipCanvasHorz(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_6))
+                    else if(keyPressed(sprite, tic_key_6))
                         flipCanvasVert(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_7))
+                    else if(keyPressed(sprite, tic_key_7))
                         rotateCanvas(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_8))
+                    else if(keyPressed(sprite, tic_key_8))
                         deleteCanvas(sprite);
                 }
             }
             else
             {
-                if(keyWasPressed(sprite->studio, tic_key_up))
+                if(keyPressed(sprite, tic_key_up))
                     upSprite(sprite);
-                else if(keyWasPressed(sprite->studio, tic_key_down))
+                else if(keyPressed(sprite, tic_key_down))
                     downSprite(sprite);
-                else if(keyWasPressed(sprite->studio, tic_key_left))
+                else if(keyPressed(sprite, tic_key_left))
                     leftSprite(sprite);
-                else if(keyWasPressed(sprite->studio, tic_key_right))
+                else if(keyPressed(sprite, tic_key_right))
                     rightSprite(sprite);
-                else if(keyWasPressed(sprite->studio, tic_key_delete))
+                else if(keyPressed(sprite, tic_key_delete))
                     deleteSprite(sprite);
-                else if(keyWasPressed(sprite->studio, tic_key_tab))
+                else if(keyPressed(sprite, tic_key_tab))
                     switchBanks(sprite);
 
                 if(!sprite->palette.edit)
                 {
 
-                    if(keyWasPressed(sprite->studio, tic_key_1))
+                    if(keyPressed(sprite, tic_key_1))
                         sprite->mode = SPRITE_DRAW_MODE;
-                    else if(keyWasPressed(sprite->studio, tic_key_2))
+                    else if(keyPressed(sprite, tic_key_2))
                         sprite->mode = SPRITE_PICK_MODE;
-                    else if(keyWasPressed(sprite->studio, tic_key_3))
+                    else if(keyPressed(sprite, tic_key_3))
                         sprite->mode = SPRITE_SELECT_MODE;
-                    else if(keyWasPressed(sprite->studio, tic_key_4))
+                    else if(keyPressed(sprite, tic_key_4))
                         sprite->mode = SPRITE_FILL_MODE;
 
-                    else if(keyWasPressed(sprite->studio, tic_key_5))
+                    else if(keyPressed(sprite, tic_key_5))
                         flipSpriteHorz(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_6))
+                    else if(keyPressed(sprite, tic_key_6))
                         flipSpriteVert(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_7))
+                    else if(keyPressed(sprite, tic_key_7))
                         rotateSprite(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_8))
+                    else if(keyPressed(sprite, tic_key_8))
                         deleteSprite(sprite);
 
                     if(sprite->mode == SPRITE_DRAW_MODE)
                     {
-                        if(keyWasPressed(sprite->studio, tic_key_minus))
+                        if(keyPressed(sprite, tic_key_minus))
                             updateBrushSize(sprite, -1);
-                        else if(keyWasPressed(sprite->studio, tic_key_equals))
+                        else if(keyPressed(sprite, tic_key_equals))
                             updateBrushSize(sprite, +1);
-                        else if(keyWasPressed(sprite->studio, tic_key_leftbracket))
+                        else if(keyPressed(sprite, tic_key_leftbracket))
                             updateColorIndex(sprite, -1);
-                        else if(keyWasPressed(sprite->studio, tic_key_rightbracket))
+                        else if(keyPressed(sprite, tic_key_rightbracket))
                             updateColorIndex(sprite, +1);
-                        else if(keyWasPressed(sprite->studio, tic_key_h))
+                        else if(keyPressed(sprite, tic_key_h))
                             sprite->brush.symmetryHorizontal = !sprite->brush.symmetryHorizontal;
-                        else if(keyWasPressed(sprite->studio, tic_key_v))
+                        else if(keyPressed(sprite, tic_key_v))
                             sprite->brush.symmetryVertical = !sprite->brush.symmetryVertical;
                     }
                 }
@@ -2032,7 +2081,7 @@ static void processKeyboard(Sprite* sprite)
     }
 }
 
-static void scanline(tic_mem* tic, s32 row, void* data)
+void sprite_scanline(tic_mem* tic, s32 row, void* data)
 {
     Sprite* sprite = (Sprite*)data;
 
@@ -2040,13 +2089,13 @@ static void scanline(tic_mem* tic, s32 row, void* data)
     {
         const tic_palette* palette = sprite->palette.preview
                                          ? sprite->palette.preview
-                                         : getBankPalette(sprite->studio, sprite->palette.vbank1);
+                                         : bankPalette(sprite, sprite->palette.vbank1);
 
         memcpy(&tic->ram->vram.palette, palette, sizeof(tic_palette));
     }
 }
 
-static void tick(Sprite* sprite)
+void sprite_tick(Sprite* sprite)
 {
     tic_mem* tic = sprite->tic;
 
@@ -2099,7 +2148,7 @@ static void tick(Sprite* sprite)
                 {0, PaletteY + PaletteH, SheetX, TIC80_HEIGHT - PaletteY - PaletteH},
             };
 
-        memcpy(tic->ram->vram.palette.data, getConfig(sprite->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        memcpy(tic->ram->vram.palette.data, sprite->view->cartPalette->data, sizeof(tic_palette));
 
         for(const tic_rect* r = bg; r < bg + COUNT_OF(bg); r++)
             tic_api_rect(tic, r->x, r->y, r->w, r->h, tic_color_grey);
@@ -2171,7 +2220,12 @@ static void clipboardRedo(void* app)
 
 const ClipboardOps SpriteClipboard = {clipboardCut, clipboardCopy, clipboardPaste, clipboardUndo, clipboardRedo};
 
-void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
+void sprite_set_view(Sprite* sprite, const SpriteView* view)
+{
+    sprite->view = view;
+}
+
+void initSprite(Sprite* sprite, const SpriteDeps* deps, tic_tiles* src)
 {
     if(sprite->select.back == NULL) sprite->select.back = (u8*)malloc(CANVAS_SIZE * CANVAS_SIZE);
     if(sprite->select.front == NULL) sprite->select.front = (u8*)malloc(CANVAS_SIZE * CANVAS_SIZE);
@@ -2179,9 +2233,8 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
     freeAnim(sprite);
 
     *sprite = (Sprite){
-        .studio = studio,
-        .tic = getMemory(studio),
-        .tick = tick,
+        .deps = *deps,
+        .tic = deps->tic,
         .tickCounter = 0,
         .src = src,
         .spritePos = {1, 0},
@@ -2225,7 +2278,6 @@ void initSprite(Sprite* sprite, Studio* studio, tic_tiles* src)
                                                                  {0, 0, STUDIO_ANIM_TIME, &sprite->anim.pos.page, AnimEaseIn},
                                                              }),
             },
-        .scanline = scanline,
     };
 
     sprite->anim.movie = resetMovie(&sprite->anim.idle);
