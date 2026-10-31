@@ -33,3 +33,6 @@ void sound_play(tic_mem* tic, const tic_sfx* sfx, s32 id);
 
 // Silences `channel`.
 void sound_stop(tic_mem* tic, s32 channel);
+
+// The LED wave value the sfx and music editors animate from.
+s32 sound_wave_animation(tic_mem* tic, u32 offset, s32 channel);

@@ -254,8 +254,6 @@ const char* studioExportSfx(Studio* studio, s32 sfx, const char* filename);
 
 tic_mem* getMemory(Studio* studio);
 
-void sfx_stop(tic_mem* tic, s32 channel);
-s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void fadePalette(tic_palette* pal, s32 value);
 
 #if defined(BUILD_EDITORS)

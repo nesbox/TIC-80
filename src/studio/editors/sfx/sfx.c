@@ -22,6 +22,7 @@
 
 #include "sfx.h"
 #include "studio/keyboard.h"
+#include "studio/sound.h"
 #include "ext/history.h"
 
 #define DEFAULT_CHANNEL              0
@@ -520,14 +521,14 @@ static void playSound(Sfx* sfx)
         {
             sfx->play.note = effect->note;
 
-            sfx_stop(sfx->tic, DEFAULT_CHANNEL);
+            sound_stop(sfx->tic, DEFAULT_CHANNEL);
             tic_api_sfx(sfx->tic, sfx->index, effect->note, effect->octave + effect->temp, -1, DEFAULT_CHANNEL, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
         }
     }
     else
     {
         sfx->play.note = -1;
-        sfx_stop(sfx->tic, DEFAULT_CHANNEL);
+        sound_stop(sfx->tic, DEFAULT_CHANNEL);
     }
 }
 
@@ -935,7 +936,7 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
         {
             for(s32 i = 0; i < WAVE_VALUES; i++)
             {
-                s32 amp = calcWaveAnimation(tic, i + sfx->play.tick, 0) / WAVE_MAX_VALUE;
+                s32 amp = sound_wave_animation(tic, i + sfx->play.tick, 0) / WAVE_MAX_VALUE;
                 tic_api_rect(tic, rect.x + i * Scale, rect.y + (MaxValue - amp) * Scale, Scale, Scale, tic_color_dark_green);
             }
         }

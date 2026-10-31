@@ -535,17 +535,6 @@ static inline void music2ram(tic_ram* ram, const tic_music* src)
     memcpy(&ram->music, src, sizeof ram->music);
 }
 
-s32 calcWaveAnimation(tic_mem* tic, u32 offset, s32 channel)
-{
-    const tic_sound_register* reg = &tic->ram->registers[channel];
-
-    s32 val = tic_tool_noise(&reg->waveform)
-                  ? (rand() & 1) * MAX_VOLUME
-                  : tic_tool_peek4(reg->waveform.data, ((offset * tic_sound_register_get_freq(reg)) >> 7) % WAVE_VALUES);
-
-    return val * reg->volume;
-}
-
 #if defined(BUILD_EDITORS)
 static const tic_sfx* getSfxSrc(Studio* studio)
 {
@@ -584,7 +573,7 @@ const char* studioExportSfx(Studio* studio, s32 index, const char* filename)
             {
                 Channel = 0
             };
-            sfx_stop(tic, Channel);
+            sound_stop(tic, Channel);
             tic_api_sfx(tic, index, effect->note, effect->octave, -1, Channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
 
             for(s32 ticks = 0, pos = 0; pos < SFX_TICKS; pos = tic_tool_sfx_pos(effect->speed, ++ticks))
@@ -596,7 +585,7 @@ const char* studioExportSfx(Studio* studio, s32 index, const char* filename)
                 wave_write(tic->product.samples.buffer, tic->product.samples.count);
             }
 
-            sfx_stop(tic, Channel);
+            sound_stop(tic, Channel);
             memset(tic->ram->registers, 0, sizeof(tic_sound_register));
         }
 
@@ -672,11 +661,6 @@ const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* f
     return NULL;
 }
 #endif
-
-void sfx_stop(tic_mem* tic, s32 channel)
-{
-    sound_stop(tic, channel);
-}
 
 char getKeyboardText(Studio* studio)
 {

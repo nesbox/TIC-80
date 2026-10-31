@@ -25,6 +25,7 @@
 #include "studio/ui.h"
 #include "studio/clipboard.h"
 #include "studio/ram.h"
+#include "studio/sound.h"
 #include "ext/history.h"
 
 #include <ctype.h>
@@ -509,7 +510,7 @@ static void playNote(Music* music, const tic_track_row* row)
         s32 channel = music->tab == MUSIC_TRACKER_TAB
                           ? music->tracker.edit.x / CHANNEL_COLS
                           : music->piano.col;
-        sfx_stop(tic, channel);
+        sound_stop(tic, channel);
         tic_api_sfx(tic, tic_tool_get_track_row_sfx(row), row->note - NoteStart, row->octave, TIC80_FRAMERATE / 4, channel, MAX_VOLUME, MAX_VOLUME, 0);
     }
 }
@@ -2909,7 +2910,7 @@ static void drawWaveform(Music* music, s32 x, s32 y)
 
             for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
             {
-                s32 amp = calcWaveAnimation(tic, i + music->tickCounter, c) / channels;
+                s32 amp = sound_wave_animation(tic, i + music->tickCounter, c) / channels;
 
                 lamp += amp * tic_tool_peek4(&tic->ram->stereo.data, c * 2);
                 ramp += amp * tic_tool_peek4(&tic->ram->stereo.data, c * 2 + 1);
