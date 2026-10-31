@@ -524,16 +524,6 @@ void fadePalette(tic_palette* pal, s32 value)
         *i = (u8)(*i * value >> 8);
 }
 
-void map2ram(tic_ram* ram, const tic_map* src)
-{
-    memcpy(ram->map.data, src, sizeof ram->map);
-}
-
-void tiles2ram(tic_ram* ram, const tic_tiles* src)
-{
-    memcpy(ram->tiles.data, src, sizeof ram->tiles * TIC_SPRITE_BANKS);
-}
-
 static inline void sfx2ram(tic_ram* ram, const tic_sfx* src)
 {
     memcpy(&ram->sfx, src, sizeof ram->sfx);
@@ -803,62 +793,6 @@ static void md5(const void* voidData, s32 length, u8 digest[MD5_HASHSIZE])
 }
 
 #if defined(BUILD_EDITORS)
-void toClipboard(const void* data, s32 size, bool flip)
-{
-    if(data)
-    {
-        enum
-        {
-            Len = 2
-        };
-
-        char* clipboard = (char*)malloc(size * Len + 1);
-
-        if(clipboard)
-        {
-
-            tic_tool_buf2str(data, size, clipboard, flip);
-            tic_sys_clipboard_set(clipboard);
-            free(clipboard);
-        }
-    }
-}
-
-static void removeWhiteSpaces(char* str)
-{
-    s32 i = 0;
-    s32 len = (s32)strlen(str);
-
-    for(s32 j = 0; j < len; j++)
-        if(!isspace((u8)str[j]))
-            str[i++] = str[j];
-
-    str[i] = '\0';
-}
-
-bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize)
-{
-    if(tic_sys_clipboard_has())
-    {
-        char* clipboard = tic_sys_clipboard_get();
-
-        if(remove_white_spaces)
-            removeWhiteSpaces(clipboard);
-
-        bool valid = sameSize
-                         ? strlen(clipboard) == (size_t)size * 2
-                         : strlen(clipboard) <= (size_t)size * 2;
-
-        if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
-
-        tic_sys_clipboard_free(clipboard);
-
-        return valid;
-    }
-
-    return false;
-}
-
 void showTooltip(Studio* studio, const char* text)
 {
     snprintf(studio->tooltip.text, sizeof studio->tooltip.text, "%.*s",

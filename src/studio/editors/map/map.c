@@ -22,6 +22,8 @@
 
 #include "map.h"
 #include "studio/keyboard.h"
+#include "studio/clipboard.h"
+#include "studio/ram.h"
 #include "ext/history.h"
 
 #define MAP_WIDTH (TIC80_WIDTH)

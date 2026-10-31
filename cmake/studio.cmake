@@ -55,6 +55,7 @@ if(BUILD_EDITORS)
         ${TIC80LIB_DIR}/studio/menubar.c
         ${TIC80LIB_DIR}/studio/studiomenu.c
         ${TIC80LIB_DIR}/studio/screens/console.c
+        ${TIC80LIB_DIR}/studio/clipboard.c
         ${TIC80LIB_DIR}/studio/editors/code/text.c
         ${TIC80LIB_DIR}/studio/editors/code/find.c
         ${TIC80LIB_DIR}/studio/editors/code/vi.c

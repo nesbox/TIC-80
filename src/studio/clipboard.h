@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include "tic.h"
+
 // The five operations the Edit menu performs. Each editor supplies its own; a
 // mode with none leaves it NULL.
 typedef struct
@@ -33,3 +35,7 @@ typedef struct
     void (*redo)(void*);
 
 } ClipboardOps;
+
+// Cart data as hex text on the system clipboard and back; no studio in them.
+void toClipboard(const void* data, s32 size, bool flip);
+bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize);

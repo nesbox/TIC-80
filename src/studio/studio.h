@@ -203,9 +203,6 @@ void setStudioViMode(Studio* studio, ViMode mode);
 ViMode getStudioViMode(Studio* studio);
 bool checkStudioViMode(Studio* studio, ViMode mode);
 
-void toClipboard(const void* data, s32 size, bool flip);
-bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize);
-
 ClipboardEvent getClipboardEvent(Studio* studio);
 
 void showTooltip(Studio* studio, const char* text);
@@ -259,8 +256,6 @@ tic_mem* getMemory(Studio* studio);
 
 void sfx_stop(tic_mem* tic, s32 channel);
 s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
-void map2ram(tic_ram* ram, const tic_map* src);
-void tiles2ram(tic_ram* ram, const tic_tiles* src);
 void fadePalette(tic_palette* pal, s32 value);
 
 #if defined(BUILD_EDITORS)

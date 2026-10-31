@@ -23,6 +23,8 @@
 #include "music.h"
 #include "studio/keyboard.h"
 #include "studio/ui.h"
+#include "studio/clipboard.h"
+#include "studio/ram.h"
 #include "ext/history.h"
 
 #include <ctype.h>
