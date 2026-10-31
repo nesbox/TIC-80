@@ -324,6 +324,10 @@ struct Studio
     Start* start;
     Run* run;
     Menu* menu;
+
+    // What the menu reads of the host, refreshed before its tick.
+    MenuView menuView;
+
     Config* config;
 
     StudioMainMenu* mainmenu;
@@ -363,11 +367,11 @@ static void runTick(void* app)
 }
 static void menuTick(void* app)
 {
-    studio_menu_tick(app);
+    menu_tick(app);
 }
 static void menuScanline(tic_mem* tic, s32 row, void* data)
 {
-    studio_menu_anim_scanline(tic, row, data);
+    menu_anim_scanline(tic, row, data);
 }
 
 #if defined(BUILD_EDITORS)
@@ -1055,6 +1059,9 @@ void setStudioMode(Studio* studio, EditorMode mode)
         }
 
         studio->mode = mode;
+        // A handler can leave the menu inside its own tick; the view follows
+        // the mode here so the widget stops in that frame, not the next one.
+        studio->menuView.active = mode == TIC_MENU_MODE;
     }
 
 #if defined(BUILD_EDITORS)
@@ -1106,6 +1113,7 @@ void resumeGame(Studio* studio)
     studio->run->exit = false;
     studio->paused = false;
     studio->mode = TIC_RUN_MODE;
+    studio->menuView.active = false;
 }
 
 #if defined(BUILD_EDITORS)
@@ -1222,8 +1230,8 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
 
         memcpy(items + rows, Answers, sizeof Answers);
 
-        studio_menu_init(studio->menu, items, count, count - 2, 0,
-                         NULL, MOVE((ConfirmData){studio, callback, data}));
+        menu_init(studio->menu, items, count, count - 2, 0,
+                  NULL, MOVE((ConfirmData){studio, callback, data}));
 
         playSystemSfx(studio, 0);
     }
@@ -1235,6 +1243,18 @@ static void resetBanks(Studio* studio)
     memset(&studio->bank.index, 0, sizeof studio->bank.index);
 }
 #endif
+
+// What the menu reads this frame: whether it is the studio's mode, and whether
+// the bar owns the pointer.
+static MenuView menuFrame(Studio* studio)
+{
+    return (MenuView){
+        .active = studio->mode == TIC_MENU_MODE,
+#if defined(BUILD_EDITORS)
+        .pointerOwned = menubar_owns_pointer(&studio->menubar, studio->tic),
+#endif
+    };
+}
 
 #if defined(BUILD_EDITORS)
 static Bytebattle* getBytebattle(Studio* studio);
@@ -2224,7 +2244,7 @@ static void processShortcuts(Studio* studio)
                     // The back callback knows where a menu belongs — see the main
                     // menu's back. Without one there is no cart under the menu, and
                     // it is left to where the studio was.
-                    if(!studio_menu_back(studio->menu))
+                    if(!menu_back(studio->menu))
                         setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
                                                   ? TIC_CONSOLE_MODE
                                                   : studio->prevMode);
@@ -2292,7 +2312,7 @@ static void processShortcuts(Studio* studio)
         {
             switch(studio->mode)
             {
-                case TIC_MENU_MODE: studio_menu_back(studio->menu); break;
+                case TIC_MENU_MODE: menu_back(studio->menu); break;
                 case TIC_RUN_MODE:
                     gotoMenu(studio);
                     break;
@@ -2529,6 +2549,10 @@ static void renderStudio(Studio* studio)
 
         refreshEditorView(studio);
 #endif
+
+        // The menu reads the mode and the bar's pointer ownership, fresh before
+        // its tick; the view is filled in every mode.
+        studio->menuView = menuFrame(studio);
 
         if(app->tick)
             app->tick(app->instance(studio));
@@ -3152,7 +3176,7 @@ void studio_delete(Studio* studio)
         freeConfig(studio->config);
 
         studio_mainmenu_free(studio->mainmenu);
-        studio_menu_free(studio->menu);
+        menu_free(studio->menu);
     }
 
     tic_core_close(studio->tic);
@@ -3437,7 +3461,6 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
 #endif
 
         studio->run = calloc(1, sizeof(Run));
-        studio->menu = studio_menu_create(studio);
         studio->config = calloc(1, sizeof(Config));
     }
     studio->mainmenu = NULL;
@@ -3446,6 +3469,16 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
     tic_fs_makedir(studio->fs, TIC_LOCAL_VERSION);
 
     initConfig(studio->config, studio->tic, studio->fs, configChanged, studio);
+
+    // The widget draws and plays from the config cart, so it is created after
+    // the config: nothing ticks or draws it before that point, and the tick
+    // loop fills the view before the menu hears of it.
+    studio->menu = menu_create(&(MenuDeps){
+        .tic = studio->tic,
+        .cart = studio->config->cart,
+        .mouse = studio->mouse.state,
+    });
+    menu_set_view(studio->menu, &studio->menuView);
 
     studio->romDeps = (RomDeps){
         .tic = studio->tic,

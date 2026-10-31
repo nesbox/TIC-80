@@ -24,13 +24,29 @@
 
 #include "tic80_types.h"
 #include "tic.h"
+#include "studio/mouse.h"
 
 typedef struct Menu Menu;
-struct tic_mem;
-struct Studio;
 
-Menu* studio_menu_create(struct Studio* studio);
-void studio_menu_tick(Menu* menu);
+// What the widget gets once: the machine, the config cart it draws and plays
+// from, and the pointer's three button states.
+typedef struct
+{
+    tic_mem* tic;
+    const tic_cartridge* cart;
+    MouseState* mouse;
+} MenuDeps;
+
+// The frame: the studio is in the menu, and the bar owns the pointer.
+typedef struct
+{
+    bool active;
+    bool pointerOwned;
+} MenuView;
+
+Menu* menu_create(const MenuDeps* deps);
+void menu_set_view(Menu* menu, const MenuView* view);
+void menu_tick(Menu* menu);
 
 typedef s32 (*MenuOptionGetHandler)(void*);
 typedef void (*MenuOptionSetHandler)(void*, s32);
@@ -59,9 +75,9 @@ typedef struct
     tic_keycode hotkey;
 } MenuItem;
 
-void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, MenuItemHandler handler, void* data);
-bool studio_menu_back(Menu* menu);
-void studio_menu_free(Menu* menu);
+void menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, MenuItemHandler handler, void* data);
+bool menu_back(Menu* menu);
+void menu_free(Menu* menu);
 
-void studio_menu_anim(struct tic_mem* tic, s32 ticks);
-void studio_menu_anim_scanline(struct tic_mem* tic, s32 row, void* data);
+void menu_anim(struct tic_mem* tic, s32 ticks);
+void menu_anim_scanline(struct tic_mem* tic, s32 row, void* data);

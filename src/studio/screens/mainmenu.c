@@ -377,7 +377,7 @@ static void showGameMenu(void* data, s32 pos)
 {
     (void)pos;
     StudioMainMenu* main = data;
-    studio_menu_init(main->menu, main->items, main->count, 0, 0, showMainMenu, main);
+    menu_init(main->menu, main->items, main->count, 0, 0, showMainMenu, main);
 }
 
 static inline s32 mainMenuOffset(StudioMainMenu* menu)
@@ -487,7 +487,7 @@ static void showMainMenu(void* data, s32 pos)
     initGameMenu(main);
 
     s32 offset = mainMenuOffset(main);
-    studio_menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, studio_is_cart_loaded(main->studio) ? onMenuBack : NULL, main);
+    menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, studio_is_cart_loaded(main->studio) ? onMenuBack : NULL, main);
 }
 
 static void showOptionsMenuPos(void* data, s32 pos)
@@ -495,7 +495,7 @@ static void showOptionsMenuPos(void* data, s32 pos)
     StudioMainMenu* main = data;
 
     s32 offset = mainMenuOffset(main);
-    studio_menu_init(main->menu, OptionMenu, COUNT_OF(OptionMenu), pos, MainMenu_Options - offset, onBackFromOptionsMenu, main);
+    menu_init(main->menu, OptionMenu, COUNT_OF(OptionMenu), pos, MainMenu_Options - offset, onBackFromOptionsMenu, main);
 }
 
 static void showOptionsMenu(void* data, s32 pos)
@@ -556,7 +556,7 @@ static void assignMapping(void* data, s32 pos)
 
     sprintf(str, Fmt, ButtonLabels[main->gamepads.key]);
 
-    studio_menu_init(main->menu, AssignKeyMenu, COUNT_OF(AssignKeyMenu), 1, 0, NULL, main);
+    menu_init(main->menu, AssignKeyMenu, COUNT_OF(AssignKeyMenu), 1, 0, NULL, main);
 }
 
 static void initGamepadButtons(StudioMainMenu* menu)
@@ -728,9 +728,9 @@ static void initGamepadMenu(StudioMainMenu* main)
 
     initGamepadButtons(main);
 
-    studio_menu_init(main->menu, GamepadMenu, COUNT_OF(GamepadMenu),
-                     main->gamepads.key < 0 ? GamepadMenu_Gamepad0 : main->gamepads.key + GamepadMenu_Gamepad0,
-                     OptionsMenu_Gamepad, showOptionsMenu, main);
+    menu_init(main->menu, GamepadMenu, COUNT_OF(GamepadMenu),
+              main->gamepads.key < 0 ? GamepadMenu_Gamepad0 : main->gamepads.key + GamepadMenu_Gamepad0,
+              OptionsMenu_Gamepad, showOptionsMenu, main);
 
     main->gamepads.key = -1;
 }

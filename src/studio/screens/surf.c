@@ -856,7 +856,7 @@ static void tick(Surf* surf)
     tic_mem* tic = surf->tic;
     tic_api_cls(tic, TIC_COLOR_BG);
 
-    studio_menu_anim(surf->tic, surf->ticks++);
+    menu_anim(surf->tic, surf->ticks++);
 
     if(isIdle(surf))
     {
@@ -926,7 +926,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
         }
     }
 
-    studio_menu_anim_scanline(tic, row, NULL);
+    menu_anim_scanline(tic, row, NULL);
 }
 
 static void emptyDone(void* data)
