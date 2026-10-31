@@ -1028,7 +1028,7 @@ void setStudioMode(Studio* studio, EditorMode mode)
             case TIC_RUN_MODE: initRunMode(studio); break;
             case TIC_MENU_MODE:
                 studio_mainmenu_free(studio->mainmenu);
-                studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+                studio->mainmenu = studio_mainmenu_init(studio->menu, studio);
                 break;
 #if defined(BUILD_EDITORS)
             case TIC_CONSOLE_MODE:
@@ -2079,7 +2079,7 @@ void gotoMenu(Studio* studio)
 
     setStudioMode(studio, TIC_MENU_MODE);
     studio_mainmenu_free(studio->mainmenu);
-    studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
+    studio->mainmenu = studio_mainmenu_init(studio->menu, studio);
 }
 
 // Whether the menu's back resumes a game: it does when a player's run is
@@ -2624,6 +2624,11 @@ static void updateSystemFont(Studio* studio)
                     dst[i * BITS_IN_BYTE + y] |= 1 << x;
 
     tic->ram->font = studio->systemFont;
+}
+
+static void configChanged(void* host)
+{
+    studioConfigChanged(host);
 }
 
 void studioConfigChanged(Studio* studio)
@@ -3395,7 +3400,7 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
     tic_fs_makedir(studio->fs, TIC_LOCAL);
     tic_fs_makedir(studio->fs, TIC_LOCAL_VERSION);
 
-    initConfig(studio->config, studio, studio->fs);
+    initConfig(studio->config, studio->tic, studio->fs, configChanged, studio);
 
 #if defined(BUILD_EDITORS)
     void* menuData = studiomenu_init(studio, &studio->menubar, Modes, COUNT_OF(Modes), Apps);

@@ -21,9 +21,13 @@
 // SOFTWARE.
 
 #include "config.h"
+#include "studio/paths.h"
 #include "fs.h"
 #include "cart.h"
+#include "tools.h"
 #include "ext/json.h"
+
+#include <stdio.h>
 
 #if defined(__EMSCRIPTEN__)
 #define DEFAULT_VSYNC 0
@@ -74,7 +78,7 @@ static void update(Config* config, const u8* buffer, s32 size)
     tic_cart_load(config->cart, buffer, size);
 
     readConfig(config);
-    studioConfigChanged(config->studio);
+    config->changed(config->host);
 }
 
 static void setDefault(Config* config)
@@ -154,7 +158,7 @@ static void saveConfigCart(Config* config)
     readConfig(config);
     saveConfig(config, true);
 
-    studioConfigChanged(config->studio);
+    config->changed(config->host);
 }
 
 // The options live next to the config of this build, not in the shared
@@ -352,11 +356,12 @@ static void saveOptions(Config* config)
     tic_fs_saveroot(config->fs, OptionsJsonPath, buf, (s32)(strlen(buf)), true);
 }
 
-void initConfig(Config* config, Studio* studio, tic_fs* fs)
+void initConfig(Config* config, tic_mem* tic, struct tic_fs* fs, ConfigChanged changed, void* host)
 {
     *config = (Config){
-        .studio = studio,
-        .tic = getMemory(studio),
+        .host = host,
+        .changed = changed,
+        .tic = tic,
         .cart = realloc(config->cart, sizeof(tic_cartridge)),
         .saveConfigCart = saveConfigCart,
         .saveOptions = saveOptions,

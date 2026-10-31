@@ -55,14 +55,16 @@ struct StudioMainMenu
 static void showMainMenu(void* data, s32 pos);
 static void onBackFromOptionsMenu(void* data, s32 pos);
 
-StudioMainMenu* studio_mainmenu_init(Menu* menu, Config* config)
+StudioMainMenu* studio_mainmenu_init(Menu* menu, Studio* studio)
 {
+    Config* config = studio_config_get(studio);
+
     StudioMainMenu* main = NEW(StudioMainMenu);
 
     *main = (StudioMainMenu){
         .menu = menu,
         .options = &config->data.options,
-        .studio = config->studio,
+        .studio = studio,
         .tic = config->tic,
         .gamepads.key = -1,
     };
