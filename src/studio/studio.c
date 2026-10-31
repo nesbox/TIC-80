@@ -49,9 +49,7 @@ static void drawStudioMenubar(Studio* studio);
 #include "editors/map/world.h"
 #include "editors/sfx/sfx.h"
 #include "editors/music/music.h"
-#include "ext/history.h"
 #include "wave_writer.h"
-#include "ext/gif.h"
 #define MSF_GIF_IMPL
 #include "ext/msf_gif.h"
 
@@ -102,9 +100,6 @@ static MapView mapFrame(Studio* studio);
 #define OPT_BOOLEAN(...) {ARGPARSE_OPT_BOOLEAN, __VA_ARGS__, NULL, 0, 0}
 
 #include <ctype.h>
-
-#define _USE_MATH_DEFINES
-#include <math.h>
 
 #if defined(TIC_MODULE_EXT)
 #include <dlfcn.h>
@@ -1430,6 +1425,35 @@ static MusicView musicFrame(Studio* studio)
         .cartTiles = &getConfig(studio)->cart->bank0.tiles,
     };
 }
+
+// The active editor's per-tick view. The bar's bank switch runs outside the
+// tick, and the next blit's scanline reads this view, so it is rebuilt there
+// too.
+static void refreshEditorView(Studio* studio)
+{
+    switch(studio->mode)
+    {
+        case TIC_MAP_MODE:
+        case TIC_WORLD_MODE:
+            studio->mapView = mapFrame(studio);
+            map_set_view(studio->banks.map[studio->bank.index.map], &studio->mapView);
+            break;
+        case TIC_SFX_MODE:
+            studio->sfxView = sfxFrame(studio);
+            sfx_set_view(studio->banks.sfx[studio->bank.index.sfx], &studio->sfxView);
+            break;
+        case TIC_SPRITE_MODE:
+            studio->spriteView = spriteFrame(studio);
+            sprite_set_view(studio->banks.sprite[studio->bank.index.sprites], &studio->spriteView);
+            break;
+        case TIC_MUSIC_MODE:
+            studio->musicView = musicFrame(studio);
+            music_set_view(studio->banks.music[studio->bank.index.music], &studio->musicView);
+            break;
+        default:
+            break;
+    }
+}
 #endif
 
 static void initModules(Studio* studio)
@@ -1996,6 +2020,8 @@ static void switchBank(Studio* studio, s32 bank)
                 studio->bank.indexes[i] = (s8)bank;
             break;
         }
+
+    refreshEditorView(studio);
 }
 
 void studiomenu_bank_switch(Studio* studio, s32 bank)
@@ -2497,29 +2523,7 @@ static void renderStudio(Studio* studio)
             code_set_view(studio->code, &studio->codeView);
         }
 
-        if(studio->mode == TIC_MAP_MODE || studio->mode == TIC_WORLD_MODE)
-        {
-            studio->mapView = mapFrame(studio);
-            map_set_view(studio->banks.map[studio->bank.index.map], &studio->mapView);
-        }
-
-        if(studio->mode == TIC_SFX_MODE)
-        {
-            studio->sfxView = sfxFrame(studio);
-            sfx_set_view(studio->banks.sfx[studio->bank.index.sfx], &studio->sfxView);
-        }
-
-        if(studio->mode == TIC_SPRITE_MODE)
-        {
-            studio->spriteView = spriteFrame(studio);
-            sprite_set_view(studio->banks.sprite[studio->bank.index.sprites], &studio->spriteView);
-        }
-
-        if(studio->mode == TIC_MUSIC_MODE)
-        {
-            studio->musicView = musicFrame(studio);
-            music_set_view(studio->banks.music[studio->bank.index.music], &studio->musicView);
-        }
+        refreshEditorView(studio);
 #endif
 
         if(app->tick)
