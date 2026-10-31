@@ -40,4 +40,8 @@ typedef struct
     void (*tick)(void*);
     void (*scanline)(tic_mem*, s32, void*);
 
+    // What the mode sets up when the studio enters it; `from` is the mode it
+    // was left, for the hand-overs that depend on it.
+    void (*enter)(Studio*, EditorMode from);
+
 } EditorApp;

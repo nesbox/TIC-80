@@ -9,6 +9,9 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/screens/mainmenu.c
     ${TIC80LIB_DIR}/studio/screens/start.c
     ${TIC80LIB_DIR}/studio/studio.c
+    # The mode machine's decisions: the door, the return target, the run
+    # record and the ESC rule, pure over a state value.
+    ${TIC80LIB_DIR}/studio/modes.c
     # The state of a launch that came with a cart: every build boots, so this
     # is not editors-only.
     ${TIC80LIB_DIR}/studio/boot.c

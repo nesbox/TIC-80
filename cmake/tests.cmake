@@ -375,6 +375,31 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src/ext/json.c
     )
 
+    # The mode machine links without the studio: the door's decisions and the
+    # ESC rule, over a state value — no machine, no window, no screen. Built
+    # as the editors-and-browser flavour, the one the app ships.
+    add_executable(modes-test
+        ${CMAKE_SOURCE_DIR}/tests/modes.c
+        ${CMAKE_SOURCE_DIR}/src/studio/modes.c
+    )
+
+    target_compile_definitions(modes-test PRIVATE BUILD_EDITORS BUILD_SURF)
+    target_include_directories(modes-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(modes-test PRIVATE tic80core)
+    tic80_add_test(modes-test)
+
+    # The same unit without the browser: the close rule's other branch and the
+    # modes a build without it never has.
+    add_executable(modes-test-nosurf
+        ${CMAKE_SOURCE_DIR}/tests/modes.c
+        ${CMAKE_SOURCE_DIR}/src/studio/modes.c
+    )
+
+    target_compile_definitions(modes-test-nosurf PRIVATE BUILD_EDITORS)
+    target_include_directories(modes-test-nosurf PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(modes-test-nosurf PRIVATE tic80core)
+    tic80_add_test(modes-test-nosurf)
+
     # The game runner links without the studio: the runner and the core over a
     # filesystem on a temporary root, with a fake host that records the end,
     # the exit, the error and the trace.

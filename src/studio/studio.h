@@ -177,7 +177,6 @@ void studioRomLoaded(Studio* studio);
 void studioRomSaved(Studio* studio);
 void studioConfigChanged(Studio* studio);
 
-void setStudioMode(Studio* studio, EditorMode mode);
 EditorMode getStudioMode(Studio* studio);
 
 // Where CODE and MAP content starts: 0 with autohide, 7 otherwise.
