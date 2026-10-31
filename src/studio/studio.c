@@ -57,6 +57,8 @@ static void drawStudioMenubar(Studio* studio);
 
 #include "../fftdata.h"
 #include "ext/fft.h"
+
+static MapView mapFrame(Studio* studio);
 #endif
 
 #if defined(BUILD_EDITORS)
@@ -216,6 +218,9 @@ struct Studio
     // valid between ticks: a config change or a console save reads it too.
     CodeView codeView;
     CodeBattle codeBattle;
+
+    // The map and the world share one frame; the world reads it through its Map.
+    MapView mapView;
 #endif
     struct
     {
@@ -397,8 +402,7 @@ static void codeTick(void* app)
 }
 static void worldTick(void* app)
 {
-    World* world = app;
-    world->tick(world);
+    world_tick(app);
 }
 static void spriteTick(void* app)
 {
@@ -407,8 +411,7 @@ static void spriteTick(void* app)
 }
 static void mapTick(void* app)
 {
-    Map* map = app;
-    map->tick(map);
+    map_tick(app);
 }
 static void sfxTick(void* app)
 {
@@ -428,13 +431,11 @@ static void spriteScanline(tic_mem* tic, s32 row, void* data)
 }
 static void mapScanline(tic_mem* tic, s32 row, void* data)
 {
-    Map* map = data;
-    map->scanline(tic, row, map);
+    map_scanline(tic, row, data);
 }
 static void worldScanline(tic_mem* tic, s32 row, void* data)
 {
-    World* world = data;
-    world->scanline(tic, row, world);
+    world_scanline(tic, row, data);
 }
 #endif
 
@@ -940,7 +941,7 @@ static void initRunMode(Studio* studio)
 #if defined(BUILD_EDITORS)
 static void initWorldMap(Studio* studio)
 {
-    initWorld(studio->world, studio, studio->banks.map[studio->bank.index.map]);
+    initWorld(studio->world, studio->banks.map[studio->bank.index.map]);
 }
 
 void gotoCode(Studio* studio)
@@ -1051,7 +1052,12 @@ void setStudioMode(Studio* studio, EditorMode mode)
                     console_done(studio->console);
 #endif
                 break;
-            case TIC_WORLD_MODE: initWorldMap(studio); break;
+            case TIC_WORLD_MODE:
+                studio->mapView = mapFrame(studio);
+                map_set_view(studio->banks.map[studio->bank.index.map], &studio->mapView);
+                initWorldMap(studio);
+                worldRefresh(studio->world);
+                break;
 #endif
 #if defined(BUILD_SURF)
             case TIC_SURF_MODE: studio->surf->resume(studio->surf); break;
@@ -1340,6 +1346,37 @@ static CodeView codeFrame(Studio* studio, CodeBattle* battle)
 
     return view;
 }
+
+static void mapOpenWorld(void* host)
+{
+    setStudioMode(host, TIC_WORLD_MODE);
+}
+
+static void mapOpenMap(void* host)
+{
+    setStudioMode(host, TIC_MAP_MODE);
+}
+
+// What the map and the world read this frame: the bar's flags, the editor top,
+// and the bank data the sheet, the palette and the world preview draw from.
+static MapView mapFrame(Studio* studio)
+{
+    const StudioConfig* config = getConfig(studio);
+
+    return (MapView){
+        .frame =
+            {
+                .captured = studio_keys_captured(studio),
+                .escaped = studio_keys_escaped(studio),
+                .pointerOwned = menubar_owns_pointer(&studio->menubar, studio->tic),
+                .clipboard = getClipboardEvent(studio),
+            },
+        .editorTop = getStudioEditorTop(studio),
+        .tiles = getBankTiles(studio),
+        .palette = getBankPalette(studio, false),
+        .cartPalette = &config->cart->bank0.palette.vbank0,
+    };
+}
 #endif
 
 static void initModules(Studio* studio)
@@ -1368,10 +1405,22 @@ static void initModules(Studio* studio)
     studio->codeView = (CodeView){0};
     code_set_view(studio->code, &studio->codeView);
 
+    MapDeps mapDeps =
+        {
+            .host = studio,
+            .tic = tic,
+            .mouse = studio->mouse.state,
+            .openWorld = mapOpenWorld,
+            .openMap = mapOpenMap,
+        };
+
+    studio->mapView = (MapView){0};
+
     for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
     {
         initSprite(studio->banks.sprite[i], studio, &tic->cart.banks[i].tiles);
-        initMap(studio->banks.map[i], studio, &tic->cart.banks[i].map);
+        initMap(studio->banks.map[i], &mapDeps, &tic->cart.banks[i].map);
+        map_set_view(studio->banks.map[i], &studio->mapView);
         initSfx(studio->banks.sfx[i], studio, &tic->cart.banks[i].sfx);
         initMusic(studio->banks.music[i], studio, &tic->cart.banks[i].music);
     }
@@ -2353,6 +2402,12 @@ static void renderStudio(Studio* studio)
         {
             studio->codeView = codeFrame(studio, &studio->codeBattle);
             code_set_view(studio->code, &studio->codeView);
+        }
+
+        if(studio->mode == TIC_MAP_MODE || studio->mode == TIC_WORLD_MODE)
+        {
+            studio->mapView = mapFrame(studio);
+            map_set_view(studio->banks.map[studio->bank.index.map], &studio->mapView);
         }
 #endif
 

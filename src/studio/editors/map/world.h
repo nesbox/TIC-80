@@ -22,22 +22,20 @@
 
 #pragma once
 
-#include "studio/studio.h"
 #include "map.h"
 
 typedef struct World World;
 
 struct World
 {
-    Studio* studio;
-    tic_mem* tic;
     Map* map;
+    tic_mem* tic;
 
     void* preview;
-
-    void (*tick)(World* world);
-    void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
 
-void initWorld(World* world, Studio* studio, Map* map);
+void initWorld(World* world, Map* map);
+void worldRefresh(World* world);
+void world_tick(World* world);
+void world_scanline(tic_mem* tic, s32 row, void* data);
 void freeWorld(World* world);
