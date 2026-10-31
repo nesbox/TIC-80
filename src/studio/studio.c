@@ -988,6 +988,95 @@ s32 getStudioEditorTop(Studio* studio)
 #endif
 }
 
+// The pause/options screen's host side: the run and mode actions it asks for,
+// as one-line wrappers, so the screen keeps the decisions.
+static bool mainMenuRunPaused(void* host)
+{
+    return studio_run_paused(host);
+}
+
+static void mainMenuResume(void* host)
+{
+    resumeGame(host);
+}
+
+static void mainMenuRun(void* host)
+{
+    runGame(host, RUN_FROM_STUDIO);
+}
+
+static void mainMenuLeave(void* host)
+{
+    leaveRun(host);
+}
+
+static void mainMenuExitStudio(void* host)
+{
+    exitStudio(host);
+}
+
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+static void mainMenuExitGame(void* host)
+{
+    exitGame(host);
+}
+#endif
+
+static void mainMenuSetRunMode(void* host)
+{
+    setStudioMode(host, TIC_RUN_MODE);
+}
+
+static bool mainMenuOverPlayerRun(void* host)
+{
+    return studio_menu_over_player_run(host);
+}
+
+static bool mainMenuIsCartLoaded(void* host)
+{
+    return studio_is_cart_loaded(host);
+}
+
+static void mainMenuSaveOptions(void* host)
+{
+    Config* config = studio_config_get(host);
+    config->saveOptions(config);
+}
+
+// What the screen gets once: its menu widget, the options and the actions.
+static MainMenuDeps mainMenuDeps(Studio* studio)
+{
+    return (MainMenuDeps){
+        .host = studio,
+        .tic = studio->tic,
+        .menu = studio->menu,
+        .options = &studio->config->data.options,
+        .saveOptions = mainMenuSaveOptions,
+
+        .runPaused = mainMenuRunPaused,
+        .resume = mainMenuResume,
+        .run = mainMenuRun,
+        .leave = mainMenuLeave,
+        .exitStudio = mainMenuExitStudio,
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+        .exitGame = mainMenuExitGame,
+#endif
+        .setRunMode = mainMenuSetRunMode,
+        .menuOverPlayerRun = mainMenuOverPlayerRun,
+        .isCartLoaded = mainMenuIsCartLoaded,
+    };
+}
+
+// The pause menu is rebuilt wherever it is opened: a fresh screen over the
+// host it acts on.
+static void resetMainMenu(Studio* studio)
+{
+    MainMenuDeps deps = mainMenuDeps(studio);
+
+    mainmenu_free(studio->mainmenu);
+    studio->mainmenu = mainmenu_init(&deps);
+}
+
 void setStudioMode(Studio* studio, EditorMode mode)
 {
     if(mode != studio->mode)
@@ -1034,10 +1123,7 @@ void setStudioMode(Studio* studio, EditorMode mode)
         switch(mode)
         {
             case TIC_RUN_MODE: initRunMode(studio); break;
-            case TIC_MENU_MODE:
-                studio_mainmenu_free(studio->mainmenu);
-                studio->mainmenu = studio_mainmenu_init(studio->menu, studio);
-                break;
+            case TIC_MENU_MODE: resetMainMenu(studio); break;
 #if defined(BUILD_EDITORS)
             case TIC_CONSOLE_MODE:
 #if defined(BUILD_SURF)
@@ -2102,8 +2188,7 @@ void gotoMenu(Studio* studio)
         studio->runFrom = studio->mode;
 
     setStudioMode(studio, TIC_MENU_MODE);
-    studio_mainmenu_free(studio->mainmenu);
-    studio->mainmenu = studio_mainmenu_init(studio->menu, studio);
+    resetMainMenu(studio);
 }
 
 // Whether the menu's back resumes a game: it does when a player's run is
@@ -2152,7 +2237,7 @@ static void processShortcuts(Studio* studio)
     if(!console_active(studio->console)) return;
 #endif
 
-    if(studio_mainmenu_keyboard(studio->mainmenu)) return;
+    if(mainmenu_keyboard(studio->mainmenu)) return;
 
 #if defined(BUILD_EDITORS)
     // ESC was the menu's this frame: it closed it and goes no further. The
@@ -3175,7 +3260,7 @@ void studio_delete(Studio* studio)
         freeRun(studio->run);
         freeConfig(studio->config);
 
-        studio_mainmenu_free(studio->mainmenu);
+        mainmenu_free(studio->mainmenu);
         menu_free(studio->menu);
     }
 

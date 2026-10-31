@@ -338,6 +338,26 @@ if(BUILD_TESTS)
     target_link_libraries(menu-test PRIVATE tic80core)
     tic80_add_test(menu-test)
 
+    # The pause/options screen links without the studio: the screen, the menu
+    # widget and the modules they link, with a fake host that records the
+    # callbacks and stubs for the system calls it reaches. Built as the editors
+    # flavour, so CLOSE GAME and its exit are covered as they ship.
+    add_executable(mainmenu-test
+        ${CMAKE_SOURCE_DIR}/tests/mainmenu.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/mainmenu.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/menu.c
+        ${CMAKE_SOURCE_DIR}/src/studio/anim.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+        ${CMAKE_SOURCE_DIR}/src/studio/sound.c
+    )
+
+    target_compile_definitions(mainmenu-test PRIVATE BUILD_EDITORS)
+    target_include_directories(mainmenu-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(mainmenu-test PRIVATE tic80core)
+    tic80_add_test(mainmenu-test)
+
     add_executable(code-text-test ${CODE_TEXT_TEST_SRC})
     tic80_add_test(code-text-test)
 

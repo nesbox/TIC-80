@@ -22,8 +22,31 @@
 
 #pragma once
 
+#include "studio/screens/menu.h"
+
 typedef struct StudioMainMenu StudioMainMenu;
 
-StudioMainMenu* studio_mainmenu_init(Menu* menu, Studio* studio);
-bool studio_mainmenu_keyboard(StudioMainMenu* menu);
-void studio_mainmenu_free(StudioMainMenu* menu);
+// What the screen gets once: the host, the machine, the menu widget it fills,
+// the options and their save, and the run and mode actions as callbacks.
+typedef struct
+{
+    void* host;
+    tic_mem* tic;
+    Menu* menu;
+    struct StudioOptions* options;
+    void (*saveOptions)(void* host);
+
+    bool (*runPaused)(void* host);
+    void (*resume)(void* host);
+    void (*run)(void* host);
+    void (*leave)(void* host);
+    void (*exitStudio)(void* host);
+    void (*exitGame)(void* host);
+    void (*setRunMode)(void* host);
+    bool (*menuOverPlayerRun)(void* host);
+    bool (*isCartLoaded)(void* host);
+} MainMenuDeps;
+
+StudioMainMenu* mainmenu_init(const MainMenuDeps* deps);
+bool mainmenu_keyboard(StudioMainMenu* menu);
+void mainmenu_free(StudioMainMenu* menu);
