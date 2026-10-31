@@ -34,6 +34,7 @@
 #include "defines.h"
 #include "tools.h"
 #include "system.h"
+#include "paths.h"
 #include "rom.h"
 #include "anim.h"
 #include "keyboard.h"
@@ -65,19 +66,6 @@
 #define tic_api_spr(tic, ...)   (((tic_core*)(tic))->api.spr(tic, __VA_ARGS__))
 #define tic_api_map(tic, ...)   (((tic_core*)(tic))->api.map(tic, __VA_ARGS__))
 #endif
-
-#ifdef BAREMETALPI
-#define TIC_LOCAL "../.tic80/"
-#elif defined(__SWITCH__)
-#define TIC_LOCAL "./data/"
-#else
-#define TIC_LOCAL ".local/"
-#endif
-#define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_HASH "/"
-#define TIC_CACHE         TIC_LOCAL "cache/"
-
-#define CONFIG_TIC      "config.tic"
-#define CONFIG_TIC_PATH TIC_LOCAL_VERSION CONFIG_TIC
 
 #define PNG_EXT ".png"
 
