@@ -11,9 +11,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-// The services write where the studio's would, under a root of the test's own.
-static const char Root[] = "/tmp/tic80-services/";
+#include <unistd.h>
 
 // The host the services notify; every callback lands here.
 typedef struct
@@ -128,13 +126,20 @@ static void testConfig(tic_mem* tic, tic_fs* fs)
     first->data.options.volume = 9;
     first->saveOptions(first);
 
+    // config.tic is a cart whose code carries the options JSON; a save takes
+    // the machine's cart, so put a different UI_SCALE there first.
+    strcpy(tic->cart.code.data, "{\"UI_SCALE\":7}");
+    first->saveConfigCart(first);
+    assert(host.changed == 2);
+    assert(first->data.uiScale == 7);
+
     Config* second = calloc(1, sizeof(Config));
     assert(second);
     initConfig(second, tic, fs, onChanged, &host);
 
     // Once for the defaults, once for the config.tic the first one wrote.
-    assert(host.changed == 3);
-    assert(second->data.uiScale == first->data.uiScale);
+    assert(host.changed == 4);
+    assert(second->data.uiScale == 7);
     assert(second->data.options.volume == 9);
 
     freeConfig(first);
@@ -189,6 +194,13 @@ static void testCart(tic_mem* tic, tic_fs* fs)
     assert(host.saved == 2);
     assert(tic_fs_exists(fs, "downloads/smoke.tic"));
 
+    // A load by name reads the file into the machine and resets the identity.
+    tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0);
+    assert(rom_load_cart(&deps, "smoke.tic"));
+    assert(host.loaded == 2);
+    assert(strcmp(cart.name, "smoke.tic") == 0);
+    assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+
     // A cached cart loads by hash with no network at all.
     {
         s32 size = 0;
@@ -198,11 +210,14 @@ static void testCart(tic_mem* tic, tic_fs* fs)
         free(data);
     }
 
+    tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0);
     bool hashDone = false;
     rom_load_by_hash(&deps, "hash-cart", "hash-cache", NULL, onHashDone, &hashDone);
     assert(hashDone);
-    assert(host.loaded == 2);
+    assert(host.loaded == 3);
     assert(strcmp(cart.name, "hash-cart") == 0);
+    assert(strcmp(cart.path, tic_fs_path(fs, "hash-cart")) == 0);
+    assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
 
     // The config's own cart is a save like any other, through the same callbacks.
     assert(rom_save_cart(&deps, CONFIG_TIC_PATH) == CART_SAVE_OK);
@@ -216,18 +231,12 @@ static void testCart(tic_mem* tic, tic_fs* fs)
 
 int main(void)
 {
-    tic_fs* fs = tic_fs_create(Root, NULL);
-    assert(fs);
+    // A root of this run's own: two runs never share one.
+    char root[] = "/tmp/tic80-services-XXXXXX";
+    assert(mkdtemp(root));
 
-    // The root and the folders the services write into; a run that stopped
-    // early may have left files behind, so those go first.
-    tic_fs_makedir(fs, "");
-    tic_fs_delfile(fs, "fs-smoke.tic");
-    tic_fs_delfile(fs, "smoke.tic");
-    tic_fs_delfile(fs, "downloads/smoke.tic");
-    tic_fs_delfile(fs, CONFIG_TIC_PATH);
-    tic_fs_delfile(fs, TIC_LOCAL_VERSION "options.json");
-    tic_fs_delfile(fs, TIC_CACHE "hash-cache.tic");
+    tic_fs* fs = tic_fs_create(root, NULL);
+    assert(fs);
 
     tic_fs_makedir(fs, TIC_LOCAL);
     tic_fs_makedir(fs, TIC_LOCAL_VERSION);

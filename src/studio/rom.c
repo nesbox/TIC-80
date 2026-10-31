@@ -35,6 +35,15 @@
 
 #include <stdio.h>
 
+#if defined(BUILD_RENDER_CACHE)
+#include "core/core.h"
+
+// The cover is drawn inside the studio's frame: keep studio.h's redirects for
+// the two calls it uses, so the draw cache sees them.
+#define tic_api_cls(tic, ...)   (((tic_core*)(tic))->api.cls(tic, __VA_ARGS__))
+#define tic_api_print(tic, ...) (((tic_core*)(tic))->api.print(tic, __VA_ARGS__))
+#endif
+
 #if defined(TIC80_PRO)
 #include "project.h"
 #endif
