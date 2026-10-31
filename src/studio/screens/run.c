@@ -21,33 +21,30 @@
 // SOFTWARE.
 
 #include "run.h"
-#include "console.h"
-#include "studio/fs.h"
+#include "tools.h"
+#include "studio/paths.h"
+#include "studio/system.h"
 #include "ext/md5.h"
 #include <time.h>
 
 static void onTrace(void* data, const char* text, u8 color)
 {
-#if defined(BUILD_EDITORS)
-    Run* run = (Run*)data;
-    console_trace(run->console, text, color);
-#else
-    (void)data;
-    (void)text;
-    (void)color;
-#endif
+    Run* run = data;
+
+    if(run->deps.trace)
+        run->deps.trace(run->deps.host, text, color);
 }
 
 static void onError(void* data, const char* info)
 {
-#if defined(BUILD_EDITORS)
-    Run* run = (Run*)data;
-    setStudioMode(run->studio, TIC_CONSOLE_MODE);
-    console_error(run->console, info);
-#else
-    (void)data;
-    (void)info;
-#endif
+    Run* run = data;
+
+    // The console is the host's: it goes there and prints the line.
+    if(run->deps.ended)
+        run->deps.ended(run->deps.host);
+
+    if(run->deps.error)
+        run->deps.error(run->deps.host, info);
 }
 
 static void onExit(void* data)
@@ -105,7 +102,7 @@ static void initPMemName(Run* run)
 
 static void tick(Run* run)
 {
-    if(getStudioMode(run->studio) != TIC_RUN_MODE)
+    if(!run->deps.isActive(run->deps.host))
         return;
 
     tic_mem* tic = run->tic;
@@ -124,11 +121,12 @@ static void tick(Run* run)
     }
 
     if(run->exit)
-#if defined(BUILD_EDITORS)
-        setStudioMode(run->studio, TIC_CONSOLE_MODE);
-#else
-        studio_exit(run->studio);
-#endif
+    {
+        if(run->deps.ended)
+            run->deps.ended(run->deps.host);
+        else if(run->deps.exited)
+            run->deps.exited(run->deps.host);
+    }
 }
 
 static u64 getFreq(void* data)
@@ -143,13 +141,12 @@ static u64 getCounter(void* data)
     return tic_sys_counter_get();
 }
 
-void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
+void run_init(Run* run, const RunDeps* deps)
 {
     *run = (Run){
-        .studio = studio,
-        .tic = getMemory(studio),
-        .console = console,
-        .fs = fs,
+        .deps = *deps,
+        .tic = deps->tic,
+        .fs = deps->fs,
         .tick = tick,
         .exit = false,
         .tickData = (tic_tick_data){
@@ -185,7 +182,7 @@ void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
     tic_sys_preseed();
 }
 
-void freeRun(Run* run)
+void run_free(Run* run)
 {
     free(run);
 }

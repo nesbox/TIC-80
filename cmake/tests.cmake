@@ -375,6 +375,21 @@ if(BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/src/ext/json.c
     )
 
+    # The game runner links without the studio: the runner and the core over a
+    # filesystem on a temporary root, with a fake host that records the end,
+    # the exit, the error and the trace.
+    add_executable(run-test
+        ${CMAKE_SOURCE_DIR}/tests/run.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/run.c
+        ${CMAKE_SOURCE_DIR}/src/studio/fs.c
+        ${CMAKE_SOURCE_DIR}/src/ext/json.c
+        ${CMAKE_SOURCE_DIR}/src/ext/md5.c
+    )
+
+    target_include_directories(run-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    target_link_libraries(run-test PRIVATE tic80core zip)
+    tic80_add_test(run-test)
+
     target_compile_definitions(surf-test PRIVATE BUILD_SURF)
     target_include_directories(surf-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
     target_link_libraries(surf-test PRIVATE tic80core zip)
