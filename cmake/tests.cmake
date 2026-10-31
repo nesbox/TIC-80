@@ -270,6 +270,24 @@ if(BUILD_TESTS)
     target_link_libraries(sfx-editor-test PRIVATE tic80core)
     tic80_add_test(sfx-editor-test)
 
+    # The sprite editor links without the studio: the editor, the animation,
+    # the keyboard, the mouse, the ui, the clipboard and the history modules,
+    # with a fake host that records the tooltip.
+    add_executable(sprite-editor-test
+        ${CMAKE_SOURCE_DIR}/tests/sprite_editor.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/sprite/sprite.c
+        ${CMAKE_SOURCE_DIR}/src/studio/anim.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+        ${CMAKE_SOURCE_DIR}/src/studio/clipboard.c
+        ${CMAKE_SOURCE_DIR}/src/ext/history.c
+    )
+
+    target_include_directories(sprite-editor-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(sprite-editor-test PRIVATE tic80core)
+    tic80_add_test(sprite-editor-test)
+
     add_executable(code-text-test ${CODE_TEXT_TEST_SRC})
     tic80_add_test(code-text-test)
 
