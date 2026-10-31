@@ -358,6 +358,28 @@ if(BUILD_TESTS)
     target_link_libraries(mainmenu-test PRIVATE tic80core)
     tic80_add_test(mainmenu-test)
 
+    # The browser links without the studio: the screen, the menu widget, the
+    # animation, the filesystem and the sound modules, a fake net that holds
+    # its requests, a filesystem on a temporary root and a fake host that
+    # records the actions. Built with BUILD_SURF, as the screen ships.
+    add_executable(surf-test
+        ${CMAKE_SOURCE_DIR}/tests/surf.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/surf.c
+        ${CMAKE_SOURCE_DIR}/src/studio/screens/menu.c
+        ${CMAKE_SOURCE_DIR}/src/studio/anim.c
+        ${CMAKE_SOURCE_DIR}/src/studio/fs.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+        ${CMAKE_SOURCE_DIR}/src/studio/sound.c
+        ${CMAKE_SOURCE_DIR}/src/ext/json.c
+    )
+
+    target_compile_definitions(surf-test PRIVATE BUILD_SURF)
+    target_include_directories(surf-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    target_link_libraries(surf-test PRIVATE tic80core zip)
+    tic80_add_test(surf-test)
+
     add_executable(code-text-test ${CODE_TEXT_TEST_SRC})
     tic80_add_test(code-text-test)
 
