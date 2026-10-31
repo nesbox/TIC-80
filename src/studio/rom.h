@@ -22,9 +22,10 @@
 
 #pragma once
 
-#include "system.h"
+#include "defines.h"
 #include "fs.h"
 #include "cart.h"
+#include "config.h"
 
 typedef struct
 {
@@ -32,12 +33,24 @@ typedef struct
     char path[TICNAME_MAX];
 } CartName;
 
-CartName* studioCart(Studio* studio);
+// The cart service's inputs: the machine, the filesystem, the identity kept
+// for the loaded cart, the config and the host's notifications.
+typedef struct
+{
+    tic_mem* tic;
+    tic_fs* fs;
+    CartName* cart;
+    Config* config;
 
-void studioSetCartName(Studio* studio, const char* name, const char* path);
+    void* host;
+    void (*loaded)(void* host);
+    void (*saved)(void* host);
+} RomDeps;
 
-bool studioLoadCart(Studio* studio, const char* path);
-void studioReloadCart(Studio* studio);
-void studioLoadByHash(Studio* studio, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
-CartSaveResult studioSaveCart(Studio* studio, const char* name);
-CartSaveResult studioAutoSave(Studio* studio);
+void rom_set_cart_name(const RomDeps* deps, const char* name, const char* path);
+
+bool rom_load_cart(const RomDeps* deps, const char* path);
+void rom_reload_cart(const RomDeps* deps);
+void rom_load_by_hash(const RomDeps* deps, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
+CartSaveResult rom_save_cart(const RomDeps* deps, const char* name);
+CartSaveResult rom_autosave(const RomDeps* deps);

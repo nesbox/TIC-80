@@ -23,6 +23,7 @@
 #pragma once
 
 #include "tic.h"
+#include "ext/png.h"
 
 // How saving a cart went: the studio's cart layer answers with it, and the
 // console — which reports what it prints — names it too.
@@ -43,3 +44,5 @@ typedef enum
 
 void tic_cart_load(tic_cartridge* rom, const u8* buffer, s32 size);
 s32 tic_cart_save(const tic_cartridge* rom, u8* buffer);
+
+tic_cartridge* loadPngCart(png_buffer buffer);

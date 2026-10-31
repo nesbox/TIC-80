@@ -67,8 +67,6 @@
 #define tic_api_map(tic, ...)   (((tic_core*)(tic))->api.map(tic, __VA_ARGS__))
 #endif
 
-#define PNG_EXT ".png"
-
 #if defined(CRT_SHADER_SUPPORT)
 // clang-format off
 #   define CRT_CMD_PARAM(macro)                                 \
@@ -175,7 +173,6 @@ bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button);
 
 void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color);
 
-tic_cartridge* loadPngCart(png_buffer buffer);
 void studioRomLoaded(Studio* studio);
 void studioRomSaved(Studio* studio);
 void studioConfigChanged(Studio* studio);
@@ -204,6 +201,15 @@ void playSystemSfx(Studio* studio, s32 id);
 bool studio_is_cart_loaded(Studio* studio);
 
 struct tic_fs* studio_fs(Studio* studio);
+
+CartName* studioCart(Studio* studio);
+void studioSetCartName(Studio* studio, const char* name, const char* path);
+
+bool studioLoadCart(Studio* studio, const char* path);
+void studioReloadCart(Studio* studio);
+void studioLoadByHash(Studio* studio, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
+CartSaveResult studioSaveCart(Studio* studio, const char* name);
+CartSaveResult studioAutoSave(Studio* studio);
 
 void gotoMenu(Studio* studio);
 void gotoCode(Studio* studio);
