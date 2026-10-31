@@ -20,11 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "studio/studio.h"
-#include "studio/config.h"
-#include "studio/screens/menu.h"
-#include "tic_assert.h"
 #include "mainmenu.h"
+#include "studio/screens/menu.h"
+#include "studio/system.h"
+#include "script.h"
+#include "tic_assert.h"
+#include "tools.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 typedef struct
 {
@@ -35,15 +40,16 @@ typedef struct
 
 struct StudioMainMenu
 {
-    Studio* studio;
+    MainMenuDeps deps;
+
     tic_mem* tic;
     Menu* menu;
+    struct StudioOptions* options;
 
     MenuItem* items;
     s32 count;
 
     Gamepads gamepads;
-    struct StudioOptions* options;
 };
 
 // clang-format off
@@ -55,17 +61,15 @@ struct StudioMainMenu
 static void showMainMenu(void* data, s32 pos);
 static void onBackFromOptionsMenu(void* data, s32 pos);
 
-StudioMainMenu* studio_mainmenu_init(Menu* menu, Studio* studio)
+StudioMainMenu* mainmenu_init(const MainMenuDeps* deps)
 {
-    Config* config = studio_config_get(studio);
-
     StudioMainMenu* main = NEW(StudioMainMenu);
 
     *main = (StudioMainMenu){
-        .menu = menu,
-        .options = &config->data.options,
-        .studio = studio,
-        .tic = config->tic,
+        .deps = *deps,
+        .menu = deps->menu,
+        .options = deps->options,
+        .tic = deps->tic,
         .gamepads.key = -1,
     };
 
@@ -76,7 +80,7 @@ StudioMainMenu* studio_mainmenu_init(Menu* menu, Studio* studio)
 
 static void initGamepadMenu(StudioMainMenu* menu);
 
-bool studio_mainmenu_keyboard(StudioMainMenu* main)
+bool mainmenu_keyboard(StudioMainMenu* main)
 {
     if(main && main->gamepads.key >= 0)
     {
@@ -308,10 +312,10 @@ static void gameMenuHandler(void* data, s32 pos)
 
     // The menu can also be opened in the studio, where there is no pause to
     // return to: start the cart as RUN would.
-    if(studio_run_paused(main->studio))
-        resumeGame(main->studio);
+    if(main->deps.runPaused(main->deps.host))
+        main->deps.resume(main->deps.host);
     else
-        runGame(main->studio, RUN_FROM_STUDIO);
+        main->deps.run(main->deps.host);
 
     tic_get_script(tic)->callback.menu(tic, pos, NULL);
 }
@@ -329,7 +333,7 @@ static void freeItems(StudioMainMenu* menu)
     }
 }
 
-void studio_mainmenu_free(StudioMainMenu* menu)
+void mainmenu_free(StudioMainMenu* menu)
 {
     freeItems(menu);
     FREE(menu);
@@ -392,8 +396,7 @@ static inline s32 mainMenuOffset(StudioMainMenu* menu)
 static void onBackFromOptionsMenu(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
-    Config* config = studio_config_get(main->studio);
-    config->saveOptions(config);
+    main->deps.saveOptions(main->deps.host);
 
     showMainMenu(data, pos);
 }
@@ -404,10 +407,10 @@ static void onResumeGame(void* data, s32 pos)
     StudioMainMenu* main = data;
 
     // Opened in the studio, there is no pause to return to; start the cart.
-    if(studio_run_paused(main->studio))
-        resumeGame(main->studio);
+    if(main->deps.runPaused(main->deps.host))
+        main->deps.resume(main->deps.host);
     else
-        runGame(main->studio, RUN_FROM_STUDIO);
+        main->deps.run(main->deps.host);
 }
 
 // The back of the top level menu (ESC or the gamepad's B): the menu sits over
@@ -420,10 +423,10 @@ static void onMenuBack(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
 
-    if(studio_menu_over_player_run(main->studio))
+    if(main->deps.menuOverPlayerRun(main->deps.host))
         onResumeGame(data, pos);
     else
-        leaveRun(main->studio);
+        main->deps.leave(main->deps.host);
 }
 
 static void onResetGame(void* data, s32 pos)
@@ -431,14 +434,14 @@ static void onResetGame(void* data, s32 pos)
     (void)pos;
     StudioMainMenu* main = data;
     tic_api_reset(main->tic);
-    setStudioMode(main->studio, TIC_RUN_MODE);
+    main->deps.setRunMode(main->deps.host);
 }
 
 static void onExitStudio(void* data, s32 pos)
 {
     (void)pos;
     StudioMainMenu* main = data;
-    exitStudio(main->studio);
+    main->deps.exitStudio(main->deps.host);
 }
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
@@ -446,7 +449,7 @@ static void onExitGame(void* data, s32 pos)
 {
     (void)pos;
     StudioMainMenu* main = data;
-    exitGame(main->studio);
+    main->deps.exitGame(main->deps.host);
 }
 #endif
 
@@ -487,7 +490,7 @@ static void showMainMenu(void* data, s32 pos)
     initGameMenu(main);
 
     s32 offset = mainMenuOffset(main);
-    menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, studio_is_cart_loaded(main->studio) ? onMenuBack : NULL, main);
+    menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, main->deps.isCartLoaded(main->deps.host) ? onMenuBack : NULL, main);
 }
 
 static void showOptionsMenuPos(void* data, s32 pos)
