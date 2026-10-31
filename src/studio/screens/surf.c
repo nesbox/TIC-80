@@ -22,10 +22,14 @@
 
 #include "surf.h"
 #include "tools.h"
-#include "studio/fs.h"
-#include "studio/net.h"
 #include "studio/config.h"
+#include "studio/fs.h"
+#include "studio/keyboard.h"
+#include "studio/layout.h"
+#include "studio/net.h"
+#include "studio/paths.h"
 #include "studio/ram.h"
+#include "studio/sound.h"
 #include "menu.h"
 #include "ext/gif.h"
 #include "ext/png.h"
@@ -37,6 +41,7 @@
 #endif
 
 #include <ctype.h>
+#include <stdio.h>
 #include <string.h>
 
 #define MAIN_OFFSET   4
@@ -116,7 +121,7 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
     };
 
     u8 colorkey = 0;
-    tiles2ram(tic->ram, &getConfig(surf->studio)->cart->bank0.tiles);
+    tiles2ram(tic->ram, &surf->config->cart->bank0.tiles);
     tic_api_spr(tic, 12, TipX, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
     {
         static const char Label[] = "SELECT";
@@ -130,6 +135,11 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
         tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 3, tic_color_black, true, 1, false);
         tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 2, tic_color_white, true, 1, false);
     }
+}
+
+static void surfSfx(Surf* surf)
+{
+    sound_play(surf->tic, &surf->config->cart->bank0.sfx, 2);
 }
 
 static SurfItem* getMenuItem(Surf* surf)
@@ -173,7 +183,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
         u8 colorkey = 0;
 
-        tiles2ram(tic->ram, &getConfig(surf->studio)->cart->bank0.tiles);
+        tiles2ram(tic->ram, &surf->config->cart->bank0.tiles);
         tic_api_spr(tic, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
         {
             static const char Label[] = "WEBSITE";
@@ -634,7 +644,7 @@ static void goBackDir(Surf* surf)
 
     if(strcmp(dir, "") != 0)
     {
-        playSystemSfx(surf->studio, 2);
+        surfSfx(surf);
 
         surf->anim.movie = resetMovie(&surf->anim.goback.hide);
     }
@@ -648,7 +658,7 @@ static void changeDirectory(Surf* surf, const char* name)
     }
     else
     {
-        playSystemSfx(surf->studio, 2);
+        surfSfx(surf);
         surf->anim.movie = resetMovie(&surf->anim.gotodir.hide);
     }
 }
@@ -660,7 +670,7 @@ static void autoSave(Surf* surf)
     if(!tic_fs_isdir(surf->fs, save_directory))
         tic_fs_makedir(surf->fs, save_directory);
 
-    studioAutoSave(surf->studio);
+    surf->deps.autoSave(surf->deps.host);
 }
 
 static void onCartLoaded(void* data)
@@ -672,12 +682,12 @@ static void onCartLoaded(void* data)
         autoSave(surf);
     }
 
-    runGame(surf->studio, RUN_FROM_PLAYER);
+    surf->deps.run(surf->deps.host);
 }
 
-static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
+static void onLoadCommandConfirmed(void* host, bool yes, void* data)
 {
-    (void)studio;
+    (void)host;
     if(yes)
     {
         Surf* surf = data;
@@ -685,12 +695,12 @@ static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
 
         if(item->hash)
         {
-            studioLoadByHash(surf->studio, item->name, item->hash, NULL, onCartLoaded, surf);
+            surf->deps.loadByHash(surf->deps.host, item->name, item->hash, NULL, onCartLoaded, surf);
         }
         else
         {
-            studioLoadCart(surf->studio, item->name);
-            runGame(surf->studio, RUN_FROM_PLAYER);
+            surf->deps.loadCart(surf->deps.host, item->name);
+            surf->deps.run(surf->deps.host);
         }
     }
 }
@@ -699,9 +709,9 @@ static void onPlayCart(void* data)
 {
     Surf* surf = data;
 
-    studioCartChanged(surf->studio)
-        ? confirmLoadCart(surf->studio, onLoadCommandConfirmed, surf)
-        : onLoadCommandConfirmed(surf->studio, true, surf);
+    surf->deps.cartChanged(surf->deps.host)
+        ? surf->deps.confirmLoadCart(surf->deps.host, onLoadCommandConfirmed, surf)
+        : onLoadCommandConfirmed(surf->deps.host, true, surf);
 }
 
 static void loadCart(Surf* surf)
@@ -773,12 +783,12 @@ static void processGamepad(Surf* surf)
             if(tic_api_btnp(tic, Up, Hold, Period) || tic_api_keyp(tic, tic_key_up, Hold, Period))
             {
                 move(surf, -1);
-                playSystemSfx(surf->studio, 2);
+                surfSfx(surf);
             }
             else if(tic_api_btnp(tic, Down, Hold, Period) || tic_api_keyp(tic, tic_key_down, Hold, Period))
             {
                 move(surf, +1);
-                playSystemSfx(surf->studio, 2);
+                surfSfx(surf);
             }
             else if(tic_api_btnp(tic, Left, Hold, Period) || tic_api_keyp(tic, tic_key_left, Hold, Period) || tic_api_keyp(tic, tic_key_pageup, Hold, Period))
             {
@@ -803,7 +813,7 @@ static void processGamepad(Surf* surf)
                 move(surf, dir);
             }
 
-            if(tic_api_btnp(tic, A, -1, -1) || ticEnterWasPressed(tic, -1, -1))
+            if(tic_api_btnp(tic, A, -1, -1) || keyboard_enter(tic, -1, -1))
             {
                 SurfItem* item = getMenuItem(surf);
                 item->dir
@@ -830,7 +840,7 @@ static void processGamepad(Surf* surf)
         if(tic_api_btnp(tic, B, -1, -1) || tic_api_keyp(tic, tic_key_backspace, -1, -1))
         {
             if(tic_fs_isroot(surf->fs))
-                exitSurf(surf->studio);
+                surf->deps.exit(surf->deps.host);
             else
                 goBackDir(surf);
         }
@@ -865,10 +875,10 @@ static void tick(Surf* surf)
         // Escape leaves the browser whatever the list holds: an empty folder
         // must not be a screen with no way out of it.
         if(tic_api_keyp(tic, tic_key_escape, -1, -1))
-            exitSurf(surf->studio);
+            surf->deps.exit(surf->deps.host);
     }
 
-    if(getStudioMode(surf->studio) != TIC_SURF_MODE) return;
+    if(!surf->deps.isActive(surf->deps.host)) return;
 
     if(surf->menu.count > 0)
     {
@@ -883,7 +893,7 @@ static void tick(Surf* surf)
     VBANK(tic, 1)
     {
         tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_yellow);
-        memcpy(tic->ram->vram.palette.data, getConfig(surf->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        memcpy(tic->ram->vram.palette.data, surf->config->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         if(surf->menu.count > 0)
         {
@@ -904,6 +914,13 @@ static void tick(Surf* surf)
 static void resume(Surf* surf)
 {
     surf->anim.movie = resetMovie(&surf->anim.show);
+}
+
+// The cover's palette is faded in as its cart is picked.
+static void fadePalette(tic_palette* pal, s32 value)
+{
+    for(u8 *i = pal->data, *end = i + sizeof(tic_palette); i < end; i++)
+        *i = (u8)(*i * value >> 8);
 }
 
 static void scanline(tic_mem* tic, s32 row, void* data)
@@ -959,16 +976,17 @@ static void moveDone(void* data)
     surf->anim.movie = resetMovie(&surf->anim.idle);
 }
 
-void initSurf(Surf* surf, Studio* studio, tic_fs* fs, tic_net* net, Config* config)
+void surf_init(Surf* surf, const SurfDeps* deps)
 {
     freeAnim(surf);
+    resetMenu(surf);
 
     *surf = (Surf){
-        .studio = studio,
-        .tic = getMemory(studio),
-        .config = config,
-        .fs = fs,
-        .net = net,
+        .deps = *deps,
+        .tic = deps->tic,
+        .config = deps->config,
+        .fs = deps->fs,
+        .net = deps->net,
         .tick = tick,
         .ticks = 0,
         .init = false,
@@ -1036,7 +1054,7 @@ void initSurf(Surf* surf, Studio* studio, tic_fs* fs, tic_net* net, Config* conf
     tic_fs_makedir(surf->fs, TIC_CACHE);
 }
 
-void freeSurf(Surf* surf)
+void surf_free(Surf* surf)
 {
     freeAnim(surf);
     resetMenu(surf);

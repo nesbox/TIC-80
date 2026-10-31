@@ -22,13 +22,41 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "api.h"
+#include "studio/anim.h"
+#include "studio/fs.h"
+#include "studio/net.h"
 
 typedef struct Surf Surf;
 
+// The confirm the host asks: the screen hands its answer back through it.
+typedef void (*SurfConfirm)(void* host, bool yes, void* data);
+
+// What the browser gets once: the machine, its filesystem, net and config, and
+// the host actions it asks for.
+typedef struct
+{
+    void* host;
+    tic_mem* tic;
+    tic_fs* fs;
+    tic_net* net;
+    struct Config* config;
+
+    void (*loadCart)(void* host, const char* name);
+    void (*loadByHash)(void* host, const char* name, const char* hash,
+                       const char* section, fs_done_callback done, void* data);
+    void (*autoSave)(void* host);
+    bool (*cartChanged)(void* host);
+    void (*confirmLoadCart)(void* host, SurfConfirm callback, void* data);
+    void (*run)(void* host);
+    void (*exit)(void* host);
+    bool (*isActive)(void* host);
+} SurfDeps;
+
 struct Surf
 {
-    Studio* studio;
+    SurfDeps deps;
+
     tic_mem* tic;
     struct tic_fs* fs;
     struct tic_net* net;
@@ -88,5 +116,5 @@ struct Surf
     void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
 
-void initSurf(Surf* surf, Studio* studio, struct tic_fs* fs, struct tic_net* net, struct Config* config);
-void freeSurf(Surf* surf);
+void surf_init(Surf* surf, const SurfDeps* deps);
+void surf_free(Surf* surf);
