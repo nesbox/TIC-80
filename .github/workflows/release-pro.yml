@@ -347,7 +347,8 @@ jobs:
   # Free builds are assembled by release.yml (into the draft release); once
   # the release is published, push those assets to itch.io's free channels.
   itch-free:
-    runs-on: ubuntu-latest
+    # 24.04, not -latest: the label moves to 26.04 (runner-images#14748).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
         with:
