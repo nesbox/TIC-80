@@ -248,8 +248,6 @@ const char* studioExportSfx(Studio* studio, s32 sfx, const char* filename);
 
 tic_mem* getMemory(Studio* studio);
 
-void fadePalette(tic_palette* pal, s32 value);
-
 #if defined(BUILD_EDITORS)
 
 // The code editor's view toggles, shared by the bar's menu and the editor's

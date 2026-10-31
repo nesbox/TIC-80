@@ -528,12 +528,6 @@ static void emptyDone(void* data)
 }
 #endif
 
-void fadePalette(tic_palette* pal, s32 value)
-{
-    for(u8 *i = pal->data, *end = i + sizeof(tic_palette); i < end; i++)
-        *i = (u8)(*i * value >> 8);
-}
-
 static inline void sfx2ram(tic_ram* ram, const tic_sfx* src)
 {
     memcpy(&ram->sfx, src, sizeof ram->sfx);
@@ -944,9 +938,94 @@ void gotoCode(Studio* studio)
 #endif
 
 #if defined(BUILD_SURF)
+// The browser's host side: the cart loads and the exits it asks for, as
+// one-line wrappers, so the screen keeps its decisions.
+static void surfLoadCart(void* host, const char* name)
+{
+    studioLoadCart(host, name);
+}
+
+static void surfLoadByHash(void* host, const char* name, const char* hash, const char* section, fs_done_callback done, void* data)
+{
+    studioLoadByHash(host, name, hash, section, done, data);
+}
+
+static void surfAutoSave(void* host)
+{
+    studioAutoSave(host);
+}
+
+static bool surfCartChanged(void* host)
+{
+    return studioCartChanged(host);
+}
+
+static void surfRun(void* host)
+{
+    runGame(host, RUN_FROM_PLAYER);
+}
+
+static void surfExit(void* host)
+{
+    exitSurf(host);
+}
+
+static bool surfIsActive(void* host)
+{
+    return getStudioMode(host) == TIC_SURF_MODE;
+}
+
+// The confirm's answer is the screen's own callback; the dialog holds it until
+// one of its items is picked.
+typedef struct
+{
+    SurfConfirm callback;
+    void* data;
+} SurfConfirmData;
+
+static void surfConfirmAnswered(Studio* studio, bool yes, void* data)
+{
+    SurfConfirmData* confirm = data;
+
+    confirm->callback(studio, yes, confirm->data);
+    free(confirm);
+}
+
+static void surfConfirmLoadCart(void* host, SurfConfirm callback, void* data)
+{
+    SurfConfirmData* confirm = malloc(sizeof(SurfConfirmData));
+    *confirm = (SurfConfirmData){callback, data};
+
+    confirmLoadCart(host, surfConfirmAnswered, confirm);
+}
+
+// What the browser gets once: its filesystem, its net and config, and the
+// actions.
+static SurfDeps surfDeps(Studio* studio)
+{
+    return (SurfDeps){
+        .host = studio,
+        .tic = studio->tic,
+        .fs = studio->fs,
+        .net = studio->net,
+        .config = studio->config,
+
+        .loadCart = surfLoadCart,
+        .loadByHash = surfLoadByHash,
+        .autoSave = surfAutoSave,
+        .cartChanged = surfCartChanged,
+        .confirmLoadCart = surfConfirmLoadCart,
+        .run = surfRun,
+        .exit = surfExit,
+        .isActive = surfIsActive,
+    };
+}
+
 static void initSurfMode(Studio* studio)
 {
-    initSurf(studio->surf, studio, studio->fs, studio->net, studio->config);
+    SurfDeps deps = surfDeps(studio);
+
+    surf_init(studio->surf, &deps);
 }
 
 void gotoSurf(Studio* studio)
@@ -3253,7 +3332,7 @@ void studio_delete(Studio* studio)
 
 #endif
 #if defined(BUILD_SURF)
-        freeSurf(studio->surf);
+        surf_free(studio->surf);
 #endif
 
         start_free(studio->start);
