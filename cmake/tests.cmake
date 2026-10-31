@@ -233,6 +233,25 @@ if(BUILD_TESTS)
     target_link_libraries(code-editor-test PRIVATE tic80core)
     tic80_add_test(code-editor-test)
 
+    # The map editor and its world view link without the studio: the two
+    # editors, the animation, the keyboard, the mouse, the ui, the clipboard
+    # and the history modules, with a fake host that records the two asks.
+    add_executable(map-editor-test
+        ${CMAKE_SOURCE_DIR}/tests/map_editor.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/map/map.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/map/world.c
+        ${CMAKE_SOURCE_DIR}/src/studio/anim.c
+        ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c
+        ${CMAKE_SOURCE_DIR}/src/studio/clipboard.c
+        ${CMAKE_SOURCE_DIR}/src/ext/history.c
+    )
+
+    target_include_directories(map-editor-test PRIVATE ${CMAKE_BINARY_DIR})
+    target_link_libraries(map-editor-test PRIVATE tic80core)
+    tic80_add_test(map-editor-test)
+
     add_executable(code-text-test ${CODE_TEXT_TEST_SRC})
     tic80_add_test(code-text-test)
 
