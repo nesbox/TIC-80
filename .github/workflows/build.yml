@@ -536,7 +536,8 @@ jobs:
   # === Nintendo 3DS build ===
 
   nintendo-3ds:
-    runs-on: ubuntu-latest
+    # 24.04, not -latest: the label moves to 26.04 (runner-images#14748).
+    runs-on: ubuntu-24.04
     container: devkitpro/devkitarm:20250728
 
     steps:
@@ -566,7 +567,8 @@ jobs:
 
   # === Nintendo Switch build ===
   nintendo-switch:
-    runs-on: ubuntu-latest
+    # 24.04, not -latest: the label moves to 26.04 (runner-images#14748).
+    runs-on: ubuntu-24.04
     container: devkitpro/devkita64:20250728
 
     steps:

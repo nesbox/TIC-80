@@ -25,7 +25,8 @@ jobs:
 
   package:
     needs: build
-    runs-on: ubuntu-latest
+    # 24.04, not -latest: the label moves to 26.04 (runner-images#14748).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
 
@@ -85,7 +86,8 @@ jobs:
 
   publish:
     needs: [package, dmg]
-    runs-on: ubuntu-latest
+    # 24.04, not -latest: the label moves to 26.04 (runner-images#14748).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
         with:
