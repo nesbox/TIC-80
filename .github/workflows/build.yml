@@ -595,9 +595,9 @@ jobs:
           name: "tic80-nintendo-switch"
           path: build/bin/tic80.nro
 
-  # === MacOS 14 / arm64 ===
+  # === MacOS 15 / arm64 ===
   macos-arm64:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_MAXSIZE: 500M
@@ -957,7 +957,7 @@ jobs:
             build/bin/tic80
 
   sdl-macos:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_MAXSIZE: 500M

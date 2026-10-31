@@ -22,16 +22,52 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "tic.h"
 #include "tilesheet.h"
+#include "studio/anim.h"
+#include "studio/clipboard.h"
+#include "studio/keyboard.h"
+#include "studio/mouse.h"
 
 typedef struct Map Map;
 
+// What the host gives the editor once: the machine, the pointer states, and the
+// two mode switches only the studio can perform.
+typedef struct
+{
+    void* host;
+    tic_mem* tic;
+    MouseState* mouse;
+
+    void (*openWorld)(void* host);
+    void (*openMap)(void* host);
+
+} MapDeps;
+
+// The frame: the bar's pointer flag, the clipboard gesture and the values the
+// host refreshes every tick.
+typedef struct
+{
+    struct
+    {
+        bool pointerOwned;
+        ClipboardEvent clipboard;
+
+    } frame;
+
+    s32 editorTop;
+    const tic_tiles* tiles;
+    const tic_palette* palette;
+    const tic_palette* cartPalette;
+
+} MapView;
+
 struct Map
 {
-    Studio* studio;
-    tic_mem* tic;
+    MapDeps deps;
+    const MapView* view;
 
+    tic_mem* tic;
     tic_map* src;
 
     s32 tickCounter;
@@ -104,9 +140,6 @@ struct Map
         Movie page;
 
     } anim;
-
-    void (*tick)(Map*);
-    void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
 
 extern const ClipboardOps MapClipboard;
@@ -116,5 +149,8 @@ void map_select_page(Map*, s32 page);
 void mapSetBpp(Map*, tic_bpp bpp);
 void map_toggle_sheet(Map*);
 
-void initMap(Map*, Studio* studio, tic_map* src);
+void initMap(Map*, const MapDeps*, tic_map* src);
+void map_set_view(Map*, const MapView*);
+void map_tick(Map*);
+void map_scanline(tic_mem* tic, s32 row, void* data);
 void freeMap(Map* map);

@@ -25,7 +25,7 @@
 #include "rom.h"
 #include "editors/code/code.h"
 #include "editors/sprite.h"
-#include "editors/map.h"
+#include "editors/map/map.h"
 #include "editors/music.h"
 #include "editors/sfx.h"
 #include "screens/console.h"

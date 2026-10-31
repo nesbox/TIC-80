@@ -21,9 +21,34 @@
 // SOFTWARE.
 
 #include "world.h"
-#include "map.h"
+#include "api.h"
+#include "studio/mouse.h"
+#include "studio/ui.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 #define PREVIEW_SIZE (TIC80_WIDTH * TIC80_HEIGHT * TIC_PALETTE_BPP / BITS_IN_BYTE)
+
+static bool mousePos(World* world, const tic_rect* rect)
+{
+    return !world->map->view->frame.pointerOwned && mouse_over(world->tic, rect);
+}
+
+static bool mouseClicked(World* world, const tic_rect* rect, tic_mouse_btn button)
+{
+    return mouse_click(&world->map->deps.mouse[button], rect);
+}
+
+static bool mouseDown(World* world, const tic_rect* rect, tic_mouse_btn button)
+{
+    return mouse_down(&world->map->deps.mouse[button], rect);
+}
+
+static void openMap(World* world)
+{
+    world->map->deps.openMap(world->map->deps.host);
+}
 
 static void drawGrid(World* world)
 {
@@ -41,14 +66,14 @@ static void drawGrid(World* world)
 
     tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 
-    if(checkMousePos(world->studio, &rect))
+    if(mousePos(world, &rect))
     {
-        setCursor(world->studio, tic_cursor_hand);
+        ui_cursor(world->tic, tic_cursor_hand);
 
         s32 mx = tic_api_mouse(tic).x;
         s32 my = tic_api_mouse(tic).y;
 
-        if(checkMouseDown(world->studio, &rect, tic_mouse_left))
+        if(mouseDown(world, &rect, tic_mouse_left))
         {
             map->scroll.x = (mx - TIC_MAP_SCREEN_WIDTH / 2) * TIC_SPRITESIZE;
             map->scroll.y = (my - TIC_MAP_SCREEN_HEIGHT / 2) * TIC_SPRITESIZE;
@@ -58,8 +83,8 @@ static void drawGrid(World* world)
                 map->scroll.y += TIC_MAP_HEIGHT * TIC_SPRITESIZE;
         }
 
-        if(checkMouseClick(world->studio, &rect, tic_mouse_left))
-            setStudioMode(world->studio, TIC_MAP_MODE);
+        if(mouseClicked(world, &rect, tic_mouse_left))
+            openMap(world);
     }
 
     s32 x = map->scroll.x / TIC_SPRITESIZE;
@@ -77,59 +102,63 @@ static void drawGrid(World* world)
         tic_api_rectb(world->tic, x - TIC_MAP_WIDTH, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, tic_color_red);
 }
 
-static void tick(World* world)
+void world_tick(World* world)
 {
     tic_mem* tic = world->tic;
 
     // process scroll
     if(tic->ram->input.mouse.scrolly > 0)
     {
-        setStudioMode(world->studio, TIC_MAP_MODE);
+        openMap(world);
         return;
     }
 
-    if(keyWasPressed(world->studio, tic_key_tab)) setStudioMode(world->studio, TIC_MAP_MODE);
+    if(keyboard_pressed(world->tic, tic_key_tab)) openMap(world);
 
     memcpy(&tic->ram->vram, world->preview, PREVIEW_SIZE);
 
     VBANK(tic, 1)
     {
         tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_black);
-        memcpy(tic->ram->vram.palette.data, getConfig(world->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        memcpy(tic->ram->vram.palette.data, world->map->view->cartPalette->data, sizeof(tic_palette));
         drawGrid(world);
     }
 }
 
-static void scanline(tic_mem* tic, s32 row, void* data)
+void world_scanline(tic_mem* tic, s32 row, void* data)
 {
     World* world = data;
     if(row == 0)
-        memcpy(&tic->ram->vram.palette, getBankPalette(world->studio, false), sizeof(tic_palette));
+        memcpy(&tic->ram->vram.palette, world->map->view->palette, sizeof(tic_palette));
 }
 
-void initWorld(World* world, Studio* studio, Map* map)
+void initWorld(World* world, Map* map)
 {
     if(!world->preview)
         world->preview = malloc(PREVIEW_SIZE);
 
     *world = (World){
-        .studio = studio,
-        .tic = getMemory(studio),
         .map = map,
-        .tick = tick,
+        .tic = map->deps.tic,
         .preview = world->preview,
-        .scanline = scanline,
     };
+
+    memset(world->preview, 0, PREVIEW_SIZE);
+}
+
+void worldRefresh(World* world)
+{
+    Map* map = world->map;
 
     memset(world->preview, 0, PREVIEW_SIZE);
     s32 colors[TIC_PALETTE_SIZE];
 
     u8 segment = (u8)(tic_blit_calc_segment(&map->sheet.blit));
-    tic_tilesheet sheet = tic_tilesheet_get(segment, (u8*)getBankTiles(world->studio));
+    tic_tilesheet sheet = tic_tilesheet_get(segment, (u8*)map->view->tiles);
 
     for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
     {
-        u8 index = getBankMap(world->studio)->data[i];
+        u8 index = map->src->data[i];
 
         if(index)
         {

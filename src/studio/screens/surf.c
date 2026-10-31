@@ -25,6 +25,7 @@
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
+#include "studio/ram.h"
 #include "menu.h"
 #include "ext/gif.h"
 #include "ext/png.h"
