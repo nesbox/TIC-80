@@ -48,7 +48,7 @@ static void drawStudioMenubar(Studio* studio);
 #include "editors/map/map.h"
 #include "editors/map/world.h"
 #include "editors/sfx/sfx.h"
-#include "editors/music.h"
+#include "editors/music/music.h"
 #include "ext/history.h"
 #include "wave_writer.h"
 #include "ext/gif.h"
