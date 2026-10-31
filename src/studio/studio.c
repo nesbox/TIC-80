@@ -45,8 +45,8 @@ static void drawStudioMenubar(Studio* studio);
 #if defined(BUILD_EDITORS)
 #include "editors/code/code.h"
 #include "editors/sprite.h"
-#include "editors/map.h"
-#include "editors/world.h"
+#include "editors/map/map.h"
+#include "editors/map/world.h"
 #include "editors/sfx.h"
 #include "editors/music.h"
 #include "ext/history.h"
