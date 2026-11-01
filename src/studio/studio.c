@@ -1562,6 +1562,7 @@ static void codeViewToggle(void* host, CodeViewToggle option)
             CodeViewLineNumbers,
             CodeViewSidebar,
             CodeViewStatusbar,
+            CodeViewMinimap,
         };
 
     studioCodeViewToggle(host, Options[option]);
@@ -1600,6 +1601,7 @@ static CodeView codeFrame(Studio* studio, CodeBattle* battle)
                     .lineNumbers = options->codeLineNumbers,
                     .sidebar = options->codeSidebar,
                     .statusbar = options->codeStatusbar,
+                    .minimap = options->codeMinimap,
                 },
             .editorTop = getStudioEditorTop(studio),
             .battle = NULL,
@@ -2220,6 +2222,11 @@ void studioCodeViewToggle(Studio* studio, CodeViewOption option)
             options->codeStatusbar = !options->codeStatusbar;
             code->showStatusbar = options->codeStatusbar;
             code->update(code);
+            break;
+
+        case CodeViewMinimap:
+            // applyView must see the change to slide the column.
+            options->codeMinimap = !options->codeMinimap;
             break;
     }
 

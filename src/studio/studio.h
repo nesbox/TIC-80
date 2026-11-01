@@ -258,6 +258,7 @@ typedef enum
     CodeViewLineNumbers,
     CodeViewSidebar,
     CodeViewStatusbar,
+    CodeViewMinimap,
 } CodeViewOption;
 
 void studioCodeViewToggle(Studio*, CodeViewOption);

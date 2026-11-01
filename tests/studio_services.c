@@ -42,6 +42,12 @@ void tic_sys_default_mapping(tic_mapping* mapping)
     memset(mapping, 0, sizeof(tic_mapping));
 }
 
+// The file manager the editor file system asks for; the test opens nothing.
+void tic_sys_open_path(const char* path)
+{
+    (void)path;
+}
+
 typedef struct
 {
     bool sawFile;
@@ -124,6 +130,9 @@ static void testConfig(tic_mem* tic, tic_fs* fs)
     assert(host.changed == 1);
 
     first->data.options.volume = 9;
+#if defined(BUILD_EDITORS)
+    first->data.options.codeMinimap = true;
+#endif
     first->saveOptions(first);
 
     // config.tic is a cart whose code carries the options JSON; a save takes
@@ -141,6 +150,9 @@ static void testConfig(tic_mem* tic, tic_fs* fs)
     assert(host.changed == 4);
     assert(second->data.uiScale == 7);
     assert(second->data.options.volume == 9);
+#if defined(BUILD_EDITORS)
+    assert(second->data.options.codeMinimap);
+#endif
 
     freeConfig(first);
     freeConfig(second);

@@ -212,12 +212,16 @@ if(BUILD_TESTS)
     add_executable(studio-services-test
         ${CMAKE_SOURCE_DIR}/tests/studio_services.c
         ${CMAKE_SOURCE_DIR}/src/studio/fs.c
+        ${CMAKE_SOURCE_DIR}/src/studio/net.c
         ${CMAKE_SOURCE_DIR}/src/studio/config.c
         ${CMAKE_SOURCE_DIR}/src/studio/rom.c
         ${CMAKE_SOURCE_DIR}/src/ext/json.c
     )
 
     target_include_directories(studio-services-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    # The config's editor options need BUILD_EDITORS; the net stub links the
+    # fs paths that definition opens, and no test reaches the network.
+    target_compile_definitions(studio-services-test PRIVATE BUILD_EDITORS)
     target_link_libraries(studio-services-test PRIVATE tic80core zip)
     tic80_add_test(studio-services-test)
 
@@ -266,6 +270,7 @@ if(BUILD_TESTS)
     add_executable(code-editor-test
         ${CMAKE_SOURCE_DIR}/tests/code_editor.c
         ${CMAKE_SOURCE_DIR}/src/studio/editors/code/code.c
+        ${CMAKE_SOURCE_DIR}/src/studio/editors/code/minimap.c
         ${CMAKE_SOURCE_DIR}/src/studio/editors/code/text.c
         ${CMAKE_SOURCE_DIR}/src/studio/editors/code/find.c
         ${CMAKE_SOURCE_DIR}/src/studio/editors/code/vi.c
