@@ -52,6 +52,13 @@ static const struct BinarySection
 
 static const struct BinarySection LangSection = {"LANG", 1, 0, sizeof(((tic_cartridge*)0)->lang), false};
 
+// What a row line puts between the comment and its data: a space, the row's
+// three digits and the colon.
+enum
+{
+    RowPrefix = sizeof(" 000:") - 1,
+};
+
 static void makeTag(const char* tag, char* out, s32 bank)
 {
     if(bank)
@@ -60,29 +67,28 @@ static void makeTag(const char* tag, char* out, s32 bank)
         strcpy(out, tag);
 }
 
-static bool bufferEmpty(const u8* data, s32 size)
+// The code is a buffer, not a string: a cart can fill it to the last byte, and
+// strlen would read on past it. The line end is the writer's, not the code's.
+static char* saveTextSection(char* ptr, const char* data, s32 size)
 {
-    for(s32 i = 0; i < size; i++)
-        if(*data++)
-            return false;
+    const char* terminator = memchr(data, '\0', size);
+    s32 len = terminator ? (s32)(terminator - data) : size;
 
-    return true;
-}
+    if(len)
+    {
+        memcpy(ptr, data, len);
+        ptr += len;
+        *ptr++ = '\n';
+    }
 
-static char* saveTextSection(char* ptr, const char* data)
-{
-    if(data[0] == '\0')
-        return ptr;
-
-    sprintf(ptr, "%s\n", data);
-    ptr += strlen(ptr);
+    *ptr = '\0';
 
     return ptr;
 }
 
 static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, s32 size, s32 row, bool flip)
 {
-    if(bufferEmpty(data, size))
+    if(tic_tool_empty(data, size))
         return ptr;
 
     sprintf(ptr, "%s %03i:", comment, row);
@@ -99,7 +105,7 @@ static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, 
 
 static char* saveBinarySection(char* ptr, const char* comment, const char* tag, s32 count, const void* data, s32 size, bool flip)
 {
-    if(bufferEmpty(data, size * count))
+    if(tic_tool_empty(data, size * count))
         return ptr;
 
     sprintf(ptr, "%s <%s>\n", comment, tag);
@@ -128,8 +134,12 @@ static const char* projectComment(const char* name)
 s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
 {
     const char* comment = projectComment(name);
+
+    if(!comment)
+        return 0;
+
     char* stream = data;
-    char* ptr = saveTextSection(stream, cart->code.data);
+    char* ptr = saveTextSection(stream, cart->code.data, sizeof(tic_code));
     char tag[16];
 
     FOR(const struct BinarySection*, section, BinarySections)
@@ -149,94 +159,101 @@ s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
 
 static bool loadTextSection(const char* project, const char* comment, char* dst, s32 size)
 {
-    bool done = false;
-
     const char* start = project;
     const char* end = project + strlen(project);
+    char tagstart[16];
 
-    {
-        char tagstart[16];
-        sprintf(tagstart, "\n%s <", comment);
+    // A file that opens with a section line carries no code, only data.
+    sprintf(tagstart, "%s <", comment);
 
-        const char* ptr = strstr(project, tagstart);
+    if(strncmp(project, tagstart, strlen(tagstart)) == 0)
+        return true;
 
-        if(ptr && ptr < end)
-            end = ptr;
-    }
+    sprintf(tagstart, "\n%s <", comment);
+
+    const char* ptr = strstr(project, tagstart);
+
+    if(ptr)
+        end = ptr;
+    else if(end > start && end[-1] == '\n')
+        end--; // the writer's line end, not the code's
 
     if(end > start)
     {
         memcpy(dst, start, MIN(size, end - start));
-        done = true;
+        return true;
     }
 
-    return done;
+    return false;
 }
 
 static inline const char* getLineEnd(const char* ptr)
 {
-    while(*ptr && isspace((u8)(*ptr)) && *ptr++ != '\n')
-        ;
+    while(*ptr && isspace((u8)*ptr))
+        if(*ptr++ == '\n')
+            break;
 
     return ptr;
 }
 
-static bool loadBinarySection(const char* project, const char* comment, const char* tag, s32 count, void* dst, s32 size, bool flip)
+// The three digits a row line is indexed by, or -1 when the line holds none.
+static s32 rowIndex(const char* ptr)
 {
+    for(s32 i = 0; i < 3; i++)
+        if(!isdigit((u8)ptr[i]))
+            return -1;
+
+    return (ptr[0] - '0') * 100 + (ptr[1] - '0') * 10 + (ptr[2] - '0');
+}
+
+static void loadBinarySection(const char* project, const char* comment, const char* tag, s32 count, void* dst, s32 size, bool flip)
+{
+    const s32 commentLen = (s32)strlen(comment);
     char tagbuf[64];
     sprintf(tagbuf, "%s <%s>", comment, tag);
 
     const char* start = strstr(project, tagbuf);
-    bool done = false;
 
-    if(start)
+    if(!start)
+        return;
+
+    start += strlen(tagbuf);
+    start = getLineEnd(start);
+
+    sprintf(tagbuf, "\n%s </%s>", comment, tag);
+    const char* end = strstr(start, tagbuf);
+
+    // A row is `<comment> 000:<2*size hex>` and a line end. Anything shorter,
+    // or not starting with its own index, ends the section rather than reading
+    // past it: a project is a text an author can cut.
+    if(!end || end <= start)
+        return;
+
+    const char* ptr = start;
+
+    while(ptr < end && end - ptr >= commentLen + RowPrefix + size * 2)
     {
-        start += strlen(tagbuf);
-        start = getLineEnd(start);
+        s32 index = rowIndex(ptr + commentLen + 1);
 
-        sprintf(tagbuf, "\n%s </%s>", comment, tag);
-        const char* end = strstr(start, tagbuf);
+        if(index < 0 || index >= count)
+            break;
 
-        if(end > start)
-        {
-            const char* ptr = start;
+        ptr += commentLen + RowPrefix;
+        tic_tool_str2buf(ptr, size * 2, (u8*)dst + size * index, flip);
+        ptr += size * 2;
 
-            if(size > 0)
-            {
-                while(ptr < end)
-                {
-                    static char lineStr[] = "999";
-                    memcpy(lineStr, ptr + strlen(comment) + 1, sizeof lineStr - 1);
-
-                    s32 index = atoi(lineStr);
-
-                    if(index < count)
-                    {
-                        ptr += strlen(comment) + sizeof(" 999:") - 1;
-                        tic_tool_str2buf(ptr, size * 2, (u8*)dst + size * index, flip);
-                        ptr += size * 2 + 1;
-
-                        ptr = getLineEnd(ptr);
-                    }
-                    else
-                        break;
-                }
-            }
-            else
-            {
-                ptr += strlen(comment) + sizeof(" 999:") - 1;
-                tic_tool_str2buf(ptr, (s32)(end - ptr), (u8*)dst, flip);
-            }
-
-            done = true;
-        }
+        ptr = getLineEnd(ptr);
     }
-
-    return done;
 }
 
 bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridge* dst)
 {
+    const char* comment = projectComment(name);
+
+    // A name no script knows has no comment to read the sections by.
+    if(!comment)
+        return false;
+
     char* project = (char*)malloc(size + 1);
 
     bool done = false;
@@ -257,7 +274,6 @@ bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridg
 
         if(cart)
         {
-            const char* comment = projectComment(name);
             char tag[16];
 
             if(loadTextSection(project, comment, cart->code.data, sizeof(tic_code)))
