@@ -22,6 +22,7 @@
 
 #include "studiomenu.h"
 #include "config.h"
+#include "export.h"
 #include "rom.h"
 #include "editors/code/code.h"
 #include "editors/sprite/sprite.h"
@@ -197,13 +198,12 @@ enum
 };
 
 // clang-format off
+#if defined(TIC80_PRO)
 enum
 {
-#define EXPORT_ENUM(name, label) Export_##name,
-    EXPORT_CMD_LIST(EXPORT_ENUM)
-#undef EXPORT_ENUM
-    ExportActionAlone,
+    ExportActionAlone = Export_Count,
 };
+#endif
 // clang-format on
 
 enum
@@ -398,185 +398,33 @@ static void menubarMusicAction(void* data, s32 id)
 static bool ExportAlone;
 #endif
 
-static const char* const ExportTypes[] =
-    {
-#define EXPORT_TYPE(name, label) #name,
-        EXPORT_CMD_LIST(EXPORT_TYPE)
-#undef EXPORT_TYPE
-};
-
-static const char* exportSuffix(Studio* studio, s32 id, char* buffer, s32 size)
-{
-    switch(id)
-    {
-        case Export_win: return "-win";
-        case Export_linux: return "-linux";
-        case Export_linuxarm: return "-linuxarm";
-        case Export_mac: return "-macos";
-        case Export_macintel: return "-macintel";
-        case Export_html: return "-html";
-        case Export_tiles: return "-tiles";
-        case Export_sprites: return "-sprites";
-        case Export_map: return "-map";
-        case Export_mapimg: return "-map";
-        case Export_screen: return "-screen";
-
-        case Export_sfx:
-        {
-            Sfx* sfx = studiomenu_editor(studio, TIC_SFX_MODE);
-
-            snprintf(buffer, size, "-sfx-%02i", sfx ? sfx->index : 0);
-            return buffer;
-        }
-
-        case Export_music:
-        {
-            Music* music = studiomenu_editor(studio, TIC_MUSIC_MODE);
-
-            snprintf(buffer, size, "-music-%02i", music ? music->track : 0);
-            return buffer;
-        }
-
-        default:
-            return "";
-    }
-}
-
-#if defined(TIC80_PRO)
-static s32 exportBank(Studio* studio, s32 id)
-{
-    switch(id)
-    {
-        case Export_tiles:
-        case Export_sprites:
-            return studiomenu_editor_bank(studio, TIC_SPRITE_MODE);
-
-        case Export_map:
-        case Export_mapimg:
-        case Export_screen:
-            return studiomenu_editor_bank(studio, TIC_MAP_MODE);
-
-        case Export_music:
-            return studiomenu_editor_bank(studio, TIC_MUSIC_MODE);
-
-        default:
-            return 0;
-    }
-}
-#endif
-
-static s32 exportIndex(Studio* studio, s32 id)
-{
-    switch(id)
-    {
-        case Export_sfx:
-        {
-            Sfx* sfx = studiomenu_editor(studio, TIC_SFX_MODE);
-            return sfx ? sfx->index : 0;
-        }
-
-        case Export_music:
-        {
-            Music* music = studiomenu_editor(studio, TIC_MUSIC_MODE);
-            return music ? music->track : 0;
-        }
-
-        default:
-            return -1;
-    }
-}
-
-static s32 exportVbank(Studio* studio)
-{
-    Sprite* sprite = studiomenu_editor(studio, TIC_SPRITE_MODE);
-
-    return sprite && sprite->palette.vbank1 ? 1 : 0;
-}
-
 static void menubarExport(void* data, s32 id)
 {
     StudioMenuContext* ctx = data;
     Studio* studio = ctx->studio;
 
-    if(id < 0 || id >= (s32)COUNT_OF(ExportTypes))
-        return;
+    Sfx* sfx = studiomenu_editor(studio, TIC_SFX_MODE);
+    Music* music = studiomenu_editor(studio, TIC_MUSIC_MODE);
+    Sprite* sprite = studiomenu_editor(studio, TIC_SPRITE_MODE);
 
-    char suffix[16];
-    char filename[TICNAME_MAX + 16];
-
-    if(id == Export_help)
-        snprintf(filename, sizeof filename, "tic80-help");
-    else
-    {
-        const CartName* cart = studioCart(studio);
-        const char* base = cart->name[0] && !strchr(cart->name, ' ') ? cart->name : "game";
-
-        snprintf(filename, sizeof filename, "%s%s", base, exportSuffix(studio, id, suffix, sizeof suffix));
-    }
+    const ExportState state =
+        {
+            .cartName = studioCart(studio)->name,
+            .sfx = sfx ? sfx->index : 0,
+            .music = music ? music->track : 0,
+            .spriteVbank1 = sprite && sprite->palette.vbank1,
+#if defined(TIC80_PRO)
+            .alone = ExportAlone,
+            .spriteBank = studiomenu_editor_bank(studio, TIC_SPRITE_MODE),
+            .mapBank = studiomenu_editor_bank(studio, TIC_MAP_MODE),
+            .musicBank = studiomenu_editor_bank(studio, TIC_MUSIC_MODE),
+#endif
+        };
 
     char command[TICNAME_MAX + 64];
-    s32 length = snprintf(command, sizeof command, "export %s %s", ExportTypes[id], filename);
 
-    if(length < 0 || (size_t)length >= sizeof command)
-        return;
-
-    switch(id)
-    {
-        case Export_tiles:
-        case Export_sprites:
-        case Export_map:
-        case Export_mapimg:
-#if defined(TIC80_PRO)
-            length += snprintf(command + length, sizeof command - (size_t)length,
-                               " bank=%i", exportBank(studio, id));
-#endif
-            break;
-
-        case Export_screen:
-#if defined(TIC80_PRO)
-            length += snprintf(command + length, sizeof command - (size_t)length,
-                               " bank=%i", exportBank(studio, id));
-#endif
-            length += snprintf(command + length, sizeof command - (size_t)length,
-                               " vbank=%i", exportVbank(studio));
-            break;
-
-        case Export_sfx:
-            length += snprintf(command + length, sizeof command - (size_t)length,
-                               " id=%i", exportIndex(studio, id));
-            break;
-
-        case Export_music:
-            length += snprintf(command + length, sizeof command - (size_t)length,
-                               " id=%i", exportIndex(studio, id));
-#if defined(TIC80_PRO)
-            length += snprintf(command + length, sizeof command - (size_t)length,
-                               " bank=%i", exportBank(studio, id));
-#endif
-            break;
-
-        default:
-            break;
-    }
-
-#if defined(TIC80_PRO)
-    if(ExportAlone)
-        switch(id)
-        {
-            case Export_win:
-            case Export_linux:
-            case Export_linuxarm:
-            case Export_mac:
-            case Export_macintel:
-                snprintf(command + length, sizeof command - (size_t)length, " alone=1");
-                break;
-
-            default:
-                break;
-        }
-#endif
-
-    studiomenu_command(studio, command);
+    if(export_command(command, sizeof command, id, &state))
+        studiomenu_command(studio, command);
 }
 
 #if defined(TIC80_PRO)
