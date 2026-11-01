@@ -131,6 +131,18 @@ if(BUILD_TESTS)
     target_link_libraries(embed-test PRIVATE tic80core)
     tic80_add_test(embed-test)
 
+    # The launch links without the studio as well: the module, the embedded
+    # cart format and the core, over an image the test writes itself and reads
+    # through the platform readers it answers.
+    add_executable(boot-test
+        ${CMAKE_SOURCE_DIR}/tests/boot.c
+        ${CMAKE_SOURCE_DIR}/src/studio/boot.c
+        ${CMAKE_SOURCE_DIR}/src/studio/embed.c
+    )
+
+    target_link_libraries(boot-test PRIVATE tic80core)
+    tic80_add_test(boot-test)
+
     # The editor history is a byte buffer and the deltas between its commits:
     # the standard library is all it needs.
     add_executable(history-test
