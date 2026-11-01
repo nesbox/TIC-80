@@ -26,62 +26,65 @@
 
 int main(int argc, char** argv)
 {
-	int res = -1;
+    int res = -1;
 
-	if(argc == 3)
-	{
-		FILE* cartFile = fopen(argv[1], "rb");
+    if(argc == 3)
+    {
+        FILE* cartFile = fopen(argv[1], "rb");
 
-		if(cartFile)
-		{
-			fseek(cartFile, 0, SEEK_END);
-			int size = ftell(cartFile);
-			fseek(cartFile, 0, SEEK_SET);
+        if(cartFile)
+        {
+            fseek(cartFile, 0, SEEK_END);
+            int size = ftell(cartFile);
+            fseek(cartFile, 0, SEEK_SET);
 
-			unsigned char* buffer = (unsigned char*)malloc(size);
+            unsigned char* buffer = (unsigned char*)malloc(size);
 
-			if(buffer)
-			{
-				fread(buffer, size, 1, cartFile);
-				fclose(cartFile);
+            if(buffer)
+            {
+                fread(buffer, size, 1, cartFile);
+                fclose(cartFile);
 
-				tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
+                tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
 
-				tic_cart_load(cart, buffer, size);
+                tic_cart_load(cart, buffer, size);
 
-				unsigned char* out = (unsigned char*)malloc(sizeof(tic_cartridge) * 3);
+                unsigned char* out = (unsigned char*)malloc(sizeof(tic_cartridge) * 3);
 
-				if(out)
-				{
-					// The save answers 0 for a name no script knows: no file then.
-					s32 outSize = tic_project_save(argv[2], out, cart);
+                if(out)
+                {
+                    // The save answers 0 for a name no script knows: no file then.
+                    s32 outSize = tic_project_save(argv[2], out, cart);
 
-					if(outSize)
-					{
-						FILE* project = fopen(argv[2], "wb");
+                    if(outSize)
+                    {
+                        FILE* project = fopen(argv[2], "wb");
 
-						if(project)
-						{
-							fwrite(out, outSize, 1, project);
-							fclose(project);
+                        if(project)
+                        {
+                            fwrite(out, outSize, 1, project);
+                            fclose(project);
 
-							res = 0;
-						}
-						else printf("cannot open project file\n");
-					}
-					else printf("cannot save project file\n");
+                            res = 0;
+                        }
+                        else
+                            printf("cannot open project file\n");
+                    }
+                    else
+                        printf("cannot save project file\n");
 
-					free(out);
-				}
+                    free(out);
+                }
 
-				free(buffer);
-				free(cart);
-			}
+                free(buffer);
+                free(cart);
+            }
+        }
+        else
+            printf("cannot open cartridge file\n");
+    }
+    else
+        printf("usage: cart2prj <cartridge> <project>\n");
 
-		}
-		else printf("cannot open cartridge file\n");
-	}
-	else printf("usage: cart2prj <cartridge> <project>\n");
-
-	return res;
+    return res;
 }
