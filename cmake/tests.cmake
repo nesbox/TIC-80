@@ -143,6 +143,26 @@ if(BUILD_TESTS)
     target_link_libraries(boot-test PRIVATE tic80core)
     tic80_add_test(boot-test)
 
+    # The project cart's text format links without the studio: the module and
+    # the core, the comment coming from the static script registry — so only a
+    # static build with a language has one. The cart goes into a buffer and
+    # comes back, and the malformed texts are the test's own.
+    if(BUILD_STATIC AND BUILD_WITH_LUA)
+        add_executable(project-test
+            ${CMAKE_SOURCE_DIR}/tests/project.c
+            ${CMAKE_SOURCE_DIR}/src/studio/project.c
+        )
+
+        target_link_libraries(project-test PRIVATE tic80core)
+
+        # A second comment, one character long, where the language is built.
+        if(BUILD_WITH_PYTHON)
+            target_compile_definitions(project-test PRIVATE PROJECT_TEST_PYTHON)
+        endif()
+
+        tic80_add_test(project-test)
+    endif()
+
     # The editor history is a byte buffer and the deltas between its commits:
     # the standard library is all it needs.
     add_executable(history-test
