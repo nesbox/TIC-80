@@ -221,11 +221,41 @@ static void testNothingToSave(void)
 
     char* text = malloc(SaveSize);
     assert(text);
+
+    // What the heap held has to be unseen by the save, as an uninitialised
+    // buffer would have been.
+    memset(text, 'x', SaveSize);
+
     assert(tic_project_save(PROJECT, text, cart) == 0);
 
     free(text);
     free(cart);
     puts("nothing to save ok");
+}
+
+// The first line can start like a tag and still be code: only a known tag
+// makes a file code-less.
+static void testBracketCode(void)
+{
+    static const char Bracket[] = "-- <ESC> quits\nprint(1)";
+
+    tic_cartridge* cart = newCart();
+    memcpy(cart->code.data, Bracket, sizeof Bracket);
+    tic_tool_poke4(cart->banks[0].tiles.data[0].data, 0, 0xa);
+
+    s32 size = 0;
+    char* text = saveCartInto(PROJECT, cart, &size);
+
+    bool ok = false;
+    tic_cartridge* got = loadText(PROJECT, text, size, &ok);
+
+    assert(ok);
+    assert(memcmp(cart, got, sizeof(tic_cartridge)) == 0);
+
+    free(got);
+    free(text);
+    free(cart);
+    puts("bracket code ok");
 }
 
 static void testLineEndings(void)
@@ -390,6 +420,7 @@ int main(void)
     testEmptyCode();
     testEmptyFile();
     testNothingToSave();
+    testBracketCode();
     testLineEndings();
     testShortRow();
     testBadRowIndex();

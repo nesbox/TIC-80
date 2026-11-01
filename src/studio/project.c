@@ -157,16 +157,35 @@ s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
     return (s32)strlen(stream);
 }
 
+// A file whose first line is a known section tag has no code, only data. Any
+// other line — a comment with a bracket, another tag — is code.
+static bool startsWithTag(const char* project, const char* comment)
+{
+    char tag[16];
+    char tagbuf[64];
+
+    FOR(const struct BinarySection*, section, BinarySections)
+    for(s32 b = 0; b < TIC_BANKS; b++)
+    {
+        makeTag(section->tag, tag, b);
+        sprintf(tagbuf, "%s <%s>", comment, tag);
+
+        if(strncmp(project, tagbuf, strlen(tagbuf)) == 0)
+            return true;
+    }
+
+    sprintf(tagbuf, "%s <%s>", comment, LangSection.tag);
+
+    return strncmp(project, tagbuf, strlen(tagbuf)) == 0;
+}
+
 static bool loadTextSection(const char* project, const char* comment, char* dst, s32 size)
 {
     const char* start = project;
     const char* end = project + strlen(project);
     char tagstart[16];
 
-    // A file that opens with a section line carries no code, only data.
-    sprintf(tagstart, "%s <", comment);
-
-    if(strncmp(project, tagstart, strlen(tagstart)) == 0)
+    if(startsWithTag(project, comment))
         return true;
 
     sprintf(tagstart, "\n%s <", comment);
