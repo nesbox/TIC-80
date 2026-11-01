@@ -733,7 +733,10 @@ void code_vi_tick(Text* text, CodeViHost* host)
         else if(shift && viPressed(host, tic_key_m))
             setEditorMode(host, CODE_VI_EDIT_BOOKMARK);
         else if(clear && viPressed(host, tic_key_m))
+        {
             toggleBookmark(text, getLineByPos(text, text->cursor.position));
+            host->updateView(host->host);
+        }
         else if(clear && viPressed(host, tic_key_comma))
         {
             if(!viBookmark(text, host, getPrevLineByPos(text, text->cursor.position), false))

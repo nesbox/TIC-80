@@ -197,6 +197,8 @@ static void drawStatus(Code* code)
                   StatusY, code->view->theme.BG, true, 1, false);
 }
 
+static void updateEditor(Code* code);
+
 static void drawGutter(Code* code)
 {
     if(!code->showGutter)
@@ -216,24 +218,23 @@ static void drawGutter(Code* code)
     {
         // draw a bookmark preview
         ui_cursor(code->tic, tic_cursor_hand);
-        code->deps.tooltip(code->deps.host, "BOOKMARK [ctrl+f1]");
+        code->deps.tooltip(code->deps.host, "BOOKMARK LINE [ctrl+f1]");
         s32 line = mouseOverLine = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
         ui_icon(code->tic, code->deps.tiles, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
         // and toggle the bookmark if we clicked it
-        if(mouseClicked(code, &rect, tic_mouse_left))
+        if(code->mode == TEXT_EDIT_MODE && mouseClicked(code, &rect, tic_mouse_left))
+        {
             toggleBookmark(&code->text, getPosByLine(code->text.src, line + code->scroll.y));
+            updateEditor(code);
+        }
     }
 
-    // find the first character on the screen, including syntax pointer
+    // find the first character on the screen
     const char* pointer = code->text.src;
-    const CodeState* syntaxPointer = code->text.state;
     s32 y = -code->scroll.y;
     while(y < 0)
-    {
-        syntaxPointer++;
         if(*pointer++ == '\n')
             y++;
-    }
 
     char buf[16] = "";
     bool somethingDrawn = false;
@@ -243,7 +244,10 @@ static void drawGutter(Code* code)
     // render all the bookmarks and line numbers
     while(*pointer && y < STUDIO_TEXT_BUFFER_HEIGHT)
     {
-        if(syntaxPointer++->bookmark)
+        const bool lineStart = pointer == code->text.src || pointer[-1] == '\n';
+        const bool marked = lineStart && text_bookmark_note(&code->text, pointer, NULL) != NULL;
+
+        if(marked)
         {
             ui_icon(code->tic, code->deps.tiles, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_black);
             ui_icon(code->tic, code->deps.tiles, tic_icon_bookmark, rect.x + gutterWidth - TIC_SPRITESIZE + 1, rect.y + y * STUDIO_TEXT_HEIGHT - 1, tic_color_yellow);
@@ -1343,21 +1347,17 @@ static void processKeyboard(Code* code)
     // handle bookmarks
     if(keyPressed(code, tic_key_f1))
     {
-        if(ctrl && shift)
-        {
-            for(CodeState *s = code->text.state, *end = s + TIC_CODE_SIZE; s != end; ++s)
-                s->bookmark = 0;
-        }
-        else if(ctrl)
+        if(ctrl && !shift)
         {
             toggleBookmark(&code->text, getLineByPos(&code->text, code->text.cursor.position));
+            updateEditor(code);
         }
-        else if(shift)
+        else if(shift && !ctrl)
         {
             if(!goPrevBookmark(code, getPrevLineByPos(&code->text, code->text.cursor.position)))
                 goPrevBookmark(code, code->text.src + strlen(code->text.src));
         }
-        else
+        else if(!ctrl && !shift)
         {
             if(!goNextBookmark(code, getNextLineByPos(&code->text, code->text.cursor.position)))
                 goNextBookmark(code, code->text.src);

@@ -76,50 +76,62 @@ void code_outline(Text* text, const char* filter, CodeItems* out)
         qsort(out->items, out->size, sizeof *out->items, funcCompare);
 }
 
+// The first byte after the given line, or the line's own terminator.
+static const char* nextLine(const char* line)
+{
+    while(*line && *line != '\n')
+        line++;
+
+    return *line ? line + 1 : line;
+}
+
 void code_bookmarks(Text* text, CodeItems* out)
 {
     out->items = NULL;
     out->size = 0;
 
-    for(const char* ptr = text->src; *ptr; ptr++)
+    for(const char* line = text->src; *line; line = nextLine(line))
     {
-        if(getState(text, ptr)->bookmark)
+        s32 size = 0;
+        const char* note = text_bookmark_note(text, line, &size);
+
+        if(note)
         {
             out->items = realloc(out->items, (out->size + 1) * sizeof *out->items);
-            out->items[out->size++] = (tic_outline_item){.pos = (char*)ptr, .size = getLineSize(ptr)};
+            out->items[out->size++] = (tic_outline_item){.pos = (char*)note, .size = size};
         }
     }
 }
 
 const char* code_bookmark_prev(Text* text, const char* from)
 {
-    const CodeState* state = getState(text, from);
-    const char* ptr = from;
+    const char* found = NULL;
 
-    while(ptr >= text->src)
+    for(const char* line = text->src; *line && line <= from; line = nextLine(line))
     {
-        if(state->bookmark)
-            return ptr;
+        const char* note = text_bookmark_note(text, line, NULL);
 
-        ptr--;
-        state--;
+        if(note)
+            found = note;
     }
 
-    return NULL;
+    return found;
 }
 
 const char* code_bookmark_next(Text* text, const char* from)
 {
-    const CodeState* state = getState(text, from);
-    const char* ptr = from;
+    const char* line = getLineByPos(text, (char*)from);
 
-    while(*ptr)
+    // A position inside the line is past that line's bookmark.
+    if(from > line)
+        line = nextLine(line);
+
+    for(; *line; line = nextLine(line))
     {
-        if(state->bookmark)
-            return ptr;
+        const char* note = text_bookmark_note(text, line, NULL);
 
-        ptr++;
-        state++;
+        if(note)
+            return note;
     }
 
     return NULL;

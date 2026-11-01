@@ -49,6 +49,14 @@ static const tic_script Script =
         .lang_isalnum = isAlnum,
 };
 
+static const tic_script SlashScript =
+    {
+        .name = "slash",
+        .singleComment = "//",
+        .stdStringStartEnd = "\"",
+        .lang_isalnum = isAlnum,
+};
+
 bool tic_sys_keyboard_text(char* text)
 {
     if(!systemTextOwned)
@@ -299,13 +307,72 @@ static void testGoto(void)
 
 static void testBookmarks(void)
 {
+    // Ctrl+F1 inserts the marker above the line and removes it again.
     setup("aa\nbb\n");
+    Code_.text.cursor.position = Tic->cart.code.data + 3;
 
-    toggleBookmark(&Code_.text, Tic->cart.code.data + 3);
+    modFrame(tic_key_ctrl, tic_key_f1);
+
+    assert(strcmp(Tic->cart.code.data, "aa\n-- @@@ bookmark\nbb\n") == 0);
+    assert(Code_.text.cursor.position == Tic->cart.code.data + 18);
+    assert(Code_.text.cursor.selection == NULL);
+
+    idleFrames(1);
+
+    modFrame(tic_key_ctrl, tic_key_f1);
+    assert(strcmp(Tic->cart.code.data, "aa\nbb\n") == 0);
+
+    // One undo takes the removal back.
+    modFrame(tic_key_ctrl, tic_key_z);
+    assert(strcmp(Tic->cart.code.data, "aa\n-- @@@ bookmark\nbb\n") == 0);
+
+    // The list item is the note alone.
+    setup("aa\n-- @@@ physics\nbb\n");
     codeBookmarks(&Code_);
 
     assert(Code_.sidebar.size == 1);
-    assert(Code_.sidebar.items[0].pos == Tic->cart.code.data + 3);
+    assert(Code_.sidebar.items[0].pos == Tic->cart.code.data + 10);
+    assert(Code_.sidebar.items[0].size == 7);
+
+    // F1 and Shift+F1 move between the notes.
+    setup("-- @@@ one\nx\n-- @@@ two\n");
+    Code_.text.cursor.position = Tic->cart.code.data + 20;
+
+    modFrame(tic_key_shift, tic_key_f1);
+    assert(Code_.text.cursor.position == Tic->cart.code.data + 7);
+
+    idleFrames(1);
+
+    keyFrame(tic_key_f1);
+    assert(Code_.text.cursor.position == Tic->cart.code.data + 20);
+
+    // Ctrl+Shift+F1 no longer clears anything.
+    setup("aa\n-- @@@ note\nbb\n");
+
+    press(Tic, tic_key_f1);
+    alsoDown(Tic, tic_key_ctrl);
+    alsoDown(Tic, tic_key_shift);
+    frame();
+
+    assert(strcmp(Tic->cart.code.data, "aa\n-- @@@ note\nbb\n") == 0);
+
+    // The marker uses the language's own comment.
+    setup("aa\n");
+    View.options.script = &SlashScript;
+    frame();
+    Code_.text.cursor.position = Tic->cart.code.data;
+
+    modFrame(tic_key_ctrl, tic_key_f1);
+    assert(strcmp(Tic->cart.code.data, "// @@@ bookmark\naa\n") == 0);
+
+    // vi's m toggles the same marker.
+    setup("aa\nbb\n");
+    View.options.vi = true;
+    frame();
+    Code_.text.cursor.position = Tic->cart.code.data + 3;
+
+    keyFrame(tic_key_m);
+    assert(strcmp(Tic->cart.code.data, "aa\n-- @@@ bookmark\nbb\n") == 0);
 
     puts("bookmarks ok");
 }
@@ -326,8 +393,18 @@ static void testGutterMouse(void)
 
     frame();
 
-    assert(strcmp(Calls.tooltip, "BOOKMARK [ctrl+f1]") == 0);
-    assert(getState(&Code_.text, Tic->cart.code.data)->bookmark == 1);
+    assert(strcmp(Calls.tooltip, "BOOKMARK LINE [ctrl+f1]") == 0);
+    assert(strcmp(Tic->cart.code.data, "-- @@@ bookmark\naa\nbb\n") == 0);
+
+    // The second click on the marker line removes it.
+    Mouse[tic_mouse_left] = (MouseState){0};
+    frame();
+
+    Mouse[tic_mouse_left] = (MouseState){
+        .down = true, .click = true, .start = {2, 0}, .end = {2, 0}};
+    frame();
+
+    assert(strcmp(Tic->cart.code.data, "aa\nbb\n") == 0);
 
     Mouse[tic_mouse_left] = (MouseState){0};
 

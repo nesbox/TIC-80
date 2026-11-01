@@ -44,10 +44,11 @@ bool isFilterMatch(const char* buffer, s32 size, const char* filter);
 // sorted by position. The caller owns the items.
 void code_outline(Text* text, const char* filter, CodeItems* items);
 
-// Every line whose first byte is bookmarked, in buffer order.
+// Every bookmark comment line, in buffer order; the item points at the note.
 void code_bookmarks(Text* text, CodeItems* items);
 
-// The nearest bookmarked byte in the given direction, or NULL at the edge.
+// The note position of the nearest bookmark line in the given direction, or
+// NULL at the edge of the buffer.
 const char* code_bookmark_prev(Text* text, const char* from);
 const char* code_bookmark_next(Text* text, const char* from);
 

@@ -175,6 +175,13 @@ static const tic_script AltScript =
         .lang_isalnum = isAlnum,
 };
 
+static const tic_script NoCommentScript =
+    {
+        .name = "none",
+        .stdStringStartEnd = "\"",
+        .lang_isalnum = isAlnum,
+};
+
 static void testSyntaxOtherLanguage(void)
 {
     setup("-- note\n; note\n");
@@ -186,6 +193,148 @@ static void testSyntaxOtherLanguage(void)
     assert(getState(&Text_, Buffer + 10)->syntax == SyntaxType_COMMENT);
 
     puts("syntax other ok");
+}
+
+static void testBookmarkLine(void)
+{
+    s32 size = 0;
+    const char* note = NULL;
+
+    setup("-- @@@ physics\n");
+    parseSyntaxColor(&Text_);
+    note = text_bookmark_note(&Text_, Buffer, &size);
+    assert(note == Buffer + 7);
+    assert(size == 7);
+
+    // Spaces after the tag and trailing spaces around the note.
+    setup("-- @@@   boss fight    \n");
+    parseSyntaxColor(&Text_);
+    note = text_bookmark_note(&Text_, Buffer, &size);
+    assert(note == Buffer + 9);
+    assert(size == 10);
+
+    setup("-- @@@\n");
+    parseSyntaxColor(&Text_);
+    note = text_bookmark_note(&Text_, Buffer, &size);
+    assert(note == Buffer + 6);
+    assert(size == 0);
+
+    // The language's own single-line comment.
+    setup("; @@@ note\n");
+    Text_.options.script = &AltScript;
+    parseSyntaxColor(&Text_);
+    note = text_bookmark_note(&Text_, Buffer, &size);
+    assert(note == Buffer + 6);
+    assert(size == 4);
+
+    // An indented marker is an ordinary comment.
+    setup("  -- @@@ physics\n");
+    parseSyntaxColor(&Text_);
+    assert(text_bookmark_note(&Text_, Buffer, NULL) == NULL);
+
+    // The tag is not the comment's first token.
+    setup("-- print(\"@@@\")\n");
+    parseSyntaxColor(&Text_);
+    assert(text_bookmark_note(&Text_, Buffer, NULL) == NULL);
+
+    // A longer run is not the tag.
+    setup("-- @@@@\n");
+    parseSyntaxColor(&Text_);
+    assert(text_bookmark_note(&Text_, Buffer, NULL) == NULL);
+
+    // A tag outside a comment.
+    setup("print(\"@@@\")\n");
+    parseSyntaxColor(&Text_);
+    assert(text_bookmark_note(&Text_, Buffer, NULL) == NULL);
+
+    // No script, or a language without a single-line comment.
+    setup("-- @@@ note\n");
+    parseSyntaxColor(&Text_);
+    Text_.options.script = NULL;
+    assert(text_bookmark_note(&Text_, Buffer, NULL) == NULL);
+    Text_.options.script = &NoCommentScript;
+    assert(text_bookmark_note(&Text_, Buffer, NULL) == NULL);
+
+    puts("bookmark line ok");
+}
+
+static void testBookmarkToggle(void)
+{
+    // Insert above an indented line, at the line's first byte.
+    setup("    player.speed = 4\n");
+    Text_.cursor.position = Buffer + 6;
+
+    toggleBookmark(&Text_, Buffer + 4);
+
+    assert(strcmp(Buffer, "-- @@@ bookmark\n    player.speed = 4\n") == 0);
+    assert(Text_.cursor.position == Buffer + 15);
+    assert(Text_.cursor.selection == NULL);
+
+    text_undo(&Text_);
+    assert(strcmp(Buffer, "    player.speed = 4\n") == 0);
+
+    // Remove a marker line in the middle, and take it back with one undo.
+    setup("aa\n-- @@@ physics\nbb\n");
+    parseSyntaxColor(&Text_);
+
+    toggleBookmark(&Text_, Buffer + 3);
+
+    assert(strcmp(Buffer, "aa\nbb\n") == 0);
+
+    text_undo(&Text_);
+    assert(strcmp(Buffer, "aa\n-- @@@ physics\nbb\n") == 0);
+
+    // The last line with a final newline.
+    setup("aa\n-- @@@ note\n");
+    parseSyntaxColor(&Text_);
+
+    toggleBookmark(&Text_, Buffer + 3);
+    assert(strcmp(Buffer, "aa\n") == 0);
+
+    // The last line without a final newline: no blank line is left.
+    setup("aa\n-- @@@ note");
+    parseSyntaxColor(&Text_);
+
+    toggleBookmark(&Text_, Buffer + 3);
+    assert(strcmp(Buffer, "aa") == 0);
+
+    // The line end before the last marker line is a CRLF pair.
+    setup("aa\r\n-- @@@ note");
+    parseSyntaxColor(&Text_);
+
+    toggleBookmark(&Text_, Buffer + 4);
+    assert(strcmp(Buffer, "aa") == 0);
+
+    // The only line.
+    setup("-- @@@");
+    parseSyntaxColor(&Text_);
+
+    toggleBookmark(&Text_, Buffer);
+    assert(strcmp(Buffer, "") == 0);
+
+    // An indented line is not a marker: a new marker goes above it.
+    setup("  -- @@@ note\n");
+    parseSyntaxColor(&Text_);
+
+    toggleBookmark(&Text_, Buffer);
+    assert(strcmp(Buffer, "-- @@@ bookmark\n  -- @@@ note\n") == 0);
+
+    // The cap leaves the text alone.
+    setup("");
+    memset(Buffer, 'a', MAX_CODE);
+    Buffer[MAX_CODE] = '\0';
+
+    toggleBookmark(&Text_, Buffer);
+    assert(strlen(Buffer) == (size_t)MAX_CODE);
+
+    // A language without a single-line comment does nothing.
+    setup("aa\n");
+    Text_.options.script = &NoCommentScript;
+
+    toggleBookmark(&Text_, Buffer);
+    assert(strcmp(Buffer, "aa\n") == 0);
+
+    puts("bookmark toggle ok");
 }
 
 static void testSyntax(void)
@@ -300,6 +449,8 @@ int main(void)
     testNavigation();
     testSyntax();
     testSyntaxOtherLanguage();
+    testBookmarkLine();
+    testBookmarkToggle();
     testTab();
     testComment();
     testDuplicate();
