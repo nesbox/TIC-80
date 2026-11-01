@@ -257,6 +257,9 @@ void minimap_draw(const MinimapView* view)
         p = *end == '\n' ? end + 1 : end;
     }
 
+    // The map's own right border shows above and below the full-width frame.
+    tic_api_rect(view->tic, view->x + MINIMAP_WIDTH - 1, view->y, 1, height, tic_color_dark_grey);
+
     tic_api_rectb(view->tic, view->x, view->y + frame.y, MINIMAP_WIDTH, frame.height, tic_color_white);
 
     // A bookmark line is one full-width yellow row on its stripe.

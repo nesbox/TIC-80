@@ -612,19 +612,21 @@ static void testMinimapDraw(void)
     assert(pixelAt(x + 1, 10) == tic_color_grey);                  // line 5, a comment
     assert(pixelAt(x + 1, 12) == tic_color_dark_grey);             // line 6, the frame's background
     assert(pixelAt(x + MINIMAP_WIDTH - 2, 14) == tic_color_grey);  // line 7, clipped
-    assert(pixelAt(x + MINIMAP_WIDTH - 1, 14) == tic_color_white); // its white frame border
+    assert(pixelAt(x + MINIMAP_WIDTH - 1, 14) == tic_color_white); // the frame's right border
 
-    // Outside the frame the column is darker than the editor's background.
+    // Outside the frame the column is black; its right edge is dark grey.
     assert(pixelAt(x, 100) == tic_color_black);
+    assert(pixelAt(x + MINIMAP_WIDTH - 1, 100) == tic_color_dark_grey);
 
     // The long text line at screen row 49-55 does not paint into the column.
     assert(pixelAt(x, 50) == tic_color_black);
     assert(pixelAt(x + 4, 50) == tic_color_black);
 
-    // The 18 visible lines frame the first 36 map pixels.
+    // The 18 visible lines are framed by white, full width.
     assert(pixelAt(x, 0) == tic_color_white);
     assert(pixelAt(x + MINIMAP_WIDTH - 1, 0) == tic_color_white);
     assert(pixelAt(x, 35) == tic_color_white);
+    assert(pixelAt(x + MINIMAP_WIDTH - 1, 36) == tic_color_dark_grey);
 
     View.options.minimap = false;
     frame();
