@@ -22,7 +22,16 @@
 
 #pragma once
 
-#include "studio.h"
+#include "api.h"
+
+// What the launch gets once: the host, the machine and the word that a cart
+// actually loaded.
+typedef struct
+{
+    void* host;
+    tic_mem* tic;
+    void (*loaded)(void* host);
+} BootDeps;
 
 // The cart this launch came with: one embedded in the app image, or the one the
 // player named. Not a user cart — it has no name of its own, and nothing saves it.
@@ -34,8 +43,4 @@ typedef struct
 
 // Reads what the launch brought, loads it and sets the flag. Called once, after
 // the filesystem and the machine exist and before anything reads the flag.
-void boot_init(Boot*, Studio*, const char* cart);
-
-// The studio is opaque outside studio.c, so its boot state is handed out the
-// way the config and the start screen are.
-Boot* getBoot(Studio*);
+void boot_init(Boot*, const BootDeps*, const char* cart);

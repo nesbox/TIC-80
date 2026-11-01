@@ -810,6 +810,8 @@ Config* studio_config_get(Studio* studio)
     return studio->config;
 }
 
+// The studio is opaque outside studio.c, so its boot state is handed out the
+// way the config and the start screen are.
 Boot* getBoot(Studio* studio)
 {
     return &studio->boot;
@@ -3696,7 +3698,14 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
     }
 
     studio->start = start_create(&(StartDeps){.tic = studio->tic, .config = getConfig(studio)});
-    boot_init(&studio->boot, studio, args.cart);
+
+    boot_init(&studio->boot, &(BootDeps){
+                                 .host = studio,
+                                 .tic = studio->tic,
+                                 .loaded = romLoaded,
+                             },
+              args.cart);
+
     initRunMode(studio);
 
 #if defined(BUILD_EDITORS)

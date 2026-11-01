@@ -25,9 +25,9 @@
 #include "cart.h"
 #include "fs.h"
 
-void boot_init(Boot* boot, Studio* studio, const char* cart)
+void boot_init(Boot* boot, const BootDeps* deps, const char* cart)
 {
-    tic_mem* tic = getMemory(studio);
+    tic_mem* tic = deps->tic;
 
 #if defined(__EMSCRIPTEN__)
 
@@ -42,7 +42,7 @@ void boot_init(Boot* boot, Studio* studio, const char* cart)
                 tic_cart_load(&tic->cart, data, size);
                 tic_api_reset(tic);
                 boot->cart = true;
-                studioRomLoaded(studio);
+                deps->loaded(deps->host);
             }
     }
 
@@ -66,7 +66,7 @@ void boot_init(Boot* boot, Studio* studio, const char* cart)
                         tic_cart_load(&tic->cart, data, dataSize);
                         tic_api_reset(tic);
                         boot->cart = true;
-                        studioRomLoaded(studio);
+                        deps->loaded(deps->host);
                     }
             }
     }
