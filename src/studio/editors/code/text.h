@@ -30,15 +30,14 @@
 struct tic_script;
 struct History;
 
-// The editor's text model: the cart's code buffer, the per-byte syntax and
-// bookmark state, the caret and the undo history. It links and is tested with
-// the history module alone; the studio, the keyboard, the mouse and the screen
-// stay in the editor that embeds it.
+// The editor's text model: the cart's code buffer, the per-byte syntax state,
+// the caret and the undo history. It links and is tested with the history
+// module alone; the studio, the keyboard, the mouse and the screen stay in the
+// editor that embeds it.
 
 typedef struct CodeState
 {
     u8 syntax : 3;
-    u8 bookmark : 1;
     u8 cursor : 1;
     u8 temp : 3;
     char sym;
@@ -109,6 +108,10 @@ void history(Text* text);
 void text_undo(Text* text);
 void text_redo(Text* text);
 void text_update(Text* text);
+
+// The note of a bookmark comment line, or NULL when the line is not one.
+// `line` is the line's first byte; `size` receives the note's length.
+const char* text_bookmark_note(Text* text, const char* line, s32* size);
 void toggleBookmark(Text* text, char* pos);
 
 void deleteCode(Text* text, char* start, char* end);

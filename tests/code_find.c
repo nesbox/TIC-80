@@ -40,6 +40,15 @@ static const tic_script Script =
         .lang_isalnum = isAlnum,
 };
 
+static const tic_script SlashScript =
+    {
+        .name = "slash",
+        .singleComment = "//",
+        .stdStringStartEnd = "\"",
+        .getOutline = getOutline,
+        .lang_isalnum = isAlnum,
+};
+
 static void setup(const char* initial)
 {
     text_free(&Text_);
@@ -95,29 +104,69 @@ static void testOutline(void)
 
 static void testBookmarks(void)
 {
-    setup("aa\nbb\ncc\n");
-
-    getState(&Text_, Buffer + 3)->bookmark = 1;
-    getState(&Text_, Buffer + 6)->bookmark = 1;
+    setup("-- @@@ first\ncode\n-- @@@ second\n");
+    parseSyntaxColor(&Text_);
 
     CodeItems items;
     code_bookmarks(&Text_, &items);
 
     assert(items.size == 2);
-    assert(items.items[0].pos == Buffer + 3);
-    assert(items.items[0].size == 2);
-    assert(items.items[1].pos == Buffer + 6);
+    assert(items.items[0].pos == Buffer + 7);
+    assert(items.items[0].size == 5);
+    assert(items.items[1].pos == Buffer + 25);
+    assert(items.items[1].size == 6);
     free(items.items);
 
-    // The nearest bookmark in each direction.
-    assert(code_bookmark_next(&Text_, Buffer) == Buffer + 3);
-    assert(code_bookmark_next(&Text_, Buffer + 4) == Buffer + 6);
-    assert(code_bookmark_next(&Text_, Buffer + 8) == NULL);
-    assert(code_bookmark_prev(&Text_, Buffer + 8) == Buffer + 6);
-    assert(code_bookmark_prev(&Text_, Buffer + 4) == Buffer + 3);
-    assert(code_bookmark_prev(&Text_, Buffer) == NULL);
+    // The nearest bookmark line in each direction, at its note.
+    assert(code_bookmark_next(&Text_, Buffer) == Buffer + 7);
+    assert(code_bookmark_next(&Text_, Buffer + 1) == Buffer + 25);
+    assert(code_bookmark_next(&Text_, Buffer + 8) == Buffer + 25);
+    assert(code_bookmark_next(&Text_, Buffer + 25) == NULL);
+    assert(code_bookmark_next(&Text_, Buffer + 32) == NULL);
+
+    assert(code_bookmark_prev(&Text_, Buffer + 30) == Buffer + 25);
+    assert(code_bookmark_prev(&Text_, Buffer + 8) == Buffer + 7);
+    assert(code_bookmark_prev(&Text_, Buffer) == Buffer + 7);
+    assert(code_bookmark_prev(&Text_, Buffer + 32) == Buffer + 25);
 
     puts("bookmarks ok");
+}
+
+static void testBookmarkForms(void)
+{
+    CodeItems items;
+
+    // An empty note is an item at the line end.
+    setup("-- @@@\n");
+    parseSyntaxColor(&Text_);
+    code_bookmarks(&Text_, &items);
+
+    assert(items.size == 1);
+    assert(items.items[0].pos == Buffer + 6);
+    assert(items.items[0].size == 0);
+    free(items.items);
+
+    // An indented line, a tag that is not the comment's first token, a longer
+    // run and a tag in a string are not bookmarks.
+    setup("  -- @@@ note\n-- print(\"@@@\")\n-- @@@@\nprint(\"@@@\")\n");
+    parseSyntaxColor(&Text_);
+    code_bookmarks(&Text_, &items);
+
+    assert(items.size == 0);
+    assert(items.items == NULL);
+
+    // The language's own single-line comment.
+    setup("// @@@ note\n");
+    Text_.options.script = &SlashScript;
+    parseSyntaxColor(&Text_);
+    code_bookmarks(&Text_, &items);
+
+    assert(items.size == 1);
+    assert(items.items[0].pos == Buffer + 7);
+    assert(items.items[0].size == 4);
+    free(items.items);
+
+    puts("bookmark forms ok");
 }
 
 static void testGoto(void)
@@ -166,6 +215,7 @@ int main(void)
     testFilter();
     testOutline();
     testBookmarks();
+    testBookmarkForms();
     testGoto();
     testSearch();
 

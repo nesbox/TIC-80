@@ -1453,27 +1453,98 @@ bool text_duplicate_line(Text* text)
     return false;
 }
 
-void toggleBookmark(Text* text, char* codePos)
+// The tag of a bookmark comment line, and the note the toggle writes.
+static const char BookmarkTag[] = "@@@";
+static const char BookmarkNote[] = "bookmark";
+
+const char* text_bookmark_note(Text* text, const char* line, s32* size)
 {
-    CodeState* start = getState(text, codePos);
-    const CodeState* end = getState(text, getNextLineByPos(text, codePos));
+    const tic_script* script = text->options.script;
+    const char* comment = script ? script->singleComment : NULL;
 
-    bool bookmarked = false;
-    CodeState* ptr = start;
-    while(ptr < end)
-        if(ptr++->bookmark)
-            bookmarked = true;
+    if(!comment || !*comment || strncmp(line, comment, strlen(comment)) != 0)
+        return NULL;
 
-    if(bookmarked)
+    const char* tag = line + strlen(comment);
+
+    while(*tag == ' ' || *tag == '\t')
+        tag++;
+
+    if(strncmp(tag, BookmarkTag, sizeof BookmarkTag - 1) != 0 || tag[sizeof BookmarkTag - 1] == '@')
+        return NULL;
+
+    if(getState(text, tag)->syntax != SyntaxType_COMMENT)
+        return NULL;
+
+    const char* note = tag + sizeof BookmarkTag - 1;
+
+    while(*note == ' ' || *note == '\t')
+        note++;
+
+    const char* end = note;
+    while(*end && *end != '\n')
+        end++;
+
+    while(end > note && (end[-1] == ' ' || end[-1] == '\t' || end[-1] == '\r'))
+        end--;
+
+    if(size)
+        *size = (s32)(end - note);
+
+    return note;
+}
+
+void toggleBookmark(Text* text, char* pos)
+{
+    char* line = getLineByPos(text, pos);
+
+    if(text_bookmark_note(text, line, NULL))
     {
-        CodeState* state = start;
-        while(state < end)
-            state++->bookmark = 0;
+        // The whole line goes, line end included; a last line without one
+        // takes the line end before it, so no blank line is left.
+        char* next = getNextLineByPos(text, line);
+        const bool hasLineEnd = next > line && next[-1] == '\n';
+        char* start = line;
+
+        if(!hasLineEnd && line > text->src && line[-1] == '\n')
+        {
+            start = line - 1;
+
+            if(start > text->src && start[-1] == '\r')
+                start--;
+        }
+
+        deleteCode(text, start, next);
+        text->cursor.position = start;
     }
     else
-        start->bookmark = 1;
+    {
+        const char* comment = text->options.script ? text->options.script->singleComment : NULL;
 
+        if(!comment || !*comment)
+            return;
+
+        char prefix[64];
+        const size_t commentSize = strlen(comment);
+        const size_t prefixSize = commentSize + STRLEN(" @@@ ") + STRLEN(BookmarkNote) + 1;
+
+        if(prefixSize > sizeof prefix || strlen(text->src) + prefixSize > (size_t)MAX_CODE)
+            return;
+
+        memcpy(prefix, comment, commentSize);
+        memcpy(prefix + commentSize, " @@@ ", STRLEN(" @@@ "));
+        memcpy(prefix + commentSize + STRLEN(" @@@ "), BookmarkNote, STRLEN(BookmarkNote));
+        prefix[prefixSize - 1] = '\n';
+
+        insertCodeSize(text, line, prefix, (s32)prefixSize);
+        text->cursor.position = line + (s32)commentSize + (s32)STRLEN(" @@@ ") + (s32)STRLEN(BookmarkNote);
+    }
+
+    text->cursor.selection = NULL;
+
+    updateColumn(text);
     history(text);
+    parseSyntaxColor(text);
 }
 
 void text_update(Text* text)
