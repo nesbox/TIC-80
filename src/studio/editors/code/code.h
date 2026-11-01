@@ -78,6 +78,7 @@ typedef struct
     bool lineNumbers;
     bool sidebar;
     bool statusbar;
+    bool minimap;
 
 } CodeOptions;
 
@@ -215,17 +216,30 @@ struct Code
     bool lineNumbers;
     bool showGutter;
     bool showStatusbar;
+    bool showMinimap;
+    bool minimapSynced;
+
+    struct
+    {
+        s32 pressScroll;
+        bool dragging;
+
+    } minimap;
 
     struct
     {
         s32 pos;
         s32 sidebar;
+        s32 minimap;
 
         Movie* movie;
+        Movie* minimapMovie;
 
         Movie idle;
         Movie show;
         Movie hide;
+        Movie minimapShow;
+        Movie minimapHide;
 
     } anim;
 

@@ -263,6 +263,9 @@ static void loadOptions(Config* config)
                 if(json_has("codeStatusbar", 0))
                     options->codeStatusbar = json_bool("codeStatusbar", 0);
 
+                if(json_has("codeMinimap", 0))
+                    options->codeMinimap = json_bool("codeMinimap", 0);
+
                 if(json_has("autohide", 0))
                     options->autohide = json_bool("autohide", 0);
 
@@ -318,6 +321,7 @@ static void saveOptions(Config* config)
             "\"codeLineNumbers\":%s, "
             "\"codeSidebar\":%s, "
             "\"codeStatusbar\":%s, "
+            "\"codeMinimap\":%s, "
             "\"autohide\":%s, "
             "\"compactBar\":%s"
 #endif
@@ -348,6 +352,7 @@ static void saveOptions(Config* config)
             bool2str(options->codeLineNumbers),
             bool2str(options->codeSidebar),
             bool2str(options->codeStatusbar),
+            bool2str(options->codeMinimap),
             bool2str(options->autohide),
             bool2str(options->compactBar)
 #endif

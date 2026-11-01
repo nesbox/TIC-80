@@ -22,6 +22,7 @@
 
 #include "code.h"
 #include "find.h"
+#include "minimap.h"
 #include "vi.h"
 #include "studio/ui.h"
 #include "studio/icons.h"
@@ -139,7 +140,7 @@ static void getWidths(Code* code, s32* gutterWidthOut, s32* codeWidthOut)
         gutterWidth = code->lineNumbers
                           ? MAX(1 + charCount * TIC_ALTFONT_WIDTH, MIN_GUTTER_WIDTH)
                           : MIN_GUTTER_WIDTH;
-    int codeWidth = TIC80_WIDTH - gutterWidth;
+    int codeWidth = TIC80_WIDTH - gutterWidth - code->anim.minimap;
 
     if(gutterWidthOut) *gutterWidthOut = gutterWidth;
     if(codeWidthOut) *codeWidthOut = codeWidth;
@@ -198,6 +199,7 @@ static void drawStatus(Code* code)
 }
 
 static void updateEditor(Code* code);
+static s32 getVisualCursorColumn(Code* code);
 
 static void drawGutter(Code* code)
 {
@@ -291,12 +293,17 @@ static void drawTab(Code* code, s32 x, s32 y, s32 width, u8 color)
     }
 }
 
+static bool isCursorVisible(Code* code)
+{
+    if(viModeIs(code, VI_NORMAL))
+        return true;
+
+    return code->cursor.delay || code->tickCounter % TEXT_CURSOR_BLINK_PERIOD < TEXT_CURSOR_BLINK_PERIOD / 2;
+}
+
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 {
-    bool inverse = code->cursor.delay || code->tickCounter % TEXT_CURSOR_BLINK_PERIOD < TEXT_CURSOR_BLINK_PERIOD / 2;
-
-    if(viModeIs(code, VI_NORMAL))
-        inverse = true;
+    bool inverse = isCursorVisible(code);
 
     if(inverse)
     {
@@ -380,7 +387,7 @@ static void drawCode(Code* code, bool withCursor)
         if(symbol == '\t')
             x_offset *= getTabColumnWidth(&code->text, column);
 
-        if(x >= -getFontWidth(code) && x < TIC80_WIDTH && y >= -TIC_FONT_HEIGHT && y < TIC80_HEIGHT)
+        if(x >= -getFontWidth(code) && x < rect.x + rect.w && y >= -TIC_FONT_HEIGHT && y < TIC80_HEIGHT)
         {
             if(code->text.cursor.selection && pointer >= selection.start && pointer < selection.end)
             {
@@ -444,13 +451,38 @@ static void drawCode(Code* code, bool withCursor)
     if(code->text.cursor.position == pointer)
         cursor.x = x, cursor.y = y;
 
-    if(withCursor && cursor.x >= gutterWidth && cursor.y >= 0)
+    if(withCursor && cursor.x >= gutterWidth && cursor.x < rect.x + rect.w && cursor.y >= 0)
         drawCursor(code, cursor.x, cursor.y, cursor.symbol);
 
     if(matchedDelim.symbol)
     {
         drawMatchedDelim(code, matchedDelim.x, matchedDelim.y,
                          matchedDelim.symbol, matchedDelim.color);
+    }
+
+    if(code->anim.minimap > 0)
+    {
+        MinimapView view =
+            {
+                .tic = code->tic,
+                .text = &code->text,
+                .x = TIC80_WIDTH - code->anim.minimap,
+                .y = code->view->editorTop,
+                .height = getCodeHeight(code),
+                .scroll = code->scroll.y,
+                .visible = getCodeTextHeight(code),
+                .cursorColumn = getVisualCursorColumn(code),
+                .cursorVisible = isCursorVisible(code),
+            };
+
+#define CODE_COLOR_DEF(VAR) view.theme.VAR = code->view->theme.VAR;
+        CODE_COLORS_LIST(CODE_COLOR_DEF)
+#undef CODE_COLOR_DEF
+
+        view.theme.select = code->view->theme.select;
+        view.theme.cursor = code->view->theme.cursor;
+
+        minimap_draw(&view);
     }
 }
 
@@ -500,6 +532,18 @@ static s32 getVisualCursorColumn(Code* code)
     return column;
 }
 
+// Keep the caret's column inside the text area when its width changes.
+static void clampHorizontalScroll(Code* code)
+{
+    const s32 width = getCodeEditorWidth(code) / getFontWidth(code);
+    const s32 column = getVisualCursorColumn(code);
+
+    if(column < code->scroll.x)
+        code->scroll.x = column;
+    else if(column >= code->scroll.x + width)
+        code->scroll.x = column - width + 1;
+}
+
 void codeGetPos(Code* code, s32* x, s32* y)
 {
     getCursorPosition(code, x, y);
@@ -531,13 +575,7 @@ static void updateEditor(Code* code)
     if(code->view->options.matchDelimiters)
         code->matchedDelim = findMatchedDelim(&code->text, code->text.cursor.position);
 
-    const s32 BufferWidth = getCodeEditorWidth(code) / getFontWidth(code);
-    const s32 visualColumn = getVisualCursorColumn(code);
-
-    if(visualColumn < code->scroll.x)
-        code->scroll.x = visualColumn;
-    else if(visualColumn >= code->scroll.x + BufferWidth)
-        code->scroll.x = visualColumn - BufferWidth + 1;
+    clampHorizontalScroll(code);
 
     if(line < code->scroll.y)
         code->scroll.y = line;
@@ -1531,6 +1569,50 @@ static void processKeyboard(Code* code)
     }
 }
 
+static void processMinimap(Code* code)
+{
+    if(code->anim.minimap != MINIMAP_WIDTH)
+        return;
+
+    tic_rect rect = {TIC80_WIDTH - MINIMAP_WIDTH, code->view->editorTop, MINIMAP_WIDTH, getCodeHeight(code)};
+    MouseState* mouse = &code->deps.mouse[tic_mouse_left];
+
+    if(!mouse->down)
+        code->minimap.dragging = false;
+
+    if(mousePos(code, &rect))
+        ui_cursor(code->tic, tic_cursor_hand);
+
+    if(!mouseDown(code, &rect, tic_mouse_left))
+        return;
+
+    const s32 lines = getLinesCount(&code->text) + 1;
+    const s32 visible = getCodeTextHeight(code);
+    const s32 y = tic_api_mouse(code->tic).y - rect.y;
+
+    if(!code->minimap.dragging)
+    {
+        MinimapFrame frame = minimap_viewport(lines, rect.h, code->scroll.y, visible);
+        const s32 pressY = mouse->start.y - rect.y;
+
+        // A press inside the frame grabs it; a press outside jumps the view.
+        code->minimap.dragging = pressY >= frame.y && pressY < frame.y + frame.height;
+        code->minimap.pressScroll = code->scroll.y;
+    }
+
+    if(code->minimap.dragging)
+        code->scroll.y = minimap_drag_scroll(code->minimap.pressScroll,
+                                             tic_api_mouse(code->tic).y - mouse->start.y,
+                                             lines, rect.h, visible);
+    else
+    {
+        s32 line = minimap_line_at(y, lines, rect.h, code->scroll.y, visible);
+        code->scroll.y = MAX(0, line - visible / 2);
+    }
+
+    normalizeScroll(code);
+}
+
 static void processMouse(Code* code)
 {
     tic_mem* tic = code->tic;
@@ -1635,6 +1717,7 @@ static void textEditTick(Code* code)
 
     processKeyboard(code);
     processMouse(code);
+    processMinimap(code);
 
     tic_api_cls(code->tic, code->view->theme.BG);
 
@@ -2052,6 +2135,29 @@ static void applyView(Code* code)
     code->lineNumbers = options->lineNumbers;
     code->showGutter = options->sidebar;
     code->showStatusbar = options->statusbar;
+
+    // The saved state opens without a slide; later changes animate.
+    if(!code->minimapSynced && options->script)
+    {
+        code->showMinimap = options->minimap;
+        code->anim.minimap = options->minimap ? MINIMAP_WIDTH : 0;
+        code->minimapSynced = true;
+
+        code->minimap.dragging = false;
+
+        if(code->showMinimap)
+            clampHorizontalScroll(code);
+    }
+    else if(code->minimapSynced && code->showMinimap != options->minimap)
+    {
+        code->showMinimap = options->minimap;
+        code->minimap.dragging = false;
+
+        Movie* movie = code->showMinimap ? &code->anim.minimapShow : &code->anim.minimapHide;
+        movie->items[0].start = code->anim.minimap;
+
+        code->anim.minimapMovie = resetMovie(movie);
+    }
 }
 
 void code_set_view(Code* code, const CodeView* view)
@@ -2072,6 +2178,7 @@ void code_tick(Code* code)
     updateTextOptions(code);
 
     processAnim(code->anim.movie, code);
+    processAnim(code->anim.minimapMovie, code);
 
     if(code->cursor.delay)
         code->cursor.delay--;
@@ -2127,10 +2234,18 @@ static void setEditMode(void* data)
     setCodeMode(code, TEXT_EDIT_MODE);
 }
 
+static void minimapDone(void* data)
+{
+    Code* code = data;
+    clampHorizontalScroll(code);
+}
+
 static void freeAnim(Code* code)
 {
     FREE(code->anim.show.items);
     FREE(code->anim.hide.items);
+    FREE(code->anim.minimapShow.items);
+    FREE(code->anim.minimapHide.items);
 }
 
 // The clipboard buttons take no arguments, so each editor's own operation gets
@@ -2206,11 +2321,20 @@ void initCode(Code* code, const CodeDeps* deps)
                                                                      {0, -STUDIO_BAR_HEIGHT, STUDIO_ANIM_TIME, &code->anim.pos, AnimEaseIn},
                                                                      {0, SIDEBAR_WIDTH, STUDIO_ANIM_TIME, &code->anim.sidebar, AnimEaseIn},
                                                                  }),
+
+                .minimapShow = MOVIE_DEF(STUDIO_ANIM_TIME, minimapDone, {
+                                                                            {0, MINIMAP_WIDTH, STUDIO_ANIM_TIME, &code->anim.minimap, AnimEaseIn},
+                                                                        }),
+
+                .minimapHide = MOVIE_DEF(STUDIO_ANIM_TIME, minimapDone, {
+                                                                            {MINIMAP_WIDTH, 0, STUDIO_ANIM_TIME, &code->anim.minimap, AnimEaseIn},
+                                                                        }),
             },
         .update = update,
     };
 
     code->anim.movie = resetMovie(&code->anim.idle);
+    code->anim.minimapMovie = &code->anim.idle;
 
     text_init(&code->text, src->data, (TextOptions){0}, textHistoryEnabled, code);
 

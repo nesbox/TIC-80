@@ -158,6 +158,7 @@ extern "C"
             bool codeLineNumbers;
             bool codeSidebar;
             bool codeStatusbar;
+            bool codeMinimap;
             bool autohide;
             bool compactBar;
 #endif

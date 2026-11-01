@@ -124,6 +124,7 @@ enum
     CodeActionLineNumbers,
     CodeActionSidebar,
     CodeActionStatusbar,
+    CodeActionMinimap,
 };
 
 enum
@@ -244,6 +245,7 @@ static void menubarCodeAction(void* data, s32 id)
         case CodeActionLineNumbers: studioCodeViewToggle(studio, CodeViewLineNumbers); break;
         case CodeActionSidebar: studioCodeViewToggle(studio, CodeViewSidebar); break;
         case CodeActionStatusbar: studioCodeViewToggle(studio, CodeViewStatusbar); break;
+        case CodeActionMinimap: studioCodeViewToggle(studio, CodeViewMinimap); break;
     }
 }
 
@@ -752,6 +754,7 @@ static MenuBarItem MenubarCodeApp[] =
         MENU_TOGGLE_ICON("LINES", "ALT+L", menubarCodeAction, CodeActionLineNumbers, tic_icon_line_numbers),
         MENU_TOGGLE("SIDEBAR", NULL, menubarCodeAction, CodeActionSidebar),
         MENU_TOGGLE("STATUSBAR", NULL, menubarCodeAction, CodeActionStatusbar),
+        MENU_TOGGLE("MINIMAP", NULL, menubarCodeAction, CodeActionMinimap),
         MENU_SEPARATOR,
         MENU_SUBMENU("OPTIONS", &MenubarEditorMenu),
 };
@@ -1204,6 +1207,7 @@ void studiomenu_sync_editor(Studio* studio, Menubar* bar, EditorMode mode, void*
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionLineNumbers, code->lineNumbers && code->showGutter);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionSidebar, code->showGutter);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionStatusbar, code->showStatusbar);
+            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionMinimap, code->showMinimap);
 
             items = MenubarCodeApp;
             count = COUNT_OF(MenubarCodeApp);
