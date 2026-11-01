@@ -47,28 +47,30 @@ int main(int argc, char** argv)
 
 				tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
 
-				tic_project_load(argv[1], (char*)buffer, size, cart);
-
-				FILE* cartFile = fopen(argv[2], "wb");
-
-				if(cartFile)
+				if(tic_project_load(argv[1], (char*)buffer, size, cart))
 				{
-					unsigned char* out = (unsigned char*)malloc(sizeof(tic_cartridge));
+					FILE* cartFile = fopen(argv[2], "wb");
 
-					if(out)
+					if(cartFile)
 					{
-						int outSize = tic_cart_save(cart, out);
+						unsigned char* out = (unsigned char*)malloc(TIC_CART_SAVE_SIZE);
 
-						fwrite(out, outSize, 1, cartFile);
+						if(out)
+						{
+							int outSize = tic_cart_save(cart, out);
 
-						free(out);
+							fwrite(out, outSize, 1, cartFile);
+
+							free(out);
+						}
+
+						fclose(cartFile);
+
+						res = 0;
 					}
-
-					fclose(cartFile);
-
-					res = 0;
+					else printf("cannot open cartridge file\n");
 				}
-				else printf("cannot open cartridge file\n");
+				else printf("cannot load project file\n");
 
 				free(buffer);
 				free(cart);

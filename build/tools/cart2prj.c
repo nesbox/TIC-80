@@ -49,26 +49,30 @@ int main(int argc, char** argv)
 
 				tic_cart_load(cart, buffer, size);
 
-				FILE* project = fopen(argv[2], "wb");
+				unsigned char* out = (unsigned char*)malloc(sizeof(tic_cartridge) * 3);
 
-				if(project)
+				if(out)
 				{
-					unsigned char* out = (unsigned char*)malloc(sizeof(tic_cartridge) * 3);
+					// The save answers 0 for a name no script knows: no file then.
+					s32 outSize = tic_project_save(argv[2], out, cart);
 
-					if(out)
+					if(outSize)
 					{
-						s32 outSize = tic_project_save(argv[2], out, cart);
+						FILE* project = fopen(argv[2], "wb");
 
-						fwrite(out, outSize, 1, project);
+						if(project)
+						{
+							fwrite(out, outSize, 1, project);
+							fclose(project);
 
-						free(out);
+							res = 0;
+						}
+						else printf("cannot open project file\n");
 					}
+					else printf("cannot save project file\n");
 
-					fclose(project);
-
-					res = 0;
+					free(out);
 				}
-				else printf("cannot open project file\n");
 
 				free(buffer);
 				free(cart);
