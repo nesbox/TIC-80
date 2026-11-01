@@ -57,6 +57,9 @@ if(BUILD_EDITORS)
         # The bar is the editors' shell: a build without them never draws it.
         ${TIC80LIB_DIR}/studio/menubar.c
         ${TIC80LIB_DIR}/studio/studiomenu.c
+        # The export commands the bar sends: the name, the suffix and the
+        # arguments, tested without the studio.
+        ${TIC80LIB_DIR}/studio/export.c
         ${TIC80LIB_DIR}/studio/screens/console.c
         ${TIC80LIB_DIR}/studio/clipboard.c
         ${TIC80LIB_DIR}/studio/editors/code/text.c

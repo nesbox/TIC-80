@@ -459,6 +459,23 @@ if(BUILD_TESTS)
     target_compile_definitions(code-text-test-pro PRIVATE TIC80_PRO)
     tic80_add_test(code-text-test-pro)
 
+    # The export command builder links with the core alone: no studio.c, no
+    # editor and no screen. The PRO target compiles the same source with
+    # TIC80_PRO, so both shapes of the command are pinned.
+    set(EXPORT_TEST_SRC
+        ${CMAKE_SOURCE_DIR}/tests/export.c
+        ${CMAKE_SOURCE_DIR}/src/studio/export.c
+    )
+
+    add_executable(export-test ${EXPORT_TEST_SRC})
+    target_link_libraries(export-test PRIVATE tic80core)
+    tic80_add_test(export-test)
+
+    add_executable(export-test-pro ${EXPORT_TEST_SRC})
+    target_compile_definitions(export-test-pro PRIVATE TIC80_PRO)
+    target_link_libraries(export-test-pro PRIVATE tic80core)
+    tic80_add_test(export-test-pro)
+
     # The FFT module, driven offline by both tests. They build its sources
     # rather than linking the core, because the stubs variant below has to
     # recompile them with TIC80_FFT_UNSUPPORTED. FFT_Open reaches VQT_Open, so

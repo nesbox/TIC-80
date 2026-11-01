@@ -25,6 +25,7 @@
 #include "tic.h"
 #include "api.h"
 #include "cart.h"
+#include "studio/export.h"
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/mouse.h"
@@ -34,9 +35,9 @@ typedef struct Console Console;
 typedef struct CommandDesc CommandDesc;
 typedef struct ConsoleAnswer ConsoleAnswer;
 
-// The console's vocabularies. Dispatch, tab completion and the usage strings
-// are generated from these, and the studio menu reads them for Help and Export;
-// the label is only for the menu.
+// The console's help vocabulary. Dispatch, tab completion and the usage
+// strings are generated from it, and the studio menu reads it for Help; the
+// label is only for the menu.
 // clang-format off
 #define HELP_CMD_LIST(macro)    \
     macro(version, "VERSION")   \
@@ -52,35 +53,6 @@ typedef struct ConsoleAnswer ConsoleAnswer;
     macro(hotkeys, "HOTKEYS")   \
     macro(terms, "TERMS")       \
     macro(license, "LICENSE")
-// clang-format on
-
-// clang-format off
-#define EXPORT_GAME_LIST(macro)     \
-    macro(win, "WIN")               \
-    macro(linux, "LINUX")           \
-    macro(linuxarm, "LINUX ARM")    \
-    macro(mac, "MACOS")             \
-    macro(macintel, "MAC INTEL")    \
-    macro(html, "HTML")
-// clang-format on
-
-// clang-format off
-#define EXPORT_ASSET_LIST(macro)    \
-    macro(tiles, "TILES")           \
-    macro(sprites, "SPRITES")       \
-    macro(mapimg, "MAP")            \
-    macro(screen, "SCREEN")         \
-    macro(sfx, "SFX")               \
-    macro(music, "MUSIC")           \
-    macro(help, "HELP")
-// clang-format on
-
-// clang-format off
-#define EXPORT_CMD_LIST(macro)  \
-    EXPORT_GAME_LIST(macro)     \
-    macro(binary, "BINARY")     \
-    macro(map, "MAP DATA")      \
-    EXPORT_ASSET_LIST(macro)
 // clang-format on
 
 // What the console is given: the machine it draws on and reads its keys from,
