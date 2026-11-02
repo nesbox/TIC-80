@@ -44,7 +44,17 @@ static double schemeNumber(s7_scheme* sc, s7_pointer value)
         return s7_number_to_real(sc, value);
 
     if(s7_is_string(value))
-        return strtod(s7_string(value), NULL);
+    {
+        const char* text = s7_string(value);
+        char* end = NULL;
+        const double number = strtod(text, &end);
+
+        while(isspace((unsigned char)*end))
+            end++;
+
+        if(end != text && *end == '\0' && isfinite(number))
+            return number;
+    }
 
     return 0;
 }
