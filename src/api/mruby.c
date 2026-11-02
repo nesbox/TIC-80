@@ -68,6 +68,33 @@ static inline tic_core* getMRubyMachine(mrb_state* mrb)
     return CurrentMachine;
 }
 
+// lua reads numbers and numeric strings; mruby's "i" raises on strings and
+// on anything that is not a number.
+static mrb_int mrbNumber(mrb_state* mrb, mrb_value value)
+{
+    if(mrb_integer_p(value))
+        return mrb_integer(value);
+
+    if(mrb_float_p(value))
+        return (mrb_int)mrb_float(value);
+
+    if(mrb_string_p(value))
+    {
+        mrb_value str = value;
+        const char* text = mrb_string_value_cstr(mrb, &str);
+        char* end = NULL;
+        const double number = strtod(text, &end);
+
+        while(isspace((unsigned char)*end))
+            end++;
+
+        if(end != text && *end == '\0')
+            return (mrb_int)number;
+    }
+
+    return 0;
+}
+
 static mrb_value mrb_peek(mrb_state* mrb, mrb_value self)
 {
     (void)self;
@@ -177,13 +204,13 @@ static mrb_value mrb_poke4(mrb_state* mrb, mrb_value self)
 static mrb_value mrb_cls(mrb_state* mrb, mrb_value self)
 {
     (void)self;
-    mrb_int color = 0;
-    mrb_get_args(mrb, "|i", &color);
+    mrb_value color = mrb_nil_value();
+    mrb_get_args(mrb, "|o", &color);
 
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.cls(tic, (u8)color);
+    core->api.cls(tic, (u8)mrbNumber(mrb, color));
 
     return mrb_nil_value();
 }
@@ -191,20 +218,23 @@ static mrb_value mrb_cls(mrb_state* mrb, mrb_value self)
 static mrb_value mrb_pix(mrb_state* mrb, mrb_value self)
 {
     (void)self;
-    mrb_int x, y, color;
-    mrb_int argc = mrb_get_args(mrb, "ii|i", &x, &y, &color);
+    mrb_value vx, vy, vcolor;
+    mrb_int argc = mrb_get_args(mrb, "oo|o", &vx, &vy, &vcolor);
 
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
+    const s32 x = (s32)mrbNumber(mrb, vx);
+    const s32 y = (s32)mrbNumber(mrb, vy);
+
     if(argc == 3)
     {
-        core->api.pix(tic, (s32)(x), (s32)y, (u8)color, false);
+        core->api.pix(tic, x, y, (u8)mrbNumber(mrb, vcolor), false);
         return mrb_nil_value();
     }
     else
     {
-        return mrb_fixnum_value(core->api.pix(tic, (s32)(x), (s32)y, 0, true));
+        return mrb_fixnum_value(core->api.pix(tic, x, y, 0, true));
     }
 }
 
@@ -403,32 +433,46 @@ static mrb_value mrb_trib(mrb_state* mrb, mrb_value self)
 static mrb_value mrb_ttri(mrb_state* mrb, mrb_value self)
 {
     (void)self;
-    mrb_value chroma = mrb_fixnum_value(0xff);
+    mrb_value chroma = mrb_nil_value();
     mrb_int src = tic_tiles_texture;
 
-    mrb_float x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, z1, z2, z3;
+    mrb_float x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3;
+    mrb_float z1 = 0, z2 = 0, z3 = 0;
     mrb_int argc = mrb_get_args(mrb, "ffffffffffff|iofff",
                                 &x1, &y1, &x2, &y2, &x3, &y3,
                                 &u1, &v1, &u2, &v2, &u3, &v3,
                                 &src, &chroma, &z1, &z2, &z3);
 
-    mrb_int count;
-    u8* chromas;
-    if(mrb_array_p(chroma))
-    {
-        count = ARY_LEN(RARRAY(chroma));
-        chromas = malloc(count * sizeof(u8));
+    mrb_int count = 0;
+    u8* chromas = NULL;
 
-        for(mrb_int i = 0; i < count; ++i)
-        {
-            chromas[i] = (u8)(mrb_integer(mrb_ary_entry(chroma, i)));
-        }
-    }
-    else
+    if(argc >= 14)
     {
-        count = 1;
-        chromas = malloc(sizeof(u8));
-        chromas[0] = (u8)(mrb_integer(chroma));
+        if(mrb_array_p(chroma))
+        {
+            const mrb_int length = ARY_LEN(RARRAY(chroma));
+            count = length < TIC_PALETTE_SIZE ? length : TIC_PALETTE_SIZE;
+            chromas = malloc(count * sizeof(u8));
+
+            for(mrb_int i = 0; i < count; ++i)
+            {
+                mrb_value entry = mrb_ary_entry(chroma, i);
+
+                if(!(mrb_integer_p(entry) || mrb_float_p(entry) || mrb_string_p(entry)))
+                {
+                    count = i;
+                    break;
+                }
+
+                chromas[i] = (u8)mrbNumber(mrb, entry);
+            }
+        }
+        else
+        {
+            count = 1;
+            chromas = malloc(sizeof(u8));
+            chromas[0] = (u8)mrbNumber(mrb, chroma);
+        }
     }
 
     tic_core* core = getMRubyMachine(mrb);
@@ -589,13 +633,13 @@ static mrb_value mrb_spr(mrb_state* mrb, mrb_value self)
 static mrb_value mrb_mget(mrb_state* mrb, mrb_value self)
 {
     (void)self;
-    mrb_int x, y;
-    mrb_get_args(mrb, "ii", &x, &y);
+    mrb_value vx, vy;
+    mrb_get_args(mrb, "oo", &vx, &vy);
 
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    u8 value = core->api.mget(tic, (s32)(x), (s32)y);
+    u8 value = core->api.mget(tic, (s32)mrbNumber(mrb, vx), (s32)mrbNumber(mrb, vy));
     return mrb_fixnum_value(value);
 }
 
@@ -1189,7 +1233,7 @@ static mrb_value mrb_keyp(mrb_state* mrb, mrb_value self)
 
     if(argc == 0)
     {
-        return mrb_fixnum_value(core->api.keyp(tic, (tic_key)-1, -1, -1));
+        return mrb_fixnum_value(core->api.keyp(tic, tic_key_unknown, -1, -1));
     }
     else if(key >= tic_key_escape)
     {
@@ -1315,6 +1359,10 @@ static mrb_value mrb_font(mrb_state* mrb, mrb_value self)
 static mrb_value mrb_print(mrb_state* mrb, mrb_value self)
 {
     (void)self;
+
+    if(mrb_get_argc(mrb) == 0)
+        return mrb_fixnum_value(0);
+
     mrb_value text_obj;
     mrb_int x = 0;
     mrb_int y = 0;
