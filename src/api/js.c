@@ -842,10 +842,8 @@ static JSValue js_pmem(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
         return JS_NewInt32(ctx, val);
     }
-    else
-        return throwError(ctx, "invalid persistent tic index");
 
-    return JS_UNDEFINED;
+    return throwError(ctx, "invalid persistent tic index");
 }
 
 static JSValue js_time(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
