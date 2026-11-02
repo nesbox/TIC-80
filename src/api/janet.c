@@ -305,9 +305,24 @@ static TriDepth tic_opttridepth(Janet* argv, int32_t argc, int32_t n)
 
 /* ***************** */
 
+// lua reads numbers and numeric strings; janet_getinteger raises on both.
+static s32 janetInteger(Janet value)
+{
+    if(janet_checktype(value, JANET_NUMBER))
+        return (s32)janet_unwrap_number(value);
+
+    if(janet_checktype(value, JANET_STRING))
+        return (s32)strtod((const char*)janet_unwrap_string(value), NULL);
+
+    return 0;
+}
+
 static Janet janet_print(int32_t argc, Janet* argv)
 {
-    janet_arity(argc, 1, 7);
+    janet_arity(argc, 0, 7);
+
+    if(argc == 0)
+        return janet_wrap_nil();
 
     s32 x = 0;
     s32 y = 0;
@@ -317,12 +332,15 @@ static Janet janet_print(int32_t argc, Janet* argv)
     bool alt = false;
 
     const char* text = janet_getcstring(argv, 0);
-    if(argc >= 2) x = (s32)janet_getinteger(argv, 1);
-    if(argc >= 3) y = (s32)janet_getinteger(argv, 2);
-    if(argc >= 4) color = (u8)janet_getinteger(argv, 3);
+    if(argc >= 3) x = janetInteger(argv[1]);
+    if(argc >= 3) y = janetInteger(argv[2]);
+    if(argc >= 4) color = (u8)(janetInteger(argv[3]) % TIC_PALETTE_SIZE);
     if(argc >= 5) fixed = janet_getboolean(argv, 4);
-    if(argc >= 6) scale = (s32)janet_getinteger(argv, 5);
+    if(argc >= 6) scale = janetInteger(argv[5]);
     if(argc >= 7) alt = janet_getboolean(argv, 6);
+
+    if(scale == 0)
+        return janet_wrap_integer(0);
 
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
@@ -333,7 +351,7 @@ static Janet janet_print(int32_t argc, Janet* argv)
 static Janet janet_cls(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 1);
-    u32 color = (u32)janet_optinteger(argv, argc, 0, 0);
+    u32 color = argc > 0 ? (u32)janetInteger(argv[0]) : 0;
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
     core->api.cls(tic, (u8)(color));
@@ -347,8 +365,8 @@ static Janet janet_pix(int32_t argc, Janet* argv)
     bool get;
     u8 color = 0;
 
-    s32 x = (s32)janet_getinteger(argv, 0);
-    s32 y = (s32)janet_getinteger(argv, 1);
+    s32 x = janetInteger(argv[0]);
+    s32 y = janetInteger(argv[1]);
 
     if(argc == 2)
     {
@@ -356,7 +374,7 @@ static Janet janet_pix(int32_t argc, Janet* argv)
     }
     else
     {
-        color = (u8)janet_getinteger(argv, 2);
+        color = (u8)janetInteger(argv[2]);
         get = false;
     }
 
@@ -476,37 +494,48 @@ static Janet janet_spr(int32_t argc, Janet* argv)
 
 static Janet janet_btn(int32_t argc, Janet* argv)
 {
-    janet_fixarity(argc, 1);
-
-    s32 id = (s32)janet_getinteger(argv, 0);
+    janet_arity(argc, 0, 1);
 
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
+
+    if(argc == 0)
+        return janet_wrap_integer(core->api.btn(tic, -1));
+
+    s32 id = janetInteger(argv[0]) & 0x1f;
+
     return janet_wrap_boolean(core->api.btn(tic, id));
 }
 
 static Janet janet_btnp(int32_t argc, Janet* argv)
 {
-    janet_arity(argc, 1, 3);
-
-    s32 id = (s32)janet_getinteger(argv, 0);
-    s32 hold = (s32)janet_optinteger(argv, argc, 1, -1);
-    s32 period = (s32)janet_optinteger(argv, argc, 2, -1);
+    janet_arity(argc, 0, 3);
 
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
+
+    if(argc == 0)
+        return janet_wrap_integer(core->api.btnp(tic, -1, -1, -1));
+
+    s32 id = janetInteger(argv[0]) & 0x1f;
+    s32 hold = argc > 1 ? janetInteger(argv[1]) : -1;
+    s32 period = argc > 2 ? janetInteger(argv[2]) : -1;
 
     return janet_wrap_boolean(core->api.btnp(tic, id, hold, period));
 }
 
 static Janet janet_btnr(int32_t argc, Janet* argv)
 {
-    janet_fixarity(argc, 1);
-
-    s32 id = (s32)janet_getinteger(argv, 0);
+    janet_arity(argc, 0, 1);
 
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
+
+    if(argc == 0)
+        return janet_wrap_integer(core->api.btnr(tic, -1));
+
+    s32 id = janetInteger(argv[0]) & 0x1f;
+
     return janet_wrap_boolean(core->api.btnr(tic, id));
 }
 
@@ -623,8 +652,8 @@ static Janet janet_mget(int32_t argc, Janet* argv)
 {
     janet_fixarity(argc, 2);
 
-    s32 x = (s32)janet_getinteger(argv, 0);
-    s32 y = (s32)janet_getinteger(argv, 1);
+    s32 x = janetInteger(argv[0]);
+    s32 y = janetInteger(argv[1]);
 
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
@@ -1088,17 +1117,23 @@ static Janet janet_music(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 7);
 
-    s32 track = janet_optinteger(argv, argc, 0, -1);
-    s32 frame = janet_optinteger(argv, argc, 1, -1);
-    s32 row = janet_optinteger(argv, argc, 2, -1);
-    bool loop = janet_optboolean(argv, argc, 3, true);
-    bool sustain = janet_optboolean(argv, argc, 4, true);
-    s32 tempo = janet_optinteger(argv, argc, 5, -1);
-    s32 speed = janet_optinteger(argv, argc, 6, -1);
-
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
-    core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
+
+    core->api.music(tic, -1, 0, 0, false, false, -1, -1);
+
+    if(argc > 0)
+    {
+        s32 track = janet_optinteger(argv, argc, 0, -1);
+        s32 frame = janet_optinteger(argv, argc, 1, -1);
+        s32 row = janet_optinteger(argv, argc, 2, -1);
+        bool loop = janet_optboolean(argv, argc, 3, true);
+        bool sustain = janet_optboolean(argv, argc, 4, false);
+        s32 tempo = janet_optinteger(argv, argc, 5, -1);
+        s32 speed = janet_optinteger(argv, argc, 6, -1);
+
+        core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
+    }
 
     return janet_wrap_nil();
 }
@@ -1119,13 +1154,16 @@ static Janet janet_sync(int32_t argc, Janet* argv)
 
 static Janet janet_vbank(int32_t argc, Janet* argv)
 {
-    janet_fixarity(argc, 1);
-
-    s32 bank = janet_getinteger(argv, 0);
+    janet_arity(argc, 0, 1);
 
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
-    return janet_wrap_integer(core->api.vbank(tic, bank));
+    const s32 prev = core->state.vbank.id;
+
+    if(argc == 1)
+        core->api.vbank(tic, janetInteger(argv[0]));
+
+    return janet_wrap_integer(prev);
 }
 
 static Janet janet_reset(int32_t argc, Janet* argv)
@@ -1140,9 +1178,9 @@ static Janet janet_reset(int32_t argc, Janet* argv)
 static Janet janet_key(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 1);
-    tic_key key = (tic_key)-1;
+    tic_key key = tic_key_unknown;
 
-    if(argc >= 1) key = (tic_key)janet_getinteger(argv, 0);
+    if(argc >= 1) key = (tic_key)janetInteger(argv[0]);
 
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
@@ -1152,13 +1190,13 @@ static Janet janet_key(int32_t argc, Janet* argv)
 static Janet janet_keyp(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 3);
-    tic_key key = (tic_key)-1;
+    tic_key key = tic_key_unknown;
     s32 hold = -1;
     s32 period = -1;
 
-    if(argc >= 1) key = (tic_key)janet_getinteger(argv, 0);
-    if(argc >= 2) hold = janet_getinteger(argv, 1);
-    if(argc >= 3) period = janet_getinteger(argv, 2);
+    if(argc >= 1) key = (tic_key)janetInteger(argv[0]);
+    if(argc >= 2) hold = janetInteger(argv[1]);
+    if(argc >= 3) period = janetInteger(argv[2]);
 
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
@@ -1168,9 +1206,9 @@ static Janet janet_keyp(int32_t argc, Janet* argv)
 static Janet janet_keyr(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 1);
-    tic_key key = (tic_key)-1;
+    tic_key key = tic_key_unknown;
 
-    if(argc >= 1) key = (tic_key)janet_getinteger(argv, 0);
+    if(argc >= 1) key = (tic_key)janetInteger(argv[0]);
 
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
@@ -1348,7 +1386,7 @@ static Janet janet_ffts(int32_t argc, Janet* argv)
 
     tic_core* core = getJanetMachine();
     tic_mem* tic = (tic_mem*)core;
-    return janet_wrap_number(core->api.fft(tic, start_freq, end_freq));
+    return janet_wrap_number(core->api.ffts(tic, start_freq, end_freq));
 }
 
 /* ***************** */
