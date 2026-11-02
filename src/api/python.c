@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
+#include <stdlib.h>
 #include "pocketpy.h"
 
 /*
@@ -36,20 +38,45 @@ static void log_and_clearexc(py_Ref p0)
     py_clearexc(p0);
 }
 
+// lua reads numbers and numeric strings; pocketpy's types are strict.
+static double py_number(py_Ref arg)
+{
+    if(py_isint(arg))
+        return (double)py_toint(arg);
+
+    if(py_isfloat(arg))
+        return py_tofloat(arg);
+
+    if(py_isstr(arg))
+    {
+        const char* text = py_tostr(arg);
+        char* end = NULL;
+        const double number = strtod(text, &end);
+
+        while(isspace((unsigned char)*end))
+            end++;
+
+        if(end != text && *end == '\0' && isfinite(number))
+            return number;
+    }
+
+    return 0;
+}
+
+static s32 py_int(py_Ref arg)
+{
+    return (s32)py_number(arg);
+}
+
 static int prepare_colorindex(py_Ref index, u8* buffer)
 {
+    if(py_isnone(index))
+        return 0;
+
     if(py_istype(index, tp_int))
     {
-        int value = (s32)(py_toint(index));
-        if(value == -1)
-        {
-            return 0;
-        }
-        else
-        {
-            buffer[0] = (u8)(value);
-            return 1;
-        }
+        buffer[0] = (u8)(py_toint(index));
+        return 1;
     }
     else if(py_istype(index, tp_list))
     {
@@ -75,48 +102,62 @@ static int prepare_colorindex(py_Ref index, u8* buffer)
 }
 
 /*****************TIC-80 API BEGIN*****************/
-// btn(id: int) -> bool
+// btn(id=None) -> bool | int
 // u32 (*btn)(tic_mem*, s32)
 static bool py_btn(int argc, py_Ref argv)
 {
     (void)argc;
-    PY_CHECK_ARG_TYPE(0, tp_int);
-    s32 button_id = (s32)(py_toint(py_arg(0)));
-
     tic_core* core = get_core();
-    u32 pressed = core->api.btn((tic_mem*)core, button_id & 0x1f);
+
+    if(py_isnone(py_arg(0)))
+    {
+        py_newint(py_retval(), core->api.btn((tic_mem*)core, -1));
+        return true;
+    }
+
+    s32 button_id = py_int(py_arg(0)) & 0x1f;
+    u32 pressed = core->api.btn((tic_mem*)core, button_id);
     py_newbool(py_retval(), pressed);
     return true;
 }
 
-// btnp(id: int, hold=-1, period=-1) -> bool
+// btnp(id=None, hold=-1, period=-1) -> bool | int
 // u32 (*btnp)(tic_mem*, s32, s32, s32)
 static bool py_btnp(int argc, py_Ref argv)
 {
     (void)argc;
-    PY_CHECK_ARG_TYPE(0, tp_int);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    PY_CHECK_ARG_TYPE(2, tp_int);
-    s32 button_id = (s32)(py_toint(py_arg(0)));
-    s32 hold = (s32)(py_toint(py_arg(1)));
-    s32 period = (s32)(py_toint(py_arg(2)));
-
     tic_core* core = get_core();
+
+    if(py_isnone(py_arg(0)))
+    {
+        py_newint(py_retval(), core->api.btnp((tic_mem*)core, -1, -1, -1));
+        return true;
+    }
+
+    s32 button_id = py_int(py_arg(0)) & 0x1f;
+    s32 hold = py_int(py_arg(1));
+    s32 period = py_int(py_arg(2));
+
     u32 pressed = core->api.btnp((tic_mem*)core, button_id, hold, period);
     py_newbool(py_retval(), pressed);
     return true;
 }
 
-// btnr(id: int) -> bool
+// btnr(id=None) -> bool | int
 // u32 (*btnr)(tic_mem*, s32)
 static bool py_btnr(int argc, py_Ref argv)
 {
     (void)argc;
-    PY_CHECK_ARG_TYPE(0, tp_int);
-    s32 button_id = (s32)(py_toint(py_arg(0)));
-
     tic_core* core = get_core();
-    u32 released = core->api.btnr((tic_mem*)core, button_id & 0x1f);
+
+    if(py_isnone(py_arg(0)))
+    {
+        py_newint(py_retval(), core->api.btnr((tic_mem*)core, -1));
+        return true;
+    }
+
+    s32 button_id = py_int(py_arg(0)) & 0x1f;
+    u32 released = core->api.btnr((tic_mem*)core, button_id);
     py_newbool(py_retval(), released);
     return true;
 }
@@ -126,8 +167,7 @@ static bool py_btnr(int argc, py_Ref argv)
 static bool py_cls(int argc, py_Ref argv)
 {
     (void)argc;
-    PY_CHECK_ARG_TYPE(0, tp_int);
-    u8 color = (u8)(py_toint(py_arg(0)));
+    u8 color = (u8)py_int(py_arg(0));
 
     tic_core* core = get_core();
     core->api.cls((tic_mem*)core, color);
@@ -135,7 +175,7 @@ static bool py_cls(int argc, py_Ref argv)
     return true;
 }
 
-// spr(id: int, x: int, y: int, colorkey=-1, scale=1, flip=0, rotate=0, w=1, h=1)
+// spr(id: int, x: int, y: int, colorkey=None, scale=1, flip=0, rotate=0, w=1, h=1)
 // void (*spr)(tic_mem*, s32, s32, s32, s32, s32, u8*, u8, s32, tic_flip, tic_rotate)
 static bool py_spr(int argc, py_Ref argv)
 {
@@ -165,11 +205,18 @@ static bool py_spr(int argc, py_Ref argv)
     return true;
 }
 
-// print(text, x=0, y=0, color=15, fixed=False, scale=1, alt=False)
+// print(text=None, x=0, y=0, color=15, fixed=False, scale=1, alt=False)
 // s32 (*print)(tic_mem*, const char*, s32, s32, u8, bool, s32, bool)
 static bool py_print(int argc, py_Ref argv)
 {
     (void)argc;
+
+    if(py_isnone(py_arg(0)))
+    {
+        py_newnone(py_retval());
+        return true;
+    }
+
     PY_CHECK_ARG_TYPE(1, tp_int);
     PY_CHECK_ARG_TYPE(2, tp_int);
     PY_CHECK_ARG_TYPE(3, tp_int);
@@ -404,7 +451,7 @@ static bool py_key(int argc, py_Ref argv)
     return true;
 }
 
-// keyp(code=-1, hold=-1, period=-17) -> int
+// keyp(code=-1, hold=-1, period=-1) -> int
 // bool (*keyp)(tic_mem*, tic_key, s32, s32)
 static bool py_keyp(int argc, py_Ref argv)
 {
@@ -511,7 +558,7 @@ static void remap_callback(void* callable, s32 x, s32 y, RemapResult* out)
     out->rotate = py_toint(arg2);
 }
 
-// map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap=None)
+// map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=None, scale=1, remap=None)
 // void (*map)(tic_mem*, s32, s32, s32, s32, s32, s32, u8*, u8, s32, RemapFunc, void*)
 static bool py_map(int argc, py_Ref argv)
 {
@@ -588,10 +635,8 @@ static bool py_memset(int argc, py_Ref argv)
 static bool py_mget(int argc, py_Ref argv)
 {
     (void)argc;
-    PY_CHECK_ARG_TYPE(0, tp_int);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    s32 x = (s32)(py_toint(py_arg(0)));
-    s32 y = (s32)(py_toint(py_arg(1)));
+    s32 x = py_int(py_arg(0));
+    s32 y = py_int(py_arg(1));
 
     tic_core* core = get_core();
     u8 res = core->api.mget((tic_mem*)core, x, y);
@@ -729,22 +774,39 @@ static bool py_peek4(int argc, py_Ref argv)
     return true;
 }
 
+// paint(x: int, y: int, color: int, border_color=-1)
+// void (*paint)(tic_mem*, s32, s32, u8, u8)
+static bool py_paint(int argc, py_Ref argv)
+{
+    (void)argc;
+    PY_CHECK_ARG_TYPE(0, tp_int);
+    PY_CHECK_ARG_TYPE(1, tp_int);
+    PY_CHECK_ARG_TYPE(2, tp_int);
+    PY_CHECK_ARG_TYPE(3, tp_int);
+    s32 x = (s32)(py_toint(py_arg(0)));
+    s32 y = (s32)(py_toint(py_arg(1)));
+    u8 color = (u8)(py_toint(py_arg(2)));
+    u8 border_color = (u8)(py_toint(py_arg(3)));
+
+    tic_core* core = get_core();
+    core->api.paint((tic_mem*)core, x, y, color, border_color);
+    py_newnone(py_retval());
+    return true;
+}
+
 // pix(x: int, y: int, color: int | None = None) -> int | None
 // u8 (*pix)(tic_mem*, s32, s32, u8, bool)
 static bool py_pix(int argc, py_Ref argv)
 {
     (void)argc;
-    PY_CHECK_ARG_TYPE(0, tp_int);
-    PY_CHECK_ARG_TYPE(1, tp_int);
-    s32 x = (s32)(py_toint(py_arg(0)));
-    s32 y = (s32)(py_toint(py_arg(1)));
+    s32 x = py_int(py_arg(0));
+    s32 y = py_int(py_arg(1));
 
     tic_core* core = get_core();
     if(!py_isnone(py_arg(2)))
     {
         // set pixel
-        PY_CHECK_ARG_TYPE(2, tp_int);
-        u8 color = (u8)(py_toint(py_arg(2)));
+        u8 color = (u8)py_int(py_arg(2));
         core->api.pix((tic_mem*)core, x, y, color, false);
         py_newnone(py_retval());
     }
@@ -771,20 +833,17 @@ static bool py_pmem(int argc, py_Ref argv)
     }
 
     tic_core* core = get_core();
+    const u32 old = core->api.pmem((tic_mem*)core, index, 0, false);
+
     if(!py_isnone(py_arg(1)))
     {
         // set persistent memory
         PY_CHECK_ARG_TYPE(1, tp_int);
         u32 value = (u32)(py_toint(py_arg(1)));
         core->api.pmem((tic_mem*)core, index, value, true);
-        py_newnone(py_retval());
     }
-    else
-    {
-        // get persistent memory
-        u32 res = core->api.pmem((tic_mem*)core, index, 0, false);
-        py_newint(py_retval(), res);
-    }
+
+    py_newint(py_retval(), old);
     return true;
 }
 
@@ -797,7 +856,7 @@ static bool py_pokebits(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(1, tp_int);
     s32 addr = (s32)(py_toint(py_arg(0)));
     s32 value = (s32)(py_toint(py_arg(1)));
-    s32 bits = 8;
+    s32 bits = py_int(py_arg(2));
 
     tic_core* core = get_core();
     core->api.poke((tic_mem*)core, addr, (u8)(value), bits);
@@ -902,7 +961,6 @@ static bool py_rrect(int argc, py_Ref argv)
     (void)argc;
     for(int i = 0; i < 6; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
-    PY_CHECK_ARG_TYPE(6, tp_float);
 
     s32 x = (s32)py_toint(py_arg(0));
     s32 y = (s32)py_toint(py_arg(1));
@@ -910,7 +968,7 @@ static bool py_rrect(int argc, py_Ref argv)
     s32 h = (s32)py_toint(py_arg(3));
     u8 color = (u8)py_toint(py_arg(4));
     s32 radius = (s32)py_toint(py_arg(5));
-    float exponent = (float)py_tofloat(py_arg(6));
+    float exponent = (float)py_number(py_arg(6));
 
     tic_core* core = get_core();
     core->api.rrect((tic_mem*)core, x, y, w, h, color, radius, exponent);
@@ -925,7 +983,6 @@ static bool py_rrectb(int argc, py_Ref argv)
     (void)argc;
     for(int i = 0; i < 6; i++)
         PY_CHECK_ARG_TYPE(i, tp_int);
-    PY_CHECK_ARG_TYPE(6, tp_float);
 
     s32 x = (s32)py_toint(py_arg(0));
     s32 y = (s32)py_toint(py_arg(1));
@@ -933,7 +990,7 @@ static bool py_rrectb(int argc, py_Ref argv)
     s32 h = (s32)py_toint(py_arg(3));
     u8 color = (u8)py_toint(py_arg(4));
     s32 radius = (s32)py_toint(py_arg(5));
-    float exponent = (float)py_tofloat(py_arg(6));
+    float exponent = (float)py_number(py_arg(6));
 
     tic_core* core = get_core();
     core->api.rrectb((tic_mem*)core, x, y, w, h, color, radius, exponent);
@@ -948,7 +1005,7 @@ static bool py_reset(int argc, py_Ref argv)
     (void)argc;
     (void)argv;
     tic_core* core = get_core();
-    core->api.reset((tic_mem*)core);
+    core->state.initialized = false;
     py_newnone(py_retval());
     return true;
 }
@@ -1039,7 +1096,7 @@ static bool py_sync(int argc, py_Ref argv)
     return true;
 }
 
-// ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc=0, chromakey=-1, z1=0.0, z2=0.0, z3=0.0)
+// ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc=0, chromakey=None, z1=0.0, z2=0.0, z3=0.0)
 // void (*ttri)(tic_mem*, float, float, float, float, float, float, float, float, float, float, float, float, tic_texture_src, u8*, s32, float, float, float, bool)
 static bool py_ttri(int argc, py_Ref argv)
 {
@@ -1344,13 +1401,13 @@ static bool py_ffts(int argc, py_Ref argv)
 static void bind_pkpy_v2()
 {
     py_GlobalRef mod = py_getmodule("__main__");
-    py_bind(mod, "btn(id: int) -> bool", py_btn);
-    py_bind(mod, "btnp(id: int, hold=-1, period=-1) -> bool", py_btnp);
-    py_bind(mod, "btnr(id: int) -> bool", py_btnr);
+    py_bind(mod, "btn(id: int | None = None)", py_btn);
+    py_bind(mod, "btnp(id: int | None = None, hold=-1, period=-1)", py_btnp);
+    py_bind(mod, "btnr(id: int | None = None)", py_btnr);
     py_bind(mod, "cls(color=0)", py_cls);
-    py_bind(mod, "spr(id: int, x: int, y: int, colorkey=-1, scale=1, flip=0, rotate=0, w=1, h=1)",
+    py_bind(mod, "spr(id: int, x: int, y: int, colorkey: int | list | None = None, scale=1, flip=0, rotate=0, w=1, h=1)",
             py_spr);
-    py_bind(mod, "print(text, x=0, y=0, color=15, fixed=False, scale=1, alt=False)", py_print);
+    py_bind(mod, "print(text: str | None = None, x=0, y=0, color=15, fixed=False, scale=1, alt=False)", py_print);
     py_bind(mod, "circ(x: int, y: int, radius: int, color: int)", py_circ);
     py_bind(mod, "circb(x: int, y: int, radius: int, color: int)", py_circb);
     py_bind(mod, "clip(x: int | None = None, y: int | None = None, width: int | None = None, height: int | None = None)", py_clip);
@@ -1361,16 +1418,17 @@ static void bind_pkpy_v2()
     py_bind(mod, "fset(sprite_id: int, flag: int, b: bool)", py_fset);
     py_bind(mod, "font(text: str, x: int, y: int, chromakey: int, char_width=8, char_height=8, fixed=False, scale=1, alt=False) -> int", py_font);
     py_bind(mod, "key(code=-1) -> bool", py_key);
-    py_bind(mod, "keyp(code=-1, hold=-1, period=-17) -> bool", py_keyp);
+    py_bind(mod, "keyp(code=-1, hold=-1, period=-1) -> bool", py_keyp);
     py_bind(mod, "keyr(code=-1) -> bool", py_keyr);
     py_bind(mod, "line(x0: float, y0: float, x1: float, y1: float, color: int)", py_line);
-    py_bind(mod, "map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap=None)", py_map);
+    py_bind(mod, "map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey: int | list | None = None, scale=1, remap=None)", py_map);
     py_bind(mod, "memcpy(dest: int, source: int, size: int)", py_memcpy);
     py_bind(mod, "memset(dest: int, value: int, size: int)", py_memset);
     py_bind(mod, "mget(x: int, y: int) -> int", py_mget);
     py_bind(mod, "mset(x: int, y: int, tile_id: int)", py_mset);
     py_bind(mod, "mouse() -> tuple[int, int, bool, bool, bool, int, int]", py_mouse);
     py_bind(mod, "music(track=-1, frame=-1, row=-1, loop=True, sustain=False, tempo=-1, speed=-1)", py_music);
+    py_bind(mod, "paint(x: int, y: int, color: int, border_color=-1)", py_paint);
     py_bind(mod, "peek(addr: int, bits=8) -> int", py_peekbits);
     py_bind(mod, "peek1(addr: int) -> int", py_peek1);
     py_bind(mod, "peek2(addr: int) -> int", py_peek2);
@@ -1388,7 +1446,7 @@ static void bind_pkpy_v2()
     py_bind(mod, "reset()", py_reset);
     py_bind(mod, "sfx(id: int, note=-1, duration=-1, channel=0, volume=15, speed=-1)", py_sfx);
     py_bind(mod, "sync(mask=0, bank=0, tocart=False)", py_sync);
-    py_bind(mod, "ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc=0, chromakey=-1, z1=0.0, z2=0.0, z3=0.0)", py_ttri);
+    py_bind(mod, "ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc=0, chromakey: int | list | None = None, z1=0.0, z2=0.0, z3=0.0)", py_ttri);
     py_bind(mod, "time() -> float", py_time);
     py_bind(mod, "trace(message, color=15)", py_trace);
     py_bind(mod, "tri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)", py_tri);
