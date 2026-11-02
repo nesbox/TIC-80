@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <squirrel.h>
 #include <sqstdmath.h>
 #include <sqstdstring.h>
@@ -35,21 +36,55 @@ extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 static const char TicCore[] = "_TIC80";
 
-static float getSquirrelFloat(HSQUIRRELVM vm, s32 index)
+// lua reads numbers and numeric strings; squirrel's getters handle neither.
+static double getSquirrelDouble(HSQUIRRELVM vm, s32 index)
 {
-    SQFloat f = 0.0;
-    sq_getfloat(vm, index, &f);
-    return f;
+    switch(sq_gettype(vm, index))
+    {
+        case OT_INTEGER:
+        {
+            SQInteger i = 0;
+            return SQ_SUCCEEDED(sq_getinteger(vm, index, &i)) ? (double)i : 0.0;
+        }
+
+        case OT_FLOAT:
+        {
+            SQFloat f = 0.0;
+            return SQ_SUCCEEDED(sq_getfloat(vm, index, &f)) ? (double)f : 0.0;
+        }
+
+        case OT_STRING:
+        {
+            const SQChar* text = NULL;
+
+            if(SQ_SUCCEEDED(sq_getstring(vm, index, &text)))
+            {
+                char* end = NULL;
+                const double number = strtod(text, &end);
+
+                while(isspace((unsigned char)*end))
+                    end++;
+
+                if(end != text && *end == '\0' && isfinite(number))
+                    return number;
+            }
+
+            return 0.0;
+        }
+
+        default:
+            return 0.0;
+    }
 }
 
-// !TODO: get rid of this wrap
 static s32 getSquirrelNumber(HSQUIRRELVM vm, s32 index)
 {
-    SQInteger i;
-    if(SQ_SUCCEEDED(sq_getinteger(vm, index, &i)))
-        return (s32)i;
+    return (s32)getSquirrelDouble(vm, index);
+}
 
-    return (s32)getSquirrelFloat(vm, index);
+static float getSquirrelFloat(HSQUIRRELVM vm, s32 index)
+{
+    return (float)getSquirrelDouble(vm, index);
 }
 
 static void registerSquirrelFunction(tic_core* core, SQFUNCTION func, const char* name)
