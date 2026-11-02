@@ -483,9 +483,9 @@ static bool grav_map(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uint
         }
         else
         {
-            s32 color_val = grav_get_int_default(args[7], -1);
+            s32 color_val = VALUE_ISA_NULL(args[7]) ? 0 : grav_get_int_default(args[7], -1);
             colors[0] = (u8)color_val;
-            count = color_val < 0 ? 0 : 1;
+            count = 1;
         }
     }
 
@@ -869,7 +869,7 @@ static bool grav_reset(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, ui
 
     if(nargs > 1) RETURN_ERROR("invalid parameters, reset");
 
-    core->api.reset(tic);
+    core->state.initialized = false;
 
     RETURN_NOVALUE();
 }
@@ -999,9 +999,9 @@ static bool grav_spr(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uint
         }
         else
         {
-            s32 color_val = grav_get_int_default(args[4], -1);
+            s32 color_val = VALUE_ISA_NULL(args[4]) ? 0 : grav_get_int_default(args[4], -1);
             colors[0] = (u8)color_val;
-            count = color_val < 0 ? 0 : 1;
+            count = 1;
         }
     }
 
