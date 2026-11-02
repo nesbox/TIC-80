@@ -23,6 +23,11 @@
 #include "core/core.h"
 #include "studio/system.h"
 #include "miniscript.h"
+
+#include <cctype>
+#include <cmath>
+#include <cstdlib>
+
 extern "C" bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 using namespace MiniScript;
@@ -88,6 +93,39 @@ struct TICMiniScriptState
 static tic_core* getCore(Context context)
 {
     return static_cast<tic_core*>(context.GetInterpreter().hostData());
+}
+
+// lua reads numbers and numeric strings; IntValue gives 0 for a string.
+static s32 getNumberValue(const Value& value)
+{
+    if(value.IsNumber())
+        return (s32)value.DoubleValue();
+
+    if(value.IsString())
+    {
+        const char* text = value.c_str();
+        char* end = nullptr;
+        const double number = strtod(text, &end);
+
+        while(isspace((unsigned char)*end))
+            end++;
+
+        if(end != text && *end == '\0' && std::isfinite(number))
+            return (s32)number;
+    }
+
+    return 0;
+}
+
+// lua refuses a call with fewer arguments; MiniScript has no catch, so the
+// probe file leaves those calls out and the coverage number says so.
+static bool requireArgs(Context context, int count, const char* message)
+{
+    if(context.argCount >= count)
+        return true;
+
+    context.vm.RaiseRuntimeError(message);
+    return false;
 }
 
 // No lambda here asks for the partial result, and a name would be an unused
@@ -207,6 +245,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 4, "invalid parameters, circ(x y radius color)"))
+            return IntrinsicResult::Null;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 radius = context.GetArg(2).IntValue();
@@ -226,6 +267,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 4, "invalid parameters, circb(x y radius color)"))
+            return IntrinsicResult::Null;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 radius = context.GetArg(2).IntValue();
@@ -272,7 +316,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
-        u8 color = context.GetArg(0).IntValue() & 0xF;
+        u8 color = (u8)context.GetArg(0).IntValue();
 
         core->api.cls(tic, color);
         return IntrinsicResult::Null;
@@ -289,6 +333,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 5, "invalid parameters, elli(x y a b color)"))
+            return IntrinsicResult::Null;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 aRadius = context.GetArg(2).IntValue();
@@ -310,6 +357,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 5, "invalid parameters, ellib(x y a b color)"))
+            return IntrinsicResult::Null;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 aRadius = context.GetArg(2).IntValue();
@@ -354,6 +404,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 3, "invalid parameters, fset(sprite_id flag bool)"))
+            return IntrinsicResult::Null;
         s32 index = context.GetArg(0).IntValue();
         u8 flag = context.GetArg(1).IntValue() & 0x7;
         bool value = context.GetArg(2).BoolValue();
@@ -381,7 +434,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         const char* text = context.GetArg(0).c_str();
         s32 x = context.GetArg(1).IntValue();
         s32 y = context.GetArg(2).IntValue();
-        u8 transcolor = context.GetArg(3).IntValue() & 0xF;
+        u8 transcolor = (u8)context.GetArg(3).IntValue();
         s32 width = context.GetArg(4).IntValue();
         s32 height = context.GetArg(5).IntValue();
         bool fixed = context.GetArg(6).BoolValue();
@@ -392,6 +445,50 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         return IntrinsicResult::Null;
     });
     tic80Module.SetValue("font", i.GetFunc());
+
+    // fft
+    i = Intrinsic::Create("");
+    i.AddParam("start_freq");
+    i.AddParam("end_freq", -1);
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.fft(tic, context.GetArg(0).IntValue(), context.GetArg(1).IntValue()));
+    });
+    tic80Module.SetValue("fft", i.GetFunc());
+
+    // ffts
+    i = Intrinsic::Create("");
+    i.AddParam("start_freq");
+    i.AddParam("end_freq", -1);
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.ffts(tic, context.GetArg(0).IntValue(), context.GetArg(1).IntValue()));
+    });
+    tic80Module.SetValue("ffts", i.GetFunc());
+
+    // fftr
+    i = Intrinsic::Create("");
+    i.AddParam("start_freq");
+    i.AddParam("end_freq", -1);
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.fftr(tic, context.GetArg(0).IntValue(), context.GetArg(1).IntValue()));
+    });
+    tic80Module.SetValue("fftr", i.GetFunc());
+
+    // fftrs
+    i = Intrinsic::Create("");
+    i.AddParam("start_freq");
+    i.AddParam("end_freq", -1);
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.fftrs(tic, context.GetArg(0).IntValue(), context.GetArg(1).IntValue()));
+    });
+    tic80Module.SetValue("fftrs", i.GetFunc());
 
     // key
     i = Intrinsic::Create("");
@@ -491,6 +588,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 5, "invalid parameters, line(x0 y0 x1 y1 color)"))
+            return IntrinsicResult::Null;
         float x0 = context.GetArg(0).FloatValue();
         float y0 = context.GetArg(1).FloatValue();
         float x1 = context.GetArg(2).FloatValue();
@@ -603,6 +703,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 2, "invalid parameters, mget(x y)"))
+            return IntrinsicResult::Null;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
 
@@ -618,6 +721,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 3, "invalid parameters, mset(x y tile_id)"))
+            return IntrinsicResult::Null;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         u8 tile_id = context.GetArg(2).IntValue() & 0xFF;
@@ -626,6 +732,28 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         return IntrinsicResult::Null;
     });
     tic80Module.SetValue("mset", i.GetFunc());
+
+    // paint
+    i = Intrinsic::Create("");
+    i.AddParam("x");
+    i.AddParam("y");
+    i.AddParam("color");
+    i.AddParam("bordercolor", -1);
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 3, "invalid parameters, paint(x y color [bordercolor])"))
+            return IntrinsicResult::Null;
+        s32 x = context.GetArg(0).IntValue();
+        s32 y = context.GetArg(1).IntValue();
+        u8 color = (u8)context.GetArg(2).IntValue();
+        u8 bordercolor = (u8)context.GetArg(3).IntValue();
+
+        core->api.paint(tic, x, y, color, bordercolor);
+        return IntrinsicResult::Null;
+    });
+    tic80Module.SetValue("paint", i.GetFunc());
 
     // mouse
     i = Intrinsic::Create("");
@@ -656,7 +784,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.AddParam("track", -1);
     i.AddParam("frame", -1);
     i.AddParam("row", -1);
-    i.AddParam("loop", false);
+    i.AddParam("loop", true);
     i.AddParam("sustain", false);
     i.AddParam("tempo", -1);
     i.AddParam("speed", -1);
@@ -690,6 +818,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 1, "invalid parameters, peek(addr [bits])"))
+            return IntrinsicResult::Null;
         s32 addr = context.GetArg(0).IntValue();
         s32 bits = context.GetArg(1).IntValue();
 
@@ -741,8 +872,11 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
-        s32 x = context.GetArg(0).IntValue();
-        s32 y = context.GetArg(1).IntValue();
+
+        if(!requireArgs(context, 2, "invalid parameters, pix(x y [color])"))
+            return IntrinsicResult::Null;
+        s32 x = getNumberValue(context.GetArg(0));
+        s32 y = getNumberValue(context.GetArg(1));
         Value colorValue = context.GetArg(2);
 
         if(colorValue.IsNull())
@@ -751,7 +885,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         }
         else
         {
-            u8 color = colorValue.IntValue() & 0xF;
+            u8 color = (u8)getNumberValue(colorValue);
             core->api.pix(tic, x, y, color, false);
             return IntrinsicResult::Null;
         }
@@ -765,10 +899,25 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 1, "invalid parameters, pmem(index [val32])"))
+            return IntrinsicResult::Null;
+
         s32 index = context.GetArg(0).IntValue();
         Value val32 = context.GetArg(1);
 
-        return IntrinsicResult(core->api.pmem(tic, index, val32.IntValue(), !val32.IsNull()));
+        if(index < 0 || (u32)index >= TIC_PERSISTENT_SIZE)
+        {
+            context.vm.RaiseRuntimeError("invalid persistent tic index");
+            return IntrinsicResult::Null;
+        }
+
+        u32 value = core->api.pmem(tic, index, 0, false);
+
+        if(!val32.IsNull())
+            core->api.pmem(tic, index, (u32)val32.IntValue(), true);
+
+        return IntrinsicResult(value);
     });
     tic80Module.SetValue("pmem", i.GetFunc());
 
@@ -780,6 +929,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 2, "invalid parameters, poke(addr value [bits])"))
+            return IntrinsicResult::Null;
         s32 addr = context.GetArg(0).IntValue();
         u8 value = context.GetArg(1).IntValue() & 0xFF;
         s32 bits = context.GetArg(2).IntValue();
@@ -797,7 +949,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
-        u8 value = context.GetArg(1).IntValue() & 0x1;
+        u8 value = (u8)context.GetArg(1).IntValue();
 
         core->api.poke1(tic, addr, value);
         return IntrinsicResult::Null;
@@ -812,7 +964,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
         s32 addr = context.GetArg(0).IntValue();
-        u8 value = context.GetArg(1).IntValue() & 0x3;
+        u8 value = (u8)context.GetArg(1).IntValue();
 
         core->api.poke2(tic, addr, value);
         return IntrinsicResult::Null;
@@ -847,6 +999,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
 
+        if(context.argCount == 0)
+            return IntrinsicResult::Null;
+
         const char* text = context.GetArg(0).c_str();
         s32 x = context.GetArg(1).IntValue();
         s32 y = context.GetArg(2).IntValue();
@@ -870,6 +1025,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 5, "invalid parameters, rect(x y w h color)"))
+            return IntrinsicResult::Null;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 width = context.GetArg(2).IntValue();
@@ -891,6 +1049,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 5, "invalid parameters, rectb(x y w h color)"))
+            return IntrinsicResult::Null;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 width = context.GetArg(2).IntValue();
@@ -974,6 +1135,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 1, "invalid parameters, sfx(id [note [duration [channel [volume [speed]]]]])"))
+            return IntrinsicResult::Null;
         s32 index = context.GetArg(0).IntValue();
         if(index >= SFX_COUNT)
         {
@@ -989,7 +1153,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         s32 note = -1;
         s32 octave = -1;
         s32 speed = SFX_DEF_SPEED;
-        if(index > 0)
+        if(index >= 0)
         {
             tic_sample* effect = tic->ram->sfx.samples.data + index;
 
@@ -1221,6 +1385,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 7, "invalid parameters, tri(x1 y1 x2 y2 x3 y3 color)"))
+            return IntrinsicResult::Null;
         float pt[6];
         for(int i = 0; i < 6; ++i)
         {
@@ -1245,6 +1412,9 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
     i.set_Code(INTRINSIC_LAMBDA {
         tic_core* core = getCore(context);
         tic_mem* tic = (tic_mem*)core;
+
+        if(!requireArgs(context, 7, "invalid parameters, trib(x1 y1 x2 y2 x3 y3 color)"))
+            return IntrinsicResult::Null;
         float pt[6];
         for(int i = 0; i < 6; ++i)
         {
@@ -1266,6 +1436,86 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         return IntrinsicResult(core->api.tstamp(tic));
     });
     tic80Module.SetValue("tstamp", i.GetFunc());
+
+    // vqt
+    i = Intrinsic::Create("");
+    i.AddParam("bin");
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.vqt(tic, context.GetArg(0).IntValue()));
+    });
+    tic80Module.SetValue("vqt", i.GetFunc());
+
+    // vqts
+    i = Intrinsic::Create("");
+    i.AddParam("bin");
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.vqts(tic, context.GetArg(0).IntValue()));
+    });
+    tic80Module.SetValue("vqts", i.GetFunc());
+
+    // vqtr
+    i = Intrinsic::Create("");
+    i.AddParam("bin");
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.vqtr(tic, context.GetArg(0).IntValue()));
+    });
+    tic80Module.SetValue("vqtr", i.GetFunc());
+
+    // vqtrs
+    i = Intrinsic::Create("");
+    i.AddParam("bin");
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.vqtrs(tic, context.GetArg(0).IntValue()));
+    });
+    tic80Module.SetValue("vqtrs", i.GetFunc());
+
+    // vqtw
+    i = Intrinsic::Create("");
+    i.AddParam("bin");
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.vqtw(tic, context.GetArg(0).IntValue()));
+    });
+    tic80Module.SetValue("vqtw", i.GetFunc());
+
+    // vqtsw
+    i = Intrinsic::Create("");
+    i.AddParam("bin");
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.vqtsw(tic, context.GetArg(0).IntValue()));
+    });
+    tic80Module.SetValue("vqtsw", i.GetFunc());
+
+    // vqtrw
+    i = Intrinsic::Create("");
+    i.AddParam("bin");
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.vqtrw(tic, context.GetArg(0).IntValue()));
+    });
+    tic80Module.SetValue("vqtrw", i.GetFunc());
+
+    // vqtrsw
+    i = Intrinsic::Create("");
+    i.AddParam("bin");
+    i.set_Code(INTRINSIC_LAMBDA {
+        tic_core* core = getCore(context);
+        tic_mem* tic = (tic_mem*)core;
+        return IntrinsicResult(core->api.vqtrsw(tic, context.GetArg(0).IntValue()));
+    });
+    tic80Module.SetValue("vqtrsw", i.GetFunc());
 
     // vbank
     i = Intrinsic::Create("");

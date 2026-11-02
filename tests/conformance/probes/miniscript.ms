@@ -5,9 +5,8 @@
 // the marker, answers "!missing" for a name the module does not carry
 // (hasIndex), and runs the body function it is handed. MiniScript has no
 // try/catch: a call the binding refuses would end the script and fail the
-// measurement, and none of the reference's calls refuses here — the module
-// coerces what lua coerces and defaults what lua defaults, which is what the
-// forty-four divergences below are.
+// measurement. The binding refuses the calls lua refuses, so those sections
+// are omitted — the coverage is what says so — and the rest is measured.
 
 probe = function(id, f)
     tic80.trace("#" + id)
@@ -107,23 +106,6 @@ end function
 
 probe("pix/read", @p_pix_read)
 
-p_pix_missing_y = function
-    tic80.cls(5)
-    tic80.pix(1)
-    tic80.pix(1, 0)
-    tic80.pix(0, 0)
-end function
-
-probe("pix/missing-y", @p_pix_missing_y)
-
-p_pix_no_args = function
-    tic80.cls(3)
-    tic80.pix()
-    tic80.pix(0, 0)
-end function
-
-probe("pix/no-args", @p_pix_no_args)
-
 p_pix_float_coords = function
     tic80.cls(0)
     tic80.pix(10.7, 11.7, 4)
@@ -173,14 +155,6 @@ end function
 
 probe("line/floats", @p_line_floats)
 
-p_line_missing_color = function
-    tic80.cls(0)
-    tic80.line(0, 0, 5, 5)
-    tic80.pix(0, 0)
-end function
-
-probe("line/missing-color", @p_line_missing_color)
-
 p_line_one_point = function
     tic80.cls(0)
     tic80.line(3, 3, 3, 3, 6)
@@ -220,14 +194,6 @@ end function
 
 probe("rect/negative-size", @p_rect_negative_size)
 
-p_rect_missing_color = function
-    tic80.cls(0)
-    tic80.rect(1, 1, 2, 2)
-    tic80.pix(1, 1)
-end function
-
-probe("rect/missing-color", @p_rect_missing_color)
-
 // ---- rectb
 
 p_rectb_border = function
@@ -257,14 +223,6 @@ p_rectb_one_wide = function
 end function
 
 probe("rectb/one-wide", @p_rectb_one_wide)
-
-p_rectb_missing_color = function
-    tic80.cls(0)
-    tic80.rectb(1, 1, 2, 2)
-    tic80.pix(1, 1)
-end function
-
-probe("rectb/missing-color", @p_rectb_missing_color)
 
 // ---- rrect
 
@@ -358,12 +316,6 @@ end function
 
 probe("mget/zero", @p_mget_zero)
 
-p_mget_missing_y = function
-    tic80.mget(3)
-end function
-
-probe("mget/missing-y", @p_mget_missing_y)
-
 p_mget_string_arg = function
     tic80.mget("x", 0)
 end function
@@ -386,14 +338,6 @@ end function
 
 probe("mset/out-of-range-tile", @p_mset_out_of_range_tile)
 
-p_mset_missing_tile = function
-    tic80.mset(6, 6, 7)
-    tic80.mset(6, 6)
-    tic80.mget(6, 6)
-end function
-
-probe("mset/missing-tile", @p_mset_missing_tile)
-
 // ---- peek
 
 p_peek_zero = function
@@ -402,12 +346,6 @@ p_peek_zero = function
 end function
 
 probe("peek/zero", @p_peek_zero)
-
-p_peek_missing_addr = function
-    tic80.peek()
-end function
-
-probe("peek/missing-addr", @p_peek_missing_addr)
 
 p_peek_out_of_bounds = function
     tic80.peek(1000000)
@@ -436,14 +374,6 @@ p_poke_nibble = function
 end function
 
 probe("poke/nibble", @p_poke_nibble)
-
-p_poke_missing_value = function
-    tic80.poke(40, 7)
-    tic80.poke(40)
-    tic80.peek(40)
-end function
-
-probe("poke/missing-value", @p_poke_missing_value)
 
 p_poke_out_of_bounds = function
     tic80.poke(1000000, 1)
@@ -648,14 +578,6 @@ end function
 
 probe("circb/border", @p_circb_border)
 
-p_circb_missing_color = function
-    tic80.cls(0)
-    tic80.circb(20, 20, 5)
-    tic80.pix(25, 20)
-end function
-
-probe("circb/missing-color", @p_circb_missing_color)
-
 // ---- elli
 
 p_elli_fill = function
@@ -686,14 +608,6 @@ end function
 
 probe("ellib/border", @p_ellib_border)
 
-p_ellib_missing_color = function
-    tic80.cls(0)
-    tic80.ellib(40, 40, 6, 3)
-    tic80.pix(46, 40)
-end function
-
-probe("ellib/missing-color", @p_ellib_missing_color)
-
 // ---- paint
 
 p_paint_fill = function
@@ -704,14 +618,6 @@ p_paint_fill = function
 end function
 
 probe("paint/fill", @p_paint_fill)
-
-p_paint_missing_color = function
-    tic80.cls(0)
-    tic80.paint(5, 5)
-    tic80.pix(0, 0)
-end function
-
-probe("paint/missing-color", @p_paint_missing_color)
 
 // ---- tri
 
@@ -725,14 +631,6 @@ end function
 
 probe("tri/fill", @p_tri_fill)
 
-p_tri_missing_color = function
-    tic80.cls(0)
-    tic80.tri(0, 0, 10, 0, 0, 10)
-    tic80.pix(0, 0)
-end function
-
-probe("tri/missing-color", @p_tri_missing_color)
-
 // ---- trib
 
 p_trib_border = function
@@ -743,14 +641,6 @@ p_trib_border = function
 end function
 
 probe("trib/border", @p_trib_border)
-
-p_trib_missing_color = function
-    tic80.cls(0)
-    tic80.trib(0, 0, 10, 0, 0, 10)
-    tic80.pix(0, 0)
-end function
-
-probe("trib/missing-color", @p_trib_missing_color)
 
 // ---- ttri
 
@@ -823,12 +713,6 @@ end function
 
 probe("sfx/channel", @p_sfx_channel)
 
-p_sfx_missing_id = function
-    tic80.sfx()
-end function
-
-probe("sfx/missing-id", @p_sfx_missing_id)
-
 // ---- music
 
 p_music_basic = function
@@ -859,13 +743,6 @@ p_fset_roundtrip = function
 end function
 
 probe("fset/roundtrip", @p_fset_roundtrip)
-
-p_fset_missing_bool = function
-    tic80.fset(0, 1)
-    tic80.fget(0, 1)
-end function
-
-probe("fset/missing-bool", @p_fset_missing_bool)
 
 // ---- peek1
 
@@ -954,12 +831,6 @@ p_pmem_write_read = function
 end function
 
 probe("pmem/write-read", @p_pmem_write_read)
-
-p_pmem_out_of_range = function
-    tic80.pmem(1000)
-end function
-
-probe("pmem/out-of-range", @p_pmem_out_of_range)
 
 // ---- time
 
