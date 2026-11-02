@@ -50,12 +50,12 @@
   ))
 
 (probe "print/scale" (lambda ()
-  (t80::print "A" 5 5 15 false 2)
+  (t80::print "A" 5 5 15 #f 2)
   ))
 
 (probe "print/fixed" (lambda ()
-  (t80::print "ii" 0 0 15 true)
-  (t80::print "ww" 0 10 15 true)
+  (t80::print "ii" 0 0 15 #t)
+  (t80::print "ww" 0 10 15 #t)
   ))
 
 (probe "print/no-args" (lambda ()
@@ -637,7 +637,7 @@
   ))
 
 (probe "music/frame" (lambda ()
-  (t80::music 0 0 0 true false)
+  (t80::music 0 0 0 #t #f)
   ))
 
 ;; ---- fget
@@ -649,7 +649,7 @@
 ;; ---- fset
 
 (probe "fset/roundtrip" (lambda ()
-  (t80::fset 0 0 true)
+  (t80::fset 0 0 #t)
   (t80::fget 0 0)
   ))
 
@@ -833,7 +833,7 @@
   ))
 
 (probe "sync/mask" (lambda ()
-  (t80::sync 32767 0 false)
+  (t80::sync 32767 0 #f)
   ))
 
 ;; ---- exit
