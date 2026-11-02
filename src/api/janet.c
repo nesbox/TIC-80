@@ -26,6 +26,9 @@
 
 #include "core/core.h"
 
+#include <ctype.h>
+#include <math.h>
+#include <stdlib.h>
 #include <janet.h>
 
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
@@ -312,7 +315,17 @@ static s32 janetInteger(Janet value)
         return (s32)janet_unwrap_number(value);
 
     if(janet_checktype(value, JANET_STRING))
-        return (s32)strtod((const char*)janet_unwrap_string(value), NULL);
+    {
+        const char* text = (const char*)janet_unwrap_string(value);
+        char* end = NULL;
+        const double number = strtod(text, &end);
+
+        while(isspace((unsigned char)*end))
+            end++;
+
+        if(end != text && *end == '\0' && isfinite(number))
+            return (s32)number;
+    }
 
     return 0;
 }
