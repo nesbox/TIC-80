@@ -144,10 +144,15 @@ static void closeJavascript(tic_mem* tic)
     }
 }
 
+static JSValue throwError(JSContext* ctx, const char* message);
+
 static JSValue js_print(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc == 0)
+        return JS_UNDEFINED;
+
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
 
@@ -182,8 +187,11 @@ static JSValue js_cls(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_pix(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 2)
+        return throwError(ctx, "invalid parameters, pix(x y [color])");
+
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
 
@@ -205,8 +213,11 @@ static JSValue js_pix(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_line(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 5)
+        return throwError(ctx, "invalid parameters, line(x0 y0 x1 y1 color)");
+
     float x0 = getNumber(ctx, argv[0]);
     float y0 = getNumber(ctx, argv[1]);
     float x1 = getNumber(ctx, argv[2]);
@@ -223,8 +234,11 @@ static JSValue js_line(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_rect(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 5)
+        return throwError(ctx, "invalid parameters, rect(x y w h color)");
+
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
     s32 w = getInteger2(ctx, argv[2], 0);
@@ -240,8 +254,11 @@ static JSValue js_rect(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_rectb(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 5)
+        return throwError(ctx, "invalid parameters, rectb(x y w h color)");
+
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
     s32 w = getInteger2(ctx, argv[2], 0);
@@ -293,7 +310,6 @@ static JSValue js_rrectb(JSContext* ctx, JSValueConst this_val, s32 argc, JSValu
 
 static JSValue js_spr(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
@@ -302,20 +318,23 @@ static JSValue js_spr(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
     s32 x = getInteger2(ctx, argv[1], 0);
     s32 y = getInteger2(ctx, argv[2], 0);
 
-    if(isArray(ctx, argv[3]))
+    if(argc >= 4)
     {
-        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+        if(isArray(ctx, argv[3]))
         {
-            JSValue val = JS_GetPropertyUint32(ctx, argv[3], i);
-            colors[i] = (u8)(getInteger2(ctx, val, -1));
-            JS_FreeValue(ctx, val);
-            count++;
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+            {
+                JSValue val = JS_GetPropertyUint32(ctx, argv[3], i);
+                colors[i] = (u8)(getInteger2(ctx, val, -1));
+                JS_FreeValue(ctx, val);
+                count++;
+            }
         }
-    }
-    else
-    {
-        colors[0] = (u8)(getInteger2(ctx, argv[3], -1));
-        count = 1;
+        else
+        {
+            colors[0] = (u8)(getInteger2(ctx, argv[3], -1));
+            count = 1;
+        }
     }
 
     s32 scale = getInteger2(ctx, argv[4], 1);
@@ -390,16 +409,10 @@ static JSValue js_key(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
 
     tic_key key = (tic_key)(getInteger(ctx, argv[0]));
 
-    if(key < tic_keys_count)
-        return JS_NewBool(ctx, core->api.key(tic, key));
-    else
-    {
-        JSValue err = JS_NewError(ctx);
-        JS_SetPropertyStr(ctx, err, "message", JS_NewString(ctx, "unknown keyboard code"));
-        JS_Throw(ctx, err);
-    }
+    if(key >= tic_keys_count)
+        return JS_NewBool(ctx, false);
 
-    return JS_UNDEFINED;
+    return JS_NewBool(ctx, core->api.key(tic, key));
 }
 
 static JSValue js_keyr(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
@@ -414,23 +427,17 @@ static JSValue js_keyr(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
     tic_key key = (tic_key)(getInteger(ctx, argv[0]));
 
-    if(key < tic_keys_count)
-        return JS_NewBool(ctx, core->api.keyr(tic, key));
-    else
-    {
-        JSValue err = JS_NewError(ctx);
-        JS_SetPropertyStr(ctx, err, "message", JS_NewString(ctx, "unknown keyboard code"));
-        JS_Throw(ctx, err);
-    }
+    if(key >= tic_keys_count)
+        return JS_NewBool(ctx, false);
 
-    return JS_UNDEFINED;
+    return JS_NewBool(ctx, core->api.keyr(tic, key));
 }
 
-static void throwError(JSContext* ctx, const char* message)
+static JSValue throwError(JSContext* ctx, const char* message)
 {
     JSValue err = JS_NewError(ctx);
     JS_SetPropertyStr(ctx, err, "message", JS_NewString(ctx, message));
-    JS_Throw(ctx, err);
+    return JS_Throw(ctx, err);
 }
 
 static JSValue js_keyp(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
@@ -445,27 +452,23 @@ static JSValue js_keyp(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
     tic_key key = (tic_key)(getInteger(ctx, argv[0]));
 
-    if(key < tic_keys_count)
-    {
-        u32 hold = getInteger2(ctx, argv[1], -1);
-        u32 period = getInteger2(ctx, argv[2], -1);
+    if(key >= tic_keys_count)
+        return JS_NewBool(ctx, false);
 
-        return JS_NewBool(ctx, core->api.keyp(tic, key, hold, period));
-    }
-    else
-    {
-        throwError(ctx, "unknown keyboard code");
-    }
+    u32 hold = getInteger2(ctx, argv[1], -1);
+    u32 period = getInteger2(ctx, argv[2], -1);
 
-    return JS_UNDEFINED;
+    return JS_NewBool(ctx, core->api.keyp(tic, key, hold, period));
 }
 
 static JSValue js_sfx(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
+
+    if(argc < 1)
+        return throwError(ctx, "invalid sfx index");
 
     s32 index = getInteger2(ctx, argv[0], -1);
 
@@ -491,7 +494,8 @@ static JSValue js_sfx(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
 
                     if(!parse_note(noteStr, &note, &octave))
                     {
-                        throwError(ctx, "invalid note, should be like C#4");
+                        JS_FreeCString(ctx, noteStr);
+                        return throwError(ctx, "invalid note, should be like C#4");
                     }
 
                     JS_FreeCString(ctx, noteStr);
@@ -507,7 +511,7 @@ static JSValue js_sfx(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
     }
     else
     {
-        throwError(ctx, "unknown sfx index");
+        return throwError(ctx, "unknown sfx index");
     }
 
     s32 duration = getInteger2(ctx, argv[2], -1);
@@ -533,7 +537,7 @@ static JSValue js_sfx(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
         core->api.sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
     }
     else
-        throwError(ctx, "unknown channel");
+        return throwError(ctx, "unknown channel");
 
     return JS_UNDEFINED;
 }
@@ -577,7 +581,6 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 
 static JSValue js_map(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
@@ -590,20 +593,23 @@ static JSValue js_map(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
 
-    if(isArray(ctx, argv[6]))
+    if(argc >= 7)
     {
-        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+        if(isArray(ctx, argv[6]))
         {
-            JSValue val = JS_GetPropertyUint32(ctx, argv[6], i);
-            colors[i] = (u8)(getInteger2(ctx, val, -1));
-            JS_FreeValue(ctx, val);
-            count++;
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+            {
+                JSValue val = JS_GetPropertyUint32(ctx, argv[6], i);
+                colors[i] = (u8)(getInteger2(ctx, val, -1));
+                JS_FreeValue(ctx, val);
+                count++;
+            }
         }
-    }
-    else
-    {
-        colors[0] = (u8)(getInteger2(ctx, argv[6], 0));
-        count = 1;
+        else
+        {
+            colors[0] = (u8)(getInteger2(ctx, argv[6], 0));
+            count = 1;
+        }
     }
 
     tic_core* core = getCore(ctx);
@@ -624,8 +630,11 @@ static JSValue js_map(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_mget(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 2)
+        return throwError(ctx, "invalid parameters, mget(x y)");
+
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
 
@@ -638,8 +647,11 @@ static JSValue js_mget(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_mset(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 3)
+        return throwError(ctx, "invalid parameters, mset(x y tile_id)");
+
     s32 x = getInteger2(ctx, argv[0], 0);
     s32 y = getInteger2(ctx, argv[1], 0);
     u8 value = (u8)(getInteger2(ctx, argv[2], 0));
@@ -654,8 +666,11 @@ static JSValue js_mset(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_peek(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 1)
+        return throwError(ctx, "invalid parameters, peek(addr [bits])");
+
     s32 address = getInteger(ctx, argv[0]);
     s32 bits = getInteger2(ctx, argv[1], BITS_IN_BYTE);
 
@@ -667,8 +682,11 @@ static JSValue js_peek(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_poke(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 2)
+        return throwError(ctx, "invalid parameters, poke(addr value [bits])");
+
     s32 address = getInteger(ctx, argv[0]);
     u8 value = (u8)(getInteger(ctx, argv[1]));
     s32 bits = getInteger2(ctx, argv[2], BITS_IN_BYTE);
@@ -825,7 +843,7 @@ static JSValue js_pmem(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
         return JS_NewInt32(ctx, val);
     }
     else
-        throwError(ctx, "invalid persistent tic index");
+        return throwError(ctx, "invalid persistent tic index");
 
     return JS_UNDEFINED;
 }
@@ -914,8 +932,11 @@ static JSValue js_mouse(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_circ(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 4)
+        return throwError(ctx, "invalid parameters, circ(x y radius color)");
+
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 radius = getInteger(ctx, argv[2]);
@@ -931,8 +952,11 @@ static JSValue js_circ(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_circb(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 4)
+        return throwError(ctx, "invalid parameters, circb(x y radius color)");
+
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 radius = getInteger(ctx, argv[2]);
@@ -948,8 +972,11 @@ static JSValue js_circb(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_elli(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 5)
+        return throwError(ctx, "invalid parameters, elli(x y a b color)");
+
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 a = getInteger(ctx, argv[2]);
@@ -966,8 +993,11 @@ static JSValue js_elli(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_ellib(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 5)
+        return throwError(ctx, "invalid parameters, ellib(x y a b color)");
+
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 a = getInteger(ctx, argv[2]);
@@ -984,8 +1014,11 @@ static JSValue js_ellib(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_paint(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 3)
+        return throwError(ctx, "invalid parameters, paint(x y color [bordercolor])");
+
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 color = getInteger(ctx, argv[2]);
@@ -1001,8 +1034,11 @@ static JSValue js_paint(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
 
 static JSValue js_tri(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 7)
+        return throwError(ctx, "invalid parameters, tri(x1 y1 x2 y2 x3 y3 color)");
+
     float pt[6];
 
     for(s32 i = 0; i < COUNT_OF(pt); i++)
@@ -1020,8 +1056,11 @@ static JSValue js_tri(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
 
 static JSValue js_trib(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 7)
+        return throwError(ctx, "invalid parameters, trib(x1 y1 x2 y2 x3 y3 color)");
+
     float pt[6];
 
     for(s32 i = 0; i < COUNT_OF(pt); i++)
@@ -1087,7 +1126,6 @@ static JSValue js_textri(JSContext* ctx, JSValueConst this_val, s32 argc, JSValu
 
 static JSValue js_ttri(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
     float pt[12];
 
@@ -1096,35 +1134,41 @@ static JSValue js_ttri(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
-    tic_texture_src src = getInteger(ctx, argv[12]);
+    tic_texture_src src = argc >= 13 ? getInteger(ctx, argv[12]) : tic_tiles_texture;
 
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
-    if(isArray(ctx, argv[13]))
+    if(argc >= 14)
     {
-        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+        if(isArray(ctx, argv[13]))
         {
-            JSValue val = JS_GetPropertyUint32(ctx, argv[13], i);
-            colors[i] = (u8)(getInteger2(ctx, val, -1));
-            JS_FreeValue(ctx, val);
-            count++;
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+            {
+                JSValue val = JS_GetPropertyUint32(ctx, argv[13], i);
+                colors[i] = (u8)(getInteger2(ctx, val, -1));
+                JS_FreeValue(ctx, val);
+                count++;
+            }
+        }
+        else
+        {
+            colors[0] = (u8)(getInteger2(ctx, argv[13], 0));
+            count = 1;
         }
     }
-    else
-    {
-        colors[0] = (u8)(getInteger2(ctx, argv[13], 0));
-        count = 1;
-    }
 
-    float z[3];
-    bool depth = true;
+    float z[3] = {0, 0, 0};
+    bool depth = argc >= 17;
 
-    for(s32 i = 0, index = 14; i < COUNT_OF(z); i++, index++)
+    if(depth)
     {
-        if(JS_IsUndefined(argv[index]))
-            depth = false;
-        else
-            z[i] = getNumber(ctx, argv[index]);
+        for(s32 i = 0; i < COUNT_OF(z); i++)
+        {
+            if(JS_IsUndefined(argv[14 + i]))
+                depth = false;
+            else
+                z[i] = getNumber(ctx, argv[14 + i]);
+        }
     }
 
     core->api.ttri(tic, pt[0], pt[1],        //  xy 1
@@ -1171,8 +1215,7 @@ static JSValue js_music(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
     {
         if(track > MUSIC_TRACKS - 1)
         {
-            throwError(ctx, "invalid music track index");
-            return JS_UNDEFINED;
+            return throwError(ctx, "invalid music track index");
         }
 
         s32 frame = getInteger2(ctx, argv[1], -1);
@@ -1217,7 +1260,7 @@ static JSValue js_sync(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
     if(bank >= 0 && bank < TIC_BANKS)
         core->api.sync(tic, mask, bank, toCart);
     else
-        throwError(ctx, "sync() error, invalid bank");
+        return throwError(ctx, "sync() error, invalid bank");
 
     return JS_UNDEFINED;
 }
@@ -1251,8 +1294,11 @@ static JSValue js_fget(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
 static JSValue js_fset(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueConst* argv)
 {
-    (void)argc;
     (void)this_val;
+
+    if(argc < 3)
+        return throwError(ctx, "invalid parameters, fset(sprite_id flag bool)");
+
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
 
