@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "tools.h"
 #include "wren.h"
@@ -79,12 +80,17 @@ static char const* tic_wren_api = "\n\
 class TIC {\n\
     foreign static btn()\n\
     foreign static btn(id)\n\
+    foreign static btnp()\n\
     foreign static btnp(id)\n\
     foreign static btnp(id, hold, period)\n\
+    foreign static btnr()\n\
     foreign static btnr(id)\n\
+    foreign static key()\n\
     foreign static key(id)\n\
+    foreign static keyp()\n\
     foreign static keyp(id)\n\
     foreign static keyp(id, hold, period)\n\
+    foreign static keyr()\n\
     foreign static keyr(id)\n\
     foreign static mouse()\n\
     foreign static font(text)\n\
@@ -186,6 +192,7 @@ class TIC {\n\
     foreign static sync(mask, bank, tocart)\n\
     foreign static reset()\n\
     foreign static exit()\n\
+    foreign static fft(start_freq)\n\
     foreign static fft(start_freq, end_freq)\n\
     foreign static vqt(bin)\n\
     foreign static vqts(bin)\n\
@@ -195,8 +202,11 @@ class TIC {\n\
     foreign static vqtsw(bin)\n\
     foreign static vqtrw(bin)\n\
     foreign static vqtrsw(bin)\n\
+    foreign static fftr(start_freq)\n\
     foreign static fftr(start_freq, end_freq)\n\
+    foreign static fftrs(start_freq)\n\
     foreign static fftrs(start_freq, end_freq)\n\
+    foreign static ffts(start_freq)\n\
     foreign static ffts(start_freq, end_freq)\n\
     foreign static map_width__\n\
     foreign static map_height__\n\
@@ -207,6 +217,7 @@ class TIC {\n\
     foreign static fget(index, flag)\n\
     foreign static fset(index, flag, val)\n\
     foreign static mgeti__(index)\n\
+    static print() { }\n\
     static print(v) { TIC.print__(v.toString, 0, 0, 15, false, 1, false) }\n\
     static print(v,x,y) { TIC.print__(v.toString, x, y, 15, false, 1, false) }\n\
     static print(v,x,y,color) { TIC.print__(v.toString, x, y, color, false, 1, false) }\n\
@@ -265,7 +276,23 @@ static inline void wrenError(WrenVM* vm, const char* msg)
 
 static inline s32 getWrenNumber(WrenVM* vm, s32 index)
 {
-    return (s32)wrenGetSlotDouble(vm, index);
+    if(wrenGetSlotType(vm, index) == WREN_TYPE_NUM)
+        return (s32)wrenGetSlotDouble(vm, index);
+
+    if(wrenGetSlotType(vm, index) == WREN_TYPE_STRING)
+    {
+        const char* text = wrenGetSlotString(vm, index);
+        char* end = NULL;
+        const double number = strtod(text, &end);
+
+        while(isspace((unsigned char)*end))
+            end++;
+
+        if(end != text && *end == '\0' && isfinite(number))
+            return (s32)number;
+    }
+
+    return 0;
 }
 
 static inline bool isNumber(WrenVM* vm, s32 index)
@@ -375,17 +402,17 @@ static void wren_btnp(WrenVM* vm)
 
     if(top == 1)
     {
-        wrenSetSlotBool(vm, 0, core->api.btnp(tic, -1, -1, -1));
+        wrenSetSlotDouble(vm, 0, core->api.btnp(tic, -1, -1, -1));
     }
     else if(top == 2)
     {
-        s32 index = getWrenNumber(vm, 1) & 0xf;
+        s32 index = getWrenNumber(vm, 1) & 0x1f;
 
         wrenSetSlotBool(vm, 0, core->api.btnp(tic, index, -1, -1));
     }
     else if(top == 4)
     {
-        s32 index = getWrenNumber(vm, 1) & 0xf;
+        s32 index = getWrenNumber(vm, 1) & 0x1f;
         u32 hold = getWrenNumber(vm, 2);
         u32 period = getWrenNumber(vm, 3);
 
@@ -846,6 +873,12 @@ static void wren_map(WrenVM* vm)
 
 static void wren_mset(WrenVM* vm)
 {
+    if(wrenGetSlotCount(vm) < 4)
+    {
+        wrenError(vm, "invalid params, mset(x, y, tile_id)\n");
+        return;
+    }
+
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
     u8 value = (u8)(getWrenNumber(vm, 3));
@@ -1542,7 +1575,10 @@ static void wren_music(WrenVM* vm)
         }
     }
 
-    core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
+    core->api.music(tic, -1, 0, 0, false, false, -1, -1);
+
+    if(top > 1)
+        core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
 }
 
 static void wren_time(WrenVM* vm)
@@ -1892,12 +1928,17 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
 {
     if(strcmp(signature, "static TIC.btn()") == 0) return wren_btn;
     if(strcmp(signature, "static TIC.btn(_)") == 0) return wren_btn;
+    if(strcmp(signature, "static TIC.btnp()") == 0) return wren_btnp;
     if(strcmp(signature, "static TIC.btnp(_)") == 0) return wren_btnp;
     if(strcmp(signature, "static TIC.btnp(_,_,_)") == 0) return wren_btnp;
+    if(strcmp(signature, "static TIC.btnr()") == 0) return wren_btnr;
     if(strcmp(signature, "static TIC.btnr(_)") == 0) return wren_btnr;
+    if(strcmp(signature, "static TIC.key()") == 0) return wren_key;
     if(strcmp(signature, "static TIC.key(_)") == 0) return wren_key;
+    if(strcmp(signature, "static TIC.keyp()") == 0) return wren_keyp;
     if(strcmp(signature, "static TIC.keyp(_)") == 0) return wren_keyp;
     if(strcmp(signature, "static TIC.keyp(_,_,_)") == 0) return wren_keyp;
+    if(strcmp(signature, "static TIC.keyr()") == 0) return wren_keyr;
     if(strcmp(signature, "static TIC.keyr(_)") == 0) return wren_keyr;
     if(strcmp(signature, "static TIC.mouse()") == 0) return wren_mouse;
 
@@ -2007,6 +2048,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if(strcmp(signature, "static TIC.fget(_,_)") == 0) return wren_fget;
     if(strcmp(signature, "static TIC.fset(_,_,_)") == 0) return wren_fset;
 
+    if(strcmp(signature, "static TIC.fft(_)") == 0) return wren_fft;
     if(strcmp(signature, "static TIC.fft(_,_)") == 0) return wren_fft;
     if(strcmp(signature, "static TIC.vqt(_)") == 0) return wren_vqt;
     if(strcmp(signature, "static TIC.vqts(_)") == 0) return wren_vqts;
@@ -2016,8 +2058,11 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if(strcmp(signature, "static TIC.vqtrs(_)") == 0) return wren_vqtrs;
     if(strcmp(signature, "static TIC.vqtrw(_)") == 0) return wren_vqtrw;
     if(strcmp(signature, "static TIC.vqtrsw(_)") == 0) return wren_vqtrsw;
+    if(strcmp(signature, "static TIC.fftr(_)") == 0) return wren_fftr;
     if(strcmp(signature, "static TIC.fftr(_,_)") == 0) return wren_fftr;
+    if(strcmp(signature, "static TIC.fftrs(_)") == 0) return wren_fftrs;
     if(strcmp(signature, "static TIC.fftrs(_,_)") == 0) return wren_fftrs;
+    if(strcmp(signature, "static TIC.ffts(_)") == 0) return wren_ffts;
     if(strcmp(signature, "static TIC.ffts(_,_)") == 0) return wren_ffts;
 
     // internal functions
