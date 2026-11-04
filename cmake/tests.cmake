@@ -551,6 +551,12 @@ if(BUILD_TESTS)
         target_compile_options(api-bench PRIVATE -fno-lto)
     endif()
 
+    # The comparison reads the tool's own earlier output. The browser runtime's
+    # private MEMFS hides the host's, so node gets the real filesystem.
+    if(EMSCRIPTEN)
+        target_link_options(api-bench PRIVATE -sENVIRONMENT=node -sNODERAWFS=1 -sEXIT_RUNTIME=1)
+    endif()
+
     # One target for the whole suite — what CI builds, so a test registered
     # above is built and run without a change to the workflow.
     get_property(tic80_tests GLOBAL PROPERTY TIC80_TESTS)
