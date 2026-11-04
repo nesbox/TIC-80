@@ -229,12 +229,40 @@ jobs:
 
   # The drawing benchmark reports a delta, it never gates: the numbers come
   # from a shared runner, and a regression here is a finding, not a failure.
-  # Both builds run on this runner, so the comparison does not inherit another
-  # machine. The base is a worktree of the commit the change is measured
-  # against, and only the submodules tic80core needs are initialized.
+  # Both builds run on the same runner, so the comparison does not inherit
+  # another machine. The base is a worktree of the commit the change is
+  # measured against, and only the submodules tic80core needs are initialized.
+  # One row per platform: a delta is only meaningful within one runner. The
+  # web build takes its row through Emscripten and node, the same drawing code
+  # the html player runs.
   bench:
-    runs-on: ubuntu-22.04
+    name: bench (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux
+            os: ubuntu-22.04
+            generator: Ninja
+          - name: macos
+            os: macos-15
+            generator: Ninja
+          - name: windows
+            os: windows-2022
+            generator: Visual Studio 17 2022
+            config: --config Release
+            exe: .exe
+          - name: wasm
+            os: ubuntu-22.04
+            generator: Ninja
+            emscripten: true
+            exe: .js
+
+    runs-on: ${{ matrix.os }}
     continue-on-error: true
+    # A benchmark that hangs is a finding too; this keeps it from eating the
+    # runner for hours.
+    timeout-minutes: 30
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_MAXSIZE: 500M
@@ -246,26 +274,42 @@ jobs:
           # the worktree needs the commit object.
           fetch-depth: 0
 
+      - uses: emscripten-core/setup-emsdk@v15
+        if: matrix.emscripten
+
       - name: Install the benchmark's tools
+        if: matrix.name == 'linux' || matrix.name == 'macos'
+        shell: bash
         run: |
           set -euo pipefail
-          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
-          command -v ccache >/dev/null || sudo apt-get install -y ccache
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+            command -v ccache >/dev/null || sudo apt-get install -y ccache
+          else
+            command -v ninja >/dev/null || brew install ninja
+            command -v ccache >/dev/null || brew install ccache
+          fi
 
       - name: ccache
+        if: matrix.name == 'linux' || matrix.name == 'macos'
         uses: actions/cache@v4
         with:
           path: ${{ github.workspace }}/.ccache
-          key: ccache-${{ github.job }}-${{ github.sha }}
-          restore-keys: ccache-${{ github.job }}-
+          key: ccache-bench-${{ matrix.name }}-${{ github.sha }}
+          restore-keys: ccache-bench-${{ matrix.name }}-
 
       - name: Find the base
         id: base
+        shell: bash
         run: |
           set -euo pipefail
           case "${{ github.event_name }}" in
             pull_request)
-              base="${{ github.event.pull_request.base.sha }}"
+              # base.sha is the tip the PR was last evaluated against and can
+              # lag the branch; the benchmark wants the branch's current tip.
+              ref="${{ github.event.pull_request.base.ref }}"
+              git fetch --no-tags origin "$ref"
+              base=$(git rev-parse "origin/$ref")
               ;;
             push)
               base="${{ github.event.before }}"
@@ -287,6 +331,7 @@ jobs:
 
       - name: Should the benchmark run?
         id: paths
+        shell: bash
         run: |
           set -euo pipefail
 
@@ -307,28 +352,42 @@ jobs:
 
       - name: Initialize the submodules the core needs
         if: steps.paths.outputs.run == 'true'
+        shell: bash
         run: |
           set -euo pipefail
-          for path in vendor/zip vendor/zlib vendor/libpng vendor/giflib vendor/blip-buf vendor/naett vendor/argparse; do
+          for path in vendor/zip vendor/zlib vendor/libpng vendor/giflib vendor/blip-buf vendor/naett vendor/argparse vendor/dlfcn vendor/dirent; do
             git submodule update --init "$path"
           done
 
       - name: Build the head benchmark
         if: steps.paths.outputs.run == 'true'
+        shell: bash
         run: |
           set -euo pipefail
-          cmake -B build-bench -G Ninja \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_BUILD_TYPE=Release -DBUILD_SOKOL=OFF -DBUILD_WITH_LUA=OFF -DBUILD_TESTS=ON
-          cmake --build build-bench --parallel --target api-bench
+
+          launcher=""
+          if [ "${{ matrix.name }}" != "wasm" ] && [ "$RUNNER_OS" != "Windows" ]; then
+            launcher="-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+          fi
+
+          flags="-DCMAKE_BUILD_TYPE=Release -DBUILD_SOKOL=OFF -DBUILD_WITH_LUA=OFF -DBUILD_TESTS=ON"
+
+          if [ "${{ matrix.name }}" = "wasm" ]; then
+            emcmake cmake -B build-bench -G Ninja $flags
+          else
+            cmake -B build-bench -G "${{ matrix.generator }}" $launcher $flags
+          fi
+
+          cmake --build build-bench --parallel --target api-bench ${{ matrix.config }}
 
       - name: Build the base benchmark
         id: basebuild
         if: steps.paths.outputs.run == 'true' && steps.base.outputs.usable == 'true'
+        shell: bash
         run: |
           set -euo pipefail
           git worktree add ../tic80-base "${{ steps.base.outputs.sha }}"
-          for path in vendor/zip vendor/zlib vendor/libpng vendor/giflib vendor/blip-buf vendor/naett vendor/argparse; do
+          for path in vendor/zip vendor/zlib vendor/libpng vendor/giflib vendor/blip-buf vendor/naett vendor/argparse vendor/dlfcn vendor/dirent; do
             git -C ../tic80-base submodule update --init "$path"
           done
 
@@ -340,11 +399,20 @@ jobs:
             exit 0
           fi
 
-          cmake -S ../tic80-base -B build-base -G Ninja \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_BUILD_TYPE=Release -DBUILD_SOKOL=OFF -DBUILD_WITH_LUA=OFF -DBUILD_TESTS=ON
+          launcher=""
+          if [ "${{ matrix.name }}" != "wasm" ] && [ "$RUNNER_OS" != "Windows" ]; then
+            launcher="-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+          fi
 
-          if cmake --build build-base --parallel --target api-bench; then
+          flags="-DCMAKE_BUILD_TYPE=Release -DBUILD_SOKOL=OFF -DBUILD_WITH_LUA=OFF -DBUILD_TESTS=ON"
+
+          if [ "${{ matrix.name }}" = "wasm" ]; then
+            emcmake cmake -S ../tic80-base -B build-base -G Ninja $flags
+          else
+            cmake -S ../tic80-base -B build-base -G "${{ matrix.generator }}" $launcher $flags
+          fi
+
+          if cmake --build build-base --parallel --target api-bench ${{ matrix.config }}; then
             echo "have=true" >> "$GITHUB_OUTPUT"
           else
             echo "have=false" >> "$GITHUB_OUTPUT"
@@ -353,29 +421,34 @@ jobs:
 
       - name: Run the benchmark
         if: steps.paths.outputs.run == 'true'
+        shell: bash
         run: |
           set -euo pipefail
 
-          head="$GITHUB_WORKSPACE/build-bench/bin/api-bench"
-          base="$GITHUB_WORKSPACE/build-base/bin/api-bench"
+          head="$GITHUB_WORKSPACE/build-bench/bin/api-bench${{ matrix.exe }}"
+          base="$GITHUB_WORKSPACE/build-base/bin/api-bench${{ matrix.exe }}"
+          runner=""
+          if [ "${{ matrix.name }}" = "wasm" ]; then
+            runner=node
+          fi
 
-          "$head" > head-1.txt
-          "$head" > head-2.txt
+          $runner "$head" > head-1.txt
+          $runner "$head" > head-2.txt
 
           if [ "${{ steps.basebuild.outputs.have }}" = "true" ]; then
-            "$base" > base.txt
-            "$head" --compare base.txt | tee -a "$GITHUB_STEP_SUMMARY"
+            $runner "$base" > base.txt
+            $runner "$head" --compare base.txt | tee -a "$GITHUB_STEP_SUMMARY"
 
             # Two identical head runs are the noise floor: a delta below it
             # is not a result.
-            "$head" --compare head-1.txt > aa.txt
+            $runner "$head" --compare head-1.txt > aa.txt
             noise=$(awk -F'|' '
               /^\|/ && $6 ~ /%/ { v=$6; gsub(/[^0-9.-]/, "", v); if(v<0)v=-v; if(v>m)m=v }
               END { printf "%.1f", m }' aa.txt)
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "A/A noise: the largest per-row difference between two identical head runs is ±${noise}%." >> "$GITHUB_STEP_SUMMARY"
           else
-            "$head" | tee -a "$GITHUB_STEP_SUMMARY"
+            $runner "$head" | tee -a "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "No base benchmark: the head table is above." >> "$GITHUB_STEP_SUMMARY"
           fi
