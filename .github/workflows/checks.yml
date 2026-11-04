@@ -348,7 +348,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for path in vendor/zip vendor/zlib vendor/libpng vendor/giflib vendor/blip-buf vendor/naett vendor/argparse; do
+          for path in vendor/zip vendor/zlib vendor/libpng vendor/giflib vendor/blip-buf vendor/naett vendor/argparse vendor/dlfcn vendor/dirent; do
             git submodule update --init "$path"
           done
 
@@ -380,7 +380,7 @@ jobs:
         run: |
           set -euo pipefail
           git worktree add ../tic80-base "${{ steps.base.outputs.sha }}"
-          for path in vendor/zip vendor/zlib vendor/libpng vendor/giflib vendor/blip-buf vendor/naett vendor/argparse; do
+          for path in vendor/zip vendor/zlib vendor/libpng vendor/giflib vendor/blip-buf vendor/naett vendor/argparse vendor/dlfcn vendor/dirent; do
             git -C ../tic80-base submodule update --init "$path"
           done
 
