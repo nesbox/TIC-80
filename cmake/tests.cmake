@@ -526,6 +526,13 @@ if(BUILD_TESTS)
         tic80_add_test(python-outline-test $<TARGET_FILE:python>)
     endif()
 
+    # The drawing API's contract: every function's output, compared over the
+    # whole screen against an independently written rasterizer. It links the
+    # core alone.
+    add_executable(draw-test ${CMAKE_SOURCE_DIR}/tests/draw.c)
+    target_link_libraries(draw-test PRIVATE tic80core)
+    tic80_add_test(draw-test)
+
     # The API conformance suite records every API call of every language
     # through traps over core->api, no window. It needs the static runtime:
     # only there does tic_scripts() list every binding instead of leaving
