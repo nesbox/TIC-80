@@ -8,7 +8,9 @@ name: Checks
 # The format job holds the tree to .clang-format, and leaves alone the files in
 # .clang-format-ignore. The tidy job holds it to .clang-tidy: what the code
 # does rather than how it reads. The tests job builds and runs what
-# cmake/tests.cmake registers, the conformance runner among it.
+# cmake/tests.cmake registers, the conformance runner among it. The bench job
+# compares two builds of the drawing benchmark and reports the delta — a report,
+# never a gate, and only when something that can move a draw call changed.
 
 on:
   push:
@@ -224,3 +226,156 @@ jobs:
       - name: Run the registered tests
         if: steps.build.outcome == 'success'
         run: ctest --test-dir build-tests --output-on-failure -E api-conformance
+
+  # The drawing benchmark reports a delta, it never gates: the numbers come
+  # from a shared runner, and a regression here is a finding, not a failure.
+  # Both builds run on this runner, so the comparison does not inherit another
+  # machine. The base is a worktree of the commit the change is measured
+  # against, and only the submodules tic80core needs are initialized.
+  bench:
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # The base commit can be an arbitrary number of commits back, and
+          # the worktree needs the commit object.
+          fetch-depth: 0
+
+      - name: Install the benchmark's tools
+        run: |
+          set -euo pipefail
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+          command -v ccache >/dev/null || sudo apt-get install -y ccache
+
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Find the base
+        id: base
+        run: |
+          set -euo pipefail
+          case "${{ github.event_name }}" in
+            pull_request)
+              base="${{ github.event.pull_request.base.sha }}"
+              ;;
+            push)
+              base="${{ github.event.before }}"
+              ;;
+            *)
+              git fetch --no-tags origin main
+              base=origin/main
+              ;;
+          esac
+
+          if ! git rev-parse --verify --quiet "${base}^{commit}" >/dev/null; then
+            echo "usable=false" >> "$GITHUB_OUTPUT"
+            echo "no usable base ($base): the head table will be printed alone"
+            exit 0
+          fi
+
+          echo "usable=true" >> "$GITHUB_OUTPUT"
+          echo "sha=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Should the benchmark run?
+        id: paths
+        run: |
+          set -euo pipefail
+
+          if [ "${{ steps.base.outputs.usable }}" != "true" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if git diff --quiet "${{ steps.base.outputs.sha }}...HEAD" -- \
+              src/core src/tools.c src/tools.h src/tilesheet.c src/tilesheet.h \
+              src/api.h src/defines.h tests/bench cmake CMakeLists.txt \
+              .github/workflows/checks.yml; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "no drawing-related paths in this change"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Initialize the submodules the core needs
+        if: steps.paths.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+          for path in vendor/zip vendor/zlib vendor/libpng vendor/giflib vendor/blip-buf vendor/naett vendor/argparse; do
+            git submodule update --init "$path"
+          done
+
+      - name: Build the head benchmark
+        if: steps.paths.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+          cmake -B build-bench -G Ninja \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SOKOL=OFF -DBUILD_WITH_LUA=OFF -DBUILD_TESTS=ON
+          cmake --build build-bench --parallel --target api-bench
+
+      - name: Build the base benchmark
+        id: basebuild
+        if: steps.paths.outputs.run == 'true' && steps.base.outputs.usable == 'true'
+        run: |
+          set -euo pipefail
+          git worktree add ../tic80-base "${{ steps.base.outputs.sha }}"
+          for path in vendor/zip vendor/zlib vendor/libpng vendor/giflib vendor/blip-buf vendor/naett vendor/argparse; do
+            git -C ../tic80-base submodule update --init "$path"
+          done
+
+          # A base tree that predates the benchmark has no target to build;
+          # the head table is still worth printing.
+          if ! grep -q "api-bench" ../tic80-base/cmake/tests.cmake; then
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::the base tree has no api-bench target"
+            exit 0
+          fi
+
+          cmake -S ../tic80-base -B build-base -G Ninja \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_BUILD_TYPE=Release -DBUILD_SOKOL=OFF -DBUILD_WITH_LUA=OFF -DBUILD_TESTS=ON
+
+          if cmake --build build-base --parallel --target api-bench; then
+            echo "have=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "have=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::the base benchmark did not build; the head table will be printed alone"
+          fi
+
+      - name: Run the benchmark
+        if: steps.paths.outputs.run == 'true'
+        run: |
+          set -euo pipefail
+
+          head="$GITHUB_WORKSPACE/build-bench/bin/api-bench"
+          base="$GITHUB_WORKSPACE/build-base/bin/api-bench"
+
+          "$head" > head-1.txt
+          "$head" > head-2.txt
+
+          if [ "${{ steps.basebuild.outputs.have }}" = "true" ]; then
+            "$base" > base.txt
+            "$head" --compare base.txt | tee -a "$GITHUB_STEP_SUMMARY"
+
+            # Two identical head runs are the noise floor: a delta below it
+            # is not a result.
+            "$head" --compare head-1.txt > aa.txt
+            noise=$(awk -F'|' '
+              /^\|/ && $6 ~ /%/ { v=$6; gsub(/[+ %]/, "", v); if(v<0)v=-v; if(v>m)m=v }
+              END { printf "%.1f", m }' aa.txt)
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "A/A noise: the largest per-row difference between two identical head runs is ±${noise}%." >> "$GITHUB_STEP_SUMMARY"
+          else
+            "$head" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "No base benchmark: the head table is above." >> "$GITHUB_STEP_SUMMARY"
+          fi
