@@ -538,9 +538,23 @@ if(BUILD_TESTS)
         tic80_add_test(api-conformance ${CMAKE_SOURCE_DIR}/tests/conformance/probes)
     endif()
 
+    # The drawing API benchmark: a report, not a test. It links the core alone
+    # and is built by the suite target so a change that breaks it surfaces in
+    # CI; ctest would swallow its table on success, so it is not registered.
+    add_executable(api-bench ${CMAKE_SOURCE_DIR}/tests/bench/draw.c)
+    target_link_libraries(api-bench PRIVATE tic80core)
+
+    # The measured call must stay an opaque call through core->api: with LTO
+    # the compiler can see the table and specialize the call, which makes the
+    # numbers depend on the benchmark's own source rather than the drawing code.
+    if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(api-bench PRIVATE -fno-lto)
+    endif()
+
     # One target for the whole suite — what CI builds, so a test registered
     # above is built and run without a change to the workflow.
     get_property(tic80_tests GLOBAL PROPERTY TIC80_TESTS)
     add_custom_target(tic80-tests DEPENDS ${tic80_tests})
+    add_dependencies(tic80-tests api-bench)
 
 endif()
