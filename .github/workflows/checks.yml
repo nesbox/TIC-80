@@ -370,7 +370,7 @@ jobs:
             # is not a result.
             "$head" --compare head-1.txt > aa.txt
             noise=$(awk -F'|' '
-              /^\|/ && $6 ~ /%/ { v=$6; gsub(/[+ %]/, "", v); if(v<0)v=-v; if(v>m)m=v }
+              /^\|/ && $6 ~ /%/ { v=$6; gsub(/[^0-9.-]/, "", v); if(v<0)v=-v; if(v>m)m=v }
               END { printf "%.1f", m }' aa.txt)
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "A/A noise: the largest per-row difference between two identical head runs is ±${noise}%." >> "$GITHUB_STEP_SUMMARY"

@@ -21,13 +21,17 @@
  *
  * The comparison reads the tool's own earlier output, matches rows by
  * api + scenario and prints before, now and the delta. Nothing is committed
- * as a baseline: the saved file is an ordinary local artifact.
+ * as a baseline: the saved file is an ordinary local artifact. A comparison
+ * measures every scenario a second time; the difference between the two
+ * passes is the per-row noise floor, and a change inside it is printed
+ * without a marker.
  */
 #include "core/core.h"
 #include "api.h"
 #include "tools.h"
 
 #include <ctype.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -733,7 +737,7 @@ static bool parseSaved(const char* text, SavedRow* rows, s32* count, s32* versio
     return haveColumns && *count > 0;
 }
 
-static void printComparison(const Measurement* results, const SavedRow* saved, s32 savedCount)
+static void printComparison(const Measurement* results, const Measurement* noise, const SavedRow* saved, s32 savedCount)
 {
     printf("Drawing API benchmark — comparison, methodology %d, %s\n\n", BENCH_VERSION, buildName());
     printf("| api | scenario | before µs | now µs | Δ | screen |\n");
@@ -769,7 +773,34 @@ static void printComparison(const Measurement* results, const SavedRow* saved, s
         char delta[32];
 
         if(before > 0.0)
-            snprintf(delta, sizeof delta, "%+.1f%%", (now - before) / before * 100.0);
+        {
+            double beforeNs = before * 1000.0;
+            double changeNs = results[i].medianNs - beforeNs;
+            double change = changeNs / beforeNs * 100.0;
+            double band = results[i].highNs - results[i].lowNs;
+
+            // The second pass, and the spread of both, is the row's noise
+            // floor: a change inside it is printed without a mark.
+            if(noise)
+            {
+                double otherSpread = noise[i].highNs - noise[i].lowNs;
+                double between = fabs(noise[i].medianNs - results[i].medianNs);
+
+                if(otherSpread > band)
+                    band = otherSpread;
+
+                if(between > band)
+                    band = between;
+            }
+
+            // The saved µs/call has three decimals: half of that last digit
+            // is below what the file can say.
+            if(band < 0.5)
+                band = 0.5;
+
+            const char* mark = fabs(changeNs) > band ? (changeNs < 0.0 ? "🟢 " : "🔴 ") : "";
+            snprintf(delta, sizeof delta, "%s%+.1f%%", mark, change);
+        }
         else
             snprintf(delta, sizeof delta, "-");
 
@@ -796,6 +827,9 @@ static void usage(void)
            "  api-bench > before.txt\n"
            "  ... change the drawing code ...\n"
            "  api-bench --compare before.txt\n"
+           "\n"
+           "The comparison runs the scenarios twice; the second pass is the\n"
+           "per-row noise floor, and a change inside it is printed unmarked.\n"
            "\n"
            "The saved file is a local artifact; nothing is committed as a baseline.\n");
 }
@@ -846,9 +880,15 @@ int main(int argc, char** argv)
     fillRam(core);
 
     Measurement results[SCENARIO_COUNT];
+    Measurement noiseResults[SCENARIO_COUNT];
+    bool haveNoise = comparePath != NULL;
 
     for(s32 i = 0; i < SCENARIO_COUNT; i++)
         measureScenario(core, &Scenarios[i], &results[i]);
+
+    if(haveNoise)
+        for(s32 i = 0; i < SCENARIO_COUNT; i++)
+            measureScenario(core, &Scenarios[i], &noiseResults[i]);
 
     tic_core_close(tic);
 
@@ -880,7 +920,7 @@ int main(int argc, char** argv)
             return 0;
         }
 
-        printComparison(results, saved, savedCount);
+        printComparison(results, haveNoise ? noiseResults : NULL, saved, savedCount);
     }
     else
         printTable(results);
