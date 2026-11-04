@@ -260,6 +260,9 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     continue-on-error: true
+    # A benchmark that hangs is a finding too; this keeps it from eating the
+    # runner for hours.
+    timeout-minutes: 30
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_MAXSIZE: 500M
@@ -302,7 +305,11 @@ jobs:
           set -euo pipefail
           case "${{ github.event_name }}" in
             pull_request)
-              base="${{ github.event.pull_request.base.sha }}"
+              # base.sha is the tip the PR was last evaluated against and can
+              # lag the branch; the benchmark wants the branch's current tip.
+              ref="${{ github.event.pull_request.base.ref }}"
+              git fetch --no-tags origin "$ref"
+              base=$(git rev-parse "origin/$ref")
               ;;
             push)
               base="${{ github.event.before }}"
