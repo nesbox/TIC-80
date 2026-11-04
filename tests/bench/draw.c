@@ -42,7 +42,7 @@
 #include <time.h>
 #endif
 
-#define BENCH_VERSION     1
+#define BENCH_VERSION     2
 #define TARGET_NS         50000000ull
 #define ROUNDS            5
 #define CALIBRATION_CALLS 64
@@ -126,8 +126,9 @@ static void fillRam(tic_core* core)
         for(s32 i = 0; i < TIC_SPRITESIZE * TIC_SPRITESIZE; i++)
         {
             u8 color = (u8)(((i % TIC_SPRITESIZE) * 3 + (i / TIC_SPRITESIZE) * 5 + t) % 7 + 1);
+            u8 spriteColor = (u8)(((i % TIC_SPRITESIZE) * 5 + (i / TIC_SPRITESIZE) * 3 + t * 2) % 7 + 1);
             tic_tool_poke4(ram->tiles.data[t].data, (u32)i, color);
-            tic_tool_poke4(ram->sprites.data[t].data, (u32)i, color);
+            tic_tool_poke4(ram->sprites.data[t].data, (u32)i, spriteColor);
         }
     }
 
@@ -156,6 +157,24 @@ static void setupFifteen(tic_core* core)
 {
     resetState(core, 15);
 }
+
+#define SEGMENT_SETUP(name, seg, sentinel)           \
+    static void name(tic_core* core)                 \
+    {                                                \
+        resetState(core, sentinel);                  \
+        core->memory.ram->vram.blit.segment = (seg); \
+    }
+
+SEGMENT_SETUP(setupSeg3, 3, 15)
+SEGMENT_SETUP(setupSeg4, 4, 15)
+SEGMENT_SETUP(setupSeg5, 5, 15)
+SEGMENT_SETUP(setupSeg8, 8, 15)
+SEGMENT_SETUP(setupSeg11, 11, 15)
+SEGMENT_SETUP(setupSeg12, 12, 15)
+SEGMENT_SETUP(setupSeg4Zero, 4, 0)
+SEGMENT_SETUP(setupSeg11Zero, 11, 0)
+
+#undef SEGMENT_SETUP
 
 static void setupClipZero(tic_core* core)
 {
@@ -377,6 +396,8 @@ static const Scenario Scenarios[] =
         {"tri", "full screen", setupZero, bodyTriFull, true},
         {"trib", "large", setupZero, bodyTrib, true},
         {"ttri", "tiles", setupZero, bodyTtriTiles, true},
+        {"ttri", "tiles, 2bpp p0", setupSeg4Zero, bodyTtriTiles, true},
+        {"ttri", "tiles, 1bpp p3", setupSeg11Zero, bodyTtriTiles, true},
         {"ttri", "map", setupZero, bodyTtriMap, true},
         {"circ", "r=50", setupZero, bodyCirc, true},
         {"circb", "r=50", setupZero, bodyCircb, true},
@@ -390,7 +411,15 @@ static const Scenario Scenarios[] =
         {"spr", "flip h", setupFifteen, bodySprFlip, true},
         {"spr", "rotate 90", setupFifteen, bodySprRotate, true},
         {"spr", "chroma 1", setupFifteen, bodySprChroma, true},
+        {"spr", "1x1, 4bpp fg", setupSeg3, bodySprTile, true},
+        {"spr", "1x1, 2bpp p0", setupSeg4, bodySprTile, true},
+        {"spr", "1x1, 2bpp p1", setupSeg5, bodySprTile, true},
+        {"spr", "1x1, 1bpp p0", setupSeg8, bodySprTile, true},
+        {"spr", "1x1, 1bpp p3", setupSeg11, bodySprTile, true},
+        {"spr", "1x1, 1bpp p0 fg", setupSeg12, bodySprTile, true},
         {"map", "full screen", setupFifteen, bodyMap, true},
+        {"map", "full, 2bpp p0", setupSeg4, bodyMap, true},
+        {"map", "full, 1bpp p3", setupSeg11, bodyMap, true},
         {"map", "scroll 10,5", setupFifteen, bodyMapScroll, true},
         {"print", "23 chars", setupZero, bodyPrint, true},
         {"print", "fixed, scale 2", setupZero, bodyPrintFixed, true},
