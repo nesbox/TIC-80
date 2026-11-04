@@ -5,12 +5,13 @@
  * setup puts VRAM into a known state outside the timed region before every
  * round, so repeated calls are measured from the same screen.
  *
- * Cost is process CPU time: single-threaded work, and the runner being shared
- * does not inflate it. A calibration pass sizes the round, a warmup round is
- * discarded, and five rounds produce the median and the min–max spread. One
- * instrumented call, also outside the timed region, says how many pixels the
- * scenario changed and hashes the screen; the hash is what says whether an
- * optimization changed the picture.
+ * Cost is process CPU time on POSIX and the performance counter on Windows,
+ * whose process clock ticks too coarsely for a round. The work is
+ * single-threaded, so a shared runner does not inflate it. A calibration pass
+ * sizes the round, a warmup round is discarded, and five rounds produce the
+ * median and the min–max spread. One instrumented call, also outside the
+ * timed region, says how many pixels the scenario changed and hashes the
+ * screen; the hash is what says whether an optimization changed the picture.
  *
  * Usage: api-bench [--compare <previous.txt>] [--help]
  *
@@ -100,16 +101,15 @@ static bool debugBuild(void)
 static u64 benchNowNs(void)
 {
 #if defined(_WIN32)
-    FILETIME creation, exit, kernel, user;
-    GetProcessTimes(GetCurrentProcess(), &creation, &exit, &kernel, &user);
+    static LARGE_INTEGER freq;
 
-    ULARGE_INTEGER k, u;
-    k.LowPart = kernel.dwLowDateTime;
-    k.HighPart = kernel.dwHighDateTime;
-    u.LowPart = user.dwLowDateTime;
-    u.HighPart = user.dwHighDateTime;
+    if(freq.QuadPart == 0)
+        QueryPerformanceFrequency(&freq);
 
-    return (k.QuadPart + u.QuadPart) * 100ull; // 100 ns ticks
+    LARGE_INTEGER counter;
+    QueryPerformanceCounter(&counter);
+
+    return (u64)((double)counter.QuadPart * 1000000000.0 / (double)freq.QuadPart);
 #else
     struct timespec ts;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &ts);
