@@ -96,7 +96,12 @@ static inline u8 getPixel(tic_core* core, s32 x, s32 y)
 {
     return x < 0 || y < 0 || x >= TIC80_WIDTH || y >= TIC80_HEIGHT
                ? 0
-               : tic_api_peek4((tic_mem*)core, y * TIC80_WIDTH + x);
+               : tic_tool_peek4(screenData(core), (u32)(y * TIC80_WIDTH + x));
+}
+
+static inline u8 screenPixel(tic_core* core, s32 x, s32 y)
+{
+    return tic_tool_peek4(screenData(core), (u32)(y * TIC80_WIDTH + x));
 }
 
 // clang-format off
@@ -982,7 +987,7 @@ static void floodFill(tic_core* tic, s32 x, s32 y, u8 color, u8 border)
 {
     if(x < tic->state.clip.l || y < tic->state.clip.t || x >= tic->state.clip.r || y >= tic->state.clip.b)
         return;
-    u8 ov = getPixel(tic, x, y);
+    u8 ov = screenPixel(tic, x, y);
     if(ov == color || ov == border)
         return;
     fillQueue.ini = fillQueue.outi = 0;
@@ -993,23 +998,33 @@ static void floodFill(tic_core* tic, s32 x, s32 y, u8 color, u8 border)
     {
         // segment of scan line y-dy for x1<=x<=x2 was previously filled,
         // now explore adjacent pixels in scan line y
-        for(x = x1; x >= tic->state.clip.l && floodFillInside(getPixel(tic, x, y), color, border, ov); x--)
-            setPixelFast(tic, x, y, color);
-        if(x >= x1)
+        s32 left = x1;
+        while(left >= tic->state.clip.l && floodFillInside(screenPixel(tic, left, y), color, border, ov))
+            left--;
+
+        if(left < x1)
+            drawHLine(tic, left + 1, y, x1 - left, color);
+
+        if(left >= x1)
             goto floodFill_skip;
-        l = x + 1;
+        l = left + 1;
         if(l < x1)
             fillEnqueue(tic, y, l, x1 - 1, -dy); // check leak left
         x = x1 + 1;
         do
         {
-            for(; x < tic->state.clip.r && floodFillInside(getPixel(tic, x, y), color, border, ov); x++)
-                setPixelFast(tic, x, y, color);
+            s32 start = x;
+            while(x < tic->state.clip.r && floodFillInside(screenPixel(tic, x, y), color, border, ov))
+                x++;
+
+            if(x > start)
+                drawHLine(tic, start, y, x - start, color);
+
             fillEnqueue(tic, y, l, x - 1, dy);
             if(x > x2 + 1)
                 fillEnqueue(tic, y, x2 + 1, x - 1, -dy); // check leak right
         floodFill_skip:
-            for(x++; x <= x2 && !floodFillInside(getPixel(tic, x, y), color, border, ov); x++)
+            for(x++; x <= x2 && !floodFillInside(screenPixel(tic, x, y), color, border, ov); x++)
                 ;
             l = x;
         } while(x <= x2);
