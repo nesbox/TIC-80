@@ -1689,6 +1689,44 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
                             tic_tool_poke4(screen, (u32)pixel, color);
                     }
                 }
+                else if(data->sheet.segment->peek == tic_tool_peek2 && data->sheet.segment->tile_width == TIC_SPRITESIZE * 2 &&
+                        data->sheet.segment->nb_pages == 2)
+                {
+                    u32 bankOrig = data->sheet.segment->bank_orig;
+                    u32 pageOrig = data->sheet.segment->page_orig;
+
+                    for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
+                    {
+                        s32 iu = (s32)floor(u) & maskU;
+                        s32 iv = (s32)floor(vv) & maskV;
+                        u32 tile = ((((iu >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) +
+                                   (((((iu >> 7) + (s32)pageOrig) & 1)) << 3) + ((iu & 127) >> 4);
+                        u32 pix = ((u32)iu & 15) + ((u32)iv & 7) * 16;
+                        u8 color = data->mapping[tic_tool_peek2(data->sheet.ptr, tile * 128 + pix)];
+
+                        if(color != TRANSPARENT_COLOR)
+                            tic_tool_poke4(screen, (u32)pixel, color);
+                    }
+                }
+                else if(data->sheet.segment->peek == tic_tool_peek1 && data->sheet.segment->tile_width == TIC_SPRITESIZE * 4 &&
+                        data->sheet.segment->nb_pages == 4)
+                {
+                    u32 bankOrig = data->sheet.segment->bank_orig;
+                    u32 pageOrig = data->sheet.segment->page_orig;
+
+                    for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
+                    {
+                        s32 iu = (s32)floor(u) & maskU;
+                        s32 iv = (s32)floor(vv) & maskV;
+                        u32 tile = ((((iu >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) +
+                                   (((((iu >> 7) + (s32)pageOrig) & 3)) << 2) + ((iu & 127) >> 5);
+                        u32 pix = ((u32)iu & 31) + ((u32)iv & 7) * 32;
+                        u8 color = data->mapping[tic_tool_peek1(data->sheet.ptr, tile * 256 + pix)];
+
+                        if(color != TRANSPARENT_COLOR)
+                            tic_tool_poke4(screen, (u32)pixel, color);
+                    }
+                }
                 else
                 {
                     for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
