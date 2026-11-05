@@ -664,7 +664,10 @@ static inline void updpal(tic_mem* tic, tic_blitpal* pal0, tic_blitpal* pal1)
     *pal1 = tic_tool_palette_blit(&vbank1(core)->palette, core->screen_format);
 }
 
-static inline void updbdr(tic_mem* tic, s32 row, u32* ptr, tic_blit_callback clb, tic_blitpal* pal0, tic_blitpal* pal1)
+// Returns true when the callbacks changed a palette: the converted colors
+// and the byte-pair tables are stale then.
+static inline bool updbdr(tic_mem* tic, s32 row, u32* ptr, tic_blit_callback clb, tic_blitpal* pal0, tic_blitpal* pal1,
+                          tic_palette* src0, tic_palette* src1)
 {
     tic_core* core = (tic_core*)tic;
 
@@ -678,20 +681,288 @@ static inline void updbdr(tic_mem* tic, s32 row, u32* ptr, tic_blit_callback clb
             clb.scanline(tic, row - TIC80_MARGIN_TOP, clb.data);
     }
 
+    bool changed = false;
+
     if(clb.border || clb.scanline)
-        updpal(tic, pal0, pal1);
+    {
+        if(memcmp(&vbank0(core)->palette, src0, sizeof(tic_palette)) != 0 ||
+           memcmp(&vbank1(core)->palette, src1, sizeof(tic_palette)) != 0)
+        {
+            updpal(tic, pal0, pal1);
+            *src0 = vbank0(core)->palette;
+            *src1 = vbank1(core)->palette;
+            changed = true;
+        }
+    }
 
     memset4(ptr, pal0->data[vbank0(core)->vars.border], TIC80_FULLWIDTH);
+
+    return changed;
 }
 
-static inline u32 blitpix(tic_mem* tic, s32 offset0, s32 offset1, const tic_blitpal* pal0, const tic_blitpal* pal1)
+static inline bool rowIsClear(const u8* src, u8 clearPair)
 {
-    tic_core* core = (tic_core*)tic;
-    u32 pix = tic_tool_peek4(vbank1(core)->screen.data, offset1);
+    enum
+    {
+        Words = TIC80_WIDTH / 2 / sizeof(u64)
+    };
+    const u64 want = 0x0101010101010101ull * clearPair;
 
-    return pix != vbank1(core)->vars.clear
-               ? pal1->data[pix]
-               : pal0->data[tic_tool_peek4(vbank0(core)->screen.data, offset0)];
+    for(s32 i = 0; i < Words; i++)
+    {
+        u64 word;
+        memcpy(&word, src + i * sizeof(word), sizeof(word));
+
+        if(word != want) return false;
+    }
+
+    return true;
+}
+
+// No nibble of the row equals the clear color: the layer is fully opaque.
+static inline bool rowHasNoClear(const u8* src, u8 clear)
+{
+    enum
+    {
+        Words = TIC80_WIDTH / 2 / sizeof(u64)
+    };
+    const u64 pattern = 0x1111111111111111ull * clear;
+    const u64 ones = 0x1111111111111111ull;
+    const u64 high = 0x8888888888888888ull;
+
+    for(s32 i = 0; i < Words; i++)
+    {
+        u64 word;
+        memcpy(&word, src + i * sizeof(word), sizeof(word));
+        const u64 x = word ^ pattern;
+
+        if((x - ones) & ~x & high) return false;
+    }
+
+    return true;
+}
+
+static inline void buildPairs(u64* pairs, const tic_blitpal* pal)
+{
+    for(s32 i = 0; i < 0x100; i++)
+        pairs[i] = pal->data[i & 0x0f] | (u64)pal->data[i >> 4] << 32;
+}
+
+static inline void storePair(u32* dst, u64 pair)
+{
+#if RETRO_IS_BIG_ENDIAN
+    dst[0] = (u32)pair;
+    dst[1] = (u32)(pair >> 32);
+#else
+    memcpy(dst, &pair, sizeof(pair));
+#endif
+}
+
+static inline u32* blitPairByte(const u8* src0, const u8* src1, s32 i, u32* dst, const u32* colors0,
+                                const u32* colors1, const u64* pairs0, const u64* pairs1, u8 clear, u8 clearPair)
+{
+    const u8 b1 = src1[i];
+
+    if((b1 & 0x0f) != clear && (b1 >> 4) != clear)
+    {
+        storePair(dst, pairs1[b1]);
+        return dst + 2;
+    }
+
+    if(b1 == clearPair)
+    {
+        storePair(dst, pairs0[src0[i]]);
+        return dst + 2;
+    }
+
+    const u8 b0 = src0[i];
+    *dst++ = (b1 & 0x0f) != clear ? colors1[b1 & 0x0f] : colors0[b0 & 0x0f];
+    *dst++ = (b1 >> 4) != clear ? colors1[b1 >> 4] : colors0[b0 >> 4];
+
+    return dst;
+}
+
+// Compose a 240-pixel row from two 120-byte source rows; two pixels share a
+// source byte, so classify the byte once and expand it.
+static inline void blitPairs(const u8* src0, const u8* src1, u32* dst, const tic_blitpal* pal0, const tic_blitpal* pal1,
+                             u8 clear, const u64* pairs0, const u64* pairs1)
+{
+    const u8 clearPair = clear | clear << 4;
+
+    // The whole layer1 row may be the clear color; then layer0 expands alone.
+    if(rowIsClear(src1, clearPair))
+    {
+        if(pairs0)
+        {
+            for(s32 i = 0; i < TIC80_WIDTH / 2; i += 4)
+            {
+                storePair(dst, pairs0[src0[i]]);
+                storePair(dst + 2, pairs0[src0[i + 1]]);
+                storePair(dst + 4, pairs0[src0[i + 2]]);
+                storePair(dst + 6, pairs0[src0[i + 3]]);
+                dst += 8;
+            }
+        }
+        else
+        {
+            const u32* colors0 = pal0->data;
+
+            for(s32 i = 0; i < TIC80_WIDTH / 2; i++)
+            {
+                const u8 b0 = src0[i];
+                *dst++ = colors0[b0 & 0x0f];
+                *dst++ = colors0[b0 >> 4];
+            }
+        }
+
+        return;
+    }
+
+    if(rowHasNoClear(src1, clear))
+    {
+        if(pairs1)
+        {
+            for(s32 i = 0; i < TIC80_WIDTH / 2; i += 4)
+            {
+                storePair(dst, pairs1[src1[i]]);
+                storePair(dst + 2, pairs1[src1[i + 1]]);
+                storePair(dst + 4, pairs1[src1[i + 2]]);
+                storePair(dst + 6, pairs1[src1[i + 3]]);
+                dst += 8;
+            }
+        }
+        else
+        {
+            const u32* colors1 = pal1->data;
+
+            for(s32 i = 0; i < TIC80_WIDTH / 2; i++)
+            {
+                const u8 b1 = src1[i];
+                *dst++ = colors1[b1 & 0x0f];
+                *dst++ = colors1[b1 >> 4];
+            }
+        }
+
+        return;
+    }
+
+    if(pairs0 && pairs1)
+    {
+        const u32* colors0 = pal0->data;
+        const u32* colors1 = pal1->data;
+
+        for(s32 i = 0; i < TIC80_WIDTH / 2; i += 2)
+        {
+            dst = blitPairByte(src0, src1, i, dst, colors0, colors1, pairs0, pairs1, clear, clearPair);
+            dst = blitPairByte(src0, src1, i + 1, dst, colors0, colors1, pairs0, pairs1, clear, clearPair);
+        }
+
+        return;
+    }
+
+    {
+        const u32* colors0 = pal0->data;
+        const u32* colors1 = pal1->data;
+
+        for(s32 i = 0; i < TIC80_WIDTH / 2; i++)
+        {
+            const u8 b1 = src1[i];
+
+            if((b1 & 0x0f) != clear && (b1 >> 4) != clear)
+            {
+                *dst++ = colors1[b1 & 0x0f];
+                *dst++ = colors1[b1 >> 4];
+            }
+            else if(b1 == clearPair)
+            {
+                const u8 b0 = src0[i];
+                *dst++ = colors0[b0 & 0x0f];
+                *dst++ = colors0[b0 >> 4];
+            }
+            else
+            {
+                const u8 b0 = src0[i];
+                *dst++ = (b1 & 0x0f) != clear ? colors1[b1 & 0x0f] : colors0[b0 & 0x0f];
+                *dst++ = (b1 >> 4) != clear ? colors1[b1 >> 4] : colors0[b0 >> 4];
+            }
+        }
+    }
+}
+
+static inline void blitRowFlat(const tic_vram* v0, const tic_vram* v1, const tic_blitpal* pal0, const tic_blitpal* pal1,
+                               u32* dst, s32 row, const u64* pairs0, const u64* pairs1)
+{
+    const s32 offset = (row - TIC80_MARGIN_TOP) * (TIC80_WIDTH / 2);
+
+    blitPairs(v0->screen.data + offset, v1->screen.data + offset, dst, pal0, pal1, v1->vars.clear, pairs0, pairs1);
+}
+
+// Turn a row into the 120 bytes that start at pixel `pixels`, wrapping at the
+// row end; the composition then reads both rows linearly.
+static inline void rotateRow(u8* dst, const u8* src, s32 pixels)
+{
+    enum
+    {
+        Bytes = TIC80_WIDTH / 2
+    };
+    const s32 by = pixels / 2;
+
+    if(pixels & 1)
+    {
+#if RETRO_IS_BIG_ENDIAN
+        s32 i = 0;
+        for(; i + by + 1 < Bytes; i++)
+            dst[i] = (u8)(src[by + i] >> 4 | src[by + i + 1] << 4);
+
+        dst[i++] = (u8)(src[Bytes - 1] >> 4 | src[0] << 4);
+
+        for(s32 j = 0; i < Bytes; i++, j++)
+            dst[i] = (u8)(src[j] >> 4 | src[j + 1] << 4);
+#else
+        // A four-bit shift over the whole cyclic row, a word at a time.
+        u8 row[Bytes + sizeof(u64)] = {0};
+        memcpy(row, src + by, Bytes - by);
+        if(by) memcpy(row + Bytes - by, src, by);
+        row[Bytes] = row[0];
+
+        for(s32 i = 0; i < Bytes; i += sizeof(u64))
+        {
+            u64 curr, next;
+            memcpy(&curr, row + i, sizeof(curr));
+            memcpy(&next, row + i + sizeof(curr), sizeof(next));
+            curr = curr >> 4 | next << 60;
+            memcpy(dst + i, &curr, sizeof(curr));
+        }
+#endif
+    }
+    else
+    {
+        memcpy(dst, src + by, Bytes - by);
+
+        if(by) memcpy(dst + Bytes - by, src, by);
+    }
+}
+
+// The offsets scroll both banks at their own phase: rotate the two source
+// rows and compose them like the plain case.
+static inline void blitRowOffset(const tic_vram* v0, const tic_vram* v1, const tic_blitpal* pal0, const tic_blitpal* pal1,
+                                 u32* dst, s32 row, const u64* pairs0, const u64* pairs1)
+{
+    enum
+    {
+        OffsetY = TIC80_HEIGHT - TIC80_MARGIN_TOP,
+        Bytes = TIC80_WIDTH / 2
+    };
+    const s32 row0 = (row + v0->vars.offset.y + OffsetY) % TIC80_HEIGHT;
+    const s32 row1 = (row + v1->vars.offset.y + OffsetY) % TIC80_HEIGHT;
+    const s32 x0 = (v0->vars.offset.x % TIC80_WIDTH + TIC80_WIDTH) % TIC80_WIDTH;
+    const s32 x1 = (v1->vars.offset.x % TIC80_WIDTH + TIC80_WIDTH) % TIC80_WIDTH;
+    u8 src0[Bytes], src1[Bytes];
+
+    rotateRow(src0, v0->screen.data + row0 * Bytes, x0);
+    rotateRow(src1, v1->screen.data + row1 * Bytes, x1);
+
+    blitPairs(src0, src1, dst, pal0, pal1, v1->vars.clear, pairs0, pairs1);
 }
 
 static inline void scanline(tic_mem* memory, s32 row, void* data);
@@ -727,47 +998,43 @@ void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
     tic_blitpal pal0, pal1;
     updpal(tic, &pal0, &pal1);
 
+    // The palettes the converted colors and the pair tables were built from.
+    // A callback that changes them invalidates both.
+    tic_palette src0 = vbank0(core)->palette;
+    tic_palette src1 = vbank1(core)->palette;
+
+    buildPairs(core->blit_pairs[0], &pal0);
+    buildPairs(core->blit_pairs[1], &pal1);
+    const u64* pairs0 = core->blit_pairs[0];
+    const u64* pairs1 = core->blit_pairs[1];
+
     s32 row = 0;
     u32* rowPtr = tic->product.screen;
 
-#define UPDBDR() updbdr(tic, row, rowPtr, clb, &pal0, &pal1)
+#define UPDBDR() updbdr(tic, row, rowPtr, clb, &pal0, &pal1, &src0, &src1)
 
     for(; row != TIC80_MARGIN_TOP; ++row, rowPtr += TIC80_FULLWIDTH)
-        UPDBDR();
+        if(UPDBDR()) pairs0 = pairs1 = NULL;
 
     for(; row != TIC80_FULLHEIGHT - TIC80_MARGIN_BOTTOM; ++row)
     {
-        UPDBDR();
+        if(UPDBDR()) pairs0 = pairs1 = NULL;
         rowPtr += TIC80_MARGIN_LEFT;
 
-        if(*(u16*)&vbank0(core)->vars.offset == 0 && *(u16*)&vbank1(core)->vars.offset == 0)
-        {
-            // render line without XY offsets
-            for(s32 x = (row - TIC80_MARGIN_TOP) * TIC80_WIDTH, end = x + TIC80_WIDTH; x != end; ++x)
-                *rowPtr++ = blitpix(tic, x, x, &pal0, &pal1);
-        }
+        // Read the banks after the callbacks: an effect may have swapped them.
+        const tic_vram* v0 = vbank0(core);
+        const tic_vram* v1 = vbank1(core);
+
+        if(v0->vars.offset.x == 0 && v0->vars.offset.y == 0 && v1->vars.offset.x == 0 && v1->vars.offset.y == 0)
+            blitRowFlat(v0, v1, &pal0, &pal1, rowPtr, row, pairs0, pairs1);
         else
-        {
-            // render line with XY offsets
-            enum
-            {
-                OffsetY = TIC80_HEIGHT - TIC80_MARGIN_TOP
-            };
-            s32 start0 = (row + vbank0(core)->vars.offset.y + OffsetY) % TIC80_HEIGHT * TIC80_WIDTH;
-            s32 start1 = (row + vbank1(core)->vars.offset.y + OffsetY) % TIC80_HEIGHT * TIC80_WIDTH;
-            s32 offsetX0 = vbank0(core)->vars.offset.x;
-            s32 offsetX1 = vbank1(core)->vars.offset.x;
+            blitRowOffset(v0, v1, &pal0, &pal1, rowPtr, row, pairs0, pairs1);
 
-            for(s32 x = TIC80_WIDTH; x != 2 * TIC80_WIDTH; ++x)
-                *rowPtr++ = blitpix(tic, (x + offsetX0) % TIC80_WIDTH + start0,
-                                    (x + offsetX1) % TIC80_WIDTH + start1, &pal0, &pal1);
-        }
-
-        rowPtr += TIC80_MARGIN_RIGHT;
+        rowPtr += TIC80_WIDTH + TIC80_MARGIN_RIGHT;
     }
 
     for(; row != TIC80_FULLHEIGHT; ++row, rowPtr += TIC80_FULLWIDTH)
-        UPDBDR();
+        if(UPDBDR()) pairs0 = pairs1 = NULL;
 
 #undef UPDBDR
 }

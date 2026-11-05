@@ -184,6 +184,9 @@ typedef struct
 #endif
     tic80_pixel_color_format screen_format;
 
+    // Byte-pair caches for the screen composition.
+    u64 blit_pairs[2][TIC_PALETTE_SIZE * TIC_PALETTE_SIZE];
+
     void* currentVM;
     const tic_script* currentScript;
 
