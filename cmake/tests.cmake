@@ -533,6 +533,12 @@ if(BUILD_TESTS)
     target_link_libraries(draw-test PRIVATE tic80core)
     tic80_add_test(draw-test)
 
+    # The blit contract: the whole 256x144 product screen against a frozen
+    # reference, in each output format.
+    add_executable(blit-test ${CMAKE_SOURCE_DIR}/tests/blit.c)
+    target_link_libraries(blit-test PRIVATE tic80core)
+    tic80_add_test(blit-test)
+
     # The API conformance suite records every API call of every language
     # through traps over core->api, no window. It needs the static runtime:
     # only there does tic_scripts() list every binding instead of leaving
