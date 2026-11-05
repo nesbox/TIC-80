@@ -1065,7 +1065,16 @@ static inline double edgeFn(const Vec2* a, const Vec2* b, const Vec2* c)
     return (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
 }
 
-static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
+#if defined(_MSC_VER)
+#define DRAW_NOINLINE      __declspec(noinline)
+#define DRAW_ALWAYS_INLINE __forceinline
+#else
+#define DRAW_NOINLINE      __attribute__((noinline))
+#define DRAW_ALWAYS_INLINE inline __attribute__((always_inline))
+#endif
+
+// Forced into the per-texture wrappers so their literal shaders inline.
+static DRAW_ALWAYS_INLINE void drawTriBody(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
 {
     ShaderAttr a = {.data = data, .v = {v0, v1, v2}};
 
@@ -1129,6 +1138,11 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
         for(s32 i = 0; i != COUNT_OF(s.d); ++i)
             s.d[i] += d[i].y;
     }
+}
+
+static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
+{
+    drawTriBody(tic, v0, v1, v2, shader, data);
 }
 
 static tic_color triColorShader(const ShaderAttr* a, s32 pixel)
@@ -1217,6 +1231,17 @@ static inline tic_color shaderEnd(const ShaderAttr* a, const Vec3* vars, s32 pix
     return color;
 }
 
+// Kept out of line: an inlined modulo pushes the shaders past the inliner.
+static DRAW_NOINLINE s32 mapWrapSlow(s32 value, s32 size)
+{
+    return tic_modulo(value, size);
+}
+
+static inline s32 mapWrap(s32 value, s32 size)
+{
+    return (u32)value < (u32)size ? value : mapWrapSlow(value, size);
+}
+
 static tic_color triTexMapShader(const ShaderAttr* a, s32 pixel)
 {
     TexData* data = a->data;
@@ -1233,8 +1258,8 @@ static tic_color triTexMapShader(const ShaderAttr* a, s32 pixel)
         HMask = TIC_SPRITESIZE - 1
     };
 
-    s32 iu = tic_modulo((s32)(floor(vars.x)), MapWidth);
-    s32 iv = tic_modulo((s32)(floor(vars.y)), MapHeight);
+    s32 iu = mapWrap((s32)(floor(vars.x)), MapWidth);
+    s32 iv = mapWrap((s32)(floor(vars.y)), MapHeight);
 
     u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
     tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
@@ -1266,8 +1291,8 @@ static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
     if(!shaderStart(a, &vars, pixel))
         return TRANSPARENT_COLOR;
 
-    s32 iu = tic_modulo((s32)(floor(vars.x)), TIC80_WIDTH);
-    s32 iv = tic_modulo((s32)(floor(vars.y)), TIC80_HEIGHT);
+    s32 iu = mapWrap((s32)(floor(vars.x)), TIC80_WIDTH);
+    s32 iv = mapWrap((s32)(floor(vars.y)), TIC80_HEIGHT);
 
     return shaderEnd(a, &vars, pixel, data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)]);
 }
@@ -1299,6 +1324,19 @@ static tic_color triTexTileShaderFlat(const ShaderAttr* a, s32 pixel)
     return data->mapping[tic_tilesheet_getpix(&data->sheet, u & (TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1), v & (TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1))];
 }
 
+static DRAW_NOINLINE tic_color mapPixelGeneric(TexData* data, s32 idx, s32 iu, s32 iv)
+{
+    enum
+    {
+        WMask = TIC_SPRITESIZE - 1,
+        HMask = TIC_SPRITESIZE - 1
+    };
+
+    tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
+
+    return data->mapping[tic_tilesheet_gettilepix(&tile, iu & WMask, iv & HMask)];
+}
+
 static tic_color triTexMapShaderFlat(const ShaderAttr* a, s32 pixel)
 {
     (void)pixel;
@@ -1316,22 +1354,18 @@ static tic_color triTexMapShaderFlat(const ShaderAttr* a, s32 pixel)
         HMask = TIC_SPRITESIZE - 1
     };
 
-    s32 iu = tic_modulo((s32)(floor(vars.x)), MapWidth);
-    s32 iv = tic_modulo((s32)(floor(vars.y)), MapHeight);
+    s32 iu = mapWrap((s32)(floor(vars.x)), MapWidth);
+    s32 iv = mapWrap((s32)(floor(vars.y)), MapHeight);
 
     u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
 
-    if(data->tile4)
-    {
-        u32 tile = data->bankOrig * 256 + ((u32)idx >> 4) * 16 + ((u32)idx & 15);
-        u32 pix = ((u32)iu & WMask) + ((u32)iv & HMask) * 8;
+    if(!data->tile4)
+        return mapPixelGeneric(data, idx, iu, iv);
 
-        return data->mapping[tic_tool_peek4(data->sheet.ptr, tile * 64 + pix)];
-    }
+    u32 tile = data->bankOrig * 256 + ((u32)idx >> 4) * 16 + ((u32)idx & 15);
+    u32 pix = ((u32)iu & WMask) + ((u32)iv & HMask) * 8;
 
-    tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
-
-    return data->mapping[tic_tilesheet_gettilepix(&tile, iu & WMask, iv & HMask)];
+    return data->mapping[tic_tool_peek4(data->sheet.ptr, tile * 64 + pix)];
 }
 
 static tic_color triTexVbankShaderFlat(const ShaderAttr* a, s32 pixel)
@@ -1343,10 +1377,21 @@ static tic_color triTexVbankShaderFlat(const ShaderAttr* a, s32 pixel)
     Vec3 vars;
     shaderUV(a, &vars);
 
-    s32 iu = tic_modulo((s32)(floor(vars.x)), TIC80_WIDTH);
-    s32 iv = tic_modulo((s32)(floor(vars.y)), TIC80_HEIGHT);
+    s32 iu = mapWrap((s32)(floor(vars.x)), TIC80_WIDTH);
+    s32 iv = mapWrap((s32)(floor(vars.y)), TIC80_HEIGHT);
 
     return data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)];
+}
+
+// One call site per flat shader; a merged loop calls the shader indirectly.
+static DRAW_NOINLINE void drawTtriMapFlat(tic_mem* tic, const TexVert* t, TexData* data)
+{
+    drawTriBody(tic, (const Vec2*)&t[0], (const Vec2*)&t[1], (const Vec2*)&t[2], triTexMapShaderFlat, data);
+}
+
+static DRAW_NOINLINE void drawTtriVbankFlat(tic_mem* tic, const TexVert* t, TexData* data)
+{
+    drawTriBody(tic, (const Vec2*)&t[0], (const Vec2*)&t[1], (const Vec2*)&t[2], triTexVbankShaderFlat, data);
 }
 
 void tic_api_ttri(tic_mem* tic,
@@ -1415,8 +1460,8 @@ void tic_api_ttri(tic_mem* tic,
         switch(src)
         {
             case tic_tiles_texture: DRAW_TTRI(triTexTileShaderFlat); break;
-            case tic_map_texture: DRAW_TTRI(triTexMapShaderFlat); break;
-            case tic_vbank_texture: DRAW_TTRI(triTexVbankShaderFlat); break;
+            case tic_map_texture: drawTtriMapFlat(tic, t, &texData); break;
+            case tic_vbank_texture: drawTtriVbankFlat(tic, t, &texData); break;
             default: break;
         }
     }
