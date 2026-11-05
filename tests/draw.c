@@ -1175,6 +1175,24 @@ static void testSpriteSegments(void)
     refSpriteSeg(0, 11, 10, 0, NULL, 0);
     expectFrame("spr odd x frame");
 
+    // A sprite left of an odd clip edge must not touch the clip; the flipped
+    // case used to read outside the tile.
+    reset();
+    memset(Tic->ram->tiles.data, 0x11, sizeof(Tic->ram->tiles));
+    Tic->ram->vram.blit.segment = 2;
+    tic_api_clip(Tic, 19, 0, 10, 10);
+    tic_api_spr(Tic, 0, 10, 0, 1, 1, NULL, 0, 1, tic_no_flip, tic_no_rotate);
+    refSpriteSeg(0, 10, 0, 0, NULL, 0);
+    expectFrame("spr left of clip frame");
+
+    reset();
+    memset(Tic->ram->tiles.data, 0x11, sizeof(Tic->ram->tiles));
+    Tic->ram->vram.blit.segment = 2;
+    tic_api_clip(Tic, 19, 23, 9, 28);
+    tic_api_spr(Tic, 0, 10, 44, 1, 1, NULL, 0, 1, tic_horz_flip, tic_no_rotate);
+    refSpriteSeg(0, 10, 44, 0, NULL, 0);
+    expectFrame("spr flipped left of clip frame");
+
     // The map path reads the same segment.
     reset();
     memset(Tic->ram->tiles.data, 0x55, sizeof(Tic->ram->tiles));
@@ -1565,6 +1583,24 @@ static void testTtri(void)
               0, 0, 64, 0, 32, 64);
     expectFrame("ttri tiles wide frame");
 
+    // The tile texture's bank comes from v: a v span across 128 reads the
+    // sprites bank, and a u span across 128 on 2bpp walks the pages.
+    reset();
+    memset(Tic->ram->tiles.data, 0x33, sizeof(Tic->ram->tiles));
+    memset(Tic->ram->sprites.data, 0xcc, sizeof(Tic->ram->sprites));
+    Tic->ram->vram.blit.segment = 2;
+    drawTtriUV(tic_tiles_texture, 0.5f, 64.5f, 7.5f, 64.5f, 0.5f, 192.5f);
+    refTtri(tic_tiles_texture, 0.5f, 64.5f, 7.5f, 64.5f, 0.5f, 192.5f);
+    expectFrame("ttri tiles bank frame");
+
+    reset();
+    memset(Tic->ram->tiles.data, 0x55, sizeof(Tic->ram->tiles));
+    memset(Tic->ram->sprites.data, 0xaa, sizeof(Tic->ram->sprites));
+    Tic->ram->vram.blit.segment = 4;
+    drawTtriUV(tic_tiles_texture, 128.5f, 0.5f, 368.5f, 0.5f, 128.5f, 136.5f);
+    refTtri(tic_tiles_texture, 128.5f, 0.5f, 368.5f, 0.5f, 128.5f, 136.5f);
+    expectFrame("ttri tiles 2bpp bank frame");
+
     // Depth: ttri stores 1/z, so a smaller z (nearer) wins; every frame.
     reset();
     memset(Tic->ram->tiles.data, 0, sizeof(Tic->ram->tiles));
@@ -1889,6 +1925,13 @@ static void testPaint(void)
     tic_api_paint(Tic, 120, 68, 0, 1);
     refPaint(120, 68, 0, 1);
     expectFrame("paint no-op frame");
+
+    reset();
+    tic_api_circb(Tic, 120, 68, 3, 1);
+    refCapture();
+    tic_api_paint(Tic, 120, 68, 9, 1);
+    refPaint(120, 68, 9, 1);
+    expectFrame("paint circle border frame");
 
     reset();
     puts("paint ok");

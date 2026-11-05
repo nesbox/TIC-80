@@ -196,7 +196,7 @@ static void drawTile4(tic_core* core, const u8* ptr, u32 offset, const u8* mappi
         s32 dest = x;
         u32 row = offset + (u32)(py * TIC_SPRITESIZE);
 
-        if(dest & 1)
+        if((dest & 1) && px < ex)
         {
             u8 color = mapping[tic_tool_peek4(ptr, row + (u32)px)];
 
@@ -246,7 +246,7 @@ static void drawTilePairs(tic_core* core, const u8* ptr, u32 offset, u32 tileWid
         s32 dest = x;
         u32 row = offset + (u32)(py * tileWidth);
 
-        if(dest & 1)
+        if((dest & 1) && px < ex)
         {
             u8 color = mapping[is2bpp ? tic_tool_peek2(ptr, row + (u32)px) : tic_tool_peek1(ptr, row + (u32)px)];
 
@@ -333,7 +333,7 @@ static void drawTilePairsOriented(tic_core* core, const u8* ptr, u32 offset, u32
         s32 px = sx;
         s32 dest = x;
 
-        if(dest & 1)
+        if((dest & 1) && px < ex)
         {
             u8 color = mapping[tileRaw(ptr, is4bpp, is2bpp, is1bpp, peek, addr)];
 
@@ -1184,7 +1184,11 @@ static void floodFill(tic_core* tic, s32 x, s32 y, u8 color, u8 border)
             drawHLine(tic, left + 1, y, x1 - left, color);
 
         if(left >= x1)
+        {
+            x = x1;
             goto floodFill_skip;
+        }
+
         l = left + 1;
         if(l < x1)
             fillEnqueue(tic, y, l, x1 - 1, -dy); // check leak left
@@ -1799,7 +1803,7 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
                     {
                         s32 iu = (s32)floor(u) & maskU;
                         s32 iv = (s32)floor(vv) & maskV;
-                        u32 tile = ((((iu >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) + ((iu & 127) >> 3);
+                        u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) + ((iu & 127) >> 3);
                         u32 pix = ((u32)iu & 7) + ((u32)iv & 7) * 8;
                         u8 color = data->mapping[tic_tool_peek4(data->sheet.ptr, tile * 64 + pix)];
 
@@ -1817,7 +1821,7 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
                     {
                         s32 iu = (s32)floor(u) & maskU;
                         s32 iv = (s32)floor(vv) & maskV;
-                        u32 tile = ((((iu >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) +
+                        u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) +
                                    (((((iu >> 7) + (s32)pageOrig) & 1)) << 3) + ((iu & 127) >> 4);
                         u32 pix = ((u32)iu & 15) + ((u32)iv & 7) * 16;
                         u8 color = data->mapping[tic_tool_peek2(data->sheet.ptr, tile * 128 + pix)];
@@ -1836,7 +1840,7 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
                     {
                         s32 iu = (s32)floor(u) & maskU;
                         s32 iv = (s32)floor(vv) & maskV;
-                        u32 tile = ((((iu >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) +
+                        u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) +
                                    (((((iu >> 7) + (s32)pageOrig) & 3)) << 2) + ((iu & 127) >> 5);
                         u32 pix = ((u32)iu & 31) + ((u32)iv & 7) * 32;
                         u8 color = data->mapping[tic_tool_peek1(data->sheet.ptr, tile * 256 + pix)];
