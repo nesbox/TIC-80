@@ -727,10 +727,8 @@ static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
     {
         s32 xl = MAX(SidesBuffer.Left[y], core->state.clip.l);
         s32 xr = MIN(SidesBuffer.Right[y] + 1, core->state.clip.r);
-        s32 start = y * TIC80_WIDTH;
 
-        for(s32 i = start + xl, end = start + xr; i < end; ++i)
-            tic_api_poke4(memory, i, color);
+        drawHLine(core, xl, y, xr - xl, color);
     }
 }
 
@@ -987,6 +985,8 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
         s.d[i] = edgeFn(a.v[c], a.v[n], &p) / area;
     }
 
+    u8* screen = screenData(core);
+
     for(s32 y = min.y, start = min.y * TIC80_WIDTH + min.x; y < max.y; ++y, start += TIC80_WIDTH)
     {
         for(s32 i = 0; i != COUNT_OF(a.w.d); ++i)
@@ -998,7 +998,7 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
             {
                 u8 color = shader(&a, pixel);
                 if(color != TRANSPARENT_COLOR)
-                    tic_api_poke4(tic, pixel, color);
+                    tic_tool_poke4(screen, (u32)pixel, color);
             }
 
             for(s32 i = 0; i != COUNT_OF(a.w.d); ++i)
