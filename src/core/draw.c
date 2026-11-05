@@ -1776,7 +1776,51 @@ u8 tic_api_mget(tic_mem* memory, s32 x, s32 y)
 
 void tic_api_line(tic_mem* memory, float x0, float y0, float x1, float y1, u8 color)
 {
-    drawLine(memory, x0, y0, x1, y1, mapColor(memory, color));
+    tic_core* core = (tic_core*)memory;
+    u8 mapped = mapColor(memory, color);
+
+    // Integer endpoints on a row or a column are the write path's row and
+    // column fills; anything else keeps the float rasterizer.
+    if(isfinite(x0) && isfinite(y0) && isfinite(x1) && isfinite(y1) &&
+       fabsf(x0) <= 32768 && fabsf(y0) <= 32768 && fabsf(x1) <= 32768 && fabsf(y1) <= 32768 &&
+       x0 == (float)(s32)x0 && y0 == (float)(s32)y0 && x1 == (float)(s32)x1 && y1 == (float)(s32)y1)
+    {
+        s32 ix0 = (s32)x0, iy0 = (s32)y0, ix1 = (s32)x1, iy1 = (s32)y1;
+
+        if(iy0 == iy1)
+        {
+            if(ix0 > ix1)
+            {
+                s32 t = ix0;
+                ix0 = ix1;
+                ix1 = t;
+            }
+
+            if(ix0 < 0) ix0 = 0;
+            if(ix1 > TIC80_WIDTH) ix1 = TIC80_WIDTH;
+
+            drawHLine(core, ix0, iy0, ix1 - ix0 + 1, mapped);
+            return;
+        }
+
+        if(ix0 == ix1)
+        {
+            if(iy0 > iy1)
+            {
+                s32 t = iy0;
+                iy0 = iy1;
+                iy1 = t;
+            }
+
+            if(iy0 < 0) iy0 = 0;
+            if(iy1 > TIC80_WIDTH) iy1 = TIC80_WIDTH;
+
+            drawVLine(core, ix0, iy0, iy1 - iy0 + 1, mapped);
+            return;
+        }
+    }
+
+    drawLine(memory, x0, y0, x1, y1, mapped);
 }
 
 void tic_api_paint(tic_mem* memory, s32 x, s32 y, u8 color, u8 bordercolor)
