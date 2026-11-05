@@ -1391,30 +1391,37 @@ void tic_api_ttri(tic_mem* tic,
                 t[i].d.y /= t[i].d.z,
                 t[i].d.z = 1.0 / t[i].d.z;
 
-    static const PixelShader Shaders[] =
-        {
-            [tic_tiles_texture] = triTexTileShader,
-            [tic_map_texture] = triTexMapShader,
-            [tic_vbank_texture] = triTexVbankShader,
-        };
-
-    static const PixelShader ShadersFlat[] =
-        {
-            [tic_tiles_texture] = triTexTileShaderFlat,
-            [tic_map_texture] = triTexMapShaderFlat,
-            [tic_vbank_texture] = triTexVbankShaderFlat,
-        };
-
     // The enum is signed where the compiler keeps int for it (MSVC does), so
     // the cast is what turns a negative source into an out-of-range one.
     const u32 src = (u32)texsrc;
 
-    if(src < (u32)COUNT_OF(Shaders))
-        drawTri(tic,
-                (const Vec2*)&t[0],
-                (const Vec2*)&t[1],
-                (const Vec2*)&t[2],
-                depth ? Shaders[src] : ShadersFlat[src], &texData);
+    if(src >= (u32)(tic_vbank_texture + 1))
+        return;
+
+#define DRAW_TTRI(SHADER) drawTri(tic, (const Vec2*)&t[0], (const Vec2*)&t[1], (const Vec2*)&t[2], SHADER, &texData)
+
+    if(depth)
+    {
+        switch(src)
+        {
+            case tic_tiles_texture: DRAW_TTRI(triTexTileShader); break;
+            case tic_map_texture: DRAW_TTRI(triTexMapShader); break;
+            case tic_vbank_texture: DRAW_TTRI(triTexVbankShader); break;
+            default: break;
+        }
+    }
+    else
+    {
+        switch(src)
+        {
+            case tic_tiles_texture: DRAW_TTRI(triTexTileShaderFlat); break;
+            case tic_map_texture: DRAW_TTRI(triTexMapShaderFlat); break;
+            case tic_vbank_texture: DRAW_TTRI(triTexVbankShaderFlat); break;
+            default: break;
+        }
+    }
+
+#undef DRAW_TTRI
 }
 
 void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, u8 count, s32 scale, RemapFunc remap, void* data)
