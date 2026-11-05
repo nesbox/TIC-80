@@ -73,18 +73,23 @@ static inline u8 mapColor(tic_mem* tic, u8 color)
     return tic_tool_peek4(tic->ram->vram.mapping, color & 0xf);
 }
 
+static inline u8* screenData(tic_core* core)
+{
+    return core->memory.ram->vram.screen.data;
+}
+
 static inline void setPixel(tic_core* core, s32 x, s32 y, u8 color)
 {
 
     if(x < core->state.clip.l || y < core->state.clip.t || x >= core->state.clip.r || y >= core->state.clip.b) return;
 
-    tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
+    tic_tool_poke4(screenData(core), (u32)(y * TIC80_WIDTH + x), color);
 }
 
 static inline void setPixelFast(tic_core* core, s32 x, s32 y, u8 color)
 {
     // does not do any CLIP checking, the caller needs to do that first
-    tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
+    tic_tool_poke4(screenData(core), (u32)(y * TIC80_WIDTH + x), color);
 }
 
 static inline u8 getPixel(tic_core* core, s32 x, s32 y)
@@ -107,14 +112,44 @@ static inline u8 getPixel(tic_core* core, s32 x, s32 y)
 static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 {
 
+    // Glyphs and thin rects are often one pixel wide; the run machinery below
+    // costs more than the one write.
+    if(width == 1)
+    {
+        setPixel(core, x, y, color);
+        return;
+    }
+
     if(y < core->state.clip.t || core->state.clip.b <= y) return;
 
     s32 xl = MAX(x, core->state.clip.l);
     s32 xr = MIN(x + width, core->state.clip.r);
-    s32 start = y * TIC80_WIDTH;
 
-    for(s32 i = start + xl, end = start + xr; i < end; ++i)
-        tic_api_poke4((tic_mem*)core, i, color);
+    if(xl >= xr) return;
+
+    u8* screen = screenData(core);
+    s32 first = y * TIC80_WIDTH + xl;
+    s32 last = y * TIC80_WIDTH + xr; // exclusive
+
+    // A short run is a few nibble writes; a memset call costs more than that.
+    if(last - first <= 4)
+    {
+        for(s32 i = first; i < last; ++i)
+            tic_tool_poke4(screen, (u32)i, color);
+
+        return;
+    }
+
+    // The two edge nibbles keep the middle byte-aligned, where a run of
+    // identical pixels is one memset byte per two pixels.
+    if(first & 1)
+        tic_tool_poke4(screen, (u32)first++, color);
+
+    if(last & 1)
+        tic_tool_poke4(screen, (u32)--last, color);
+
+    if(first < last)
+        memset(screen + first / 2, (color & 0xf) | (color << TIC_PALETTE_BPP), (size_t)(last - first) / 2);
 }
 
 static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
@@ -122,11 +157,12 @@ static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
 
     if(x < core->state.clip.l || core->state.clip.r <= x) return;
 
-    s32 yl = y < 0 ? 0 : y;
-    s32 yr = y + height >= TIC80_HEIGHT ? TIC80_HEIGHT : y + height;
+    s32 yl = MAX(y, core->state.clip.t);
+    s32 yr = MIN(y + height, core->state.clip.b);
+    u8* screen = screenData(core);
 
     for(s32 i = yl; i < yr; ++i)
-        setPixel(core, x, i, color);
+        tic_tool_poke4(screen, (u32)(i * TIC80_WIDTH + x), color);
 }
 
 static void drawRect(tic_core* core, s32 x, s32 y, s32 width, s32 height, u8 color)
@@ -435,11 +471,14 @@ void tic_api_cls(tic_mem* tic, u8 color)
     }
     else
     {
-        for(s32 y = core->state.clip.t, start = y * TIC80_WIDTH; y < core->state.clip.b; ++y, start += TIC80_WIDTH)
-            for(s32 x = core->state.clip.l, pixel = start + x; x < core->state.clip.r; ++x, ++pixel)
+        s32 x = core->state.clip.l;
+        s32 width = core->state.clip.r - x;
+
+        if(width > 0)
+            for(s32 y = core->state.clip.t; y < core->state.clip.b; ++y)
             {
-                tic_api_poke4(tic, pixel, color);
-                ZBuffer[pixel] = 0;
+                drawHLine(core, x, y, width, color);
+                memset(&ZBuffer[y * TIC80_WIDTH + x], 0, sizeof(double) * (size_t)width);
             }
     }
 }
