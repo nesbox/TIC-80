@@ -449,6 +449,18 @@ static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 sc
         Size = TIC_SPRITESIZE
     };
 
+    const tic_blit_segment* segment = font_char->segment;
+    const u8* ptr = font_char->ptr;
+    u32 offset = font_char->offset;
+    u32 tileWidth = segment->tile_width;
+    u8 (*peek)(const void*, u32) = segment->peek;
+    bool is4bpp = tileWidth == TIC_SPRITESIZE && segment->ptr_size == sizeof(tic_tile);
+    bool is1bpp = tileWidth == TIC_SPRITESIZE && segment->ptr_size == 8;
+
+#define GLYPH(X, Y) (is4bpp   ? tic_tool_peek4(ptr, offset + (u32)((X) + (Y) * tileWidth)) \
+                     : is1bpp ? tic_tool_peek1(ptr, offset + (u32)((X) + (Y) * tileWidth)) \
+                              : peek(ptr, offset + (u32)((X) + (Y) * tileWidth)))
+
     s32 j = 0, start = 0, end = Size;
 
     if(!fixed)
@@ -456,7 +468,7 @@ static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 sc
         for(s32 i = 0; i < Size; i++)
         {
             for(j = 0; j < Size; j++)
-                if(mapping[tic_tilesheet_gettilepix(font_char, i, j)] != TRANSPARENT_COLOR) break;
+                if(mapping[GLYPH(i, j)] != TRANSPARENT_COLOR) break;
             if(j < Size)
                 break;
             else
@@ -465,7 +477,7 @@ static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 sc
         for(s32 i = Size - 1; i >= start; i--)
         {
             for(j = 0; j < Size; j++)
-                if(mapping[tic_tilesheet_gettilepix(font_char, i, j)] != TRANSPARENT_COLOR) break;
+                if(mapping[GLYPH(i, j)] != TRANSPARENT_COLOR) break;
             if(j < Size)
                 break;
             else
@@ -482,13 +494,21 @@ static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 sc
     {
         for(s32 gy = 0, row = rowStart, ys = y; gy < Size; gy++, row += rowStep, ys += scale)
         {
-            u8 color = tic_tilesheet_gettilepix(font_char, col, row);
-            if(mapping[color] != TRANSPARENT_COLOR)
-                drawRect(core, xs, ys, scale, scale, mapping[color]);
+            u8 color = mapping[GLYPH(col, row)];
+
+            if(color != TRANSPARENT_COLOR)
+            {
+                if(scale == 1)
+                    setPixel(core, xs, ys, color);
+                else
+                    drawRect(core, xs, ys, scale, scale, color);
+            }
         }
     }
     return width;
 }
+
+#undef GLYPH
 
 static s32 drawText(tic_core* core, tic_tilesheet* font_face, const char* text, s32 x, s32 y, s32 width, s32 height, bool fixed, u8* mapping, s32 scale, bool alt)
 {
