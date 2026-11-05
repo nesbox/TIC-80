@@ -1151,14 +1151,101 @@ static tic_color triColorShader(const ShaderAttr* a, s32 pixel)
     return *(u8*)a->data;
 }
 
+// A scanline fill for the flat triangle: each row's inside interval is the
+// min/max of the edge crossings at the pixel centres, filled with drawHLine.
+static void drawTriSpans(tic_mem* tic, const Vec2* v[3], u8 color)
+{
+    tic_core* core = (tic_core*)tic;
+    const struct ClipRect* clip = &core->state.clip;
+
+    double area = (v[1]->x - v[0]->x) * (v[2]->y - v[0]->y) - (v[1]->y - v[0]->y) * (v[2]->x - v[0]->x);
+
+    if((s32)floor(area) == 0)
+        return;
+
+    double miny = v[0]->y, maxy = v[0]->y;
+
+    for(s32 i = 1; i < 3; i++)
+    {
+        if(v[i]->y < miny) miny = v[i]->y;
+        if(v[i]->y > maxy) maxy = v[i]->y;
+    }
+
+    s32 top = (s32)floor(miny);
+    s32 bottom = (s32)ceil(maxy);
+
+    if(top < clip->t) top = clip->t;
+    if(bottom > clip->b) bottom = clip->b;
+
+    if(top >= bottom)
+        return;
+
+    const double center = 0.5 - FLT_EPSILON;
+
+    for(s32 y = top; y < bottom; y++)
+    {
+        double yc = y + center;
+        double lo = 0.0, hi = 0.0;
+        bool hit = false;
+
+        for(s32 i = 0; i < 3; i++)
+        {
+            const Vec2* a = v[i];
+            const Vec2* b = v[(i + 1) % 3];
+
+            if(a->y == b->y)
+                continue;
+
+            double t = (yc - a->y) / (b->y - a->y);
+
+            if(t < 0.0 || t > 1.0)
+                continue;
+
+            double x = a->x + t * (b->x - a->x);
+
+            if(!hit)
+            {
+                lo = hi = x;
+                hit = true;
+            }
+            else
+            {
+                if(x < lo) lo = x;
+                if(x > hi) hi = x;
+            }
+        }
+
+        if(!hit)
+            continue;
+
+        s32 left = (s32)ceil(lo - center);
+        s32 right = (s32)floor(hi - center) + 1;
+
+        if(left < clip->l) left = clip->l;
+        if(right > clip->r) right = clip->r;
+
+        if(left < right)
+            drawHLine(core, left, y, right - left, color);
+    }
+}
+
 void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
 {
     color = mapColor(tic, color);
-    drawTri(tic,
-            &(Vec2){{x1, y1}},
-            &(Vec2){{x2, y2}},
-            &(Vec2){{x3, y3}},
-            triColorShader, &color);
+
+    if(!isfinite(x1) || !isfinite(y1) || !isfinite(x2) || !isfinite(y2) || !isfinite(x3) || !isfinite(y3) ||
+       fabsf(x1) > 32768 || fabsf(y1) > 32768 || fabsf(x2) > 32768 || fabsf(y2) > 32768 || fabsf(x3) > 32768 || fabsf(y3) > 32768)
+    {
+        drawTri(tic,
+                &(Vec2){{x1, y1}},
+                &(Vec2){{x2, y2}},
+                &(Vec2){{x3, y3}},
+                triColorShader, &color);
+        return;
+    }
+
+    const Vec2* v[3] = {&(Vec2){{x1, y1}}, &(Vec2){{x2, y2}}, &(Vec2){{x3, y3}}};
+    drawTriSpans(tic, v, color);
 }
 
 void tic_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
