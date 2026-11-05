@@ -1,9 +1,11 @@
-/* The drawing API benchmark: a player without a window, a VM or a renderer.
+/* The TIC-80 API benchmark: a player without a window, a VM or a renderer.
  *
- * Every scenario is a fixed `setup` plus a `body`; the body calls the drawing
- * function through core->api, the same table every script binding calls. The
- * setup puts VRAM into a known state outside the timed region before every
- * round, so repeated calls are measured from the same screen.
+ * Every scenario is a fixed `setup` plus a `body`; the drawing body calls the
+ * function through core->api, the same table every script binding calls, and
+ * the blit body composes the two vbanks through tic_core_blit. The setup puts
+ * VRAM into a known state outside the timed region before every round, so
+ * repeated calls are measured from the same screen. Drawing scenarios hash
+ * VRAM; blit scenarios hash the product screen they write.
  *
  * Cost is process CPU time on POSIX and the performance counter on Windows,
  * whose process clock ticks too coarsely for a round. The work is
@@ -60,6 +62,7 @@ typedef struct
     void (*setup)(tic_core* core);
     void (*body)(tic_core* core);
     bool repeatable;
+    bool productScreen;
 } Scenario;
 
 typedef struct
@@ -379,54 +382,118 @@ static void bodyClip(tic_core* core)
     core->api.clip((tic_mem*)core, 20, 10, 60, 40);
 }
 
+static tic_vram* benchVbank0(tic_core* core)
+{
+    return core->state.vbank.id ? &core->state.vbank.mem : &core->memory.ram->vram;
+}
+
+static tic_vram* benchVbank1(tic_core* core)
+{
+    return core->state.vbank.id ? &core->memory.ram->vram : &core->state.vbank.mem;
+}
+
+static void setupBlit(tic_core* core, bool clear, bool offsets)
+{
+    resetState(core, 0);
+
+    tic_vram* v0 = benchVbank0(core);
+    tic_vram* v1 = benchVbank1(core);
+
+    for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+    {
+        v0->palette.colors[i] = (tic_rgb){(u8)(i * 17 + 3), (u8)(i * 5 + 7), (u8)(i * 11 + 1)};
+        v1->palette.colors[i] = (tic_rgb){(u8)(255 - i * 13), (u8)(i * 29 + 2), (u8)(200 - i * 7)};
+    }
+
+    v0->vars.border = 3;
+    v1->vars.border = 9;
+    v1->vars.clear = clear ? 0 : 2;
+
+    for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
+    {
+        tic_tool_poke4(v0->screen.data, (u32)i, (u8)((i * 7 + 5 + i / TIC80_WIDTH * 3) % TIC_PALETTE_SIZE));
+        tic_tool_poke4(v1->screen.data, (u32)i, clear ? 0 : (u8)((i * 11 + 5) % TIC_PALETTE_SIZE));
+    }
+
+    v0->vars.offset.x = offsets ? 3 : 0;
+    v0->vars.offset.y = offsets ? -7 : 0;
+    v1->vars.offset.x = offsets ? -5 : 0;
+    v1->vars.offset.y = offsets ? 11 : 0;
+
+    memset(core->memory.product.screen, 0, TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32));
+}
+
+static void setupBlitClear(tic_core* core)
+{
+    setupBlit(core, true, false);
+}
+
+static void setupBlitMixed(tic_core* core)
+{
+    setupBlit(core, false, false);
+}
+
+static void setupBlitOffsets(tic_core* core)
+{
+    setupBlit(core, false, true);
+}
+
+static void bodyBlit(tic_core* core)
+{
+    tic_core_blit((tic_mem*)core);
+}
+
 static const Scenario Scenarios[] =
     {
-        {"cls", "full screen", setupFifteen, bodyCls, true},
-        {"cls", "clip 60x40", setupClipFifteen, bodyCls, true},
-        {"clip", "set 60x40", setupZero, bodyClip, true},
-        {"pix", "single pixel", setupZero, bodyPix, true},
-        {"rect", "100x50", setupZero, bodyRect, true},
-        {"rect", "full screen", setupZero, bodyRectFull, true},
-        {"rect", "full, clip 60x40", setupClipZero, bodyRectFull, true},
-        {"rectb", "100x50", setupZero, bodyRectb, true},
-        {"line", "horizontal 220px", setupZero, bodyLineHorizontal, true},
-        {"line", "vertical 116px", setupZero, bodyLineVertical, true},
-        {"line", "diagonal", setupZero, bodyLineDiagonal, true},
-        {"tri", "small 20px", setupZero, bodyTriSmall, true},
-        {"tri", "full screen", setupZero, bodyTriFull, true},
-        {"trib", "large", setupZero, bodyTrib, true},
-        {"ttri", "tiles", setupZero, bodyTtriTiles, true},
-        {"ttri", "tiles, 2bpp p0", setupSeg4Zero, bodyTtriTiles, true},
-        {"ttri", "tiles, 1bpp p3", setupSeg11Zero, bodyTtriTiles, true},
-        {"ttri", "map", setupZero, bodyTtriMap, true},
-        {"circ", "r=50", setupZero, bodyCirc, true},
-        {"circb", "r=50", setupZero, bodyCircb, true},
-        {"elli", "60x40", setupZero, bodyElli, true},
-        {"ellib", "60x40", setupZero, bodyEllib, true},
-        {"rrect", "120x60 r=12", setupZero, bodyRrect, true},
-        {"rrectb", "120x60 r=12", setupZero, bodyRrectb, true},
-        {"spr", "1x1", setupFifteen, bodySprTile, true},
-        {"spr", "2x2 tiles", setupFifteen, bodySprBlock, true},
-        {"spr", "scale 2", setupFifteen, bodySprScale, true},
-        {"spr", "flip h", setupFifteen, bodySprFlip, true},
-        {"spr", "rotate 90", setupFifteen, bodySprRotate, true},
-        {"spr", "chroma 1", setupFifteen, bodySprChroma, true},
-        {"spr", "1x1, 4bpp fg", setupSeg3, bodySprTile, true},
-        {"spr", "1x1, 2bpp p0", setupSeg4, bodySprTile, true},
-        {"spr", "1x1, 2bpp p1", setupSeg5, bodySprTile, true},
-        {"spr", "1x1, 1bpp p0", setupSeg8, bodySprTile, true},
-        {"spr", "1x1, 1bpp p3", setupSeg11, bodySprTile, true},
-        {"spr", "1x1, 1bpp p0 fg", setupSeg12, bodySprTile, true},
-        {"map", "full screen", setupFifteen, bodyMap, true},
-        {"map", "full, 2bpp p0", setupSeg4, bodyMap, true},
-        {"map", "full, 1bpp p3", setupSeg11, bodyMap, true},
-        {"map", "scroll 10,5", setupFifteen, bodyMapScroll, true},
-        {"print", "23 chars", setupZero, bodyPrint, true},
-        {"print", "fixed, scale 2", setupZero, bodyPrintFixed, true},
-        {"print", "alt font", setupZero, bodyPrintAlt, true},
-        {"font", "6x8", setupZero, bodyFont, true},
-        {"paint", "full screen", setupPaintFull, bodyPaintFull, false},
-        {"paint", "region 100x50", setupPaintSmall, bodyPaintSmall, false},
+        {"cls", "full screen", setupFifteen, bodyCls, true, false},
+        {"cls", "clip 60x40", setupClipFifteen, bodyCls, true, false},
+        {"clip", "set 60x40", setupZero, bodyClip, true, false},
+        {"pix", "single pixel", setupZero, bodyPix, true, false},
+        {"rect", "100x50", setupZero, bodyRect, true, false},
+        {"rect", "full screen", setupZero, bodyRectFull, true, false},
+        {"rect", "full, clip 60x40", setupClipZero, bodyRectFull, true, false},
+        {"rectb", "100x50", setupZero, bodyRectb, true, false},
+        {"line", "horizontal 220px", setupZero, bodyLineHorizontal, true, false},
+        {"line", "vertical 116px", setupZero, bodyLineVertical, true, false},
+        {"line", "diagonal", setupZero, bodyLineDiagonal, true, false},
+        {"tri", "small 20px", setupZero, bodyTriSmall, true, false},
+        {"tri", "full screen", setupZero, bodyTriFull, true, false},
+        {"trib", "large", setupZero, bodyTrib, true, false},
+        {"ttri", "tiles", setupZero, bodyTtriTiles, true, false},
+        {"ttri", "tiles, 2bpp p0", setupSeg4Zero, bodyTtriTiles, true, false},
+        {"ttri", "tiles, 1bpp p3", setupSeg11Zero, bodyTtriTiles, true, false},
+        {"ttri", "map", setupZero, bodyTtriMap, true, false},
+        {"circ", "r=50", setupZero, bodyCirc, true, false},
+        {"circb", "r=50", setupZero, bodyCircb, true, false},
+        {"elli", "60x40", setupZero, bodyElli, true, false},
+        {"ellib", "60x40", setupZero, bodyEllib, true, false},
+        {"rrect", "120x60 r=12", setupZero, bodyRrect, true, false},
+        {"rrectb", "120x60 r=12", setupZero, bodyRrectb, true, false},
+        {"spr", "1x1", setupFifteen, bodySprTile, true, false},
+        {"spr", "2x2 tiles", setupFifteen, bodySprBlock, true, false},
+        {"spr", "scale 2", setupFifteen, bodySprScale, true, false},
+        {"spr", "flip h", setupFifteen, bodySprFlip, true, false},
+        {"spr", "rotate 90", setupFifteen, bodySprRotate, true, false},
+        {"spr", "chroma 1", setupFifteen, bodySprChroma, true, false},
+        {"spr", "1x1, 4bpp fg", setupSeg3, bodySprTile, true, false},
+        {"spr", "1x1, 2bpp p0", setupSeg4, bodySprTile, true, false},
+        {"spr", "1x1, 2bpp p1", setupSeg5, bodySprTile, true, false},
+        {"spr", "1x1, 1bpp p0", setupSeg8, bodySprTile, true, false},
+        {"spr", "1x1, 1bpp p3", setupSeg11, bodySprTile, true, false},
+        {"spr", "1x1, 1bpp p0 fg", setupSeg12, bodySprTile, true, false},
+        {"map", "full screen", setupFifteen, bodyMap, true, false},
+        {"map", "full, 2bpp p0", setupSeg4, bodyMap, true, false},
+        {"map", "full, 1bpp p3", setupSeg11, bodyMap, true, false},
+        {"map", "scroll 10,5", setupFifteen, bodyMapScroll, true, false},
+        {"print", "23 chars", setupZero, bodyPrint, true, false},
+        {"print", "fixed, scale 2", setupZero, bodyPrintFixed, true, false},
+        {"print", "alt font", setupZero, bodyPrintAlt, true, false},
+        {"font", "6x8", setupZero, bodyFont, true, false},
+        {"paint", "full screen", setupPaintFull, bodyPaintFull, false, false},
+        {"paint", "region 100x50", setupPaintSmall, bodyPaintSmall, false, false},
+        {"blit", "default clear", setupBlitClear, bodyBlit, true, true},
+        {"blit", "mixed banks", setupBlitMixed, bodyBlit, true, true},
+        {"blit", "offsets", setupBlitOffsets, bodyBlit, true, true},
 };
 
 #define SCENARIO_COUNT ((s32)(sizeof(Scenarios) / sizeof(Scenarios[0])))
@@ -477,18 +544,44 @@ static void sortValues(double* values, s32 count)
     }
 }
 
+static u64 countChangedPixels(const u32* before, const u32* after, s32 count)
+{
+    u64 changed = 0;
+
+    for(s32 i = 0; i < count; i++)
+        if(before[i] != after[i])
+            changed++;
+
+    return changed;
+}
+
 static void measureScenario(tic_core* core, const Scenario* scenario, Measurement* result)
 {
     static u8 before[sizeof(tic_screen)];
     static u8 after[sizeof(tic_screen)];
+    static u32 beforeProduct[TIC80_FULLWIDTH * TIC80_FULLHEIGHT];
+    static u32 afterProduct[TIC80_FULLWIDTH * TIC80_FULLHEIGHT];
 
     scenario->setup(core);
-    memcpy(before, core->memory.ram->vram.screen.data, sizeof before);
-    scenario->body(core);
-    memcpy(after, core->memory.ram->vram.screen.data, sizeof after);
 
-    result->pixels = countChanged(before, after, sizeof before);
-    result->hash = hashScreen(after, sizeof after);
+    if(scenario->productScreen)
+    {
+        memcpy(beforeProduct, core->memory.product.screen, sizeof beforeProduct);
+        scenario->body(core);
+        memcpy(afterProduct, core->memory.product.screen, sizeof afterProduct);
+
+        result->pixels = countChangedPixels(beforeProduct, afterProduct, TIC80_FULLWIDTH * TIC80_FULLHEIGHT);
+        result->hash = hashScreen((const u8*)afterProduct, sizeof afterProduct);
+    }
+    else
+    {
+        memcpy(before, core->memory.ram->vram.screen.data, sizeof before);
+        scenario->body(core);
+        memcpy(after, core->memory.ram->vram.screen.data, sizeof after);
+
+        result->pixels = countChanged(before, after, sizeof before);
+        result->hash = hashScreen(after, sizeof after);
+    }
 
     u64 calls = 1;
 
@@ -578,7 +671,7 @@ static void measureScenario(tic_core* core, const Scenario* scenario, Measuremen
 
 static void printTable(const Measurement* results)
 {
-    printf("Drawing API benchmark — methodology %d, %s\n\n", BENCH_VERSION, buildName());
+    printf("TIC-80 API benchmark — methodology %d, %s\n\n", BENCH_VERSION, buildName());
 
     if(debugBuild())
         printf("Debug build: the numbers are not representative.\n\n");
