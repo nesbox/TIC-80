@@ -180,6 +180,54 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
     drawVLine(core, x + width - 1, y, height, color);
 }
 
+static void drawTile4(tic_core* core, const u8* ptr, u32 offset, const u8* mapping, bool opaque,
+                      s32 x, s32 y, s32 sx, s32 sy, s32 ex, s32 ey)
+{
+    u8* screen = screenData(core);
+
+    for(s32 py = sy; py < ey; py++, y++)
+    {
+        s32 px = sx;
+        s32 dest = x;
+        u32 row = offset + (u32)(py * TIC_SPRITESIZE);
+
+        if(dest & 1)
+        {
+            u8 color = mapping[tic_tool_peek4(ptr, row + (u32)px)];
+
+            if(color != TRANSPARENT_COLOR)
+                tic_tool_poke4(screen, (u32)(y * TIC80_WIDTH + dest), color);
+
+            px++;
+            dest++;
+        }
+
+        for(; px + 1 < ex; px += 2, dest += 2)
+        {
+            u8 src = ptr[(row + (u32)px) >> 1];
+            u8 m0 = mapping[src & 0xf];
+            u8 m1 = mapping[src >> 4];
+
+            if(opaque)
+                screen[(y * TIC80_WIDTH + dest) >> 1] = m0 | (m1 << 4);
+            else
+            {
+                u8* dst = &screen[(y * TIC80_WIDTH + dest) >> 1];
+                u8 byte = (m0 != TRANSPARENT_COLOR ? m0 : (*dst & 0xf)) | (m1 != TRANSPARENT_COLOR ? (m1 << 4) : (*dst & 0xf0));
+                *dst = byte;
+            }
+        }
+
+        if(px < ex)
+        {
+            u8 color = mapping[tic_tool_peek4(ptr, row + (u32)px)];
+
+            if(color != TRANSPARENT_COLOR)
+                tic_tool_poke4(screen, (u32)(y * TIC80_WIDTH + dest), color);
+        }
+    }
+}
+
 // clang-format off
 #define DRAW_TILE_BODY(X, Y) do {\
     for(s32 py=sy; py < ey; py++, y++) \
@@ -187,7 +235,12 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
         s32 xx = x; \
         for(s32 px=sx; px < ex; px++, xx++) \
         { \
-            u8 color = mapping[tic_tilesheet_gettilepix(tile, (X), (Y))];\
+            u32 addr = offset + (u32)((X) + (Y) * tileWidth); \
+            u8 raw = is4bpp ? tic_tool_peek4(ptr, addr) \
+                     : is2bpp ? tic_tool_peek2(ptr, addr) \
+                     : is1bpp ? tic_tool_peek1(ptr, addr) \
+                     : peek(ptr, addr); \
+            u8 color = mapping[raw]; \
             if(color != TRANSPARENT_COLOR) setPixelFast(core, xx, y, color); \
         } \
     } \
@@ -196,9 +249,16 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
 
 #define REVERT(X) (TIC_SPRITESIZE - 1 - (X))
 
-static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
+static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* mapping, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    u8* mapping = getPalette(&core->memory, colors, (u8)(count));
+    const tic_blit_segment* segment = tile->segment;
+    const u8* ptr = tile->ptr;
+    u32 offset = tile->offset;
+    u32 tileWidth = segment->tile_width;
+    u8 (*peek)(const void*, u32) = segment->peek;
+    bool is4bpp = tileWidth == TIC_SPRITESIZE && segment->ptr_size == sizeof(tic_tile);
+    bool is2bpp = tileWidth == TIC_SPRITESIZE * 2 && segment->ptr_size == sizeof(tic_tile);
+    bool is1bpp = tileWidth == TIC_SPRITESIZE * 4 && segment->ptr_size == sizeof(tic_tile);
 
     rotate &= 3;
     u32 orientation = flip & 3;
@@ -223,8 +283,26 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
         if(ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
         ey = core->state.clip.b - y;
         if(ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
+
+        const s32 destX = x;
         y += sy;
         x += sx;
+
+        if(orientation == 0 && is4bpp && (offset & 1) == 0 && (destX & 1) == 0)
+        {
+            bool opaque = true;
+
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+                if(mapping[i] == TRANSPARENT_COLOR)
+                {
+                    opaque = false;
+                    break;
+                }
+
+            drawTile4(core, ptr, offset, mapping, opaque, x, y, sx, sy, ex, ey);
+            return;
+        }
+
         switch(orientation)
         {
             case 4: DRAW_TILE_BODY(py, px); break;
@@ -254,7 +332,12 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
                 ix = iy;
                 iy = tmp;
             }
-            u8 color = mapping[tic_tilesheet_gettilepix(tile, ix, iy)];
+            u32 addr = offset + (u32)(ix + iy * tileWidth);
+            u8 raw = is4bpp   ? tic_tool_peek4(ptr, addr)
+                     : is2bpp ? tic_tool_peek2(ptr, addr)
+                     : is1bpp ? tic_tool_peek1(ptr, addr)
+                              : peek(ptr, addr);
+            u8 color = mapping[raw];
             if(color != TRANSPARENT_COLOR) drawRect(core, xx, y, scale, scale, color);
         }
     }
@@ -273,10 +356,12 @@ static void drawSprite(tic_core* core, s32 index, s32 x, s32 y, s32 w, s32 h, u8
     flip &= 3;
 
     tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram->vram.blit.segment);
+    u8* mapping = getPalette(&core->memory, colors, (u8)count);
+
     if(w == 1 && h == 1)
     {
         tic_tileptr tile = tic_tilesheet_gettile(&sheet, index, false);
-        drawTile(core, &tile, x, y, colors, count, scale, flip, rotate);
+        drawTile(core, &tile, x, y, mapping, scale, flip, rotate);
     }
     else
     {
@@ -324,9 +409,9 @@ static void drawSprite(tic_core* core, s32 index, s32 x, s32 y, s32 w, s32 h, u8
 
                 tic_tileptr tile = tic_tilesheet_gettile(&sheet, index + mx + my * cols, false);
                 if(rotate == 0 || rotate == 2)
-                    drawTile(core, &tile, x + i * step, y + j * step, colors, count, scale, flip, rotate);
+                    drawTile(core, &tile, x + i * step, y + j * step, mapping, scale, flip, rotate);
                 else
-                    drawTile(core, &tile, x + j * step, y + i * step, colors, count, scale, flip, rotate);
+                    drawTile(core, &tile, x + j * step, y + i * step, mapping, scale, flip, rotate);
             }
         }
     }
@@ -337,6 +422,7 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
     const s32 size = TIC_SPRITESIZE * scale;
 
     tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram->vram.blit.segment);
+    u8* mapping = getPalette(&core->memory, colors, (u8)count);
 
     for(s32 j = y, jj = sy; j < y + height; j++, jj += size)
         for(s32 i = x, ii = sx; i < x + width; i++, ii += size)
@@ -351,7 +437,7 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
                 remap(data, mi, mj, &retile);
 
             tic_tileptr tile = tic_tilesheet_gettile(&sheet, retile.index, true);
-            drawTile(core, &tile, ii, jj, colors, count, scale, retile.flip, retile.rotate);
+            drawTile(core, &tile, ii, jj, mapping, scale, retile.flip, retile.rotate);
         }
 }
 
