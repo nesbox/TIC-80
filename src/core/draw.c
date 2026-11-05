@@ -1481,6 +1481,203 @@ static DRAW_NOINLINE void drawTtriVbankFlat(tic_mem* tic, const TexVert* t, TexD
     drawTriBody(tic, (const Vec2*)&t[0], (const Vec2*)&t[1], (const Vec2*)&t[2], triTexVbankShaderFlat, data);
 }
 
+// The scanline span fill for the flat textured triangle: one inside
+// interval per row, with the UV stepped along it.
+static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 src)
+{
+    tic_core* core = (tic_core*)tic;
+    const struct ClipRect* clip = &core->state.clip;
+
+    const TexVert* v[3] = {&t[0], &t[1], &t[2]};
+
+    for(s32 i = 0; i < 3; i++)
+        if(!isfinite(v[i]->_.x) || !isfinite(v[i]->_.y) || fabsf((float)v[i]->_.x) > 32768 || fabsf((float)v[i]->_.y) > 32768)
+            return false;
+
+    double area = (v[1]->_.x - v[0]->_.x) * (v[2]->_.y - v[0]->_.y) - (v[1]->_.y - v[0]->_.y) * (v[2]->_.x - v[0]->_.x);
+
+    if((s32)floor(area) == 0)
+        return false;
+
+    if(area < 0.0)
+    {
+        const TexVert* tmp = v[1];
+        v[1] = v[2];
+        v[2] = tmp;
+        area = -area;
+    }
+
+    if(src != tic_tiles_texture && src != tic_map_texture && src != tic_vbank_texture)
+        return false;
+
+    if(src == tic_map_texture && !data->tile4)
+        return false;
+
+    s32 maskU = 0, maskV = 0;
+
+    if(src == tic_tiles_texture)
+    {
+        maskU = (s32)(TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1);
+        maskV = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1;
+    }
+
+    double miny = v[0]->_.y, maxy = v[0]->_.y;
+
+    for(s32 i = 1; i < 3; i++)
+    {
+        if(v[i]->_.y < miny) miny = v[i]->_.y;
+        if(v[i]->_.y > maxy) maxy = v[i]->_.y;
+    }
+
+    s32 top = (s32)floor(miny);
+    s32 bottom = (s32)ceil(maxy);
+
+    if(top < clip->t) top = clip->t;
+    if(bottom > clip->b) bottom = clip->b;
+
+    if(top >= bottom)
+        return true;
+
+    const double center = 0.5 - FLT_EPSILON;
+    u8* screen = screenData(core);
+
+    for(s32 y = top; y < bottom; y++)
+    {
+        double yc = y + center;
+        double lo = 0.0, hi = 0.0;
+        bool hit = false;
+
+        for(s32 i = 0; i < 3; i++)
+        {
+            const Vec2* a = &v[i]->_;
+            const Vec2* b = &v[(i + 1) % 3]->_;
+
+            if(a->y == b->y)
+                continue;
+
+            double k = (yc - a->y) / (b->y - a->y);
+
+            if(k < 0.0 || k > 1.0)
+                continue;
+
+            double x = a->x + k * (b->x - a->x);
+
+            if(!hit)
+            {
+                lo = hi = x;
+                hit = true;
+            }
+            else
+            {
+                if(x < lo) lo = x;
+                if(x > hi) hi = x;
+            }
+        }
+
+        if(!hit)
+            continue;
+
+        s32 left = (s32)ceil(lo - center);
+        s32 right = (s32)floor(hi - center) + 1;
+
+        if(left < clip->l) left = clip->l;
+        if(right > clip->r) right = clip->r;
+
+        if(left >= right)
+            continue;
+
+        double px = left + center;
+        double w[3], dw[3];
+
+        for(s32 i = 0; i < 3; i++)
+        {
+            const Vec2* a = &v[(i + 1) % 3]->_;
+            const Vec2* b = &v[(i + 2) % 3]->_;
+
+            w[i] = ((b->x - a->x) * (yc - a->y) - (b->y - a->y) * (px - a->x)) / area;
+            dw[i] = (a->y - b->y) / area;
+        }
+
+        double u = w[0] * v[0]->d.x + w[1] * v[1]->d.x + w[2] * v[2]->d.x;
+        double vv = w[0] * v[0]->d.y + w[1] * v[1]->d.y + w[2] * v[2]->d.y;
+        double du = dw[0] * v[0]->d.x + dw[1] * v[1]->d.x + dw[2] * v[2]->d.x;
+        double dv = dw[0] * v[0]->d.y + dw[1] * v[1]->d.y + dw[2] * v[2]->d.y;
+
+        enum
+        {
+            MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE,
+            MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE
+        };
+
+        switch(src)
+        {
+            case tic_tiles_texture:
+                if(data->sheet.segment->peek == tic_tool_peek4 && data->sheet.segment->tile_width == TIC_SPRITESIZE &&
+                   data->sheet.segment->nb_pages == 1 && data->sheet.segment->page_orig == 0)
+                {
+                    u32 bankOrig = data->sheet.segment->bank_orig;
+
+                    for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
+                    {
+                        s32 iu = (s32)floor(u) & maskU;
+                        s32 iv = (s32)floor(vv) & maskV;
+                        u32 tile = ((((iu >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) + ((iu & 127) >> 3);
+                        u32 pix = ((u32)iu & 7) + ((u32)iv & 7) * 8;
+                        u8 color = data->mapping[tic_tool_peek4(data->sheet.ptr, tile * 64 + pix)];
+
+                        if(color != TRANSPARENT_COLOR)
+                            tic_tool_poke4(screen, (u32)pixel, color);
+                    }
+                }
+                else
+                {
+                    for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
+                    {
+                        s32 iu = (s32)floor(u) & maskU;
+                        s32 iv = (s32)floor(vv) & maskV;
+                        u8 color = data->mapping[tic_tilesheet_getpix(&data->sheet, iu, iv)];
+
+                        if(color != TRANSPARENT_COLOR)
+                            tic_tool_poke4(screen, (u32)pixel, color);
+                    }
+                }
+                break;
+
+            case tic_map_texture:
+                for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
+                {
+                    s32 iu = mapWrap((s32)floor(u), MapWidth);
+                    s32 iv = mapWrap((s32)floor(vv), MapHeight);
+                    u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
+                    u32 tile = data->bankOrig * 256 + ((u32)idx >> 4) * 16 + ((u32)idx & 15);
+                    u32 pix = ((u32)iu & 7) + ((u32)iv & 7) * 8;
+                    u8 color = data->mapping[tic_tool_peek4(data->sheet.ptr, tile * 64 + pix)];
+
+                    if(color != TRANSPARENT_COLOR)
+                        tic_tool_poke4(screen, (u32)pixel, color);
+                }
+                break;
+
+            case tic_vbank_texture:
+                for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
+                {
+                    s32 iu = mapWrap((s32)floor(u), TIC80_WIDTH);
+                    s32 iv = mapWrap((s32)floor(vv), TIC80_HEIGHT);
+                    u8 color = data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)];
+
+                    if(color != TRANSPARENT_COLOR)
+                        tic_tool_poke4(screen, (u32)pixel, color);
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    return true;
+}
+
 void tic_api_ttri(tic_mem* tic,
                   float x1, float y1,
                   float x2, float y2,
@@ -1542,7 +1739,7 @@ void tic_api_ttri(tic_mem* tic,
             default: break;
         }
     }
-    else
+    else if(!drawTtriSpans(tic, t, &texData, src))
     {
         switch(src)
         {
