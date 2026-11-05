@@ -1135,6 +1135,8 @@ typedef struct
     const u8* map;
     const tic_vram* vram;
     bool depth;
+    bool tile4;
+    u32 bankOrig;
 } TexData;
 
 static inline bool shaderStart(const ShaderAttr* a, Vec3* vars, s32 pixel)
@@ -1235,6 +1237,83 @@ static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
     return shaderEnd(a, &vars, pixel, data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)]);
 }
 
+static inline void shaderUV(const ShaderAttr* a, Vec3* vars)
+{
+    vars->x = vars->y = 0;
+
+    for(s32 i = 0; i != COUNT_OF(a->v); ++i)
+    {
+        const TexVert* t = (TexVert*)a->v[i];
+        vars->x += a->w.d[i] * t->d.x;
+        vars->y += a->w.d[i] * t->d.y;
+    }
+}
+
+static tic_color triTexTileShaderFlat(const ShaderAttr* a, s32 pixel)
+{
+    (void)pixel;
+
+    TexData* data = a->data;
+
+    Vec3 vars;
+    shaderUV(a, &vars);
+
+    s32 u = (s32)floor(vars.x);
+    s32 v = (s32)floor(vars.y);
+
+    return data->mapping[tic_tilesheet_getpix(&data->sheet, u & (TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1), v & (TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1))];
+}
+
+static tic_color triTexMapShaderFlat(const ShaderAttr* a, s32 pixel)
+{
+    (void)pixel;
+
+    TexData* data = a->data;
+
+    Vec3 vars;
+    shaderUV(a, &vars);
+
+    enum
+    {
+        MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE,
+        MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE,
+        WMask = TIC_SPRITESIZE - 1,
+        HMask = TIC_SPRITESIZE - 1
+    };
+
+    s32 iu = tic_modulo((s32)(floor(vars.x)), MapWidth);
+    s32 iv = tic_modulo((s32)(floor(vars.y)), MapHeight);
+
+    u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
+
+    if(data->tile4)
+    {
+        u32 tile = data->bankOrig * 256 + ((u32)idx >> 4) * 16 + ((u32)idx & 15);
+        u32 pix = ((u32)iu & WMask) + ((u32)iv & HMask) * 8;
+
+        return data->mapping[tic_tool_peek4(data->sheet.ptr, tile * 64 + pix)];
+    }
+
+    tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
+
+    return data->mapping[tic_tilesheet_gettilepix(&tile, iu & WMask, iv & HMask)];
+}
+
+static tic_color triTexVbankShaderFlat(const ShaderAttr* a, s32 pixel)
+{
+    (void)pixel;
+
+    TexData* data = a->data;
+
+    Vec3 vars;
+    shaderUV(a, &vars);
+
+    s32 iu = tic_modulo((s32)(floor(vars.x)), TIC80_WIDTH);
+    s32 iv = tic_modulo((s32)(floor(vars.y)), TIC80_HEIGHT);
+
+    return data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)];
+}
+
 void tic_api_ttri(tic_mem* tic,
                   float x1, float y1,
                   float x2, float y2,
@@ -1258,6 +1337,12 @@ void tic_api_ttri(tic_mem* tic,
             .depth = depth,
         };
 
+    const tic_blit_segment* sheetSegment = texData.sheet.segment;
+    texData.tile4 = sheetSegment->ptr_size == sizeof(tic_tile) && sheetSegment->tile_width == TIC_SPRITESIZE &&
+                    sheetSegment->nb_pages == 1 && sheetSegment->page_orig == 0 &&
+                    sheetSegment->sheet_width == TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE;
+    texData.bankOrig = sheetSegment->bank_orig;
+
     TexVert t[] =
         {
             {._ = {{x1, y1}}, .d = {{u1, v1, z1}}},
@@ -1278,6 +1363,13 @@ void tic_api_ttri(tic_mem* tic,
             [tic_vbank_texture] = triTexVbankShader,
         };
 
+    static const PixelShader ShadersFlat[] =
+        {
+            [tic_tiles_texture] = triTexTileShaderFlat,
+            [tic_map_texture] = triTexMapShaderFlat,
+            [tic_vbank_texture] = triTexVbankShaderFlat,
+        };
+
     // The enum is signed where the compiler keeps int for it (MSVC does), so
     // the cast is what turns a negative source into an out-of-range one.
     const u32 src = (u32)texsrc;
@@ -1287,7 +1379,7 @@ void tic_api_ttri(tic_mem* tic,
                 (const Vec2*)&t[0],
                 (const Vec2*)&t[1],
                 (const Vec2*)&t[2],
-                Shaders[src], &texData);
+                depth ? Shaders[src] : ShadersFlat[src], &texData);
 }
 
 void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, u8 count, s32 scale, RemapFunc remap, void* data)
