@@ -34,66 +34,16 @@ static void reset(void)
         tic_tool_poke4(Tic->ram->vram.mapping, (u32)i, (u8)i);
 }
 
-static u8 pixel(s32 x, s32 y)
-{
-    return tic_tool_peek4(screen(), (u32)(y * TIC80_WIDTH + x));
-}
-
-static void expectPixel(s32 x, s32 y, u8 color)
-{
-    u8 got = pixel(x, y);
-
-    if(got != color)
-    {
-        fprintf(stderr, "pixel (%d,%d) got %u want %u\n", x, y, got, color);
-        assert(false);
-    }
-}
-
-static void expectRect(s32 x, s32 y, s32 width, s32 height, u8 color)
-{
-    for(s32 yy = y; yy < y + height; yy++)
-        for(s32 xx = x; xx < x + width; xx++)
-            assert(pixel(xx, yy) == color);
-}
-
-static void expectBlock(s32 x, s32 y, u8 color)
-{
-    for(s32 yy = y; yy < y + TIC_SPRITESIZE; yy++)
-        for(s32 xx = x; xx < x + TIC_SPRITESIZE; xx++)
-            expectPixel(xx, yy, color);
-}
-
-static void expectBorder(s32 x, s32 y, s32 width, s32 height, u8 color)
-{
-    for(s32 xx = x; xx < x + width; xx++)
-    {
-        assert(pixel(xx, y) == color);
-        assert(pixel(xx, y + height - 1) == color);
-    }
-
-    for(s32 yy = y; yy < y + height; yy++)
-    {
-        assert(pixel(x, yy) == color);
-        assert(pixel(x + width - 1, yy) == color);
-    }
-}
-
 static void fillTile(tic_tile* tile, u8 color)
 {
     for(s32 i = 0; i < TIC_SPRITESIZE * TIC_SPRITESIZE; i++)
         tic_tool_poke4(tile->data, (u32)i, color);
 }
 
-static s32 countColor(u8 color)
+static void patternTile(tic_tile* tile, s32 seed)
 {
-    s32 count = 0;
-
-    for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-        if(tic_tool_peek4(screen(), (u32)i) == color)
-            count++;
-
-    return count;
+    for(s32 i = 0; i < TIC_SPRITESIZE * TIC_SPRITESIZE; i++)
+        tic_tool_poke4(tile->data, (u32)i, (u8)((i * 7 + seed * 3) % 15 + 1));
 }
 
 static u8 expected[TIC80_WIDTH * TIC80_HEIGHT];
@@ -767,44 +717,11 @@ static void testClip(void)
 static void testPix(void)
 {
     reset();
-
     tic_api_pix(Tic, 10, 20, 5, false);
-    expectPixel(10, 20, 5);
-    expectPixel(9, 20, 0);
-    expectPixel(11, 20, 0);
-    expectPixel(10, 19, 0);
-    expectPixel(10, 21, 0);
-
     assert(tic_api_pix(Tic, 10, 20, 0, true) == 5);
     assert(tic_api_pix(Tic, -1, 0, 0, true) == 0);
     assert(tic_api_pix(Tic, TIC80_WIDTH, 0, 0, true) == 0);
     assert(tic_api_pix(Tic, 0, TIC80_HEIGHT, 0, true) == 0);
-
-    // Out-of-range writes are clipped.
-    tic_api_pix(Tic, -1, 0, 7, false);
-    tic_api_pix(Tic, TIC80_WIDTH, 0, 7, false);
-    tic_api_pix(Tic, 0, -1, 7, false);
-    tic_api_pix(Tic, 0, TIC80_HEIGHT, 7, false);
-
-    // The palette maps the colour on the way in.
-    tic_tool_poke4(Tic->ram->vram.mapping, 5, 9);
-    tic_api_pix(Tic, 30, 40, 5, false);
-    expectPixel(30, 40, 9);
-
-    reset();
-
-    // The clip rectangle decides which pixels are written.
-    tic_api_clip(Tic, 10, 10, 3, 3);
-    tic_api_pix(Tic, 9, 10, 6, false);
-    tic_api_pix(Tic, 10, 10, 6, false);
-    tic_api_pix(Tic, 12, 12, 6, false);
-    tic_api_pix(Tic, 13, 12, 6, false);
-    tic_api_pix(Tic, 12, 13, 6, false);
-    expectPixel(9, 10, 0);
-    expectPixel(10, 10, 6);
-    expectPixel(12, 12, 6);
-    expectPixel(13, 12, 0);
-    expectPixel(12, 13, 0);
 
     // The whole frame: every write the reference makes, and nothing else.
     reset();
@@ -820,89 +737,33 @@ static void testPix(void)
     refPixel(TIC80_WIDTH - 1, TIC80_HEIGHT - 1, 2);
     expectFrame("pix frame");
 
+    // The clip rectangle decides which pixels are written.
+    reset();
+    refReset();
+    tic_api_clip(Tic, 10, 10, 3, 3);
+    tic_api_pix(Tic, 9, 10, 6, false);
+    tic_api_pix(Tic, 10, 10, 6, false);
+    tic_api_pix(Tic, 12, 12, 6, false);
+    tic_api_pix(Tic, 13, 12, 6, false);
+    tic_api_pix(Tic, 12, 13, 6, false);
+    refPixel(10, 10, 6);
+    refPixel(12, 12, 6);
+    expectFrame("pix clip frame");
+
     reset();
     puts("pix ok");
 }
 
 static void testRect(void)
 {
-    reset();
-
-    tic_api_rect(Tic, 10, 20, 5, 3, 7);
-    expectRect(10, 20, 5, 3, 7);
-    expectPixel(9, 20, 0);
-    expectPixel(15, 20, 0);
-    expectPixel(10, 19, 0);
-    expectPixel(10, 23, 0);
-
     // Zero and negative extents write nothing.
     reset();
+    refReset();
     tic_api_rect(Tic, 10, 10, 0, 10, 7);
     tic_api_rect(Tic, 10, 10, 10, 0, 7);
     tic_api_rect(Tic, 10, 10, -5, 10, 7);
     tic_api_rect(Tic, 10, 10, 10, -5, 7);
-    assert(tic_tool_empty(screen(), sizeof(tic_screen)));
-
-    // The clip trims the rectangle.
-    reset();
-    tic_api_clip(Tic, 12, 21, 2, 1);
-    tic_api_rect(Tic, 10, 20, 5, 3, 7);
-    expectPixel(12, 21, 7);
-    expectPixel(13, 21, 7);
-    expectPixel(11, 21, 0);
-    expectPixel(14, 21, 0);
-    expectPixel(12, 20, 0);
-    expectPixel(12, 22, 0);
-
-    // The palette maps the colour on the way in.
-    reset();
-    tic_tool_poke4(Tic->ram->vram.mapping, 3, 11);
-    tic_api_rect(Tic, 0, 0, 2, 2, 3);
-    expectRect(0, 0, 2, 2, 11);
-
-    // The row fill meets odd starts and both screen edges.
-    reset();
-    tic_api_rect(Tic, 1, 0, 1, 1, 7);
-    tic_api_rect(Tic, 0, 1, 3, 1, 7);
-    tic_api_rect(Tic, 239, 2, 1, 1, 7);
-    tic_api_rect(Tic, 238, 3, 5, 1, 7);
-    expectPixel(1, 0, 7);
-    expectPixel(0, 1, 7);
-    expectPixel(1, 1, 7);
-    expectPixel(2, 1, 7);
-    expectPixel(3, 1, 0);
-    expectPixel(239, 2, 7);
-    expectPixel(238, 3, 7);
-    expectPixel(239, 3, 7);
-    expectPixel(237, 3, 0);
-
-    // An odd start and an odd end go through the edge nibbles.
-    reset();
-    tic_api_rect(Tic, 1, 60, 10, 1, 7);
-    for(s32 x = 1; x <= 10; x++)
-        expectPixel(x, 60, 7);
-    expectPixel(0, 60, 0);
-    expectPixel(11, 60, 0);
-
-    tic_api_rect(Tic, 1, 61, 239, 1, 7);
-    for(s32 x = 1; x < TIC80_WIDTH; x++)
-        expectPixel(x, 61, 7);
-    expectPixel(0, 61, 0);
-
-    // A whole row and the whole screen.
-    reset();
-    tic_api_rect(Tic, 0, 50, TIC80_WIDTH, 1, 7);
-    for(s32 x = 0; x < TIC80_WIDTH; x++)
-        expectPixel(x, 50, 7);
-
-    expectPixel(0, 49, 0);
-    expectPixel(TIC80_WIDTH - 1, 49, 0);
-    expectPixel(0, 51, 0);
-    expectPixel(TIC80_WIDTH - 1, 51, 0);
-
-    reset();
-    tic_api_rect(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 7);
-    expectRect(0, 0, TIC80_WIDTH, TIC80_HEIGHT, 7);
+    expectFrame("rect empty frame");
 
     // The whole frame for a set of rectangles.
     reset();
@@ -951,56 +812,18 @@ static void testRect(void)
 
 static void testRectb(void)
 {
+    // A one-pixel and a zero-size border.
     reset();
-
-    tic_api_rectb(Tic, 10, 20, 5, 4, 7);
-    expectBorder(10, 20, 5, 4, 7);
-    expectPixel(11, 21, 0);
-    expectPixel(13, 22, 0);
-    expectPixel(9, 20, 0);
-    expectPixel(15, 20, 0);
-    expectPixel(10, 19, 0);
-    expectPixel(10, 24, 0);
-
-    // The clip trims the border: only its top row crosses this clip.
-    reset();
-    tic_api_clip(Tic, 12, 20, 1, 1);
-    tic_api_rectb(Tic, 10, 20, 5, 4, 7);
-    expectPixel(12, 20, 7);
-    expectPixel(11, 20, 0);
-    expectPixel(13, 20, 0);
-    expectPixel(12, 19, 0);
-    expectPixel(12, 21, 0);
-
-    // A clip that crosses the vertical edges exercises their y-clamp.
-    reset();
-    tic_api_clip(Tic, 10, 22, 2, 4);
-    tic_api_rectb(Tic, 10, 20, 5, 10, 7);
-    expectPixel(10, 22, 7);
-    expectPixel(10, 23, 7);
-    expectPixel(10, 24, 7);
-    expectPixel(10, 25, 7);
-    expectPixel(10, 21, 0);
-    expectPixel(10, 26, 0);
-    expectPixel(11, 22, 0);
-
-    // A zero-size border writes nothing; a 1x1 border is one pixel.
-    reset();
-    tic_api_rectb(Tic, 10, 20, 0, 0, 7);
-    assert(tic_tool_empty(screen(), sizeof(tic_screen)));
-
-    reset();
+    refReset();
     tic_api_rectb(Tic, 10, 20, 1, 1, 7);
-    expectPixel(10, 20, 7);
-    expectPixel(11, 20, 0);
-    expectPixel(10, 21, 0);
+    refRectb(10, 20, 1, 1, 7);
+    expectFrame("rectb 1x1 frame");
 
-    // The border meets both screen edges.
     reset();
-    tic_api_rectb(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 7);
-    expectBorder(0, 0, TIC80_WIDTH, TIC80_HEIGHT, 7);
-    expectPixel(1, 1, 0);
-    expectPixel(TIC80_WIDTH - 2, TIC80_HEIGHT - 2, 0);
+    refReset();
+    tic_api_rectb(Tic, 10, 20, 0, 0, 7);
+    refRectb(10, 20, 0, 0, 7);
+    expectFrame("rectb empty frame");
 
     // The whole frame for the border cases.
     reset();
@@ -1035,55 +858,6 @@ static void testRectb(void)
 
 static void testCls(void)
 {
-    reset();
-
-    // A full-screen cls overwrites every nibble.
-    for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-        tic_tool_poke4(screen(), (u32)i, (u8)(i & 0xf));
-
-    tic_api_cls(Tic, 4);
-
-    for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-        assert(tic_tool_peek4(screen(), (u32)i) == 4);
-
-    // A clipped cls touches only the clip and leaves the rest alone.
-    reset();
-    tic_api_pix(Tic, 0, 0, 9, false);
-    tic_api_clip(Tic, 10, 20, 3, 2);
-    tic_api_cls(Tic, 4);
-    expectPixel(10, 20, 4);
-    expectPixel(12, 21, 4);
-    expectPixel(9, 20, 0);
-    expectPixel(13, 20, 0);
-    expectPixel(10, 19, 0);
-    expectPixel(10, 22, 0);
-    expectPixel(0, 0, 9);
-
-    // A clipped cls wide enough for the row fill; an inverted clip draws
-    // nothing and must not zero ZBuffer by a negative size.
-    reset();
-    tic_api_clip(Tic, 10, 20, 7, 2);
-    tic_api_cls(Tic, 4);
-    for(s32 y = 20; y < 22; y++)
-        for(s32 x = 10; x < 17; x++)
-            expectPixel(x, y, 4);
-    expectPixel(17, 20, 0);
-    expectPixel(10, 19, 0);
-    expectPixel(10, 22, 0);
-
-    reset();
-    tic_api_clip(Tic, 10, 20, -5, 6);
-    tic_api_cls(Tic, 4);
-    tic_api_rect(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 7);
-    assert(tic_tool_empty(screen(), sizeof(tic_screen)));
-
-    // The palette maps the colour on the way in.
-    reset();
-    tic_tool_poke4(Tic->ram->vram.mapping, 4, 12);
-    tic_api_cls(Tic, 4);
-    expectPixel(0, 0, 12);
-    expectPixel(TIC80_WIDTH - 1, TIC80_HEIGHT - 1, 12);
-
     // The whole frame for the clipped and palette cases.
     reset();
     refReset();
@@ -1121,31 +895,6 @@ static void testCls(void)
 
 static void testCirc(void)
 {
-    reset();
-    tic_api_circ(Tic, 120, 68, 10, 7);
-    expectPixel(120, 68, 7);
-    expectPixel(120, 60, 7);
-    expectPixel(120, 57, 0);
-    expectPixel(109, 68, 0);
-    expectPixel(131, 68, 0);
-
-    // The clip trims the filled circle.
-    reset();
-    tic_api_clip(Tic, 110, 60, 5, 5);
-    tic_api_circ(Tic, 120, 68, 20, 7);
-    expectPixel(110, 60, 7);
-    expectPixel(114, 64, 7);
-    expectPixel(109, 60, 0);
-    expectPixel(115, 60, 0);
-    expectPixel(110, 59, 0);
-    expectPixel(110, 65, 0);
-
-    // The palette maps the colour on the way in.
-    reset();
-    tic_tool_poke4(Tic->ram->vram.mapping, 7, 3);
-    tic_api_circ(Tic, 120, 68, 5, 7);
-    expectPixel(120, 68, 3);
-
     // The whole frame against the frozen scanline reference.
     reset();
     refReset();
@@ -1166,23 +915,6 @@ static void testCirc(void)
 
 static void testElli(void)
 {
-    reset();
-    tic_api_elli(Tic, 120, 68, 30, 20, 7);
-    expectPixel(120, 68, 7);
-    expectPixel(95, 68, 7);
-    expectPixel(120, 78, 7);
-    expectPixel(120, 89, 0);
-    expectPixel(89, 68, 0);
-
-    // The clip trims the filled ellipse.
-    reset();
-    tic_api_clip(Tic, 110, 60, 4, 4);
-    tic_api_elli(Tic, 120, 68, 30, 20, 7);
-    expectPixel(110, 60, 7);
-    expectPixel(113, 63, 7);
-    expectPixel(109, 60, 0);
-    expectPixel(114, 60, 0);
-
     // The whole frame against the frozen scanline reference.
     reset();
     refReset();
@@ -1203,25 +935,6 @@ static void testElli(void)
 
 static void testRrect(void)
 {
-    reset();
-    tic_api_rrect(Tic, 60, 38, 120, 60, 7, 12, 0);
-    expectPixel(120, 68, 7);
-    expectPixel(60, 68, 7);
-    expectPixel(120, 38, 7);
-    expectPixel(59, 68, 0);
-    expectPixel(120, 37, 0);
-    expectPixel(60, 38, 0);
-    expectPixel(179, 97, 0);
-
-    // The clip trims the filled rounded rectangle.
-    reset();
-    tic_api_clip(Tic, 110, 60, 4, 4);
-    tic_api_rrect(Tic, 60, 38, 120, 60, 7, 12, 0);
-    expectPixel(110, 60, 7);
-    expectPixel(113, 63, 7);
-    expectPixel(109, 60, 0);
-    expectPixel(114, 60, 0);
-
     // The whole frame against the frozen capsule reference.
     reset();
     refReset();
@@ -1299,16 +1012,6 @@ static void testTri(void)
 
 static void testTrib(void)
 {
-    reset();
-    tic_api_trib(Tic, 10, 10, 30, 10, 10, 30, 7);
-    expectPixel(10, 10, 7);
-    expectPixel(30, 10, 7);
-    expectPixel(10, 30, 7);
-    expectPixel(12, 12, 0);
-    expectPixel(20, 12, 0);
-    expectPixel(9, 10, 0);
-    expectPixel(31, 10, 0);
-
     // The whole frame: the three edges, nothing else.
     reset();
     refReset();
@@ -1327,91 +1030,159 @@ static void testTrib(void)
     expectFrame("trib offscreen frame");
 
     reset();
+    refReset();
+    tic_api_clip(Tic, 15, 15, 5, 5);
+    tic_api_trib(Tic, 0, 0, 40, 0, 0, 40, 7);
+    refLine(0, 0, 40, 0, 7);
+    refLine(40, 0, 0, 40, 7);
+    refLine(0, 40, 0, 0, 7);
+    expectFrame("trib clipped frame");
+
+    reset();
     puts("trib ok");
+}
+
+// The tile-pointer formula, frozen here: the segment read is checked
+// against the documented layout, not against the API's own helper.
+static u8 refTilePixSeg(s32 index, bool local, s32 x, s32 y)
+{
+    u8 segmentId = Tic->ram->vram.blit.segment;
+    u8* base = segmentId <= 1 ? (u8*)&Tic->ram->font : (u8*)&Tic->ram->tiles.data;
+    tic_tilesheet sheet = tic_tilesheet_get(segmentId, base);
+    const tic_blit_segment* segment = sheet.segment;
+
+    s32 bank, page, iy, ix;
+
+    if(local)
+    {
+        index &= 255;
+        bank = segment->bank_orig;
+        page = segment->page_orig;
+        iy = index / 16;
+        ix = index % 16;
+    }
+    else
+    {
+        s32 bankIndex = index % segment->bank_size;
+        bank = (index / segment->bank_size + segment->bank_orig) % 2;
+        page = ((bankIndex % segment->sheet_width) / 16 + segment->page_orig) % segment->nb_pages;
+        iy = (bankIndex / segment->sheet_width) % 16;
+        ix = (bankIndex % segment->sheet_width) % 16;
+    }
+
+    s32 xdiv = ix / segment->nb_pages;
+    u32 ptrOffset = (u32)((bank * 16 + iy) * 16 + page * 16 / segment->nb_pages + xdiv);
+    const u8* ptr = sheet.ptr + segment->ptr_size * ptrOffset;
+    u32 addr = (u32)(ix % segment->nb_pages) * 8 + (u32)x + (u32)y * segment->tile_width;
+
+    return segment->peek(ptr, addr);
+}
+
+static void refSpriteSeg(s32 index, s32 x, s32 y, u8 background, const u8* trans, s32 count)
+{
+    refReset();
+
+    if(background)
+        refCls(background);
+
+    for(s32 py = 0; py < TIC_SPRITESIZE; py++)
+        for(s32 px = 0; px < TIC_SPRITESIZE; px++)
+        {
+            u8 color = refTilePixSeg(index, false, px, py);
+
+            if(!refTransparent(color, trans, count))
+                refPixel(x + px, y + py, color);
+        }
+}
+
+static void refMapSeg(s32 index, s32 x, s32 y)
+{
+    refReset();
+
+    for(s32 py = 0; py < TIC_SPRITESIZE; py++)
+        for(s32 px = 0; px < TIC_SPRITESIZE; px++)
+            refPixel(x + px, y + py, refTilePixSeg(index, true, px, py));
 }
 
 static void testSpriteSegments(void)
 {
-    // The banks hold distinct colours, so a wrong bank shows.
+    // The banks hold distinct colours; every case compares the whole frame
+    // with the frozen segment read.
     reset();
     memset(Tic->ram->tiles.data, 0x11, sizeof(Tic->ram->tiles));
     memset(Tic->ram->sprites.data, 0x22, sizeof(Tic->ram->sprites));
 
     Tic->ram->vram.blit.segment = 2;
     tic_api_spr(Tic, 0, 10, 10, 1, 1, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    expectBlock(10, 10, 1);
-    expectPixel(9, 10, 0);
-    expectPixel(18, 10, 0);
+    refSpriteSeg(0, 10, 10, 0, NULL, 0);
+    expectFrame("spr 4bpp bg frame");
 
     reset();
     Tic->ram->vram.blit.segment = 3;
     tic_api_spr(Tic, 0, 10, 10, 1, 1, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    expectBlock(10, 10, 2);
+    refSpriteSeg(0, 10, 10, 0, NULL, 0);
+    expectFrame("spr 4bpp fg frame");
 
-    // 2bpp: page 1 reads tile 8 of the bank; a byte holds four pixels, so
-    // one colour is 0x55 (1) or 0xaa (2), not 0x11/0x22.
+    // 2bpp: page 1 reads tile 8 of the bank.
     reset();
     memset(Tic->ram->tiles.data, 0x55, sizeof(Tic->ram->tiles));
     memset(Tic->ram->tiles.data[8].data, 0xaa, sizeof(tic_tile));
 
     Tic->ram->vram.blit.segment = 4;
     tic_api_spr(Tic, 0, 10, 10, 1, 1, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    expectBlock(10, 10, 1);
+    refSpriteSeg(0, 10, 10, 0, NULL, 0);
+    expectFrame("spr 2bpp p0 frame");
 
     reset();
     Tic->ram->vram.blit.segment = 5;
     tic_api_spr(Tic, 0, 10, 10, 1, 1, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    expectBlock(10, 10, 2);
+    refSpriteSeg(0, 10, 10, 0, NULL, 0);
+    expectFrame("spr 2bpp p1 frame");
 
-    // 1bpp: page p reads tile 4p; colours are 0 and 1 only, so the screen
-    // starts at 7 to tell an opaque zero from the background.
+    // 1bpp: page p reads tile 4p; the screen starts at 7 to tell an opaque
+    // zero from the background.
     memset(Tic->ram->tiles.data, 0xff, sizeof(Tic->ram->tiles));
     memset(Tic->ram->tiles.data[4].data, 0x00, sizeof(tic_tile));
     memset(Tic->ram->tiles.data[12].data, 0x00, sizeof(tic_tile));
 
-    static const struct
-    {
-        u8 segment;
-        u8 color;
-    } pages[] = {{8, 1}, {9, 0}, {10, 1}, {11, 0}};
+    static const u8 pages[] = {8, 9, 10, 11};
 
     for(s32 i = 0; i < (s32)(sizeof(pages) / sizeof(pages[0])); i++)
     {
         reset();
         tic_api_cls(Tic, 7);
-        Tic->ram->vram.blit.segment = pages[i].segment;
+        Tic->ram->vram.blit.segment = pages[i];
         tic_api_spr(Tic, 0, 10, 10, 1, 1, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-        expectBlock(10, 10, pages[i].color);
-        expectPixel(9, 10, 7);
+        refSpriteSeg(0, 10, 10, 7, NULL, 0);
+        expectFrame("spr 1bpp p0 frame");
     }
 
-    // 1bpp fg: bank 1 lives at sprites, page 0 reads tile 0 there.
+    // 1bpp fg: bank 1 lives at the sprites.
     reset();
     memset(Tic->ram->tiles.data, 0x00, sizeof(Tic->ram->tiles));
     memset(Tic->ram->sprites.data, 0xff, sizeof(Tic->ram->sprites));
     tic_api_cls(Tic, 7);
     Tic->ram->vram.blit.segment = 12;
     tic_api_spr(Tic, 0, 10, 10, 1, 1, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    expectBlock(10, 10, 1);
+    refSpriteSeg(0, 10, 10, 7, NULL, 0);
+    expectFrame("spr 1bpp fg frame");
 
     // An odd destination x takes the generic path, not the 4bpp pair fill.
     reset();
     memset(Tic->ram->tiles.data, 0x11, sizeof(Tic->ram->tiles));
-    memset(Tic->ram->sprites.data, 0x22, sizeof(Tic->ram->sprites));
     Tic->ram->vram.blit.segment = 2;
     tic_api_spr(Tic, 0, 11, 10, 1, 1, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    expectBlock(11, 10, 1);
-    expectPixel(10, 10, 0);
-    expectPixel(19, 10, 0);
+    refSpriteSeg(0, 11, 10, 0, NULL, 0);
+    expectFrame("spr odd x frame");
 
     // The map path reads the same segment.
     reset();
     memset(Tic->ram->tiles.data, 0x55, sizeof(Tic->ram->tiles));
-    memset(Tic->ram->sprites.data, 0x22, sizeof(Tic->ram->sprites));
     memset(Tic->ram->map.data, 0, sizeof(Tic->ram->map));
     Tic->ram->vram.blit.segment = 4;
     tic_api_map(Tic, 0, 0, 1, 1, 0, 0, NULL, 0, 1, NULL, NULL);
-    expectBlock(0, 0, 1);
+    refMapSeg(0, 0, 0);
+    expectFrame("map segment frame");
 
     memset(Tic->ram->tiles.data, 0, sizeof(Tic->ram->tiles));
     memset(Tic->ram->sprites.data, 0, sizeof(Tic->ram->sprites));
@@ -1429,45 +1200,252 @@ static void drawTtri(tic_texture_src src, float z, bool depth)
                  z, z, z, depth);
 }
 
+static void drawTtriUV(tic_texture_src src, float u1, float v1, float u2, float v2, float u3, float v3)
+{
+    tic_api_ttri(Tic, 10, 10, 30, 10, 10, 30,
+                 u1, v1, u2, v2, u3, v3,
+                 src, NULL, 0,
+                 0, 0, 0, false);
+}
+
+static void drawTtriZ(tic_texture_src src, float z, float u1, float v1, float u2, float v2, float u3, float v3)
+{
+    tic_api_ttri(Tic, 10, 10, 30, 10, 10, 30,
+                 u1, v1, u2, v2, u3, v3,
+                 src, NULL, 0,
+                 z, z, z, true);
+}
+
+// The tilesheet pixel formula, frozen here so the API's read is checked
+// against the documented layout rather than against its own helper.
+static u8 refSheetPix(s32 x, s32 y)
+{
+    u8 segmentId = Tic->ram->vram.blit.segment;
+    u8* base = segmentId <= 1 ? (u8*)&Tic->ram->font : (u8*)&Tic->ram->tiles.data;
+    tic_tilesheet sheet = tic_tilesheet_get(segmentId, base);
+    const tic_blit_segment* segment = sheet.segment;
+
+    u32 bank_offset = ((((y >> 7) + segment->bank_orig) & 1) << 8);
+    u32 page_offset = ((((x >> 7) + segment->page_orig) % segment->nb_pages) << 4) / segment->nb_pages;
+    u16 tile_index = (u16)(bank_offset + (((y & 127) >> 3) << 4) + page_offset + ((x & 127) / segment->tile_width));
+    u32 pix_addr = (x & (segment->tile_width - 1)) + ((y & 7) * segment->tile_width);
+
+    return segment->peek(sheet.ptr + tile_index * segment->ptr_size, pix_addr);
+}
+
+static u8 refSampleTile(s32 iu, s32 iv)
+{
+    u8 segmentId = Tic->ram->vram.blit.segment;
+    u8* base = segmentId <= 1 ? (u8*)&Tic->ram->font : (u8*)&Tic->ram->tiles.data;
+    tic_tilesheet sheet = tic_tilesheet_get(segmentId, base);
+    s32 maskU = TIC_SPRITESHEET_SIZE * sheet.segment->nb_pages - 1;
+    s32 maskV = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1;
+
+    return refSheetPix(iu & maskU, iv & maskV);
+}
+
+static s32 refWrap(s32 value, s32 size)
+{
+    return ((value % size) + size) % size;
+}
+
+static u8 refSampleMap(s32 iu, s32 iv)
+{
+    enum
+    {
+        MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE,
+        MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE
+    };
+
+    tic_tilesheet sheet = tic_tilesheet_get(Tic->ram->vram.blit.segment, (u8*)&Tic->ram->tiles.data);
+    s32 mu = refWrap(iu, MapWidth), mv = refWrap(iv, MapHeight);
+    u8 idx = Tic->ram->map.data[(mv >> 3) * TIC_MAP_WIDTH + (mu >> 3)];
+
+    if(sheet.segment->peek == tic_tool_peek4 && sheet.segment->tile_width == TIC_SPRITESIZE)
+    {
+        u32 tile = sheet.segment->bank_orig * 256 + ((u32)idx >> 4) * 16 + ((u32)idx & 15);
+        u32 pix = (u32)(mu & 7) + (u32)(mv & 7) * 8;
+
+        return tic_tool_peek4(sheet.ptr, tile * 64 + pix);
+    }
+
+    tic_tileptr tile = tic_tilesheet_gettile(&sheet, idx, true);
+
+    return tic_tilesheet_gettilepix(&tile, mu & 7, mv & 7);
+}
+
+static u8 refSampleVbank(s32 iu, s32 iv)
+{
+    s32 mu = refWrap(iu, TIC80_WIDTH), mv = refWrap(iv, TIC80_HEIGHT);
+
+    return tic_tool_peek4(core()->state.vbank.mem.screen.data, (u32)(mv * TIC80_WIDTH + mu));
+}
+
+// The whole frame of the textured triangle: the reference interpolates the
+// UV from the same barycentric weights and samples the patterned data.
+static void refTtriAt(tic_texture_src src, u8 background, float x1, float y1, float x2, float y2, float x3, float y3,
+                      float u1, float v1, float u2, float v2, float u3, float v3)
+{
+    memset(expected, 0, sizeof(expected));
+
+    if(background)
+        refCls(background);
+
+    double ax = x1, ay = y1, bx = x2, by = y2, cx = x3, cy = y3;
+    double au = u1, av = v1, bu = u2, bv = v2, cu = u3, cv = v3;
+    double area = refEdge(ax, ay, bx, by, cx, cy);
+
+    if((s32)floor(area) == 0)
+        return;
+
+    if(area < 0.0)
+    {
+        double t = bx;
+        bx = cx, cx = t;
+        t = by;
+        by = cy, cy = t;
+        t = bu;
+        bu = cu, cu = t;
+        t = bv;
+        bv = cv, cv = t;
+        area = -area;
+    }
+
+    const double center = 0.5 - FLT_EPSILON;
+    const s32 l = core()->state.clip.l, t = core()->state.clip.t;
+    const s32 r = core()->state.clip.r, b = core()->state.clip.b;
+
+    for(s32 y = t; y < b; y++)
+        for(s32 x = l; x < r; x++)
+        {
+            double px = x + center, py = y + center;
+            double w0 = refEdge(bx, by, cx, cy, px, py) / area;
+            double w1 = refEdge(cx, cy, ax, ay, px, py) / area;
+            double w2 = refEdge(ax, ay, bx, by, px, py) / area;
+
+            if(w0 > -DBL_EPSILON && w1 > -DBL_EPSILON && w2 > -DBL_EPSILON)
+            {
+                s32 iu = (s32)floor(w0 * au + w1 * bu + w2 * cu);
+                s32 iv = (s32)floor(w0 * av + w1 * bv + w2 * cv);
+
+                u8 color = src == tic_tiles_texture ? refSampleTile(iu, iv)
+                           : src == tic_map_texture ? refSampleMap(iu, iv)
+                                                    : refSampleVbank(iu, iv);
+
+                expected[y * TIC80_WIDTH + x] = tic_tool_peek4(Tic->ram->vram.mapping, color);
+            }
+        }
+}
+
+static void refTtri(tic_texture_src src, float u1, float v1, float u2, float v2, float u3, float v3)
+{
+    refTtriAt(src, 0, 10, 10, 30, 10, 10, 30, u1, v1, u2, v2, u3, v3);
+}
+
+static double refDepth[TIC80_WIDTH * TIC80_HEIGHT];
+
+static void refDepthReset(void)
+{
+    memset(refDepth, 0, sizeof(refDepth));
+}
+
+// The perspective-correct depth path: the API divides the UVs by z, stores
+// 1/z per vertex and keeps the smaller 1/z per pixel.
+static void refTtriDepth(tic_texture_src src, float z1, float z2, float z3,
+                         float u1, float v1, float u2, float v2, float u3, float v3)
+{
+    double ax = 10, ay = 10, bx = 30, by = 10, cx = 10, cy = 30;
+    double au = u1 / z1, av = v1 / z1, aw = 1.0 / z1;
+    double bu = u2 / z2, bv = v2 / z2, bw = 1.0 / z2;
+    double cu = u3 / z3, cv = v3 / z3, cw = 1.0 / z3;
+    double area = refEdge(ax, ay, bx, by, cx, cy);
+
+    if((s32)floor(area) == 0)
+        return;
+
+    if(area < 0.0)
+    {
+        double t = bx;
+        bx = cx, cx = t;
+        t = by;
+        by = cy, cy = t;
+        t = bu;
+        bu = cu, cu = t;
+        t = bv;
+        bv = cv, cv = t;
+        t = bw;
+        bw = cw, cw = t;
+        area = -area;
+    }
+
+    const double center = 0.5 - FLT_EPSILON;
+    const s32 l = core()->state.clip.l, t = core()->state.clip.t;
+    const s32 r = core()->state.clip.r, b = core()->state.clip.b;
+
+    for(s32 y = t; y < b; y++)
+        for(s32 x = l; x < r; x++)
+        {
+            double px = x + center, py = y + center;
+            double w0 = refEdge(bx, by, cx, cy, px, py) / area;
+            double w1 = refEdge(cx, cy, ax, ay, px, py) / area;
+            double w2 = refEdge(ax, ay, bx, by, px, py) / area;
+
+            if(w0 > -DBL_EPSILON && w1 > -DBL_EPSILON && w2 > -DBL_EPSILON)
+            {
+                double wz = w0 * aw + w1 * bw + w2 * cw;
+                s32 p = y * TIC80_WIDTH + x;
+
+                if(refDepth[p] >= wz)
+                    continue;
+
+                s32 iu = (s32)floor((w0 * au + w1 * bu + w2 * cu) / wz);
+                s32 iv = (s32)floor((w0 * av + w1 * bv + w2 * cv) / wz);
+                u8 color = src == tic_tiles_texture ? refSampleTile(iu, iv)
+                           : src == tic_map_texture ? refSampleMap(iu, iv)
+                                                    : refSampleVbank(iu, iv);
+
+                if(color != 255)
+                {
+                    expected[p] = tic_tool_peek4(Tic->ram->vram.mapping, color);
+                    refDepth[p] = wz;
+                }
+            }
+        }
+}
+
 static void testTtri(void)
 {
-    // Tile texture: a uniform 4bpp tile reads as colour 7.
+    // A patterned sheet: the whole frame, UV mapping included.
     reset();
-    memset(Tic->ram->tiles.data, 0x77, sizeof(Tic->ram->tiles));
+    memset(Tic->ram->tiles.data, 0, sizeof(Tic->ram->tiles));
+    patternTile(&Tic->ram->tiles.data[0], 0);
+    patternTile(&Tic->ram->tiles.data[1], 1);
+    patternTile(&Tic->ram->tiles.data[16], 2);
+    patternTile(&Tic->ram->tiles.data[17], 3);
     Tic->ram->vram.blit.segment = 2;
-    drawTtri(tic_tiles_texture, 0, false);
-    expectPixel(12, 12, 7);
-    expectPixel(20, 12, 7);
-    expectPixel(12, 20, 7);
-    expectPixel(9, 10, 0);
-    expectPixel(30, 30, 0);
-
-    // The full frame: same coverage and colours as the flat triangle.
-    reset();
-    memset(Tic->ram->tiles.data, 0x77, sizeof(Tic->ram->tiles));
-    Tic->ram->vram.blit.segment = 2;
-    drawTtri(tic_tiles_texture, 0, false);
-    refTri(10, 10, 30, 10, 10, 30, 7);
+    drawTtriUV(tic_tiles_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
+    refTtri(tic_tiles_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
     expectFrame("ttri tiles frame");
 
-    // The palette maps the sampled colour.
+    // The mask wraps negative and high UVs into the sheet.
     reset();
-    memset(Tic->ram->tiles.data, 0x77, sizeof(Tic->ram->tiles));
-    Tic->ram->vram.blit.segment = 2;
+    drawTtriUV(tic_tiles_texture, -1.5f, 0.5f, 13.5f, 0.5f, -1.5f, 15.5f);
+    refTtri(tic_tiles_texture, -1.5f, 0.5f, 13.5f, 0.5f, -1.5f, 15.5f);
+    expectFrame("ttri tiles wrap frame");
+
+    // The palette maps the sampled colours.
+    reset();
     tic_tool_poke4(Tic->ram->vram.mapping, 7, 3);
-    drawTtri(tic_tiles_texture, 0, false);
-    expectPixel(12, 12, 3);
+    drawTtriUV(tic_tiles_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
+    refTtri(tic_tiles_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
+    expectFrame("ttri palette frame");
 
     // The clip trims the triangle.
     reset();
-    memset(Tic->ram->tiles.data, 0x77, sizeof(Tic->ram->tiles));
-    Tic->ram->vram.blit.segment = 2;
     tic_api_clip(Tic, 15, 15, 5, 5);
-    drawTtri(tic_tiles_texture, 0, false);
-    expectPixel(15, 15, 7);
-    expectPixel(19, 19, 7);
-    expectPixel(14, 15, 0);
-    expectPixel(20, 15, 0);
+    drawTtriUV(tic_tiles_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
+    refTtri(tic_tiles_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
+    expectFrame("ttri clip frame");
 
     // 2bpp pages: a byte holds four pixels, so 0x55 is colour 1 and 0xaa
     // colour 2; page 1 reads tile 8 of the bank.
@@ -1476,12 +1454,15 @@ static void testTtri(void)
     memset(Tic->ram->tiles.data[8].data, 0xaa, sizeof(tic_tile));
 
     Tic->ram->vram.blit.segment = 4;
-    drawTtri(tic_tiles_texture, 0, false);
-    expectPixel(12, 12, 1);
+    drawTtriUV(tic_tiles_texture, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    refTtri(tic_tiles_texture, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    expectFrame("ttri tiles 2bpp p0 frame");
 
+    reset();
     Tic->ram->vram.blit.segment = 5;
-    drawTtri(tic_tiles_texture, 0, false);
-    expectPixel(12, 12, 2);
+    drawTtriUV(tic_tiles_texture, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    refTtri(tic_tiles_texture, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    expectFrame("ttri tiles 2bpp p1 frame");
 
     // 1bpp pages: page p reads tile 4p; the screen starts at 7 to tell an
     // opaque zero from the background.
@@ -1489,72 +1470,121 @@ static void testTtri(void)
     memset(Tic->ram->tiles.data[4].data, 0x00, sizeof(tic_tile));
     memset(Tic->ram->tiles.data[12].data, 0x00, sizeof(tic_tile));
 
-    static const struct
-    {
-        u8 segment;
-        u8 color;
-    } pages[] = {{8, 1}, {9, 0}, {10, 1}, {11, 0}};
+    static const u8 pages[] = {8, 9, 10, 11};
 
     for(s32 i = 0; i < (s32)(sizeof(pages) / sizeof(pages[0])); i++)
     {
         reset();
         tic_api_cls(Tic, 7);
-        Tic->ram->vram.blit.segment = pages[i].segment;
-        drawTtri(tic_tiles_texture, 0, false);
-        expectPixel(12, 12, pages[i].color);
+        Tic->ram->vram.blit.segment = pages[i];
+        drawTtriUV(tic_tiles_texture, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+        refTtriAt(tic_tiles_texture, 7, 10, 10, 30, 10, 10, 30, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+        expectFrame("ttri tiles 1bpp frame");
     }
 
-    // 4bpp fg: bank 1 lives at the sprites, colour 2.
+    // 4bpp fg: bank 1 lives at the sprites.
     reset();
     memset(Tic->ram->tiles.data, 0x11, sizeof(Tic->ram->tiles));
     memset(Tic->ram->sprites.data, 0x22, sizeof(Tic->ram->sprites));
     Tic->ram->vram.blit.segment = 3;
-    drawTtri(tic_tiles_texture, 0, false);
-    expectPixel(12, 12, 2);
+    drawTtriUV(tic_tiles_texture, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    refTtri(tic_tiles_texture, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    expectFrame("ttri tiles 4bpp fg frame");
 
-    // Map texture: tile 0 of the map, 4bpp.
+    // A map region of four patterned cells.
     reset();
-    memset(Tic->ram->tiles.data, 0x77, sizeof(Tic->ram->tiles));
+    memset(Tic->ram->tiles.data, 0, sizeof(Tic->ram->tiles));
+    patternTile(&Tic->ram->tiles.data[0], 0);
+    patternTile(&Tic->ram->tiles.data[1], 1);
+    patternTile(&Tic->ram->tiles.data[16], 2);
+    patternTile(&Tic->ram->tiles.data[17], 3);
     memset(Tic->ram->map.data, 0, sizeof(Tic->ram->map));
+    Tic->ram->map.data[0] = 0;
+    Tic->ram->map.data[1] = 1;
+    Tic->ram->map.data[TIC_MAP_WIDTH] = 16;
+    Tic->ram->map.data[TIC_MAP_WIDTH + 1] = 17;
     Tic->ram->vram.blit.segment = 2;
-    drawTtri(tic_map_texture, 0, false);
-    expectPixel(12, 12, 7);
-    refTri(10, 10, 30, 10, 10, 30, 7);
+    drawTtriUV(tic_map_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
+    refTtri(tic_map_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
     expectFrame("ttri map frame");
 
-    // The generic map path on a 2bpp page draws the same frame.
+    // The generic map path on a 2bpp page.
     reset();
-    memset(Tic->ram->tiles.data, 0xff, sizeof(Tic->ram->tiles));
-    memset(Tic->ram->sprites.data, 0xff, sizeof(Tic->ram->sprites));
+    memset(Tic->ram->tiles.data, 0x55, sizeof(Tic->ram->tiles));
+    memset(Tic->ram->tiles.data[1].data, 0xaa, sizeof(tic_tile));
+    memset(Tic->ram->tiles.data[2].data, 0xff, sizeof(tic_tile));
+    memset(Tic->ram->tiles.data[3].data, 0x00, sizeof(tic_tile));
     memset(Tic->ram->map.data, 0, sizeof(Tic->ram->map));
+    Tic->ram->map.data[0] = 0;
+    Tic->ram->map.data[1] = 1;
+    Tic->ram->map.data[TIC_MAP_WIDTH] = 2;
+    Tic->ram->map.data[TIC_MAP_WIDTH + 1] = 3;
     Tic->ram->vram.blit.segment = 4;
-    drawTtri(tic_map_texture, 0, false);
-    refTri(10, 10, 30, 10, 10, 30, 3);
+    drawTtriUV(tic_map_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
+    refTtri(tic_map_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
     expectFrame("ttri map 2bpp frame");
 
-    // Vbank texture: the current vbank's screen is the texture.
+    // The vbank texture is the screen, patterned here.
     reset();
-    memset(core()->state.vbank.mem.screen.data, 0x77, sizeof(tic_screen));
-    drawTtri(tic_vbank_texture, 0, false);
-    expectPixel(12, 12, 7);
-    refTri(10, 10, 30, 10, 10, 30, 7);
+    memset(core()->state.vbank.mem.screen.data, 0, sizeof(tic_screen));
+
+    for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
+        tic_tool_poke4(core()->state.vbank.mem.screen.data, (u32)i, (u8)((i / 3) % 15 + 1));
+
+    drawTtriUV(tic_vbank_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
+    refTtri(tic_vbank_texture, 0.5f, 0.5f, 15.5f, 0.5f, 0.5f, 15.5f);
     expectFrame("ttri vbank frame");
 
-    // Depth: ttri stores 1/z, so a smaller z (nearer) wins.
+    // The benchmark's wide triangle over patterned data: the UV gradients
+    // that exposed the fixed-point sampling difference.
     reset();
-    memset(Tic->ram->tiles.data, 0x77, sizeof(Tic->ram->tiles));
+    memset(Tic->ram->tiles.data, 0, sizeof(Tic->ram->tiles));
+    memset(Tic->ram->map.data, 0, sizeof(Tic->ram->map));
+    memset(Tic->ram->sprites.data, 0, sizeof(Tic->ram->sprites));
+
+    for(s32 t = 0; t < TIC_BANK_SPRITES; t++)
+        for(s32 i = 0; i < TIC_SPRITESIZE * TIC_SPRITESIZE; i++)
+            tic_tool_poke4(Tic->ram->tiles.data[t].data, (u32)i, (u8)((i * 3 + t * 5) % 15 + 1));
+
+    for(s32 i = 0; i < TIC_MAP_WIDTH * TIC_MAP_HEIGHT; i++)
+        Tic->ram->map.data[i] = (u8)((i * 7) % TIC_BANK_SPRITES);
+
+    Tic->ram->vram.blit.segment = 2;
+    tic_api_ttri(Tic, 20, 20, TIC80_WIDTH - 20, 30, TIC80_WIDTH / 2, TIC80_HEIGHT - 10,
+                 0, 0, 64, 0, 32, 64,
+                 tic_map_texture, NULL, 0, 0, 0, 0, false);
+    refTtriAt(tic_map_texture, 0, 20, 20, TIC80_WIDTH - 20, 30, TIC80_WIDTH / 2, TIC80_HEIGHT - 10,
+              0, 0, 64, 0, 32, 64);
+    expectFrame("ttri map wide frame");
+
+    reset();
+    tic_api_ttri(Tic, 20, 20, TIC80_WIDTH - 20, 30, TIC80_WIDTH / 2, TIC80_HEIGHT - 10,
+                 0, 0, 64, 0, 32, 64,
+                 tic_tiles_texture, NULL, 0, 0, 0, 0, false);
+    refTtriAt(tic_tiles_texture, 0, 20, 20, TIC80_WIDTH - 20, 30, TIC80_WIDTH / 2, TIC80_HEIGHT - 10,
+              0, 0, 64, 0, 32, 64);
+    expectFrame("ttri tiles wide frame");
+
+    // Depth: ttri stores 1/z, so a smaller z (nearer) wins; every frame.
+    reset();
+    memset(Tic->ram->tiles.data, 0, sizeof(Tic->ram->tiles));
+    patternTile(&Tic->ram->tiles.data[0], 0);
     Tic->ram->vram.blit.segment = 2;
     tic_api_cls(Tic, 0);
-    drawTtri(tic_tiles_texture, 2, true);
-    expectPixel(12, 12, 7);
+    refDepthReset();
+    refCls(0);
 
-    memset(Tic->ram->tiles.data, 0x33, sizeof(Tic->ram->tiles));
-    drawTtri(tic_tiles_texture, 1, true);
-    expectPixel(12, 12, 3);
+    drawTtriZ(tic_tiles_texture, 2, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    refTtriDepth(tic_tiles_texture, 2, 2, 2, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    expectFrame("ttri depth first frame");
 
-    memset(Tic->ram->tiles.data, 0x55, sizeof(Tic->ram->tiles));
-    drawTtri(tic_tiles_texture, 3, true);
-    expectPixel(12, 12, 3);
+    drawTtriZ(tic_tiles_texture, 1, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    refTtriDepth(tic_tiles_texture, 1, 1, 1, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    expectFrame("ttri depth near frame");
+
+    drawTtriZ(tic_tiles_texture, 3, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    refTtriDepth(tic_tiles_texture, 3, 3, 3, 0.5f, 0.5f, 7.5f, 0.5f, 0.5f, 7.5f);
+    expectFrame("ttri depth far frame");
 
     memset(Tic->ram->tiles.data, 0, sizeof(Tic->ram->tiles));
     memset(Tic->ram->sprites.data, 0, sizeof(Tic->ram->sprites));
@@ -1566,50 +1596,11 @@ static void testTtri(void)
 
 static void testSpriteMap(void)
 {
-    reset();
     fillTile(&Tic->ram->tiles.data[0], 1);
     fillTile(&Tic->ram->tiles.data[1], 2);
     fillTile(&Tic->ram->tiles.data[16], 3);
     fillTile(&Tic->ram->tiles.data[17], 4);
     Tic->ram->vram.blit.segment = 2;
-
-    // A 2x2 sprite reads tiles 0, 1, 16 and 17.
-    tic_api_spr(Tic, 0, 10, 20, 2, 2, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    expectPixel(10, 20, 1);
-    expectPixel(18, 20, 2);
-    expectPixel(10, 28, 3);
-    expectPixel(18, 28, 4);
-    expectPixel(25, 35, 4);
-
-    // The horizontal flip swaps the tile columns.
-    reset();
-    tic_api_spr(Tic, 0, 10, 20, 2, 2, NULL, 0, 1, tic_horz_flip, tic_no_rotate);
-    expectPixel(10, 20, 2);
-    expectPixel(18, 20, 1);
-    expectPixel(10, 28, 4);
-    expectPixel(18, 28, 3);
-
-    // A chroma colour is transparent.
-    reset();
-    u8 chroma[] = {1};
-    tic_api_spr(Tic, 0, 10, 20, 2, 2, chroma, 1, 1, tic_no_flip, tic_no_rotate);
-    expectPixel(10, 20, 0);
-    expectPixel(18, 20, 2);
-    expectPixel(10, 28, 3);
-    expectPixel(18, 28, 4);
-
-    // A 2x2 map region reads the same four tiles.
-    reset();
-    memset(Tic->ram->map.data, 0, sizeof(Tic->ram->map));
-    Tic->ram->map.data[0] = 0;
-    Tic->ram->map.data[1] = 1;
-    Tic->ram->map.data[TIC_MAP_WIDTH] = 16;
-    Tic->ram->map.data[TIC_MAP_WIDTH + 1] = 17;
-    tic_api_map(Tic, 0, 0, 2, 2, 10, 20, NULL, 0, 1, NULL, NULL);
-    expectPixel(10, 20, 1);
-    expectPixel(18, 20, 2);
-    expectPixel(10, 28, 3);
-    expectPixel(18, 28, 4);
 
     // The whole frame: the 2x2 block, then one patterned tile through every
     // orientation and scale.
@@ -1618,6 +1609,13 @@ static void testSpriteMap(void)
     tic_api_spr(Tic, 0, 10, 20, 2, 2, NULL, 0, 1, tic_no_flip, tic_no_rotate);
     refSprite(0, 10, 20, 2, 2, 1, tic_no_flip, tic_no_rotate, NULL, 0);
     expectFrame("spr 2x2 frame");
+
+    reset();
+    refReset();
+    tic_api_clip(Tic, 12, 22, 4, 4);
+    tic_api_spr(Tic, 0, 10, 20, 2, 2, NULL, 0, 1, tic_no_flip, tic_no_rotate);
+    refSprite(0, 10, 20, 2, 2, 1, tic_no_flip, tic_no_rotate, NULL, 0);
+    expectFrame("spr clip frame");
 
     for(s32 y = 0; y < TIC_SPRITESIZE; y++)
         for(s32 x = 0; x < TIC_SPRITESIZE; x++)
@@ -1663,35 +1661,6 @@ static void testSpriteMap(void)
 
 static void testLine(void)
 {
-    reset();
-    tic_api_line(Tic, 10, 10, 20, 10, 7);
-    for(s32 x = 10; x <= 20; x++)
-        expectPixel(x, 10, 7);
-    expectPixel(9, 10, 0);
-    expectPixel(21, 10, 0);
-
-    reset();
-    tic_api_line(Tic, 10, 20, 10, 30, 7);
-    for(s32 y = 20; y <= 30; y++)
-        expectPixel(10, y, 7);
-    expectPixel(10, 19, 0);
-    expectPixel(10, 31, 0);
-
-    reset();
-    tic_api_line(Tic, 10, 10, 20, 20, 7);
-    for(s32 i = 0; i <= 10; i++)
-        expectPixel(10 + i, 10 + i, 7);
-    expectPixel(9, 10, 0);
-
-    // The clip trims the line.
-    reset();
-    tic_api_clip(Tic, 12, 10, 5, 1);
-    tic_api_line(Tic, 10, 10, 20, 10, 7);
-    for(s32 x = 12; x < 17; x++)
-        expectPixel(x, 10, 7);
-    expectPixel(11, 10, 0);
-    expectPixel(17, 10, 0);
-
     // The whole frame against the reference line.
     reset();
     refReset();
@@ -1730,36 +1699,19 @@ static void testLine(void)
 
 static void testEllipseBorders(void)
 {
-    reset();
-    tic_api_circb(Tic, 120, 68, 10, 7);
-    assert(countColor(7) > 0);
-    expectPixel(120, 68, 0);
-    expectPixel(100, 68, 0);
-    expectPixel(140, 68, 0);
-
-    reset();
-    tic_api_ellib(Tic, 120, 68, 30, 20, 7);
-    assert(countColor(7) > 0);
-    expectPixel(120, 68, 0);
-    expectPixel(80, 68, 0);
-    expectPixel(160, 68, 0);
-
-    reset();
-    tic_api_rrectb(Tic, 60, 38, 120, 60, 7, 12, 0);
-    assert(countColor(7) > 0);
-    expectPixel(120, 38, 7);
-    expectPixel(120, 98, 7);
-    expectPixel(60, 68, 7);
-    expectPixel(180, 68, 7);
-    expectPixel(120, 68, 0);
-    expectPixel(60, 38, 0);
-
     // The whole frame against the frozen references.
     reset();
     refReset();
     tic_api_circb(Tic, 120, 68, 10, 7);
     refCircb(120, 68, 10, 7);
     expectFrame("circb frame");
+
+    reset();
+    refReset();
+    tic_api_clip(Tic, 110, 60, 20, 20);
+    tic_api_circb(Tic, 120, 68, 10, 7);
+    refCircb(120, 68, 10, 7);
+    expectFrame("circb clip frame");
 
     reset();
     refReset();
@@ -1784,48 +1736,88 @@ static void testEllipseBorders(void)
     puts("ellipse borders ok");
 }
 
+// The non-fixed print: drawChar trims the empty glyph columns and advances
+// by the trimmed width plus one.
+static void refPrintNonFixed(const char* text, s32 x, s32 y, u8 color, s32 scale, bool alt)
+{
+    tic_tilesheet face = refSheet(1);
+    const tic_font_data* font = alt ? &Tic->ram->font.alt : &Tic->ram->font.regular;
+    s32 width = font->width - 2;
+    s32 pos = x;
+
+    for(const char* p = text; *p; p++)
+    {
+        char sym = *p;
+
+        if(sym == '\n')
+        {
+            pos = x;
+            y += font->height * scale;
+            continue;
+        }
+
+        tic_tileptr tile = tic_tilesheet_gettile(&face, (alt ? TIC_FONT_CHARS : 0) + (u8)sym, true);
+        s32 start = 0, end = TIC_SPRITESIZE, j;
+
+        for(s32 i = 0; i < TIC_SPRITESIZE; i++)
+        {
+            for(j = 0; j < TIC_SPRITESIZE; j++)
+                if(tic_tilesheet_gettilepix(&tile, i, j) == 1) break;
+            if(j < TIC_SPRITESIZE) break;
+            start++;
+        }
+
+        for(s32 i = TIC_SPRITESIZE - 1; i >= start; i--)
+        {
+            for(j = 0; j < TIC_SPRITESIZE; j++)
+                if(tic_tilesheet_gettilepix(&tile, i, j) == 1) break;
+            if(j < TIC_SPRITESIZE) break;
+            end--;
+        }
+
+        s32 size = end - start;
+
+        for(s32 i = 0; i < size; i++)
+            for(s32 gy = 0; gy < TIC_SPRITESIZE; gy++)
+                if(tic_tilesheet_gettilepix(&tile, start + i, gy) == 1)
+                    refRect(pos + i * scale, y + gy * scale, scale, scale, color);
+
+        pos += (size ? size + 1 : width) * scale;
+    }
+}
+
 static void testPrintFont(void)
 {
-    // print draws the system font and returns the advance.
+    // print draws the system font; the whole frame checks the trimmed
+    // glyph placement and the advance.
     reset();
+    refReset();
     s32 width = tic_api_print(Tic, "A", 10, 10, 15, false, 1, false);
     assert(width > 0);
-    assert(countColor(15) > 0);
-    expectPixel(0, 0, 0);
+    refPrintNonFixed("A", 10, 10, 15, 1, false);
+    expectFrame("print frame");
 
-    // A scaled fixed glyph has more pixels.
     reset();
-    width = tic_api_print(Tic, "A", 10, 10, 15, true, 2, false);
+    refReset();
+    width = tic_api_print(Tic, "A B", 10, 10, 15, false, 2, false);
     assert(width > 0);
-    assert(countColor(15) > 4);
+    refPrintNonFixed("A B", 10, 10, 15, 2, false);
+    expectFrame("print space frame");
 
-    // The alt font is a separate face.
     reset();
-    width = tic_api_print(Tic, "A", 10, 10, 15, false, 1, true);
+    refReset();
+    width = tic_api_print(Tic, "A\nB", 10, 10, 15, false, 1, true);
     assert(width > 0);
-    assert(countColor(15) > 0);
+    refPrintNonFixed("A\nB", 10, 10, 15, 1, true);
+    expectFrame("print alt newline frame");
 
-    // The custom font reads the sprite sheet (segment 2 -> fg bank).
+    // The custom font reads the sprite sheet (segment 2 -> fg bank); the
+    // fixed frame covers the face and the alt index.
     reset();
     memset(Tic->ram->sprites.data, 0x77, sizeof(Tic->ram->sprites));
     Tic->ram->vram.blit.segment = 2;
     width = tic_api_font(Tic, "A", 10, 10, NULL, 0, 8, 8, true, 1, false);
     assert(width == 8);
-
-    for(s32 y = 10; y < 18; y++)
-        for(s32 x = 10; x < 18; x++)
-            expectPixel(x, y, 7);
-
-    expectPixel(9, 10, 0);
-    expectPixel(18, 10, 0);
-
-    // The alt index selects the second half of the sheet.
-    reset();
-    memset(Tic->ram->sprites.data, 0x77, sizeof(Tic->ram->sprites));
-    Tic->ram->vram.blit.segment = 2;
-    width = tic_api_font(Tic, "A", 10, 10, NULL, 0, 8, 8, true, 1, true);
-    assert(width == 8);
-    expectPixel(10, 10, 7);
 
     // The whole frame: glyph placement, advance and the mapping, fixed mode.
     reset();
@@ -1869,44 +1861,6 @@ static void testPrintFont(void)
 
 static void testPaint(void)
 {
-    // A whole-screen fill bounded by the screen border.
-    reset();
-    tic_api_rectb(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 1);
-    tic_api_paint(Tic, 120, 68, 15, 1);
-    expectPixel(0, 0, 1);
-    expectPixel(TIC80_WIDTH - 1, TIC80_HEIGHT - 1, 1);
-    expectPixel(1, 1, 15);
-    expectPixel(TIC80_WIDTH - 2, TIC80_HEIGHT - 2, 15);
-    expectPixel(120, 68, 15);
-
-    // A region bounded by a border.
-    reset();
-    tic_api_rectb(Tic, 50, 40, 100, 50, 1);
-    tic_api_paint(Tic, 100, 65, 15, 1);
-    expectPixel(50, 40, 1);
-    expectPixel(149, 89, 1);
-    expectPixel(51, 41, 15);
-    expectPixel(148, 88, 15);
-    expectPixel(49, 40, 0);
-    expectPixel(150, 65, 0);
-
-    // The clip bounds the fill.
-    reset();
-    tic_api_rectb(Tic, 50, 40, 100, 50, 1);
-    tic_api_clip(Tic, 60, 50, 20, 10);
-    tic_api_paint(Tic, 70, 55, 15, 1);
-    expectPixel(60, 50, 15);
-    expectPixel(79, 59, 15);
-    expectPixel(59, 50, 0);
-    expectPixel(80, 50, 0);
-    expectPixel(60, 49, 0);
-    expectPixel(60, 60, 0);
-
-    // A seed already in the fill colour does nothing.
-    reset();
-    tic_api_paint(Tic, 120, 68, 0, 1);
-    assert(tic_tool_empty(screen(), sizeof(tic_screen)));
-
     // The whole frame for the fills, from the API's own pre-state.
     reset();
     tic_api_rectb(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 1);
