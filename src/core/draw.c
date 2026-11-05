@@ -282,6 +282,94 @@ static void drawTilePairs(tic_core* core, const u8* ptr, u32 offset, u32 tileWid
     }
 }
 
+static inline u8 tileRaw(const u8* ptr, bool is4bpp, bool is2bpp, bool is1bpp, u8 (*peek)(const void*, u32), u32 addr)
+{
+    return is4bpp   ? tic_tool_peek4(ptr, addr)
+           : is2bpp ? tic_tool_peek2(ptr, addr)
+           : is1bpp ? tic_tool_peek1(ptr, addr)
+                    : peek(ptr, addr);
+}
+
+// Flipped and rotated tiles: the source address of the destination pair
+// steps by a constant, so two pixels still go into one screen byte.
+static void drawTilePairsOriented(tic_core* core, const u8* ptr, u32 offset, u32 tileWidth,
+                                  bool is4bpp, bool is2bpp, bool is1bpp, u8 (*peek)(const void*, u32),
+                                  u32 orientation, const u8* mapping, bool opaque,
+                                  s32 x, s32 y, s32 sx, s32 sy, s32 ex, s32 ey)
+{
+    u8* screen = screenData(core);
+
+    s32 dPix = 0;
+
+    switch(orientation)
+    {
+        case 0: dPix = 1; break;
+        case 1: dPix = -1; break;
+        case 2: dPix = 1; break;
+        case 3: dPix = -1; break;
+        case 4: dPix = (s32)tileWidth; break;
+        case 5: dPix = -(s32)tileWidth; break;
+        case 6: dPix = (s32)tileWidth; break;
+        case 7: dPix = -(s32)tileWidth; break;
+    }
+
+    for(s32 py = sy; py < ey; py++, y++)
+    {
+        s32 ix = 0, iy = 0;
+
+        switch(orientation)
+        {
+            case 0: ix = sx, iy = py; break;
+            case 1: ix = TIC_SPRITESIZE - 1 - sx, iy = py; break;
+            case 2: ix = sx, iy = TIC_SPRITESIZE - 1 - py; break;
+            case 3: ix = TIC_SPRITESIZE - 1 - sx, iy = TIC_SPRITESIZE - 1 - py; break;
+            case 4: ix = py, iy = sx; break;
+            case 5: ix = py, iy = TIC_SPRITESIZE - 1 - sx; break;
+            case 6: ix = TIC_SPRITESIZE - 1 - py, iy = sx; break;
+            case 7: ix = TIC_SPRITESIZE - 1 - py, iy = TIC_SPRITESIZE - 1 - sx; break;
+        }
+
+        u32 addr = offset + (u32)(ix + iy * (s32)tileWidth);
+        s32 px = sx;
+        s32 dest = x;
+
+        if(dest & 1)
+        {
+            u8 color = mapping[tileRaw(ptr, is4bpp, is2bpp, is1bpp, peek, addr)];
+
+            if(color != TRANSPARENT_COLOR)
+                tic_tool_poke4(screen, (u32)(y * TIC80_WIDTH + dest), color);
+
+            px++;
+            dest++;
+            addr = (u32)((s32)addr + dPix);
+        }
+
+        for(; px + 1 < ex; px += 2, dest += 2, addr = (u32)((s32)addr + 2 * dPix))
+        {
+            u8 m0 = mapping[tileRaw(ptr, is4bpp, is2bpp, is1bpp, peek, addr)];
+            u8 m1 = mapping[tileRaw(ptr, is4bpp, is2bpp, is1bpp, peek, (u32)((s32)addr + dPix))];
+
+            if(opaque)
+                screen[(y * TIC80_WIDTH + dest) >> 1] = m0 | (m1 << 4);
+            else
+            {
+                u8* dst = &screen[(y * TIC80_WIDTH + dest) >> 1];
+                u8 byte = (m0 != TRANSPARENT_COLOR ? m0 : (*dst & 0xf)) | (m1 != TRANSPARENT_COLOR ? (m1 << 4) : (*dst & 0xf0));
+                *dst = byte;
+            }
+        }
+
+        if(px < ex)
+        {
+            u8 color = mapping[tileRaw(ptr, is4bpp, is2bpp, is1bpp, peek, addr)];
+
+            if(color != TRANSPARENT_COLOR)
+                tic_tool_poke4(screen, (u32)(y * TIC80_WIDTH + dest), color);
+        }
+    }
+}
+
 // clang-format off
 #define DRAW_TILE_BODY(X, Y) do {\
     for(s32 py=sy; py < ey; py++, y++) \
@@ -342,7 +430,7 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* mappin
         y += sy;
         x += sx;
 
-        if(orientation == 0 && (is4bpp || is2bpp || is1bpp) && (destX & 1) == 0)
+        if((destX & 1) == 0 && (is4bpp || is2bpp || is1bpp))
         {
             bool opaque = true;
 
@@ -353,7 +441,7 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* mappin
                     break;
                 }
 
-            if(is4bpp)
+            if(orientation == 0 && is4bpp)
             {
                 if((offset & 1) == 0)
                 {
@@ -361,9 +449,15 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* mappin
                     return;
                 }
             }
-            else
+            else if(orientation == 0)
             {
                 drawTilePairs(core, ptr, offset, tileWidth, is2bpp, mapping, opaque, x, y, sx, sy, ex, ey);
+                return;
+            }
+            else
+            {
+                drawTilePairsOriented(core, ptr, offset, tileWidth, is4bpp, is2bpp, is1bpp, peek,
+                                      orientation, mapping, opaque, x, y, sx, sy, ex, ey);
                 return;
             }
         }
@@ -379,6 +473,30 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* mappin
             case 1: DRAW_TILE_BODY(REVERT(px), py); break;
             case 3: DRAW_TILE_BODY(REVERT(px), REVERT(py)); break;
         }
+        return;
+    }
+
+    if(scale == 2 && orientation == 0 && (x & 1) == 0 &&
+       x >= core->state.clip.l && y >= core->state.clip.t &&
+       x + TIC_SPRITESIZE * scale <= core->state.clip.r && y + TIC_SPRITESIZE * scale <= core->state.clip.b)
+    {
+        u8* screen = screenData(core);
+
+        for(s32 py = 0; py < TIC_SPRITESIZE; py++)
+            for(s32 px = 0; px < TIC_SPRITESIZE; px++)
+            {
+                u32 addr = offset + (u32)(px + py * (s32)tileWidth);
+                u8 color = mapping[tileRaw(ptr, is4bpp, is2bpp, is1bpp, peek, addr)];
+
+                if(color == TRANSPARENT_COLOR)
+                    continue;
+
+                u8 byte = (u8)(color | (color << 4));
+                s32 dx = x + px * scale, dy = y + py * scale;
+
+                screen[(dy * TIC80_WIDTH + dx) >> 1] = byte;
+                screen[((dy + 1) * TIC80_WIDTH + dx) >> 1] = byte;
+            }
         return;
     }
 
