@@ -233,6 +233,55 @@ static void drawTile4(tic_core* core, const u8* ptr, u32 offset, const u8* mappi
     }
 }
 
+// The 2bpp/1bpp pair fill: two source pixels per screen byte, like the
+// 4bpp path, with the same transparent read-modify-write.
+static void drawTilePairs(tic_core* core, const u8* ptr, u32 offset, u32 tileWidth, bool is2bpp,
+                          const u8* mapping, bool opaque, s32 x, s32 y, s32 sx, s32 sy, s32 ex, s32 ey)
+{
+    u8* screen = screenData(core);
+
+    for(s32 py = sy; py < ey; py++, y++)
+    {
+        s32 px = sx;
+        s32 dest = x;
+        u32 row = offset + (u32)(py * tileWidth);
+
+        if(dest & 1)
+        {
+            u8 color = mapping[is2bpp ? tic_tool_peek2(ptr, row + (u32)px) : tic_tool_peek1(ptr, row + (u32)px)];
+
+            if(color != TRANSPARENT_COLOR)
+                tic_tool_poke4(screen, (u32)(y * TIC80_WIDTH + dest), color);
+
+            px++;
+            dest++;
+        }
+
+        for(; px + 1 < ex; px += 2, dest += 2)
+        {
+            u8 m0 = mapping[is2bpp ? tic_tool_peek2(ptr, row + (u32)px) : tic_tool_peek1(ptr, row + (u32)px)];
+            u8 m1 = mapping[is2bpp ? tic_tool_peek2(ptr, row + (u32)(px + 1)) : tic_tool_peek1(ptr, row + (u32)(px + 1))];
+
+            if(opaque)
+                screen[(y * TIC80_WIDTH + dest) >> 1] = m0 | (m1 << 4);
+            else
+            {
+                u8* dst = &screen[(y * TIC80_WIDTH + dest) >> 1];
+                u8 byte = (m0 != TRANSPARENT_COLOR ? m0 : (*dst & 0xf)) | (m1 != TRANSPARENT_COLOR ? (m1 << 4) : (*dst & 0xf0));
+                *dst = byte;
+            }
+        }
+
+        if(px < ex)
+        {
+            u8 color = mapping[is2bpp ? tic_tool_peek2(ptr, row + (u32)px) : tic_tool_peek1(ptr, row + (u32)px)];
+
+            if(color != TRANSPARENT_COLOR)
+                tic_tool_poke4(screen, (u32)(y * TIC80_WIDTH + dest), color);
+        }
+    }
+}
+
 // clang-format off
 #define DRAW_TILE_BODY(X, Y) do {\
     for(s32 py=sy; py < ey; py++, y++) \
@@ -293,7 +342,7 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* mappin
         y += sy;
         x += sx;
 
-        if(orientation == 0 && is4bpp && (offset & 1) == 0 && (destX & 1) == 0)
+        if(orientation == 0 && (is4bpp || is2bpp || is1bpp) && (destX & 1) == 0)
         {
             bool opaque = true;
 
@@ -304,8 +353,19 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* mappin
                     break;
                 }
 
-            drawTile4(core, ptr, offset, mapping, opaque, x, y, sx, sy, ex, ey);
-            return;
+            if(is4bpp)
+            {
+                if((offset & 1) == 0)
+                {
+                    drawTile4(core, ptr, offset, mapping, opaque, x, y, sx, sy, ex, ey);
+                    return;
+                }
+            }
+            else
+            {
+                drawTilePairs(core, ptr, offset, tileWidth, is2bpp, mapping, opaque, x, y, sx, sy, ex, ey);
+                return;
+            }
         }
 
         switch(orientation)
