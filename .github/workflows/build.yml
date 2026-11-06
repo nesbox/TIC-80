@@ -912,11 +912,10 @@ jobs:
             build/bin/tic80.exe
 
   sdl-linux:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_MAXSIZE: 500M
-
     steps:
       - uses: actions/checkout@v6
         with:
@@ -927,11 +926,17 @@ jobs:
         with:
           ruby-version: 2.6
 
-      - name: Install
+      - name: Install Dependencies and Clang 19
         run: |
           sudo apt-get update
-          # What the SDL build and the studio itself need; the shipping jobs
-          # carry sokol's X11 link line instead.
+          # Install LLVM/Clang 19 repository and compiler
+          sudo apt-get install -y software-properties-common wget
+          wget -O - https://llvm.org | sudo gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] http://llvm.org llvm-toolchain-noble-19 main" | sudo tee /etc/apt/sources.list.d/llvm.list
+          sudo apt-get update
+          sudo apt-get install -y clang-19 lld-19
+        
+          # What the SDL build and the studio itself need
           sudo apt-get install -y libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev
           command -v ninja >/dev/null || sudo apt-get install -y ninja-build
           command -v ccache >/dev/null || sudo apt-get install -y ccache
@@ -946,7 +951,16 @@ jobs:
         run: |
           set -euo pipefail
           start=$SECONDS
-          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_SOKOL=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_C_COMPILER=clang-19 \
+            -DCMAKE_CXX_COMPILER=clang++-19 \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SDL=ON \
+            -DBUILD_SOKOL=OFF \
+            -DBUILD_SDLGPU=On \
+            -DBUILD_WITH_ALL=ON
           cmake --build build --parallel
           echo "sdl build: $((SECONDS - start))s"
           du -h build/bin/tic80
@@ -957,6 +971,7 @@ jobs:
           name: "tic80-linux-sdl"
           path: |
             build/bin/tic80
+
 
   sdl-macos:
     runs-on: macos-15
