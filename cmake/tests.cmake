@@ -562,12 +562,6 @@ if(BUILD_TESTS)
     # numbers depend on the benchmark's own source rather than the drawing code.
     if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(api-bench PRIVATE -fno-lto)
-    elseif(MSVC)
-        # The MSVC counterpart of -fno-lto: keep the bench itself out of /GL.
-        set_target_properties(api-bench PROPERTIES
-            INTERPROCEDURAL_OPTIMIZATION OFF
-            INTERPROCEDURAL_OPTIMIZATION_RELEASE OFF)
-        set_property(TARGET api-bench APPEND_STRING PROPERTY LINK_FLAGS " /LTCG")
     endif()
 
     # The comparison reads the tool's own earlier output. The browser runtime's
