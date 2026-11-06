@@ -1821,7 +1821,7 @@ static void initModules(Studio* studio)
 
     for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
     {
-        initSprite(studio->banks.sprite[i], &spriteDeps, &tic->cart.banks[i].tiles);
+        initSprite(studio->banks.sprite[i], &spriteDeps, &tic->cart.banks[i].tiles, &tic->cart.banks[i].palette);
         sprite_set_view(studio->banks.sprite[i], &studio->spriteView);
         initMap(studio->banks.map[i], &mapDeps, &tic->cart.banks[i].map);
         map_set_view(studio->banks.map[i], &studio->mapView);

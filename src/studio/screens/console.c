@@ -223,7 +223,7 @@ static const struct HotkeysRowSpriteEditor
         {"CTRL+LEFT/RIGHT", "Switch sheet page."},
         {"[]", "Choose previous/next palette color."},
         {"-/=", "Change brush size."},
-        {"SCROLL", "Canvas zoom."},
+        {"SCROLL", "Sheet: canvas; canvas: brush."},
         {"1", "Select brush."},
         {"2", "Select color picker."},
         {"3", "Select selection tool."},

@@ -101,6 +101,7 @@ struct Sprite
     {
         bool edit;
         bool vbank1;
+        bool drag;
         s32 focus;
         const tic_palette* preview;
     } palette;
@@ -130,6 +131,7 @@ struct Sprite
     } mode;
 
     struct History* history;
+    struct History* paletteHistory;
     bool needsHistoryUpdate;
 
     struct
@@ -158,7 +160,7 @@ typedef struct
 
 extern const ClipboardOps SpriteClipboard;
 
-void initSprite(Sprite*, const SpriteDeps*, tic_tiles* src);
+void initSprite(Sprite*, const SpriteDeps*, tic_tiles* src, tic_palettes* palettes);
 void sprite_set_view(Sprite*, const SpriteView*);
 void sprite_tick(Sprite*);
 void sprite_scanline(tic_mem* tic, s32 row, void* data);
@@ -178,4 +180,5 @@ void spriteSetBpp(Sprite*, tic_bpp);
 void spriteSetSize(Sprite*, s32 size);
 void spriteSetBrushSize(Sprite*, s32 size);
 void spriteSetMode(Sprite*, s32 mode);
+void spritePaletteChanged(Sprite*);
 void spriteToolAction(Sprite*, s32 tool);

@@ -96,4 +96,5 @@ enum
     tic_icon_tinyflipvert = 149,
     tic_icon_tinyerase = 150,
     tic_icon_tinyrotate = 151,
+    tic_icon_palette = 152,
 };
