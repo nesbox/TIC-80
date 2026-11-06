@@ -10,23 +10,19 @@ include(cmake/version.cmake)
 
 project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LANGUAGES C CXX)
 
-include(CheckIPOSupported)
-check_ipo_supported(RESULT TIC80_IPO OUTPUT TIC80_IPO_OUTPUT LANGUAGES C CXX)
+if(MSVC)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT TIC80_IPO OUTPUT TIC80_IPO_OUTPUT LANGUAGES C CXX)
 
-if(TIC80_IPO)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
-else()
-    message(STATUS "IPO not supported: ${TIC80_IPO_OUTPUT}")
-
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_C_FLAGS_RELEASE "-flto -ffat-lto-objects ${CMAKE_C_FLAGS_RELEASE}")
-    set(CMAKE_CXX_FLAGS_RELEASE "-flto -ffat-lto-objects ${CMAKE_CXX_FLAGS_RELEASE}")
+    if(NOT TIC80_IPO)
+        message(STATUS "IPO not supported: ${TIC80_IPO_OUTPUT}")
     endif()
-
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"  OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-    set(CMAKE_C_FLAGS_RELEASE "-flto ${CMAKE_C_FLAGS_RELEASE}")
-    set(CMAKE_CXX_FLAGS_RELEASE "-flto ${CMAKE_CXX_FLAGS_RELEASE}")
-    endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+set(CMAKE_C_FLAGS_RELEASE "-flto -ffat-lto-objects ${CMAKE_C_FLAGS_RELEASE}")
+set(CMAKE_CXX_FLAGS_RELEASE "-flto -ffat-lto-objects ${CMAKE_CXX_FLAGS_RELEASE}")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"  OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+set(CMAKE_C_FLAGS_RELEASE "-flto ${CMAKE_C_FLAGS_RELEASE}")
+set(CMAKE_CXX_FLAGS_RELEASE "-flto ${CMAKE_CXX_FLAGS_RELEASE}")
 endif()
 
 if(APPLE)
@@ -262,6 +258,17 @@ include(cmake/apple.cmake)
 include(cmake/libretro.cmake)
 include(cmake/n3ds.cmake)
 include(cmake/nswitch.cmake)
+
+# /GL trips internal compiler errors in vendor code (naett, libpng), so on
+# MSVC the IPO property goes on the targets we own, not the whole tree.
+if(MSVC AND TIC80_IPO)
+    foreach(tic80_target tic80core tic80studio ${TIC80_TARGET} tic80_libretro player-sdl player-sokol)
+        if(TARGET ${tic80_target})
+            set_target_properties(${tic80_target} PROPERTIES
+                INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+        endif()
+    endforeach()
+endif()
 
 # The Linux desktop entry, its icon and the mime type belong to the app, not
 # to the layer; a build with no layer at all has no binary to install.
