@@ -42,6 +42,13 @@ if(USE_NAETT)
     add_library(naett STATIC ${THIRDPARTY_DIR}/naett/naett.c)
     target_include_directories(naett PUBLIC ${THIRDPARTY_DIR}/naett)
 
+    if(MSVC)
+        # /GL trips an internal compiler error (C1001) in naett.c.
+        set_target_properties(naett PROPERTIES
+            INTERPROCEDURAL_OPTIMIZATION OFF
+            INTERPROCEDURAL_OPTIMIZATION_RELEASE OFF)
+    endif()
+
     if(WIN32)
         target_link_libraries(naett INTERFACE winhttp)
     elseif(LINUX)
