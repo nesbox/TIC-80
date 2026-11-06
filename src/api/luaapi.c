@@ -28,6 +28,12 @@
 #include <lualib.h>
 #include <ctype.h>
 
+#ifdef _MSC_VER
+// /GL sees that luaL_error never returns, so the shared return after it looks
+// unreachable; it is not code we can remove, and the warning is not actionable.
+#pragma warning(disable : 4702)
+#endif
+
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 static inline s32 getLuaNumber(lua_State* lua, s32 index)
