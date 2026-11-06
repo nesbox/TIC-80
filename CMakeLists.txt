@@ -1,10 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
-
-# CMP0091 makes CMAKE_MSVC_RUNTIME_LIBRARY select the runtime; it has to be
-# set before project() enables MSVC.
-if(POLICY CMP0091)
-    cmake_policy(SET CMP0091 NEW)
-endif()
+cmake_minimum_required(VERSION 3.15)
 
 include(cmake/version.cmake)
 
@@ -180,23 +174,8 @@ if(MSVC)
         set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/bin )
     endforeach()
 
-    # Static runtime for every config: the property is generator-agnostic,
-    # while the flag rewrite below only works for multi-config generators.
-    if(POLICY CMP0091)
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    else()
-        foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
-            string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
-
-            if(CMAKE_C_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
-                string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_${OUTPUTCONFIG} "${CMAKE_C_FLAGS_${OUTPUTCONFIG}}")
-            endif()
-
-            if(CMAKE_CXX_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
-                string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_${OUTPUTCONFIG} "${CMAKE_CXX_FLAGS_${OUTPUTCONFIG}}")
-            endif()
-        endforeach()
-    endif()
+    # Static runtime for every config; CMP0091 is NEW from the 3.15 minimum.
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 else()
 
