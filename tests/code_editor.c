@@ -861,16 +861,18 @@ static void testMinimapMouse(void)
 
     assert(Code_.scroll.y == 53);
 
-    // Hidden, the column gives the press back to the text.
+    // Hidden, the column gives the press back to the text. The pointer leaves
+    // the column first: hovering its strip is a peek.
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + 100;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 14;
+
     View.options.minimap = false;
     frame();
     idleFrames(STUDIO_ANIM_TIME);
     assert(Code_.anim.minimap == 0);
 
-    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + 220;
-    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 14;
     Mouse[tic_mouse_left] = (MouseState){
-        .down = true, .click = true, .start = {220, 14}, .end = {220, 14}};
+        .down = true, .click = true, .start = {100, 14}, .end = {100, 14}};
 
     caret = Code_.text.cursor.position;
     frame();
@@ -946,6 +948,234 @@ static void testMinimapFitDrag(void)
     puts("minimap fit drag ok");
 }
 
+static void testViewSlide(void)
+{
+    char src[512];
+    buildManyLines(src, sizeof src, 100, false);
+
+    setup(src);
+    setMinimapTheme();
+
+    // A neutral pointer: hovering an edge would peek that view out.
+    Tic->ram->input.mouse.relative = false;
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 60;
+
+    frame();
+
+    // The saved state opens without a slide.
+    assert(Code_.showGutter);
+    assert(Code_.showStatusbar);
+    assert(Code_.anim.gutter > 0);
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+
+    const s32 gutter = Code_.anim.gutter;
+    const s32 barY = TIC80_HEIGHT - STUDIO_TEXT_HEIGHT;
+
+    // The bar covers the bottom row; the code behind it is the background.
+    assert(pixelAt(TIC80_WIDTH / 2, barY) == tic_color_white);
+
+    View.options.statusbar = false;
+    frame();
+
+    assert(!Code_.showStatusbar);
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+
+    idleFrames(STUDIO_ANIM_TIME - 1);
+    assert(Code_.anim.statusbar > 0 && Code_.anim.statusbar < STUDIO_TEXT_HEIGHT);
+
+    idleFrames(1);
+    assert(Code_.anim.statusbar == 0);
+    assert(pixelAt(TIC80_WIDTH / 2, barY) == tic_color_dark_grey);
+
+    // ... and it slides back up.
+    View.options.statusbar = true;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+    assert(pixelAt(TIC80_WIDTH / 2, barY) == tic_color_white);
+
+    // The sidebar slides left and frees its column.
+    View.options.sidebar = false;
+    frame();
+
+    assert(!Code_.showGutter);
+    assert(Code_.anim.gutter == gutter);
+
+    idleFrames(STUDIO_ANIM_TIME - 1);
+    assert(Code_.anim.gutter > 0 && Code_.anim.gutter < gutter);
+
+    idleFrames(1);
+    assert(Code_.anim.gutter == 0);
+
+    // A reversal starts from the current width.
+    View.options.sidebar = true;
+    frame();
+    idleFrames(5);
+
+    s32 width = Code_.anim.gutter;
+    assert(width > 0 && width < gutter);
+
+    View.options.sidebar = false;
+    frame();
+    assert(Code_.anim.gutter == width);
+
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.gutter == 0);
+
+    // LINES widens the strip for another digit, and the slide carries it.
+    View.options.sidebar = true;
+    View.options.lineNumbers = true;
+    frame();
+
+    assert(Code_.showGutter);
+    assert(Code_.lineNumbers);
+    assert(Code_.anim.gutter == 0);
+
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.gutter == 1 + 3 * TIC_ALTFONT_WIDTH);
+
+    View.options.lineNumbers = false;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.gutter == gutter);
+
+    // A hidden view peeks out while the pointer is over its strip.
+    View.options.sidebar = false;
+    View.options.statusbar = false;
+    View.options.minimap = false;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.gutter == 0);
+    assert(Code_.anim.statusbar == 0);
+    assert(Code_.anim.minimap == 0);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + 2;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 20;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(!Code_.showGutter);
+    assert(Code_.anim.gutter == gutter);
+    assert(Code_.anim.statusbar == 0);
+    assert(Code_.anim.minimap == 0);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + TIC80_HEIGHT - 1;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(!Code_.showStatusbar);
+    assert(Code_.anim.gutter == 0);
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+    assert(Code_.anim.minimap == 0);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH - 1;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 20;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(!Code_.showMinimap);
+    assert(Code_.anim.gutter == 0);
+    assert(Code_.anim.statusbar == 0);
+    assert(Code_.anim.minimap == MINIMAP_WIDTH);
+
+    // Leaving the strip slides it away again.
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.minimap == 0);
+
+    // A pointer that left the screen — the host's 255 sentinel — peeks nothing.
+    Tic->ram->input.mouse.x = (u8)-1;
+    Tic->ram->input.mouse.y = (u8)-1;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.gutter == 0);
+    assert(Code_.anim.statusbar == 0);
+    assert(Code_.anim.minimap == 0);
+
+    // A peek narrows the view for a moment; it must not move the scroll.
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH - 1;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 20;
+    Code_.scroll.x = 30;
+
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.minimap == MINIMAP_WIDTH);
+    assert(Code_.scroll.x == 30);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.minimap == 0);
+    assert(Code_.scroll.x == 30);
+
+    Code_.scroll.x = 0;
+
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + TIC80_HEIGHT - 1;
+    Code_.scroll.y = 20;
+
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+    assert(Code_.scroll.y == 20);
+
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 60;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.statusbar == 0);
+    assert(Code_.scroll.y == 20);
+
+    Code_.scroll.y = 0;
+
+    // The bar owns the pointer: no peeks under a menu or on the bar itself.
+    View.frame.pointerOwned = true;
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH - 1;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.minimap == 0);
+
+    View.frame.pointerOwned = false;
+
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.minimap == MINIMAP_WIDTH);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.minimap == 0);
+
+    // With the bar out, the strips stop above it: the bar's ends are neither
+    // the minimap's column nor the gutter's.
+    View.options.statusbar = true;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH - 1;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + TIC80_HEIGHT - 1;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.minimap == 0);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + 2;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.gutter == 0);
+
+    puts("view slide ok");
+}
+
 int main(void)
 {
     Tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
@@ -966,6 +1196,7 @@ int main(void)
     testMinimapSlide();
     testMinimapMouse();
     testMinimapFitDrag();
+    testViewSlide();
 
     free(Clipboard);
     tic_core_close(Tic);

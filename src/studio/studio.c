@@ -2206,21 +2206,18 @@ void studioCodeViewToggle(Studio* studio, CodeViewOption option)
             else
                 options->codeSidebar = options->codeLineNumbers = true;
 
-            code->lineNumbers = options->codeLineNumbers;
-            code->showGutter = options->codeSidebar;
+            // applyView owns the flags, so the change slides in.
             code->update(code);
             break;
 
         case CodeViewSidebar:
             options->codeSidebar = !options->codeSidebar;
 
-            code->showGutter = options->codeSidebar;
             code->update(code);
             break;
 
         case CodeViewStatusbar:
             options->codeStatusbar = !options->codeStatusbar;
-            code->showStatusbar = options->codeStatusbar;
             code->update(code);
             break;
 

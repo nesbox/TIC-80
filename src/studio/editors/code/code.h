@@ -217,7 +217,7 @@ struct Code
     bool showGutter;
     bool showStatusbar;
     bool showMinimap;
-    bool minimapSynced;
+    bool viewSynced;
 
     struct
     {
@@ -231,15 +231,20 @@ struct Code
         s32 pos;
         s32 sidebar;
         s32 minimap;
+        s32 gutter;
+        s32 statusbar;
 
         Movie* movie;
         Movie* minimapMovie;
+        Movie* gutterMovie;
+        Movie* statusbarMovie;
 
         Movie idle;
         Movie show;
         Movie hide;
-        Movie minimapShow;
-        Movie minimapHide;
+        Movie minimapSlide;
+        Movie gutterSlide;
+        Movie statusbarSlide;
 
     } anim;
 
