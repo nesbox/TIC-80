@@ -92,6 +92,16 @@ static bool mouseDown(Code* code, const tic_rect* rect, tic_mouse_btn button)
     return mouse_down(&code->deps.mouse[button], rect);
 }
 
+// A click that began outside the panel: the open popup leaves on it.
+static bool mouseClickedOutside(Code* code, const tic_rect* rect)
+{
+    const MouseState* state = &code->deps.mouse[tic_mouse_left];
+
+    return state->click &&
+           (state->start.x < rect->x || state->start.x >= rect->x + rect->w ||
+            state->start.y < rect->y || state->start.y >= rect->y + rect->h);
+}
+
 static bool viModeIs(Code* code, ViMode mode)
 {
     return code->view->options.vi && code->deps.getViMode(code->deps.host) == mode;
@@ -205,6 +215,7 @@ static void drawStatus(Code* code)
 
 static void updateEditor(Code* code);
 static s32 getVisualCursorColumn(Code* code);
+static void escape(Code* code);
 
 static void drawGutter(Code* code)
 {
@@ -1960,10 +1971,18 @@ static void textGoToTick(Code* code)
     drawStatus(code);
 }
 
-static void drawSidebarBar(Code* code, s32 x, s32 y)
+// The right panel's rect at the row band its mode starts at.
+static tic_rect sidebarPanelRect(const Code* code, s32 y)
+{
+    s32 x = (TIC80_WIDTH - SIDEBAR_WIDTH) + code->anim.sidebar;
+    return (tic_rect){x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
+}
+
+static void drawSidebarBar(Code* code, s32 y)
 {
     tic_mem* tic = code->tic;
-    tic_rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
+    tic_rect rect = sidebarPanelRect(code, y);
+    const s32 x = rect.x;
 
     if(mousePos(code, &rect))
     {
@@ -2095,7 +2114,7 @@ static void textBookmarkTick(Code* code)
 
     drawCode(code, false);
     drawStatus(code);
-    drawSidebarBar(code, (TIC80_WIDTH - SIDEBAR_WIDTH) + code->anim.sidebar, TIC_FONT_HEIGHT + 1);
+    drawSidebarBar(code, TIC_FONT_HEIGHT + 1);
 }
 
 static void textOutlineTick(Code* code)
@@ -2127,7 +2146,7 @@ static void textOutlineTick(Code* code)
 
     drawCode(code, false);
     drawStatus(code);
-    drawSidebarBar(code, (TIC80_WIDTH - SIDEBAR_WIDTH) + code->anim.sidebar, 2 * (TIC_FONT_HEIGHT + 1));
+    drawSidebarBar(code, 2 * (TIC_FONT_HEIGHT + 1));
     drawPopupBar(code, "FUNC:");
 }
 
@@ -2227,6 +2246,40 @@ void code_tick(Code* code)
     // re-initialising the editor; apply them before anything reads them.
     applyView(code);
     updateTextOptions(code);
+
+    // A click that misses the open popup leaves it, as ESC does.
+    {
+        tic_rect bar = {0, code->view->editorTop + code->anim.pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1};
+
+        switch(code->mode)
+        {
+            case TEXT_FIND_MODE:
+            case TEXT_GOTO_MODE:
+                if(mouseClickedOutside(code, &bar))
+                    escape(code);
+                break;
+
+            case TEXT_BOOKMARK_MODE:
+            {
+                tic_rect panel = sidebarPanelRect(code, TIC_FONT_HEIGHT + 1);
+
+                if(mouseClickedOutside(code, &panel))
+                    escape(code);
+                break;
+            }
+
+            case TEXT_OUTLINE_MODE:
+            {
+                tic_rect panel = sidebarPanelRect(code, 2 * (TIC_FONT_HEIGHT + 1));
+
+                if(mouseClickedOutside(code, &bar) && mouseClickedOutside(code, &panel))
+                    escape(code);
+                break;
+            }
+
+            default: break;
+        }
+    }
 
     processAnim(code->anim.movie, code);
     processAnim(code->anim.minimapMovie, code);

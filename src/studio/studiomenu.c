@@ -933,6 +933,8 @@ static const MenuBarItem* const MenubarCodePins[] =
     {
         EDIT_PINS & MenubarCodeApp[0], // FIND
         &MenubarCodeApp[1],            // GOTO
+        &MenubarCodeApp[2],            // BOOKMARKS
+        &MenubarCodeApp[3],            // OUTLINE
 };
 
 static const MenuBarItem* const MenubarSpritePins[] =
@@ -951,12 +953,11 @@ static const MenuBarItem* const MenubarMapPins[] =
         &MenubarMapApp[9],            // SHOW TILES
 };
 
-// LOOP stays in the menu: a session preference, not a transport action.
+// PIANO, TRACKER and LOOP stay in the menu: the compact bar carries the
+// transport.
 static const MenuBarItem* const MenubarMusicPins[] =
     {
-        EDIT_PINS & MenubarMusicApp[0], // PIANO
-        &MenubarMusicApp[1],            // TRACKER
-        &MenubarMusicApp[9],            // PLAY TRACK
+        EDIT_PINS & MenubarMusicApp[9], // PLAY TRACK
         &MenubarMusicApp[10],           // RESET TRACK
         &MenubarMusicApp[11],           // STOP
 };
@@ -1116,6 +1117,10 @@ void studiomenu_sync(Studio* studio, Menubar* bar, EditorMode mode, const Editor
     // RESUME only means something while a paused run is still in the core.
     menubarEnable(MenubarTic, COUNT_OF(MenubarTic), MenuActionResume, studio_run_paused(studio));
 
+    // SAVE writes the cart under the name it holds; without one there is no
+    // file to write.
+    menubarEnable(MenubarTic, COUNT_OF(MenubarTic), MenuActionSave, studioCart(studio)->name[0] != '\0');
+
     // The home stop carries the TIC-80 mark in both layouts; compact draws the
     // icon alone, full keeps the title beside it.
     for(s32 i = 0; i < COUNT_OF(MenubarCategories); i++)
@@ -1209,7 +1214,7 @@ void studiomenu_sync_editor(Studio* studio, Menubar* bar, EditorMode mode, void*
 
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionFont, code->altFont);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionShadow, code->shadowText);
-            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionLineNumbers, code->lineNumbers && code->showGutter);
+            menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionLineNumbers, code->lineNumbers);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionSidebar, code->showGutter);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionStatusbar, code->showStatusbar);
             menubarCheck(MenubarCodeApp, COUNT_OF(MenubarCodeApp), CodeActionMinimap, code->showMinimap);

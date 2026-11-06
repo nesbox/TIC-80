@@ -2200,11 +2200,7 @@ void studioCodeViewToggle(Studio* studio, CodeViewOption option)
             break;
 
         case CodeViewLineNumbers:
-            // LINES with the sidebar hidden brings the sidebar back with them on
-            if(options->codeSidebar)
-                options->codeLineNumbers = !options->codeLineNumbers;
-            else
-                options->codeSidebar = options->codeLineNumbers = true;
+            options->codeLineNumbers = !options->codeLineNumbers;
 
             // applyView owns the flags, so the change slides in.
             code->update(code);
@@ -3776,8 +3772,12 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
 #endif
 
     studio->config->data.options.fullscreen |= args.fullscreen;
+#if !defined(VSYNC_ALWAYS_ON)
     studio->config->data.options.vsync |= args.vsync;
+#endif
+#if !defined(BUILD_SOKOL)
     studio->config->data.soft |= args.soft;
+#endif
     studio->config->data.cli |= args.cli;
 
 #if defined(BUILD_EDITORS)

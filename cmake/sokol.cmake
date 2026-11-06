@@ -14,6 +14,9 @@ if(BUILD_SOKOL)
     # that can honor it.
     target_compile_definitions(tic80studio PUBLIC VSYNC_ALWAYS_ON)
 
+    # No software renderer behind this layer, so the studio leaves `--soft` out.
+    target_compile_definitions(tic80studio PUBLIC BUILD_SOKOL)
+
     set(SOKOL_SRC ${CMAKE_SOURCE_DIR}/src/system/sokol/sokol_impl.c)
 
     add_library(sokol STATIC ${SOKOL_SRC})

@@ -420,6 +420,71 @@ static void testGutterMouse(void)
     puts("gutter mouse ok");
 }
 
+static void clickFrame(s32 x, s32 y)
+{
+    Mouse[tic_mouse_left] = (MouseState){
+        .down = true, .click = true, .start = {x, y}, .end = {x, y}};
+
+    frame();
+    memset(Mouse, 0, sizeof Mouse);
+}
+
+static void testPopupDismiss(void)
+{
+    setup("aa\nbb\n");
+
+    // The hide slide and the show slide that follows it both finish.
+    const s32 settle = STUDIO_ANIM_TIME * 2 + 2;
+
+    // FIND and GOTO: the top bar is the panel.
+    codeFind(&Code_);
+    idleFrames(STUDIO_ANIM_TIME + 2);
+
+    clickFrame(100, 2);
+    assert(Code_.mode == TEXT_FIND_MODE);
+
+    clickFrame(100, 100);
+    idleFrames(settle);
+    assert(Code_.mode == TEXT_EDIT_MODE);
+
+    codeGoto(&Code_);
+    idleFrames(STUDIO_ANIM_TIME + 2);
+
+    clickFrame(100, 2);
+    assert(Code_.mode == TEXT_GOTO_MODE);
+
+    clickFrame(100, 100);
+    idleFrames(settle);
+    assert(Code_.mode == TEXT_EDIT_MODE);
+
+    // BOOKMARKS: the right panel.
+    codeBookmarks(&Code_);
+    idleFrames(STUDIO_ANIM_TIME + 2);
+
+    clickFrame(TIC80_WIDTH - 20, 100);
+    assert(Code_.mode == TEXT_BOOKMARK_MODE);
+
+    clickFrame(100, 100);
+    idleFrames(settle);
+    assert(Code_.mode == TEXT_EDIT_MODE);
+
+    // OUTLINE: the FUNC bar and the right panel are both the popup.
+    codeOutline(&Code_);
+    idleFrames(STUDIO_ANIM_TIME + 2);
+
+    clickFrame(100, 2);
+    assert(Code_.mode == TEXT_OUTLINE_MODE);
+
+    clickFrame(TIC80_WIDTH - 20, 100);
+    assert(Code_.mode == TEXT_OUTLINE_MODE);
+
+    clickFrame(100, 100);
+    idleFrames(settle);
+    assert(Code_.mode == TEXT_EDIT_MODE);
+
+    puts("popup dismiss ok");
+}
+
 static void testAsks(void)
 {
     setup("aa");
@@ -1034,7 +1099,8 @@ static void testViewSlide(void)
     assert(Code_.anim.gutter == 0);
 
     idleFrames(STUDIO_ANIM_TIME);
-    assert(Code_.anim.gutter == 1 + 3 * TIC_ALTFONT_WIDTH);
+    const s32 wideGutter = 1 + 3 * TIC_ALTFONT_WIDTH;
+    assert(Code_.anim.gutter == wideGutter);
 
     View.options.lineNumbers = false;
     frame();
@@ -1061,6 +1127,14 @@ static void testViewSlide(void)
     assert(Code_.anim.gutter == gutter);
     assert(Code_.anim.statusbar == 0);
     assert(Code_.anim.minimap == 0);
+
+    // LINES keeps its numbers in the peek whether the sidebar is pinned or not.
+    View.options.lineNumbers = true;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(!Code_.showGutter);
+    assert(Code_.anim.gutter == wideGutter);
 
     Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
     Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + TIC80_HEIGHT - 1;
@@ -1187,6 +1261,7 @@ int main(void)
     testGoto();
     testBookmarks();
     testGutterMouse();
+    testPopupDismiss();
     testAsks();
     testSyntax();
     testJustSwitched();
