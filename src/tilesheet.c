@@ -69,32 +69,33 @@ tic_tileptr tic_tilesheet_gettile(const tic_tilesheet* sheet, s32 index, bool lo
     };
     const tic_blit_segment* segment = sheet->segment;
 
+    // Plain / and % compile to one hardware division where div() calls libc
+    // on the hot path of every spr and map tile.
     s32 bank, page, iy, ix;
     if(local)
     {
         index = index & 255;
         bank = segment->bank_orig;
         page = segment->page_orig;
-        div_t ixy = div(index, Cols);
-        iy = ixy.quot;
-        ix = ixy.rem;
+        iy = index / Cols;
+        ix = index % Cols;
     }
     else
     {
         // reindex
-        div_t ia = div(index, segment->bank_size);    // bank, bank_index
-        div_t ib = div(ia.rem, segment->sheet_width); // yi, bank_xi
-        div_t ic = div(ib.rem, Cols);                 // page, xi
-        bank = (ia.quot + segment->bank_orig) % 2;
-        page = (ic.quot + segment->page_orig) % segment->nb_pages;
-        iy = ib.quot % Cols;
-        ix = ic.rem;
+        s32 bankIndex = index / segment->bank_size;
+        s32 sheetIndex = index % segment->bank_size;
+        s32 yIndex = sheetIndex / segment->sheet_width;
+        s32 rowIndex = sheetIndex % segment->sheet_width;
+        bank = (bankIndex + segment->bank_orig) % 2;
+        page = ((rowIndex / Cols) + segment->page_orig) % segment->nb_pages;
+        iy = yIndex % Cols;
+        ix = rowIndex % Cols;
     }
 
-    div_t xdiv = div(ix, segment->nb_pages); // xbuffer, xoffset
-    u32 ptr_offset = (bank * Cols + iy) * Cols + page * Cols / segment->nb_pages + xdiv.quot;
+    u32 ptr_offset = (bank * Cols + iy) * Cols + page * Cols / segment->nb_pages + ix / segment->nb_pages;
     u8* ptr = sheet->ptr + segment->ptr_size * ptr_offset;
-    u32 offset = (xdiv.rem * Size);
+    u32 offset = (u32)(ix % segment->nb_pages) * Size;
 
     return (tic_tileptr){segment, offset, ptr};
 }
