@@ -99,7 +99,7 @@ static void setup(void)
         .flags = &Tic->cart.banks[0].flags,
     };
 
-    initSprite(&Sprite_, &Deps, &Tic->cart.banks[0].tiles);
+    initSprite(&Sprite_, &Deps, &Tic->cart.banks[0].tiles, &Tic->cart.banks[0].palette);
     sprite_set_view(&Sprite_, &View);
 }
 
@@ -149,6 +149,11 @@ static void noMouse(void)
     Tic->ram->input.mouse.scrolly = 0;
 }
 
+static void scroll(s32 delta)
+{
+    Tic->ram->input.mouse.scrolly = delta;
+}
+
 static void typeText(char c)
 {
     SystemText = c;
@@ -173,6 +178,17 @@ static void testDrawUndo(void)
 
     noMouse();
     frame();
+
+    press(tic_key_z);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(tilePixel(1, 0, 0) == 0);
+
+    noMouse();
+    press(tic_key_y);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(tilePixel(1, 0, 0) == 2);
 
     SpriteClipboard.undo(&Sprite_);
     assert(tilePixel(1, 0, 0) == 0);
@@ -245,6 +261,177 @@ static void testPaletteHex(void)
     assert(View.vbank0->data[0] == 0xF0);
 
     puts("palette hex ok");
+}
+
+static void testPaletteUndo(void)
+{
+    setup();
+
+    Sprite_.palette.edit = true;
+    Sprite_.palette.focus = 0;
+    Sprite_.color = 0;
+
+    noMouse();
+    press(tic_key_unknown);
+    typeText('F');
+    frame();
+    assert(View.vbank0->data[0] == 0xF0);
+
+    // Ctrl+Z and Ctrl+Y reach the palette history while the hex field has focus.
+    noMouse();
+    press(tic_key_z);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(View.vbank0->data[0] == 0);
+
+    noMouse();
+    press(tic_key_y);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(View.vbank0->data[0] == 0xF0);
+
+    SpriteClipboard.undo(&Sprite_);
+    assert(View.vbank0->data[0] == 0);
+
+    SpriteClipboard.redo(&Sprite_);
+    assert(View.vbank0->data[0] == 0xF0);
+
+    // The menu's presets record through the same entry point.
+    View.vbank1->data[0] = 0xAB;
+    spritePaletteChanged(&Sprite_);
+    SpriteClipboard.undo(&Sprite_);
+    assert(View.vbank1->data[0] == 0);
+
+    puts("palette undo ok");
+}
+
+static void testPaletteSliderUndo(void)
+{
+    setup();
+
+    Sprite_.palette.edit = true;
+    Sprite_.palette.focus = -1;
+    Sprite_.color = 0;
+
+    noMouse();
+    pointer(24 + 32, 90);
+    hold(24 + 32, 90);
+    frame();
+    assert(View.vbank0->data[0] != 0);
+
+    noMouse();
+    frame();
+
+    SpriteClipboard.undo(&Sprite_);
+    assert(View.vbank0->data[0] == 0);
+
+    puts("palette slider ok");
+}
+
+static void testPaletteClipboard(void)
+{
+    setup();
+
+    for(s32 i = 0; i < (s32)sizeof(tic_palette); i++)
+        View.vbank0->data[i] = (u8)(i + 1);
+
+    Sprite_.palette.edit = true;
+
+    SpriteClipboard.copy(&Sprite_);
+    assert(Clipboard);
+    assert(strlen(Clipboard) == sizeof(tic_palette) * 2);
+
+    memset(View.vbank0->data, 0, sizeof(tic_palette));
+
+    SpriteClipboard.paste(&Sprite_);
+    for(s32 i = 0; i < (s32)sizeof(tic_palette); i++)
+        assert(View.vbank0->data[i] == (u8)(i + 1));
+
+    SpriteClipboard.undo(&Sprite_);
+    assert(View.vbank0->data[0] == 0);
+
+    // CUT in palette mode copies and leaves the palette alone.
+    View.vbank0->data[0] = 7;
+    SpriteClipboard.cut(&Sprite_);
+    assert(View.vbank0->data[0] == 7);
+    assert(Clipboard[0] == '0' && Clipboard[1] == '7');
+
+    // An exact color clipboard replaces one color; a wrong size changes nothing.
+    free(Clipboard);
+    Clipboard = strdup("123456");
+    Sprite_.color = 0;
+    memset(View.vbank0->data, 0, sizeof(tic_palette));
+    SpriteClipboard.paste(&Sprite_);
+    assert(View.vbank0->data[0] == 0x12);
+    assert(View.vbank0->data[1] == 0x34);
+    assert(View.vbank0->data[2] == 0x56);
+    assert(View.vbank0->data[3] == 0);
+
+    free(Clipboard);
+    Clipboard = strdup("1234");
+    View.vbank0->data[0] = 9;
+    SpriteClipboard.paste(&Sprite_);
+    assert(View.vbank0->data[0] == 9);
+
+    puts("palette clipboard ok");
+}
+
+static void testScroll(void)
+{
+    setup();
+
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE);
+    assert(Sprite_.brush.size == 1);
+
+    noMouse();
+    pointer(150, 50);
+    scroll(1);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 2);
+    assert(Sprite_.brush.size == 1);
+
+    noMouse();
+    pointer(50, 50);
+    scroll(1);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 2);
+    assert(Sprite_.brush.size == 2);
+
+    noMouse();
+    pointer(50, 50);
+    scroll(-1);
+    frame();
+    assert(Sprite_.brush.size == 1);
+
+    noMouse();
+    pointer(150, 50);
+    scroll(-1);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE);
+
+    // Anywhere else the wheel does nothing.
+    noMouse();
+    pointer(30, 118);
+    scroll(1);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE);
+    assert(Sprite_.brush.size == 1);
+
+    puts("scroll ok");
+}
+
+static void testFlagsOnly4bpp(void)
+{
+    setup();
+
+    Sprite_.flags.show = true;
+    Sprite_.flags.edit = true;
+
+    spriteSetBpp(&Sprite_, tic_bpp_2);
+    assert(!Sprite_.flags.show);
+    assert(!Sprite_.flags.edit);
+
+    puts("flags 4bpp ok");
 }
 
 static void testFlagsHex(void)
@@ -369,6 +556,11 @@ int main(void)
     testFill();
     testTools();
     testPaletteHex();
+    testPaletteUndo();
+    testPaletteSliderUndo();
+    testPaletteClipboard();
+    testScroll();
+    testFlagsOnly4bpp();
     testFlagsHex();
     testGesture();
     testPointerOwned();

@@ -287,6 +287,7 @@ static void menubarSpriteAction(void* data, s32 id)
     if(preset >= 0)
     {
         memcpy(getBankPalette(studio, sprite->palette.vbank1), &PalettePresets[preset].palette, sizeof(tic_palette));
+        spritePaletteChanged(sprite);
         return;
     }
 
@@ -330,6 +331,9 @@ static void menubarSpriteAction(void* data, s32 id)
         case SpriteActionPage4: spriteSelectPage(sprite, 3); break;
 
         case SpriteActionFlags:
+            if(sprite->blit.mode != tic_bpp_4)
+                break;
+
             sprite->flags.show = !sprite->flags.show;
 
             if(!sprite->flags.show)
@@ -764,7 +768,7 @@ static MenuBarItem MenubarPalette[] =
         MENU_TOGGLE("VBANK0", NULL, menubarSpriteAction, SpriteActionVbank0),
         MENU_TOGGLE("VBANK1", NULL, menubarSpriteAction, SpriteActionVbank1),
         MENU_SEPARATOR,
-        MENU_TOGGLE("EDIT", NULL, menubarSpriteAction, SpriteActionPalette),
+        MENU_TOGGLE_ICON("COLORS", NULL, menubarSpriteAction, SpriteActionPalette, tic_icon_palette),
         MENU_SEPARATOR,
         MENU_TOGGLE("SWEETIE 16", NULL, menubarSpriteAction, SpriteActionPalettePreset + 0),
         MENU_TOGGLE("PICO-8", NULL, menubarSpriteAction, SpriteActionPalettePreset + 1),
@@ -795,8 +799,8 @@ static MenuBarItem MenubarBrushSize[] =
         MENU_TOGGLE("3x3", NULL, menubarSpriteAction, SpriteActionBrush3),
         MENU_TOGGLE("4x4", NULL, menubarSpriteAction, SpriteActionBrush4),
         MENU_SEPARATOR,
-        MENU_TOGGLE("HORZ SYMM", "H", menubarSpriteAction, SpriteActionSymmetryHorz),
-        MENU_TOGGLE("VERT SYMM", "V", menubarSpriteAction, SpriteActionSymmetryVert),
+        MENU_TOGGLE("SYM H", "H", menubarSpriteAction, SpriteActionSymmetryHorz),
+        MENU_TOGGLE("SYM V", "V", menubarSpriteAction, SpriteActionSymmetryVert),
 };
 
 static const MenuBarCategory MenubarBrushSizeMenu = MENU_CATEGORY("BRUSH", MenubarBrushSize);
@@ -826,6 +830,8 @@ static MenuBarItem MenubarSpriteTools[] =
         MENU_ITEM_ICON("FLIP VERT", "6", menubarSpriteAction, SpriteActionFlipVert, tic_icon_tinyflipvert),
         MENU_ITEM_ICON("ROTATE", "7", menubarSpriteAction, SpriteActionRotate, tic_icon_tinyrotate),
         MENU_ITEM_ICON("ERASE", "8", menubarSpriteAction, SpriteActionErase, tic_icon_tinyerase),
+        MENU_SEPARATOR,
+        MENU_TOGGLE("FLAGS", NULL, menubarSpriteAction, SpriteActionFlags),
 };
 
 static const MenuBarCategory MenubarSpriteToolsMenu = MENU_CATEGORY("TOOLS", MenubarSpriteTools);
@@ -837,8 +843,6 @@ static MenuBarItem MenubarSpriteApp[] =
         MENU_SEPARATOR,
         MENU_SUBMENU("TOOLS", &MenubarSpriteToolsMenu),
         MENU_SUBMENU("TILESET", &MenubarSpriteTilesetMenu),
-        MENU_SEPARATOR,
-        MENU_TOGGLE("FLAGS", NULL, menubarSpriteAction, SpriteActionFlags),
         MENU_SEPARATOR,
         MENU_SUBMENU("PALETTE", &MenubarPaletteMenu),
         MENU_SUBMENU("CANVAS", &MenubarCanvasSizeMenu),
@@ -935,6 +939,7 @@ static const MenuBarItem* const MenubarSpritePins[] =
     {
         EDIT_PINS & MenubarSpriteApp[0], // TILES
         &MenubarSpriteApp[1],            // SPRITES
+        &MenubarPalette[3],              // PALETTE/EDIT
 };
 
 static const MenuBarItem* const MenubarMapPins[] =
@@ -1234,7 +1239,8 @@ void studiomenu_sync_editor(Studio* studio, Menubar* bar, EditorMode mode, void*
 
             menubarCheck(MenubarSpriteApp, COUNT_OF(MenubarSpriteApp), SpriteActionTiles, sprite->blit.bank == 0);
             menubarCheck(MenubarSpriteApp, COUNT_OF(MenubarSpriteApp), SpriteActionSprites, sprite->blit.bank == 1);
-            menubarCheck(MenubarSpriteApp, COUNT_OF(MenubarSpriteApp), SpriteActionFlags, sprite->flags.show);
+            menubarCheck(MenubarSpriteTools, COUNT_OF(MenubarSpriteTools), SpriteActionFlags, sprite->flags.show);
+            menubarEnable(MenubarSpriteTools, COUNT_OF(MenubarSpriteTools), SpriteActionFlags, sprite->blit.mode == tic_bpp_4);
 
             menubarCheck(MenubarSpriteTools, COUNT_OF(MenubarSpriteTools), SpriteActionDraw, sprite->mode == SPRITE_DRAW_MODE);
             menubarCheck(MenubarSpriteTools, COUNT_OF(MenubarSpriteTools), SpriteActionPick, sprite->mode == SPRITE_PICK_MODE);
