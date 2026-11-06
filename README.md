@@ -233,7 +233,7 @@ Install with [Install Instructions](#install-instructions)
 ### Arch
 run the following commands in the Terminal
 ```
-sudo pacman -S cmake ruby mesa libglvnd glu
+sudo pacman -S cmake ruby ruby-rake mesa libglvnd glu
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake -DBUILD_WITH_ALL=On .. && cmake --build . --parallel
 ```
