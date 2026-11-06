@@ -75,14 +75,15 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
+          sudo apt-get install -y gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libegl1-mesa-dev libgles2-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
           sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
           sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
 
       - name: Build PRO
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          # GLES3/EGL, as the free x64 and both arm64 builds.
+          cmake -DCMAKE_BUILD_TYPE=Release -DUSE_GLES2=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config Release --parallel
 
       - name: Build deb

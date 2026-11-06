@@ -181,9 +181,9 @@ jobs:
           sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome* 2>/dev/null || true
           sudo sed -i '/dl\.google\.com/d' /etc/apt/sources.list 2>/dev/null || true
           sudo apt-get update
-          # The X11 trio is sokol_app's link line and ALSA is sokol_audio's;
-          # the rest is what the studio itself needs.
-          sudo apt-get install gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
+          # The X11 trio and the GLES pair are sokol_app's link line and ALSA is
+          # sokol_audio's; the rest is what the studio itself needs.
+          sudo apt-get install gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libegl1-mesa-dev libgles2-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
           sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
           sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
           # the generator the builds use; the image carries it already
@@ -202,7 +202,9 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON ..
+          # GLES3/EGL, as the arm64 builds: sokol's desktop GL backend asks for
+          # an OpenGL 4.3 core context, which older machines cannot give it.
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DUSE_GLES2=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
           # The universal export stub is this same binary (console.c appends the
           # cart to it), so keep it before Build Pro overwrites it below. It goes
@@ -236,7 +238,7 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DUSE_GLES2=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       # No build here: the universal stub is the binary the Build step kept

@@ -36,12 +36,10 @@ install -m644 build/linux/tic80.png "$pkg/usr/share/icons/hicolor/256x256/apps/t
 install -m644 build/linux/com.tic80.TIC_80.metainfo.xml "$pkg/usr/share/metainfo/"
 install -m644 build/linux/tic80.xml "$pkg/usr/share/mime/packages/tic80.xml"
 
-# The arm64 build draws through GLES/EGL — the Pis have no desktop GL to give
-# it — so the package names those two libraries for a system that lacks them.
-DEPS="libcurl4 | libcurl4t64"
-if [ "$ARCH" = "arm64" ]; then
-    DEPS="$DEPS, libegl1, libgles2"
-fi
+# The packaged builds draw through GLES/EGL — older desktops have no desktop
+# GL 4.3 to give it — so the package names those two libraries for a system
+# that lacks them.
+DEPS="libcurl4 | libcurl4t64, libegl1, libgles2"
 
 cat >"$pkg/DEBIAN/control" <<EOF
 Package: tic80
