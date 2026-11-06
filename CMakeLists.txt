@@ -1,17 +1,32 @@
 cmake_minimum_required(VERSION 3.10)
 
+# CMP0091 makes CMAKE_MSVC_RUNTIME_LIBRARY select the runtime; it has to be
+# set before project() enables MSVC.
+if(POLICY CMP0091)
+    cmake_policy(SET CMP0091 NEW)
+endif()
+
 include(cmake/version.cmake)
 
 project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LANGUAGES C CXX)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-set(CMAKE_C_FLAGS_RELEASE "-O2 -flto -ffat-lto-objects ${CMAKE_C_FLAGS_RELEASE}")
-set(CMAKE_CXX_FLAGS_RELEASE "-O2 -flto -ffat-lto-objects ${CMAKE_CXX_FLAGS_RELEASE}")
-endif()
+include(CheckIPOSupported)
+check_ipo_supported(RESULT TIC80_IPO OUTPUT TIC80_IPO_OUTPUT LANGUAGES C CXX)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"  OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-set(CMAKE_C_FLAGS_RELEASE "-O2 -flto ${CMAKE_C_FLAGS_RELEASE}")
-set(CMAKE_CXX_FLAGS_RELEASE "-O2 -flto ${CMAKE_CXX_FLAGS_RELEASE}")
+if(TIC80_IPO)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+else()
+    message(STATUS "IPO not supported: ${TIC80_IPO_OUTPUT}")
+
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(CMAKE_C_FLAGS_RELEASE "-flto -ffat-lto-objects ${CMAKE_C_FLAGS_RELEASE}")
+    set(CMAKE_CXX_FLAGS_RELEASE "-flto -ffat-lto-objects ${CMAKE_CXX_FLAGS_RELEASE}")
+    endif()
+
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang"  OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    set(CMAKE_C_FLAGS_RELEASE "-flto ${CMAKE_C_FLAGS_RELEASE}")
+    set(CMAKE_CXX_FLAGS_RELEASE "-flto ${CMAKE_CXX_FLAGS_RELEASE}")
+    endif()
 endif()
 
 if(APPLE)
@@ -172,17 +187,25 @@ if(MSVC)
         set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
         set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
         set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/bin )
-
-        # use static runtime
-        # !TODO: use set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>") from cmake 3.15 instead
-        if(CMAKE_C_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
-            string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_${OUTPUTCONFIG} "${CMAKE_C_FLAGS_${OUTPUTCONFIG}}")
-        endif()
-
-        if(CMAKE_CXX_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
-            string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_${OUTPUTCONFIG} "${CMAKE_CXX_FLAGS_${OUTPUTCONFIG}}")
-        endif()
     endforeach()
+
+    # Static runtime for every config: the property is generator-agnostic,
+    # while the flag rewrite below only works for multi-config generators.
+    if(POLICY CMP0091)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
+            string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
+
+            if(CMAKE_C_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
+                string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_${OUTPUTCONFIG} "${CMAKE_C_FLAGS_${OUTPUTCONFIG}}")
+            endif()
+
+            if(CMAKE_CXX_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
+                string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_${OUTPUTCONFIG} "${CMAKE_CXX_FLAGS_${OUTPUTCONFIG}}")
+            endif()
+        endforeach()
+    endif()
 
 else()
 
