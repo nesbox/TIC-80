@@ -1005,7 +1005,7 @@ jobs:
             build/bin/tic80
 
   # === Android (SDL) ===
-  android-sdl:
+  sdl-android:
     # 24.04, not -latest: setup-ruby has no 2.6.10 for 26.04 (#3107).
     runs-on: ubuntu-24.04
 
