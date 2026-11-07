@@ -596,7 +596,7 @@ static void scaleCanvasSize(Sprite* sprite, s32 delta)
 
 static void drawCanvasSizeButtons(Sprite* sprite)
 {
-    // The 8x8 icon tiles carry a 3x3 glyph at (2,2): lay the pair out by the glyph.
+    // The 8x8 icon tiles carry a 3x3 glyph at (2,2): the pair is right-aligned by it.
     enum
     {
         GlyphInset = 2,
@@ -604,7 +604,7 @@ static void drawCanvasSizeButtons(Sprite* sprite)
         Gap = 2,
         PairWidth = GlyphSize * 2 + Gap,
         GlyphX = CanvasX + CANVAS_SIZE - PairWidth,
-        GlyphY = CanvasY + CanvasH + 1,
+        IconY = CanvasY + CanvasH + 1,
         HitWidth = (PairWidth + 1) / 2,
     };
 
@@ -621,7 +621,7 @@ static void drawCanvasSizeButtons(Sprite* sprite)
 
     for(s32 i = 0; i < COUNT_OF(Buttons); i++)
     {
-        tic_rect rect = {GlyphX + i * HitWidth, GlyphY, HitWidth, TIC_SPRITESIZE};
+        tic_rect rect = {GlyphX + i * HitWidth, IconY, HitWidth, TIC_SPRITESIZE};
 
         bool over = false;
         bool down = false;
@@ -642,11 +642,11 @@ static void drawCanvasSizeButtons(Sprite* sprite)
         s32 iconX = GlyphX + i * (GlyphSize + Gap) - GlyphInset;
 
         if(down)
-            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, GlyphY + 1, over ? tic_color_light_grey : tic_color_white);
+            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, IconY + 1, over ? tic_color_light_grey : tic_color_white);
         else
         {
-            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, GlyphY + 1, tic_color_black);
-            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, GlyphY, over ? tic_color_light_grey : tic_color_white);
+            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, IconY + 1, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, IconY, over ? tic_color_light_grey : tic_color_white);
         }
     }
 }

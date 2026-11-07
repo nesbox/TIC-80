@@ -165,6 +165,14 @@ static u8 tilePixel(s32 tile, s32 x, s32 y)
     return tic_tool_peek4(Tic->cart.banks[0].tiles.data[tile].data, x + y * TIC_SPRITESIZE);
 }
 
+static u8 vbank1Pixel(s32 x, s32 y)
+{
+    tic_core* core = (tic_core*)Tic;
+    tic_vram* vram = core->state.vbank.id ? &core->memory.ram->vram : &core->state.vbank.mem;
+
+    return tic_tool_peek4(vram->screen.data, (u32)(y * TIC80_WIDTH + x));
+}
+
 static void testDrawUndo(void)
 {
     setup();
@@ -490,6 +498,12 @@ static void testBrushMarker(void)
         assert(Sprite_.mode == SPRITE_DRAW_MODE);
         assert(Sprite_.brush.size == size);
     }
+
+    // The marker is a 4x4 square under the brush tile, left-aligned with it.
+    assert(vbank1Pixel(12, 105) == tic_color_white);
+    assert(vbank1Pixel(15, 108) == tic_color_white);
+    assert(vbank1Pixel(12, 109) == tic_color_black);
+    assert(vbank1Pixel(16, 105) == tic_color_grey);
 
     noMouse();
     pointer(16, 100);
