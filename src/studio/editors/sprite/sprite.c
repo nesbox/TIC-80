@@ -580,6 +580,77 @@ static bool hasCanvasSelection(Sprite* sprite)
     return sprite->mode == SPRITE_SELECT_MODE && sprite->select.rect.w && sprite->select.rect.h;
 }
 
+static void scaleCanvasSize(Sprite* sprite, s32 delta)
+{
+    s32 size = sprite->canvasSize;
+
+    if(delta > 0)
+    {
+        if(size < (TIC_SPRITESIZE * TIC_SPRITESIZE)) size <<= 1;
+    }
+    else if(size > TIC_SPRITESIZE)
+        size >>= 1;
+
+    spriteSetSize(sprite, size);
+}
+
+static void drawCanvasSizeButtons(Sprite* sprite)
+{
+    // The 8x8 icon tiles carry a 3x3 glyph at (2,2): the pair is right-aligned by it.
+    enum
+    {
+        GlyphInset = 2,
+        GlyphSize = 3,
+        Gap = 2,
+        PairWidth = GlyphSize * 2 + Gap,
+        GlyphX = CanvasX + CANVAS_SIZE - PairWidth,
+        IconY = CanvasY + CanvasH + 1,
+        HitWidth = (PairWidth + 1) / 2,
+    };
+
+    static const struct
+    {
+        u8 icon;
+        s32 delta;
+        const char* tooltip;
+    } Buttons[] =
+        {
+            {tic_icon_tinyminus, -1, "CANVAS SIZE -"},
+            {tic_icon_tinyplus, +1, "CANVAS SIZE +"},
+        };
+
+    for(s32 i = 0; i < COUNT_OF(Buttons); i++)
+    {
+        tic_rect rect = {GlyphX + i * HitWidth, IconY, HitWidth, TIC_SPRITESIZE};
+
+        bool over = false;
+        bool down = false;
+
+        if(mousePos(sprite, &rect))
+        {
+            ui_cursor(sprite->tic, tic_cursor_hand);
+            over = true;
+
+            sprite->deps.tooltip(sprite->deps.host, Buttons[i].tooltip);
+
+            if(mouseDown(sprite, &rect, tic_mouse_left)) down = true;
+
+            if(mouseClicked(sprite, &rect, tic_mouse_left))
+                scaleCanvasSize(sprite, Buttons[i].delta);
+        }
+
+        s32 iconX = GlyphX + i * (GlyphSize + Gap) - GlyphInset;
+
+        if(down)
+            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, IconY + 1, over ? tic_color_light_grey : tic_color_white);
+        else
+        {
+            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, IconY + 1, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, IconY, over ? tic_color_light_grey : tic_color_white);
+        }
+    }
+}
+
 static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
 {
     tic_mem* tic = sprite->tic;
@@ -609,6 +680,8 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
             case SPRITE_SELECT_MODE: processSelectCanvasMouse(sprite, x, y); break;
             case SPRITE_FILL_MODE: processFillCanvasMouse(sprite, x, y, rect.x, rect.y); break;
         }
+
+        drawCanvasSizeButtons(sprite);
     }
 
     if(hasCanvasSelection(sprite))
@@ -1537,6 +1610,17 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
     }
 }
 
+// The brush tile's marker is a square showing its size, below the tool icon.
+static void drawBrushSizeMarker(Sprite* sprite, s32 x, s32 y)
+{
+    s32 size = sprite->brush.size;
+    s32 yOffset = (BRUSH_SIZES - size) / 2;
+    s32 markerY = y + TIC_SPRITESIZE + 1 + yOffset;
+
+    tic_api_rect(sprite->tic, x, markerY + 1, size, size, tic_color_black);
+    tic_api_rect(sprite->tic, x, markerY, size, size, tic_color_white);
+}
+
 static void drawTools(Sprite* sprite, s32 x, s32 y)
 {
     enum
@@ -1562,9 +1646,14 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 
             if(mouseClicked(sprite, &rect, tic_mouse_left))
             {
-                sprite->mode = i;
+                if(i == SPRITE_DRAW_MODE && sprite->mode == SPRITE_DRAW_MODE)
+                    spriteSetBrushSize(sprite, sprite->brush.size % BRUSH_SIZES + 1);
+                else
+                {
+                    sprite->mode = i;
 
-                clearCanvasSelection(sprite);
+                    clearCanvasSelection(sprite);
+                }
             }
         }
 
@@ -1574,6 +1663,9 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
         {
             ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_down, rect.x, y - 5, tic_color_black);
             ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_down, rect.x, y - 6, tic_color_white);
+
+            if(i == SPRITE_DRAW_MODE)
+                drawBrushSizeMarker(sprite, rect.x, y);
 
             ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], rect.x, y + 1, (over ? tic_color_light_grey : tic_color_white));
         }
@@ -1968,7 +2060,12 @@ static void processKeyboard(Sprite* sprite)
                 {
 
                     if(keyPressed(sprite, tic_key_1))
-                        sprite->mode = SPRITE_DRAW_MODE;
+                    {
+                        if(sprite->mode == SPRITE_DRAW_MODE)
+                            updateBrushSize(sprite, +1);
+                        else
+                            sprite->mode = SPRITE_DRAW_MODE;
+                    }
                     else if(keyPressed(sprite, tic_key_2))
                         sprite->mode = SPRITE_PICK_MODE;
                     else if(keyPressed(sprite, tic_key_3))
@@ -2031,25 +2128,7 @@ void sprite_tick(Sprite* sprite)
         tic80_input* input = &tic->ram->input;
 
         if(input->mouse.scrolly)
-        {
-            s32 delta = input->mouse.scrolly;
-
-            if(mousePos(sprite, &(tic_rect){SheetX, SheetY, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE}))
-            {
-                s32 size = sprite->canvasSize;
-
-                if(delta > 0)
-                {
-                    if(size < (TIC_SPRITESIZE * TIC_SPRITESIZE)) size <<= 1;
-                }
-                else if(size > TIC_SPRITESIZE)
-                    size >>= 1;
-
-                updateSpriteSize(sprite, size);
-            }
-            else if(mousePos(sprite, &(tic_rect){CanvasX, CanvasY, CanvasW, CanvasH}))
-                spriteSetBrushSize(sprite, sprite->brush.size + (delta > 0 ? 1 : -1));
-        }
+            scaleCanvasSize(sprite, input->mouse.scrolly);
     }
 
     // A slider drag is one undo step, committed when the button is released.

@@ -165,6 +165,14 @@ static u8 tilePixel(s32 tile, s32 x, s32 y)
     return tic_tool_peek4(Tic->cart.banks[0].tiles.data[tile].data, x + y * TIC_SPRITESIZE);
 }
 
+static u8 vbank1Pixel(s32 x, s32 y)
+{
+    tic_core* core = (tic_core*)Tic;
+    tic_vram* vram = core->state.vbank.id ? &core->memory.ram->vram : &core->state.vbank.mem;
+
+    return tic_tool_peek4(vram->screen.data, (u32)(y * TIC80_WIDTH + x));
+}
+
 static void testDrawUndo(void)
 {
     setup();
@@ -383,8 +391,9 @@ static void testScroll(void)
     assert(Sprite_.canvasSize == TIC_SPRITESIZE);
     assert(Sprite_.brush.size == 1);
 
+    // The wheel resizes the canvas wherever the pointer is, and never the brush.
     noMouse();
-    pointer(150, 50);
+    pointer(50, 50);
     scroll(1);
     frame();
     assert(Sprite_.canvasSize == TIC_SPRITESIZE * 2);
@@ -394,30 +403,159 @@ static void testScroll(void)
     pointer(50, 50);
     scroll(1);
     frame();
-    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 2);
-    assert(Sprite_.brush.size == 2);
-
-    noMouse();
-    pointer(50, 50);
-    scroll(-1);
-    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 4);
     assert(Sprite_.brush.size == 1);
 
-    noMouse();
-    pointer(150, 50);
-    scroll(-1);
-    frame();
-    assert(Sprite_.canvasSize == TIC_SPRITESIZE);
-
-    // Anywhere else the wheel does nothing.
     noMouse();
     pointer(30, 118);
     scroll(1);
     frame();
-    assert(Sprite_.canvasSize == TIC_SPRITESIZE);
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 8);
+
+    noMouse();
+    pointer(30, 118);
+    scroll(1);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 8);
+
+    noMouse();
+    pointer(150, 50);
+    scroll(-1);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 4);
     assert(Sprite_.brush.size == 1);
 
     puts("scroll ok");
+}
+
+static void testCanvasSizeButtons(void)
+{
+    setup();
+
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE);
+    assert(Sprite_.brush.size == 1);
+
+    // The buttons under the canvas resize it and stop at the ends.
+    noMouse();
+    pointer(82, 89);
+    click(82, 89);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE);
+
+    noMouse();
+    pointer(86, 89);
+    click(86, 89);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 2);
+
+    for(s32 i = 0; i < 2; i++)
+    {
+        noMouse();
+        pointer(86, 89);
+        click(86, 89);
+        frame();
+    }
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 8);
+
+    noMouse();
+    pointer(86, 89);
+    click(86, 89);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 8);
+
+    noMouse();
+    pointer(82, 89);
+    click(82, 89);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 4);
+
+    // The buttons stay available outside DRAW mode and never touch the brush.
+    spriteSetMode(&Sprite_, SPRITE_PICK_MODE);
+    noMouse();
+    pointer(86, 89);
+    click(86, 89);
+    frame();
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE * 8);
+    assert(Sprite_.brush.size == 1);
+
+    puts("canvas size buttons ok");
+}
+
+static void testBrushMarker(void)
+{
+    setup();
+
+    assert(Sprite_.mode == SPRITE_DRAW_MODE);
+    assert(Sprite_.brush.size == 1);
+
+    // Clicking the brush tool again cycles its size and keeps the mode.
+    for(s32 size = 2; size <= 4; size++)
+    {
+        noMouse();
+        pointer(16, 100);
+        click(16, 100);
+        frame();
+        assert(Sprite_.mode == SPRITE_DRAW_MODE);
+        assert(Sprite_.brush.size == size);
+    }
+
+    // The marker is a 4x4 square under the brush tile, left-aligned with it.
+    assert(vbank1Pixel(12, 105) == tic_color_white);
+    assert(vbank1Pixel(15, 108) == tic_color_white);
+    assert(vbank1Pixel(12, 109) == tic_color_black);
+    assert(vbank1Pixel(16, 105) == tic_color_grey);
+
+    noMouse();
+    pointer(16, 100);
+    click(16, 100);
+    frame();
+    assert(Sprite_.brush.size == 1);
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE);
+
+    // Coming from another mode, the first click only selects the brush.
+    spriteSetMode(&Sprite_, SPRITE_PICK_MODE);
+    noMouse();
+    pointer(16, 100);
+    click(16, 100);
+    frame();
+    assert(Sprite_.mode == SPRITE_DRAW_MODE);
+    assert(Sprite_.brush.size == 1);
+
+    noMouse();
+    pointer(16, 100);
+    click(16, 100);
+    frame();
+    assert(Sprite_.brush.size == 2);
+
+    // Key 1 changes the size while DRAW is active, and selects DRAW otherwise.
+    noMouse();
+    press(tic_key_1);
+    frame();
+    assert(Sprite_.mode == SPRITE_DRAW_MODE);
+    assert(Sprite_.brush.size == 3);
+
+    // A release frame lets the same key press again.
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+
+    spriteSetMode(&Sprite_, SPRITE_PICK_MODE);
+    noMouse();
+    press(tic_key_1);
+    frame();
+    assert(Sprite_.mode == SPRITE_DRAW_MODE);
+    assert(Sprite_.brush.size == 3);
+
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+
+    noMouse();
+    press(tic_key_1);
+    frame();
+    assert(Sprite_.brush.size == 4);
+
+    puts("brush marker ok");
 }
 
 static void testFlagsOnly4bpp(void)
@@ -560,6 +698,8 @@ int main(void)
     testPaletteSliderUndo();
     testPaletteClipboard();
     testScroll();
+    testCanvasSizeButtons();
+    testBrushMarker();
     testFlagsOnly4bpp();
     testFlagsHex();
     testGesture();
