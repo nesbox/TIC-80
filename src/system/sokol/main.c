@@ -1375,7 +1375,7 @@ static void cleanup_cb(void)
 #if defined(TOUCH_INPUT_SUPPORT)
     controls_shutdown();
 #endif
-#if defined(__linux__)
+#if defined(__TIC_LINUX__)
     // PipeWire's ALSA plugin can block in snd_pcm_drain() or snd_pcm_close()
     // while shutting down. The process exits as soon as this callback
     // returns, so let the OS close the PCM instead of risking a window that
