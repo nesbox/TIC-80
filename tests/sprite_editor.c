@@ -473,6 +473,77 @@ static void testCanvasSizeButtons(void)
     puts("canvas size buttons ok");
 }
 
+static void testBrushMarker(void)
+{
+    setup();
+
+    assert(Sprite_.mode == SPRITE_DRAW_MODE);
+    assert(Sprite_.brush.size == 1);
+
+    // Clicking the brush tool again cycles its size and keeps the mode.
+    for(s32 size = 2; size <= 4; size++)
+    {
+        noMouse();
+        pointer(16, 100);
+        click(16, 100);
+        frame();
+        assert(Sprite_.mode == SPRITE_DRAW_MODE);
+        assert(Sprite_.brush.size == size);
+    }
+
+    noMouse();
+    pointer(16, 100);
+    click(16, 100);
+    frame();
+    assert(Sprite_.brush.size == 1);
+    assert(Sprite_.canvasSize == TIC_SPRITESIZE);
+
+    // Coming from another mode, the first click only selects the brush.
+    spriteSetMode(&Sprite_, SPRITE_PICK_MODE);
+    noMouse();
+    pointer(16, 100);
+    click(16, 100);
+    frame();
+    assert(Sprite_.mode == SPRITE_DRAW_MODE);
+    assert(Sprite_.brush.size == 1);
+
+    noMouse();
+    pointer(16, 100);
+    click(16, 100);
+    frame();
+    assert(Sprite_.brush.size == 2);
+
+    // Key 1 changes the size while DRAW is active, and selects DRAW otherwise.
+    noMouse();
+    press(tic_key_1);
+    frame();
+    assert(Sprite_.mode == SPRITE_DRAW_MODE);
+    assert(Sprite_.brush.size == 3);
+
+    // A release frame lets the same key press again.
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+
+    spriteSetMode(&Sprite_, SPRITE_PICK_MODE);
+    noMouse();
+    press(tic_key_1);
+    frame();
+    assert(Sprite_.mode == SPRITE_DRAW_MODE);
+    assert(Sprite_.brush.size == 3);
+
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+
+    noMouse();
+    press(tic_key_1);
+    frame();
+    assert(Sprite_.brush.size == 4);
+
+    puts("brush marker ok");
+}
+
 static void testFlagsOnly4bpp(void)
 {
     setup();
@@ -614,6 +685,7 @@ int main(void)
     testPaletteClipboard();
     testScroll();
     testCanvasSizeButtons();
+    testBrushMarker();
     testFlagsOnly4bpp();
     testFlagsHex();
     testGesture();

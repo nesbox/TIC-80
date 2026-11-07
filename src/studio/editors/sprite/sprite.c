@@ -1610,6 +1610,17 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
     }
 }
 
+// The brush tile's marker is a square showing its size, below the tool icon.
+static void drawBrushSizeMarker(Sprite* sprite, s32 x, s32 y)
+{
+    s32 size = sprite->brush.size;
+    s32 yOffset = (BRUSH_SIZES - size) / 2;
+    s32 markerY = y + TIC_SPRITESIZE + 1 + yOffset;
+
+    tic_api_rect(sprite->tic, x, markerY + 1, size, size, tic_color_black);
+    tic_api_rect(sprite->tic, x, markerY, size, size, tic_color_white);
+}
+
 static void drawTools(Sprite* sprite, s32 x, s32 y)
 {
     enum
@@ -1635,9 +1646,14 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 
             if(mouseClicked(sprite, &rect, tic_mouse_left))
             {
-                sprite->mode = i;
+                if(i == SPRITE_DRAW_MODE && sprite->mode == SPRITE_DRAW_MODE)
+                    spriteSetBrushSize(sprite, sprite->brush.size % BRUSH_SIZES + 1);
+                else
+                {
+                    sprite->mode = i;
 
-                clearCanvasSelection(sprite);
+                    clearCanvasSelection(sprite);
+                }
             }
         }
 
@@ -1647,6 +1663,9 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
         {
             ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_down, rect.x, y - 5, tic_color_black);
             ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_down, rect.x, y - 6, tic_color_white);
+
+            if(i == SPRITE_DRAW_MODE)
+                drawBrushSizeMarker(sprite, rect.x, y);
 
             ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], rect.x, y + 1, (over ? tic_color_light_grey : tic_color_white));
         }
@@ -2041,7 +2060,12 @@ static void processKeyboard(Sprite* sprite)
                 {
 
                     if(keyPressed(sprite, tic_key_1))
-                        sprite->mode = SPRITE_DRAW_MODE;
+                    {
+                        if(sprite->mode == SPRITE_DRAW_MODE)
+                            updateBrushSize(sprite, +1);
+                        else
+                            sprite->mode = SPRITE_DRAW_MODE;
+                    }
                     else if(keyPressed(sprite, tic_key_2))
                         sprite->mode = SPRITE_PICK_MODE;
                     else if(keyPressed(sprite, tic_key_3))
