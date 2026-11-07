@@ -2,7 +2,7 @@
 # naett
 ################################
 
-if(RPI OR NINTENDO_3DS OR NINTENDO_SWITCH OR EMSCRIPTEN OR BAREMETALPI)
+if(NINTENDO_3DS OR NINTENDO_SWITCH OR EMSCRIPTEN OR BAREMETALPI)
     set(USE_NAETT FALSE)
 else()
     set(USE_NAETT TRUE)
@@ -33,8 +33,8 @@ if(PREFER_SYSTEM_LIBRARIES)
     endif()
 endif()
 
-# A desktop build that lost curl has no network layer at all, and the client only reports "file downloading error" (issue #3033). RPI is excluded: it is on the list above and never gets naett.
-if(LINUX AND NOT RPI AND NOT USE_NAETT)
+# A desktop build that lost curl has no network layer at all, and the client only reports "file downloading error" (issue #3033).
+if(LINUX AND NOT USE_NAETT)
     message(WARNING "no libcurl: this build has no network, so every download fails with \"file downloading error\" (export html/win/mac, the carts browser). Install the curl dev package (libcurl4-openssl-dev on Debian/Ubuntu).")
 endif()
 
