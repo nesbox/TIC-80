@@ -1,0 +1,2 @@
+dependencies:
+  idf: ">=6.0.2"

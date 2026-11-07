@@ -1,0 +1,16 @@
+# TIC-80 keeps a few large buffers as plain statics: a 512 KiB code buffer in
+# the studio and a 255 KiB Z-buffer in the renderer. Together they are more
+# than the ESP32-P4 has in internal RAM, so the whole component's .bss goes to
+# PSRAM instead.
+#
+# The scheme is defined here rather than reused: ESP-IDF's own extram_bss
+# scheme lives in esp_wifi's fragment, which this build does not pull in.
+[scheme:tic80_extram_bss]
+entries:
+    bss -> extern_ram
+    common -> extern_ram
+
+[mapping:tic80]
+archive: libtanmatsu.a
+entries:
+    * (tic80_extram_bss)
