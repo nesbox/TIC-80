@@ -1209,6 +1209,7 @@ jobs:
           if-no-files-found: error
           name: "tic80-android-surf"
           path: build/android-sokol/tic80-surf.apk
+ 
   # === Raspberry PI 1 Bare Metal ===
   rpi-baremetal:
     runs-on: ubuntu-24.04
@@ -1259,6 +1260,7 @@ jobs:
                 -DBUILD_WITH_RUBY=OFF \
                 -DBUILD_WITH_SCHEME=OFF \
                 -DBUILD_WITH_SQUIRREL=OFF \
+                -DBUILD_WITH_GRAVITY=OFF \
                 -DBUILD_WITH_JS=OFF ..
           make tic80studio -j$(nproc)
           cd baremetalpi
@@ -1333,6 +1335,7 @@ jobs:
                 -DBUILD_WITH_RUBY=OFF \
                 -DBUILD_WITH_SCHEME=OFF \
                 -DBUILD_WITH_SQUIRREL=OFF \
+                -DBUILD_WITH_GRAVITY=OFF \
                 -DBUILD_WITH_JS=OFF ..
           make tic80studio -j$(nproc)
           cd baremetalpi
@@ -1408,6 +1411,7 @@ jobs:
                 -DBUILD_WITH_RUBY=OFF \
                 -DBUILD_WITH_SCHEME=OFF \
                 -DBUILD_WITH_SQUIRREL=OFF \
+                -DBUILD_WITH_GRAVITY=OFF \
                 -DBUILD_WITH_JS=OFF ..
           make tic80studio -j$(nproc)
           cd baremetalpi
@@ -1483,6 +1487,7 @@ jobs:
                 -DBUILD_WITH_RUBY=OFF \
                 -DBUILD_WITH_SCHEME=OFF \
                 -DBUILD_WITH_SQUIRREL=OFF \
+                -DBUILD_WITH_GRAVITY=OFF \
                 -DBUILD_WITH_JS=OFF ..
           make tic80studio -j$(nproc)
           cd baremetalpi
