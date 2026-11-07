@@ -45,7 +45,7 @@ if(BUILD_RENDER_CACHE)
 endif()
 # Sokol is the layer the desktop ships and the web has built since the browser
 # change; the platforms below cannot build it and keep the SDL default.
-if(ANDROID OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI OR RPI OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+if(ANDROID OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(BUILD_SDL_DEFAULT ON)
     set(BUILD_SOKOL_DEFAULT OFF)
 else()
@@ -180,10 +180,6 @@ if(MSVC)
 else()
 
     set(CMAKE_C_STANDARD 11)
-endif()
-
-if(RPI)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11")
 endif()
 
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)

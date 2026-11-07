@@ -18,7 +18,7 @@ if(PREFER_SYSTEM_SDL2)
 endif()
 
 
-if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI AND NOT PREFER_SYSTEM_SDL2)
+if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT PREFER_SYSTEM_SDL2)
 
     if(WIN32)
         set(HAVE_LIBC TRUE)
@@ -80,7 +80,7 @@ endif()
 # SDL2 standalone cart player
 ################################
 
-if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
+if(BUILD_SDL AND BUILD_PLAYER)
 
     add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/system/sdl/player.c)
 
@@ -275,12 +275,6 @@ if(BUILD_SDL)
         target_link_directories(${TIC80_TARGET} PRIVATE ${SYSROOT_PATH}/usr/local/lib)
     endif()
 
-    if(RPI)
-        target_include_directories(${TIC80_TARGET} PRIVATE ${SYSROOT_PATH}/usr/local/include/SDL2)
-        target_link_directories(${TIC80_TARGET} PRIVATE ${SYSROOT_PATH}/usr/local/lib ${SYSROOT_PATH}/opt/vc/lib)
-        target_compile_definitions(${TIC80_TARGET} PRIVATE __RPI__)
-    endif()
-
     if(BUILD_SDLGPU)
         target_link_libraries(${TIC80_TARGET} sdlgpu)
         if(LINUX)
@@ -288,8 +282,6 @@ if(BUILD_SDL)
         endif()
     else()
         if(EMSCRIPTEN)
-        elseif(RPI)
-            target_link_libraries(${TIC80_TARGET} libSDL2.a bcm_host pthread)
         else()
             if(BUILD_STATIC AND NOT USE_GLES2)
                 target_link_libraries(${TIC80_TARGET} SDL2-static)

@@ -33,10 +33,6 @@ elseif (LINUX)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Nesbox <grigoruk@gmail.com>")
     set(CPACK_DEBIAN_PACKAGE_SECTION "education")
 
-    if(RPI)
-        set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE armhf)
-    endif()
-
     install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY true)")
     include(CPack)
 endif()

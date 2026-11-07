@@ -220,21 +220,6 @@ static struct
 #endif
 ;
 
-#if defined(__RPI__)
-
-// !TODO: update SDL to 2.0.14 on RPI docker to support these functions
-SDL_bool SDL_GameControllerHasAxis(SDL_GameController* gamecontroller, SDL_GameControllerAxis axis)
-{
-    return SDL_TRUE;
-}
-
-SDL_bool SDL_GameControllerHasButton(SDL_GameController* gamecontroller, SDL_GameControllerButton button)
-{
-    return SDL_TRUE;
-}
-
-#endif
-
 static void destoryTexture(Texture texture)
 {
 #if defined(CRT_SHADER_SUPPORT)
@@ -2550,14 +2535,3 @@ s32 main(s32 argc, char** argv)
 
 #endif
 }
-
-// workaround to build app on Raspbian
-#if defined(__RPI__)
-
-#include <fcntl.h>
-int fcntl64(int fd, int cmd, ...)
-{
-    return fcntl(fd, cmd);
-}
-
-#endif
