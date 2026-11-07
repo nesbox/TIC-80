@@ -1004,8 +1004,8 @@ jobs:
           path: |
             build/bin/tic80
 
-  # === Android ===
-  android:
+  # === Android (SDL) ===
+  sdl-android:
     # 24.04, not -latest: setup-ruby has no 2.6.10 for 26.04 (#3107).
     runs-on: ubuntu-24.04
 
@@ -1046,27 +1046,21 @@ jobs:
           # stops, and a step that produced no APK must not look like one that
           # produced a good one.
           #
-          # A pull request from a fork is handed no secrets at all, so the two
+          # A pull request from a fork is handed no secrets at all, so the
           # checks below would fail it for a reason that has nothing to do with
           # the change (17.09). Such a run builds the release variant unsigned
-          # instead: the android job still proves the code compiles, the APK
-          # cannot be mistaken for a shipable one, and every other event — a
-          # push, the tag call — signs exactly as before.
-          # Each build is copied aside before the next one: the two APKs come
-          # out of the same output path, and the second overwrites the first.
+          # instead: the job still proves the code compiles, the APK cannot be
+          # mistaken for a shipable one, and every other event — a push, the tag
+          # call — signs exactly as before.
           if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
               ./gradlew assembleRelease -PUNSIGNED=1
               cp app/build/outputs/apk/release/app-release-unsigned.apk tic80.apk
-              ./gradlew assembleRelease -PUNSIGNED=1 -PEDITORS=OFF
-              cp app/build/outputs/apk/release/app-release-unsigned.apk tic80-surf.apk
-              echo "fork pull request: no repository secrets, the APKs are unsigned"
+              echo "fork pull request: no repository secrets, the APK is unsigned"
           else
               : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
               : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
               ./gradlew assembleRelease
               cp app/build/outputs/apk/release/app-release.apk tic80.apk
-              ./gradlew assembleRelease -PEDITORS=OFF
-              cp app/build/outputs/apk/release/app-release.apk tic80-surf.apk
           fi
 
         env:
@@ -1074,46 +1068,28 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
-      - name: Check what each APK carries
+      - name: Check what the APK carries
         run: |
           cd build/android
-          # A flag that did not take looks exactly like one that took, and
-          # gradle can hand the second build the first one's native library.
-          # So each APK is read back: the editors APK carries the IDE, the
-          # browser-only one carries the browser and no IDE.
+          # A flag that did not take looks exactly like one that took: read the
+          # library back, the editors APK carries the IDE.
           unzip -p tic80.apk lib/arm64-v8a/libtic80.so > editors.so
-          unzip -p tic80-surf.apk lib/arm64-v8a/libtic80.so > surf.so
           if ! grep -qa "SPRITE EDITOR" editors.so; then
             echo "the APK has no editors — BUILD_EDITORS did not take" >&2
             exit 1
           fi
-          if ! grep -qa "You don't have any files" surf.so; then
-            echo "the browser-only APK has no browser — -PEDITORS=OFF did not take, or gradle reused the first build's library" >&2
-            exit 1
-          fi
-          if grep -qa "SPRITE EDITOR" surf.so; then
-            echo "the browser-only APK carries the editors — -PEDITORS=OFF did not take" >&2
-            exit 1
-          fi
-          echo "both APKs carry what they should"
+          echo "the APK carries the editors"
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-android"
+          name: "tic80-android-sdl"
           path: build/android/tic80.apk
 
-      - name: Deploy the browser-only APK
-        uses: actions/upload-artifact@v6
-        with:
-          if-no-files-found: error
-          name: "tic80-android-surf"
-          path: build/android/tic80-surf.apk
-
   # === Android (sokol) ===
-  android-sokol:
-    # As the android job: setup-ruby has no 2.6.10 for 26.04 (#3107).
+  android:
+    # 24.04, not -latest: setup-ruby has no 2.6.10 for 26.04 (#3107).
     runs-on: ubuntu-24.04
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -1224,14 +1200,14 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-android-sokol"
+          name: "tic80-android"
           path: build/android-sokol/tic80.apk
 
       - name: Deploy the browser-only APK
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-android-sokol-surf"
+          name: "tic80-android-surf"
           path: build/android-sokol/tic80-surf.apk
 
   # === HTML ===

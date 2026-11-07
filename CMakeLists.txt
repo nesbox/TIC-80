@@ -45,7 +45,7 @@ if(BUILD_RENDER_CACHE)
 endif()
 # Sokol is the layer the desktop ships and the web has built since the browser
 # change; the platforms below cannot build it and keep the SDL default.
-if(ANDROID OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI OR RPI OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+if(ANDROID OR NINTENDO_3DS OR NINTENDO_SWITCH OR BAREMETALPI OR CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(BUILD_SDL_DEFAULT ON)
     set(BUILD_SOKOL_DEFAULT OFF)
 else()
@@ -164,9 +164,10 @@ endif()
 
 if(MSVC)
 
-    add_definitions("/D\"_CRT_SECURE_NO_WARNINGS\"")
-    add_definitions("/D\"_CRT_NONSTDC_NO_DEPRECATE\"")
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
 
+    # Multi-config generators append the config to the output dirs; the CI, the
+    # release jobs and the tools read bin/ and lib/ without a Release or Debug level.
     foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
         string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
         set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
@@ -180,10 +181,6 @@ if(MSVC)
 else()
 
     set(CMAKE_C_STANDARD 11)
-endif()
-
-if(RPI)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11")
 endif()
 
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
@@ -232,25 +229,5 @@ include(cmake/apple.cmake)
 include(cmake/libretro.cmake)
 include(cmake/n3ds.cmake)
 include(cmake/nswitch.cmake)
-
-# The Linux desktop entry, its icon and the mime type belong to the app, not
-# to the layer; a build with no layer at all has no binary to install.
-if(LINUX AND TARGET ${TIC80_TARGET})
-
-    configure_file("${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop.in" "${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop")
-
-    install(TARGETS ${TIC80_TARGET} DESTINATION bin)
-
-    set(TIC80_DESKTOP_DIR       "share/applications/")
-    set(TIC80_MIME_DIR          "share/mime/packages/")
-    set(TIC80_PIXMAPS_DIR       "share/icons/hicolor/256x256/apps")
-    set(TIC80_MIMETYPE_ICON_DIR "share/icons/hicolor/256x256/mimetypes")
-
-    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop DESTINATION ${TIC80_DESKTOP_DIR})
-    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_MIME_DIR})
-    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_PIXMAPS_DIR})
-    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_MIMETYPE_ICON_DIR} RENAME application-x-tic80-item.png)
-
-endif()
 
 include(cmake/install.cmake)

@@ -9,9 +9,9 @@
 
 # The line under development. A snapshot reports it, and a tree with no git
 # reports it verbatim — see the no-git note further down. Bump it in the
-# commit after a release: v1.3.1 shipped, so main is on the 1.4 line.
+# commit after a release: v1.4.1 shipped, so main is on the 1.5 line.
 set(VERSION_MAJOR 1)
-set(VERSION_MINOR 4)
+set(VERSION_MINOR 5)
 set(VERSION_REVISION 0)
 set(VERSION_STATUS "-dev")
 
@@ -25,7 +25,7 @@ endif()
 # a snapshot of anything: it reports the literals above as they stand, as a
 # release, so TIC_HOST stays tic80.com instead of sending a shipped build at
 # the dev site. Its asset directory follows the same literals, so an archive
-# of main asks for /js/v1.3.0/ and /export/v1.3.0/ before that release exists
+# of main asks for /js/v1.5.0/ and /export/v1.5.0/ before that release exists
 # — the price of one number carrying both the line under development and this
 # fallback. An archive of a release tag carries that tag's literals and asks
 # for exactly its own. A git checkout overrides this below.
@@ -112,8 +112,8 @@ endif()
 # The directory this build's assets live in on the site it talks to —
 # /js/<dir>/, /export/<dir>/. Each site lays out the names its own builds ask
 # for, and both sides follow from this build alone: a release asks for its tag
-# (v1.3.0), which production lays out when that release is deployed, and a
-# snapshot asks for the line it is on (1.3), which the dev instance keeps up
+# (v1.5.0), which production lays out when that release is deployed, and a
+# snapshot asks for the line it is on (1.5), which the dev instance keeps up
 # to date from snapshots of main. Nothing here looks at what has been
 # released, so a snapshot's export carries the snapshot's engine rather than
 # the last release's — which is the whole point of exporting from dev.
