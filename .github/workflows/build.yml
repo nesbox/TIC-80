@@ -1248,8 +1248,8 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
-                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error" \
-                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error" \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format" \
                 -DBUILD_WITH_LUA=ON \
                 -DBUILD_WITH_PYTHON=OFF \
                 -DBUILD_WITH_WASM=OFF \
@@ -1323,8 +1323,8 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
-                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error" \
-                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error" \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format" \
                 -DBUILD_WITH_LUA=ON \
                 -DBUILD_WITH_PYTHON=OFF \
                 -DBUILD_WITH_WASM=OFF \
@@ -1399,8 +1399,8 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
-                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error" \
-                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error" \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format" \
                 -DBUILD_WITH_LUA=ON \
                 -DBUILD_WITH_PYTHON=OFF \
                 -DBUILD_WITH_WASM=OFF \
@@ -1475,8 +1475,8 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
-                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error" \
-                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error" \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format" \
                 -DBUILD_WITH_LUA=ON \
                 -DBUILD_WITH_PYTHON=OFF \
                 -DBUILD_WITH_WASM=OFF \
