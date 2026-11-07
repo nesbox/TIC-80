@@ -10,10 +10,6 @@
 	path = vendor/giflib
 	url = https://github.com/nesbox/giflib.git
 	shallow = true
-[submodule "vendor/lua"]
-	path = vendor/lua
-	url = https://github.com/lua/lua.git
-	shallow = true
 [submodule "vendor/squirrel"]
 	path = vendor/squirrel
 	url = https://github.com/albertodemichelis/squirrel.git
@@ -108,3 +104,7 @@
 	url = https://github.com/luginf/lugforth.git
 	branch = tic80
 	shallow = true
+[submodule "vendor/lua"]
+	path = vendor/lua
+	url = https://github.com/lua/lua.git
+	branch = v5.4
