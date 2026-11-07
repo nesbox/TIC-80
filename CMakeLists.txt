@@ -230,24 +230,4 @@ include(cmake/libretro.cmake)
 include(cmake/n3ds.cmake)
 include(cmake/nswitch.cmake)
 
-# The Linux desktop entry, its icon and the mime type belong to the app, not
-# to the layer; a build with no layer at all has no binary to install.
-if(LINUX AND TARGET ${TIC80_TARGET})
-
-    configure_file("${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop.in" "${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop")
-
-    install(TARGETS ${TIC80_TARGET} DESTINATION bin)
-
-    set(TIC80_DESKTOP_DIR       "share/applications/")
-    set(TIC80_MIME_DIR          "share/mime/packages/")
-    set(TIC80_PIXMAPS_DIR       "share/icons/hicolor/256x256/apps")
-    set(TIC80_MIMETYPE_ICON_DIR "share/icons/hicolor/256x256/mimetypes")
-
-    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop DESTINATION ${TIC80_DESKTOP_DIR})
-    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_MIME_DIR})
-    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_PIXMAPS_DIR})
-    install(FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_MIMETYPE_ICON_DIR} RENAME application-x-tic80-item.png)
-
-endif()
-
 include(cmake/install.cmake)
