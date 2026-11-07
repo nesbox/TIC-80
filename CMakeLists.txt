@@ -166,6 +166,8 @@ if(MSVC)
 
     add_compile_definitions(_CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
 
+    # Multi-config generators append the config to the output dirs; the CI, the
+    # release jobs and the tools read bin/ and lib/ without a Release or Debug level.
     foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
         string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
         set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
