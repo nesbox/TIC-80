@@ -113,7 +113,7 @@ endif()
 # /js/<dir>/, /export/<dir>/. Each site lays out the names its own builds ask
 # for, and both sides follow from this build alone: a release asks for its tag
 # (v1.5.0), which production lays out when that release is deployed, and a
-# snapshot asks for the line it is on (1.3), which the dev instance keeps up
+# snapshot asks for the line it is on (1.5), which the dev instance keeps up
 # to date from snapshots of main. Nothing here looks at what has been
 # released, so a snapshot's export carries the snapshot's engine rather than
 # the last release's — which is the whole point of exporting from dev.
