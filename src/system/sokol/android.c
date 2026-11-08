@@ -244,6 +244,149 @@ void android_open_url(const char* url)
     android_end(env);
 }
 
+// The `add` command: the picker activity copies the file itself, so nothing
+// comes back here. False when the picker could not be started.
+bool android_add_file(void)
+{
+    bool started = false;
+    JNIEnv* env = android_begin();
+
+    if(!env)
+        return false;
+
+    jobject activity = android_activity();
+
+    if(activity)
+    {
+        jclass activityClass = (*env)->GetObjectClass(env, activity);
+        jmethodID packageOf = (*env)->GetMethodID(env, activityClass, "getPackageName", "()Ljava/lang/String;");
+        jmethodID start = (*env)->GetMethodID(env, activityClass, "startActivity", "(Landroid/content/Intent;)V");
+        jclass intentClass = (*env)->FindClass(env, "android/content/Intent");
+        jmethodID ctor = intentClass ? (*env)->GetMethodID(env, intentClass, "<init>", "()V") : NULL;
+        jmethodID setClassName = intentClass ? (*env)->GetMethodID(env, intentClass, "setClassName", "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;") : NULL;
+
+        if(android_failed(env))
+            packageOf = start = ctor = setClassName = NULL;
+
+        if(packageOf && start && ctor && setClassName)
+        {
+            jstring package = (*env)->CallObjectMethod(env, activity, packageOf);
+            jstring name = (*env)->NewStringUTF(env, "com.nesbox.tic.TICAddActivity");
+            jobject intent = (*env)->NewObject(env, intentClass, ctor);
+
+            (*env)->CallObjectMethod(env, intent, setClassName, package, name);
+            (*env)->CallVoidMethod(env, activity, start, intent);
+            started = !(*env)->ExceptionCheck(env);
+        }
+    }
+
+    android_end(env);
+
+    return started;
+}
+
+// A class of the app cannot be found by name from the studio's thread; the
+// activity's loader is the one that knows it.
+static jclass android_app_class(JNIEnv* env, jobject activity, const char* name)
+{
+    jclass activityClass = (*env)->GetObjectClass(env, activity);
+    jmethodID loaderOf = (*env)->GetMethodID(env, activityClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
+    jobject loader = loaderOf ? (*env)->CallObjectMethod(env, activity, loaderOf) : NULL;
+    jclass loaderClass = loader ? (*env)->GetObjectClass(env, loader) : NULL;
+    jmethodID load = loaderClass ? (*env)->GetMethodID(env, loaderClass, "loadClass", "(Ljava/lang/String;)Ljava/lang/Class;") : NULL;
+    jobject loaded = NULL;
+
+    if(load)
+    {
+        jstring className = (*env)->NewStringUTF(env, name);
+
+        if(className)
+            loaded = (*env)->CallObjectMethod(env, loader, load, className);
+    }
+
+    if(android_failed(env))
+        loaded = NULL;
+
+    return (jclass)loaded;
+}
+
+// The `get` command: the file goes to Download/TIC-80 through MediaStore,
+// where every file manager can see it.
+bool android_get_file(const char* name, const void* data, int size)
+{
+    bool saved = false;
+    JNIEnv* env = android_begin();
+
+    if(!env)
+        return false;
+
+    jobject activity = android_activity();
+
+    if(activity && data && size > 0)
+    {
+        jclass filesClass = android_app_class(env, activity, "com.nesbox.tic.TICFiles");
+        jmethodID save = filesClass ? (*env)->GetStaticMethodID(env, filesClass, "saveToDownloads", "(Landroid/content/Context;Ljava/lang/String;[B)Z") : NULL;
+
+        if(android_failed(env))
+            save = NULL;
+
+        if(save)
+        {
+            jstring fileName = (*env)->NewStringUTF(env, name);
+            jbyteArray bytes = (*env)->NewByteArray(env, size);
+
+            if(fileName && bytes)
+            {
+                (*env)->SetByteArrayRegion(env, bytes, 0, size, (const jbyte*)data);
+                saved = (*env)->CallStaticBooleanMethod(env, filesClass, save, activity, fileName, bytes) == JNI_TRUE;
+            }
+        }
+    }
+
+    android_end(env);
+
+    return saved;
+}
+
+// The cart the launch came with, copied by the activity before the native
+// side starts; sokol_main makes it the studio's argument.
+char* android_launch_cart(void)
+{
+    char* result = NULL;
+    JNIEnv* env = android_begin();
+
+    if(!env)
+        return NULL;
+
+    jobject activity = android_activity();
+    jclass activityClass = activity ? android_app_class(env, activity, "com.nesbox.tic.TICActivity") : NULL;
+
+    if(activityClass)
+    {
+        jmethodID take = (*env)->GetStaticMethodID(env, activityClass, "takeLaunchCart", "()Ljava/lang/String;");
+
+        if(!android_failed(env) && take)
+        {
+            jstring cart = (*env)->CallStaticObjectMethod(env, activityClass, take);
+
+            if(cart)
+            {
+                const char* utf = (*env)->GetStringUTFChars(env, cart, NULL);
+
+                if(utf)
+                {
+                    result = strdup(utf);
+                    (*env)->ReleaseStringUTFChars(env, cart, utf);
+                }
+            }
+        }
+    }
+
+    android_end(env);
+
+    return result;
+}
+
 char* android_clipboard_get(void)
 {
     char* copy = NULL;
