@@ -245,13 +245,14 @@ void android_open_url(const char* url)
 }
 
 // The `add` command: the picker activity copies the file itself, so nothing
-// comes back here.
-void android_add_file(void)
+// comes back here. False when the picker could not be started.
+bool android_add_file(void)
 {
+    bool started = false;
     JNIEnv* env = android_begin();
 
     if(!env)
-        return;
+        return false;
 
     jobject activity = android_activity();
 
@@ -275,10 +276,13 @@ void android_add_file(void)
 
             (*env)->CallObjectMethod(env, intent, setClassName, package, name);
             (*env)->CallVoidMethod(env, activity, start, intent);
+            started = !(*env)->ExceptionCheck(env);
         }
     }
 
     android_end(env);
+
+    return started;
 }
 
 // A class of the app cannot be found by name from the studio's thread; the
@@ -342,6 +346,45 @@ bool android_get_file(const char* name, const void* data, int size)
     android_end(env);
 
     return saved;
+}
+
+// The cart the launch came with, copied by the activity before the native
+// side starts; sokol_main makes it the studio's argument.
+char* android_launch_cart(void)
+{
+    char* result = NULL;
+    JNIEnv* env = android_begin();
+
+    if(!env)
+        return NULL;
+
+    jobject activity = android_activity();
+    jclass activityClass = activity ? android_app_class(env, activity, "com.nesbox.tic.TICActivity") : NULL;
+
+    if(activityClass)
+    {
+        jmethodID take = (*env)->GetStaticMethodID(env, activityClass, "takeLaunchCart", "()Ljava/lang/String;");
+
+        if(!android_failed(env) && take)
+        {
+            jstring cart = (*env)->CallStaticObjectMethod(env, activityClass, take);
+
+            if(cart)
+            {
+                const char* utf = (*env)->GetStringUTFChars(env, cart, NULL);
+
+                if(utf)
+                {
+                    result = strdup(utf);
+                    (*env)->ReleaseStringUTFChars(env, cart, utf);
+                }
+            }
+        }
+    }
+
+    android_end(env);
+
+    return result;
 }
 
 char* android_clipboard_get(void)

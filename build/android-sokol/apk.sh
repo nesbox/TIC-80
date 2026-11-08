@@ -38,7 +38,7 @@ for tool in "$AAPT2" "$D8" "$ZIPALIGN" "$APKSIGNER"; do
     [ -x "$tool" ] || { echo "apk.sh: $tool is missing" >&2; exit 1; }
 done
 
-# The documents provider is the APK's only Java; the JDK also runs d8.
+# The APK's Java classes; the JDK also runs d8.
 JAVAC=${JAVAC:-${JAVA_HOME:+$JAVA_HOME/bin/javac}}
 JAVAC=${JAVAC:-$(command -v javac || true)}
 [ -x "${JAVAC:-}" ] || { echo "apk.sh: javac is missing (a JDK 17 is needed for the documents provider)" >&2; exit 1; }
@@ -102,7 +102,7 @@ sed "s/__AUTHORITY__/$APP.documents/" "$HERE/AndroidManifest.xml" > "$WORK/Andro
     --rename-manifest-package "$APP" \
     "$WORK/res.zip"
 
-# The one Java class, as the APK's dex.
+# The Java classes, as the APK's dex.
 mkdir -p "$WORK/classes" "$WORK/dex"
 "$JAVAC" -source 8 -target 8 -Xlint:-options -bootclasspath "$ANDROID_JAR" \
     -d "$WORK/classes" "$HERE"/java/com/nesbox/tic/*.java

@@ -2974,8 +2974,11 @@ static void onAddCommand(Console* console)
     // clang-format on
 #elif defined(__ANDROID__)
     // The picker copies the file itself, so the command is done here.
-    tic_sys_add_file();
-    printBack(console, "\nchoose a file to add");
+    if(tic_sys_add_file())
+        printBack(console, "\nchoose a file to add");
+    else
+        printError(console, "\nerror: no file picker :(");
+
     commandDone(console);
 #endif
 }
@@ -2987,7 +2990,8 @@ static void onGetCommand(Console* console)
         const char* name = console->desc->params->key;
         const char* path = tic_fs_path(console->fs, name);
 
-        if(fs_exists(path))
+        // A directory opens and reads on Unix, and the bytes are not a file.
+        if(!tic_fs_isdir(console->fs, name) && fs_exists(path))
         {
             s32 size = 0;
             void* buffer = fs_read(path, &size);
@@ -3016,6 +3020,7 @@ static void onGetCommand(Console* console)
                 printError(console, " not saved :(");
             }
 #endif
+            free(buffer);
         }
         else
         {

@@ -71,7 +71,7 @@ extern "C"
 
 #if defined(__ANDROID__) && defined(BUILD_SOKOL)
     // The system picker and the public Downloads folder, for `add` and `get`.
-    void tic_sys_add_file();
+    bool tic_sys_add_file();
     bool tic_sys_get_file(const char* name, const void* data, s32 size);
 #endif
 

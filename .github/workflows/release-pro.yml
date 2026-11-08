@@ -350,6 +350,10 @@ jobs:
             echo "the APK's dex is not the documents provider" >&2
             exit 1
           }
+          unzip -p build/android-sokol/tic80-pro.apk classes.dex | grep -qa "TICActivity" || {
+            echo "the APK's dex has no activity — the .tic intents cannot work" >&2
+            exit 1
+          }
           manifest=$("$TOOLS/aapt2" dump xmltree --file AndroidManifest.xml build/android-sokol/tic80-pro.apk)
           echo "$manifest" | grep -q "hasCode(0x0101000c)=true" || {
             echo "the APK's manifest has hasCode off — the provider cannot load" >&2
@@ -357,6 +361,10 @@ jobs:
           }
           echo "$manifest" | grep -q "TICDocumentsProvider" || {
             echo "the APK's manifest has no documents provider" >&2
+            exit 1
+          }
+          echo "$manifest" | grep -q "com.nesbox.tic.TICActivity" || {
+            echo "the APK's manifest has no activity" >&2
             exit 1
           }
           echo "$manifest" | grep -q 'authorities(0x01010018)="com.nesbox.tic.documents"' || {

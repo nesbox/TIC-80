@@ -2,17 +2,11 @@ package com.nesbox.tic;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.OpenableColumns;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
  * The system picker for the `add` command: copies the chosen file into the
@@ -20,7 +14,6 @@ import java.io.OutputStream;
  */
 public class TICAddActivity extends Activity {
     private static final int PICK_FILE = 1;
-    private static final String USER_DIR_NAME = "TIC-80";
 
     @Override
     protected void onCreate(Bundle state) {
@@ -45,17 +38,14 @@ public class TICAddActivity extends Activity {
     }
 
     private void copyFile(Uri uri) {
-        final File external = getExternalFilesDir(null);
+        final File dir = TICFiles.folder(this);
 
-        if (external == null) {
+        if (dir == null) {
             toast("No external storage");
             return;
         }
 
-        final File dir = new File(external, USER_DIR_NAME);
-        dir.mkdirs();
-
-        final String name = displayName(uri).replace('/', '_');
+        final String name = TICFiles.displayName(this, uri);
         final File file = new File(dir, name);
 
         if (file.exists()) {
@@ -63,33 +53,7 @@ public class TICAddActivity extends Activity {
             return;
         }
 
-        try (InputStream in = getContentResolver().openInputStream(uri);
-             OutputStream out = new FileOutputStream(file)) {
-            if (in == null)
-                throw new IOException("no stream");
-
-            final byte[] buffer = new byte[8192];
-            for (int read; (read = in.read(buffer)) > 0; )
-                out.write(buffer, 0, read);
-
-            toast(name + " added");
-        } catch (IOException e) {
-            file.delete();
-            toast("Failed to add " + name);
-        }
-    }
-
-    private String displayName(Uri uri) {
-        try (Cursor cursor = getContentResolver().query(uri,
-                new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                final int column = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                if (column >= 0)
-                    return cursor.getString(column);
-            }
-        }
-
-        return "file";
+        toast(TICFiles.copy(this, uri, file) ? name + " added" : "Failed to add " + name);
     }
 
     private void toast(String text) {
