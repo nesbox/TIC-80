@@ -1,0 +1,18 @@
+dependencies:
+  idf: ">=6.0.2"
+  badgeteam/badge-bsp: "=2.0.0"
+  # WiFi lives on the ESP32-C6 and is reached over ESP-Hosted. wifi-manager
+  # reads the networks the launcher already stored in NVS, so TIC-80 connects
+  # to whatever the device is configured for without asking again.
+  nicolaielectronics/wifi-manager: "=0.3.0"
+  nicolaielectronics/tanmatsu-wifi: "=1.3.1"
+  # USB keyboards, mice and gamepads. usb-input runs the USB host and tells the
+  # devices apart; hid-host, which it brings along, decodes their reports.
+  # Not in the component registry yet, so it comes from its repository,
+  # pinned to the 0.1.0 commit.
+  badgeteam/usb-input:
+    git: "https://github.com/badgeteam/esp32-component-usb-input.git"
+    version: "ec12d4d719cefed47f394dba21e5959f48cda423"
+  # Boot selection, which is how the launcher hands a cart to TIC-80 when a
+  # repository app names it as its interpreter.
+  badgeteam/appfs: "=2.1.0"
