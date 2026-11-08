@@ -1,23 +1,16 @@
 package com.nesbox.tic;
 
 import android.app.NativeActivity;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.net.Uri;
 import android.os.Bundle;
-import android.provider.DocumentsContract;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.PopupWindow;
 
-import java.io.File;
-import java.util.Locale;
-
 /**
- * The NativeActivity plus the one cart a launch can bring: a .tic opened from
- * a file manager is loaded once, at startup.
+ * The NativeActivity and the DeX titlebar.
  *
  * In a DeX freeform window the framework lays the titlebar out but never draws
  * it: NativeActivity takes the window surface, so the native frame covers the
@@ -26,27 +19,11 @@ import java.util.Locale;
  * the drag and the buttons.
  */
 public class TICActivity extends NativeActivity {
-    private static final String LAUNCH_CART = "launchCart";
-
-    // Taken by sokol_main, before the studio exists.
-    private static String launchCart;
-
-    // The same path with the instance's lifetime, to survive process death.
-    private String savedCart;
-
     private PopupWindow caption;
     private View captionView;
 
     @Override
     protected void onCreate(Bundle state) {
-        // The system redelivers the VIEW intent when the task is restored:
-        // the cart was imported already, and a second copy would be made.
-        if (state != null) {
-            savedCart = state.getString(LAUNCH_CART);
-            launchCart = savedCart;
-        } else
-            savedCart = launchCart = importCart(getIntent());
-
         super.onCreate(state);
 
         getWindow().getDecorView().post(new Runnable() {
@@ -55,12 +32,6 @@ public class TICActivity extends NativeActivity {
                 showCaption();
             }
         });
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle state) {
-        super.onSaveInstanceState(state);
-        state.putString(LAUNCH_CART, savedCart);
     }
 
     @Override
@@ -141,63 +112,6 @@ public class TICActivity extends NativeActivity {
         if (caption != null) {
             caption.dismiss();
             caption = null;
-        }
-    }
-
-    // The launch cart, once.
-    static String takeLaunchCart() {
-        final String path = launchCart;
-        launchCart = null;
-        return path;
-    }
-
-    private String importCart(Intent intent) {
-        if (intent == null || !Intent.ACTION_VIEW.equals(intent.getAction()))
-            return null;
-
-        final Uri uri = intent.getData();
-
-        if (uri == null)
-            return null;
-
-        try {
-            // The app's own root serves real paths: open the file in place.
-            if ((getPackageName() + ".documents").equals(uri.getAuthority()))
-                return cartInFolder(DocumentsContract.getDocumentId(uri));
-
-            final String name = TICFiles.displayName(this, uri);
-
-            if (!name.toLowerCase(Locale.US).endsWith(".tic"))
-                return null;
-
-            final File dir = TICFiles.folder(this);
-
-            if (dir == null)
-                return null;
-
-            final File file = TICFiles.unique(dir, name);
-
-            return TICFiles.copy(this, uri, file) ? file.getAbsolutePath() : null;
-        } catch (RuntimeException e) {
-            // An unreadable or malformed URI is not a reason to crash.
-            return null;
-        }
-    }
-
-    // A path this app may load: inside the carts folder, and a cart.
-    private String cartInFolder(String path) {
-        final File dir = TICFiles.folder(this);
-
-        if (dir == null || path == null || !path.toLowerCase(Locale.US).endsWith(".tic"))
-            return null;
-
-        try {
-            final String folder = dir.getCanonicalPath();
-            final String file = new File(path).getCanonicalPath();
-
-            return file.startsWith(folder + File.separator) ? path : null;
-        } catch (Exception e) {
-            return null;
         }
     }
 }

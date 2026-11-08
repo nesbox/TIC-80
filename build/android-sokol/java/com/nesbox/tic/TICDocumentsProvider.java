@@ -24,9 +24,6 @@ import java.util.Locale;
 public class TICDocumentsProvider extends DocumentsProvider {
     private static final String ROOT = "root";
     private static final String ALL_MIME_TYPES = "*/*";
-    // What the manifest's VIEW filter listens for: cart names have no standard
-    // MIME type, and a path-based filter cannot see the dots in a document id.
-    private static final String CART_MIME_TYPE = "application/x-tic80";
     private static final String USER_DIR_NAME = "TIC-80";
 
     private static final String[] DEFAULT_ROOT_PROJECTION = new String[]{
@@ -273,10 +270,6 @@ public class TICDocumentsProvider extends DocumentsProvider {
         final int dot = name.lastIndexOf('.');
         if (dot >= 0) {
             final String extension = name.substring(dot + 1).toLowerCase(Locale.US);
-
-            if (extension.equals("tic"))
-                return CART_MIME_TYPE;
-
             final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
             if (mime != null)
                 return mime;

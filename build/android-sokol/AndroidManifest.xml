@@ -41,24 +41,6 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
                 <category android:name="android.intent.category.GAME" />
             </intent-filter>
-
-            <!-- A .tic opened from a file manager: a path attribute without a
-                 host is ignored, so the pattern needs the host and the app's own
-                 documents are matched by the MIME type its provider reports. -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content" />
-                <data android:scheme="file" />
-                <data android:host="*" />
-                <data android:mimeType="*/*" android:pathPattern=".*\\.tic" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="content" />
-                <data android:mimeType="application/x-tic80" />
-            </intent-filter>
         </activity>
 
         <!-- The `add` command's picker: copies the chosen file itself. -->
