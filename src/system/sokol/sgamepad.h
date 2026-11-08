@@ -1091,6 +1091,36 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 #define BTN_WEST BTN_Y
 #endif
 
+// A driver that has no hat reports the direction pad as four buttons; the codes
+// are the kernel's since 3.13, spelt out for headers older than that.
+#ifndef BTN_DPAD_UP
+#define BTN_DPAD_UP    0x220
+#define BTN_DPAD_DOWN  0x221
+#define BTN_DPAD_LEFT  0x222
+#define BTN_DPAD_RIGHT 0x223
+#endif
+
+// The buttons the machine reads, by the place each has in a layout below.
+enum
+{
+    _SGAMEPAD_LINUX_BTN_A,
+    _SGAMEPAD_LINUX_BTN_B,
+    _SGAMEPAD_LINUX_BTN_X,
+    _SGAMEPAD_LINUX_BTN_Y,
+    _SGAMEPAD_LINUX_BTN_BACK,
+    _SGAMEPAD_LINUX_BTN_START,
+    _SGAMEPAD_LINUX_BUTTONS,
+};
+
+// A gamepad driver names its buttons for where they sit on the pad.
+static const int _sgamepad_linux_gamepad_buttons[_SGAMEPAD_LINUX_BUTTONS] = {
+    BTN_SOUTH, BTN_EAST, BTN_NORTH, BTN_WEST, BTN_SELECT, BTN_START};
+
+// A generic HID joystick numbers from BTN_TRIGGER: the first four buttons are
+// read as the face buttons, the ninth and tenth as select and start.
+static const int _sgamepad_linux_joystick_buttons[_SGAMEPAD_LINUX_BUTTONS] = {
+    BTN_TRIGGER, BTN_THUMB, BTN_THUMB2, BTN_TOP, BTN_BASE3, BTN_BASE4};
+
 // What the layer reads of a pad's axes: the hat is the direction pad, the
 // other four are the two sticks.
 enum
@@ -1126,6 +1156,8 @@ typedef struct
     char path[sizeof "/dev/input/" + 256];
     bool resync; // the kernel dropped events: read the pad again
     bool used;   // a button or axis the layer does not read
+    // the layout the pad's buttons are read in
+    const int* buttons;
     struct input_absinfo axis[_SGAMEPAD_LINUX_AXES];
     float stick[_SGAMEPAD_LINUX_AXES];
     int hat_x, hat_y;
@@ -1146,6 +1178,43 @@ static float _sgamepad_linux_stick(const struct input_absinfo* info, int value)
         return 0.0f;
 
     return ((value - info->minimum) / (float)range) * 2.0f - 1.0f;
+}
+
+// Sets the button a key code stands for on this pad; false when the code is
+// none the machine reads.
+static bool _sgamepad_linux_button(_sgamepad_linux_device* pad, int code, bool held)
+{
+    sgamepad_state* state = &pad->state;
+
+    switch(code)
+    {
+        case BTN_DPAD_UP: state->up = held; return true;
+        case BTN_DPAD_DOWN: state->down = held; return true;
+        case BTN_DPAD_LEFT: state->left = held; return true;
+        case BTN_DPAD_RIGHT: state->right = held; return true;
+        default: break;
+    }
+
+    for(int i = 0; i < _SGAMEPAD_LINUX_BUTTONS; i++)
+    {
+        if(pad->buttons[i] != code)
+            continue;
+
+        switch(i)
+        {
+            case _SGAMEPAD_LINUX_BTN_A: state->a = held; break;
+            case _SGAMEPAD_LINUX_BTN_B: state->b = held; break;
+            case _SGAMEPAD_LINUX_BTN_X: state->x = held; break;
+            case _SGAMEPAD_LINUX_BTN_Y: state->y = held; break;
+            case _SGAMEPAD_LINUX_BTN_BACK: state->back = held; break;
+            case _SGAMEPAD_LINUX_BTN_START: state->start = held; break;
+            default: break;
+        }
+
+        return true;
+    }
+
+    return false;
 }
 
 // What the pad holds right now, from the device itself: a pad that arrives with
@@ -1175,29 +1244,42 @@ static void _sgamepad_linux_read_all(_sgamepad_linux_device* pad)
     if(ioctl(pad->fd, EVIOCGKEY(sizeof keys), keys) < 0)
         return;
 
-    pad->state.a = _sgamepad_linux_bit(keys, BTN_SOUTH);
-    pad->state.b = _sgamepad_linux_bit(keys, BTN_EAST);
-    pad->state.x = _sgamepad_linux_bit(keys, BTN_NORTH);
-    pad->state.y = _sgamepad_linux_bit(keys, BTN_WEST);
-    pad->state.back = _sgamepad_linux_bit(keys, BTN_SELECT);
-    pad->state.start = _sgamepad_linux_bit(keys, BTN_START);
+    static const int Dpad[] = {BTN_DPAD_UP, BTN_DPAD_DOWN, BTN_DPAD_LEFT, BTN_DPAD_RIGHT};
+
+    for(size_t i = 0; i < sizeof Dpad / sizeof Dpad[0]; i++)
+        _sgamepad_linux_button(pad, Dpad[i], _sgamepad_linux_bit(keys, Dpad[i]));
+
+    for(int i = 0; i < _SGAMEPAD_LINUX_BUTTONS; i++)
+        _sgamepad_linux_button(pad, pad->buttons[i], _sgamepad_linux_bit(keys, pad->buttons[i]));
 }
 
-// A device the layer can read is one laid out the way the kernel's gamepad
-// drivers do; anything else is left unclaimed rather than read wrongly.
-static bool _sgamepad_linux_claimed(int fd)
+// A pad has a direction — a hat, four direction buttons or a pair of axes — and
+// two buttons in one of the layouts above; keyboards, mice and touchpads have neither.
+static const int* _sgamepad_linux_claimed(int fd)
 {
     unsigned char abs[(ABS_CNT + 7) / 8] = {0};
     unsigned char keys[(KEY_CNT + 7) / 8] = {0};
 
     if(ioctl(fd, EVIOCGBIT(EV_ABS, sizeof abs), abs) < 0 || ioctl(fd, EVIOCGBIT(EV_KEY, sizeof keys), keys) < 0)
-        return false;
+        return NULL;
 
     // clang-format off
-    return _sgamepad_linux_bit(abs, ABS_HAT0X) && _sgamepad_linux_bit(abs, ABS_HAT0Y)
-        && _sgamepad_linux_bit(keys, BTN_SOUTH) && _sgamepad_linux_bit(keys, BTN_EAST)
-        && _sgamepad_linux_bit(keys, BTN_NORTH) && _sgamepad_linux_bit(keys, BTN_WEST);
+    const bool hat = _sgamepad_linux_bit(abs, ABS_HAT0X) && _sgamepad_linux_bit(abs, ABS_HAT0Y);
+    const bool dpad = _sgamepad_linux_bit(keys, BTN_DPAD_UP) && _sgamepad_linux_bit(keys, BTN_DPAD_DOWN)
+        && _sgamepad_linux_bit(keys, BTN_DPAD_LEFT) && _sgamepad_linux_bit(keys, BTN_DPAD_RIGHT);
+    const bool stick = _sgamepad_linux_bit(abs, ABS_X) && _sgamepad_linux_bit(abs, ABS_Y);
     // clang-format on
+
+    if(!hat && !dpad && !stick)
+        return NULL;
+
+    if(_sgamepad_linux_bit(keys, BTN_SOUTH) && _sgamepad_linux_bit(keys, BTN_EAST))
+        return _sgamepad_linux_gamepad_buttons;
+
+    if(_sgamepad_linux_bit(keys, BTN_TRIGGER) && _sgamepad_linux_bit(keys, BTN_THUMB))
+        return _sgamepad_linux_joystick_buttons;
+
+    return NULL;
 }
 
 static void _sgamepad_linux_close(_sgamepad_linux_device* pad)
@@ -1218,7 +1300,9 @@ static void _sgamepad_linux_open(const char* path)
     if(fd < 0)
         return;
 
-    if(!_sgamepad_linux_claimed(fd))
+    const int* buttons = _sgamepad_linux_claimed(fd);
+
+    if(buttons == NULL)
     {
         close(fd);
         return;
@@ -1242,6 +1326,7 @@ static void _sgamepad_linux_open(const char* path)
 
     pad->fd = fd;
     pad->present = true;
+    pad->buttons = buttons;
 
     snprintf(pad->path, sizeof pad->path, "%s", path);
 
@@ -1331,21 +1416,10 @@ static void _sgamepad_linux_event(_sgamepad_linux_device* pad, const struct inpu
     {
         const bool held = event->value != 0;
 
-        switch(event->code)
-        {
-            case BTN_SOUTH: pad->state.a = held; break;
-            case BTN_EAST: pad->state.b = held; break;
-            case BTN_NORTH: pad->state.x = held; break;
-            case BTN_WEST: pad->state.y = held; break;
-            case BTN_SELECT: pad->state.back = held; break;
-            case BTN_START: pad->state.start = held; break;
-
-            default:
-                // A shoulder, a stick pressed in, the guide button: nothing the
-                // machine reads, and use all the same.
-                pad->used = pad->used || held;
-                break;
-        }
+        // A shoulder, a stick pressed in, the guide button: nothing the
+        // machine reads, and use all the same.
+        if(!_sgamepad_linux_button(pad, event->code, held))
+            pad->used = pad->used || held;
     }
 }
 
