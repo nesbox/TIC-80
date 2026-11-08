@@ -86,7 +86,7 @@ static int android_sdk(JNIEnv* env)
     return (*env)->GetStaticIntField(env, version, field);
 }
 
-static jobject android_decor(JNIEnv* env)
+static jobject android_window(JNIEnv* env)
 {
     jobject activity = android_activity();
 
@@ -96,10 +96,15 @@ static jobject android_decor(JNIEnv* env)
     jclass activityClass = (*env)->GetObjectClass(env, activity);
     jmethodID getWindow = (*env)->GetMethodID(env, activityClass, "getWindow", "()Landroid/view/Window;");
 
-    if(!getWindow)
+    if(android_failed(env) || !getWindow)
         return NULL;
 
-    jobject window = (*env)->CallObjectMethod(env, activity, getWindow);
+    return (*env)->CallObjectMethod(env, activity, getWindow);
+}
+
+static jobject android_decor(JNIEnv* env)
+{
+    jobject window = android_window(env);
 
     if(!window)
         return NULL;
@@ -107,7 +112,7 @@ static jobject android_decor(JNIEnv* env)
     jclass windowClass = (*env)->GetObjectClass(env, window);
     jmethodID getDecor = (*env)->GetMethodID(env, windowClass, "getDecorView", "()Landroid/view/View;");
 
-    return getDecor ? (*env)->CallObjectMethod(env, window, getDecor) : NULL;
+    return android_failed(env) || !getDecor ? NULL : (*env)->CallObjectMethod(env, window, getDecor);
 }
 
 static float android_method_int(JNIEnv* env, jobject values, jclass class, const char* name)
@@ -365,8 +370,64 @@ void android_clipboard_set(const char* text)
     android_end(env);
 }
 
-void android_fullscreen(void)
+// The manifest's fullscreen theme makes the window fullscreen; the SDL build
+// starts windowed, and the window's own flags are what take that back. Called
+// from sokol_main, which runs on the activity's main thread.
+void android_windowed(void)
 {
+    JNIEnv* env = android_begin();
+
+    if(!env)
+        return;
+
+    jobject window = android_window(env);
+
+    if(window)
+    {
+        jclass windowClass = (*env)->GetObjectClass(env, window);
+        jmethodID decorOf = (*env)->GetMethodID(env, windowClass, "getDecorView", "()Landroid/view/View;");
+        jmethodID addFlags = (*env)->GetMethodID(env, windowClass, "addFlags", "(I)V");
+        jmethodID clearFlags = (*env)->GetMethodID(env, windowClass, "clearFlags", "(I)V");
+
+        if(android_failed(env))
+            decorOf = addFlags = clearFlags = NULL;
+
+        jobject decor = decorOf ? (*env)->CallObjectMethod(env, window, decorOf) : NULL;
+
+        if(decor)
+        {
+            jclass viewClass = (*env)->GetObjectClass(env, decor);
+            jmethodID set = (*env)->GetMethodID(env, viewClass, "setSystemUiVisibility", "(I)V");
+
+            if(android_failed(env))
+                set = NULL;
+
+            // VISIBLE | LAYOUT_STABLE: the bars belong to the window again.
+            if(set)
+                (*env)->CallVoidMethod(env, decor, set, 256);
+        }
+
+        if(addFlags)
+            (*env)->CallVoidMethod(env, window, addFlags, 2048); // FLAG_FORCE_NOT_FULLSCREEN
+
+        if(clearFlags)
+            (*env)->CallVoidMethod(env, window, clearFlags, 1024); // FLAG_FULLSCREEN
+    }
+
+    android_end(env);
+}
+
+// sokol_app has no cursor on Android: the icon belongs to the window's view,
+// and TYPE_NULL draws nothing. The last icon is remembered so a moving mouse
+// does not make a JNI call per event.
+void android_pointer_show(bool show)
+{
+    static bool known = false;
+    static bool shown = true;
+
+    if(known && shown == show)
+        return;
+
     JNIEnv* env = android_begin();
 
     if(!env)
@@ -376,14 +437,34 @@ void android_fullscreen(void)
 
     if(decor)
     {
-        // FULLSCREEN | HIDE_NAVIGATION | IMMERSIVE_STICKY | the three layout
-        // flags; deprecated in API 30, and still the only call that can be made
-        // before the view is attached.
         jclass viewClass = (*env)->GetObjectClass(env, decor);
-        jmethodID set = (*env)->GetMethodID(env, viewClass, "setSystemUiVisibility", "(I)V");
+        jmethodID set = (*env)->GetMethodID(env, viewClass, "setPointerIcon", "(Landroid/view/PointerIcon;)V");
+
+        if(android_failed(env))
+            set = NULL;
 
         if(set)
-            (*env)->CallVoidMethod(env, decor, set, 4 | 2 | 4096 | 256 | 512 | 1024);
+        {
+            jobject icon = NULL;
+
+            if(!show)
+            {
+                jclass iconClass = (*env)->FindClass(env, "android/view/PointerIcon");
+                jmethodID system = iconClass ? (*env)->GetStaticMethodID(env, iconClass, "getSystemIcon", "(Landroid/content/Context;I)Landroid/view/PointerIcon;") : NULL;
+                jobject activity = android_activity();
+
+                if(android_failed(env))
+                    system = NULL;
+
+                // The second argument is PointerIcon.TYPE_NULL.
+                if(system && activity)
+                    icon = (*env)->CallStaticObjectMethod(env, iconClass, system, activity, 0);
+            }
+
+            (*env)->CallVoidMethod(env, decor, set, icon);
+            known = true;
+            shown = show;
+        }
     }
 
     android_end(env);
