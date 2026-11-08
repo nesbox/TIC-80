@@ -40,6 +40,12 @@
             </intent-filter>
         </activity>
 
+        <!-- The `add` command's picker: copies the chosen file itself. -->
+        <activity
+            android:name="com.nesbox.tic.TICAddActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <!-- The carts folder as a SAF root: Android 11 hides Android/data.
              The authority is filled per variant by apk.sh. -->
         <provider

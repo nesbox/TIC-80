@@ -375,7 +375,7 @@ struct CommandDesc
 
 static const char* PngExt = PNG_EXT;
 
-#if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__) || (defined(__ANDROID__) && defined(BUILD_SOKOL))
 #define CAN_ADDGET_FILE 1
 #endif
 
@@ -2905,6 +2905,8 @@ static void onDelCommand(Console* console)
 
 #if defined(CAN_ADDGET_FILE)
 
+#if defined(__EMSCRIPTEN__)
+
 static void onAddFile(Console* console, const char* name, const u8* buffer, s32 size)
 {
     if(name)
@@ -2940,8 +2942,11 @@ EMSCRIPTEN_KEEPALIVE void tic80_add_file(Console* console, const char* name, con
     onAddFile(console, name, buffer, size);
 }
 
+#endif
+
 static void onAddCommand(Console* console)
 {
+#if defined(__EMSCRIPTEN__)
     // clang-format off
     EM_ASM_
     ({
@@ -2967,6 +2972,12 @@ static void onAddCommand(Console* console)
         });
     }, console);
     // clang-format on
+#elif defined(__ANDROID__)
+    // The picker copies the file itself, so the command is done here.
+    tic_sys_add_file();
+    printBack(console, "\nchoose a file to add");
+    commandDone(console);
+#endif
 }
 
 static void onGetCommand(Console* console)
@@ -2981,6 +2992,7 @@ static void onGetCommand(Console* console)
             s32 size = 0;
             void* buffer = fs_read(path, &size);
 
+#if defined(__EMSCRIPTEN__)
             // clang-format off
             EM_ASM_
             ({
@@ -2990,6 +3002,20 @@ static void onGetCommand(Console* console)
                 Module.saveAs(blob, name);
             }, name, buffer, size);
             // clang-format on
+#elif defined(__ANDROID__)
+            if(tic_sys_get_file(name, buffer, size))
+            {
+                printLine(console);
+                printFront(console, name);
+                printBack(console, " saved to Download/TIC-80 :)");
+            }
+            else
+            {
+                printError(console, "\nerror: ");
+                printError(console, name);
+                printError(console, " not saved :(");
+            }
+#endif
         }
         else
         {
@@ -3030,7 +3056,7 @@ static const char HelpUsage[] = "help [<text>"
 #define ADDGET_FILE(macro)                                                              \
     macro("add",                                                                        \
         NULL,                                                                           \
-        "Upload file to the browser local storage.",                                    \
+        "Add a file to the TIC-80 folder.",                                             \
         NULL,                                                                           \
         onAddCommand,                                                                   \
         NULL,                                                                           \
@@ -3038,7 +3064,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("get",                                                                        \
         NULL,                                                                           \
-        "Download file from the browser local storage.",                                \
+        "Save a file out of the TIC-80 folder.",                                        \
         "get <file>",                                                                   \
         onGetCommand,                                                                   \
         tabCompleteFiles,                                                               \

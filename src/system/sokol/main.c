@@ -1927,6 +1927,18 @@ void tic_sys_open_url(const char* url)
 #endif
 }
 
+#if defined(__ANDROID__)
+void tic_sys_add_file(void)
+{
+    android_add_file();
+}
+
+bool tic_sys_get_file(const char* name, const void* data, s32 size)
+{
+    return android_get_file(name, data, (int)size);
+}
+#endif
+
 void tic_sys_preseed(void)
 {
     srand((unsigned)time(NULL));

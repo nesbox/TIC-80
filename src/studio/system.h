@@ -68,6 +68,13 @@ extern "C"
     void tic_sys_title(const char* title);
     void tic_sys_open_path(const char* path);
     void tic_sys_open_url(const char* path);
+
+#if defined(__ANDROID__) && defined(BUILD_SOKOL)
+    // The system picker and the public Downloads folder, for `add` and `get`.
+    void tic_sys_add_file();
+    bool tic_sys_get_file(const char* name, const void* data, s32 size);
+#endif
+
     void tic_sys_preseed();
     bool tic_sys_keyboard_text(char* text);
     void tic_sys_update_config();
