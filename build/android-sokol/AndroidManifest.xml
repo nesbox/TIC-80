@@ -23,10 +23,13 @@
         android:hasCode="true"
         android:theme="@android:style/Theme.NoTitleBar">
 
+        <!-- resizeableActivity makes the window freeform in DeX; without it
+             the system runs the app in a compatibility window that only moves. -->
         <activity
             android:name="com.nesbox.tic.TICActivity"
             android:label="@string/app_name"
             android:launchMode="singleInstance"
+            android:resizeableActivity="true"
             android:exported="true"
             android:configChanges="layoutDirection|locale|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation">
 
