@@ -348,45 +348,6 @@ bool android_get_file(const char* name, const void* data, int size)
     return saved;
 }
 
-// The cart the launch came with, copied by the activity before the native
-// side starts; sokol_main makes it the studio's argument.
-char* android_launch_cart(void)
-{
-    char* result = NULL;
-    JNIEnv* env = android_begin();
-
-    if(!env)
-        return NULL;
-
-    jobject activity = android_activity();
-    jclass activityClass = activity ? android_app_class(env, activity, "com.nesbox.tic.TICActivity") : NULL;
-
-    if(activityClass)
-    {
-        jmethodID take = (*env)->GetStaticMethodID(env, activityClass, "takeLaunchCart", "()Ljava/lang/String;");
-
-        if(!android_failed(env) && take)
-        {
-            jstring cart = (*env)->CallStaticObjectMethod(env, activityClass, take);
-
-            if(cart)
-            {
-                const char* utf = (*env)->GetStringUTFChars(env, cart, NULL);
-
-                if(utf)
-                {
-                    result = strdup(utf);
-                    (*env)->ReleaseStringUTFChars(env, cart, utf);
-                }
-            }
-        }
-    }
-
-    android_end(env);
-
-    return result;
-}
-
 char* android_clipboard_get(void)
 {
     char* copy = NULL;

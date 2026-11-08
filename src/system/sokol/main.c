@@ -1592,32 +1592,11 @@ sapp_desc sokol_main(int argc, char* argv[])
     // sokol_app calls this with no arguments; the studio's parser wants one.
     static char name[] = "tic80";
     static char* none[] = {name, NULL};
-    static char cart[TICNAME_MAX];
-    static char* withCart[] = {name, cart, NULL};
 
     if(argc < 1)
     {
         argc = 1;
         argv = none;
-    }
-
-    // A .tic opened from another app is the studio's argument, as it is on
-    // the desktop: the launch begins with the cart loaded.
-    {
-        char* opened = android_launch_cart();
-
-        if(opened)
-        {
-            const int length = snprintf(cart, sizeof cart, "%s", opened);
-            free(opened);
-
-            // A truncated path names nothing; the studio starts cartless.
-            if(length > 0 && length < (int)sizeof cart)
-            {
-                argc = 2;
-                argv = withCart;
-            }
-        }
     }
 
     platform.argc = argc;

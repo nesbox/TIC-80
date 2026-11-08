@@ -16,7 +16,6 @@ void android_insets(float* top, float* right, float* bottom, float* left);
 void android_open_url(const char* url);
 bool android_add_file(void);
 bool android_get_file(const char* name, const void* data, int size);
-char* android_launch_cart(void);
 bool android_clipboard_has(void);
 char* android_clipboard_get(void);
 void android_clipboard_free(char* text);
