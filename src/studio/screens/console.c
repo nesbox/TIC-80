@@ -74,6 +74,7 @@
 #define CONSOLE_BUFFER_SCREEN       (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT)
 #define CONSOLE_BUFFER_SIZE         (CONSOLE_BUFFER_SCREEN * CONSOLE_BUFFER_SCREENS)
 #define CONSOLE_BUFFER_ROWS         (CONSOLE_BUFFER_SIZE / CONSOLE_BUFFER_WIDTH)
+#define CONSOLE_ERROR_UNSET         (-CONSOLE_BUFFER_SIZE - 1)
 #define DEFAULT_CHMOD               0755
 
 // clang-format off
@@ -466,12 +467,40 @@ static void scrollBuffer(char* buffer)
     memset(buffer + CONSOLE_BUFFER_SIZE - CONSOLE_BUFFER_WIDTH, 0, CONSOLE_BUFFER_WIDTH);
 }
 
+static void scrollErrorLinks(Console* console)
+{
+    for(s32 i = 0; i < console->errors.count;)
+    {
+        ConsoleErrorLink* link = &console->errors.items[i];
+        const bool capturing = console->errors.capture.line && i == console->errors.capture.index;
+
+        // The captured link's size is not final yet and its block may still be
+        // unset; shift it, but leave the drop to the end of the print.
+        if(link->block != CONSOLE_ERROR_UNSET)
+            link->block -= CONSOLE_BUFFER_WIDTH;
+
+        if(!capturing && link->block + link->size <= 0)
+        {
+            if(console->errors.capture.line && console->errors.capture.index > i)
+                console->errors.capture.index--;
+
+            memmove(link, link + 1, sizeof(ConsoleErrorLink) * (console->errors.count - i - 1));
+            console->errors.count--;
+        }
+        else
+            i++;
+    }
+
+    console->errors.hover = -1;
+}
+
 static void scrollConsole(Console* console)
 {
     while(console->cursor.pos.y >= CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
     {
         scrollBuffer(console->text);
         scrollBuffer((char*)console->color);
+        scrollErrorLinks(console);
 
         console->cursor.pos.y--;
     }
@@ -562,7 +591,17 @@ static void consolePrintOffset(Console* console, const char* text, u8 color, s32
                 }
             }
 
-            setSymbol(console, symbol, iswrap(symbol) ? tic_color_dark_grey : color, cursorOffset(console));
+            s32 offset = cursorOffset(console);
+
+            if(console->errors.capture.line && console->errors.capture.index >= 0)
+            {
+                ConsoleErrorLink* link = &console->errors.items[console->errors.capture.index];
+
+                if(link->block == CONSOLE_ERROR_UNSET)
+                    link->block = offset;
+            }
+
+            setSymbol(console, symbol, iswrap(symbol) ? tic_color_dark_grey : color, offset);
 
             console->cursor.pos.x++;
 
@@ -726,20 +765,30 @@ static void drawConsoleText(Console* console)
     if(select.start > select.end)
         SWAP(select.start, select.end, const char*);
 
+    const ConsoleErrorLink* hovered = console->errors.hover >= 0
+                                          ? &console->errors.items[console->errors.hover]
+                                          : NULL;
+
     while(ptr < end)
     {
-        char symbol = *ptr++;
+        const char* current = ptr++;
+        char symbol = *current;
         u8 color = *colorPointer++;
         bool hasSymbol = symbol && symbol != ' ';
         bool drawSelection = ptr > select.start && ptr <= select.end;
+        s32 offset = (s32)(current - console->text);
+        bool inverted = hovered && offset >= hovered->block && offset < hovered->block + hovered->size;
+        bool inverse = drawSelection || inverted;
         s32 x = pos.x * STUDIO_TEXT_WIDTH;
         s32 y = pos.y * STUDIO_TEXT_HEIGHT;
 
         if(drawSelection)
             tic_api_rect(tic, x, y - 1, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, hasSymbol ? color : CONSOLE_INPUT_COLOR);
+        else if(inverted)
+            tic_api_rect(tic, x, y - 1, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, CONSOLE_ERROR_TEXT_COLOR);
 
         if(hasSymbol)
-            drawChar(console->tic, symbol, x, y, drawSelection ? TIC_COLOR_BG : color, false);
+            drawChar(console->tic, symbol, x, y, inverse ? TIC_COLOR_BG : color, false);
 
         if(++pos.x == CONSOLE_BUFFER_WIDTH)
         {
@@ -1666,6 +1715,8 @@ static void onClsCommand(Console* console)
 {
     memset(console->text, 0, CONSOLE_BUFFER_SIZE);
     memset(console->color, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
+
+    console_clear_errors(console);
 
     ZEROMEM(console->scroll);
     ZEROMEM(console->cursor);
@@ -4331,7 +4382,58 @@ static void processConsoleCommand(Console* console)
 
 static void error(Console* console, const char* info)
 {
-    consolePrint(console, info ? info : "unknown error", CONSOLE_ERROR_TEXT_COLOR);
+    const char* text = info ? info : "unknown error";
+    const tic_script* script = tic_get_script(console->tic);
+    const s32 line = script->errorLine ? script->errorLine(console->tic, text) : 0;
+
+    console->errors.line = line;
+
+    if(line > 0)
+    {
+        if(console->errors.count == COUNT_OF(console->errors.items))
+        {
+            memmove(console->errors.items, console->errors.items + 1,
+                    sizeof(ConsoleErrorLink) * (COUNT_OF(console->errors.items) - 1));
+            console->errors.count--;
+            console->errors.hover = -1;
+        }
+
+        const s32 index = console->errors.count++;
+
+        console->errors.items[index] = (ConsoleErrorLink){.block = CONSOLE_ERROR_UNSET, .line = line};
+        console->errors.capture.line = line;
+        console->errors.capture.index = index;
+
+        consolePrint(console, text, CONSOLE_ERROR_TEXT_COLOR);
+
+        // A scroll during the print may have dropped older links and moved
+        // this one down in the array.
+        const s32 capture = console->errors.capture.index;
+
+        if(capture >= 0)
+        {
+            ConsoleErrorLink* link = &console->errors.items[capture];
+
+            if(link->block != CONSOLE_ERROR_UNSET)
+            {
+                if(link->block < 0)
+                    link->block = 0;
+
+                link->size = cursorOffset(console) - link->block;
+
+                if(link->size <= 0)
+                    console->errors.count--;
+            }
+            else
+                console->errors.count--;
+        }
+    }
+    else
+        consolePrint(console, text, CONSOLE_ERROR_TEXT_COLOR);
+
+    console->errors.capture.line = 0;
+    console->errors.capture.index = -1;
+
     commandDone(console);
 }
 
@@ -4457,6 +4559,38 @@ static void copyFromClipboard(Console* console)
     }
 }
 
+static s32 errorLinkAt(Console* console, s32 offset)
+{
+    for(s32 i = 0; i < console->errors.count; i++)
+        if(offset >= console->errors.items[i].block &&
+           offset < console->errors.items[i].block + console->errors.items[i].size)
+            return i;
+
+    return -1;
+}
+
+static s32 errorLinkOffset(Console* console, tic_point point)
+{
+    if(point.x < 0 || point.y < 0 || point.x >= TIC80_WIDTH || point.y >= TIC80_HEIGHT)
+        return -1;
+
+    return point.x / STUDIO_TEXT_WIDTH +
+           (point.y / STUDIO_TEXT_HEIGHT + console->scroll.pos) * CONSOLE_BUFFER_WIDTH;
+}
+
+// A click is a press and release in the same place; a drag across the block
+// is a selection and must not jump.
+static bool clickedWithoutDrag(const MouseState* state)
+{
+    s32 dx = state->start.x - state->end.x;
+    s32 dy = state->start.y - state->end.y;
+
+    if(dx < 0) dx = -dx;
+    if(dy < 0) dy = -dy;
+
+    return dx <= 1 && dy <= 1;
+}
+
 static void processMouse(Console* console)
 {
     tic_mem* tic = console->tic;
@@ -4476,9 +4610,36 @@ static void processMouse(Console* console)
     }
 
     tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+    bool over = mouse_over(tic, &rect);
 
-    if(mouse_over(console->tic, &rect))
-        ui_cursor(console->tic, tic_cursor_ibeam);
+    console->errors.hover = over && !console->mouse[tic_mouse_left].down && !console->view->pointerOwned
+                                ? errorLinkAt(console, errorLinkOffset(console, tic_api_mouse(tic)))
+                                : -1;
+
+    if(console->errors.hover >= 0)
+        ui_cursor(tic, tic_cursor_hand);
+    else if(over)
+        ui_cursor(tic, tic_cursor_ibeam);
+
+    if(over && !console->view->pointerOwned &&
+       console->ask.kind == CONSOLE_ASK_NONE && !console->waiting)
+    {
+        MouseState* left = &console->mouse[tic_mouse_left];
+
+        if(mouse_click(left, &rect) && clickedWithoutDrag(left))
+        {
+            s32 start = errorLinkOffset(console, left->start);
+            s32 end = errorLinkOffset(console, left->end);
+            s32 index = errorLinkAt(console, start);
+
+            if(index >= 0 && errorLinkAt(console, end) == index)
+            {
+                clearSelection(console);
+                console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CODE, .line = console->errors.items[index].line};
+                console->onAnswer = NULL;
+            }
+        }
+    }
 
 #if defined(__TIC_ANDROID__)
 
@@ -4872,6 +5033,8 @@ Console* console_create(const ConsoleDeps* deps)
     console->input.text = console->text;
     console->active = !console->boot;
     console->progressLine = -1;
+    console->errors.hover = -1;
+    console->errors.capture.index = -1;
 
     // parse --cmd param
     {
@@ -5039,6 +5202,20 @@ void console_trace(Console* console, const char* text, u8 color)
 void console_error(Console* console, const char* info)
 {
     error(console, info);
+}
+
+s32 console_error_line(const Console* console)
+{
+    return console->errors.line;
+}
+
+void console_clear_errors(Console* console)
+{
+    console->errors.count = 0;
+    console->errors.hover = -1;
+    console->errors.line = 0;
+    console->errors.capture.line = 0;
+    console->errors.capture.index = -1;
 }
 
 void console_tick(Console* console)

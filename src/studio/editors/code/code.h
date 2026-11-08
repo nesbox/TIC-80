@@ -211,6 +211,7 @@ struct Code
     } sidebar;
 
     const char* matchedDelim;
+    s32 errorLine; // the last positioned error line, -1 for none
     bool altFont;
     bool shadowText;
     bool lineNumbers;
@@ -261,6 +262,8 @@ void code_just_switched(Code* code);
 void freeCode(Code*);
 void codeGetPos(Code*, s32* x, s32* y);
 void codeSetPos(Code*, s32 x, s32 y);
+void codeGotoLine(Code*, s32 line);
+void codeSetErrorLine(Code*, s32 line);
 
 void codeFind(Code*);
 void codeGoto(Code*);

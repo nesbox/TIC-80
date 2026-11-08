@@ -1250,6 +1250,78 @@ static void testViewSlide(void)
     puts("view slide ok");
 }
 
+static void testErrorLine(void)
+{
+    setup("aa\nbb\ncc\n");
+
+    codeGotoLine(&Code_, 1);
+    assert(Code_.errorLine == 1);
+    assert(Code_.text.cursor.position == Tic->cart.code.data + 3);
+
+    frame();
+
+    // The dashes sit on the free pixel row under the second line, after the
+    // 7-pixel gutter the test's view opens with.
+    s32 y = View.editorTop + STUDIO_TEXT_HEIGHT + STUDIO_TEXT_HEIGHT - 1;
+    assert(pixelAt(7, y) == tic_color_red);
+    assert(pixelAt(9, y) != tic_color_red);
+
+    // The marker follows the source line when the code scrolls.
+    Code_.scroll.y = 1;
+    frame();
+    assert(pixelAt(7, View.editorTop + STUDIO_TEXT_HEIGHT - 1) == tic_color_red);
+    assert(pixelAt(7, y) != tic_color_red);
+
+    // A host-set line draws the same marker.
+    Code_.scroll.y = 0;
+    codeSetErrorLine(&Code_, 2);
+    frame();
+    assert(pixelAt(7, View.editorTop + 2 * STUDIO_TEXT_HEIGHT + STUDIO_TEXT_HEIGHT - 1) == tic_color_red);
+
+    // A line outside the viewport draws nothing.
+    codeSetErrorLine(&Code_, 100);
+    frame();
+    assert(pixelAt(7, y) != tic_color_red);
+
+    // Cleared, it draws nothing.
+    Code_.scroll.y = 0;
+    codeSetErrorLine(&Code_, -1);
+    frame();
+    assert(pixelAt(7, y) != tic_color_red);
+
+    // A line past the end clamps to the last one and puts the caret there.
+    codeGotoLine(&Code_, 99);
+    assert(Code_.errorLine == getLinesCount(&Code_.text));
+    assert(Code_.text.cursor.position == Tic->cart.code.data + strlen(Tic->cart.code.data));
+
+    // A far line centres the view and stays visible.
+    {
+        char src[1024];
+        char* ptr = src;
+
+        for(s32 i = 0; i < 100; i++)
+            ptr += sprintf(ptr, "%c\n", 'a' + i % 26);
+
+        *ptr = '\0';
+
+        setup(src);
+        codeGotoLine(&Code_, 80);
+
+        s32 line = 0;
+        codeGetPos(&Code_, NULL, &line);
+
+        assert(line == 80);
+        assert(Code_.scroll.y > 0);
+
+        frame();
+
+        s32 errorY = View.editorTop + (Code_.errorLine - Code_.scroll.y) * STUDIO_TEXT_HEIGHT + STUDIO_TEXT_HEIGHT - 1;
+
+        assert(errorY >= View.editorTop && errorY < TIC80_HEIGHT);
+        assert(pixelAt(7, errorY) == tic_color_red);
+    }
+}
+
 int main(void)
 {
     Tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
@@ -1272,6 +1344,7 @@ int main(void)
     testMinimapMouse();
     testMinimapFitDrag();
     testViewSlide();
+    testErrorLine();
 
     free(Clipboard);
     tic_core_close(Tic);

@@ -25,6 +25,8 @@
 #include "tools.h"
 
 #include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <quickjs.h>
 
@@ -84,50 +86,90 @@ static bool isArray(JSContext* ctx, JSValueConst val)
     return result;
 }
 
-static void js_dump_obj(JSContext* ctx, FILE* f, JSValueConst val)
+static void js_report_error(JSContext* ctx, JSValueConst exception_val)
 {
-    (void)f;
-    const char* str;
-
     tic_core* core = getCore(ctx);
+    JSValue stack_val = JS_UNDEFINED;
+    const char* message = JS_ToCString(ctx, exception_val);
+    const char* stack = NULL;
 
-    str = JS_ToCString(ctx, val);
-    if(str)
+    if(JS_IsError(exception_val))
     {
-        core->data->error(core->data->data, str);
-        JS_FreeCString(ctx, str);
+        stack_val = JS_GetPropertyStr(ctx, exception_val, "stack");
+        if(!JS_IsUndefined(stack_val))
+            stack = JS_ToCString(ctx, stack_val);
+    }
+
+    if(message)
+    {
+        char* text = NULL;
+
+        if(stack)
+        {
+            size_t size = strlen(message) + strlen(stack) + sizeof "\n";
+            text = malloc(size);
+
+            if(text)
+                snprintf(text, size, "%s\n%s", message, stack);
+        }
+
+        core->data->error(core->data->data, text ? text : message);
+        free(text);
     }
     else
-    {
         core->data->error(core->data->data, "[exception]\n");
-    }
-}
 
-static void js_std_dump_error1(JSContext* ctx, JSValueConst exception_val)
-{
-    JSValue val;
-    bool is_error;
-
-    is_error = JS_IsError(exception_val);
-    js_dump_obj(ctx, stdout, exception_val);
-    if(is_error)
-    {
-        val = JS_GetPropertyStr(ctx, exception_val, "stack");
-        if(!JS_IsUndefined(val))
-        {
-            js_dump_obj(ctx, stdout, val);
-        }
-        JS_FreeValue(ctx, val);
-    }
+    JS_FreeCString(ctx, stack);
+    JS_FreeCString(ctx, message);
+    JS_FreeValue(ctx, stack_val);
 }
 
 static void js_std_dump_error(JSContext* ctx)
 {
-    JSValue exception_val;
+    JSValue exception_val = JS_GetException(ctx);
 
-    exception_val = JS_GetException(ctx);
-    js_std_dump_error1(ctx, exception_val);
+    js_report_error(ctx, exception_val);
     JS_FreeValue(ctx, exception_val);
+}
+
+// A QuickJS stack line is "    at TIC (index.js:8:9)"; the cart's global eval
+// file is "index.js", while an eval snippet runs as "<eval>".
+static s32 jsErrorLine(tic_mem* memory, const char* text)
+{
+    (void)memory;
+
+    for(const char* line = text; *line;)
+    {
+        const char* end = strchr(line, '\n');
+        if(!end)
+            end = line + strlen(line);
+
+        const char* ptr = line;
+        while(ptr < end && isspace((u8)*ptr))
+            ptr++;
+
+        if(end - ptr > 3 && memcmp(ptr, "at ", 3) == 0)
+        {
+            static const char File[] = "index.js:";
+            const char* file = strstr(ptr, File);
+
+            if(file && file < end)
+            {
+                const char* num = file + sizeof File - 1;
+                s32 value = 0;
+
+                while(num < end && isdigit((u8)*num))
+                    value = value * 10 + (*num++ - '0');
+
+                if(num > file + sizeof File - 1 && (num >= end || *num == ':' || *num == ')'))
+                    return value;
+            }
+        }
+
+        line = *end ? end + 1 : end;
+    }
+
+    return 0;
 }
 
 static void closeJavascript(tic_mem* tic)
@@ -1737,8 +1779,8 @@ static void evalJs(tic_mem* tic, const char* code)
 
     // Nothing has been run yet, so there is no context to evaluate against
     // and nowhere to report to either: core->data is assigned in
-    // tic_core_tick, and js_dump_obj below reaches through it. Reporting the
-    // absence of a context is what used to crash here.
+    // tic_core_tick, and the error report below reaches through it. Reporting
+    // the absence of a context is what used to crash here.
     if(!ctx) return;
 
     JSValue ret = JS_Eval(ctx, code, strlen(code), "<eval>", JS_EVAL_TYPE_GLOBAL);
@@ -1780,6 +1822,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Js) =
 
         .getOutline = getJsOutline,
         .eval = evalJs,
+        .errorLine = jsErrorLine,
 
         .blockCommentStart = "/*",
         .blockCommentEnd = "*/",

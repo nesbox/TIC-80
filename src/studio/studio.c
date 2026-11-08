@@ -927,7 +927,12 @@ static void runEnded(void* host)
 
 static void runError(void* host, const char* info)
 {
-    console_error(((Studio*)host)->console, info);
+    Studio* studio = host;
+
+    console_error(studio->console, info);
+
+    s32 line = console_error_line(studio->console);
+    codeSetErrorLine(studio->code, line > 0 ? line - 1 : -1);
 }
 
 static void runTrace(void* host, const char* text, u8 color)
@@ -1876,6 +1881,12 @@ void studioRomLoaded(Studio* studio)
 
     initModules(studio);
 
+#if defined(BUILD_EDITORS)
+    // The console does not exist yet when the launch cart is loaded.
+    if(studio->console)
+        console_clear_errors(studio->console);
+#endif
+
     updateTitle(studio);
     updateHash(studio);
     updateMDate(studio);
@@ -1894,6 +1905,7 @@ bool studioCartChanged(Studio* studio)
 void runGame(Studio* studio, RunOrigin origin)
 {
 #if defined(BUILD_EDITORS)
+    codeSetErrorLine(studio->code, -1);
 
     if(studio->config->data.fft)
     {
@@ -1953,7 +1965,11 @@ static void serveConsole(Studio* studio)
         switch(ask.kind)
         {
             case CONSOLE_ASK_MENU: gotoMenu(studio); break;
-            case CONSOLE_ASK_CODE: gotoCode(studio); break;
+            case CONSOLE_ASK_CODE:
+                gotoCode(studio);
+                if(ask.line > 0)
+                    codeGotoLine(studio->code, ask.line - 1);
+                break;
             case CONSOLE_ASK_EXIT: exitStudio(studio); break;
             case CONSOLE_ASK_RESUME: resumeGame(studio); break;
             case CONSOLE_ASK_RUN: runGame(studio, RUN_FROM_STUDIO); break;
@@ -2700,6 +2716,7 @@ static void renderStudio(Studio* studio)
             studio->consoleView = (ConsoleView){
                 .inFront = true,
                 .cartChanged = studioCartChanged(studio),
+                .pointerOwned = menubar_owns_pointer(&studio->menubar, studio->tic),
             };
 #endif
 

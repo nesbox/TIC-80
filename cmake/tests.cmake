@@ -34,6 +34,12 @@ if(BUILD_TESTS)
         tic80_add_test(js-test)
     endif()
 
+    if(BUILD_WITH_LUA)
+        add_executable(lua-test ${CMAKE_SOURCE_DIR}/tests/lua.c)
+        target_link_libraries(lua-test PRIVATE lua tic80core)
+        tic80_add_test(lua-test)
+    endif()
+
     if(BUILD_WITH_FORTH)
         add_executable(forth-test ${CMAKE_SOURCE_DIR}/tests/forth.c)
         target_link_libraries(forth-test PRIVATE forth tic80core)

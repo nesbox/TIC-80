@@ -343,6 +343,30 @@ static void drawMatchedDelim(Code* code, s32 x, s32 y, char symbol, u8 color)
     drawChar(code->tic, symbol, x, y, color, code->altFont);
 }
 
+static void drawErrorLine(Code* code)
+{
+    if(code->errorLine < 0)
+        return;
+
+    s32 gutterWidth, codeWidth;
+    getWidths(code, &gutterWidth, &codeWidth);
+
+    s32 y = code->view->editorTop + (code->errorLine - code->scroll.y) * STUDIO_TEXT_HEIGHT + STUDIO_TEXT_HEIGHT - 1;
+    s32 bottom = code->view->editorTop + getCodeHeight(code);
+
+    if(y < code->view->editorTop || y >= bottom)
+        return;
+
+    enum
+    {
+        Dash = 2,
+        Gap = 2,
+    };
+
+    for(s32 x = gutterWidth; x < gutterWidth + codeWidth; x += Dash + Gap)
+        tic_api_rect(code->tic, x, y, MIN(Dash, gutterWidth + codeWidth - x), 1, tic_color_red);
+}
+
 static void drawCode(Code* code, bool withCursor)
 {
     s32 gutterWidth, codeWidth;
@@ -463,6 +487,7 @@ static void drawCode(Code* code, bool withCursor)
     }
 
     drawGutter(code);
+    drawErrorLine(code);
 
     if(code->text.cursor.position == pointer)
         cursor.x = x, cursor.y = y;
@@ -2235,6 +2260,32 @@ void code_set_view(Code* code, const CodeView* view)
     code->view = view;
 }
 
+void codeSetErrorLine(Code* code, s32 line)
+{
+    code->errorLine = line;
+}
+
+void codeGotoLine(Code* code, s32 line)
+{
+    s32 lines = getLinesCount(&code->text);
+
+    if(line < 0)
+        line = 0;
+    else if(line > lines)
+        line = lines;
+
+    code->text.cursor.selection = NULL;
+    code->text.cursor.position = getPosByLine(code->text.src, line);
+    code->errorLine = line;
+
+    updateColumn(&code->text);
+    updateEditor(code);
+    centerScroll(code);
+    updateEditor(code);
+
+    code->cursor.delay = 0;
+}
+
 void code_just_switched(Code* code)
 {
     code->justSwitched = true;
@@ -2436,6 +2487,7 @@ void initCode(Code* code, const CodeDeps* deps)
                 .scroll = 0,
             },
         .matchedDelim = NULL,
+        .errorLine = -1,
         .anim =
             {
                 .idle = {

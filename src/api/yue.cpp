@@ -231,5 +231,6 @@ extern "C" TIC_EXPORT const tic_script EXPORT_SCRIPT(Yue) = {
      MarkRom,
      sizeof MarkRom,
      "yuemark.tic"},
-    nullptr // demos
+    nullptr, // demos
+    nullptr  // errorLine
 };
