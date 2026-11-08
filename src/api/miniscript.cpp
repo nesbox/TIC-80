@@ -1782,4 +1782,5 @@ extern "C" TIC_EXPORT const tic_script EXPORT_SCRIPT(MiniScript) =
         .demo = {DemoRom, sizeof(DemoRom), nullptr},
         .mark = {MarkRom, sizeof(MarkRom), "miniscriptmark.tic"},
         .demos = nullptr,
+        .errorLine = nullptr,
 };
