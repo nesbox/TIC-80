@@ -42,8 +42,9 @@
                 <category android:name="android.intent.category.GAME" />
             </intent-filter>
 
-            <!-- A .tic opened from a file manager: pathSuffix is Android 12+,
-                 the patterns are what older releases match. -->
+            <!-- A .tic opened from a file manager: a path attribute without a
+                 host is ignored, so the pattern needs the host and the app's own
+                 documents are matched by the MIME type its provider reports. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -56,8 +57,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="content" />
-                <data android:scheme="file" />
-                <data android:mimeType="*/*" android:pathSuffix=".tic" />
+                <data android:mimeType="application/x-tic80" />
             </intent-filter>
         </activity>
 

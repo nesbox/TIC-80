@@ -24,6 +24,9 @@ import java.util.Locale;
 public class TICDocumentsProvider extends DocumentsProvider {
     private static final String ROOT = "root";
     private static final String ALL_MIME_TYPES = "*/*";
+    // What the manifest's VIEW filter listens for: cart names have no standard
+    // MIME type, and a path-based filter cannot see the dots in a document id.
+    private static final String CART_MIME_TYPE = "application/x-tic80";
     private static final String USER_DIR_NAME = "TIC-80";
 
     private static final String[] DEFAULT_ROOT_PROJECTION = new String[]{
@@ -58,7 +61,7 @@ public class TICDocumentsProvider extends DocumentsProvider {
             mBaseDir.mkdirs();
         }
 
-        return mBaseDir != null;
+        return mBaseDir != null && mBaseDir.isDirectory();
     }
 
     @Override
@@ -202,12 +205,13 @@ public class TICDocumentsProvider extends DocumentsProvider {
         return file;
     }
 
-    private static boolean deleteFile(File file) {
+    private boolean deleteFile(File file) {
         if (file.isDirectory()) {
             final File[] children = file.listFiles();
             if (children != null)
                 for (File child : children)
-                    if (!deleteFile(child))
+                    // A symlink inside the folder could point anywhere.
+                    if (!isInside(child) || !deleteFile(child))
                         return false;
         }
 
@@ -244,7 +248,8 @@ public class TICDocumentsProvider extends DocumentsProvider {
         }
 
         final File parent = file.getParentFile();
-        if (parent != null && parent.canWrite())
+        // The root's parent is writable, but the root itself cannot be deleted.
+        if (parent != null && parent.canWrite() && !isBase(file))
             flags |= Document.FLAG_SUPPORTS_DELETE;
 
         final String mimeType = getMimeType(file);
@@ -268,6 +273,10 @@ public class TICDocumentsProvider extends DocumentsProvider {
         final int dot = name.lastIndexOf('.');
         if (dot >= 0) {
             final String extension = name.substring(dot + 1).toLowerCase(Locale.US);
+
+            if (extension.equals("tic"))
+                return CART_MIME_TYPE;
+
             final String mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
             if (mime != null)
                 return mime;

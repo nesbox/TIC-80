@@ -31,17 +31,20 @@ public class TICAddActivity extends Activity {
     protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
 
-        if (request == PICK_FILE && result == RESULT_OK && data != null && data.getData() != null)
-            copyFile(data.getData());
+        if (request != PICK_FILE || result != RESULT_OK || data == null || data.getData() == null) {
+            finish();
+            return;
+        }
 
-        finish();
+        copyFile(data.getData());
     }
 
-    private void copyFile(Uri uri) {
+    private void copyFile(final Uri uri) {
         final File dir = TICFiles.folder(this);
 
         if (dir == null) {
             toast("No external storage");
+            finish();
             return;
         }
 
@@ -50,10 +53,25 @@ public class TICAddActivity extends Activity {
 
         if (file.exists()) {
             toast(name + " already exists");
+            finish();
             return;
         }
 
-        toast(TICFiles.copy(this, uri, file) ? name + " added" : "Failed to add " + name);
+        // A cloud-backed provider can take a while: the copy runs off the UI.
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final boolean added = TICFiles.copy(TICAddActivity.this, uri, file);
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        toast(added ? name + " added" : "Failed to add " + name);
+                        finish();
+                    }
+                });
+            }
+        }).start();
     }
 
     private void toast(String text) {

@@ -1608,10 +1608,15 @@ sapp_desc sokol_main(int argc, char* argv[])
 
         if(opened)
         {
-            snprintf(cart, sizeof cart, "%s", opened);
+            const int length = snprintf(cart, sizeof cart, "%s", opened);
             free(opened);
-            argc = 2;
-            argv = withCart;
+
+            // A truncated path names nothing; the studio starts cartless.
+            if(length > 0 && length < (int)sizeof cart)
+            {
+                argc = 2;
+                argv = withCart;
+            }
         }
     }
 

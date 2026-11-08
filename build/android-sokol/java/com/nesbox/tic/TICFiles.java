@@ -47,6 +47,8 @@ public class TICFiles {
                         return name.replace('/', '_');
                 }
             }
+        } catch (RuntimeException e) {
+            // No read grant or a broken provider: the URI still has a name.
         }
 
         // A file:// URI has no such column; its last segment is the name.
@@ -103,29 +105,34 @@ public class TICFiles {
                 Environment.DIRECTORY_DOWNLOADS + "/" + FOLDER);
         values.put(MediaStore.MediaColumns.IS_PENDING, 1);
 
-        final Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+        Uri uri = null;
 
-        if (uri == null)
-            return false;
+        try {
+            uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
 
-        try (OutputStream out = resolver.openOutputStream(uri)) {
-            if (out == null)
-                throw new IOException("no stream");
-            out.write(data);
-        } catch (IOException e) {
-            resolver.delete(uri, null, null);
+            if (uri == null)
+                return false;
+
+            try (OutputStream out = resolver.openOutputStream(uri)) {
+                if (out == null)
+                    throw new IOException("no stream");
+                out.write(data);
+            }
+
+            // The file is complete: let the file managers see it.
+            values.clear();
+            values.put(MediaStore.MediaColumns.IS_PENDING, 0);
+
+            if (resolver.update(uri, values, null, null) <= 0)
+                throw new IOException("not published");
+
+            return true;
+        } catch (IOException | RuntimeException e) {
+            // A pending row would hide the broken file from every manager.
+            if (uri != null)
+                resolver.delete(uri, null, null);
+
             return false;
         }
-
-        // The file is complete: let the file managers see it.
-        values.clear();
-        values.put(MediaStore.MediaColumns.IS_PENDING, 0);
-
-        if (resolver.update(uri, values, null, null) <= 0) {
-            resolver.delete(uri, null, null);
-            return false;
-        }
-
-        return true;
     }
 }
