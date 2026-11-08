@@ -1176,8 +1176,29 @@ jobs:
           }
 
           for apk in tic80 tic80-surf; do
-            unzip -l "build/android-sokol/$apk.apk" | grep -q "classes.dex" && {
-              echo "$apk carries a dex; the sokol APK is native only" >&2
+            unzip -l "build/android-sokol/$apk.apk" | grep -q "classes.dex" || {
+              echo "$apk carries no dex — the documents provider is missing" >&2
+              exit 1
+            }
+            unzip -p "build/android-sokol/$apk.apk" classes.dex | grep -qa "TICDocumentsProvider" || {
+              echo "$apk's dex is not the documents provider" >&2
+              exit 1
+            }
+            manifest=$("$TOOLS/aapt2" dump xmltree --file AndroidManifest.xml "build/android-sokol/$apk.apk")
+            echo "$manifest" | grep -q "hasCode(0x0101000c)=true" || {
+              echo "$apk's manifest has hasCode off — the provider cannot load" >&2
+              exit 1
+            }
+            case "$apk" in
+              tic80) authority=com.nesbox.tic.documents ;;
+              tic80-surf) authority=com.nesbox.tic.surf.documents ;;
+            esac
+            echo "$manifest" | grep -q "TICDocumentsProvider" || {
+              echo "$apk's manifest has no documents provider" >&2
+              exit 1
+            }
+            echo "$manifest" | grep -q "authorities(0x01010018)=\"$authority\"" || {
+              echo "$apk's provider authority is not $authority" >&2
               exit 1
             }
             "$TOOLS/aapt2" dump badging "build/android-sokol/$apk.apk" | grep "^package:"

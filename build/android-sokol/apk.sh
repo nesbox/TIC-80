@@ -1,6 +1,6 @@
 #!/bin/sh
-# Assemble the sokol Android APK from a CMake build: aapt2, zipalign and
-# apksigner. One APK per call; no gradle and no dex.
+# Assemble the sokol Android APK from a CMake build: aapt2, javac, d8,
+# zipalign and apksigner. One APK per call; no gradle.
 
 set -eu
 
@@ -30,12 +30,18 @@ ANDROID_JAR=$SDK/platforms/android-31/android.jar
 [ -f "$ANDROID_JAR" ] || { echo "apk.sh: $ANDROID_JAR is missing (install platforms;android-31)" >&2; exit 1; }
 
 AAPT2=$BUILD_TOOLS/aapt2
+D8=$BUILD_TOOLS/d8
 ZIPALIGN=$BUILD_TOOLS/zipalign
 APKSIGNER=$BUILD_TOOLS/apksigner
 
-for tool in "$AAPT2" "$ZIPALIGN" "$APKSIGNER"; do
+for tool in "$AAPT2" "$D8" "$ZIPALIGN" "$APKSIGNER"; do
     [ -x "$tool" ] || { echo "apk.sh: $tool is missing" >&2; exit 1; }
 done
+
+# The documents provider is the APK's only Java; the JDK also runs d8.
+JAVAC=${JAVAC:-${JAVA_HOME:+$JAVA_HOME/bin/javac}}
+JAVAC=${JAVAC:-$(command -v javac || true)}
+[ -x "${JAVAC:-}" ] || { echo "apk.sh: javac is missing (a JDK 17 is needed for the documents provider)" >&2; exit 1; }
 
 # The build's library carries symbols and DWARF; gradle-stripped APKs do not.
 NDK=${ANDROID_NDK:-$(ls -d "$SDK"/ndk/* 2>/dev/null | sort -V | tail -n 1)}
@@ -79,18 +85,29 @@ VERSION_CODE=$((major * 10000 + minor * 100 + code_patch))
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/tic80-apk.XXXXXX")
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
+# The provider's authority names the app: one per variant, or the two APKs
+# would fight over it.
+sed "s/__AUTHORITY__/$APP.documents/" "$HERE/AndroidManifest.xml" > "$WORK/AndroidManifest.xml"
+
 "$AAPT2" compile --dir "$HERE/res" -o "$WORK/res.zip"
 
 "$AAPT2" link \
     -o "$WORK/base.apk" \
     -I "$ANDROID_JAR" \
-    --manifest "$HERE/AndroidManifest.xml" \
+    --manifest "$WORK/AndroidManifest.xml" \
     --min-sdk-version 26 \
     --target-sdk-version 31 \
     --version-code "$VERSION_CODE" \
     --version-name "$VERSION_NAME" \
     --rename-manifest-package "$APP" \
     "$WORK/res.zip"
+
+# The one Java class, as the APK's dex.
+mkdir -p "$WORK/classes" "$WORK/dex"
+"$JAVAC" -source 8 -target 8 -Xlint:-options -bootclasspath "$ANDROID_JAR" \
+    -d "$WORK/classes" "$HERE"/java/com/nesbox/tic/*.java
+"$D8" --min-api 26 --lib "$ANDROID_JAR" --output "$WORK/dex" "$WORK"/classes/com/nesbox/tic/*.class
+(cd "$WORK/dex" && zip -q "$WORK/base.apk" classes.dex)
 
 mkdir -p "$WORK/apk/lib/arm64-v8a"
 cp "$LIB" "$WORK/apk/lib/arm64-v8a/libtic80.so"

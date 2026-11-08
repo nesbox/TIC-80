@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The sokol Android app: a NativeActivity with no Java code and no dex. -->
+<!-- The sokol Android app: a NativeActivity plus the documents provider. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.nesbox.tic"
     android:installLocation="auto">
@@ -20,8 +20,8 @@
         android:appCategory="game"
         android:hardwareAccelerated="true"
         android:extractNativeLibs="false"
-        android:hasCode="false"
-        android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+        android:hasCode="true"
+        android:theme="@android:style/Theme.NoTitleBar">
 
         <activity
             android:name="android.app.NativeActivity"
@@ -39,5 +39,18 @@
                 <category android:name="android.intent.category.GAME" />
             </intent-filter>
         </activity>
+
+        <!-- The carts folder as a SAF root: Android 11 hides Android/data.
+             The authority is filled per variant by apk.sh. -->
+        <provider
+            android:name="com.nesbox.tic.TICDocumentsProvider"
+            android:authorities="__AUTHORITY__"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
     </application>
 </manifest>
