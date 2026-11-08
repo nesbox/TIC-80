@@ -5,8 +5,8 @@ use std::cell::RefCell;
 
 use buddy_alloc::{BuddyAllocParam, FastAllocParam, NonThreadsafeAlloc};
 
-extern "C" {
-    static __heap_base: u8;
+unsafe extern "C" {
+    safe static __heap_base: u8;
 }
 
 const FAST_HEAP_SIZE: usize = 24 * 1024;
@@ -22,8 +22,8 @@ unsafe impl GlobalAlloc for TicAlloc {
         if is_none {
             let mut inner = self.0.borrow_mut();
             *inner = {
-                let fast_heap_ptr = std::ptr::addr_of!(__heap_base);
-                let heap_ptr = fast_heap_ptr.add(FAST_HEAP_SIZE);
+                let fast_heap_ptr = &raw const __heap_base;
+                let heap_ptr = unsafe { fast_heap_ptr.add(FAST_HEAP_SIZE) };
                 let heap_size = 0x40000 - (heap_ptr as usize);
 
                 let fast_param = FastAllocParam::new(fast_heap_ptr, FAST_HEAP_SIZE);
@@ -31,11 +31,11 @@ unsafe impl GlobalAlloc for TicAlloc {
                 Some(NonThreadsafeAlloc::new(fast_param, buddy_param))
             };
         }
-        self.0.borrow().as_ref().unwrap().alloc(layout)
+        unsafe { self.0.borrow().as_ref().unwrap().alloc(layout) }
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        self.0.borrow().as_ref().unwrap().dealloc(ptr, layout)
+        unsafe { self.0.borrow().as_ref().unwrap().dealloc(ptr, layout) }
     }
 }
 

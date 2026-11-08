@@ -7,7 +7,7 @@ static mut T: i32 = 0;
 static mut X: i32 = 96;
 static mut Y: i32 = 24;
 
-#[export_name = "TIC"]
+#[unsafe(export_name = "TIC")]
 pub fn tic() {
     if btn(0) {
         unsafe { Y -= 1 }
