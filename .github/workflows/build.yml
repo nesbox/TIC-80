@@ -1210,7 +1210,6 @@ jobs:
           name: "tic80-android-surf"
           path: build/android-sokol/tic80-surf.apk
  
-jobs:
   rpi-1-3-baremetal:
     runs-on: ubuntu-24.04
     container: miguelhrvs/baremetalapi-tic80:latest
