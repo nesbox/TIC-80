@@ -1210,7 +1210,6 @@ jobs:
           name: "tic80-android-surf"
           path: build/android-sokol/tic80-surf.apk
  
-  # === rpi baremetal 1,2,3,4-5 ===
   rpi-baremetal-all:
     runs-on: ubuntu-24.04
     container: miguelhrvs/baremetalapi-tic80:latest
@@ -1220,9 +1219,6 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-
-      - name: Apply circle patch
-        run: git apply build/baremetalpi/circle.patch
 
       - name: Build all Raspberry Pi bare-metal targets
         shell: bash
@@ -1240,8 +1236,19 @@ jobs:
             echo "  Building Raspberry Pi ${num}"
             echo "=========================================="
 
-            # ---------- Prebuild: circle-stdlib ----------
+            # ---------- Reset workspace from previous variant ----------
+            # Undo any previously applied patch (tracked file changes)
+            git checkout -- . 2>/dev/null || true
+            # Remove previous circle-stdlib clone
             rm -rf vendor/circle-stdlib
+            # Force cmake/make to rebuild with new flags
+            rm -f  build/CMakeCache.txt build/baremetalpi/CMakeCache.txt
+            rm -rf build/CMakeFiles        build/baremetalpi/CMakeFiles
+            find build -name '*.o'   -delete 2>/dev/null || true
+            find build -name '*.a'   -delete 2>/dev/null || true
+            find build -name '*.img' -delete 2>/dev/null || true
+
+            # ---------- Prebuild: circle-stdlib ----------
             ( cd vendor && git clone --recursive https://github.com/smuehlst/circle-stdlib )
             ( cd vendor/circle-stdlib
               git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
@@ -1252,6 +1259,9 @@ jobs:
               ( cd libs/circle/addon/vc4/vchiq/ && make -j"$(nproc)" )
               ( cd libs/circle/addon/linux/      && make -j"$(nproc)" )
             )
+
+            # ---------- Apply circle patch ----------
+            git apply build/baremetalpi/circle.patch
 
             # ---------- Build: TIC-80 + bare-metal kernel ----------
             ( cd build
@@ -1266,7 +1276,7 @@ jobs:
 
             ( cd vendor/circle-stdlib/libs/circle/boot && make -j"$(nproc)" )
 
-            # ---------- Pack into a per-variant artifact dir ----------
+            # ---------- Pack into per-variant artifact dir ----------
             mkdir -p "$artdir"
             cp "build/baremetalpi/${kernel}"     "$artdir/kernel.img"
             cp build/baremetalpi/boot/config.txt "$artdir/config.txt"
@@ -1279,19 +1289,18 @@ jobs:
                 cp vendor/circle-stdlib/libs/circle/boot/fixup.dat "$artdir/"
                 ;;
               4)
-                cp vendor/circle-stdlib/libs/circle/boot/start4.elf        "$artdir/"
-                cp vendor/circle-stdlib/libs/circle/boot/fixup4.dat        "$artdir/"
-                cp vendor/circle-stdlib/libs/circle/boot/COPYING.linux     "$artdir/"
-                cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb   "$artdir/"
-                cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb   "$artdir/"
-                cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb   "$artdir/"
-                cp vendor/circle-stdlib/libs/circle/boot/bcm2712-rpi-5-b.dtb   "$artdir/"
-                cp vendor/circle-stdlib/libs/circle/boot/bcm2712d0-rpi-5-b.dtb "$artdir/"
-                cp vendor/circle-stdlib/libs/circle/boot/bcm2712d0.dtbo        "$artdir/"
+                cp vendor/circle-stdlib/libs/circle/boot/start4.elf         "$artdir/"
+                cp vendor/circle-stdlib/libs/circle/boot/fixup4.dat         "$artdir/"
+                cp vendor/circle-stdlib/libs/circle/boot/COPYING.linux      "$artdir/"
+                cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb     "$artdir/"
+                cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb     "$artdir/"
+                cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb     "$artdir/"
+                cp vendor/circle-stdlib/libs/circle/boot/bcm2712-rpi-5-b.dtb     "$artdir/"
+                cp vendor/circle-stdlib/libs/circle/boot/bcm2712d0-rpi-5-b.dtb   "$artdir/"
+                cp vendor/circle-stdlib/libs/circle/boot/bcm2712d0.dtbo          "$artdir/"
                 ;;
             esac
 
-            # RPi 2 and 3 additionally ship the zero-2-w dtb
             if [ "$num" = "2" ] || [ "$num" = "3" ]; then
               cp vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb "$artdir/"
             fi
