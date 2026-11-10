@@ -1238,6 +1238,250 @@ jobs:
           if-no-files-found: error
           name: "tic80-android-surf"
           path: build/android-sokol/tic80-surf.apk
+ 
+  # === Raspberry PI 1 Bare Metal ===
+  rpi-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 1
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 2 Bare Metal ===
+  rpi2-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 2
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel7.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi2-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 3 Bare Metal ===
+  rpi3-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 3
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi3-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 4-5 Bare Metal ===
+  rpi4-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 4
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel7l.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi4-5-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712d0-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712d0.dtbo
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/COPYING.linux
+            vendor/circle-stdlib/libs/circle/boot/fixup4.dat
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+            vendor/circle-stdlib/libs/circle/boot/start4.elf
 
   # === HTML ===
   html:

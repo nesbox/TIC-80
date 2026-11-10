@@ -521,7 +521,7 @@ void tic_fs_changedir(tic_fs* fs, const char* dir)
         snprintf(temp, TICNAME_MAX, "%s", dir);
     }
 
-    snprintf(fs->work, sizeof fs->work, "%.*s", (s32)sizeof fs->work - 1, temp);
+    snprintf(fs->work, sizeof fs->work, "%.*s", (int)(sizeof fs->work - 1), temp);
 
 #if defined(__TIC_WINDOWS__)
     for(char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
@@ -621,7 +621,7 @@ bool fs_write(const char* name, const void* buffer, s32 size)
         return false;
     }
 
-    u32 written = 0;
+    UINT written = 0;
 
     res = f_write(&File, buffer, size, &written);
 

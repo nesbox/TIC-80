@@ -180,7 +180,7 @@ static void loadOptions(Config* config)
     if(data) SCOPE(free(data))
         {
             string json;
-            snprintf(json.data, sizeof json, "%.*s", size, data);
+            snprintf(json.data, sizeof json, "%.*s", (int)size, data);
 
             if(json_parse(json.data, (s32)(strlen(json.data))))
             {
@@ -335,7 +335,7 @@ static void saveOptions(Config* config)
 #if defined(BUILD_RENDER_CACHE)
             bool2str(options->drawCache),
 #endif
-            options->volume,
+            (int)options->volume,
 #if defined(BUILD_SURF)
             bool2str(options->autosave),
 #endif
@@ -345,7 +345,7 @@ static void saveOptions(Config* config)
             ,
             options->keybindMode,
             options->tabMode,
-            options->tabSize,
+            (int)options->tabSize,
             bool2str(options->musicTracker),
             bool2str(options->codeAltFont),
             bool2str(options->codeShadow),
