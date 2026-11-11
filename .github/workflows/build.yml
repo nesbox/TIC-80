@@ -557,7 +557,7 @@ jobs:
         run: |
           CFLAGS="-w -DLUA_32BITS" CXXFLAGS="-w -DLUA_32BITS" cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake \
             -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON \
-            -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF -DBUILD_WITH_YUESCRIPT=OFF
+            -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF -DBUILD_WITH_YUE=OFF
           cmake --build build --parallel
 
       - name: Deploy
