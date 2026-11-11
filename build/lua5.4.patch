@@ -1,6 +1,4 @@
 diff --git a/lbaselib.c b/lbaselib.c
---- a/lbaselib.c
-+++ b/lbaselib.c
 @@ -516,7 +516,7 @@ static const luaL_Reg base_funcs[] = {
    {"pairs", luaB_pairs},
    {"pcall", luaB_pcall},
@@ -11,8 +9,6 @@ diff --git a/lbaselib.c b/lbaselib.c
    {"rawlen", luaB_rawlen},
    {"rawget", luaB_rawget},
 diff --git a/llex.c b/llex.c
---- a/llex.c
-+++ b/llex.c
 @@ -239,8 +239,7 @@ static int read_numeral (LexState *ls, SemInfo *seminfo) {
        save_and_next(ls);
      else break;
@@ -24,8 +20,6 @@ diff --git a/llex.c b/llex.c
    if (luaO_str2num(luaZ_buffer(ls->buff), &obj) == 0)  /* format error? */
      lexerror(ls, "malformed number", TK_FLT);
 diff --git a/lmathlib.c b/lmathlib.c
---- a/lmathlib.c
-+++ b/lmathlib.c
 @@ -638,8 +638,9 @@ static int math_randomseed (lua_State *L) {
      randseed(L, state);
    }
@@ -39,90 +33,7 @@ diff --git a/lmathlib.c b/lmathlib.c
    }
    return 2;  /* return seeds */
 diff --git a/lstrlib.c b/lstrlib.c
---- a/lstrlib.c
-+++ b/lstrlib.c
-@@ -273,6 +273,23 @@ static int tonum (lua_State *L, int arg) {
-   }
- }
- 
-+static int toint (lua_State *L, int arg) {
-+  if (!tonum(L, arg))
-+    return 0;  /* not coercible to a number */
-+  else if (lua_isinteger(L, arg))
-+    return 1;  /* already an integer */
-+  else {  /* a float */
-+    int ok;
-+    lua_Integer n = lua_tointegerx(L, arg, &ok);
-+    if (!ok)
-+      return 0;
-+    else {
-+      lua_pop(L, 1);  /* remove the float */
-+      lua_pushinteger(L, n);  /* push an integer */
-+      return 1;
-+    }
-+  }
-+}
- 
- static void trymt (lua_State *L, const char *mtname) {
-   lua_settop(L, 2);  /* back to the original arguments */
-@@ -293,6 +310,13 @@ static int arith (lua_State *L, int op, const char *mtname) {
-   return 1;
- }
- 
-+static int bitwise (lua_State *L, int op, const char *mtname) {
-+  if (toint(L, 1) && toint(L, 2))
-+    lua_arith(L, op);  /* result will be on the top */
-+  else
-+    trymt(L, mtname);
-+  return 1;
-+}
- 
- static int arith_add (lua_State *L) {
-   return arith(L, LUA_OPADD, "__add");
-@@ -326,6 +350,29 @@ static int arith_unm (lua_State *L) {
-   return arith(L, LUA_OPUNM, "__unm");
- }
- 
-+static int bitwise_band (lua_State *L) {
-+  return bitwise(L, LUA_OPBAND, "__band");
-+}
-+
-+static int bitwise_bor (lua_State *L) {
-+  return bitwise(L, LUA_OPBOR, "__bor");
-+}
-+
-+static int bitwise_bxor (lua_State *L) {
-+  return bitwise(L, LUA_OPBXOR, "__bxor");
-+}
-+
-+static int bitwise_shl (lua_State *L) {
-+  return bitwise(L, LUA_OPSHL, "__shl");
-+}
-+
-+static int bitwise_shr (lua_State *L) {
-+  return bitwise(L, LUA_OPSHR, "__shr");
-+}
-+
-+static int bitwise_bnot (lua_State *L) {
-+  return bitwise(L, LUA_OPBNOT, "__bnot");
-+}
- 
- static const luaL_Reg stringmetamethods[] = {
-   {"__add", arith_add},
-@@ -336,6 +383,12 @@ static const luaL_Reg stringmetamethods[] = {
-   {"__div", arith_div},
-   {"__idiv", arith_idiv},
-   {"__unm", arith_unm},
-+  {"__band", bitwise_band},
-+  {"__bor", bitwise_bor},
-+  {"__bxor", bitwise_bxor},
-+  {"__shl", bitwise_shl},
-+  {"__shr", bitwise_shr},
-+  {"__bnot", bitwise_bnot},
-   {"__index", NULL},  /* placeholder */
-   {NULL, NULL}
- };
-@@ -1278,12 +1331,12 @@ static void checkformat (lua_State *L, const char *form, const char *flags,
+@@ -1278,12 +1278,12 @@ static void checkformat (lua_State *L, const char *form, const char *flags,
                                         int precision) {
    const char *spec = form + 1;  /* skip '%' */
    spec += strspn(spec, flags);  /* skip flags */
