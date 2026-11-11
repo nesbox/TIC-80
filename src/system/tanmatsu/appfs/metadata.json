@@ -1,0 +1,28 @@
+{
+    "name": "TIC-80",
+    "description": "Fantasy computer for making, playing and sharing tiny games. Fn+arrows moves the pointer, Fn+Esc leaves.",
+    "categories": [
+        "games",
+        "development"
+    ],
+    "version": "1.4.1",
+    "icon": {
+        "32x32": "icon32.png"
+    },
+    "author": "Vadim Grigoruk (nesbox), Tanmatsu port by Anne Jan Brouwer",
+    "license_type": "MIT",
+    "repository": "https://github.com/nesbox/TIC-80",
+    "application": [
+        {
+            "targets": [
+                "tanmatsu",
+                "konsool"
+            ],
+            "revision": 1,
+            "bsp_version": 2,
+            "type": "appfs",
+            "executable": "tic80.bin",
+            "assets": []
+        }
+    ]
+}

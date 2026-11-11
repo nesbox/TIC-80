@@ -420,6 +420,71 @@ static void testGutterMouse(void)
     puts("gutter mouse ok");
 }
 
+static void clickFrame(s32 x, s32 y)
+{
+    Mouse[tic_mouse_left] = (MouseState){
+        .down = true, .click = true, .start = {x, y}, .end = {x, y}};
+
+    frame();
+    memset(Mouse, 0, sizeof Mouse);
+}
+
+static void testPopupDismiss(void)
+{
+    setup("aa\nbb\n");
+
+    // The hide slide and the show slide that follows it both finish.
+    const s32 settle = STUDIO_ANIM_TIME * 2 + 2;
+
+    // FIND and GOTO: the top bar is the panel.
+    codeFind(&Code_);
+    idleFrames(STUDIO_ANIM_TIME + 2);
+
+    clickFrame(100, 2);
+    assert(Code_.mode == TEXT_FIND_MODE);
+
+    clickFrame(100, 100);
+    idleFrames(settle);
+    assert(Code_.mode == TEXT_EDIT_MODE);
+
+    codeGoto(&Code_);
+    idleFrames(STUDIO_ANIM_TIME + 2);
+
+    clickFrame(100, 2);
+    assert(Code_.mode == TEXT_GOTO_MODE);
+
+    clickFrame(100, 100);
+    idleFrames(settle);
+    assert(Code_.mode == TEXT_EDIT_MODE);
+
+    // BOOKMARKS: the right panel.
+    codeBookmarks(&Code_);
+    idleFrames(STUDIO_ANIM_TIME + 2);
+
+    clickFrame(TIC80_WIDTH - 20, 100);
+    assert(Code_.mode == TEXT_BOOKMARK_MODE);
+
+    clickFrame(100, 100);
+    idleFrames(settle);
+    assert(Code_.mode == TEXT_EDIT_MODE);
+
+    // OUTLINE: the FUNC bar and the right panel are both the popup.
+    codeOutline(&Code_);
+    idleFrames(STUDIO_ANIM_TIME + 2);
+
+    clickFrame(100, 2);
+    assert(Code_.mode == TEXT_OUTLINE_MODE);
+
+    clickFrame(TIC80_WIDTH - 20, 100);
+    assert(Code_.mode == TEXT_OUTLINE_MODE);
+
+    clickFrame(100, 100);
+    idleFrames(settle);
+    assert(Code_.mode == TEXT_EDIT_MODE);
+
+    puts("popup dismiss ok");
+}
+
 static void testAsks(void)
 {
     setup("aa");
@@ -861,16 +926,18 @@ static void testMinimapMouse(void)
 
     assert(Code_.scroll.y == 53);
 
-    // Hidden, the column gives the press back to the text.
+    // Hidden, the column gives the press back to the text. The pointer leaves
+    // the column first: hovering its strip is a peek.
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + 100;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 14;
+
     View.options.minimap = false;
     frame();
     idleFrames(STUDIO_ANIM_TIME);
     assert(Code_.anim.minimap == 0);
 
-    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + 220;
-    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 14;
     Mouse[tic_mouse_left] = (MouseState){
-        .down = true, .click = true, .start = {220, 14}, .end = {220, 14}};
+        .down = true, .click = true, .start = {100, 14}, .end = {100, 14}};
 
     caret = Code_.text.cursor.position;
     frame();
@@ -946,6 +1013,315 @@ static void testMinimapFitDrag(void)
     puts("minimap fit drag ok");
 }
 
+static void testViewSlide(void)
+{
+    char src[512];
+    buildManyLines(src, sizeof src, 100, false);
+
+    setup(src);
+    setMinimapTheme();
+
+    // A neutral pointer: hovering an edge would peek that view out.
+    Tic->ram->input.mouse.relative = false;
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 60;
+
+    frame();
+
+    // The saved state opens without a slide.
+    assert(Code_.showGutter);
+    assert(Code_.showStatusbar);
+    assert(Code_.anim.gutter > 0);
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+
+    const s32 gutter = Code_.anim.gutter;
+    const s32 barY = TIC80_HEIGHT - STUDIO_TEXT_HEIGHT;
+
+    // The bar covers the bottom row; the code behind it is the background.
+    assert(pixelAt(TIC80_WIDTH / 2, barY) == tic_color_white);
+
+    View.options.statusbar = false;
+    frame();
+
+    assert(!Code_.showStatusbar);
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+
+    idleFrames(STUDIO_ANIM_TIME - 1);
+    assert(Code_.anim.statusbar > 0 && Code_.anim.statusbar < STUDIO_TEXT_HEIGHT);
+
+    idleFrames(1);
+    assert(Code_.anim.statusbar == 0);
+    assert(pixelAt(TIC80_WIDTH / 2, barY) == tic_color_dark_grey);
+
+    // ... and it slides back up.
+    View.options.statusbar = true;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+    assert(pixelAt(TIC80_WIDTH / 2, barY) == tic_color_white);
+
+    // The sidebar slides left and frees its column.
+    View.options.sidebar = false;
+    frame();
+
+    assert(!Code_.showGutter);
+    assert(Code_.anim.gutter == gutter);
+
+    idleFrames(STUDIO_ANIM_TIME - 1);
+    assert(Code_.anim.gutter > 0 && Code_.anim.gutter < gutter);
+
+    idleFrames(1);
+    assert(Code_.anim.gutter == 0);
+
+    // A reversal starts from the current width.
+    View.options.sidebar = true;
+    frame();
+    idleFrames(5);
+
+    s32 width = Code_.anim.gutter;
+    assert(width > 0 && width < gutter);
+
+    View.options.sidebar = false;
+    frame();
+    assert(Code_.anim.gutter == width);
+
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.gutter == 0);
+
+    // LINES widens the strip for another digit, and the slide carries it.
+    View.options.sidebar = true;
+    View.options.lineNumbers = true;
+    frame();
+
+    assert(Code_.showGutter);
+    assert(Code_.lineNumbers);
+    assert(Code_.anim.gutter == 0);
+
+    idleFrames(STUDIO_ANIM_TIME);
+    const s32 wideGutter = 1 + 3 * TIC_ALTFONT_WIDTH;
+    assert(Code_.anim.gutter == wideGutter);
+
+    View.options.lineNumbers = false;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.gutter == gutter);
+
+    // A hidden view peeks out while the pointer is over its strip.
+    View.options.sidebar = false;
+    View.options.statusbar = false;
+    View.options.minimap = false;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.gutter == 0);
+    assert(Code_.anim.statusbar == 0);
+    assert(Code_.anim.minimap == 0);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + 2;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 20;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(!Code_.showGutter);
+    assert(Code_.anim.gutter == gutter);
+    assert(Code_.anim.statusbar == 0);
+    assert(Code_.anim.minimap == 0);
+
+    // LINES keeps its numbers in the peek whether the sidebar is pinned or not.
+    View.options.lineNumbers = true;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(!Code_.showGutter);
+    assert(Code_.anim.gutter == wideGutter);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + TIC80_HEIGHT - 1;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(!Code_.showStatusbar);
+    assert(Code_.anim.gutter == 0);
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+    assert(Code_.anim.minimap == 0);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH - 1;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 20;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(!Code_.showMinimap);
+    assert(Code_.anim.gutter == 0);
+    assert(Code_.anim.statusbar == 0);
+    assert(Code_.anim.minimap == MINIMAP_WIDTH);
+
+    // Leaving the strip slides it away again.
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.minimap == 0);
+
+    // A pointer that left the screen — the host's 255 sentinel — peeks nothing.
+    Tic->ram->input.mouse.x = (u8)-1;
+    Tic->ram->input.mouse.y = (u8)-1;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.gutter == 0);
+    assert(Code_.anim.statusbar == 0);
+    assert(Code_.anim.minimap == 0);
+
+    // A peek narrows the view for a moment; it must not move the scroll.
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH - 1;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 20;
+    Code_.scroll.x = 30;
+
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.minimap == MINIMAP_WIDTH);
+    assert(Code_.scroll.x == 30);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.minimap == 0);
+    assert(Code_.scroll.x == 30);
+
+    Code_.scroll.x = 0;
+
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + TIC80_HEIGHT - 1;
+    Code_.scroll.y = 20;
+
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+    assert(Code_.scroll.y == 20);
+
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + 60;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+
+    assert(Code_.anim.statusbar == 0);
+    assert(Code_.scroll.y == 20);
+
+    Code_.scroll.y = 0;
+
+    // The bar owns the pointer: no peeks under a menu or on the bar itself.
+    View.frame.pointerOwned = true;
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH - 1;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.minimap == 0);
+
+    View.frame.pointerOwned = false;
+
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.minimap == MINIMAP_WIDTH);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH / 2;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.minimap == 0);
+
+    // With the bar out, the strips stop above it: the bar's ends are neither
+    // the minimap's column nor the gutter's.
+    View.options.statusbar = true;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.statusbar == STUDIO_TEXT_HEIGHT);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + TIC80_WIDTH - 1;
+    Tic->ram->input.mouse.y = TIC80_OFFSET_TOP + TIC80_HEIGHT - 1;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.minimap == 0);
+
+    Tic->ram->input.mouse.x = TIC80_OFFSET_LEFT + 2;
+    frame();
+    idleFrames(STUDIO_ANIM_TIME);
+    assert(Code_.anim.gutter == 0);
+
+    puts("view slide ok");
+}
+
+static void testErrorLine(void)
+{
+    setup("aa\nbb\ncc\n");
+
+    codeGotoLine(&Code_, 1);
+    assert(Code_.errorLine == 1);
+    assert(Code_.text.cursor.position == Tic->cart.code.data + 3);
+
+    frame();
+
+    // The dashes sit on the free pixel row under the second line, after the
+    // 7-pixel gutter the test's view opens with.
+    s32 y = View.editorTop + STUDIO_TEXT_HEIGHT + STUDIO_TEXT_HEIGHT - 1;
+    assert(pixelAt(7, y) == tic_color_red);
+    assert(pixelAt(9, y) != tic_color_red);
+
+    // The marker follows the source line when the code scrolls.
+    Code_.scroll.y = 1;
+    frame();
+    assert(pixelAt(7, View.editorTop + STUDIO_TEXT_HEIGHT - 1) == tic_color_red);
+    assert(pixelAt(7, y) != tic_color_red);
+
+    // A host-set line draws the same marker.
+    Code_.scroll.y = 0;
+    codeSetErrorLine(&Code_, 2);
+    frame();
+    assert(pixelAt(7, View.editorTop + 2 * STUDIO_TEXT_HEIGHT + STUDIO_TEXT_HEIGHT - 1) == tic_color_red);
+
+    // A line outside the viewport draws nothing.
+    codeSetErrorLine(&Code_, 100);
+    frame();
+    assert(pixelAt(7, y) != tic_color_red);
+
+    // Cleared, it draws nothing.
+    Code_.scroll.y = 0;
+    codeSetErrorLine(&Code_, -1);
+    frame();
+    assert(pixelAt(7, y) != tic_color_red);
+
+    // A line past the end clamps to the last one and puts the caret there.
+    codeGotoLine(&Code_, 99);
+    assert(Code_.errorLine == getLinesCount(&Code_.text));
+    assert(Code_.text.cursor.position == Tic->cart.code.data + strlen(Tic->cart.code.data));
+
+    // A far line centres the view and stays visible.
+    {
+        char src[1024];
+        char* ptr = src;
+
+        for(s32 i = 0; i < 100; i++)
+            ptr += sprintf(ptr, "%c\n", 'a' + i % 26);
+
+        *ptr = '\0';
+
+        setup(src);
+        codeGotoLine(&Code_, 80);
+
+        s32 line = 0;
+        codeGetPos(&Code_, NULL, &line);
+
+        assert(line == 80);
+        assert(Code_.scroll.y > 0);
+
+        frame();
+
+        s32 errorY = View.editorTop + (Code_.errorLine - Code_.scroll.y) * STUDIO_TEXT_HEIGHT + STUDIO_TEXT_HEIGHT - 1;
+
+        assert(errorY >= View.editorTop && errorY < TIC80_HEIGHT);
+        assert(pixelAt(7, errorY) == tic_color_red);
+    }
+}
+
 int main(void)
 {
     Tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
@@ -957,6 +1333,7 @@ int main(void)
     testGoto();
     testBookmarks();
     testGutterMouse();
+    testPopupDismiss();
     testAsks();
     testSyntax();
     testJustSwitched();
@@ -966,6 +1343,8 @@ int main(void)
     testMinimapSlide();
     testMinimapMouse();
     testMinimapFitDrag();
+    testViewSlide();
+    testErrorLine();
 
     free(Clipboard);
     tic_core_close(Tic);

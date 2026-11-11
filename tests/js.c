@@ -111,24 +111,34 @@ int main(void)
     Script->tick(tic);
     assert(tic->ram->persistent.data[3] == 2);
 
-    // Native Error objects still report both the message and the JS stack.
+    // Native Error objects report the message and the stack as one text.
+    assert(Script->errorLine);
     Script->eval(tic, "throw new Error('eval failure')");
-    assert(ErrorCount >= 2);
+    assert(ErrorCount == 1);
     assert(strstr(Errors, "eval failure"));
     assert(strstr(Errors, "<eval>"));
+    assert(Script->errorLine(tic, Errors) == 0);
     clearErrors();
 
     assert(Script->init(tic, "function TIC() { throw new Error('tick failure'); }"));
     Script->tick(tic);
-    assert(ErrorCount >= 2);
+    assert(ErrorCount == 1);
     assert(strstr(Errors, "tick failure"));
     assert(strstr(Errors, "index.js"));
+    assert(Script->errorLine(tic, Errors) == 1);
     clearErrors();
 
     assert(!Script->init(tic, "function TIC( {"));
     assert(strstr(Errors, "SyntaxError"));
+    assert(Script->errorLine(tic, Errors) == 1);
     assert(core->currentVM == NULL);
     clearErrors();
+
+    // The innermost frame is the position; a plain thrown value has none.
+    assert(Script->errorLine(tic, "Error: boom\n"
+                                  "    at boom (index.js:6:11)\n"
+                                  "    at TIC (index.js:10:3)\n") == 6);
+    assert(Script->errorLine(tic, "plain thrown string") == 0);
 
     // Replacing a cartridge closes the failed VM and starts with fresh globals.
     assert(Script->init(tic, "function TIC() { pmem(9, typeof frames === 'undefined'); }"));

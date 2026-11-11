@@ -71,6 +71,10 @@ struct tic_script
         s32 size;
         const char* name;
     } demo, mark, *demos;
+
+    // The 1-based line in the cart's code an error text points at, or 0 when
+    // the binding cannot place it. NULL when the language cannot.
+    s32 (*errorLine)(tic_mem* memory, const char* text);
 };
 
 typedef struct tic_script tic_script;

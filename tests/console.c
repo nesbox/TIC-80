@@ -599,6 +599,177 @@ static void testHelpAlias(void)
     hostFree(host);
 }
 
+// The console asks the current script where an error sits: this one places
+// "line 8" and nothing else. A NULL hook is a language that cannot place them.
+static s32 placedErrorLine(tic_mem* memory, const char* text)
+{
+    (void)memory;
+    return strstr(text, "line 8") ? 8 : 0;
+}
+
+static const tic_script PlacedScript =
+    {
+        .id = 200,
+        .name = "placed",
+        .singleComment = "--",
+        .errorLine = placedErrorLine,
+};
+
+static const tic_script UnplacedScript =
+    {
+        .id = 201,
+        .name = "unplaced",
+        .singleComment = "--",
+};
+
+// A pointer point in the console's own coordinates, as the studio ticks them.
+static void mouseAt(Host* host, tic_point point, bool click)
+{
+    host->tic->ram->input.mouse.x = point.x + TIC80_OFFSET_LEFT;
+    host->tic->ram->input.mouse.y = point.y + TIC80_OFFSET_TOP;
+    host->mouse[tic_mouse_left].click = click;
+    host->mouse[tic_mouse_left].start = point;
+    host->mouse[tic_mouse_left].end = point;
+}
+
+// A placed error is a target: a click inside its block asks for the code
+// editor at the line; a click outside, a drag and an unplaced error do not.
+static void testErrorLink(void)
+{
+    Host* host = hostNew(NULL);
+
+    tic_add_script(&PlacedScript);
+    tic_add_script(&UnplacedScript);
+    host->tic->cart.lang = PlacedScript.id;
+
+    ConsoleAsk ask = hostTick(host);
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+
+    // The first frame's demo load zeroes the cart, its language included: the
+    // test's script is the one that answers the error.
+    host->tic->cart.lang = PlacedScript.id;
+
+    console_error(host->console, "line 8: boom");
+    assert(host->console->errors.count == 1);
+    assert(host->console->errors.line == 8);
+    assert(console_error_line(host->console) == 8);
+
+    ConsoleErrorLink link = host->console->errors.items[0];
+
+    assert(link.line == 8);
+    assert(link.size > 0);
+
+    {
+        s32 row = link.block / ConsoleRow;
+        host->console->scroll.pos = row > 2 ? row - 2 : 0;
+
+        tic_point inside =
+            {
+                (link.block % ConsoleRow) * TIC_FONT_WIDTH,
+                (row - host->console->scroll.pos) * (TIC_FONT_HEIGHT + 1),
+            };
+
+        mouseAt(host, inside, true);
+        ask = hostTick(host);
+        assert(ask.kind == CONSOLE_ASK_CODE);
+        assert(ask.line == 8);
+        hostAnswer(host, (ConsoleAnswer){0});
+
+        // The whole block is the target, its last cell included.
+        {
+            s32 last = link.block + link.size - 1;
+            s32 endRow = last / ConsoleRow;
+            tic_point end =
+                {
+                    (last % ConsoleRow) * TIC_FONT_WIDTH,
+                    (endRow - host->console->scroll.pos) * (TIC_FONT_HEIGHT + 1),
+                };
+
+            mouseAt(host, end, true);
+            ask = hostTick(host);
+            assert(ask.kind == CONSOLE_ASK_CODE);
+            assert(ask.line == 8);
+            hostAnswer(host, (ConsoleAnswer){0});
+        }
+
+        // A click outside the block asks nothing.
+        mouseAt(host, (tic_point){0, 0}, true);
+        ask = hostTick(host);
+        assert(ask.kind == CONSOLE_ASK_NONE);
+
+        // A drag inside the block is a selection, not a click.
+        host->mouse[tic_mouse_left].start = inside;
+        host->mouse[tic_mouse_left].end = (tic_point){inside.x + 4, inside.y};
+        host->mouse[tic_mouse_left].click = true;
+        host->tic->ram->input.mouse.x = inside.x + 4 + TIC80_OFFSET_LEFT;
+        host->tic->ram->input.mouse.y = inside.y + TIC80_OFFSET_TOP;
+        ask = hostTick(host);
+        assert(ask.kind == CONSOLE_ASK_NONE);
+
+        // A drag from inside to outside is a selection, not a click.
+        host->mouse[tic_mouse_left].start = inside;
+        host->mouse[tic_mouse_left].end = (tic_point){0, 0};
+        host->mouse[tic_mouse_left].click = true;
+        host->tic->ram->input.mouse.x = TIC80_OFFSET_LEFT;
+        host->tic->ram->input.mouse.y = TIC80_OFFSET_TOP;
+        ask = hostTick(host);
+        assert(ask.kind == CONSOLE_ASK_NONE);
+
+        // A pending ask keeps the click away from the code editor.
+        host->console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_MENU};
+        mouseAt(host, inside, true);
+        ask = hostTick(host);
+        assert(ask.kind == CONSOLE_ASK_MENU);
+        hostAnswer(host, (ConsoleAnswer){0});
+
+        // An ask being served does too.
+        host->console->waiting = true;
+        mouseAt(host, inside, true);
+        ask = hostTick(host);
+        assert(ask.kind == CONSOLE_ASK_NONE);
+        host->console->waiting = false;
+
+        // The menubar's pointer never jumps.
+        host->view.pointerOwned = true;
+        mouseAt(host, inside, true);
+        ask = hostTick(host);
+        assert(ask.kind == CONSOLE_ASK_NONE);
+        host->view.pointerOwned = false;
+    }
+
+    // An error the binding cannot place clears the line and adds no link.
+    console_error(host->console, "nothing here");
+    assert(host->console->errors.count == 1);
+    assert(host->console->errors.line == 0);
+    assert(console_error_line(host->console) == 0);
+
+    console_clear_errors(host->console);
+    assert(host->console->errors.count == 0);
+
+    hostFree(host);
+
+    // A language without the hook offers no target at all.
+    host = hostNew(NULL);
+    host->tic->cart.lang = UnplacedScript.id;
+
+    ask = hostTick(host);
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+
+    host->tic->cart.lang = UnplacedScript.id;
+
+    console_error(host->console, "line 8: boom");
+    assert(host->console->errors.count == 0);
+    assert(console_error_line(host->console) == 0);
+
+    mouseAt(host, (tic_point){10, 10}, true);
+    ask = hostTick(host);
+    assert(ask.kind == CONSOLE_ASK_NONE);
+
+    hostFree(host);
+}
+
 int main(void)
 {
     testMoves();
@@ -614,8 +785,9 @@ int main(void)
     testExport(true);
     testExport(false);
     testHelpAlias();
+    testErrorLink();
 
-    puts("moves ok / confirm ok / load ok / save ok / config ok / export ok / replay ok / run");
+    puts("moves ok / confirm ok / load ok / save ok / config ok / export ok / replay ok / run / error link");
 
     return 0;
 }

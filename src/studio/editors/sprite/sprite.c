@@ -580,49 +580,75 @@ static bool hasCanvasSelection(Sprite* sprite)
     return sprite->mode == SPRITE_SELECT_MODE && sprite->select.rect.w && sprite->select.rect.h;
 }
 
-static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
+static void scaleCanvasSize(Sprite* sprite, s32 delta)
 {
-    tic_mem* tic = sprite->tic;
+    s32 size = sprite->canvasSize;
 
+    if(delta > 0)
+    {
+        if(size < (TIC_SPRITESIZE * TIC_SPRITESIZE)) size <<= 1;
+    }
+    else if(size > TIC_SPRITESIZE)
+        size >>= 1;
+
+    spriteSetSize(sprite, size);
+}
+
+static void drawCanvasSizeButtons(Sprite* sprite)
+{
+    // The 8x8 icon tiles carry a 3x3 glyph at (2,2): the pair is right-aligned by it.
     enum
     {
-        Count = BRUSH_SIZES,
-        Size = 5
+        GlyphInset = 2,
+        GlyphSize = 3,
+        Gap = 2,
+        PairWidth = GlyphSize * 2 + Gap,
+        GlyphX = CanvasX + CANVAS_SIZE - PairWidth,
+        IconY = CanvasY + CanvasH + 1,
+        HitWidth = (PairWidth + 1) / 2,
     };
 
-    tic_rect rect = {x, y, Size, (Size + 1) * Count};
-
-    bool over = false;
-    if(mousePos(sprite, &rect))
+    static const struct
     {
-        ui_cursor(sprite->tic, tic_cursor_hand);
-
-        sprite->deps.tooltip(sprite->deps.host, "BRUSH SIZE");
-        over = true;
-
-        if(mouseDown(sprite, &rect, tic_mouse_left))
+        u8 icon;
+        s32 delta;
+        const char* tooltip;
+    } Buttons[] =
         {
-            s32 my = tic_api_mouse(tic).y - y;
+            {tic_icon_tinyminus, -1, "CANVAS SIZE -"},
+            {tic_icon_tinyplus, +1, "CANVAS SIZE +"},
+        };
 
-            sprite->brush.size = (u8)(Count - my / (Size + 1));
+    for(s32 i = 0; i < COUNT_OF(Buttons); i++)
+    {
+        tic_rect rect = {GlyphX + i * HitWidth, IconY, HitWidth, TIC_SPRITESIZE};
+
+        bool over = false;
+        bool down = false;
+
+        if(mousePos(sprite, &rect))
+        {
+            ui_cursor(sprite->tic, tic_cursor_hand);
+            over = true;
+
+            sprite->deps.tooltip(sprite->deps.host, Buttons[i].tooltip);
+
+            if(mouseDown(sprite, &rect, tic_mouse_left)) down = true;
+
+            if(mouseClicked(sprite, &rect, tic_mouse_left))
+                scaleCanvasSize(sprite, Buttons[i].delta);
+        }
+
+        s32 iconX = GlyphX + i * (GlyphSize + Gap) - GlyphInset;
+
+        if(down)
+            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, IconY + 1, over ? tic_color_light_grey : tic_color_white);
+        else
+        {
+            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, IconY + 1, tic_color_black);
+            ui_icon(sprite->tic, sprite->view->cartTiles, Buttons[i].icon, iconX, IconY, over ? tic_color_light_grey : tic_color_white);
         }
     }
-
-    tic_api_rect(tic, x + 1, y, Size - 2, Size * Count, tic_color_black);
-
-    for(s32 i = 0; i < Count; i++)
-    {
-        s32 offset = y + i * (Size + 1);
-
-        tic_api_rect(tic, x, offset, Size, Size, tic_color_black);
-        tic_api_rect(tic, x + 6, offset + 2, Count - i, 1, tic_color_black);
-    }
-
-    tic_api_rect(tic, x + 2, y + 1, 1, Size * Count + 1, (over ? tic_color_white : tic_color_grey));
-
-    s32 offset = y + (Count - sprite->brush.size) * (Size + 1);
-    tic_api_rect(tic, x, offset, Size, Size, tic_color_black);
-    tic_api_rect(tic, x + 1, offset + 1, Size - 2, Size - 2, (over ? tic_color_white : tic_color_grey));
 }
 
 static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
@@ -649,12 +675,13 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
         {
             case SPRITE_DRAW_MODE:
                 processDrawCanvasMouse(sprite, x, y, rect.x, rect.y);
-                drawBrushSlider(sprite, x - 15, y + 20);
                 break;
             case SPRITE_PICK_MODE: processPickerCanvasMouse(sprite, x, y, rect.x, rect.y); break;
             case SPRITE_SELECT_MODE: processSelectCanvasMouse(sprite, x, y); break;
             case SPRITE_FILL_MODE: processFillCanvasMouse(sprite, x, y, rect.x, rect.y); break;
         }
+
+        drawCanvasSizeButtons(sprite);
     }
 
     if(hasCanvasSelection(sprite))
@@ -1025,6 +1052,10 @@ static void switchBitMode(Sprite* sprite, tic_bpp bpp)
 
     sprite->color %= 1 << sprite->blit.mode;
     sprite->color2 %= 1 << sprite->blit.mode;
+
+    // Flags exist only in 4bpp.
+    if(sprite->blit.mode != tic_bpp_4)
+        sprite->flags.show = sprite->flags.edit = false;
 }
 
 static void drawMoveButtons(Sprite* sprite)
@@ -1095,6 +1126,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
             {
                 s32 mx = tic_api_mouse(tic).x - x;
                 *value = (u8)(mx * Max / (Size - 1));
+                sprite->palette.drag = true;
             }
         }
 
@@ -1120,7 +1152,10 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
                 down = true;
 
             if(mouseClicked(sprite, &rect, tic_mouse_left))
+            {
                 (*value)--;
+                history_add(sprite->paletteHistory);
+            }
         }
 
         if(down)
@@ -1146,7 +1181,10 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
                 down = true;
 
             if(mouseClicked(sprite, &rect, tic_mouse_left))
+            {
                 (*value)++;
+                history_add(sprite->paletteHistory);
+            }
         }
 
         if(down)
@@ -1161,87 +1199,21 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
     }
 }
 
-static void pasteColor(Sprite* sprite)
+static void copyPalette(Sprite* sprite)
 {
-    bool ovr = sprite->palette.vbank1;
-    if(!fromClipboard(&bankPalette(sprite, ovr)->colors[sprite->color], sizeof(tic_rgb), false, true, false))
-        fromClipboard(bankPalette(sprite, ovr)->data, sizeof(tic_palette), false, true, false);
+    toClipboard(bankPalette(sprite, sprite->palette.vbank1)->data, sizeof(tic_palette), false);
 }
 
-static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
+static bool pasteColor(Sprite* sprite)
 {
-    {
-        enum
-        {
-            Size = 5
-        };
+    bool ovr = sprite->palette.vbank1;
+    bool pasted = fromClipboard(&bankPalette(sprite, ovr)->colors[sprite->color], sizeof(tic_rgb), false, true, true) ||
+                  fromClipboard(bankPalette(sprite, ovr)->data, sizeof(tic_palette), false, true, true);
 
-        tic_rect rect = {x, y, Size, Size};
+    if(pasted)
+        history_add(sprite->paletteHistory);
 
-        bool over = false;
-        bool down = false;
-
-        if(mousePos(sprite, &rect))
-        {
-            ui_cursor(sprite->tic, tic_cursor_hand);
-
-            sprite->deps.tooltip(sprite->deps.host, "COPY PALETTE");
-            over = true;
-
-            if(mouseDown(sprite, &rect, tic_mouse_left))
-                down = true;
-
-            if(mouseClicked(sprite, &rect, tic_mouse_left))
-                toClipboard(bankPalette(sprite, sprite->palette.vbank1)->data, sizeof(tic_palette), false);
-        }
-
-        if(down)
-        {
-            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_copy, rect.x - 1, rect.y, tic_color_light_grey);
-        }
-        else
-        {
-            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_copy, rect.x - 1, rect.y, tic_color_black);
-            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_copy, rect.x - 1, rect.y - 1, (over ? tic_color_light_grey : tic_color_white));
-        }
-    }
-
-    {
-        enum
-        {
-            Size = 5
-        };
-
-        tic_rect rect = {x, y + 8, Size, Size};
-        bool over = false;
-        bool down = false;
-
-        if(mousePos(sprite, &rect))
-        {
-            ui_cursor(sprite->tic, tic_cursor_hand);
-
-            sprite->deps.tooltip(sprite->deps.host, "PASTE PALETTE");
-            over = true;
-
-            if(mouseDown(sprite, &rect, tic_mouse_left))
-                down = true;
-
-            if(mouseClicked(sprite, &rect, tic_mouse_left))
-            {
-                pasteColor(sprite);
-            }
-        }
-
-        if(down)
-        {
-            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_paste, rect.x - 1, rect.y, tic_color_light_grey);
-        }
-        else
-        {
-            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_paste, rect.x - 1, rect.y, tic_color_black);
-            ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_paste, rect.x - 1, rect.y - 1, (over ? tic_color_light_grey : tic_color_white));
-        }
-    }
+    return pasted;
 }
 
 static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
@@ -1311,8 +1283,6 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
 
     for(s32 i = 0; i < Rows; i++)
         drawRGBSlider(sprite, x, y + TIC_FONT_HEIGHT * i, &data[i]);
-
-    drawRGBTools(sprite, x + 74, y);
 }
 
 static tic_palette_dimensions getPaletteDimensions(Sprite* sprite)
@@ -1640,6 +1610,17 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
     }
 }
 
+// The brush tile's marker is a square showing its size, below the tool icon.
+static void drawBrushSizeMarker(Sprite* sprite, s32 x, s32 y)
+{
+    s32 size = sprite->brush.size;
+    s32 yOffset = (BRUSH_SIZES - size) / 2;
+    s32 markerY = y + TIC_SPRITESIZE + 1 + yOffset;
+
+    tic_api_rect(sprite->tic, x, markerY + 1, size, size, tic_color_black);
+    tic_api_rect(sprite->tic, x, markerY, size, size, tic_color_white);
+}
+
 static void drawTools(Sprite* sprite, s32 x, s32 y)
 {
     enum
@@ -1665,9 +1646,14 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 
             if(mouseClicked(sprite, &rect, tic_mouse_left))
             {
-                sprite->mode = i;
+                if(i == SPRITE_DRAW_MODE && sprite->mode == SPRITE_DRAW_MODE)
+                    spriteSetBrushSize(sprite, sprite->brush.size % BRUSH_SIZES + 1);
+                else
+                {
+                    sprite->mode = i;
 
-                clearCanvasSelection(sprite);
+                    clearCanvasSelection(sprite);
+                }
             }
         }
 
@@ -1677,6 +1663,9 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
         {
             ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_down, rect.x, y - 5, tic_color_black);
             ui_icon(sprite->tic, sprite->view->cartTiles, tic_icon_down, rect.x, y - 6, tic_color_white);
+
+            if(i == SPRITE_DRAW_MODE)
+                drawBrushSizeMarker(sprite, rect.x, y);
 
             ui_icon(sprite->tic, sprite->view->cartTiles, Icons[i], rect.x, y + 1, (over ? tic_color_light_grey : tic_color_white));
         }
@@ -1718,6 +1707,12 @@ static inline s32 getClipboardSize(Sprite* sprite)
 
 static void copyToClipboard(Sprite* sprite)
 {
+    if(sprite->palette.edit)
+    {
+        copyPalette(sprite);
+        return;
+    }
+
     s32 size = getClipboardSize(sprite);
 
     // zeroed: the pokes below read the byte around the nibble they write, and
@@ -1748,12 +1743,24 @@ static void copyToClipboard(Sprite* sprite)
 
 static void cutToClipboard(Sprite* sprite)
 {
+    if(sprite->palette.edit)
+    {
+        copyPalette(sprite);
+        return;
+    }
+
     copyToClipboard(sprite);
     deleteSprite(sprite);
 }
 
 static void copyFromClipboard(Sprite* sprite)
 {
+    if(sprite->palette.edit)
+    {
+        pasteColor(sprite);
+        return;
+    }
+
     s32 size = getClipboardSize(sprite);
 
     u8* buffer = malloc(size);
@@ -1809,12 +1816,12 @@ static void rightSprite(Sprite* sprite)
 
 static void undo(Sprite* sprite)
 {
-    history_undo(sprite->history);
+    history_undo(sprite->palette.edit ? sprite->paletteHistory : sprite->history);
 }
 
 static void redo(Sprite* sprite)
 {
-    history_redo(sprite->history);
+    history_redo(sprite->palette.edit ? sprite->paletteHistory : sprite->history);
 }
 
 static void switchBanks(Sprite* sprite)
@@ -1860,6 +1867,11 @@ void spriteSetBrushSize(Sprite* sprite, s32 size)
     sprite->brush.size = (u8)CLAMP(size, 1, BRUSH_SIZES);
 }
 
+void spritePaletteChanged(Sprite* sprite)
+{
+    history_add(sprite->paletteHistory);
+}
+
 void spriteSetMode(Sprite* sprite, s32 mode)
 {
     sprite->mode = mode;
@@ -1892,6 +1904,15 @@ static void processKeyboard(Sprite* sprite)
     if(tic_api_key(tic, tic_key_alt))
         return;
 
+    // Undo/redo reach the palette history from the hex field as well.
+    if(tic_api_key(tic, tic_key_ctrl) && !sprite->flags.edit)
+    {
+        if(keyPressed(sprite, tic_key_z))
+            undo(sprite);
+        else if(keyPressed(sprite, tic_key_y))
+            redo(sprite);
+    }
+
     if(sprite->palette.edit && sprite->palette.focus >= 0)
     {
         enum
@@ -1921,6 +1942,7 @@ static void processKeyboard(Sprite* sprite)
                 sprintf(buf, "%02X", *data);
                 buf[col] = (char)(toupper((u8)sym));
                 *data = (u8)strtol(buf, NULL, 16);
+                history_add(sprite->paletteHistory);
                 ++col;
             }
         }
@@ -1972,12 +1994,7 @@ static void processKeyboard(Sprite* sprite)
 
         if(ctrl)
         {
-            if(keyPressed(sprite, tic_key_z))
-                undo(sprite);
-            else if(keyPressed(sprite, tic_key_y))
-                redo(sprite);
-
-            else if(keyPressed(sprite, tic_key_left))
+            if(keyPressed(sprite, tic_key_left))
                 leftViewport(sprite);
             else if(keyPressed(sprite, tic_key_right))
                 rightViewport(sprite);
@@ -2043,7 +2060,12 @@ static void processKeyboard(Sprite* sprite)
                 {
 
                     if(keyPressed(sprite, tic_key_1))
-                        sprite->mode = SPRITE_DRAW_MODE;
+                    {
+                        if(sprite->mode == SPRITE_DRAW_MODE)
+                            updateBrushSize(sprite, +1);
+                        else
+                            sprite->mode = SPRITE_DRAW_MODE;
+                    }
                     else if(keyPressed(sprite, tic_key_2))
                         sprite->mode = SPRITE_PICK_MODE;
                     else if(keyPressed(sprite, tic_key_3))
@@ -2106,19 +2128,14 @@ void sprite_tick(Sprite* sprite)
         tic80_input* input = &tic->ram->input;
 
         if(input->mouse.scrolly)
-        {
-            s32 size = sprite->canvasSize;
-            s32 delta = input->mouse.scrolly;
+            scaleCanvasSize(sprite, input->mouse.scrolly);
+    }
 
-            if(delta > 0)
-            {
-                if(size < (TIC_SPRITESIZE * TIC_SPRITESIZE)) size <<= 1;
-            }
-            else if(size > TIC_SPRITESIZE)
-                size >>= 1;
-
-            updateSpriteSize(sprite, size);
-        }
+    // A slider drag is one undo step, committed when the button is released.
+    if(sprite->palette.drag && !sprite->deps.mouse[tic_mouse_left].down)
+    {
+        sprite->palette.drag = false;
+        history_add(sprite->paletteHistory);
     }
 
     processKeyboard(sprite);
@@ -2225,11 +2242,12 @@ void sprite_set_view(Sprite* sprite, const SpriteView* view)
     sprite->view = view;
 }
 
-void initSprite(Sprite* sprite, const SpriteDeps* deps, tic_tiles* src)
+void initSprite(Sprite* sprite, const SpriteDeps* deps, tic_tiles* src, tic_palettes* palettes)
 {
     if(sprite->select.back == NULL) sprite->select.back = (u8*)malloc(CANVAS_SIZE * CANVAS_SIZE);
     if(sprite->select.front == NULL) sprite->select.front = (u8*)malloc(CANVAS_SIZE * CANVAS_SIZE);
     if(sprite->history) history_delete(sprite->history);
+    if(sprite->paletteHistory) history_delete(sprite->paletteHistory);
     freeAnim(sprite);
 
     *sprite = (Sprite){
@@ -2263,6 +2281,7 @@ void initSprite(Sprite* sprite, const SpriteDeps* deps, tic_tiles* src)
             },
         .mode = SPRITE_DRAW_MODE,
         .history = history_create(src, TIC_SPRITES * sizeof(tic_tile)),
+        .paletteHistory = history_create(palettes, sizeof(tic_palettes)),
         .needsHistoryUpdate = false,
         .anim =
             {
@@ -2291,5 +2310,6 @@ void freeSprite(Sprite* sprite)
     free(sprite->select.back);
     free(sprite->select.front);
     history_delete(sprite->history);
+    history_delete(sprite->paletteHistory);
     free(sprite);
 }

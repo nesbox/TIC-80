@@ -136,7 +136,6 @@ lib/
 build/*.cmake
 CMakeCache.txt
 Makefile
-!build/rpi/*
 !build/baremetalpi/Makefile
 !build/baremetalpi/boot/Makefile
 !build/baremetalpi/toolchain.cmake

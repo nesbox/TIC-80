@@ -181,9 +181,9 @@ jobs:
           sudo rm -f /etc/apt/sources.list.d/*google* /etc/apt/sources.list.d/*chrome* 2>/dev/null || true
           sudo sed -i '/dl\.google\.com/d' /etc/apt/sources.list 2>/dev/null || true
           sudo apt-get update
-          # The X11 trio is sokol_app's link line and ALSA is sokol_audio's;
-          # the rest is what the studio itself needs.
-          sudo apt-get install gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
+          # The X11 trio and the GLES pair are sokol_app's link line and ALSA is
+          # sokol_audio's; the rest is what the studio itself needs.
+          sudo apt-get install gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libegl1-mesa-dev libgles2-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
           sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
           sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
           # the generator the builds use; the image carries it already
@@ -202,7 +202,9 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON ..
+          # GLES3/EGL, as the arm64 builds: sokol's desktop GL backend asks for
+          # an OpenGL 4.3 core context, which older machines cannot give it.
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DUSE_GLES2=ON -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
           # The universal export stub is this same binary (console.c appends the
           # cart to it), so keep it before Build Pro overwrites it below. It goes
@@ -236,7 +238,7 @@ jobs:
       - name: Build Pro
         run: |
           cd build
-          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DUSE_GLES2=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --parallel
 
       # No build here: the universal stub is the binary the Build step kept
@@ -1002,8 +1004,8 @@ jobs:
           path: |
             build/bin/tic80
 
-  # === Android ===
-  android:
+  # === Android (SDL) ===
+  sdl-android:
     # 24.04, not -latest: setup-ruby has no 2.6.10 for 26.04 (#3107).
     runs-on: ubuntu-24.04
 
@@ -1044,27 +1046,21 @@ jobs:
           # stops, and a step that produced no APK must not look like one that
           # produced a good one.
           #
-          # A pull request from a fork is handed no secrets at all, so the two
+          # A pull request from a fork is handed no secrets at all, so the
           # checks below would fail it for a reason that has nothing to do with
           # the change (17.09). Such a run builds the release variant unsigned
-          # instead: the android job still proves the code compiles, the APK
-          # cannot be mistaken for a shipable one, and every other event — a
-          # push, the tag call — signs exactly as before.
-          # Each build is copied aside before the next one: the two APKs come
-          # out of the same output path, and the second overwrites the first.
+          # instead: the job still proves the code compiles, the APK cannot be
+          # mistaken for a shipable one, and every other event — a push, the tag
+          # call — signs exactly as before.
           if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
               ./gradlew assembleRelease -PUNSIGNED=1
               cp app/build/outputs/apk/release/app-release-unsigned.apk tic80.apk
-              ./gradlew assembleRelease -PUNSIGNED=1 -PEDITORS=OFF
-              cp app/build/outputs/apk/release/app-release-unsigned.apk tic80-surf.apk
-              echo "fork pull request: no repository secrets, the APKs are unsigned"
+              echo "fork pull request: no repository secrets, the APK is unsigned"
           else
               : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
               : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
               ./gradlew assembleRelease
               cp app/build/outputs/apk/release/app-release.apk tic80.apk
-              ./gradlew assembleRelease -PEDITORS=OFF
-              cp app/build/outputs/apk/release/app-release.apk tic80-surf.apk
           fi
 
         env:
@@ -1072,46 +1068,28 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
-      - name: Check what each APK carries
+      - name: Check what the APK carries
         run: |
           cd build/android
-          # A flag that did not take looks exactly like one that took, and
-          # gradle can hand the second build the first one's native library.
-          # So each APK is read back: the editors APK carries the IDE, the
-          # browser-only one carries the browser and no IDE.
+          # A flag that did not take looks exactly like one that took: read the
+          # library back, the editors APK carries the IDE.
           unzip -p tic80.apk lib/arm64-v8a/libtic80.so > editors.so
-          unzip -p tic80-surf.apk lib/arm64-v8a/libtic80.so > surf.so
           if ! grep -qa "SPRITE EDITOR" editors.so; then
             echo "the APK has no editors — BUILD_EDITORS did not take" >&2
             exit 1
           fi
-          if ! grep -qa "You don't have any files" surf.so; then
-            echo "the browser-only APK has no browser — -PEDITORS=OFF did not take, or gradle reused the first build's library" >&2
-            exit 1
-          fi
-          if grep -qa "SPRITE EDITOR" surf.so; then
-            echo "the browser-only APK carries the editors — -PEDITORS=OFF did not take" >&2
-            exit 1
-          fi
-          echo "both APKs carry what they should"
+          echo "the APK carries the editors"
 
       - name: Deploy
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-android"
+          name: "tic80-android-sdl"
           path: build/android/tic80.apk
 
-      - name: Deploy the browser-only APK
-        uses: actions/upload-artifact@v6
-        with:
-          if-no-files-found: error
-          name: "tic80-android-surf"
-          path: build/android/tic80-surf.apk
-
   # === Android (sokol) ===
-  android-sokol:
-    # As the android job: setup-ruby has no 2.6.10 for 26.04 (#3107).
+  android:
+    # 24.04, not -latest: setup-ruby has no 2.6.10 for 26.04 (#3107).
     runs-on: ubuntu-24.04
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -1198,8 +1176,37 @@ jobs:
           }
 
           for apk in tic80 tic80-surf; do
-            unzip -l "build/android-sokol/$apk.apk" | grep -q "classes.dex" && {
-              echo "$apk carries a dex; the sokol APK is native only" >&2
+            unzip -l "build/android-sokol/$apk.apk" | grep -q "classes.dex" || {
+              echo "$apk carries no dex — the documents provider is missing" >&2
+              exit 1
+            }
+            unzip -p "build/android-sokol/$apk.apk" classes.dex | grep -qa "TICDocumentsProvider" || {
+              echo "$apk's dex is not the documents provider" >&2
+              exit 1
+            }
+            unzip -p "build/android-sokol/$apk.apk" classes.dex | grep -qa "TICActivity" || {
+              echo "$apk's dex has no activity — the .tic intents cannot work" >&2
+              exit 1
+            }
+            manifest=$("$TOOLS/aapt2" dump xmltree --file AndroidManifest.xml "build/android-sokol/$apk.apk")
+            echo "$manifest" | grep -q "hasCode(0x0101000c)=true" || {
+              echo "$apk's manifest has hasCode off — the provider cannot load" >&2
+              exit 1
+            }
+            case "$apk" in
+              tic80) authority=com.nesbox.tic.documents ;;
+              tic80-surf) authority=com.nesbox.tic.surf.documents ;;
+            esac
+            echo "$manifest" | grep -q "TICDocumentsProvider" || {
+              echo "$apk's manifest has no documents provider" >&2
+              exit 1
+            }
+            echo "$manifest" | grep -q "com.nesbox.tic.TICActivity" || {
+              echo "$apk's manifest has no activity" >&2
+              exit 1
+            }
+            echo "$manifest" | grep -q "authorities(0x01010018)=\"$authority\"" || {
+              echo "$apk's provider authority is not $authority" >&2
               exit 1
             }
             "$TOOLS/aapt2" dump badging "build/android-sokol/$apk.apk" | grep "^package:"
@@ -1222,15 +1229,259 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-android-sokol"
+          name: "tic80-android"
           path: build/android-sokol/tic80.apk
 
       - name: Deploy the browser-only APK
         uses: actions/upload-artifact@v6
         with:
           if-no-files-found: error
-          name: "tic80-android-sokol-surf"
+          name: "tic80-android-surf"
           path: build/android-sokol/tic80-surf.apk
+ 
+  # === Raspberry PI 1 Bare Metal ===
+  rpi-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 1
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 2 Bare Metal ===
+  rpi2-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 2
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel7.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi2-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 3 Bare Metal ===
+  rpi3-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 3
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi3-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 4-5 Bare Metal ===
+  rpi4-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 4
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel7l.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi4-5-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712d0-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712d0.dtbo
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/COPYING.linux
+            vendor/circle-stdlib/libs/circle/boot/fixup4.dat
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+            vendor/circle-stdlib/libs/circle/boot/start4.elf
 
   # === HTML ===
   html:

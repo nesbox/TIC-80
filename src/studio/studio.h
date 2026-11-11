@@ -76,14 +76,34 @@
 #define CRT_CMD_PARAM(macro)
 #endif
 
+// Sokol draws through the GPU alone: there is no software renderer to switch to.
+#if !defined(BUILD_SOKOL)
+// clang-format off
+#   define SOFT_CMD_PARAM(macro)                                \
+    macro(soft, int, BOOLEAN, "", "use software rendering")
+// clang-format on
+#else
+#define SOFT_CMD_PARAM(macro)
+#endif
+
+// A layer that fixes the swap interval with the window has nothing to switch.
+#if !defined(VSYNC_ALWAYS_ON)
+// clang-format off
+#   define VSYNC_CMD_PARAM(macro)                               \
+    macro(vsync, int, BOOLEAN, "", "enable VSYNC")
+// clang-format on
+#else
+#define VSYNC_CMD_PARAM(macro)
+#endif
+
 // clang-format off
 #define CMD_PARAMS_LIST(macro)                                                              \
     macro(skip,         int,    BOOLEAN,    "",         "skip startup animation")           \
     macro(volume,       s32,    INTEGER,    "=<int>",   "global volume value [0-15]")       \
     macro(cli,          int,    BOOLEAN,    "",         "console only output")              \
     macro(fullscreen,   int,    BOOLEAN,    "",         "enable fullscreen mode")           \
-    macro(vsync,        int,    BOOLEAN,    "",         "enable VSYNC")                     \
-    macro(soft,         int,    BOOLEAN,    "",         "use software rendering")           \
+    VSYNC_CMD_PARAM(macro)                                                                  \
+    SOFT_CMD_PARAM(macro)                                                                   \
     macro(fs,           char*,  STRING,     "=<str>",   "path to the file system folder")   \
     macro(scale,        s32,    INTEGER,    "=<int>",   "main window scale")                \
     macro(cmd,          char*,  STRING,     "=<str>",   "run commands in the console")      \

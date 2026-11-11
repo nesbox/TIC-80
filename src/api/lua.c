@@ -24,6 +24,7 @@
 #include "luaapi.h"
 
 #include <stdlib.h>
+#include <string.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -149,6 +150,99 @@ static void evalLua(tic_mem* tic, const char* code)
     }
 }
 
+// Whether a Lua message line carries a source position: chunk:line: <text>.
+static bool luaHasPosition(const char* line, const char* end)
+{
+    for(const char* ptr = line; ptr < end; ptr++)
+        if(*ptr == ':' && ptr + 1 < end && isdigit((u8)ptr[1]))
+        {
+            const char* num = ptr + 1;
+
+            while(num < end && isdigit((u8)*num))
+                num++;
+
+            if(num + 1 < end && num[0] == ':' && num[1] == ' ')
+                return true;
+        }
+
+    return false;
+}
+
+// The line's position when its chunk id is the cart's own. A cut chunk id has
+// "..."; one Lua did not cut can only be a one-line source, the whole code.
+static bool luaCartPosition(const char* line, const char* end, const char* code, s32 codeSize, bool codeSingle, s32* value)
+{
+    static const char Prefix[] = "[string \"";
+    const char* chunk = strstr(line, Prefix);
+
+    if(!chunk || chunk >= end)
+        return false;
+
+    const char* body = chunk + sizeof Prefix - 1;
+    const char* close = strstr(body, "\"]:");
+
+    if(!close || close >= end)
+        return false;
+
+    const bool truncated = close - body >= 3 && memcmp(close - 3, "...", 3) == 0;
+    const s32 size = (s32)(close - body) - (truncated ? 3 : 0);
+
+    if(size <= 0 || size > codeSize || memcmp(body, code, size) != 0)
+        return false;
+
+    if(!truncated && (!codeSingle || size != codeSize))
+        return false;
+
+    const char* num = close + 3;
+    s32 lineValue = 0;
+
+    while(num < end && isdigit((u8)*num))
+        lineValue = lineValue * 10 + (*num++ - '0');
+
+    if(num == close + 3 || num >= end || *num != ':')
+        return false;
+
+    *value = lineValue;
+    return true;
+}
+
+// A Lua message names its source by the chunk id: [string "<first line>"...].
+// Only the cart's own chunk starts with the cart's first line, so an eval
+// snippet or a file cannot point into the cart's code.
+static s32 luaErrorLine(tic_mem* memory, const char* text)
+{
+    const char* code = memory->cart.code.data;
+    const char* codeEnd = strchr(code, '\n');
+    const s32 codeSize = codeEnd ? (s32)(codeEnd - code) : (s32)strlen(code);
+    const bool codeSingle = codeEnd == NULL;
+
+    const char* firstEnd = strchr(text, '\n');
+    if(!firstEnd)
+        firstEnd = text + strlen(text);
+
+    s32 value = 0;
+
+    // A position in the message is the error's own: when it names another
+    // chunk, the error is not in the cart and the traceback is not consulted.
+    if(luaHasPosition(text, firstEnd))
+        return luaCartPosition(text, firstEnd, code, codeSize, codeSingle, &value) ? value : 0;
+
+    // No position in the message: the first traceback frame of the cart.
+    for(const char* line = *firstEnd ? firstEnd + 1 : firstEnd; *line;)
+    {
+        const char* end = strchr(line, '\n');
+        if(!end)
+            end = line + strlen(line);
+
+        if(luaCartPosition(line, end, code, codeSize, codeSingle, &value))
+            return value;
+
+        line = *end ? end + 1 : end;
+    }
+
+    return 0;
+}
+
 static const u8 DemoRom[] =
     {
 #include "../build/assets/luademo.tic.dat"
@@ -236,6 +330,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Lua) =
 
         .getOutline = getLuaOutline,
         .eval = evalLua,
+        .errorLine = luaErrorLine,
 
         .blockCommentStart = "--[[",
         .blockCommentEnd = "]]",

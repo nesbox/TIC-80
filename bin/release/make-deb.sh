@@ -36,12 +36,10 @@ install -m644 build/linux/tic80.png "$pkg/usr/share/icons/hicolor/256x256/apps/t
 install -m644 build/linux/com.tic80.TIC_80.metainfo.xml "$pkg/usr/share/metainfo/"
 install -m644 build/linux/tic80.xml "$pkg/usr/share/mime/packages/tic80.xml"
 
-# The arm64 build draws through GLES/EGL — the Pis have no desktop GL to give
-# it — so the package names those two libraries for a system that lacks them.
-DEPS="libcurl4 | libcurl4t64"
-if [ "$ARCH" = "arm64" ]; then
-    DEPS="$DEPS, libegl1, libgles2"
-fi
+# The library packages the binary links: curl, ALSA, the X11 trio and the GLES
+# pair. A desktop normally has them; a slim system does not. The t64 names
+# cover Ubuntu 24.04, where the time_t transition renamed the packages.
+DEPS="libcurl4 | libcurl4t64, libasound2 | libasound2t64, libx11-6, libxi6, libxcursor1, libegl1, libgles2"
 
 cat >"$pkg/DEBIAN/control" <<EOF
 Package: tic80

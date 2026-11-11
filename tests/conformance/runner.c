@@ -12,8 +12,9 @@
  * nothing here names one.
  *
  * Usage: api-conformance [probes dir] [--dump]
- * Exit: 0 — the table was printed, divergences and all; 2 — the measurement
- * broke (no reference, or a probe file that did not run).
+ * Exit: 0 — every measured language agrees with the reference; 1 — at least one
+ * red mark; 2 — the measurement broke (no reference, or a probe file that did
+ * not run).
  */
 #include "core/core.h"
 #include "script.h"
@@ -729,6 +730,10 @@ int main(int argc, char** argv)
     for(s32 l = 0; l < LangCount; l++)
         if(Langs[l].hasFile && Langs[l].failed)
             return 2;
+
+    // A red mark is the suite's finding: the job goes red with the table.
+    if(DivCount)
+        return 1;
 
     return 0;
 }

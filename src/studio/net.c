@@ -307,7 +307,7 @@ void tic_net_end(tic_net* net)
     }
 }
 
-#elif defined(__SWITCH__)
+#elif defined(__SWITCH__) || defined(__TANMATSU__)
 
 // See net.c in src/system
 

@@ -85,8 +85,9 @@ typedef struct
 // ticks the console, since the console may not call into the studio.
 typedef struct ConsoleView
 {
-    bool inFront;     // the console is the screen the host is showing
-    bool cartChanged; // the cart differs from what the host last saved
+    bool inFront;      // the console is the screen the host is showing
+    bool cartChanged;  // the cart differs from what the host last saved
+    bool pointerOwned; // the menubar owns the pointer this frame
 
 } ConsoleView;
 
@@ -132,8 +133,23 @@ typedef struct
 
     s32 index; // EXPORT_SFX / EXPORT_MUSIC
     s32 bank;  // EXPORT_MUSIC
+    s32 line;  // CODE: the 1-based source line, 0 for none
 
 } ConsoleAsk;
+
+// One runtime error the binding placed: the console buffer range of its printed
+// text and the line it points at.
+enum
+{
+    CONSOLE_ERROR_LINKS = 64
+};
+
+typedef struct
+{
+    s32 block;
+    s32 size;
+    s32 line;
+} ConsoleErrorLink;
 
 // What the host answers with; which fields a kind sets is noted on the kind.
 struct ConsoleAnswer
@@ -220,6 +236,21 @@ struct Console
 
     struct
     {
+        ConsoleErrorLink items[CONSOLE_ERROR_LINKS];
+        s32 count;
+        s32 hover; // the link under the pointer, -1 for none
+        s32 line;  // the last positioned error line, 0 for none
+
+        struct
+        {
+            s32 line;  // 0 when no error is being captured
+            s32 index; // the link being filled, -1 before its first symbol
+        } capture;
+
+    } errors;
+
+    struct
+    {
         char* text;
         size_t pos;
     } input;
@@ -258,6 +289,8 @@ void console_done(Console* console);
 bool console_active(const Console* console);
 void console_trace(Console* console, const char* text, u8 color);
 void console_error(Console* console, const char* info);
+s32 console_error_line(const Console* console);
+void console_clear_errors(Console* console);
 
 // The --cmd batch, for the host that runs the cart and comes back: when the
 // launch keeps its commands and they have all run, they are rewound and this

@@ -211,13 +211,14 @@ struct Code
     } sidebar;
 
     const char* matchedDelim;
+    s32 errorLine; // the last positioned error line, -1 for none
     bool altFont;
     bool shadowText;
     bool lineNumbers;
     bool showGutter;
     bool showStatusbar;
     bool showMinimap;
-    bool minimapSynced;
+    bool viewSynced;
 
     struct
     {
@@ -231,15 +232,20 @@ struct Code
         s32 pos;
         s32 sidebar;
         s32 minimap;
+        s32 gutter;
+        s32 statusbar;
 
         Movie* movie;
         Movie* minimapMovie;
+        Movie* gutterMovie;
+        Movie* statusbarMovie;
 
         Movie idle;
         Movie show;
         Movie hide;
-        Movie minimapShow;
-        Movie minimapHide;
+        Movie minimapSlide;
+        Movie gutterSlide;
+        Movie statusbarSlide;
 
     } anim;
 
@@ -256,6 +262,8 @@ void code_just_switched(Code* code);
 void freeCode(Code*);
 void codeGetPos(Code*, s32* x, s32* y);
 void codeSetPos(Code*, s32 x, s32 y);
+void codeGotoLine(Code*, s32 line);
+void codeSetErrorLine(Code*, s32 line);
 
 void codeFind(Code*);
 void codeGoto(Code*);

@@ -45,7 +45,7 @@
 
 static s32 getCodeHeight(const Code* code)
 {
-    return TIC80_HEIGHT - code->view->editorTop - (code->showStatusbar ? STUDIO_TEXT_HEIGHT : 0);
+    return TIC80_HEIGHT - code->view->editorTop - code->anim.statusbar;
 }
 
 static s32 getCodeTextHeight(const Code* code)
@@ -92,6 +92,16 @@ static bool mouseDown(Code* code, const tic_rect* rect, tic_mouse_btn button)
     return mouse_down(&code->deps.mouse[button], rect);
 }
 
+// A click that began outside the panel: the open popup leaves on it.
+static bool mouseClickedOutside(Code* code, const tic_rect* rect)
+{
+    const MouseState* state = &code->deps.mouse[tic_mouse_left];
+
+    return state->click &&
+           (state->start.x < rect->x || state->start.x >= rect->x + rect->w ||
+            state->start.y < rect->y || state->start.y >= rect->y + rect->h);
+}
+
 static bool viModeIs(Code* code, ViMode mode)
 {
     return code->view->options.vi && code->deps.getViMode(code->deps.host) == mode;
@@ -131,15 +141,20 @@ tic_color getCodeColor(Code* code)
     return tic_color_white;
 }
 
+// The gutter's width when it is out: the digits the line count needs, or the
+// bookmark strip when the numbers are off.
+static s32 gutterFullWidth(const Code* code)
+{
+    if(!code->lineNumbers)
+        return MIN_GUTTER_WIDTH;
+
+    int charCount = (int)log10(code->status.lineCount + 1) + 1;
+    return MAX(1 + charCount * TIC_ALTFONT_WIDTH, MIN_GUTTER_WIDTH);
+}
+
 static void getWidths(Code* code, s32* gutterWidthOut, s32* codeWidthOut)
 {
-    int charCount = code->lineNumbers ? ((int)log10(code->status.lineCount + 1) + 1) : 0;
-    int gutterWidth = 0;
-
-    if(code->showGutter)
-        gutterWidth = code->lineNumbers
-                          ? MAX(1 + charCount * TIC_ALTFONT_WIDTH, MIN_GUTTER_WIDTH)
-                          : MIN_GUTTER_WIDTH;
+    int gutterWidth = code->anim.gutter;
     int codeWidth = TIC80_WIDTH - gutterWidth - code->anim.minimap;
 
     if(gutterWidthOut) *gutterWidthOut = gutterWidth;
@@ -162,20 +177,20 @@ static inline s32 getGutterWidth(Code* code)
 
 static void drawStatus(Code* code)
 {
-    if(!code->showStatusbar)
+    const s32 height = code->anim.statusbar;
+
+    if(height <= 0)
         return;
 
-    enum
-    {
-        Height = STUDIO_TEXT_HEIGHT,
-        StatusY = TIC80_HEIGHT - TIC_FONT_HEIGHT
-    };
+    // The bar slides down past the bottom edge; its text goes with it.
+    const s32 y = TIC80_HEIGHT - height;
+    const s32 statusY = y + (STUDIO_TEXT_HEIGHT - TIC_FONT_HEIGHT);
 
     const CodeBattle* bb = code->view->battle;
 
     if(bb)
     {
-        tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, getCodeColor(code));
+        tic_api_rect(code->tic, 0, y, TIC80_WIDTH, height, getCodeColor(code));
         if(!bb->battle.hidetime)
         {
             sprintf(code->status.size, "%i/%i", (u32)strlen(code->text.src), bb->limit.current);
@@ -185,25 +200,26 @@ static void drawStatus(Code* code)
             sprintf(buf, "%02i:%02i", sec / 60, sec % 60);
 
             tic_api_print(code->tic, buf, (TIC80_WIDTH - sizeof "00:00" * TIC_FONT_WIDTH) / 2,
-                          StatusY, code->view->theme.BG, true, 1, false);
+                          statusY, code->view->theme.BG, true, 1, false);
         }
     }
     else
     {
-        tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, code->status.color);
+        tic_api_rect(code->tic, 0, y, TIC80_WIDTH, height, code->status.color);
     }
 
-    tic_api_print(code->tic, code->status.line, 0, StatusY, code->view->theme.BG, true, 1, false);
+    tic_api_print(code->tic, code->status.line, 0, statusY, code->view->theme.BG, true, 1, false);
     tic_api_print(code->tic, code->status.size, TIC80_WIDTH - (s32)strlen(code->status.size) * TIC_FONT_WIDTH,
-                  StatusY, code->view->theme.BG, true, 1, false);
+                  statusY, code->view->theme.BG, true, 1, false);
 }
 
 static void updateEditor(Code* code);
 static s32 getVisualCursorColumn(Code* code);
+static void escape(Code* code);
 
 static void drawGutter(Code* code)
 {
-    if(!code->showGutter)
+    if(code->anim.gutter <= 0)
         return;
 
     tic_mem* tic = code->tic;
@@ -327,6 +343,30 @@ static void drawMatchedDelim(Code* code, s32 x, s32 y, char symbol, u8 color)
     drawChar(code->tic, symbol, x, y, color, code->altFont);
 }
 
+static void drawErrorLine(Code* code)
+{
+    if(code->errorLine < 0)
+        return;
+
+    s32 gutterWidth, codeWidth;
+    getWidths(code, &gutterWidth, &codeWidth);
+
+    s32 y = code->view->editorTop + (code->errorLine - code->scroll.y) * STUDIO_TEXT_HEIGHT + STUDIO_TEXT_HEIGHT - 1;
+    s32 bottom = code->view->editorTop + getCodeHeight(code);
+
+    if(y < code->view->editorTop || y >= bottom)
+        return;
+
+    enum
+    {
+        Dash = 2,
+        Gap = 2,
+    };
+
+    for(s32 x = gutterWidth; x < gutterWidth + codeWidth; x += Dash + Gap)
+        tic_api_rect(code->tic, x, y, MIN(Dash, gutterWidth + codeWidth - x), 1, tic_color_red);
+}
+
 static void drawCode(Code* code, bool withCursor)
 {
     s32 gutterWidth, codeWidth;
@@ -447,6 +487,7 @@ static void drawCode(Code* code, bool withCursor)
     }
 
     drawGutter(code);
+    drawErrorLine(code);
 
     if(code->text.cursor.position == pointer)
         cursor.x = x, cursor.y = y;
@@ -1955,10 +1996,18 @@ static void textGoToTick(Code* code)
     drawStatus(code);
 }
 
-static void drawSidebarBar(Code* code, s32 x, s32 y)
+// The right panel's rect at the row band its mode starts at.
+static tic_rect sidebarPanelRect(const Code* code, s32 y)
+{
+    s32 x = (TIC80_WIDTH - SIDEBAR_WIDTH) + code->anim.sidebar;
+    return (tic_rect){x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
+}
+
+static void drawSidebarBar(Code* code, s32 y)
 {
     tic_mem* tic = code->tic;
-    tic_rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
+    tic_rect rect = sidebarPanelRect(code, y);
+    const s32 x = rect.x;
 
     if(mousePos(code, &rect))
     {
@@ -2090,7 +2139,7 @@ static void textBookmarkTick(Code* code)
 
     drawCode(code, false);
     drawStatus(code);
-    drawSidebarBar(code, (TIC80_WIDTH - SIDEBAR_WIDTH) + code->anim.sidebar, TIC_FONT_HEIGHT + 1);
+    drawSidebarBar(code, TIC_FONT_HEIGHT + 1);
 }
 
 static void textOutlineTick(Code* code)
@@ -2122,8 +2171,47 @@ static void textOutlineTick(Code* code)
 
     drawCode(code, false);
     drawStatus(code);
-    drawSidebarBar(code, (TIC80_WIDTH - SIDEBAR_WIDTH) + code->anim.sidebar, 2 * (TIC_FONT_HEIGHT + 1));
+    drawSidebarBar(code, 2 * (TIC_FONT_HEIGHT + 1));
     drawPopupBar(code, "FUNC:");
+}
+
+// A hidden view peeks out while the pointer is over the strip it covers. The
+// strips stop at the code area: the status bar's row is not theirs. A pointer
+// off the screen is the host's 255 sentinel, and the black margin around the
+// screen is not the editor either.
+static bool peekGutter(const Code* code)
+{
+    tic_point pos = tic_api_mouse(code->tic);
+    return pos.x >= 0 && pos.x < gutterFullWidth(code) && pos.y >= code->view->editorTop &&
+           pos.y < TIC80_HEIGHT - code->anim.statusbar;
+}
+
+static bool peekStatusbar(const Code* code)
+{
+    tic_point pos = tic_api_mouse(code->tic);
+    return pos.x >= 0 && pos.x < TIC80_WIDTH && pos.y >= TIC80_HEIGHT - STUDIO_TEXT_HEIGHT && pos.y < TIC80_HEIGHT;
+}
+
+static bool peekMinimap(const Code* code)
+{
+    tic_point pos = tic_api_mouse(code->tic);
+    return pos.x >= TIC80_WIDTH - MINIMAP_WIDTH && pos.x < TIC80_WIDTH &&
+           pos.y >= code->view->editorTop && pos.y < TIC80_HEIGHT - code->anim.statusbar;
+}
+
+// Slides a view value to its target; a new target mid-slide restarts from
+// where the value is now.
+static void startSlide(Code* code, Movie** current, Movie* slide, s32* value, s32 target)
+{
+    s32 heading = *current == &code->anim.idle ? *value : slide->items[0].end;
+
+    if(heading == target)
+        return;
+
+    slide->items[0].start = *value;
+    slide->items[0].end = target;
+
+    *current = resetMovie(slide);
 }
 
 static void applyView(Code* code)
@@ -2135,34 +2223,67 @@ static void applyView(Code* code)
     code->lineNumbers = options->lineNumbers;
     code->showGutter = options->sidebar;
     code->showStatusbar = options->statusbar;
+    code->showMinimap = options->minimap;
 
     // The saved state opens without a slide; later changes animate.
-    if(!code->minimapSynced && options->script)
+    if(!code->viewSynced && options->script)
     {
-        code->showMinimap = options->minimap;
-        code->anim.minimap = options->minimap ? MINIMAP_WIDTH : 0;
-        code->minimapSynced = true;
-
-        code->minimap.dragging = false;
+        code->anim.gutter = code->showGutter ? gutterFullWidth(code) : 0;
+        code->anim.statusbar = code->showStatusbar ? STUDIO_TEXT_HEIGHT : 0;
+        code->anim.minimap = code->showMinimap ? MINIMAP_WIDTH : 0;
+        code->viewSynced = true;
 
         if(code->showMinimap)
             clampHorizontalScroll(code);
     }
-    else if(code->minimapSynced && code->showMinimap != options->minimap)
+    else if(code->viewSynced)
     {
-        code->showMinimap = options->minimap;
-        code->minimap.dragging = false;
+        // The bar owns the pointer while a menu is open or the pointer is on
+        // the bar: no peeking under it.
+        bool pointerFree = !code->view->frame.pointerOwned;
 
-        Movie* movie = code->showMinimap ? &code->anim.minimapShow : &code->anim.minimapHide;
-        movie->items[0].start = code->anim.minimap;
+        s32 gutter = code->showGutter || (pointerFree && peekGutter(code)) ? gutterFullWidth(code) : 0;
+        s32 statusbar = code->showStatusbar || (pointerFree && peekStatusbar(code)) ? STUDIO_TEXT_HEIGHT : 0;
+        s32 minimap = code->showMinimap || (pointerFree && peekMinimap(code)) ? MINIMAP_WIDTH : 0;
 
-        code->anim.minimapMovie = resetMovie(movie);
+        if(!minimap)
+            code->minimap.dragging = false;
+
+        startSlide(code, &code->anim.gutterMovie, &code->anim.gutterSlide, &code->anim.gutter, gutter);
+        startSlide(code, &code->anim.statusbarMovie, &code->anim.statusbarSlide, &code->anim.statusbar, statusbar);
+        startSlide(code, &code->anim.minimapMovie, &code->anim.minimapSlide, &code->anim.minimap, minimap);
     }
 }
 
 void code_set_view(Code* code, const CodeView* view)
 {
     code->view = view;
+}
+
+void codeSetErrorLine(Code* code, s32 line)
+{
+    code->errorLine = line;
+}
+
+void codeGotoLine(Code* code, s32 line)
+{
+    s32 lines = getLinesCount(&code->text);
+
+    if(line < 0)
+        line = 0;
+    else if(line > lines)
+        line = lines;
+
+    code->text.cursor.selection = NULL;
+    code->text.cursor.position = getPosByLine(code->text.src, line);
+    code->errorLine = line;
+
+    updateColumn(&code->text);
+    updateEditor(code);
+    centerScroll(code);
+    updateEditor(code);
+
+    code->cursor.delay = 0;
 }
 
 void code_just_switched(Code* code)
@@ -2177,8 +2298,44 @@ void code_tick(Code* code)
     applyView(code);
     updateTextOptions(code);
 
+    // A click that misses the open popup leaves it, as ESC does.
+    {
+        tic_rect bar = {0, code->view->editorTop + code->anim.pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1};
+
+        switch(code->mode)
+        {
+            case TEXT_FIND_MODE:
+            case TEXT_GOTO_MODE:
+                if(mouseClickedOutside(code, &bar))
+                    escape(code);
+                break;
+
+            case TEXT_BOOKMARK_MODE:
+            {
+                tic_rect panel = sidebarPanelRect(code, TIC_FONT_HEIGHT + 1);
+
+                if(mouseClickedOutside(code, &panel))
+                    escape(code);
+                break;
+            }
+
+            case TEXT_OUTLINE_MODE:
+            {
+                tic_rect panel = sidebarPanelRect(code, 2 * (TIC_FONT_HEIGHT + 1));
+
+                if(mouseClickedOutside(code, &bar) && mouseClickedOutside(code, &panel))
+                    escape(code);
+                break;
+            }
+
+            default: break;
+        }
+    }
+
     processAnim(code->anim.movie, code);
     processAnim(code->anim.minimapMovie, code);
+    processAnim(code->anim.gutterMovie, code);
+    processAnim(code->anim.statusbarMovie, code);
 
     if(code->cursor.delay)
         code->cursor.delay--;
@@ -2234,18 +2391,42 @@ static void setEditMode(void* data)
     setCodeMode(code, TEXT_EDIT_MODE);
 }
 
+// A slide the option asked for settles the layout: the caret is kept in view.
+// A peek only narrows it for a moment, so it must not move the scroll.
 static void minimapDone(void* data)
 {
     Code* code = data;
-    clampHorizontalScroll(code);
+    code->anim.minimapMovie = &code->anim.idle;
+
+    if(code->showMinimap)
+        clampHorizontalScroll(code);
+}
+
+static void gutterDone(void* data)
+{
+    Code* code = data;
+    code->anim.gutterMovie = &code->anim.idle;
+
+    if(code->showGutter)
+        updateEditor(code);
+}
+
+static void statusbarDone(void* data)
+{
+    Code* code = data;
+    code->anim.statusbarMovie = &code->anim.idle;
+
+    if(code->showStatusbar)
+        updateEditor(code);
 }
 
 static void freeAnim(Code* code)
 {
     FREE(code->anim.show.items);
     FREE(code->anim.hide.items);
-    FREE(code->anim.minimapShow.items);
-    FREE(code->anim.minimapHide.items);
+    FREE(code->anim.minimapSlide.items);
+    FREE(code->anim.gutterSlide.items);
+    FREE(code->anim.statusbarSlide.items);
 }
 
 // The clipboard buttons take no arguments, so each editor's own operation gets
@@ -2306,6 +2487,7 @@ void initCode(Code* code, const CodeDeps* deps)
                 .scroll = 0,
             },
         .matchedDelim = NULL,
+        .errorLine = -1,
         .anim =
             {
                 .idle = {
@@ -2322,19 +2504,25 @@ void initCode(Code* code, const CodeDeps* deps)
                                                                      {0, SIDEBAR_WIDTH, STUDIO_ANIM_TIME, &code->anim.sidebar, AnimEaseIn},
                                                                  }),
 
-                .minimapShow = MOVIE_DEF(STUDIO_ANIM_TIME, minimapDone, {
-                                                                            {0, MINIMAP_WIDTH, STUDIO_ANIM_TIME, &code->anim.minimap, AnimEaseIn},
-                                                                        }),
+                .minimapSlide = MOVIE_DEF(STUDIO_ANIM_TIME, minimapDone, {
+                                                                             {0, 0, STUDIO_ANIM_TIME, &code->anim.minimap, AnimEaseIn},
+                                                                         }),
 
-                .minimapHide = MOVIE_DEF(STUDIO_ANIM_TIME, minimapDone, {
-                                                                            {MINIMAP_WIDTH, 0, STUDIO_ANIM_TIME, &code->anim.minimap, AnimEaseIn},
-                                                                        }),
+                .gutterSlide = MOVIE_DEF(STUDIO_ANIM_TIME, gutterDone, {
+                                                                           {0, 0, STUDIO_ANIM_TIME, &code->anim.gutter, AnimEaseIn},
+                                                                       }),
+
+                .statusbarSlide = MOVIE_DEF(STUDIO_ANIM_TIME, statusbarDone, {
+                                                                                 {0, 0, STUDIO_ANIM_TIME, &code->anim.statusbar, AnimEaseIn},
+                                                                             }),
             },
         .update = update,
     };
 
     code->anim.movie = resetMovie(&code->anim.idle);
     code->anim.minimapMovie = &code->anim.idle;
+    code->anim.gutterMovie = &code->anim.idle;
+    code->anim.statusbarMovie = &code->anim.idle;
 
     text_init(&code->text, src->data, (TextOptions){0}, textHistoryEnabled, code);
 

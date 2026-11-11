@@ -1,0 +1,10 @@
+.IDF_PATH
+.IDF_TOOLS_PATH
+build/
+sdkconfig_*
+managed_components/
+dependencies.lock
+
+# The Tanmatsu project ships a Makefile; the repo-wide ignore is for CMake output.
+!Makefile
+badgelink/

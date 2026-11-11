@@ -166,9 +166,9 @@ jobs:
 
   # The suite cmake/tests.cmake registers, the conformance suite among it: one
   # static build with every language and no system layer, one headless run.
-  # Every registered test that exits non-zero fails the job; the conformance
-  # runner exits non-zero only when the measurement itself broke, so a
-  # divergence stays a finding, and its table is the report.
+  # Every registered test that exits non-zero fails the job, and the conformance
+  # runner exits non-zero on a red mark: the table is the report, and a
+  # divergence is what the suite exists to catch.
   tests:
     runs-on: ubuntu-22.04
     env:
@@ -214,17 +214,20 @@ jobs:
 
       # The table is markdown and comes from the runner's own invocation — the
       # ctest pass below prints a failing test's output and swallows a passing
-      # one's — and pipefail keeps a broken measurement red through the tee.
+      # one's — and pipefail keeps a red mark or a broken measurement red
+      # through the tee.
       - name: Run the conformance suite
         run: |
           set -euo pipefail
           ./build-tests/bin/api-conformance tests/conformance/probes | tee -a "$GITHUB_STEP_SUMMARY"
 
-      # The registration gate is the build alone: a measurement that broke
-      # above leaves the job red either way, and the other fifteen tests'
-      # results are still worth having in that run.
+      # The registration gate is the build alone: a red mark or a measurement
+      # that broke above leaves the job red either way, and the rest of the
+      # suite's results are still worth having in that run.
       - name: Run the registered tests
-        if: steps.build.outcome == 'success'
+        # !cancelled(), not bare success(): a red conformance mark above must
+        # not keep the rest of the suite from reporting.
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: ctest --test-dir build-tests --output-on-failure -E api-conformance
 
   # The drawing benchmark reports a delta, it never gates: the numbers come

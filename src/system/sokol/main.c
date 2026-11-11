@@ -438,12 +438,86 @@ static sapp_keycode android_keycode(int code)
     }
 }
 
-// sokol_app reads only BACK on Android — and quits on it — so the keyboard and
-// the pads are read here, before its own handling.
+static bool update_mouse(float x, float y);
+
+// sokol_app reports Android's MotionEvents as touches only and drops the
+// hover, so a mouse is read here, before its own handling.
+static bool android_mouse_event(const AInputEvent* event)
+{
+    // The queue is live before the first frame makes the studio, and the
+    // mouse has nowhere to be read into yet.
+    if(!platform.studio)
+        return true;
+
+    const int action = AMotionEvent_getAction(event) & AMOTION_EVENT_ACTION_MASK;
+
+    if(action == AMOTION_EVENT_ACTION_HOVER_EXIT || action == AMOTION_EVENT_ACTION_OUTSIDE)
+    {
+        // The pointer left the window: off the machine's screen, or it keeps
+        // drawing its cursor where it left.
+        platform.pointer.x = platform.pointer.y = -1.0f;
+        platform.pointer.left = platform.pointer.right = platform.pointer.middle = false;
+        platform.input.mouse.x = (u8)-1;
+        platform.input.mouse.y = (u8)-1;
+        android_pointer_show(true);
+        return true;
+    }
+
+    if(action == AMOTION_EVENT_ACTION_CANCEL)
+    {
+        platform.pointer.left = platform.pointer.right = platform.pointer.middle = false;
+        return true;
+    }
+
+    if(action == AMOTION_EVENT_ACTION_SCROLL)
+    {
+        // The wheel sends fractions of a notch; the machine reads whole ones.
+        platform.pointer.scrollX += AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_HSCROLL, 0);
+        platform.pointer.scrollY += AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_VSCROLL, 0);
+
+        const s32 x = (s32)platform.pointer.scrollX;
+        const s32 y = (s32)platform.pointer.scrollY;
+
+        platform.pointer.scrollX -= (float)x;
+        platform.pointer.scrollY -= (float)y;
+
+        platform.input.mouse.scrollx += (s16)x;
+        platform.input.mouse.scrolly += (s16)y;
+
+        return true;
+    }
+
+    // The event is in window pixels and the machine's screen is framebuffer
+    // pixels; sokol scales its own touches the same way.
+    const float scale = sapp_dpi_scale();
+
+    platform.pointer.x = AMotionEvent_getX(event, 0) * scale;
+    platform.pointer.y = AMotionEvent_getY(event, 0) * scale;
+
+    // The state is the buttons held after the event: a press includes its
+    // button, a release no longer does.
+    const int buttons = AMotionEvent_getButtonState(event);
+
+    platform.pointer.left = (buttons & AMOTION_EVENT_BUTTON_PRIMARY) != 0;
+    platform.pointer.right = (buttons & AMOTION_EVENT_BUTTON_SECONDARY) != 0;
+    platform.pointer.middle = (buttons & AMOTION_EVENT_BUTTON_TERTIARY) != 0;
+
+    update_mouse(platform.pointer.x, platform.pointer.y);
+
+    return true;
+}
+
+// sokol_app reads only BACK on Android — and quits on it — so the keyboard,
+// the pads and the mouse are read here, before its own handling.
 static bool android_native_event(const void* native_event)
 {
     const AInputEvent* event = native_event;
     const int source = AInputEvent_getSource(event);
+
+    // A mouse or DeX's desktop mouse, which also carries the touchscreen bit.
+    if(AInputEvent_getType(event) == AINPUT_EVENT_TYPE_MOTION &&
+       (source & AINPUT_SOURCE_MOUSE) == AINPUT_SOURCE_MOUSE)
+        return android_mouse_event(event);
 
     // A DPAD-only source is a TV remote: its keys belong to the studio's menus.
     // Matched whole: a keyboard (0x101) shares bit 0 with AINPUT_SOURCE_GAMEPAD.
@@ -514,6 +588,10 @@ static bool update_mouse(float x, float y)
     // The machine draws a cursor of its own on its screen, so the system one
     // is hidden there and left alone everywhere else on the window.
     sapp_show_mouse(!inside);
+#if defined(__ANDROID__)
+    // sokol_app has no cursor on Android: the window's view has the icon.
+    android_pointer_show(!inside);
+#endif
 
     // A captured pointer has no place on the screen to be at, and a pointer
     // off the screen is a mouse the machine is told is off its screen: left
@@ -675,7 +753,7 @@ static ControlsMode controls_mode(void)
     return controls_mode_none;
 }
 
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
 // A desktop has no touch screen to try the controls on, so the mouse stands in
 // for a finger: moving it brings the controls out and holding the button
 // presses what it is over. Debug affordance, and only for this experiment.
@@ -693,7 +771,7 @@ static void desktop_pointer(void)
 
 static void controls_frame(float dt)
 {
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
     desktop_pointer();
 #endif
 
@@ -1057,7 +1135,7 @@ static void event_cb(const sapp_event* event)
                 clipboard_read_web(false);
 #endif
 
-#if defined(TOUCH_INPUT_SUPPORT) && !defined(__EMSCRIPTEN__)
+#if defined(TOUCH_INPUT_SUPPORT) && !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
             // Desktop only: see desktop_pointer() — the mouse stands in for a finger.
             if(!platform.touch.seen)
                 platform.touch.timeout = TOUCH_TIMEOUT;
@@ -1375,8 +1453,16 @@ static void cleanup_cb(void)
 #if defined(TOUCH_INPUT_SUPPORT)
     controls_shutdown();
 #endif
+#if defined(__TIC_LINUX__)
+    // PipeWire's ALSA plugin can block in snd_pcm_drain() or snd_pcm_close()
+    // while shutting down. The process exits as soon as this callback
+    // returns, so let the OS close the PCM instead of risking a window that
+    // never goes away.
+    // https://gitlab.freedesktop.org/pipewire/pipewire/-/issues/1467
+#else
     if(saudio_isvalid())
         saudio_shutdown();
+#endif
     render_shutdown();
     sg_shutdown();
 }
@@ -1519,7 +1605,9 @@ sapp_desc sokol_main(int argc, char* argv[])
 
     make_folder(platform.appFolder);
 
-    android_fullscreen();
+    // The window starts windowed, as the SDL build's does, and the window's
+    // own thread is where that is said.
+    android_windowed();
     update_insets();
 
     return app_desc();
@@ -1838,6 +1926,18 @@ void tic_sys_open_url(const char* url)
     open_target(url);
 #endif
 }
+
+#if defined(__ANDROID__)
+bool tic_sys_add_file(void)
+{
+    return android_add_file();
+}
+
+bool tic_sys_get_file(const char* name, const void* data, s32 size)
+{
+    return android_get_file(name, data, (int)size);
+}
+#endif
 
 void tic_sys_preseed(void)
 {

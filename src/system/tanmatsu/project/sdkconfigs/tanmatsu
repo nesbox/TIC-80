@@ -1,0 +1,67 @@
+CONFIG_IDF_TARGET="esp32p4"
+CONFIG_BSP_TARGET_TANMATSU=y
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partition_tables/esp32p4-16mb.csv"
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_SPEED_200M=y
+CONFIG_IDF_EXPERIMENTAL_FEATURES=y
+CONFIG_LCD_DSI_ISR_IRAM_SAFE=y
+CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=65536
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_FATFS_VOLUME_COUNT=3
+CONFIG_FATFS_VFS_FSTAT_BLKSIZE=8192
+CONFIG_FATFS_USE_FASTSEEK=y
+CONFIG_FATFS_FAST_SEEK_BUFFER_SIZE=64
+CONFIG_FATFS_ALLOC_PREFER_EXTRAM=n
+CONFIG_SPI_FLASH_SUPPORT_WINBOND_CHIP=y
+CONFIG_USB_HOST_HUBS_SUPPORTED=y
+CONFIG_BOOTLOADER_REGION_PROTECTION_ENABLE=n
+CONFIG_ESP32P4_SELECTS_REV_LESS_V3=y
+CONFIG_ESP32P4_REV_MIN_1=y
+CONFIG_ESP32P4_REV_MIN_FULL=1
+CONFIG_ESP_REV_MIN_FULL=1
+
+# Bluetooth stays out; TIC-80 has no use for it and it costs internal RAM.
+CONFIG_BT_ENABLED=n
+
+# WiFi, for surf and the version check. The radio is an ESP32-C6 reached over
+# ESP-Hosted on SDIO, so the host side needs the slave target and the pin map.
+CONFIG_SLAVE_IDF_TARGET_ESP32C6=y
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CMD_SLOT_1=16
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CLK_SLOT_1=17
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D0_SLOT_1=18
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D1_4BIT_BUS_SLOT_1=19
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D2_4BIT_BUS_SLOT_1=20
+CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D3_4BIT_BUS_SLOT_1=21
+CONFIG_ESP_HOSTED_SDIO_RESET_SLAVE_USING_CALLBACK=y
+CONFIG_ESP_HOSTED_SLAVE_RESET_ONLY_IF_NECESSARY=y
+CONFIG_ESP_HOSTED_HOST_RESTART_NO_COMMUNICATION_WITH_SLAVE=n
+CONFIG_ESP_HOSTED_ENABLE_BT_NIMBLE=n
+CONFIG_CUSTOM_CA_TANMATSU_APPS=y
+CONFIG_CUSTOM_CA_TANMATSU_OTA=y
+CONFIG_CUSTOM_CA_LETSENCRYPT_X1=y
+CONFIG_CUSTOM_CA_LETSENCRYPT_X2=y
+# TIC-80's static buffers do not fit in internal RAM; see linker.lf.
+CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
+
+# Performance. TIC-80's working set lives in PSRAM, so cache size and clock
+# both matter more here than they would for a typical badge app.
+# Dynamic frequency scaling back on, and measured rather than assumed: the main
+# loop is busy for about 15.7 ms of every 16.7 ms, so there is little idle for
+# it to scale into and little to lose, while this is a battery powered handheld
+# that would otherwise sit at full clock forever.
+CONFIG_PM_ENABLE=y
+CONFIG_PM_DFS_INIT_AUTO=y
+# 400 MHz is rejected on pre-v3 P4 silicon ("invalid CPU frequency value" from
+# esp_clk_init), and this board selects REV_LESS_V3, so 360 MHz is the ceiling.
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_360=y
+# 256 KiB of L2, up from the 128 KiB default. The cache is carved out of the
+# same internal RAM the heap uses, so 512 KiB would leave too little; 256 KiB
+# is enough for a column-wise walk of TIC-80's 147 KiB screen buffer, which is
+# what the display rotation does every frame.
+CONFIG_CACHE_L2_CACHE_256KB=y
+# Handing out internal RAM first was measured and made things worse: with a
+# 128 KiB threshold fire.tic went from 43.1 ms to 47.3 ms a frame. Cached PSRAM
+# is doing better here than a scramble for the small internal pool, so the
+# threshold stays where the default put it.

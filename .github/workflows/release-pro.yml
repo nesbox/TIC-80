@@ -75,14 +75,15 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
+          sudo apt-get install -y gcc-12 g++-12 libx11-dev libxi-dev libxcursor-dev libegl1-mesa-dev libgles2-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev unzip
           sudo ln -s -f /usr/bin/gcc-12 /usr/bin/gcc
           sudo ln -s -f /usr/bin/g++-12 /usr/bin/g++
 
       - name: Build PRO
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
+          # GLES3/EGL, as the free x64 and both arm64 builds.
+          cmake -DCMAKE_BUILD_TYPE=Release -DUSE_GLES2=ON -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config Release --parallel
 
       - name: Build deb
@@ -294,38 +295,92 @@ jobs:
         with:
           ruby-version: 2.6
 
-      - uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: r23
-          add-to-path: false
-          local-cache: true
-
       - name: set up JDK 17
         uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "build-tools;35.0.0 platforms;android-31 ndk;30.0.16248370"
 
       - name: Build PRO
-        run: |
-          cd build/android
-          # The signing passwords are repository secrets, and a release build
-          # without them stops inside signingSecret with the name of what is
-          # missing (build/android/app/build.gradle). This job signs the
-          # PRO APK exactly as build.yml signs the free one, and it was missed
-          # when the passwords left the tree on 15.09: the 1.2.0 publish
-          # carried the same bug in both android jobs.
-          : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
-          : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
-          chmod +x gradlew
-          ./gradlew assembleRelease -PPRO=ON
-          cp app/build/outputs/apk/release/app-release.apk tic80.apk
         env:
-          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          export ANDROID_NDK="$ANDROID_HOME/ndk/30.0.16248370"
+
+          # The signing passwords are repository secrets; apk.sh refuses to
+          # sign without them, and a PRO build that never reached the signer
+          # must not look like one that did.
+          : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
+          : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
+
+          cmake -S . -B build-android-pro -G Ninja \
+              -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK/build/cmake/android.toolchain.cmake" \
+              -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26 \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DBUILD_SOKOL=ON -DBUILD_SDL=OFF \
+              -DBUILD_WITH_ALL=ON -DBUILD_TOUCH_INPUT=ON -DBUILD_PRO=ON
+          cmake --build build-android-pro --parallel
+          build/android-sokol/apk.sh build-android-pro/bin/libtic80.so build/android-sokol/tic80-pro.apk
+
+      - name: Check the APK
+        run: |
+          TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)
+
+          unzip -p build/android-sokol/tic80-pro.apk lib/arm64-v8a/libtic80.so > tic80-pro.so
+
+          grep -qa "SPRITE EDITOR" tic80-pro.so || {
+            echo "the APK has no editors — BUILD_EDITORS did not take" >&2
+            exit 1
+          }
+          # TIC_VERSION_POST appends " Pro" only under TIC80_PRO.
+          grep -qa " Pro (" tic80-pro.so || {
+            echo "the APK is not a PRO build — BUILD_PRO did not take" >&2
+            exit 1
+          }
+          unzip -l build/android-sokol/tic80-pro.apk | grep -q "classes.dex" || {
+            echo "the APK carries no dex — the documents provider is missing" >&2
+            exit 1
+          }
+          unzip -p build/android-sokol/tic80-pro.apk classes.dex | grep -qa "TICDocumentsProvider" || {
+            echo "the APK's dex is not the documents provider" >&2
+            exit 1
+          }
+          unzip -p build/android-sokol/tic80-pro.apk classes.dex | grep -qa "TICActivity" || {
+            echo "the APK's dex has no activity — the .tic intents cannot work" >&2
+            exit 1
+          }
+          manifest=$("$TOOLS/aapt2" dump xmltree --file AndroidManifest.xml build/android-sokol/tic80-pro.apk)
+          echo "$manifest" | grep -q "hasCode(0x0101000c)=true" || {
+            echo "the APK's manifest has hasCode off — the provider cannot load" >&2
+            exit 1
+          }
+          echo "$manifest" | grep -q "TICDocumentsProvider" || {
+            echo "the APK's manifest has no documents provider" >&2
+            exit 1
+          }
+          echo "$manifest" | grep -q "com.nesbox.tic.TICActivity" || {
+            echo "the APK's manifest has no activity" >&2
+            exit 1
+          }
+          echo "$manifest" | grep -q 'authorities(0x01010018)="com.nesbox.tic.documents"' || {
+            echo "the APK's provider authority is wrong" >&2
+            exit 1
+          }
+
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80-pro.apk | grep "^package:"
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80-pro.apk | grep -q "package: name='com.nesbox.tic'" || {
+            echo "the PRO APK has the wrong package id" >&2
+            exit 1
+          }
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80-pro.apk | grep -q "minSdkVersion:'26'" || {
+            echo "the PRO APK's minSdk is not 26" >&2
+            exit 1
+          }
 
       - name: Push to itch.io
         env:
@@ -341,7 +396,7 @@ jobs:
           chmod +x butler
           # The layouts itch needs (see the windows job above).
           mkdir -p stage/android-pro
-          cp build/android/tic80.apk stage/android-pro/tic80-android-pro.apk
+          cp build/android-sokol/tic80-pro.apk stage/android-pro/tic80-android-pro.apk
           ./butler push stage/android-pro nesbox/tic80:android-pro --userversion "$VER"
 
   # Free builds are assembled by release.yml (into the draft release); once
