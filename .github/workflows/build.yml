@@ -46,9 +46,8 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-
+          
       - name: Apply Lua TIC-80 patches
-        shell: bash
         run: |
           set -euo pipefail
           git apply build/lua5.4.patch
@@ -175,7 +174,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-
+          
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
@@ -498,7 +497,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-
+          
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
@@ -654,3 +653,1271 @@ jobs:
           # the generator the builds use; the image usually carries it already
           command -v ninja >/dev/null || brew install ninja
           command -v ccache >/dev/null || brew install ccache
+
+      # These builds run under ninja, whose parallelism is bounded by itself
+      # (cores + 2 — a bare `--parallel` passes no -j at all). That is what
+      # closed the 13.09 flake: `make -j` with no bound put hundreds of
+      # compilers in flight against the runner's small per-user process limit
+      # and clang began failing to spawn with "Resource temporarily
+      # unavailable". SDL2's test helper and shared library left these builds
+      # in the same pass. If a mac job ever flakes that way again,
+      # --parallel <n> is the first lever; CMAKE_BUILD_PARALLEL_LEVEL is not
+      # one, an explicit --parallel without a value ignores it.
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Build
+        run: |
+          cd build
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --parallel 3
+          # The universal export stub is this same binary (console.c appends the
+          # cart to it), so keep it before Build Pro overwrites it below. It goes
+          # into a directory of its own: upload-artifact names the file in the
+          # artifact by its basename, and package.sh looks for a file called
+          # tic80 in there — one called tic80-export would fail packaging.
+          mkdir -p "$GITHUB_WORKSPACE/stub"
+          cp bin/tic80 "$GITHUB_WORKSPACE/stub/tic80"
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-arm64"
+          path: |
+            build/bin/tic80
+
+      - name: Build Pro
+        run: |
+          cd build
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --parallel 3
+
+      # No build here: the universal stub is the binary the Build step kept
+      # aside — the same configuration, and building it again was a full engine
+      # build for a byte-identical result.
+      - name: Deploy Export Stub
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-arm64-export"
+          path: |
+            stub/tic80
+
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          for lang in "${langs[@]}"; do
+            # Every language flag on every pass, so nothing can stick in the
+            # cache from the previous one — which is what the --fresh here used
+            # to buy, at the price of throwing SDL2 and the whole engine away
+            # fifteen times over. Without it a pass rebuilds only what its
+            # language actually changed (measured on this tree: 44 build steps
+            # against 390 for a full one). BUILD_PRO is spelled out because the
+            # Build Pro step above leaves it on in this same build directory.
+            flags=(-DBUILD_WITH_ALL=OFF -DBUILD_PRO=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # One build per language, so one binary per language: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          if [ ${#files[@]} -ne ${#langs[@]} ]; then
+            echo "expected ${#langs[@]} stubs, found ${#files[@]}" >&2
+            exit 1
+          fi
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-arm64-export-langs"
+          path: |
+            stubs/*
+
+      - name: Build Apple Backend
+        run: |
+          mkdir -p build_apple
+          cd build_apple
+          cmake -G Xcode -DCMAKE_BUILD_TYPE=Release -DBUILD_APPLE=ON -DBUILD_RENDER_CACHE=ON -DBUILD_SDLGPU=OFF -DBUILD_SURF=OFF -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --config Release --parallel 3
+
+  # === MacOS 15 / x86_64 ===
+  macos:
+    runs-on: macos-15-intel
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - name: Install
+        run: |
+          brew uninstall --ignore-dependencies libidn2
+          # the generator the builds use; the image usually carries it already
+          command -v ninja >/dev/null || brew install ninja
+          command -v ccache >/dev/null || brew install ccache
+
+      # These builds run under ninja, whose parallelism is bounded by itself
+      # (cores + 2 — a bare `--parallel` passes no -j at all). That is what
+      # closed the 13.09 flake: `make -j` with no bound put hundreds of
+      # compilers in flight against the runner's small per-user process limit
+      # and clang began failing to spawn with "Resource temporarily
+      # unavailable". SDL2's test helper and shared library left these builds
+      # in the same pass. If a mac job ever flakes that way again,
+      # --parallel <n> is the first lever; CMAKE_BUILD_PARALLEL_LEVEL is not
+      # one, an explicit --parallel without a value ignores it.
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Build
+        run: |
+          cd build
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --parallel
+          # The universal export stub is this same binary (console.c appends the
+          # cart to it), so keep it before Build Pro overwrites it below. It goes
+          # into a directory of its own: upload-artifact names the file in the
+          # artifact by its basename, and package.sh looks for a file called
+          # tic80 in there — one called tic80-export would fail packaging.
+          mkdir -p "$GITHUB_WORKSPACE/stub"
+          cp bin/tic80 "$GITHUB_WORKSPACE/stub/tic80"
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos"
+          path: |
+            build/bin/tic80
+
+      - name: Build Pro
+        run: |
+          cd build
+          cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_PRO=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+          cmake --build . --parallel
+
+      # No build here: the universal stub is the binary the Build step kept
+      # aside — the same configuration, and building it again was a full engine
+      # build for a byte-identical result.
+      - name: Deploy Export Stub
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-export"
+          path: |
+            stub/tic80
+
+      # The per-language stubs a PRO alone export asks for
+      # (/export/<ver>/<system><lang>, console.c exportGame): one binary per
+      # language, each carrying only that runtime — about a third of the
+      # universal stub's size. This is a full engine build per language, so
+      # it runs on the release path only (a tag, or a manual dispatch with
+      # `stubs`) and never on a pull request.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/stubs"
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          for lang in "${langs[@]}"; do
+            # Every language flag on every pass, so nothing can stick in the
+            # cache from the previous one — which is what the --fresh here used
+            # to buy, at the price of throwing SDL2 and the whole engine away
+            # fifteen times over. Without it a pass rebuilds only what its
+            # language actually changed (measured on this tree: 44 build steps
+            # against 390 for a full one). BUILD_PRO is spelled out because the
+            # Build Pro step above leaves it on in this same build directory.
+            flags=(-DBUILD_WITH_ALL=OFF -DBUILD_PRO=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            cmake -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+            cp "$GITHUB_WORKSPACE/build/bin/tic80$lang" "$GITHUB_WORKSPACE/stubs/"
+          done
+
+          # One build per language, so one binary per language: an identical
+          # pair means a flag did not take (a misspelled -DBUILD_WITH_<LANG>
+          # yields a runtime-less engine that still looks fine to `[ -f ]`).
+          # pairwise cmp, not an associative array: the macOS runners still
+          # have bash 3.2, where `declare -A` is an invalid option and fails
+          # the step (which is how the first version of this guard behaved)
+          files=("$GITHUB_WORKSPACE"/stubs/*)
+          if [ ${#files[@]} -ne ${#langs[@]} ]; then
+            echo "expected ${#langs[@]} stubs, found ${#files[@]}" >&2
+            exit 1
+          fi
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} stubs, all distinct"
+
+      - name: Deploy per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-export-langs"
+          path: |
+            stubs/*
+
+  # === SDL desktop builds: the fallback ===
+  #
+  # The layer the desktop shipped before the migration, kept compiling for one
+  # release cycle; the echo is the comparison in the log.
+
+  sdl-windows:
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          cmake -S . -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_SOKOL=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build --config Release --parallel
+          echo "sdl build: $((SECONDS - start))s"
+          du -h build/bin/tic80.exe
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-windows-sdl"
+          path: |
+            build/bin/tic80.exe
+
+  sdl-linux:
+    runs-on: ubuntu-22.04
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install
+        run: |
+          sudo apt-get update
+          # What the SDL build and the studio itself need; the shipping jobs
+          # carry sokol's X11 link line instead.
+          sudo apt-get install -y libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+          command -v ccache >/dev/null || sudo apt-get install -y ccache
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_SOKOL=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON
+          cmake --build build --parallel
+          echo "sdl build: $((SECONDS - start))s"
+          du -h build/bin/tic80
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-linux-sdl"
+          path: |
+            build/bin/tic80
+
+  sdl-macos:
+    runs-on: macos-15
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install
+        run: |
+          brew uninstall --ignore-dependencies libidn2
+          command -v ninja >/dev/null || brew install ninja
+          command -v ccache >/dev/null || brew install ccache
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_SOKOL=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON
+          cmake --build build --parallel 3
+          echo "sdl build: $((SECONDS - start))s"
+          du -h build/bin/tic80
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-sdl"
+          path: |
+            build/bin/tic80
+
+  # === Android (SDL) ===
+  sdl-android:
+    # 24.04, not -latest: setup-ruby has no 2.6.10 for 26.04 (#3107).
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r23
+          add-to-path: false
+          local-cache: true
+
+      - name: set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Install 32-bit build tools
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+
+      - name: Build
+        run: |
+          cd build/android
+          chmod +x gradlew
+          # The signing passwords are repository secrets — the keystore path
+          # and alias live in gradle.properties, the passwords never do. Fail
+          # here rather than inside the signer: without them the release build
+          # stops, and a step that produced no APK must not look like one that
+          # produced a good one.
+          #
+          # A pull request from a fork is handed no secrets at all, so the
+          # checks below would fail it for a reason that has nothing to do with
+          # the change (17.09). Such a run builds the release variant unsigned
+          # instead: the job still proves the code compiles, the APK cannot be
+          # mistaken for a shipable one, and every other event — a push, the tag
+          # call — signs exactly as before.
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+              ./gradlew assembleRelease -PUNSIGNED=1
+              cp app/build/outputs/apk/release/app-release-unsigned.apk tic80.apk
+              echo "fork pull request: no repository secrets, the APK is unsigned"
+          else
+              : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
+              : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
+              ./gradlew assembleRelease
+              cp app/build/outputs/apk/release/app-release.apk tic80.apk
+          fi
+
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+
+      - name: Check what the APK carries
+        run: |
+          cd build/android
+          # A flag that did not take looks exactly like one that took: read the
+          # library back, the editors APK carries the IDE.
+          unzip -p tic80.apk lib/arm64-v8a/libtic80.so > editors.so
+          if ! grep -qa "SPRITE EDITOR" editors.so; then
+            echo "the APK has no editors — BUILD_EDITORS did not take" >&2
+            exit 1
+          fi
+          echo "the APK carries the editors"
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-android-sdl"
+          path: build/android/tic80.apk
+
+  # === Android (sokol) ===
+  android:
+    # 24.04, not -latest: setup-ruby has no 2.6.10 for 26.04 (#3107).
+    runs-on: ubuntu-24.04
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "build-tools;35.0.0 platforms;android-31 ndk;30.0.16248370"
+
+      - name: Install ccache
+        run: command -v ccache >/dev/null || { sudo apt-get update && sudo apt-get install -y ccache; }
+
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ runner.arch }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-${{ runner.arch }}-
+
+      - name: Build
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          export ANDROID_NDK="$ANDROID_HOME/ndk/30.0.16248370"
+
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+              export UNSIGNED=1
+              echo "fork pull request: no repository secrets, the APKs are unsigned"
+          else
+              : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
+              : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
+          fi
+
+          common=(-DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK/build/cmake/android.toolchain.cmake"
+                  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26
+                  -DCMAKE_BUILD_TYPE=Release
+                  -DBUILD_SOKOL=ON -DBUILD_SDL=OFF
+                  -DBUILD_WITH_ALL=ON -DBUILD_TOUCH_INPUT=ON
+                  -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
+
+          cmake -S . -B build-android -G Ninja "${common[@]}"
+          cmake --build build-android --parallel
+          build/android-sokol/apk.sh build-android/bin/libtic80.so build/android-sokol/tic80.apk
+
+          cmake -S . -B build-android-surf -G Ninja "${common[@]}" -DBUILD_EDITORS=OFF -DBUILD_SURF=ON
+          cmake --build build-android-surf --parallel
+          build/android-sokol/apk.sh build-android-surf/bin/libtic80.so build/android-sokol/tic80-surf.apk com.nesbox.tic.surf
+
+      - name: Check what each APK carries
+        run: |
+          TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)
+
+          unzip -p build/android-sokol/tic80.apk lib/arm64-v8a/libtic80.so > editors.so
+          unzip -p build/android-sokol/tic80-surf.apk lib/arm64-v8a/libtic80.so > surf.so
+
+          grep -qa "SPRITE EDITOR" editors.so || {
+            echo "the APK has no editors — BUILD_EDITORS did not take" >&2
+            exit 1
+          }
+          grep -qa "You don't have any files" surf.so || {
+            echo "the browser-only APK has no browser — BUILD_EDITORS=OFF did not take" >&2
+            exit 1
+          }
+          grep -qa "SPRITE EDITOR" surf.so && {
+            echo "the browser-only APK carries the editors" >&2
+            exit 1
+          }
+
+          for apk in tic80 tic80-surf; do
+            unzip -l "build/android-sokol/$apk.apk" | grep -q "classes.dex" || {
+              echo "$apk carries no dex — the documents provider is missing" >&2
+              exit 1
+            }
+            unzip -p "build/android-sokol/$apk.apk" classes.dex | grep -qa "TICDocumentsProvider" || {
+              echo "$apk's dex is not the documents provider" >&2
+              exit 1
+            }
+            unzip -p "build/android-sokol/$apk.apk" classes.dex | grep -qa "TICActivity" || {
+              echo "$apk's dex has no activity — the .tic intents cannot work" >&2
+              exit 1
+            }
+            manifest=$("$TOOLS/aapt2" dump xmltree --file AndroidManifest.xml "build/android-sokol/$apk.apk")
+            echo "$manifest" | grep -q "hasCode(0x0101000c)=true" || {
+              echo "$apk's manifest has hasCode off — the provider cannot load" >&2
+              exit 1
+            }
+            case "$apk" in
+              tic80) authority=com.nesbox.tic.documents ;;
+              tic80-surf) authority=com.nesbox.tic.surf.documents ;;
+            esac
+            echo "$manifest" | grep -q "TICDocumentsProvider" || {
+              echo "$apk's manifest has no documents provider" >&2
+              exit 1
+            }
+            echo "$manifest" | grep -q "com.nesbox.tic.TICActivity" || {
+              echo "$apk's manifest has no activity" >&2
+              exit 1
+            }
+            echo "$manifest" | grep -q "authorities(0x01010018)=\"$authority\"" || {
+              echo "$apk's provider authority is not $authority" >&2
+              exit 1
+            }
+            "$TOOLS/aapt2" dump badging "build/android-sokol/$apk.apk" | grep "^package:"
+          done
+
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80.apk | grep -q "package: name='com.nesbox.tic'" || {
+            echo "the editors APK has the wrong package id" >&2
+            exit 1
+          }
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80-surf.apk | grep -q "package: name='com.nesbox.tic.surf'" || {
+            echo "the browser-only APK has the wrong package id" >&2
+            exit 1
+          }
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80.apk | grep -q "minSdkVersion:'26'" || {
+            echo "the APK's minSdk is not 26" >&2
+            exit 1
+          }
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-android"
+          path: build/android-sokol/tic80.apk
+
+      - name: Deploy the browser-only APK
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-android-surf"
+          path: build/android-sokol/tic80-surf.apk
+ 
+  # === Raspberry PI 1 Bare Metal ===
+  rpi-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 1
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 2 Bare Metal ===
+  rpi2-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 2
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel7.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi2-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 3 Bare Metal ===
+  rpi3-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 3
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi3-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 4-5 Bare Metal ===
+  rpi4-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 4
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel7l.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi4-5-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712d0-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712d0.dtbo
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/COPYING.linux
+            vendor/circle-stdlib/libs/circle/boot/fixup4.dat
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+            vendor/circle-stdlib/libs/circle/boot/start4.elf
+
+  # === HTML ===
+  html:
+    # As the android job: setup-ruby has no 2.6.10 for 26.04 (#3107).
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: emscripten-core/setup-emsdk@v15
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install 32-bit build tools
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+
+      # Two per-language sets come out of this job, in two artifacts, because
+      # they are two different things. A game page loads the site's player,
+      # which keeps its editors — ESC opens the IDE there, the way it does on
+      # the universal player — while a PRO alone export hands out a build that
+      # must not, so only that one is built with -DBUILD_EDITORS=OFF. The
+      # site's set is staged into tic80-html-players, a directory per
+      # language with the loader already renamed to the tic80.js a page asks
+      # for; the stubs stay flat in tic80-html, where package.sh turns a pair
+      # into html<lang> and the dev instance reads them as they are.
+
+      # The two sets are built on different triggers, because their consumers
+      # live on different clocks. The players are built on *every* trigger — a
+      # branch, a pull request, main, a tag — since they are what a game page
+      # loads wherever the site runs: the dev instance takes them from a main
+      # push (it serves a line, 1.3, not a release), and a pull request should
+      # see a broken players pass before the merge rather than after. The stubs
+      # are built for the two consumers that need them and nothing else — a
+      # release, whose package.sh turns a pair into html<lang>, and the dev
+      # instance's export tree, which deploy-dev-stubs.sh lays out by hand from
+      # a run someone names — so they keep the gate the native per-language
+      # stubs have always carried: a tag, or a dispatch with `stubs`. Seven
+      # minutes of emscripten a pass: a main push and a pull request pay one, a
+      # release pays two.
+
+      # The player builds run first, and take each pair back out of build/bin as
+      # they stage it: the pass writes the stub names there, and on a run where
+      # the stubs step below is gated off those files would otherwise ride the
+      # tic80-html artifact as editorful "stubs" — the one thing the two readers
+      # of the flat names (package.sh, deploy-dev-stubs.sh) must never be handed.
+      # What the job leaves in build/bin is the universal trio, and the
+      # editorless pairs only when the stubs step ran.
+
+      # The editorful per-language build is a third configuration beside
+      # "Build all" and the stubs, and it was the price of the owner's call
+      # of 22.09 (docs/per-language-players.md, server repo): measured then, a
+      # game page pays 129 KB over the wire for the IDE — 543,650 against
+      # 414,333 for lua — where the universal player it replaces is 2,258,666.
+      - name: Build per-language players
+        shell: bash
+        run: |
+          set -euo pipefail
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          stage="$GITHUB_WORKSPACE/build/players"
+          rm -rf "$stage"
+          for lang in "${langs[@]}"; do
+            flags=(-DBUILD_WITH_ALL=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            # "Build all"'s flags with one language on: the site's player is
+            # that build, fourteen runtimes lighter.
+            emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=ON "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+            for f in "bin/tic80$lang.js" "bin/tic80$lang.wasm"; do
+              [ -f "$f" ] || { echo "missing player: build/$f" >&2; exit 1; }
+            done
+            # the loader is renamed to the name a page loads and the wasm
+            # keeps the name that loader asks for — the shape the deploy
+            # writes into /js/<dir>/<lang>/, produced once, here
+            mkdir -p "$stage/$lang"
+            cp "bin/tic80$lang.js"   "$stage/$lang/tic80.js"
+            cp "bin/tic80$lang.wasm" "$stage/$lang/tic80$lang.wasm"
+            # out of build/bin again, for the reason in the comment above: what
+            # stays there has to be a pair only the stubs step wrote
+            rm -f "bin/tic80$lang.js" "bin/tic80$lang.wasm"
+          done
+
+          # The editors are the one thing that tells the site's set from the
+          # stubs, and a flag that stopped taking effect looks exactly like one
+          # that took, so it is read back out of the wasm: "SPRITE EDITOR" is a
+          # menu label only the editors carry, the marker package.sh checks the
+          # release bundles with. The distinctness guard catches a language flag
+          # that did not take, the way the stub step's does. The layer is read
+          # back the same way: the SDL layer's "Unable to initialize SDL Video"
+          # is in a build of it and in no build of the sokol layer, which is
+          # what these three passes now build.
+          files=("$stage"/{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,forth,gravity}/tic80*.wasm)
+          for f in "${files[@]}"; do
+            if ! grep -qa "SPRITE EDITOR" "$f"; then
+              echo "player without editors: $f — BUILD_EDITORS=ON did not take" >&2
+              exit 1
+            fi
+            if grep -qa "Unable to initialize SDL Video" "$f"; then
+              echo "player on the SDL layer: $f — the sokol default did not take" >&2
+              exit 1
+            fi
+          done
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate player: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} wasm players, all distinct, all with editors"
+
+      # The fifteen per-language stubs the PRO alone export downloads — the
+      # same work as the native jobs' loop, in one directory: no --fresh
+      # between the builds, so the system layer and whatever a language does
+      # not touch are compiled once (sixteen full builds used to run here, one
+      # per language plus the one below). Every language flag is spelled out on
+      # every pass, which is what --fresh used to buy, and it also clears the
+      # BUILD_WITH_ALL the "Build all" step leaves on when the order is
+      # reversed.
+      #
+      # The gate is the native per-language stubs' one, and the stubs' reason is
+      # the same: they are what a release packages and what the dev instance's
+      # export tree is laid from by hand, so nothing a main push or a pull
+      # request runs needs them — the site's pages read the players artifact
+      # above instead. A dispatch with `stubs` is how a run that carries them is
+      # asked for outside a release. The gate cannot change what a release
+      # builds — on a tag this step runs in the same order as before.
+      - name: Build per-language export stubs
+        if: startsWith(github.ref, 'refs/tags/') || inputs.stubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          for lang in "${langs[@]}"; do
+            flags=(-DBUILD_WITH_ALL=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=OFF -DBUILD_SURF=OFF "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+          done
+
+          # An identical pair means a language flag did not take, the same guard
+          # the native jobs run on their binaries: a wasm stub carries one
+          # runtime, so fifteen of them cannot be alike.
+          files=("$GITHUB_WORKSPACE"/build/bin/tic80{lua,ruby,js,moon,yue,fennel,scheme,squirrel,wren,wasm,janet,python,miniscript,forth,gravity}.wasm)
+          for f in "${files[@]}"; do
+            if [ ! -f "$f" ]; then echo "missing stub: $f" >&2; exit 1; fi
+          done
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate stub: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} wasm stubs, all distinct"
+
+          # The dev instance lays these pairs out itself, so package.sh's
+          # no_editors guard never runs on them there: check the content here.
+          # The browser is checked too — the option defaults to on now, and a
+          # job that forgets -DBUILD_SURF=OFF would ship one silently. The
+          # layer is read back as well, since a stub of the wrong layer
+          # carries neither marker to say so.
+          for f in "${files[@]}"; do
+            if grep -qa "SPRITE EDITOR" "$f"; then
+              echo "stub carries the editors: $(basename "$f") — BUILD_EDITORS=OFF did not take" >&2
+              exit 1
+            fi
+            if grep -qa "You don't have any files" "$f"; then
+              echo "stub carries the browser: $(basename "$f") — BUILD_SURF=OFF did not take" >&2
+              exit 1
+            fi
+            if grep -qa "Unable to initialize SDL Video" "$f"; then
+              echo "stub on the SDL layer: $(basename "$f") — the sokol default did not take" >&2
+              exit 1
+            fi
+          done
+
+      - name: Build all
+        run: |
+          cd build
+          emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON .. --fresh
+          cmake --build . --parallel
+          # index.html is the only page: the site's player, and the page an
+          # exported game gets — the client fetches it, rewrites the title
+          # and the arguments marker, and adds it to the export zip with the
+          # cartridge (console.c onHtmlPageGet). A second, export-only page
+          # used to exist and drifted from this one.
+          cp html/index.html bin/index.html
+          # The Windows executable's icon doubles as the site's favicon:
+          cp windows/icon.ico bin/favicon.ico
+          # The universal artifact is the one a stray SDL build would slip
+          # through unnoticed — the per-language passes above check their own
+          # sets, and this one carries the markers of neither set to compare.
+          if grep -qa "Unable to initialize SDL Video" bin/tic80.wasm; then
+            echo "the universal build is on the SDL layer — the sokol default did not take" >&2
+            exit 1
+          fi
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-html"
+          path: |
+            build/bin/*
+
+      # The site's players, an artifact of their own so that nothing reads
+      # them as stubs: a directory per language, the loader already named
+      # tic80.js. No gate of its own — wherever the players are built they are
+      # uploaded, and a run that skipped the build would fail this step's
+      # if-no-files-found rather than ship an empty artifact.
+      - name: Deploy players
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-html-players"
+          path: build/players/*
+
+  # === HTML, WebGPU backend ===
+  # A job of its own so a WebGPU-only break cannot keep the GLES3 players off dev.
+  html-webgpu:
+    # As the html job: setup-ruby has no 2.6.10 for 26.04 (#3107).
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: emscripten-core/setup-emsdk@v15
+
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install 32-bit build tools
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+
+      # The editorful build, as the site's players are: the loader keeps the name the site asks for.
+      - name: Build per-language WebGPU players
+        shell: bash
+        run: |
+          set -euo pipefail
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          stage="$GITHUB_WORKSPACE/build/players-webgpu"
+          rm -rf "$stage"
+          for lang in "${langs[@]}"; do
+            flags=(-DBUILD_WITH_ALL=OFF)
+            for l in "${langs[@]}"; do
+              up=$(echo "$l" | tr '[:lower:]' '[:upper:]')
+              if [ "$l" = "$lang" ]; then flags+=("-DBUILD_WITH_$up=ON"); else flags+=("-DBUILD_WITH_$up=OFF"); fi
+            done
+            cd "$GITHUB_WORKSPACE/build"
+            emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_EDITORS=ON -DBUILD_SOKOL_WGPU=ON "${flags[@]}" -DTIC80_TARGET="tic80$lang" ..
+            cmake --build . --parallel
+            for f in "bin/tic80$lang.js" "bin/tic80$lang.wasm"; do
+              [ -f "$f" ] || { echo "missing player: build/$f" >&2; exit 1; }
+            done
+            mkdir -p "$stage/$lang/webgpu"
+            cp "bin/tic80$lang.js"   "$stage/$lang/webgpu/tic80.js"
+            cp "bin/tic80$lang.wasm" "$stage/$lang/webgpu/tic80$lang.wasm"
+            rm -f "bin/tic80$lang.js" "bin/tic80$lang.wasm"
+          done
+
+      # The default target names the pair tic80.js + tic80.wasm, as the GLES3 universal build does.
+      - name: Build universal WebGPU player
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$GITHUB_WORKSPACE/build/players-webgpu/webgpu"
+          cd "$GITHUB_WORKSPACE/build"
+          emcmake cmake -G Ninja -DBUILD_TOUCH_INPUT=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON -DBUILD_SOKOL_WGPU=ON .. --fresh
+          cmake --build . --parallel
+          mkdir -p "$stage"
+          cp bin/tic80.js   "$stage/tic80.js"
+          cp bin/tic80.wasm "$stage/tic80.wasm"
+
+      # The backend is read from the loader: the wasm carries no such string.
+      - name: Check the builds are what they claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage="$GITHUB_WORKSPACE/build/players-webgpu"
+          langs=(lua ruby js moon yue fennel scheme squirrel wren wasm janet python miniscript forth gravity)
+          files=()
+          for lang in "${langs[@]}"; do
+            js="$stage/$lang/webgpu/tic80.js"
+            wasm="$stage/$lang/webgpu/tic80$lang.wasm"
+            for f in "$js" "$wasm"; do
+              [ -f "$f" ] || { echo "missing player file: $f" >&2; exit 1; }
+            done
+            grep -qa "SPRITE EDITOR" "$wasm" ||
+              { echo "player without editors: $wasm — BUILD_EDITORS=ON did not take" >&2; exit 1; }
+            grep -qa "Unable to initialize SDL Video" "$wasm" &&
+              { echo "player on the SDL layer: $wasm — the sokol default did not take" >&2; exit 1; }
+            grep -qa "navigator.gpu" "$js" ||
+              { echo "player without the WebGPU shim: $js — BUILD_SOKOL_WGPU=ON did not take" >&2; exit 1; }
+            grep -qa "locateFile(\"tic80$lang.wasm\")" "$js" ||
+              { echo "player asks for another wasm: $js does not name tic80$lang.wasm — TIC80_TARGET did not take" >&2; exit 1; }
+            files+=("$wasm")
+          done
+          for f in "$stage/webgpu/tic80.js" "$stage/webgpu/tic80.wasm"; do
+            [ -f "$f" ] || { echo "missing universal file: $f" >&2; exit 1; }
+          done
+          grep -qa "SPRITE EDITOR" "$stage/webgpu/tic80.wasm" ||
+            { echo "the universal build carries no editors" >&2; exit 1; }
+          grep -qa "Unable to initialize SDL Video" "$stage/webgpu/tic80.wasm" &&
+            { echo "the universal build is on the SDL layer — the sokol default did not take" >&2; exit 1; }
+          grep -qa "navigator.gpu" "$stage/webgpu/tic80.js" ||
+            { echo "the universal build is not WebGPU" >&2; exit 1; }
+          grep -qa 'locateFile("tic80.wasm")' "$stage/webgpu/tic80.js" ||
+            { echo "the universal player asks for another wasm: it does not name tic80.wasm" >&2; exit 1; }
+          # a language flag that did not take leaves two builds alike
+          for ((i = 0; i < ${#files[@]}; i++)); do
+            for ((j = i + 1; j < ${#files[@]}; j++)); do
+              if cmp -s "${files[i]}" "${files[j]}"; then
+                echo "duplicate player: $(basename "${files[i]}") == $(basename "${files[j]}") — a language flag did not take" >&2
+                exit 1
+              fi
+            done
+          done
+          echo "checked ${#files[@]} WebGPU players, all distinct, all with editors, all on the WebGPU shim"
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-html-webgpu"
+          path: build/players-webgpu/*
