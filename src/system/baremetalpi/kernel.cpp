@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <circle/usb/usbkeyboard.h>
 #include <circle/input/mouse.h>
+#include <circle/cputhrottle.h>
 #include "utils.h"
 #include <limits.h>
 #include <studio.h>
@@ -50,6 +51,8 @@ static unsigned mousebuttons;
 static struct TGamePadState gamepad;
 
 static CSpinLock keyspinlock;
+
+static CCPUThrottle cpuThrottle(CPUSpeedMaximum);
 
 extern "C"
 {
@@ -396,6 +399,7 @@ TShutdownMode Run(void)
         keyspinlock.Acquire();
         inputToTic();
         keyspinlock.Release();
+        cpuThrottle.Update();
 
         studio_tick(platform.studio, platform.input);
         studio_sound(platform.studio);
