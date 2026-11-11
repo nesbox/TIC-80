@@ -104,3 +104,7 @@
 	url = https://github.com/luginf/lugforth.git
 	branch = tic80
 	shallow = true
+[submodule "vendor/lua"]
+	path = vendor/lua
+	url = https://github.com/Miguel-hrvs/lua.git
+	branch = 5.4-tic80
