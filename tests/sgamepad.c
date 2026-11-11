@@ -131,23 +131,29 @@ static void testAPadThatStaysKeepsItsSlot(void)
     puts("a pad that stays keeps its slot ok");
 }
 
-// A device the backend cannot place is one it never reports; one it reports
-// but nobody has touched yet takes no slot either — a pad is in a slot once
-// something on it moves.
+// A device nobody has touched is connected but takes no slot: a pad is in a
+// slot once something on it moves.
 static void testAnUntouchedDeviceTakesNoSlot(void)
 {
     setup();
 
     sgamepad_record_state();
 
+    assert(sgamepad_num_connected() == 0);
     assert(sgamepad_num_gamepads() == 0);
     assert(empty(sgamepad_gamepad_state(0)));
 
     sgamepad_test_device(3, true, (sgamepad_state){0});
     sgamepad_record_state();
 
+    assert(sgamepad_num_connected() == 1);
     assert(sgamepad_num_gamepads() == 0);
     assert(empty(sgamepad_gamepad_state(0)));
+
+    sgamepad_test_device(3, false, (sgamepad_state){0});
+    sgamepad_record_state();
+
+    assert(sgamepad_num_connected() == 0);
 
     puts("an untouched device takes no slot ok");
 }

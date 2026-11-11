@@ -99,6 +99,10 @@ extern "C"
 
     SGAMEPAD_API_DECL int sgamepad_num_gamepads(void);
 
+    // The pads the backend sees, used or not — the machine may have no slot
+    // for one yet.
+    SGAMEPAD_API_DECL int sgamepad_num_connected(void);
+
     // The slot's state; an unassigned slot reads back as nothing held.
     SGAMEPAD_API_DECL sgamepad_state sgamepad_gamepad_state(int slot);
 
@@ -289,6 +293,27 @@ SGAMEPAD_API_IMPL int sgamepad_num_gamepads(void)
             count++;
 
     return count;
+}
+
+// Windows counts a HID pad by its open handle and the first gamepad report:
+// a quiet pad sends no more, and report-driven presence would drop it.
+#if defined(_WIN32) && !defined(SGAMEPAD_TEST)
+static int _sgamepad_connected_count(void);
+#else
+static int _sgamepad_connected_count(void)
+{
+    int count = 0;
+
+    for(int i = 0; i < SGAMEPAD_MAX_DEVICES; i++)
+        count += _sgamepad.devices[i].present;
+
+    return count;
+}
+#endif
+
+SGAMEPAD_API_IMPL int sgamepad_num_connected(void)
+{
+    return _sgamepad_connected_count();
 }
 
 SGAMEPAD_API_IMPL sgamepad_state sgamepad_gamepad_state(int slot)
@@ -546,6 +571,7 @@ typedef struct
     bool pending;   // a read is outstanding on `overlapped`
     bool bluetooth; // the wire the last report came in on
     bool enhanced;  // the pad sends its extended report, so it is one the keepalive is for
+    bool reported;  // a gamepad report has been read on this interface
     DWORD last;     // when a report last arrived, for the Bluetooth keepalive
     sgamepad_hid_family family;
     sgamepad_hid_switch_model model;  // which Switch layout, for the pads that use one
@@ -643,6 +669,7 @@ static bool _sgamepad_hid_read(_sgamepad_hid_device* pad)
     if(!read)
         return true;
 
+    pad->reported = true;
     pad->enhanced = state.enhanced;
 
     // XInput numbers its own pads from zero, and the four it can reach are the
@@ -857,6 +884,23 @@ static void _sgamepad_hid_scan(void)
     }
 
     SetupDiDestroyDeviceInfoList(set);
+}
+
+static int _sgamepad_connected_count(void)
+{
+    int count = 0;
+
+    for(int i = 0; i < XUSER_MAX_COUNT; i++)
+        count += _sgamepad.devices[i].present;
+
+    for(int i = 0; i < _SGAMEPAD_HID_MAX; i++)
+    {
+        const _sgamepad_hid_device* pad = &_sgamepad_hid.devices[i];
+
+        count += pad->file != NULL && pad->reported;
+    }
+
+    return count;
 }
 
 SGAMEPAD_API_IMPL void sgamepad_record_state(void)

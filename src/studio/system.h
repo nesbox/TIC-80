@@ -189,6 +189,8 @@ extern "C"
     void studio_sound(Studio* studio);
     void studio_load(Studio* studio, const char* file);
     void studio_keymapchanged(Studio* studio, tic_layout keyboardLayout);
+    // A pad came or went; the studio puts it on its message bar.
+    void studio_gamepad(Studio* studio, bool connected);
     bool studio_alive(Studio* studio);
     void studio_exit(Studio* studio);
     void studio_delete(Studio* studio);
