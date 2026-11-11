@@ -50,7 +50,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -178,7 +179,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -341,7 +343,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -501,7 +504,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Install Toolchain and Dependencies
         run: |
@@ -571,7 +575,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Install Host toolchain
         run: |
@@ -607,7 +612,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Install Host toolchain
         run: |
@@ -645,7 +651,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Install
         run: |
@@ -793,7 +800,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Install
         run: |
@@ -935,7 +943,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -973,7 +982,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -1025,7 +1035,9 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -1073,7 +1085,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -1164,7 +1177,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -1318,7 +1332,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Prebuild
         run: |
@@ -1381,7 +1396,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Prebuild
         run: |
@@ -1446,7 +1462,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Prebuild
         run: |
@@ -1511,7 +1528,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Prebuild
         run: |
@@ -1584,7 +1602,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -1821,7 +1840,8 @@ jobs:
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
-          git apply build/lua5.4.patch
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
