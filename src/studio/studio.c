@@ -882,6 +882,16 @@ static void showPopupMessage(Studio* studio, const char* text)
 }
 #endif
 
+void studio_gamepad(Studio* studio, bool connected)
+{
+#if defined(BUILD_EDITORS)
+    showPopupMessage(studio, connected ? "gamepad connected" : "gamepad disconnected");
+#else
+    (void)studio;
+    (void)connected;
+#endif
+}
+
 static void exitConfirm(Studio* studio, bool yes, void* data)
 {
     (void)data;

@@ -133,6 +133,11 @@ static struct
     // The menu button — the on-screen control or a pad's own — as it was last
     // frame: the ESC it stands for is written on its edge.
     bool menuDown;
+
+    // The pads the last frame saw: the bar hears of a change once, and the
+    // first frame is a baseline, not an event.
+    s32 pads;
+    bool padsKnown;
 } platform;
 
 // sokol keeps no logger of its own: given none it says nothing, which is what
@@ -1302,6 +1307,17 @@ static void frame_cb(void)
     const double dt = stm_sec(stm_laptime(&platform.lastTime));
 
     sgamepad_record_state();
+
+    // The bar hears of a change once, not of every frame the count holds. The
+    // first frame is the baseline: a pad already plugged in is no event.
+    const s32 pads = sgamepad_num_connected();
+
+    if(platform.padsKnown && pads != platform.pads)
+        studio_gamepad(platform.studio, pads > platform.pads);
+
+    platform.pads = pads;
+    platform.padsKnown = true;
+
     controls_frame((float)dt);
 
     platform.accumulator += dt;
