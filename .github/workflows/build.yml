@@ -555,10 +555,9 @@ jobs:
 
       - name: Build
         run: |
-          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake \
+          CFLAGS="-w" CXXFLAGS="-w" cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake \
             -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON \
-            -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF \
-            -DCMAKE_C_FLAGS="-w" -DCMAKE_CXX_FLAGS="-w"
+            -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF
           cmake --build build --parallel
 
       - name: Deploy
