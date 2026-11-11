@@ -1,4 +1,6 @@
 diff --git a/lbaselib.c b/lbaselib.c
+--- a/lbaselib.c
++++ b/lbaselib.c
 @@ -516,7 +516,7 @@ static const luaL_Reg base_funcs[] = {
    {"pairs", luaB_pairs},
    {"pcall", luaB_pcall},
@@ -9,6 +11,8 @@ diff --git a/lbaselib.c b/lbaselib.c
    {"rawlen", luaB_rawlen},
    {"rawget", luaB_rawget},
 diff --git a/llex.c b/llex.c
+--- a/llex.c
++++ b/llex.c
 @@ -239,8 +239,7 @@ static int read_numeral (LexState *ls, SemInfo *seminfo) {
        save_and_next(ls);
      else break;
@@ -20,6 +24,8 @@ diff --git a/llex.c b/llex.c
    if (luaO_str2num(luaZ_buffer(ls->buff), &obj) == 0)  /* format error? */
      lexerror(ls, "malformed number", TK_FLT);
 diff --git a/lmathlib.c b/lmathlib.c
+--- a/lmathlib.c
++++ b/lmathlib.c
 @@ -638,8 +638,9 @@ static int math_randomseed (lua_State *L) {
      randseed(L, state);
    }
@@ -33,8 +39,9 @@ diff --git a/lmathlib.c b/lmathlib.c
    }
    return 2;  /* return seeds */
 diff --git a/lstrlib.c b/lstrlib.c
+--- a/lstrlib.c
++++ b/lstrlib.c
 @@ -1278,12 +1278,12 @@ static void checkformat (lua_State *L, const char *form, const char *flags,
-                                        int precision) {
    const char *spec = form + 1;  /* skip '%' */
    spec += strspn(spec, flags);  /* skip flags */
 -  if (*spec != '0') {  /* a width cannot start with '0' */
