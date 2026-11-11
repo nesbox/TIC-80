@@ -41,28 +41,6 @@ diff --git a/lmathlib.c b/lmathlib.c
 diff --git a/lstrlib.c b/lstrlib.c
 --- a/lstrlib.c
 +++ b/lstrlib.c
-@@ -1278,12 +1278,12 @@ static void checkformat (lua_State *L, const char *form, const char *flags,
-                                        int precision) {
-   const char *spec = form + 1;  /* skip '%' */
-   spec += strspn(spec, flags);  /* skip flags */
--  if (*spec != '0') {  /* a width cannot start with '0' */
--    spec = get2digits(spec);  /* skip width */
--    if (*spec == '.' && precision) {
--      spec++;
--      spec = get2digits(spec);  /* skip precision */
--    }
-+  if (*spec == '0')  /* TIC-80: 5.3 took a leading zero as a width */
-+    spec++;
-+  spec = get2digits(spec);  /* skip width */
-+  if (*spec == '.' && precision) {
-+    spec++;
-+    spec = get2digits(spec);  /* skip precision */
-   }
-   if (!isalpha(uchar(*spec)))  /* did not go to the end? */
-     luaL_error(L, "invalid conversion specification: '%s'", form);
-diff --git a/lstrlib.c b/lstrlib.c
---- a/lstrlib.c
-+++ b/lstrlib.c
 @@ -273,6 +273,23 @@ static int tonum (lua_State *L, int arg) {
    }
  }
@@ -144,3 +122,22 @@ diff --git a/lstrlib.c b/lstrlib.c
    {"__index", NULL},  /* placeholder */
    {NULL, NULL}
  };
+@@ -1278,12 +1331,12 @@ static void checkformat (lua_State *L, const char *form, const char *flags,
+                                        int precision) {
+   const char *spec = form + 1;  /* skip '%' */
+   spec += strspn(spec, flags);  /* skip flags */
+-  if (*spec != '0') {  /* a width cannot start with '0' */
+-    spec = get2digits(spec);  /* skip width */
+-    if (*spec == '.' && precision) {
+-      spec++;
+-      spec = get2digits(spec);  /* skip precision */
+-    }
++  if (*spec == '0')  /* TIC-80: 5.3 took a leading zero as a width */
++    spec++;
++  spec = get2digits(spec);  /* skip width */
++  if (*spec == '.' && precision) {
++    spec++;
++    spec = get2digits(spec);  /* skip precision */
+   }
+   if (!isalpha(uchar(*spec)))  /* did not go to the end? */
+     luaL_error(L, "invalid conversion specification: '%s'", form);
