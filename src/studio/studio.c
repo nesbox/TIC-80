@@ -3528,7 +3528,7 @@ static bool onEnumModule(const char* name, const char* title, const char* hash, 
 
                 const char** version = dlsym(module, DEF2STR(SCRIPT_RUNTIME_VERSION));
 
-                if (version)
+                if(version)
                 {
                     tic_add_script_version(config, *version);
                 }

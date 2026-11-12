@@ -95,9 +95,9 @@ struct LangRuntimeVersion* tic_runtime_versions();
     for(const tic_script **MACROVAR(it) = tic_scripts(), *script = *MACROVAR(it); *MACROVAR(it); script = *++MACROVAR(it))
 
 #define FOREACH_VERSION(version) \
-    for(struct LangRuntimeVersion *version = tic_runtime_versions(); version->script; ++version)
+    for(struct LangRuntimeVersion* version = tic_runtime_versions(); version->script; ++version)
 
-#define SCRIPT_CONFIG ScriptConfig
+#define SCRIPT_CONFIG          ScriptConfig
 #define SCRIPT_RUNTIME_VERSION RuntimeVersion
 
 #if defined(TIC_RUNTIME_STATIC)

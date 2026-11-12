@@ -223,7 +223,7 @@ static struct LangRuntimeVersion LangRuntimeVersions[MAX_SUPPORTED_LANGS + 1] =
 #endif
 
 #endif
-        {NULL},
+        {NULL, NULL},
 };
 
 static int compareScripts(const void* a, const void* b)
@@ -260,7 +260,7 @@ void tic_add_script(const tic_script* script)
 void tic_add_script_version(const tic_script* script, const char* version)
 {
     s32 index = 0;
-    while (LangRuntimeVersions[index].script)
+    while(LangRuntimeVersions[index].script)
     {
         if(strcmp(LangRuntimeVersions[index].script, script->name) == 0)
         {
@@ -271,7 +271,7 @@ void tic_add_script_version(const tic_script* script, const char* version)
         ++index;
     }
 
-    if (index < MAX_SUPPORTED_LANGS)
+    if(index < MAX_SUPPORTED_LANGS)
     {
         LangRuntimeVersions[index].script = script->name;
         LangRuntimeVersions[index].version = version;
