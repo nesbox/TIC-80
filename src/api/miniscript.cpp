@@ -251,7 +251,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 radius = context.GetArg(2).IntValue();
-        u8 color = context.GetArg(3).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(3).DoubleValue();
 
         core->api.circ(tic, x, y, radius, color);
         return IntrinsicResult::Null;
@@ -273,7 +273,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
         s32 radius = context.GetArg(2).IntValue();
-        u8 color = context.GetArg(3).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(3).DoubleValue();
 
         core->api.circb(tic, x, y, radius, color);
         return IntrinsicResult::Null;
@@ -340,7 +340,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         s32 y = context.GetArg(1).IntValue();
         s32 aRadius = context.GetArg(2).IntValue();
         s32 bRadius = context.GetArg(3).IntValue();
-        u8 color = context.GetArg(4).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(4).DoubleValue();
 
         core->api.elli(tic, x, y, aRadius, bRadius, color);
         return IntrinsicResult::Null;
@@ -364,7 +364,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         s32 y = context.GetArg(1).IntValue();
         s32 aRadius = context.GetArg(2).IntValue();
         s32 bRadius = context.GetArg(3).IntValue();
-        u8 color = context.GetArg(4).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(4).DoubleValue();
 
         core->api.ellib(tic, x, y, aRadius, bRadius, color);
         return IntrinsicResult::Null;
@@ -595,7 +595,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         float y0 = context.GetArg(1).FloatValue();
         float x1 = context.GetArg(2).FloatValue();
         float y1 = context.GetArg(3).FloatValue();
-        u8 color = context.GetArg(4).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(4).DoubleValue();
 
         core->api.line(tic, x0, y0, x1, y1, color);
         return IntrinsicResult::Null;
@@ -1032,7 +1032,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         s32 y = context.GetArg(1).IntValue();
         s32 width = context.GetArg(2).IntValue();
         s32 height = context.GetArg(3).IntValue();
-        u8 color = context.GetArg(4).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(4).DoubleValue();
 
         core->api.rect(tic, x, y, width, height, color);
         return IntrinsicResult::Null;
@@ -1056,7 +1056,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         s32 y = context.GetArg(1).IntValue();
         s32 width = context.GetArg(2).IntValue();
         s32 height = context.GetArg(3).IntValue();
-        u8 color = context.GetArg(4).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(4).DoubleValue();
 
         core->api.rectb(tic, x, y, width, height, color);
         return IntrinsicResult::Null;
@@ -1079,7 +1079,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         s32 y = context.GetArg(1).IntValue();
         s32 width = context.GetArg(2).IntValue();
         s32 height = context.GetArg(3).IntValue();
-        u8 color = context.GetArg(4).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(4).DoubleValue();
         s32 radius = context.GetArg(5).IntValue();
         float exponent = context.GetArg(6).FloatValue();
 
@@ -1104,7 +1104,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         s32 y = context.GetArg(1).IntValue();
         s32 width = context.GetArg(2).IntValue();
         s32 height = context.GetArg(3).IntValue();
-        u8 color = context.GetArg(4).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(4).DoubleValue();
         s32 radius = context.GetArg(5).IntValue();
         float exponent = context.GetArg(6).FloatValue();
 
@@ -1393,7 +1393,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         {
             pt[i] = context.GetArg(i).FloatValue();
         }
-        u8 color = context.GetArg(6).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(6).DoubleValue();
 
         core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
         return IntrinsicResult::Null;
@@ -1420,7 +1420,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
         {
             pt[i] = context.GetArg(i).FloatValue();
         }
-        u8 color = context.GetArg(6).IntValue() & 0xF;
+        u32 color = (u32)(s64)context.GetArg(6).DoubleValue();
 
         core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
         return IntrinsicResult::Null;

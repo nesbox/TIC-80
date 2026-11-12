@@ -82,49 +82,49 @@ typedef struct
 {
     u8 type;
     s32 x, y, w, h;
-    u8 color;
+    u32 color;
 } DrawCallRect;
 
 typedef struct
 {
     u8 type;
     s32 x, y, w, h;
-    u8 color;
+    u32 color;
 } DrawCallRectb;
 
 typedef struct
 {
     u8 type;
     float x0, y0, x1, y1;
-    u8 color;
+    u32 color;
 } DrawCallLine;
 
 typedef struct
 {
     u8 type;
     s32 x, y, r;
-    u8 color;
+    u32 color;
 } DrawCallCirc;
 
 typedef struct
 {
     u8 type;
     s32 x, y, r;
-    u8 color;
+    u32 color;
 } DrawCallCircb;
 
 typedef struct
 {
     u8 type;
     s32 x, y, a, b;
-    u8 color;
+    u32 color;
 } DrawCallElli;
 
 typedef struct
 {
     u8 type;
     s32 x, y, a, b;
-    u8 color;
+    u32 color;
 } DrawCallEllib;
 
 typedef struct
@@ -139,14 +139,14 @@ typedef struct
 {
     u8 type;
     float x1, y1, x2, y2, x3, y3;
-    u8 color;
+    u32 color;
 } DrawCallTri;
 
 typedef struct
 {
     u8 type;
     float x1, y1, x2, y2, x3, y3;
-    u8 color;
+    u32 color;
 } DrawCallTrib;
 
 typedef struct
@@ -599,7 +599,7 @@ static u8 cache_api_pix(tic_mem* tic, s32 x, s32 y, u8 color, bool get)
     return get ? tic_api_pix(tic, x, y, color, true) : 0;
 }
 
-static void cache_api_rect(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u8 color)
+static void cache_api_rect(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u32 color)
 {
     tic_core* core = (tic_core*)tic;
     DrawCallRect call;
@@ -616,7 +616,7 @@ static void cache_api_rect(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u8 color)
     }
 }
 
-static void cache_api_rectb(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u8 color)
+static void cache_api_rectb(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u32 color)
 {
     tic_core* core = (tic_core*)tic;
     DrawCallRectb call;
@@ -633,7 +633,7 @@ static void cache_api_rectb(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u8 color)
     }
 }
 
-static void cache_api_line(tic_mem* tic, float x0, float y0, float x1, float y1, u8 color)
+static void cache_api_line(tic_mem* tic, float x0, float y0, float x1, float y1, u32 color)
 {
     tic_core* core = (tic_core*)tic;
     DrawCallLine call;
@@ -650,7 +650,7 @@ static void cache_api_line(tic_mem* tic, float x0, float y0, float x1, float y1,
     }
 }
 
-static void cache_api_circ(tic_mem* tic, s32 x, s32 y, s32 r, u8 color)
+static void cache_api_circ(tic_mem* tic, s32 x, s32 y, s32 r, u32 color)
 {
     tic_core* core = (tic_core*)tic;
     DrawCallCirc call;
@@ -666,7 +666,7 @@ static void cache_api_circ(tic_mem* tic, s32 x, s32 y, s32 r, u8 color)
     }
 }
 
-static void cache_api_circb(tic_mem* tic, s32 x, s32 y, s32 r, u8 color)
+static void cache_api_circb(tic_mem* tic, s32 x, s32 y, s32 r, u32 color)
 {
     tic_core* core = (tic_core*)tic;
     DrawCallCircb call;
@@ -682,7 +682,7 @@ static void cache_api_circb(tic_mem* tic, s32 x, s32 y, s32 r, u8 color)
     }
 }
 
-static void cache_api_elli(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u8 color)
+static void cache_api_elli(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u32 color)
 {
     tic_core* core = (tic_core*)tic;
     DrawCallElli call;
@@ -699,7 +699,7 @@ static void cache_api_elli(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u8 color)
     }
 }
 
-static void cache_api_ellib(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u8 color)
+static void cache_api_ellib(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u32 color)
 {
     tic_core* core = (tic_core*)tic;
     DrawCallEllib call;
@@ -732,7 +732,7 @@ static void cache_api_paint(tic_mem* tic, s32 x, s32 y, u8 color, u8 bordercolor
     }
 }
 
-static void cache_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
+static void cache_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u32 color)
 {
     tic_core* core = (tic_core*)tic;
     DrawCallTri call;
@@ -751,7 +751,7 @@ static void cache_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, 
     }
 }
 
-static void cache_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
+static void cache_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u32 color)
 {
     tic_core* core = (tic_core*)tic;
     DrawCallTrib call;

@@ -273,6 +273,11 @@ static const u8 DemoPalette[] =
 #include "../build/assets/palette.tic.dat"
 };
 
+static const u8 DemoPattern[] =
+    {
+#include "../build/assets/pattern.tic.dat"
+};
+
 static const u8 DemoFont[] =
     {
 #include "../build/assets/font.tic.dat"
@@ -353,6 +358,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Lua) =
             {DemoP3d, sizeof DemoP3d, "p3d.tic"},
             {DemoSfx, sizeof DemoSfx, "sfx.tic"},
             {DemoPalette, sizeof DemoPalette, "palette.tic"},
+            {DemoPattern, sizeof DemoPattern, "pattern.tic"},
             {DemoFont, sizeof DemoFont, "font.tic"},
             {DemoMusic, sizeof DemoMusic, "music.tic"},
             {DemoQuest, sizeof DemoQuest, "quest.tic"},

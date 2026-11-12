@@ -94,6 +94,7 @@ demos/moondemo.moon                     moondemo
 demos/music.lua                         music
 demos/p3d.lua                           p3d
 demos/palette.lua                       palette
+demos/pattern.lua                        pattern
 demos/pythondemo.py                     pythondemo
 demos/quest.lua                         quest
 demos/rubydemo.rb                       rubydemo

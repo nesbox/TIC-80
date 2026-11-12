@@ -162,6 +162,12 @@ class Game is TIC {
       TIC.pix(1, 1)
     }
 
+    probe("rect/pattern") {
+      TIC.cls(0)
+      TIC.rect(1, 1, 3, 3, 6 + 8*256 + 42405*65536)
+      TIC.pix(1, 1)
+    }
+
     // ---- rectb
     probe("rectb/border") {
       TIC.cls(0)

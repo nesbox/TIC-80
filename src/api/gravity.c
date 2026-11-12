@@ -192,7 +192,7 @@ static bool grav_circ(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uin
     s32 x = grav_get_int(args[1]);
     s32 y = grav_get_int(args[2]);
     s32 radius = grav_get_int(args[3]);
-    u8 color = (u8)grav_get_int(args[4]);
+    u32 color = (u32)grav_get_int(args[4]);
     core->api.circ(tic, x, y, radius, color);
 
     RETURN_NOVALUE();
@@ -208,7 +208,7 @@ static bool grav_circb(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, ui
     s32 x = grav_get_int(args[1]);
     s32 y = grav_get_int(args[2]);
     s32 radius = grav_get_int(args[3]);
-    u8 color = (u8)grav_get_int(args[4]);
+    u32 color = (u32)grav_get_int(args[4]);
     core->api.circb(tic, x, y, radius, color);
 
     RETURN_NOVALUE();
@@ -262,7 +262,7 @@ static bool grav_elli(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uin
     s32 y = grav_get_int(args[2]);
     s32 a = grav_get_int(args[3]);
     s32 b = grav_get_int(args[4]);
-    u8 color = (u8)grav_get_int(args[5]);
+    u32 color = (u32)grav_get_int(args[5]);
     core->api.elli(tic, x, y, a, b, color);
 
     RETURN_NOVALUE();
@@ -279,7 +279,7 @@ static bool grav_ellib(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, ui
     s32 y = grav_get_int(args[2]);
     s32 a = grav_get_int(args[3]);
     s32 b = grav_get_int(args[4]);
-    u8 color = (u8)grav_get_int(args[5]);
+    u32 color = (u32)grav_get_int(args[5]);
     core->api.ellib(tic, x, y, a, b, color);
 
     RETURN_NOVALUE();
@@ -404,7 +404,7 @@ static bool grav_line(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uin
     float y0 = grav_get_float(args[2]);
     float x1 = grav_get_float(args[3]);
     float y1 = grav_get_float(args[4]);
-    u8 color = (u8)grav_get_int(args[5]);
+    u32 color = (u32)grav_get_int(args[5]);
     core->api.line(tic, x0, y0, x1, y1, color);
 
     RETURN_NOVALUE();
@@ -798,7 +798,7 @@ static bool grav_rect(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uin
     s32 y = grav_get_int(args[2]);
     s32 w = grav_get_int(args[3]);
     s32 h = grav_get_int(args[4]);
-    u8 color = (u8)grav_get_int(args[5]);
+    u32 color = (u32)grav_get_int(args[5]);
     core->api.rect(tic, x, y, w, h, color);
 
     RETURN_NOVALUE();
@@ -815,7 +815,7 @@ static bool grav_rectb(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, ui
     s32 y = grav_get_int(args[2]);
     s32 w = grav_get_int(args[3]);
     s32 h = grav_get_int(args[4]);
-    u8 color = (u8)grav_get_int(args[5]);
+    u32 color = (u32)grav_get_int(args[5]);
     core->api.rectb(tic, x, y, w, h, color);
 
     RETURN_NOVALUE();
@@ -832,7 +832,7 @@ static bool grav_rrect(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, ui
     s32 y = grav_get_int(args[2]);
     s32 w = grav_get_int(args[3]);
     s32 h = grav_get_int(args[4]);
-    u8 color = (u8)grav_get_int(args[5]);
+    u32 color = (u32)grav_get_int(args[5]);
     s32 radius = nargs >= 7 ? grav_get_int(args[6]) : -1;
     float exponent = nargs >= 8 ? grav_get_float(args[7]) : 2.0f;
 
@@ -852,7 +852,7 @@ static bool grav_rrectb(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, u
     s32 y = grav_get_int(args[2]);
     s32 w = grav_get_int(args[3]);
     s32 h = grav_get_int(args[4]);
-    u8 color = (u8)grav_get_int(args[5]);
+    u32 color = (u32)grav_get_int(args[5]);
     s32 radius = nargs >= 7 ? grav_get_int(args[6]) : -1;
     float exponent = nargs >= 8 ? grav_get_float(args[7]) : 2.0f;
 
@@ -1066,7 +1066,7 @@ static bool grav_tri(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uint
     for(s32 i = 0; i < COUNT_OF(pt); i++)
         pt[i] = grav_get_float(args[i + 1]);
 
-    u8 color = (u8)grav_get_int(args[7]);
+    u32 color = (u32)grav_get_int(args[7]);
 
     core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
 
@@ -1084,7 +1084,7 @@ static bool grav_trib(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, uin
     for(s32 i = 0; i < COUNT_OF(pt); i++)
         pt[i] = grav_get_float(args[i + 1]);
 
-    u8 color = (u8)grav_get_int(args[7]);
+    u32 color = (u32)grav_get_int(args[7]);
 
     core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
 

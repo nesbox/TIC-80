@@ -269,7 +269,7 @@ static JSValue js_line(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.line(tic, x0, y0, x1, y1, (u8)(color));
+    core->api.line(tic, x0, y0, x1, y1, (u32)(color));
 
     return JS_UNDEFINED;
 }
@@ -289,7 +289,7 @@ static JSValue js_rect(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
 
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
-    core->api.rect(tic, x, y, w, h, (u8)(color));
+    core->api.rect(tic, x, y, w, h, (u32)(color));
 
     return JS_UNDEFINED;
 }
@@ -309,7 +309,7 @@ static JSValue js_rectb(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
 
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
-    core->api.rectb(tic, x, y, w, h, (u8)(color));
+    core->api.rectb(tic, x, y, w, h, (u32)(color));
 
     return JS_UNDEFINED;
 }
@@ -327,7 +327,7 @@ static JSValue js_rrect(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
 
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
-    core->api.rrect(tic, x, y, w, h, (u8)color, radius, exponent);
+    core->api.rrect(tic, x, y, w, h, (u32)color, radius, exponent);
 
     return JS_UNDEFINED;
 }
@@ -345,7 +345,7 @@ static JSValue js_rrectb(JSContext* ctx, JSValueConst this_val, s32 argc, JSValu
 
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
-    core->api.rrectb(tic, x, y, w, h, (u8)color, radius, exponent);
+    core->api.rrectb(tic, x, y, w, h, (u32)color, radius, exponent);
 
     return JS_UNDEFINED;
 }
@@ -985,7 +985,7 @@ static JSValue js_circ(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.circ(tic, x, y, radius, (u8)(color));
+    core->api.circ(tic, x, y, radius, (u32)(color));
 
     return JS_UNDEFINED;
 }
@@ -1005,7 +1005,7 @@ static JSValue js_circb(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.circb(tic, x, y, radius, (u8)(color));
+    core->api.circb(tic, x, y, radius, (u32)(color));
 
     return JS_UNDEFINED;
 }
@@ -1026,7 +1026,7 @@ static JSValue js_elli(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.elli(tic, x, y, a, b, (u8)(color));
+    core->api.elli(tic, x, y, a, b, (u32)(color));
 
     return JS_UNDEFINED;
 }
@@ -1047,7 +1047,7 @@ static JSValue js_ellib(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.ellib(tic, x, y, a, b, (u8)(color));
+    core->api.ellib(tic, x, y, a, b, (u32)(color));
 
     return JS_UNDEFINED;
 }
@@ -1089,7 +1089,7 @@ static JSValue js_tri(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueCo
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
+    core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u32)(color));
 
     return JS_UNDEFINED;
 }
@@ -1111,7 +1111,7 @@ static JSValue js_trib(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
     tic_core* core = getCore(ctx);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
+    core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u32)(color));
 
     return JS_UNDEFINED;
 }

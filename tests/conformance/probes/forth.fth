@@ -131,6 +131,12 @@
     3 3 PIX DROP
 ;
 
+: P_RECT_PATTERN
+    0 CLS
+    1 1 3 3 6 8 256 * + 42405 65536 * + RECT
+    1 1 PIX DROP
+;
+
 \ rect/missing-color: the reference refuses the call and forth's stack cannot refuse one
 
 \ ---- rectb
@@ -757,6 +763,7 @@
     ['] P_RECT_FILL S" #rect/fill" PROBE
     ['] P_RECT_ZERO_SIZE S" #rect/zero-size" PROBE
     ['] P_RECT_NEGATIVE_SIZE S" #rect/negative-size" PROBE
+    ['] P_RECT_PATTERN S" #rect/pattern" PROBE
     ['] P_RECTB_BORDER S" #rectb/border" PROBE
     ['] P_RECTB_ZERO_SIZE S" #rectb/zero-size" PROBE
     ['] P_RECTB_ONE_WIDE S" #rectb/one-wide" PROBE

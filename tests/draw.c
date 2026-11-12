@@ -154,6 +154,28 @@ static void refVLine(s32 x, s32 y, s32 height, u8 color)
         refPixel(x, i, color);
 }
 
+// A fill word: c1 | c2 << 8 | pattern << 16.
+static u32 fillWord(u8 c1, u8 c2, u16 pattern)
+{
+    return (u32)c1 | ((u32)c2 << 8) | ((u32)pattern << 16);
+}
+
+// The frozen references paint a marker; the patterned picture is that coverage
+// with the tile's colors.
+#define PATTERN_MARKER 15
+
+static void refPatternize(u8 c1, u8 c2, u16 pattern)
+{
+    for(s32 y = 0; y < TIC80_HEIGHT; y++)
+        for(s32 x = 0; x < TIC80_WIDTH; x++)
+        {
+            s32 i = y * TIC80_WIDTH + x;
+
+            if(expected[i] == PATTERN_MARKER)
+                expected[i] = (pattern >> ((y & 3) * 4 + (x & 3))) & 1 ? c1 : c2;
+        }
+}
+
 static void refRect(s32 x, s32 y, s32 width, s32 height, u8 color)
 {
     for(s32 i = y; i < y + height; i++)
@@ -806,6 +828,76 @@ static void testRect(void)
     refRect(1, 60, 10, 1, 7);
     expectFrame("rect edges frame");
 
+    // A patterned fill: the reference paints a marker inside, the tile colors it.
+    reset();
+    refReset();
+    tic_api_rect(Tic, 10, 20, 40, 24, fillWord(6, 8, 0xA5A5));
+    refRect(10, 20, 40, 24, PATTERN_MARKER);
+    refPatternize(6, 8, 0xA5A5);
+    expectFrame("rect pattern frame");
+
+    // Two shapes share one tile phase, because it is the screen's.
+    reset();
+    refReset();
+    tic_api_rect(Tic, 0, 0, 20, 20, fillWord(6, 8, 0xA5A5));
+    tic_api_rect(Tic, 40, 0, 20, 20, fillWord(6, 8, 0xA5A5));
+    refRect(0, 0, 20, 20, PATTERN_MARKER);
+    refRect(40, 0, 20, 20, PATTERN_MARKER);
+    refPatternize(6, 8, 0xA5A5);
+    expectFrame("rect pattern alignment frame");
+
+    // A full-screen checkerboard walks every byte and tile phase.
+    reset();
+    refReset();
+    tic_api_rect(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, fillWord(6, 8, 0xA5A5));
+    refRect(0, 0, TIC80_WIDTH, TIC80_HEIGHT, PATTERN_MARKER);
+    refPatternize(6, 8, 0xA5A5);
+    expectFrame("rect full pattern frame");
+
+    // A transparent second color leaves the screen alone.
+    reset();
+    refReset();
+    tic_api_rect(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 3);
+    refRect(0, 0, TIC80_WIDTH, TIC80_HEIGHT, 3);
+    tic_api_rect(Tic, 10, 20, 40, 24, fillWord(6, 255, 0x8421));
+    refRect(10, 20, 40, 24, PATTERN_MARKER);
+    refPatternize(6, 3, 0x8421);
+    expectFrame("rect transparent pattern frame");
+
+    // Both colors go through the palette mapping.
+    reset();
+    refReset();
+    tic_tool_poke4(Tic->ram->vram.mapping, 3, 11);
+    tic_tool_poke4(Tic->ram->vram.mapping, 5, 12);
+    tic_api_rect(Tic, 10, 20, 40, 24, fillWord(3, 5, 0x0F0F));
+    refRect(10, 20, 40, 24, PATTERN_MARKER);
+    refPatternize(11, 12, 0x0F0F);
+    expectFrame("rect pattern palette frame");
+
+    // The legacy -1 is all pattern bits set, which is solid palette 15.
+    reset();
+    refReset();
+    tic_api_rect(Tic, 10, 20, 5, 3, (u32)-1);
+    refRect(10, 20, 5, 3, 15);
+    expectFrame("rect -1 frame");
+
+    // An odd start walks the leading pixel and the byte-aligned groups.
+    reset();
+    refReset();
+    tic_api_rect(Tic, 11, 21, 37, 5, fillWord(6, 8, 0x5A5A));
+    refRect(11, 21, 37, 5, PATTERN_MARKER);
+    refPatternize(6, 8, 0x5A5A);
+    expectFrame("rect pattern odd frame");
+
+    // The clip trims the patterned fill; the tile phase stays on the screen.
+    reset();
+    refReset();
+    tic_api_clip(Tic, 12, 21, 2, 1);
+    tic_api_rect(Tic, 10, 20, 40, 24, fillWord(6, 8, 0x5A5A));
+    refRect(10, 20, 40, 24, PATTERN_MARKER);
+    refPatternize(6, 8, 0x5A5A);
+    expectFrame("rect pattern clip frame");
+
     reset();
     puts("rect ok");
 }
@@ -851,6 +943,21 @@ static void testRectb(void)
     tic_api_rectb(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 7);
     refRectb(0, 0, TIC80_WIDTH, TIC80_HEIGHT, 7);
     expectFrame("rectb screen frame");
+
+    // A patterned border, and a 1x1 corner written by both edges.
+    reset();
+    refReset();
+    tic_api_rectb(Tic, 10, 20, 40, 24, fillWord(6, 8, 0xA5A5));
+    refRectb(10, 20, 40, 24, PATTERN_MARKER);
+    refPatternize(6, 8, 0xA5A5);
+    expectFrame("rectb pattern frame");
+
+    reset();
+    refReset();
+    tic_api_rectb(Tic, 10, 20, 1, 1, fillWord(6, 8, 0xA5A5));
+    refRectb(10, 20, 1, 1, PATTERN_MARKER);
+    refPatternize(6, 8, 0xA5A5);
+    expectFrame("rectb pattern 1x1 frame");
 
     reset();
     puts("rectb ok");
@@ -909,6 +1016,14 @@ static void testCirc(void)
     refCirc(120, 68, 50, 7);
     expectFrame("circ clip frame");
 
+    // The patterned side-buffer fill.
+    reset();
+    refReset();
+    tic_api_circ(Tic, 120, 68, 50, fillWord(6, 8, 0xA5A5));
+    refCirc(120, 68, 50, PATTERN_MARKER);
+    refPatternize(6, 8, 0xA5A5);
+    expectFrame("circ pattern frame");
+
     reset();
     puts("circ ok");
 }
@@ -928,6 +1043,13 @@ static void testElli(void)
     tic_api_elli(Tic, 120, 68, 60, 40, 7);
     refElli(120, 68, 60, 40, 7);
     expectFrame("elli clip frame");
+
+    reset();
+    refReset();
+    tic_api_elli(Tic, 120, 68, 60, 40, fillWord(6, 255, 0x5555));
+    refElli(120, 68, 60, 40, PATTERN_MARKER);
+    refPatternize(6, 0, 0x5555);
+    expectFrame("elli pattern frame");
 
     reset();
     puts("elli ok");
@@ -961,6 +1083,21 @@ static void testRrect(void)
     tic_api_rrectb(Tic, 60, 38, 120, 60, 7, 0, 0);
     refRectb(60, 38, 120, 60, 7);
     expectFrame("rrectb zero radius frame");
+
+    // The patterned capsule fill and border.
+    reset();
+    refReset();
+    tic_api_rrect(Tic, 60, 38, 120, 60, fillWord(6, 8, 0x0F0F), 12, 0);
+    refRrect(60, 38, 120, 60, PATTERN_MARKER, 12, 0);
+    refPatternize(6, 8, 0x0F0F);
+    expectFrame("rrect pattern frame");
+
+    reset();
+    refReset();
+    tic_api_rrectb(Tic, 60, 38, 120, 60, fillWord(6, 8, 0xAAAA), 12, 0);
+    refRrectb(60, 38, 120, 60, PATTERN_MARKER, 12, 0);
+    refPatternize(6, 8, 0xAAAA);
+    expectFrame("rrectb pattern frame");
 
     reset();
     puts("rrect ok");
@@ -1006,6 +1143,24 @@ static void testTri(void)
     refTri(10, 10, 30, 10, 10, 30, 3);
     expectFrame("tri palette");
 
+    // The span rasterizer carries the tile.
+    reset();
+    tic_api_tri(Tic, 10, 10, 30, 10, 10, 30, fillWord(6, 8, 0xA5A5));
+    refTri(10, 10, 30, 10, 10, 30, PATTERN_MARKER);
+    refPatternize(6, 8, 0xA5A5);
+    expectFrame("tri pattern");
+
+    // Huge coordinates take the edge-function fallback; the pre-change solid
+    // picture is the coverage reference, the tile only colours it.
+    reset();
+    refReset();
+    tic_api_tri(Tic, -40000, 20000, 100000, 30000, 120, -90000, PATTERN_MARKER);
+    refCapture();
+    reset();
+    tic_api_tri(Tic, -40000, 20000, 100000, 30000, 120, -90000, fillWord(6, 8, 0x5555));
+    refPatternize(6, 8, 0x5555);
+    expectFrame("tri huge pattern");
+
     reset();
     puts("tri ok");
 }
@@ -1037,6 +1192,15 @@ static void testTrib(void)
     refLine(40, 0, 0, 40, 7);
     refLine(0, 40, 0, 0, 7);
     expectFrame("trib clipped frame");
+
+    reset();
+    refReset();
+    tic_api_trib(Tic, 10, 10, 30, 10, 10, 30, fillWord(6, 255, 0x0F0F));
+    refLine(10, 10, 30, 10, PATTERN_MARKER);
+    refLine(30, 10, 10, 30, PATTERN_MARKER);
+    refLine(10, 30, 10, 10, PATTERN_MARKER);
+    refPatternize(6, 0, 0x0F0F);
+    expectFrame("trib pattern frame");
 
     reset();
     puts("trib ok");
@@ -1729,6 +1893,30 @@ static void testLine(void)
     refLine(-50.5f, -20.25f, 300.75f, 160.5f, 7);
     expectFrame("line offscreen frame");
 
+    // The integer row and column fast paths, and the float path.
+    reset();
+    refReset();
+    tic_api_line(Tic, 10, 20, 200, 20, fillWord(6, 8, 0xA5A5));
+    refLine(10, 20, 200, 20, PATTERN_MARKER);
+    refPatternize(6, 8, 0xA5A5);
+    expectFrame("line horizontal pattern frame");
+
+    reset();
+    refReset();
+    tic_api_line(Tic, 120, 10, 120, 120, fillWord(6, 255, 0x5555));
+    refLine(120, 10, 120, 120, PATTERN_MARKER);
+    refPatternize(6, 0, 0x5555);
+    expectFrame("line vertical pattern frame");
+
+    // The tile is screen-anchored, so the direction must not change the colors.
+    reset();
+    refReset();
+    tic_api_line(Tic, 5, 5, 230, 130, fillWord(6, 8, 0x8421));
+    tic_api_line(Tic, 230, 130, 5, 5, fillWord(6, 8, 0x8421));
+    refLine(5, 5, 230, 130, PATTERN_MARKER);
+    refPatternize(6, 8, 0x8421);
+    expectFrame("line pattern direction frame");
+
     reset();
     puts("line ok");
 }
@@ -1767,6 +1955,20 @@ static void testEllipseBorders(void)
     tic_api_rrectb(Tic, 60, 38, 120, 60, 7, 12, 0);
     refRrectb(60, 38, 120, 60, 7, 12, 0);
     expectFrame("rrectb clip frame");
+
+    reset();
+    refReset();
+    tic_api_circb(Tic, 120, 68, 30, fillWord(6, 8, 0xA5A5));
+    refCircb(120, 68, 30, PATTERN_MARKER);
+    refPatternize(6, 8, 0xA5A5);
+    expectFrame("circb pattern frame");
+
+    reset();
+    refReset();
+    tic_api_ellib(Tic, 120, 68, 30, 20, fillWord(6, 8, 0x1248));
+    refEllib(120, 68, 30, 20, PATTERN_MARKER);
+    refPatternize(6, 8, 0x1248);
+    expectFrame("ellib pattern frame");
 
     reset();
     puts("ellipse borders ok");

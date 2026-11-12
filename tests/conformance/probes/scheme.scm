@@ -171,6 +171,12 @@
   (t80::pix 1 1)
   ))
 
+(probe "rect/pattern" (lambda ()
+  (t80::cls 0)
+  (t80::rect 1 1 3 3 (+ 6 (* 8 256) (* 42405 65536)))
+  (t80::pix 1 1)
+  ))
+
 ;; ---- rectb
 
 (probe "rectb/border" (lambda ()

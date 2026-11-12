@@ -171,6 +171,12 @@
   (tic80/pix 1 1)
   ))
 
+(probe "rect/pattern" (fn []
+  (tic80/cls 0)
+  (tic80/rect 1 1 3 3 (+ 6 (* 8 256) (* 42405.0 65536)))
+  (tic80/pix 1 1)
+  ))
+
 # ---- rectb
 
 (probe "rectb/border" (fn []

@@ -223,6 +223,19 @@ static void bodyRectFull(tic_core* core)
     core->api.rect((tic_mem*)core, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 15);
 }
 
+// c1 = 6, c2 = 8, checkerboard.
+#define FILL_WORD 0x0000A5A506u
+
+static void bodyRectPattern(tic_core* core)
+{
+    core->api.rect((tic_mem*)core, 20, 20, 100, 50, FILL_WORD);
+}
+
+static void bodyRectFullPattern(tic_core* core)
+{
+    core->api.rect((tic_mem*)core, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, FILL_WORD);
+}
+
 static void bodyRectb(tic_core* core)
 {
     core->api.rectb((tic_mem*)core, 20, 20, 100, 50, 15);
@@ -251,6 +264,11 @@ static void bodyTriSmall(tic_core* core)
 static void bodyTriFull(tic_core* core)
 {
     core->api.tri((tic_mem*)core, 5, 5, TIC80_WIDTH - 5, 20, TIC80_WIDTH / 2, TIC80_HEIGHT - 5, 15);
+}
+
+static void bodyTriPattern(tic_core* core)
+{
+    core->api.tri((tic_mem*)core, 5, 5, TIC80_WIDTH - 5, 20, TIC80_WIDTH / 2, TIC80_HEIGHT - 5, FILL_WORD);
 }
 
 static void bodyTrib(tic_core* core)
@@ -452,12 +470,15 @@ static const Scenario Scenarios[] =
         {"rect", "100x50", setupZero, bodyRect, true, false},
         {"rect", "full screen", setupZero, bodyRectFull, true, false},
         {"rect", "full, clip 60x40", setupClipZero, bodyRectFull, true, false},
+        {"rect", "100x50 pattern", setupZero, bodyRectPattern, true, false},
+        {"rect", "full screen pattern", setupZero, bodyRectFullPattern, true, false},
         {"rectb", "100x50", setupZero, bodyRectb, true, false},
         {"line", "horizontal 220px", setupZero, bodyLineHorizontal, true, false},
         {"line", "vertical 116px", setupZero, bodyLineVertical, true, false},
         {"line", "diagonal", setupZero, bodyLineDiagonal, true, false},
         {"tri", "small 20px", setupZero, bodyTriSmall, true, false},
         {"tri", "full screen", setupZero, bodyTriFull, true, false},
+        {"tri", "full screen pattern", setupZero, bodyTriPattern, true, false},
         {"trib", "large", setupZero, bodyTrib, true, false},
         {"ttri", "tiles", setupZero, bodyTtriTiles, true, false},
         {"ttri", "tiles, 2bpp p0", setupSeg4Zero, bodyTtriTiles, true, false},

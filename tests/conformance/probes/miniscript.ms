@@ -194,6 +194,14 @@ end function
 
 probe("rect/negative-size", @p_rect_negative_size)
 
+p_rect_pattern = function
+    tic80.cls(0)
+    tic80.rect(1, 1, 3, 3, 6 + 8*256 + 42405*65536)
+    tic80.pix(1, 1)
+end function
+
+probe("rect/pattern", @p_rect_pattern)
+
 // ---- rectb
 
 p_rectb_border = function

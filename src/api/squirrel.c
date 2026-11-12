@@ -82,6 +82,13 @@ static s32 getSquirrelNumber(HSQUIRRELVM vm, s32 index)
     return (s32)getSquirrelDouble(vm, index);
 }
 
+// The packed fill color uses the whole 32-bit range; an s32 intermediate would
+// saturate where the value has the top bit set.
+static u32 getSquirrelColor(HSQUIRRELVM vm, s32 index)
+{
+    return (u32)(s64)getSquirrelDouble(vm, index);
+}
+
 static float getSquirrelFloat(HSQUIRRELVM vm, s32 index)
 {
     return (float)getSquirrelDouble(vm, index);
@@ -334,12 +341,12 @@ static SQInteger squirrel_line(HSQUIRRELVM vm)
         float y0 = getSquirrelFloat(vm, 3);
         float x1 = getSquirrelFloat(vm, 4);
         float y1 = getSquirrelFloat(vm, 5);
-        s32 color = getSquirrelNumber(vm, 6);
+        u32 color = getSquirrelColor(vm, 6);
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.line(tic, x0, y0, x1, y1, (u8)(color));
+        core->api.line(tic, x0, y0, x1, y1, (u32)(color));
     }
     else
         return sq_throwerror(vm, "invalid parameters, line(x0,y0,x1,y1,color)\n");
@@ -357,12 +364,12 @@ static SQInteger squirrel_rect(HSQUIRRELVM vm)
         s32 y = getSquirrelNumber(vm, 3);
         s32 w = getSquirrelNumber(vm, 4);
         s32 h = getSquirrelNumber(vm, 5);
-        s32 color = getSquirrelNumber(vm, 6);
+        u32 color = getSquirrelColor(vm, 6);
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rect(tic, x, y, w, h, (u8)(color));
+        core->api.rect(tic, x, y, w, h, (u32)(color));
     }
     else
         return sq_throwerror(vm, "invalid parameters, rect(x,y,w,h,color)\n");
@@ -380,12 +387,12 @@ static SQInteger squirrel_rectb(HSQUIRRELVM vm)
         s32 y = getSquirrelNumber(vm, 3);
         s32 w = getSquirrelNumber(vm, 4);
         s32 h = getSquirrelNumber(vm, 5);
-        s32 color = getSquirrelNumber(vm, 6);
+        u32 color = getSquirrelColor(vm, 6);
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rectb(tic, x, y, w, h, (u8)(color));
+        core->api.rectb(tic, x, y, w, h, (u32)(color));
     }
     else
         return sq_throwerror(vm, "invalid parameters, rectb(x,y,w,h,color)\n");
@@ -403,14 +410,14 @@ static SQInteger squirrel_rrect(HSQUIRRELVM vm)
         s32 y = getSquirrelNumber(vm, 3);
         s32 w = getSquirrelNumber(vm, 4);
         s32 h = getSquirrelNumber(vm, 5);
-        s32 color = getSquirrelNumber(vm, 6);
+        u32 color = getSquirrelColor(vm, 6);
         s32 radius = top >= 7 ? getSquirrelNumber(vm, 7) : -1;
         float exponent = top >= 8 ? getSquirrelFloat(vm, 8) : 2;
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rrect(tic, x, y, w, h, (u8)color, radius, exponent);
+        core->api.rrect(tic, x, y, w, h, (u32)color, radius, exponent);
     }
     else
         return sq_throwerror(vm, "invalid parameters, rrect(x,y,w,h,color,radius=-1,exponent=2)\n");
@@ -428,14 +435,14 @@ static SQInteger squirrel_rrectb(HSQUIRRELVM vm)
         s32 y = getSquirrelNumber(vm, 3);
         s32 w = getSquirrelNumber(vm, 4);
         s32 h = getSquirrelNumber(vm, 5);
-        s32 color = getSquirrelNumber(vm, 6);
+        u32 color = getSquirrelColor(vm, 6);
         s32 radius = top >= 7 ? getSquirrelNumber(vm, 7) : -1;
         float exponent = top >= 8 ? getSquirrelFloat(vm, 8) : 2;
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rrectb(tic, x, y, w, h, (u8)color, radius, exponent);
+        core->api.rrectb(tic, x, y, w, h, (u32)color, radius, exponent);
     }
     else
         return sq_throwerror(vm, "invalid parameters, rrectb(x,y,w,h,color,radius=-1,exponent=2)\n");
@@ -452,12 +459,12 @@ static SQInteger squirrel_circ(HSQUIRRELVM vm)
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
         s32 radius = getSquirrelNumber(vm, 4);
-        s32 color = getSquirrelNumber(vm, 5);
+        u32 color = getSquirrelColor(vm, 5);
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.circ(tic, x, y, radius, (u8)(color));
+        core->api.circ(tic, x, y, radius, (u32)(color));
     }
     else
         return sq_throwerror(vm, "invalid parameters, circ(x,y,radius,color)\n");
@@ -474,12 +481,12 @@ static SQInteger squirrel_circb(HSQUIRRELVM vm)
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
         s32 radius = getSquirrelNumber(vm, 4);
-        s32 color = getSquirrelNumber(vm, 5);
+        u32 color = getSquirrelColor(vm, 5);
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.circb(tic, x, y, radius, (u8)(color));
+        core->api.circb(tic, x, y, radius, (u32)(color));
     }
     else
         return sq_throwerror(vm, "invalid parameters, circb(x,y,radius,color)\n");
@@ -497,12 +504,12 @@ static SQInteger squirrel_elli(HSQUIRRELVM vm)
         s32 y = getSquirrelNumber(vm, 3);
         s32 a = getSquirrelNumber(vm, 4);
         s32 b = getSquirrelNumber(vm, 5);
-        s32 color = getSquirrelNumber(vm, 6);
+        u32 color = getSquirrelColor(vm, 6);
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.elli(tic, x, y, a, b, (u8)(color));
+        core->api.elli(tic, x, y, a, b, (u32)(color));
     }
     else
         return sq_throwerror(vm, "invalid parameters, elli(x,y,a,b,color)\n");
@@ -520,12 +527,12 @@ static SQInteger squirrel_ellib(HSQUIRRELVM vm)
         s32 y = getSquirrelNumber(vm, 3);
         s32 a = getSquirrelNumber(vm, 4);
         s32 b = getSquirrelNumber(vm, 5);
-        s32 color = getSquirrelNumber(vm, 6);
+        u32 color = getSquirrelColor(vm, 6);
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.ellib(tic, x, y, a, b, (u8)(color));
+        core->api.ellib(tic, x, y, a, b, (u32)(color));
     }
     else
         return sq_throwerror(vm, "invalid parameters, ellib(x,y,a,b,color)\n");
@@ -566,12 +573,12 @@ static SQInteger squirrel_tri(HSQUIRRELVM vm)
         for(s32 i = 0; i < COUNT_OF(pt); i++)
             pt[i] = getSquirrelFloat(vm, i + 2);
 
-        s32 color = getSquirrelNumber(vm, 8);
+        u32 color = getSquirrelColor(vm, 8);
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
+        core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u32)(color));
     }
     else
         return sq_throwerror(vm, "invalid parameters, tri(x1,y1,x2,y2,x3,y3,color)\n");
@@ -590,12 +597,12 @@ static SQInteger squirrel_trib(HSQUIRRELVM vm)
         for(s32 i = 0; i < COUNT_OF(pt); i++)
             pt[i] = getSquirrelFloat(vm, i + 2);
 
-        s32 color = getSquirrelNumber(vm, 8);
+        u32 color = getSquirrelColor(vm, 8);
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
+        core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u32)(color));
     }
     else
         return sq_throwerror(vm, "invalid parameters, trib(x1,y1,x2,y2,x3,y3,color)\n");

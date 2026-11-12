@@ -245,7 +245,7 @@ static bool py_print(int argc, py_Ref argv)
 }
 
 // circ(x: int, y: int, radius: int, color: int)
-// void (*circ)(tic_mem*, s32, s32, s32, u8)
+// void (*circ)(tic_mem*, s32, s32, s32, u32)
 static bool py_circ(int argc, py_Ref argv)
 {
     (void)argc;
@@ -256,7 +256,7 @@ static bool py_circ(int argc, py_Ref argv)
     s32 x = (s32)(py_toint(py_arg(0)));
     s32 y = (s32)(py_toint(py_arg(1)));
     s32 radius = (s32)(py_toint(py_arg(2)));
-    u8 color = (u8)(py_toint(py_arg(3)));
+    u32 color = (u32)(py_toint(py_arg(3)));
 
     tic_core* core = get_core();
     core->api.circ((tic_mem*)core, x, y, radius, color);
@@ -265,7 +265,7 @@ static bool py_circ(int argc, py_Ref argv)
 }
 
 // circb(x: int, y: int, radius: int, color: int)
-// void (*circb)(tic_mem*, s32, s32, s32, u8)
+// void (*circb)(tic_mem*, s32, s32, s32, u32)
 static bool py_circb(int argc, py_Ref argv)
 {
     (void)argc;
@@ -276,7 +276,7 @@ static bool py_circb(int argc, py_Ref argv)
     s32 x = (s32)(py_toint(py_arg(0)));
     s32 y = (s32)(py_toint(py_arg(1)));
     s32 radius = (s32)(py_toint(py_arg(2)));
-    u8 color = (u8)(py_toint(py_arg(3)));
+    u32 color = (u32)(py_toint(py_arg(3)));
 
     tic_core* core = get_core();
     core->api.circb((tic_mem*)core, x, y, radius, color);
@@ -314,7 +314,7 @@ static bool py_clip(int argc, py_Ref argv)
 }
 
 // elli(x: int, y: int, a: int, b: int, color: int)
-// void (*elli)(tic_mem*, s32, s32, s32, s32, u8)
+// void (*elli)(tic_mem*, s32, s32, s32, s32, u32)
 static bool py_elli(int argc, py_Ref argv)
 {
     (void)argc;
@@ -326,7 +326,7 @@ static bool py_elli(int argc, py_Ref argv)
     s32 y = (s32)(py_toint(py_arg(1)));
     s32 a = (s32)(py_toint(py_arg(2)));
     s32 b = (s32)(py_toint(py_arg(3)));
-    u8 color = (u8)(py_toint(py_arg(4)));
+    u32 color = (u32)(py_toint(py_arg(4)));
 
     tic_core* core = get_core();
     core->api.elli((tic_mem*)core, x, y, a, b, color);
@@ -335,7 +335,7 @@ static bool py_elli(int argc, py_Ref argv)
 }
 
 // ellib(x: int, y: int, a: int, b: int, color: int)
-// void (*ellib)(tic_mem*, s32, s32, s32, s32, u8)
+// void (*ellib)(tic_mem*, s32, s32, s32, s32, u32)
 static bool py_ellib(int argc, py_Ref argv)
 {
     (void)argc;
@@ -347,7 +347,7 @@ static bool py_ellib(int argc, py_Ref argv)
     s32 y = (s32)(py_toint(py_arg(1)));
     s32 a = (s32)(py_toint(py_arg(2)));
     s32 b = (s32)(py_toint(py_arg(3)));
-    u8 color = (u8)(py_toint(py_arg(4)));
+    u32 color = (u32)(py_toint(py_arg(4)));
 
     tic_core* core = get_core();
     core->api.ellib((tic_mem*)core, x, y, a, b, color);
@@ -494,18 +494,18 @@ static bool py_keyr(int argc, py_Ref argv)
 }
 
 // line(x0: float, y0: float, x1: float, y1: float, color: int)
-// void (*line)(tic_mem*, float, float, float, float, u8)
+// void (*line)(tic_mem*, float, float, float, float, u32)
 static bool py_line(int argc, py_Ref argv)
 {
     (void)argc;
     float x0, y0, x1, y1;
-    u8 color;
+    u32 color;
     if(!py_castfloat32(py_arg(0), &x0)) return false;
     if(!py_castfloat32(py_arg(1), &y0)) return false;
     if(!py_castfloat32(py_arg(2), &x1)) return false;
     if(!py_castfloat32(py_arg(3), &y1)) return false;
     PY_CHECK_ARG_TYPE(4, tp_int);
-    color = (u8)(py_toint(py_arg(4)));
+    color = (u32)(py_toint(py_arg(4)));
 
     tic_core* core = get_core();
     core->api.line((tic_mem*)core, x0, y0, x1, y1, color);
@@ -913,7 +913,7 @@ static bool py_poke4(int argc, py_Ref argv)
 }
 
 // rect(x: int, y: int, w: int, h: int, color: int)
-// void (*rect)(tic_mem*, s32, s32, s32, s32, u8)
+// void (*rect)(tic_mem*, s32, s32, s32, s32, u32)
 static bool py_rect(int argc, py_Ref argv)
 {
     (void)argc;
@@ -925,7 +925,7 @@ static bool py_rect(int argc, py_Ref argv)
     s32 y = (s32)(py_toint(py_arg(1)));
     s32 w = (s32)(py_toint(py_arg(2)));
     s32 h = (s32)(py_toint(py_arg(3)));
-    u8 color = (u8)(py_toint(py_arg(4)));
+    u32 color = (u32)(py_toint(py_arg(4)));
 
     tic_core* core = get_core();
     core->api.rect((tic_mem*)core, x, y, w, h, color);
@@ -934,7 +934,7 @@ static bool py_rect(int argc, py_Ref argv)
 }
 
 // rectb(x: int, y: int, w: int, h: int, color: int)
-// void (*rectb)(tic_mem*, s32, s32, s32, s32, u8)
+// void (*rectb)(tic_mem*, s32, s32, s32, s32, u32)
 static bool py_rectb(int argc, py_Ref argv)
 {
     (void)argc;
@@ -946,7 +946,7 @@ static bool py_rectb(int argc, py_Ref argv)
     s32 y = (s32)(py_toint(py_arg(1)));
     s32 w = (s32)(py_toint(py_arg(2)));
     s32 h = (s32)(py_toint(py_arg(3)));
-    u8 color = (u8)(py_toint(py_arg(4)));
+    u32 color = (u32)(py_toint(py_arg(4)));
 
     tic_core* core = get_core();
     core->api.rectb((tic_mem*)core, x, y, w, h, color);
@@ -955,7 +955,7 @@ static bool py_rectb(int argc, py_Ref argv)
 }
 
 // rrect(x: int, y: int, w: int, h: int, color: int, radius: int, exponent: float)
-// void (*rrect)(tic_mem*, s32, s32, s32, s32, u8, s32, float)
+// void (*rrect)(tic_mem*, s32, s32, s32, s32, u32, s32, float)
 static bool py_rrect(int argc, py_Ref argv)
 {
     (void)argc;
@@ -966,7 +966,7 @@ static bool py_rrect(int argc, py_Ref argv)
     s32 y = (s32)py_toint(py_arg(1));
     s32 w = (s32)py_toint(py_arg(2));
     s32 h = (s32)py_toint(py_arg(3));
-    u8 color = (u8)py_toint(py_arg(4));
+    u32 color = (u32)py_toint(py_arg(4));
     s32 radius = (s32)py_toint(py_arg(5));
     float exponent = (float)py_number(py_arg(6));
 
@@ -977,7 +977,7 @@ static bool py_rrect(int argc, py_Ref argv)
 }
 
 // rrectb(x: int, y: int, w: int, h: int, color: int, radius: int, exponent: float)
-// void (*rrectb)(tic_mem*, s32, s32, s32, s32, u8, s32, float)
+// void (*rrectb)(tic_mem*, s32, s32, s32, s32, u32, s32, float)
 static bool py_rrectb(int argc, py_Ref argv)
 {
     (void)argc;
@@ -988,7 +988,7 @@ static bool py_rrectb(int argc, py_Ref argv)
     s32 y = (s32)py_toint(py_arg(1));
     s32 w = (s32)py_toint(py_arg(2));
     s32 h = (s32)py_toint(py_arg(3));
-    u8 color = (u8)py_toint(py_arg(4));
+    u32 color = (u32)py_toint(py_arg(4));
     s32 radius = (s32)py_toint(py_arg(5));
     float exponent = (float)py_number(py_arg(6));
 
@@ -1171,12 +1171,12 @@ static bool py_trace(int argc, py_Ref argv)
 }
 
 // tri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)
-// void (*tri)(tic_mem*, float, float, float, float, float, float, u8)
+// void (*tri)(tic_mem*, float, float, float, float, float, float, u32)
 static bool py_tri(int argc, py_Ref argv)
 {
     (void)argc;
     float x1, y1, x2, y2, x3, y3;
-    u8 color;
+    u32 color;
     if(!py_castfloat32(py_arg(0), &x1)) return false;
     if(!py_castfloat32(py_arg(1), &y1)) return false;
     if(!py_castfloat32(py_arg(2), &x2)) return false;
@@ -1184,7 +1184,7 @@ static bool py_tri(int argc, py_Ref argv)
     if(!py_castfloat32(py_arg(4), &x3)) return false;
     if(!py_castfloat32(py_arg(5), &y3)) return false;
     PY_CHECK_ARG_TYPE(6, tp_int);
-    color = (u8)(py_toint(py_arg(6)));
+    color = (u32)(py_toint(py_arg(6)));
 
     tic_core* core = get_core();
     core->api.tri((tic_mem*)core, x1, y1, x2, y2, x3, y3, color);
@@ -1193,12 +1193,12 @@ static bool py_tri(int argc, py_Ref argv)
 }
 
 // trib(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)
-// void (*trib)(tic_mem*, float, float, float, float, float, float, u8)
+// void (*trib)(tic_mem*, float, float, float, float, float, float, u32)
 static bool py_trib(int argc, py_Ref argv)
 {
     (void)argc;
     float x1, y1, x2, y2, x3, y3;
-    u8 color;
+    u32 color;
     if(!py_castfloat32(py_arg(0), &x1)) return false;
     if(!py_castfloat32(py_arg(1), &y1)) return false;
     if(!py_castfloat32(py_arg(2), &x2)) return false;
@@ -1206,7 +1206,7 @@ static bool py_trib(int argc, py_Ref argv)
     if(!py_castfloat32(py_arg(4), &x3)) return false;
     if(!py_castfloat32(py_arg(5), &y3)) return false;
     PY_CHECK_ARG_TYPE(6, tp_int);
-    color = (u8)(py_toint(py_arg(6)));
+    color = (u32)(py_toint(py_arg(6)));
 
     tic_core* core = get_core();
     core->api.trib((tic_mem*)core, x1, y1, x2, y2, x3, y3, color);
