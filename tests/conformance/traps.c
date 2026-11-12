@@ -84,31 +84,31 @@ static u8 trap_pix(tic_mem* tic, s32 x, s32 y, u8 color, bool get)
     return value;
 }
 
-static void trap_line(tic_mem* tic, float x1, float y1, float x2, float y2, u8 color)
+static void trap_line(tic_mem* tic, float x1, float y1, float x2, float y2, u32 color)
 {
     Real_line(tic, x1, y1, x2, y2, color);
     api_record("line(%g,%g,%g,%g,%u)", x1, y1, x2, y2, (unsigned)color);
 }
 
-static void trap_rect(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u8 color)
+static void trap_rect(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u32 color)
 {
     Real_rect(tic, x, y, width, height, color);
     api_record("rect(%d,%d,%d,%d,%u)", x, y, width, height, (unsigned)color);
 }
 
-static void trap_rectb(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u8 color)
+static void trap_rectb(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u32 color)
 {
     Real_rectb(tic, x, y, width, height, color);
     api_record("rectb(%d,%d,%d,%d,%u)", x, y, width, height, (unsigned)color);
 }
 
-static void trap_rrect(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)
+static void trap_rrect(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u32 color, s32 radius, float exponent)
 {
     Real_rrect(tic, x, y, width, height, color, radius, exponent);
     api_record("rrect(%d,%d,%d,%d,%u,%d,%g)", x, y, width, height, (unsigned)color, radius, exponent);
 }
 
-static void trap_rrectb(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)
+static void trap_rrectb(tic_mem* tic, s32 x, s32 y, s32 width, s32 height, u32 color, s32 radius, float exponent)
 {
     Real_rrectb(tic, x, y, width, height, color, radius, exponent);
     api_record("rrectb(%d,%d,%d,%d,%u,%d,%g)", x, y, width, height, (unsigned)color, radius, exponent);
@@ -312,25 +312,25 @@ static tic_point trap_mouse(tic_mem* tic)
     return point;
 }
 
-static void trap_circ(tic_mem* tic, s32 x, s32 y, s32 radius, u8 color)
+static void trap_circ(tic_mem* tic, s32 x, s32 y, s32 radius, u32 color)
 {
     Real_circ(tic, x, y, radius, color);
     api_record("circ(%d,%d,%d,%u)", x, y, radius, (unsigned)color);
 }
 
-static void trap_circb(tic_mem* tic, s32 x, s32 y, s32 radius, u8 color)
+static void trap_circb(tic_mem* tic, s32 x, s32 y, s32 radius, u32 color)
 {
     Real_circb(tic, x, y, radius, color);
     api_record("circb(%d,%d,%d,%u)", x, y, radius, (unsigned)color);
 }
 
-static void trap_elli(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u8 color)
+static void trap_elli(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u32 color)
 {
     Real_elli(tic, x, y, a, b, color);
     api_record("elli(%d,%d,%d,%d,%u)", x, y, a, b, (unsigned)color);
 }
 
-static void trap_ellib(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u8 color)
+static void trap_ellib(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u32 color)
 {
     Real_ellib(tic, x, y, a, b, color);
     api_record("ellib(%d,%d,%d,%d,%u)", x, y, a, b, (unsigned)color);
@@ -342,13 +342,13 @@ static void trap_paint(tic_mem* tic, s32 x, s32 y, u8 color, u8 bordercolor)
     api_record("paint(%d,%d,%u,%u)", x, y, (unsigned)color, (unsigned)bordercolor);
 }
 
-static void trap_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
+static void trap_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u32 color)
 {
     Real_tri(tic, x1, y1, x2, y2, x3, y3, color);
     api_record("tri(%g,%g,%g,%g,%g,%g,%u)", x1, y1, x2, y2, x3, y3, (unsigned)color);
 }
 
-static void trap_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
+static void trap_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u32 color)
 {
     Real_trib(tic, x1, y1, x2, y2, x3, y3, color);
     api_record("trib(%g,%g,%g,%g,%g,%g,%u)", x1, y1, x2, y2, x3, y3, (unsigned)color);

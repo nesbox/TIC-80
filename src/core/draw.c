@@ -73,6 +73,25 @@ static inline u8 mapColor(tic_mem* tic, u8 color)
     return tic_tool_peek4(tic->ram->vram.mapping, color & 0xf);
 }
 
+// A packed fill color: c1 | c2 << 8 | pattern << 16. A pattern of zero is the
+// solid path, so every legacy color value keeps its picture.
+static inline u8 fillPrimary(tic_mem* tic, u32 color)
+{
+    return mapColor(tic, (u8)color);
+}
+
+static inline u8 fillSecondary(tic_mem* tic, u32 color)
+{
+    u8 color2 = (u8)(color >> 8);
+
+    return color2 == TRANSPARENT_COLOR ? TRANSPARENT_COLOR : mapColor(tic, color2);
+}
+
+static inline u16 fillPattern(u32 color)
+{
+    return (u16)(color >> 16);
+}
+
 static inline u8* screenData(tic_core* core)
 {
     return core->memory.ram->vram.screen.data;
@@ -90,6 +109,16 @@ static inline void setPixelFast(tic_core* core, s32 x, s32 y, u8 color)
 {
     // does not do any CLIP checking, the caller needs to do that first
     tic_tool_poke4(screenData(core), (u32)(y * TIC80_WIDTH + x), color);
+}
+
+static inline void setPixelFill(tic_core* core, s32 x, s32 y, u8 c1, u8 c2, u16 pattern)
+{
+    if(x < core->state.clip.l || y < core->state.clip.t || x >= core->state.clip.r || y >= core->state.clip.b) return;
+
+    u8 color = (pattern >> ((y & 3) * 4 + (x & 3))) & 1 ? c1 : c2;
+
+    if(color != TRANSPARENT_COLOR)
+        tic_tool_poke4(screenData(core), (u32)(y * TIC80_WIDTH + x), color);
 }
 
 static inline u8 getPixel(tic_core* core, s32 x, s32 y)
@@ -157,6 +186,85 @@ static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
         memset(screen + first / 2, (color & 0xf) | (color << TIC_PALETTE_BPP), (size_t)(last - first) / 2);
 }
 
+static void drawHLineFill(tic_core* core, s32 x, s32 y, s32 width, u8 c1, u8 c2, u16 pattern)
+{
+    if(width == 1)
+    {
+        setPixelFill(core, x, y, c1, c2, pattern);
+        return;
+    }
+
+    if(y < core->state.clip.t || core->state.clip.b <= y) return;
+
+    s32 xl = MAX(x, core->state.clip.l);
+    s32 xr = MIN(x + width, core->state.clip.r);
+
+    if(xl >= xr) return;
+
+    // One 4-bit pattern row drives the whole scanline.
+    u8 row = (u8)((pattern >> ((y & 3) * 4)) & 0xf);
+
+    if(row == 0xf)
+    {
+        drawHLine(core, xl, y, xr - xl, c1);
+        return;
+    }
+
+    if(row == 0x0)
+    {
+        if(c2 != TRANSPARENT_COLOR)
+            drawHLine(core, xl, y, xr - xl, c2);
+
+        return;
+    }
+
+    u8* screen = screenData(core);
+
+    // Clear bits leave the screen alone, so they have to be skipped one by one.
+    if(c2 == TRANSPARENT_COLOR)
+    {
+        for(s32 i = xl; i < xr; ++i)
+            if((row >> (i & 3)) & 1)
+                tic_tool_poke4(screen, (u32)(y * TIC80_WIDTH + i), c1);
+
+        return;
+    }
+
+    // TIC80_WIDTH is a multiple of four, so the screen offset keeps the x phase.
+    u16 groups[4];
+    for(s32 phase = 0; phase < 4; ++phase)
+    {
+        u8 colors[4];
+
+        for(s32 i = 0; i < 4; ++i)
+        {
+            s32 bit = (phase + i) & 3;
+            colors[i] = (row >> bit) & 1 ? c1 : c2;
+        }
+
+        groups[phase] = (u16)(colors[0] | (colors[1] << 4) | (colors[2] << 8) | (colors[3] << 12));
+    }
+
+    s32 first = y * TIC80_WIDTH + xl;
+    s32 last = y * TIC80_WIDTH + xr;
+
+    if(first & 1)
+    {
+        tic_tool_poke4(screen, (u32)first, (row >> (first & 3)) & 1 ? c1 : c2);
+        first++;
+    }
+
+    u16 group = groups[first & 3];
+    for(; first + 4 <= last; first += 4)
+    {
+        screen[first >> 1] = (u8)(group & 0xff);
+        screen[(first >> 1) + 1] = (u8)(group >> 8);
+    }
+
+    for(; first < last; ++first)
+        tic_tool_poke4(screen, (u32)first, (row >> (first & 3)) & 1 ? c1 : c2);
+}
+
 static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
 {
 
@@ -170,10 +278,22 @@ static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
         tic_tool_poke4(screen, (u32)(i * TIC80_WIDTH + x), color);
 }
 
+static void drawVLineFill(tic_core* core, s32 x, s32 y, s32 height, u8 c1, u8 c2, u16 pattern)
+{
+    for(s32 i = y; i < y + height; ++i)
+        setPixelFill(core, x, i, c1, c2, pattern);
+}
+
 static void drawRect(tic_core* core, s32 x, s32 y, s32 width, s32 height, u8 color)
 {
     for(s32 i = y; i < y + height; ++i)
         drawHLine(core, x, i, width, color);
+}
+
+static void drawRectFill(tic_core* core, s32 x, s32 y, s32 width, s32 height, u8 c1, u8 c2, u16 pattern)
+{
+    for(s32 i = y; i < y + height; ++i)
+        drawHLineFill(core, x, i, width, c1, c2, pattern);
 }
 
 static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, u8 color)
@@ -183,6 +303,15 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
 
     drawVLine(core, x, y, height, color);
     drawVLine(core, x + width - 1, y, height, color);
+}
+
+static void drawRectBorderFill(tic_core* core, s32 x, s32 y, s32 width, s32 height, u8 c1, u8 c2, u16 pattern)
+{
+    drawHLineFill(core, x, y, width, c1, c2, pattern);
+    drawHLineFill(core, x, y + height - 1, width, c1, c2, pattern);
+
+    drawVLineFill(core, x, y, height, c1, c2, pattern);
+    drawVLineFill(core, x + width - 1, y, height, c1, c2, pattern);
 }
 
 static void drawTile4(tic_core* core, const u8* ptr, u32 offset, const u8* mapping, bool opaque,
@@ -735,11 +864,16 @@ void tic_api_clip(tic_mem* memory, s32 x, s32 y, s32 width, s32 height)
     if(core->state.clip.b > TIC80_HEIGHT) core->state.clip.b = TIC80_HEIGHT;
 }
 
-void tic_api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color)
+void tic_api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u32 color)
 {
     tic_core* core = (tic_core*)memory;
+    u16 pattern = fillPattern(color);
+    u8 c1 = fillPrimary(memory, color);
 
-    drawRect(core, x, y, width, height, mapColor(memory, color));
+    if(pattern)
+        drawRectFill(core, x, y, width, height, c1, fillSecondary(memory, color), pattern);
+    else
+        drawRect(core, x, y, width, height, c1);
 }
 
 static double ZBuffer[TIC80_WIDTH * TIC80_HEIGHT];
@@ -837,11 +971,16 @@ u8 tic_api_pix(tic_mem* memory, s32 x, s32 y, u8 color, bool get)
     return 0;
 }
 
-void tic_api_rectb(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color)
+void tic_api_rectb(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u32 color)
 {
     tic_core* core = (tic_core*)memory;
+    u16 pattern = fillPattern(color);
+    u8 c1 = fillPrimary(memory, color);
 
-    drawRectBorder(core, x, y, width, height, mapColor(memory, color));
+    if(pattern)
+        drawRectBorderFill(core, x, y, width, height, c1, fillSecondary(memory, color), pattern);
+    else
+        drawRectBorder(core, x, y, width, height, c1);
 }
 
 static struct
@@ -1006,6 +1145,29 @@ static void setElliBoth(tic_mem* tic, s32 x, s32 y, u8 color)
     setSidePixel(x, y);
 }
 
+typedef struct
+{
+    u8 c1, c2;
+    u16 pattern;
+} FillData;
+
+// The ellipse and capsule rasterizers take one color per pixel function; the
+// patterned pixel functions read the fill from here for the duration of a call.
+static FillData FillContext;
+
+static void setElliPixelFill(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+    (void)color;
+    setPixelFill((tic_core*)tic, x, y, FillContext.c1, FillContext.c2, FillContext.pattern);
+}
+
+static void setElliBothFill(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+    (void)color;
+    setPixelFill((tic_core*)tic, x, y, FillContext.c1, FillContext.c2, FillContext.pattern);
+    setSidePixel(x, y);
+}
+
 static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
 {
 
@@ -1021,31 +1183,82 @@ static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
     }
 }
 
-void tic_api_circ(tic_mem* memory, s32 x, s32 y, s32 r, u8 color)
+static void drawSidesBufferFill(tic_mem* memory, s32 y0, s32 y1, u8 c1, u8 c2, u16 pattern)
 {
+
+    tic_core* core = (tic_core*)memory;
+    s32 yt = MAX(core->state.clip.t, y0);
+    s32 yb = MIN(core->state.clip.b, y1 + 1);
+    for(s32 y = yt; y < yb; y++)
+    {
+        s32 xl = MAX(SidesBuffer.Left[y], core->state.clip.l);
+        s32 xr = MIN(SidesBuffer.Right[y] + 1, core->state.clip.r);
+
+        drawHLineFill(core, xl, y, xr - xl, c1, c2, pattern);
+    }
+}
+
+void tic_api_circ(tic_mem* memory, s32 x, s32 y, s32 r, u32 color)
+{
+    u16 pattern = fillPattern(color);
+    u8 c1 = fillPrimary(memory, color);
+
     initSidesBuffer();
     drawEllipse(memory, x - r, y - r, x + r, y + r, 0, setElliSide);
-    drawSidesBuffer(memory, y - r, y + r + 1, mapColor(memory, color));
+
+    if(pattern)
+        drawSidesBufferFill(memory, y - r, y + r + 1, c1, fillSecondary(memory, color), pattern);
+    else
+        drawSidesBuffer(memory, y - r, y + r + 1, c1);
 }
 
-void tic_api_circb(tic_mem* memory, s32 x, s32 y, s32 r, u8 color)
+void tic_api_circb(tic_mem* memory, s32 x, s32 y, s32 r, u32 color)
 {
-    drawEllipse(memory, x - r, y - r, x + r, y + r, mapColor(memory, color), setElliPixel);
+    u16 pattern = fillPattern(color);
+
+    if(pattern)
+    {
+        FillContext.c1 = fillPrimary(memory, color);
+        FillContext.c2 = fillSecondary(memory, color);
+        FillContext.pattern = pattern;
+
+        drawEllipse(memory, x - r, y - r, x + r, y + r, 0, setElliPixelFill);
+    }
+    else
+        drawEllipse(memory, x - r, y - r, x + r, y + r, fillPrimary(memory, color), setElliPixel);
 }
 
-void tic_api_elli(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
+void tic_api_elli(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u32 color)
 {
+    u16 pattern = fillPattern(color);
+    u8 c1 = fillPrimary(memory, color);
+
     initSidesBuffer();
     drawEllipse(memory, x - a, y - b, x + a, y + b, 0, setElliSide);
-    drawSidesBuffer(memory, y - b, y + b + 1, mapColor(memory, color));
+
+    if(pattern)
+        drawSidesBufferFill(memory, y - b, y + b + 1, c1, fillSecondary(memory, color), pattern);
+    else
+        drawSidesBuffer(memory, y - b, y + b + 1, c1);
 }
 
-void tic_api_ellib(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
+void tic_api_ellib(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u32 color)
 {
-    drawEllipse(memory, x - a, y - b, x + a, y + b, mapColor(memory, color), setElliPixel);
+    u16 pattern = fillPattern(color);
+
+    if(pattern)
+    {
+        FillContext.c1 = fillPrimary(memory, color);
+        FillContext.c2 = fillSecondary(memory, color);
+        FillContext.pattern = pattern;
+
+        drawEllipse(memory, x - a, y - b, x + a, y + b, 0, setElliPixelFill);
+    }
+    else
+        drawEllipse(memory, x - a, y - b, x + a, y + b, fillPrimary(memory, color), setElliPixel);
 }
 
-void tic_api_rrect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)
+void tic_api_rrect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u32 color, s32 radius, float exponent)
 {
     // zero radius should just defer to a regular rect
     if(radius == 0)
@@ -1054,12 +1267,19 @@ void tic_api_rrect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 colo
         return;
     }
 
+    u16 pattern = fillPattern(color);
+    u8 c1 = fillPrimary(memory, color);
+
     initSidesBuffer();
     drawSuperEllipseCapsule(memory, x, y, x + width, y + height, radius, exponent, 0, setElliSide);
-    drawSidesBuffer(memory, y, y + height + 1, mapColor(memory, color));
+
+    if(pattern)
+        drawSidesBufferFill(memory, y, y + height + 1, c1, fillSecondary(memory, color), pattern);
+    else
+        drawSidesBuffer(memory, y, y + height + 1, c1);
 }
 
-void tic_api_rrectb(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)
+void tic_api_rrectb(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u32 color, s32 radius, float exponent)
 {
     // zero radius should just defer to a regular rect
     if(radius == 0)
@@ -1068,11 +1288,29 @@ void tic_api_rrectb(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 col
         return;
     }
 
+    u16 pattern = fillPattern(color);
+    u8 c1 = fillPrimary(memory, color);
+
     initSidesBuffer();
-    color = mapColor(memory, color);
-    drawSuperEllipseCapsule(memory, x, y, x + width, y + height, radius, exponent, color, setElliBoth);
-    drawSidesBuffer(memory, y, y, color);
-    drawSidesBuffer(memory, y + height, y + height, color);
+
+    if(pattern)
+    {
+        u8 c2 = fillSecondary(memory, color);
+
+        FillContext.c1 = c1;
+        FillContext.c2 = c2;
+        FillContext.pattern = pattern;
+
+        drawSuperEllipseCapsule(memory, x, y, x + width, y + height, radius, exponent, 0, setElliBothFill);
+        drawSidesBufferFill(memory, y, y, c1, c2, pattern);
+        drawSidesBufferFill(memory, y + height, y + height, c1, c2, pattern);
+    }
+    else
+    {
+        drawSuperEllipseCapsule(memory, x, y, x + width, y + height, radius, exponent, c1, setElliBoth);
+        drawSidesBuffer(memory, y, y, c1);
+        drawSidesBuffer(memory, y + height, y + height, c1);
+    }
 }
 
 static inline float initLine(float* x0, float* x1, float* y0, float* y1)
@@ -1091,20 +1329,30 @@ static inline float initLine(float* x0, float* x1, float* y0, float* y1)
     return t;
 }
 
-static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 color)
+static inline void setLinePixel(tic_core* core, s32 x, s32 y, u8 c1, u8 c2, u16 pattern)
 {
+    if(pattern)
+        setPixelFill(core, x, y, c1, c2, pattern);
+    else
+        setPixel(core, x, y, c1);
+}
+
+static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 c1, u8 c2, u16 pattern)
+{
+    tic_core* core = (tic_core*)tic;
+
     // the counter steps by one and the fraction it starts at is the line's own:
     // an integer counter would draw a different last pixel
     if(fabs(x0 - x1) < fabs(y0 - y1))
         // NOLINTNEXTLINE(clang-analyzer-security.FloatLoopCounter): a raster counter, exact at one a step
         for(float t = initLine(&x0, &x1, &y0, &y1); y0 < y1; y0++, x0 += t)
-            setPixel((tic_core*)tic, (s32)(x0), (s32)y0, color);
+            setLinePixel(core, (s32)(x0), (s32)y0, c1, c2, pattern);
     else
         // NOLINTNEXTLINE(clang-analyzer-security.FloatLoopCounter): a raster counter, exact at one a step
         for(float t = initLine(&y0, &y1, &x0, &x1); x0 < x1; x0++, y0 += t)
-            setPixel((tic_core*)tic, (s32)(x0), (s32)y0, color);
+            setLinePixel(core, (s32)(x0), (s32)y0, c1, c2, pattern);
 
-    setPixel((tic_core*)tic, (s32)(x1), (s32)y1, color);
+    setLinePixel(core, (s32)(x1), (s32)y1, c1, c2, pattern);
 }
 
 // Queue frame for floodFill.
@@ -1333,9 +1581,18 @@ static tic_color triColorShader(const ShaderAttr* a, s32 pixel)
     return *(u8*)a->data;
 }
 
+static tic_color triFillShader(const ShaderAttr* a, s32 pixel)
+{
+    FillData* data = a->data;
+    s32 x = pixel % TIC80_WIDTH;
+    s32 y = pixel / TIC80_WIDTH;
+
+    return (data->pattern >> ((y & 3) * 4 + (x & 3))) & 1 ? data->c1 : data->c2;
+}
+
 // A scanline fill for the flat triangle: each row's inside interval is the
 // min/max of the edge crossings at the pixel centres, filled with drawHLine.
-static void drawTriSpans(tic_mem* tic, const Vec2* v[3], u8 color)
+static void drawTriSpans(tic_mem* tic, const Vec2* v[3], u8 c1, u8 c2, u16 pattern)
 {
     tic_core* core = (tic_core*)tic;
     const struct ClipRect* clip = &core->state.clip;
@@ -1407,37 +1664,60 @@ static void drawTriSpans(tic_mem* tic, const Vec2* v[3], u8 color)
         if(right > clip->r) right = clip->r;
 
         if(left < right)
-            drawHLine(core, left, y, right - left, color);
+        {
+            if(pattern)
+                drawHLineFill(core, left, y, right - left, c1, c2, pattern);
+            else
+                drawHLine(core, left, y, right - left, c1);
+        }
     }
 }
 
-void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
+void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u32 color)
 {
-    color = mapColor(tic, color);
+    u16 pattern = fillPattern(color);
+    u8 c1 = fillPrimary(tic, color);
+    u8 c2 = pattern ? fillSecondary(tic, color) : TRANSPARENT_COLOR;
 
     if(!isfinite(x1) || !isfinite(y1) || !isfinite(x2) || !isfinite(y2) || !isfinite(x3) || !isfinite(y3) ||
        fabsf(x1) > 32768 || fabsf(y1) > 32768 || fabsf(x2) > 32768 || fabsf(y2) > 32768 || fabsf(x3) > 32768 || fabsf(y3) > 32768)
     {
-        drawTri(tic,
-                &(Vec2){{x1, y1}},
-                &(Vec2){{x2, y2}},
-                &(Vec2){{x3, y3}},
-                triColorShader, &color);
+        if(pattern)
+        {
+            FillData fill;
+            fill.c1 = c1;
+            fill.c2 = c2;
+            fill.pattern = pattern;
+
+            drawTri(tic,
+                    &(Vec2){{x1, y1}},
+                    &(Vec2){{x2, y2}},
+                    &(Vec2){{x3, y3}},
+                    triFillShader, &fill);
+        }
+        else
+            drawTri(tic,
+                    &(Vec2){{x1, y1}},
+                    &(Vec2){{x2, y2}},
+                    &(Vec2){{x3, y3}},
+                    triColorShader, &c1);
+
         return;
     }
 
     const Vec2* v[3] = {&(Vec2){{x1, y1}}, &(Vec2){{x2, y2}}, &(Vec2){{x3, y3}}};
-    drawTriSpans(tic, v, color);
+    drawTriSpans(tic, v, c1, c2, pattern);
 }
 
-void tic_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
+void tic_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u32 color)
 {
+    u16 pattern = fillPattern(color);
+    u8 c1 = fillPrimary(tic, color);
+    u8 c2 = pattern ? fillSecondary(tic, color) : TRANSPARENT_COLOR;
 
-    u8 finalColor = mapColor(tic, color);
-
-    drawLine(tic, x1, y1, x2, y2, finalColor);
-    drawLine(tic, x2, y2, x3, y3, finalColor);
-    drawLine(tic, x3, y3, x1, y1, finalColor);
+    drawLine(tic, x1, y1, x2, y2, c1, c2, pattern);
+    drawLine(tic, x2, y2, x3, y3, c1, c2, pattern);
+    drawLine(tic, x3, y3, x1, y1, c1, c2, pattern);
 }
 
 typedef struct
@@ -1994,10 +2274,12 @@ u8 tic_api_mget(tic_mem* memory, s32 x, s32 y)
     return *(src->data + y * TIC_MAP_WIDTH + x);
 }
 
-void tic_api_line(tic_mem* memory, float x0, float y0, float x1, float y1, u8 color)
+void tic_api_line(tic_mem* memory, float x0, float y0, float x1, float y1, u32 color)
 {
     tic_core* core = (tic_core*)memory;
-    u8 mapped = mapColor(memory, color);
+    u16 pattern = fillPattern(color);
+    u8 c1 = fillPrimary(memory, color);
+    u8 c2 = pattern ? fillSecondary(memory, color) : TRANSPARENT_COLOR;
 
     // Integer endpoints on a row or a column are the write path's row and
     // column fills; anything else keeps the float rasterizer.
@@ -2019,7 +2301,11 @@ void tic_api_line(tic_mem* memory, float x0, float y0, float x1, float y1, u8 co
             if(ix0 < 0) ix0 = 0;
             if(ix1 > TIC80_WIDTH) ix1 = TIC80_WIDTH;
 
-            drawHLine(core, ix0, iy0, ix1 - ix0 + 1, mapped);
+            if(pattern)
+                drawHLineFill(core, ix0, iy0, ix1 - ix0 + 1, c1, c2, pattern);
+            else
+                drawHLine(core, ix0, iy0, ix1 - ix0 + 1, c1);
+
             return;
         }
 
@@ -2035,12 +2321,16 @@ void tic_api_line(tic_mem* memory, float x0, float y0, float x1, float y1, u8 co
             if(iy0 < 0) iy0 = 0;
             if(iy1 > TIC80_WIDTH) iy1 = TIC80_WIDTH;
 
-            drawVLine(core, ix0, iy0, iy1 - iy0 + 1, mapped);
+            if(pattern)
+                drawVLineFill(core, ix0, iy0, iy1 - iy0 + 1, c1, c2, pattern);
+            else
+                drawVLine(core, ix0, iy0, iy1 - iy0 + 1, c1);
+
             return;
         }
     }
 
-    drawLine(memory, x0, y0, x1, y1, mapped);
+    drawLine(memory, x0, y0, x1, y1, c1, c2, pattern);
 }
 
 void tic_api_paint(tic_mem* memory, s32 x, s32 y, u8 color, u8 bordercolor)

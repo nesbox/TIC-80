@@ -263,13 +263,13 @@ u32 w2c_tic80_api(LugforthVM* vm, u32 id, u32 base, u32 n)
             core->api.pix(tic, a[0], a[1], (u8)a[2], false);
             break;
         case Api_LINE:
-            core->api.line(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (u8)a[4]);
+            core->api.line(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (u32)a[4]);
             break;
         case Api_RECT:
-            core->api.rect(tic, a[0], a[1], a[2], a[3], (u8)a[4]);
+            core->api.rect(tic, a[0], a[1], a[2], a[3], (u32)a[4]);
             break;
         case Api_RECTB:
-            core->api.rectb(tic, a[0], a[1], a[2], a[3], (u8)a[4]);
+            core->api.rectb(tic, a[0], a[1], a[2], a[3], (u32)a[4]);
             break;
         case Api_SPR:
         {
@@ -370,25 +370,25 @@ u32 w2c_tic80_api(LugforthVM* vm, u32 id, u32 base, u32 n)
             break;
         }
         case Api_CIRC:
-            core->api.circ(tic, a[0], a[1], a[2], (u8)a[3]);
+            core->api.circ(tic, a[0], a[1], a[2], (u32)a[3]);
             break;
         case Api_CIRCB:
-            core->api.circb(tic, a[0], a[1], a[2], (u8)a[3]);
+            core->api.circb(tic, a[0], a[1], a[2], (u32)a[3]);
             break;
         case Api_ELLI:
-            core->api.elli(tic, a[0], a[1], a[2], a[3], (u8)a[4]);
+            core->api.elli(tic, a[0], a[1], a[2], a[3], (u32)a[4]);
             break;
         case Api_ELLIB:
-            core->api.ellib(tic, a[0], a[1], a[2], a[3], (u8)a[4]);
+            core->api.ellib(tic, a[0], a[1], a[2], a[3], (u32)a[4]);
             break;
         case Api_PAINT:
             core->api.paint(tic, a[0], a[1], (u8)a[2], (u8)a[3]);
             break;
         case Api_TRI:
-            core->api.tri(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (float)a[4], (float)a[5], (u8)a[6]);
+            core->api.tri(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (float)a[4], (float)a[5], (u32)a[6]);
             break;
         case Api_TRIB:
-            core->api.trib(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (float)a[4], (float)a[5], (u8)a[6]);
+            core->api.trib(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (float)a[4], (float)a[5], (u32)a[6]);
             break;
         case Api_TTRI:
         {
@@ -436,10 +436,10 @@ u32 w2c_tic80_api(LugforthVM* vm, u32 id, u32 base, u32 n)
             RESULT(core->api.ffts(tic, a[0], a[1]) * 65535.0);
             break;
         case Api_RRECT:
-            core->api.rrect(tic, a[0], a[1], a[2], a[3], (u8)a[4], a[5], (float)a[6]);
+            core->api.rrect(tic, a[0], a[1], a[2], a[3], (u32)a[4], a[5], (float)a[6]);
             break;
         case Api_RRECTB:
-            core->api.rrectb(tic, a[0], a[1], a[2], a[3], (u8)a[4], a[5], (float)a[6]);
+            core->api.rrectb(tic, a[0], a[1], a[2], a[3], (u32)a[4], a[5], (float)a[6]);
             break;
         case Api_BTNR:
             RESULT(core->api.btnr(tic, a[0]));

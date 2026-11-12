@@ -180,6 +180,12 @@ probe('rect/missing-color') do
   pix(1, 1)
 end
 
+probe('rect/pattern') do
+  cls(0)
+  rect(1, 1, 3, 3, 6 + 8*256 + 42405*65536)
+  pix(1, 1)
+end
+
 # ---- rectb
 
 probe('rectb/border') do

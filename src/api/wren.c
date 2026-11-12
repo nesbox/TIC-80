@@ -274,10 +274,10 @@ static inline void wrenError(WrenVM* vm, const char* msg)
     wrenAbortFiber(vm, 0);
 }
 
-static inline s32 getWrenNumber(WrenVM* vm, s32 index)
+static inline double getWrenDouble(WrenVM* vm, s32 index)
 {
     if(wrenGetSlotType(vm, index) == WREN_TYPE_NUM)
-        return (s32)wrenGetSlotDouble(vm, index);
+        return wrenGetSlotDouble(vm, index);
 
     if(wrenGetSlotType(vm, index) == WREN_TYPE_STRING)
     {
@@ -289,10 +289,22 @@ static inline s32 getWrenNumber(WrenVM* vm, s32 index)
             end++;
 
         if(end != text && *end == '\0' && isfinite(number))
-            return (s32)number;
+            return number;
     }
 
     return 0;
+}
+
+static inline s32 getWrenNumber(WrenVM* vm, s32 index)
+{
+    return (s32)getWrenDouble(vm, index);
+}
+
+// The packed fill color uses the whole 32-bit range; an s32 intermediate would
+// saturate where the value has the top bit set.
+static inline u32 getWrenColor(WrenVM* vm, s32 index)
+{
+    return (u32)(s64)getWrenDouble(vm, index);
 }
 
 static inline bool isNumber(WrenVM* vm, s32 index)
@@ -1088,12 +1100,12 @@ static void wren_line(WrenVM* vm)
     float y0 = (float)wrenGetSlotDouble(vm, 2);
     float x1 = (float)wrenGetSlotDouble(vm, 3);
     float y1 = (float)wrenGetSlotDouble(vm, 4);
-    s32 color = getWrenNumber(vm, 5);
+    u32 color = getWrenColor(vm, 5);
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.line(tic, x0, y0, x1, y1, (u8)(color));
+    core->api.line(tic, x0, y0, x1, y1, (u32)(color));
 }
 
 static void wren_circ(WrenVM* vm)
@@ -1101,12 +1113,12 @@ static void wren_circ(WrenVM* vm)
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
     s32 radius = getWrenNumber(vm, 3);
-    s32 color = getWrenNumber(vm, 4);
+    u32 color = getWrenColor(vm, 4);
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.circ(tic, x, y, radius, (u8)(color));
+    core->api.circ(tic, x, y, radius, (u32)(color));
 }
 
 static void wren_circb(WrenVM* vm)
@@ -1114,12 +1126,12 @@ static void wren_circb(WrenVM* vm)
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
     s32 radius = getWrenNumber(vm, 3);
-    s32 color = getWrenNumber(vm, 4);
+    u32 color = getWrenColor(vm, 4);
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.circb(tic, x, y, radius, (u8)(color));
+    core->api.circb(tic, x, y, radius, (u32)(color));
 }
 
 static void wren_elli(WrenVM* vm)
@@ -1128,12 +1140,12 @@ static void wren_elli(WrenVM* vm)
     s32 y = getWrenNumber(vm, 2);
     s32 a = getWrenNumber(vm, 3);
     s32 b = getWrenNumber(vm, 4);
-    s32 color = getWrenNumber(vm, 5);
+    u32 color = getWrenColor(vm, 5);
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.elli(tic, x, y, a, b, (u8)(color));
+    core->api.elli(tic, x, y, a, b, (u32)(color));
 }
 
 static void wren_ellib(WrenVM* vm)
@@ -1142,12 +1154,12 @@ static void wren_ellib(WrenVM* vm)
     s32 y = getWrenNumber(vm, 2);
     s32 a = getWrenNumber(vm, 3);
     s32 b = getWrenNumber(vm, 4);
-    s32 color = getWrenNumber(vm, 5);
+    u32 color = getWrenColor(vm, 5);
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.ellib(tic, x, y, a, b, (u8)(color));
+    core->api.ellib(tic, x, y, a, b, (u32)(color));
 }
 
 static void wren_paint(WrenVM* vm)
@@ -1170,12 +1182,12 @@ static void wren_rect(WrenVM* vm)
     s32 y = getWrenNumber(vm, 2);
     s32 w = getWrenNumber(vm, 3);
     s32 h = getWrenNumber(vm, 4);
-    s32 color = getWrenNumber(vm, 5);
+    u32 color = getWrenColor(vm, 5);
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rect(tic, x, y, w, h, (u8)(color));
+    core->api.rect(tic, x, y, w, h, (u32)(color));
 }
 
 static void wren_rectb(WrenVM* vm)
@@ -1184,12 +1196,12 @@ static void wren_rectb(WrenVM* vm)
     s32 y = getWrenNumber(vm, 2);
     s32 w = getWrenNumber(vm, 3);
     s32 h = getWrenNumber(vm, 4);
-    s32 color = getWrenNumber(vm, 5);
+    u32 color = getWrenColor(vm, 5);
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rectb(tic, x, y, w, h, (u8)(color));
+    core->api.rectb(tic, x, y, w, h, (u32)(color));
 }
 
 static void wren_rrect(WrenVM* vm)
@@ -1199,14 +1211,14 @@ static void wren_rrect(WrenVM* vm)
     s32 y = getWrenNumber(vm, 2);
     s32 w = getWrenNumber(vm, 3);
     s32 h = getWrenNumber(vm, 4);
-    s32 color = getWrenNumber(vm, 5);
+    u32 color = getWrenColor(vm, 5);
     s32 radius = top > 6 ? getWrenNumber(vm, 6) : -1;
     double exponent = top > 7 ? wrenGetSlotDouble(vm, 7) : 2;
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rrect(tic, x, y, w, h, (u8)color, radius, (float)exponent);
+    core->api.rrect(tic, x, y, w, h, (u32)color, radius, (float)exponent);
 }
 
 static void wren_rrectb(WrenVM* vm)
@@ -1216,14 +1228,14 @@ static void wren_rrectb(WrenVM* vm)
     s32 y = getWrenNumber(vm, 2);
     s32 w = getWrenNumber(vm, 3);
     s32 h = getWrenNumber(vm, 4);
-    s32 color = getWrenNumber(vm, 5);
+    u32 color = getWrenColor(vm, 5);
     s32 radius = top > 6 ? getWrenNumber(vm, 6) : -1;
     double exponent = top > 7 ? wrenGetSlotDouble(vm, 7) : 2;
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rrectb(tic, x, y, w, h, (u8)color, radius, (float)exponent);
+    core->api.rrectb(tic, x, y, w, h, (u32)color, radius, (float)exponent);
 }
 
 static void wren_tri(WrenVM* vm)
@@ -1235,12 +1247,12 @@ static void wren_tri(WrenVM* vm)
         pt[i] = (float)wrenGetSlotDouble(vm, i + 1);
     }
 
-    s32 color = getWrenNumber(vm, 7);
+    u32 color = getWrenColor(vm, 7);
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
+    core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u32)(color));
 }
 
 static void wren_trib(WrenVM* vm)
@@ -1252,12 +1264,12 @@ static void wren_trib(WrenVM* vm)
         pt[i] = (float)wrenGetSlotDouble(vm, i + 1);
     }
 
-    s32 color = getWrenNumber(vm, 7);
+    u32 color = getWrenColor(vm, 7);
 
     tic_core* core = getWrenCore(vm);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
+    core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u32)(color));
 }
 
 static void wren_cls(WrenVM* vm)

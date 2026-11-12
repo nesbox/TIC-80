@@ -174,7 +174,7 @@ m3ApiRawFunction(wasmtic_line)
     m3ApiGetArg(float, y0);
     m3ApiGetArg(float, x1);
     m3ApiGetArg(float, y1);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
 
     tic_core* core = getWasmCore(runtime);
     tic_mem* tic = (tic_mem*)core;
@@ -191,7 +191,7 @@ m3ApiRawFunction(wasmtic_circ)
     m3ApiGetArg(int32_t, x);
     m3ApiGetArg(int32_t, y);
     m3ApiGetArg(int32_t, radius);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
 
     if(radius >= 0)
     {
@@ -210,7 +210,7 @@ m3ApiRawFunction(wasmtic_circb)
     m3ApiGetArg(int32_t, x);
     m3ApiGetArg(int32_t, y);
     m3ApiGetArg(int32_t, radius);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
 
     if(radius >= 0)
     {
@@ -230,7 +230,7 @@ m3ApiRawFunction(wasmtic_elli)
     m3ApiGetArg(int32_t, y);
     m3ApiGetArg(int32_t, a);
     m3ApiGetArg(int32_t, b);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
 
     if(a >= 0 && b >= 0)
     {
@@ -250,7 +250,7 @@ m3ApiRawFunction(wasmtic_ellib)
     m3ApiGetArg(int32_t, y);
     m3ApiGetArg(int32_t, a);
     m3ApiGetArg(int32_t, b);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
 
     if(a >= 0 && b >= 0)
     {
@@ -286,7 +286,7 @@ m3ApiRawFunction(wasmtic_rect)
     m3ApiGetArg(int32_t, y);
     m3ApiGetArg(int32_t, w);
     m3ApiGetArg(int32_t, h);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
 
     tic_core* core = getWasmCore(runtime);
     tic_mem* tic = (tic_mem*)core;
@@ -304,7 +304,7 @@ m3ApiRawFunction(wasmtic_rectb)
     m3ApiGetArg(int32_t, y);
     m3ApiGetArg(int32_t, w);
     m3ApiGetArg(int32_t, h);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
 
     tic_core* core = getWasmCore(runtime);
     tic_mem* tic = (tic_mem*)core;
@@ -322,7 +322,7 @@ m3ApiRawFunction(wasmtic_rrect)
     m3ApiGetArg(int32_t, y);
     m3ApiGetArg(int32_t, w);
     m3ApiGetArg(int32_t, h);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
     m3ApiGetArg(int32_t, radius);
     m3ApiGetArg(float, exponent);
 
@@ -342,7 +342,7 @@ m3ApiRawFunction(wasmtic_rrectb)
     m3ApiGetArg(int32_t, y);
     m3ApiGetArg(int32_t, w);
     m3ApiGetArg(int32_t, h);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
     m3ApiGetArg(int32_t, radius);
     m3ApiGetArg(float, exponent);
 
@@ -364,7 +364,7 @@ m3ApiRawFunction(wasmtic_tri)
     m3ApiGetArg(float, y2);
     m3ApiGetArg(float, x3);
     m3ApiGetArg(float, y3);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
 
     tic_core* core = getWasmCore(runtime);
     tic_mem* tic = (tic_mem*)core;
@@ -421,7 +421,7 @@ m3ApiRawFunction(wasmtic_trib)
     m3ApiGetArg(float, y2);
     m3ApiGetArg(float, x3);
     m3ApiGetArg(float, y3);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
 
     tic_core* core = getWasmCore(runtime);
     tic_mem* tic = (tic_mem*)core;

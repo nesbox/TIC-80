@@ -248,7 +248,7 @@ static mrb_value mrb_line(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.line(tic, (float)(x0), (float)(y0), (float)(x1), (float)y1, (u8)color);
+    core->api.line(tic, (float)(x0), (float)(y0), (float)(x1), (float)y1, (u32)color);
 
     return mrb_nil_value();
 }
@@ -262,7 +262,7 @@ static mrb_value mrb_rect(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rect(tic, (s32)(x), (s32)(y), (s32)(w), (s32)h, (u8)color);
+    core->api.rect(tic, (s32)(x), (s32)(y), (s32)(w), (s32)h, (u32)color);
 
     return mrb_nil_value();
 }
@@ -276,7 +276,7 @@ static mrb_value mrb_rectb(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rectb(tic, (s32)(x), (s32)(y), (s32)(w), (s32)h, (u8)color);
+    core->api.rectb(tic, (s32)(x), (s32)(y), (s32)(w), (s32)h, (u32)color);
 
     return mrb_nil_value();
 }
@@ -293,7 +293,7 @@ static mrb_value mrb_rrect(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rrect(tic, (s32)x, (s32)y, (s32)w, (s32)h, (u8)color, (s32)radius, (float)exponent);
+    core->api.rrect(tic, (s32)x, (s32)y, (s32)w, (s32)h, (u32)color, (s32)radius, (float)exponent);
 
     return mrb_nil_value();
 }
@@ -310,7 +310,7 @@ static mrb_value mrb_rrectb(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.rrectb(tic, (s32)x, (s32)y, (s32)w, (s32)h, (u8)color, (s32)radius, (float)exponent);
+    core->api.rrectb(tic, (s32)x, (s32)y, (s32)w, (s32)h, (u32)color, (s32)radius, (float)exponent);
 
     return mrb_nil_value();
 }
@@ -326,7 +326,7 @@ static mrb_value mrb_circ(mrb_state* mrb, mrb_value self)
         tic_core* core = getMRubyMachine(mrb);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.circ(tic, (s32)(x), (s32)(y), (s32)radius, (u8)color);
+        core->api.circ(tic, (s32)(x), (s32)(y), (s32)radius, (u32)color);
     }
     else
     {
@@ -347,7 +347,7 @@ static mrb_value mrb_circb(mrb_state* mrb, mrb_value self)
         tic_core* core = getMRubyMachine(mrb);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.circb(tic, (s32)(x), (s32)(y), (s32)radius, (u8)color);
+        core->api.circb(tic, (s32)(x), (s32)(y), (s32)radius, (u32)color);
     }
     else
     {
@@ -366,7 +366,7 @@ static mrb_value mrb_elli(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.elli(tic, (s32)(x), (s32)(y), (s32)(a), (s32)b, (u8)color);
+    core->api.elli(tic, (s32)(x), (s32)(y), (s32)(a), (s32)b, (u32)color);
 
     return mrb_nil_value();
 }
@@ -380,7 +380,7 @@ static mrb_value mrb_ellib(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.ellib(tic, (s32)(x), (s32)(y), (s32)(a), (s32)b, (u8)color);
+    core->api.ellib(tic, (s32)(x), (s32)(y), (s32)(a), (s32)b, (u32)color);
 
     return mrb_nil_value();
 }
@@ -410,7 +410,7 @@ static mrb_value mrb_tri(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.tri(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)y3, (u8)color);
+    core->api.tri(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)y3, (u32)color);
 
     return mrb_nil_value();
 }
@@ -425,7 +425,7 @@ static mrb_value mrb_trib(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.trib(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)y3, (u8)color);
+    core->api.trib(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)y3, (u32)color);
 
     return mrb_nil_value();
 }

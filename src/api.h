@@ -135,6 +135,18 @@ enum
         "for example, to manipulate the palette.")
 // clang-format on
 
+// Shared help for the primitives whose color word can carry a fill pattern:
+// c1 | c2 << 8 | pattern << 16.
+#define TIC_API_FILL_HELP                                                                                      \
+    "\nThe color may pack a fill pattern: `c1 + c2*256 + pattern*65536`. `pattern` is a 4x4 bitmap of the\n"   \
+    "screen (bit n = (y&3)*4 + (x&3), bit 0 at the top left); a set bit draws `c1`, a clear bit draws `c2`,\n" \
+    "and `c2 = 255` leaves the screen unchanged. `pattern = 0` draws solid `c1`."
+
+#define TIC_API_FILL_MASKS                                                                              \
+    "\nOrdered-dither masks by coverage: 1/16 `0x0001`, 2/16 `0x0401`, 3/16 `0x0405`, 4/16 `0x0505`,\n" \
+    "5/16 `0x0525`, 6/16 `0x8525`, 7/16 `0x85A5`, 8/16 `0xA5A5`, 9/16 `0xA5A7`, 10/16 `0xADA7`,\n"      \
+    "11/16 `0xADAF`, 12/16 `0xAFAF`, 13/16 `0xAFBF`, 14/16 `0xEFBF`, 15/16 `0xEFFF`."
+
 // API DEFINITION TABLE
 //  macro
 //  (
@@ -196,36 +208,39 @@ enum
     macro(line,                                                                                                         \
         "line(x0 y0 x1 y1 color)",                                                                                      \
                                                                                                                         \
-        "Draws a straight line from point (x0,y0) to point (x1,y1) in the specified color.",                            \
+        "Draws a straight line from point (x0,y0) to point (x1,y1) in the specified color."                             \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         5,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, float x1, float y1, float x2, float y2, u8 color)                                                     \
+        tic_mem*, float x1, float y1, float x2, float y2, u32 color)                                                    \
                                                                                                                         \
                                                                                                                         \
     macro(rect,                                                                                                         \
         "rect(x y w h color)",                                                                                          \
                                                                                                                         \
         "This function draws a filled rectangle of the desired size and color at the specified position.\n"             \
-        "If you only need to draw the the border or outline of a rectangle (ie not filled) see `rectb()`.",             \
+        "If you only need to draw the the border or outline of a rectangle (ie not filled) see `rectb()`."              \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         5,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color)                                                        \
+        tic_mem*, s32 x, s32 y, s32 width, s32 height, u32 color)                                                       \
                                                                                                                         \
                                                                                                                         \
     macro(rectb,                                                                                                        \
         "rectb(x y w h color)",                                                                                         \
                                                                                                                         \
         "This function draws a one pixel thick rectangle border at the position requested.\n"                           \
-        "If you need to fill the rectangle with a color, see `rect()` instead.",                                        \
+        "If you need to fill the rectangle with a color, see `rect()` instead."                                         \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         5,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color)                                                        \
+        tic_mem*, s32 x, s32 y, s32 width, s32 height, u32 color)                                                       \
                                                                                                                         \
                                                                                                                         \
     macro(rrect,                                                                                                        \
@@ -233,24 +248,26 @@ enum
                                                                                                                         \
         "This function draws a filled rounded rectangle of the desired size, color, and radius "                        \
         "at the specified position.\n"                                                                                  \
-        "If you only need to draw the the border or outline of a rounded rectangle (ie not filled) see `rrectb()`.",    \
+        "If you only need to draw the the border or outline of a rounded rectangle (ie not filled) see `rrectb()`."     \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         7,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)                            \
+        tic_mem*, s32 x, s32 y, s32 width, s32 height, u32 color, s32 radius, float exponent)                           \
                                                                                                                         \
                                                                                                                         \
     macro(rrectb,                                                                                                       \
         "rrectb(x y w h color radius=-1 exponent=2)",                                                                      \
                                                                                                                         \
         "This function draws a one pixel thick rounded rectangle border at the position requested.\n"                   \
-        "If you need to fill the rounded rectangle with a color, see `rrect()` instead.",                               \
+        "If you need to fill the rounded rectangle with a color, see `rrect()` instead."                                \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         7,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color, s32 radius, float exponent)                            \
+        tic_mem*, s32 x, s32 y, s32 width, s32 height, u32 color, s32 radius, float exponent)                           \
                                                                                                                         \
                                                                                                                         \
     macro(spr,                                                                                                          \
@@ -645,48 +662,52 @@ enum
         "circ(x y radius color)",                                                                                       \
                                                                                                                         \
         "This function draws a filled circle of the desired radius and color with its center at x, y.\n"                \
-        "It uses the Bresenham algorithm.",                                                                             \
+        "It uses the Bresenham algorithm."                                                                              \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         4,                                                                                                              \
         4,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, s32 radius, u8 color)                                                                   \
+        tic_mem*, s32 x, s32 y, s32 radius, u32 color)                                                                  \
                                                                                                                         \
                                                                                                                         \
     macro(circb,                                                                                                        \
         "circb(x y radius color)",                                                                                      \
                                                                                                                         \
         "Draws the circumference of a circle with its center at x, y using the radius and color requested.\n"           \
-        "It uses the Bresenham algorithm.",                                                                             \
+        "It uses the Bresenham algorithm."                                                                              \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         4,                                                                                                              \
         4,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, s32 radius, u8 color)                                                                   \
+        tic_mem*, s32 x, s32 y, s32 radius, u32 color)                                                                  \
                                                                                                                         \
                                                                                                                         \
     macro(elli,                                                                                                         \
         "elli(x y a b color)",                                                                                          \
                                                                                                                         \
         "This function draws a filled ellipse of the desired a, b radiuses and color with its center at x, y.\n"        \
-        "It uses the Bresenham algorithm.",                                                                             \
+        "It uses the Bresenham algorithm."                                                                              \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         5,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, s32 a, s32 b, u8 color)                                                                 \
+        tic_mem*, s32 x, s32 y, s32 a, s32 b, u32 color)                                                                \
                                                                                                                         \
                                                                                                                         \
     macro(ellib,                                                                                                        \
         "ellib(x y a b color)",                                                                                         \
                                                                                                                         \
         "This function draws an ellipse border with the desired radiuses a b and color with its center at x, y.\n"      \
-        "It uses the Bresenham algorithm.",                                                                             \
+        "It uses the Bresenham algorithm."                                                                              \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         5,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, s32 a, s32 b, u8 color)                                                                 \
+        tic_mem*, s32 x, s32 y, s32 a, s32 b, u32 color)                                                                \
                                                                                                                         \
                                                                                                                         \
     macro(paint,                                                                                                        \
@@ -704,22 +725,24 @@ enum
     macro(tri,                                                                                                          \
         "tri(x1 y1 x2 y2 x3 y3 color)",                                                                                 \
                                                                                                                         \
-        "This function draws a triangle filled with color, using the supplied vertices.",                               \
+        "This function draws a triangle filled with color, using the supplied vertices."                                \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         7,                                                                                                              \
         7,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)                                 \
+        tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, u32 color)                                \
                                                                                                                         \
     macro(trib,                                                                                                         \
         "trib(x1 y1 x2 y2 x3 y3 color)",                                                                                \
                                                                                                                         \
-        "This function draws a triangle border with color, using the supplied vertices.",                               \
+        "This function draws a triangle border with color, using the supplied vertices."                                \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         7,                                                                                                              \
         7,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)                                 \
+        tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, u32 color)                                \
                                                                                                                         \
                                                                                                                         \
     macro(ttri,                                                                                                         \

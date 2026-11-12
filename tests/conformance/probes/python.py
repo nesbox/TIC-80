@@ -206,6 +206,13 @@ def p_rect_missing_color():
 
 probe('rect/missing-color', p_rect_missing_color)
 
+def p_rect_pattern():
+    cls(0)
+    rect(1, 1, 3, 3, 6 + 8*256 + 42405*65536)
+    pix(1, 1)
+
+probe('rect/pattern', p_rect_pattern)
+
 # ---- rectb
 
 def p_rectb_border():

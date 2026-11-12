@@ -134,7 +134,7 @@ s7_pointer scheme_line(s7_scheme* sc, s7_pointer args)
     const float y0 = (float)schemeNumber(sc, s7_cadr(args));
     const float x1 = (float)schemeNumber(sc, s7_caddr(args));
     const float y1 = (float)schemeNumber(sc, s7_cadddr(args));
-    const u8 color = (u8)schemeInteger(sc, s7_list_ref(sc, args, 4));
+    const u32 color = (u32)schemeInteger(sc, s7_list_ref(sc, args, 4));
     core->api.line(tic, x0, y0, x1, y1, color);
     return s7_nil(sc);
 }
@@ -147,7 +147,7 @@ s7_pointer scheme_rect(s7_scheme* sc, s7_pointer args)
     const s32 y = (s32)(s7_integer(s7_cadr(args)));
     const s32 w = (s32)(s7_integer(s7_caddr(args)));
     const s32 h = (s32)(s7_integer(s7_cadddr(args)));
-    const u8 color = (u8)(s7_integer(s7_list_ref(sc, args, 4)));
+    const u32 color = (u32)(s7_integer(s7_list_ref(sc, args, 4)));
     core->api.rect(tic, x, y, w, h, color);
     return s7_nil(sc);
 }
@@ -160,7 +160,7 @@ s7_pointer scheme_rectb(s7_scheme* sc, s7_pointer args)
     const s32 y = (s32)(s7_integer(s7_cadr(args)));
     const s32 w = (s32)(s7_integer(s7_caddr(args)));
     const s32 h = (s32)(s7_integer(s7_cadddr(args)));
-    const u8 color = (u8)(s7_integer(s7_list_ref(sc, args, 4)));
+    const u32 color = (u32)(s7_integer(s7_list_ref(sc, args, 4)));
     core->api.rectb(tic, x, y, w, h, color);
     return s7_nil(sc);
 }
@@ -174,7 +174,7 @@ s7_pointer scheme_rrect(s7_scheme* sc, s7_pointer args)
     const s32 y = (s32)s7_integer(s7_cadr(args));
     const s32 w = (s32)s7_integer(s7_caddr(args));
     const s32 h = (s32)s7_integer(s7_cadddr(args));
-    const u8 color = (u8)s7_integer(s7_list_ref(sc, args, 4));
+    const u32 color = (u32)s7_integer(s7_list_ref(sc, args, 4));
     const s32 radius = argn >= 6 ? (s32)s7_integer(s7_list_ref(sc, args, 5)) : -1;
     const float exponent = argn >= 7 ? (float)s7_real(s7_list_ref(sc, args, 6)) : 2.0f;
 
@@ -191,7 +191,7 @@ s7_pointer scheme_rrectb(s7_scheme* sc, s7_pointer args)
     const s32 y = (s32)s7_integer(s7_cadr(args));
     const s32 w = (s32)s7_integer(s7_caddr(args));
     const s32 h = (s32)s7_integer(s7_cadddr(args));
-    const u8 color = (u8)s7_integer(s7_list_ref(sc, args, 4));
+    const u32 color = (u32)s7_integer(s7_list_ref(sc, args, 4));
     const s32 radius = argn >= 6 ? (s32)s7_integer(s7_list_ref(sc, args, 5)) : -1;
     const float exponent = argn >= 7 ? (float)s7_real(s7_list_ref(sc, args, 6)) : 2.0f;
 
@@ -701,7 +701,7 @@ s7_pointer scheme_circ(s7_scheme* sc, s7_pointer args)
     const s32 y = (s32)(s7_integer(s7_cadr(args)));
     const s32 radius = (s32)(s7_integer(s7_caddr(args)));
     const s32 color = (s32)(s7_integer(s7_cadddr(args)));
-    core->api.circ(tic, x, y, radius, (u8)(color));
+    core->api.circ(tic, x, y, radius, (u32)(color));
     return s7_nil(sc);
 }
 s7_pointer scheme_circb(s7_scheme* sc, s7_pointer args)
@@ -713,7 +713,7 @@ s7_pointer scheme_circb(s7_scheme* sc, s7_pointer args)
     const s32 y = (s32)(s7_integer(s7_cadr(args)));
     const s32 radius = (s32)(s7_integer(s7_caddr(args)));
     const s32 color = (s32)(s7_integer(s7_cadddr(args)));
-    core->api.circb(tic, x, y, radius, (u8)(color));
+    core->api.circb(tic, x, y, radius, (u32)(color));
     return s7_nil(sc);
 }
 s7_pointer scheme_elli(s7_scheme* sc, s7_pointer args)
@@ -726,7 +726,7 @@ s7_pointer scheme_elli(s7_scheme* sc, s7_pointer args)
     const s32 a = (s32)(s7_integer(s7_caddr(args)));
     const s32 b = (s32)(s7_integer(s7_cadddr(args)));
     const s32 color = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
-    core->api.elli(tic, x, y, a, b, (u8)(color));
+    core->api.elli(tic, x, y, a, b, (u32)(color));
     return s7_nil(sc);
 }
 s7_pointer scheme_ellib(s7_scheme* sc, s7_pointer args)
@@ -739,7 +739,7 @@ s7_pointer scheme_ellib(s7_scheme* sc, s7_pointer args)
     const s32 a = (s32)(s7_integer(s7_caddr(args)));
     const s32 b = (s32)(s7_integer(s7_cadddr(args)));
     const s32 color = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
-    core->api.ellib(tic, x, y, a, b, (u8)(color));
+    core->api.ellib(tic, x, y, a, b, (u32)(color));
     return s7_nil(sc);
 }
 s7_pointer scheme_paint(s7_scheme* sc, s7_pointer args)
@@ -767,7 +767,7 @@ s7_pointer scheme_tri(s7_scheme* sc, s7_pointer args)
     const s32 x3 = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
     const s32 y3 = (s32)(s7_integer(s7_list_ref(sc, args, 5)));
     const s32 color = (s32)(s7_integer(s7_list_ref(sc, args, 6)));
-    core->api.tri(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)y3, (u8)(color));
+    core->api.tri(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)y3, (u32)(color));
     return s7_nil(sc);
 }
 s7_pointer scheme_trib(s7_scheme* sc, s7_pointer args)
@@ -782,7 +782,7 @@ s7_pointer scheme_trib(s7_scheme* sc, s7_pointer args)
     const s32 x3 = (s32)(s7_integer(s7_list_ref(sc, args, 4)));
     const s32 y3 = (s32)(s7_integer(s7_list_ref(sc, args, 5)));
     const s32 color = (s32)(s7_integer(s7_list_ref(sc, args, 6)));
-    core->api.trib(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)y3, (u8)(color));
+    core->api.trib(tic, (float)(x1), (float)(y1), (float)(x2), (float)(y2), (float)(x3), (float)y3, (u32)(color));
     return s7_nil(sc);
 }
 s7_pointer scheme_ttri(s7_scheme* sc, s7_pointer args)

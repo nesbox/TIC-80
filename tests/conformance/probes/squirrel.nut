@@ -180,6 +180,12 @@ probe("rect/missing-color", function() {
     pix(1, 1);
 });
 
+probe("rect/pattern", function() {
+    cls(0);
+    rect(1, 1, 3, 3, 6 + 8*256 + 42405*65536);
+    pix(1, 1);
+});
+
 // ---- rectb
 
 probe("rectb/border", function() {

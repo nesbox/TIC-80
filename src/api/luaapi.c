@@ -35,6 +35,13 @@ static inline s32 getLuaNumber(lua_State* lua, s32 index)
     return (s32)lua_tonumber(lua, index);
 }
 
+// The packed fill color uses the whole 32-bit range; an s32 intermediate would
+// saturate where the value has the top bit set.
+static inline u32 getLuaColor(lua_State* lua, s32 index)
+{
+    return (u32)(s64)lua_tonumber(lua, index);
+}
+
 static void registerLuaFunction(tic_core* core, lua_CFunction func, const char* name)
 {
     lua_pushlightuserdata(core->currentVM, core);
@@ -278,12 +285,12 @@ static s32 lua_line(lua_State* lua)
         float y0 = (float)(lua_tonumber(lua, 2));
         float x1 = (float)(lua_tonumber(lua, 3));
         float y1 = (float)(lua_tonumber(lua, 4));
-        s32 color = getLuaNumber(lua, 5);
+        u32 color = getLuaColor(lua, 5);
 
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.line(tic, x0, y0, x1, y1, (u8)(color));
+        core->api.line(tic, x0, y0, x1, y1, (u32)(color));
     }
     else
         luaL_error(lua, "invalid parameters, line(x0,y0,x1,y1,color)\n");
@@ -301,12 +308,12 @@ static s32 lua_rect(lua_State* lua)
         s32 y = getLuaNumber(lua, 2);
         s32 w = getLuaNumber(lua, 3);
         s32 h = getLuaNumber(lua, 4);
-        s32 color = getLuaNumber(lua, 5);
+        u32 color = getLuaColor(lua, 5);
 
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rect(tic, x, y, w, h, (u8)(color));
+        core->api.rect(tic, x, y, w, h, (u32)(color));
     }
     else
         luaL_error(lua, "invalid parameters, rect(x,y,w,h,color)\n");
@@ -324,12 +331,12 @@ static s32 lua_rectb(lua_State* lua)
         s32 y = getLuaNumber(lua, 2);
         s32 w = getLuaNumber(lua, 3);
         s32 h = getLuaNumber(lua, 4);
-        s32 color = getLuaNumber(lua, 5);
+        u32 color = getLuaColor(lua, 5);
 
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rectb(tic, x, y, w, h, (u8)(color));
+        core->api.rectb(tic, x, y, w, h, (u32)(color));
     }
     else
         luaL_error(lua, "invalid parameters, rectb(x,y,w,h,color)\n");
@@ -347,14 +354,14 @@ static s32 lua_rrect(lua_State* lua)
         s32 y = getLuaNumber(lua, 2);
         s32 w = getLuaNumber(lua, 3);
         s32 h = getLuaNumber(lua, 4);
-        s32 color = getLuaNumber(lua, 5);
+        u32 color = getLuaColor(lua, 5);
         s32 radius = top >= 6 ? getLuaNumber(lua, 6) : -1;
         float exponent = top >= 7 ? (float)lua_tonumber(lua, 7) : 2.0f;
 
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rrect(tic, x, y, w, h, (u8)color, radius, exponent);
+        core->api.rrect(tic, x, y, w, h, (u32)color, radius, exponent);
     }
     else
         luaL_error(lua, "invalid parameters, rrect(x,y,w,h,color,radius=-1,exponent=2)\n");
@@ -372,14 +379,14 @@ static s32 lua_rrectb(lua_State* lua)
         s32 y = getLuaNumber(lua, 2);
         s32 w = getLuaNumber(lua, 3);
         s32 h = getLuaNumber(lua, 4);
-        s32 color = getLuaNumber(lua, 5);
+        u32 color = getLuaColor(lua, 5);
         s32 radius = top >= 6 ? getLuaNumber(lua, 6) : -1;
         float exponent = top >= 7 ? (float)lua_tonumber(lua, 7) : 2.0f;
 
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.rrectb(tic, x, y, w, h, (u8)color, radius, exponent);
+        core->api.rrectb(tic, x, y, w, h, (u32)color, radius, exponent);
     }
     else
         luaL_error(lua, "invalid parameters, rrectb(x,y,w,h,color,radius=-1,exponent=2)\n");
@@ -399,9 +406,9 @@ static s32 lua_circ(lua_State* lua)
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
         s32 radius = getLuaNumber(lua, 3);
-        s32 color = getLuaNumber(lua, 4);
+        u32 color = getLuaColor(lua, 4);
 
-        core->api.circ(tic, x, y, radius, (u8)(color));
+        core->api.circ(tic, x, y, radius, (u32)(color));
     }
     else
         luaL_error(lua, "invalid parameters, circ(x,y,radius,color)\n");
@@ -421,9 +428,9 @@ static s32 lua_circb(lua_State* lua)
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
         s32 radius = getLuaNumber(lua, 3);
-        s32 color = getLuaNumber(lua, 4);
+        u32 color = getLuaColor(lua, 4);
 
-        core->api.circb(tic, x, y, radius, (u8)(color));
+        core->api.circb(tic, x, y, radius, (u32)(color));
     }
     else
         luaL_error(lua, "invalid parameters, circb(x,y,radius,color)\n");
@@ -444,9 +451,9 @@ static s32 lua_elli(lua_State* lua)
         s32 y = getLuaNumber(lua, 2);
         s32 a = getLuaNumber(lua, 3);
         s32 b = getLuaNumber(lua, 4);
-        s32 color = getLuaNumber(lua, 5);
+        u32 color = getLuaColor(lua, 5);
 
-        core->api.elli(tic, x, y, a, b, (u8)(color));
+        core->api.elli(tic, x, y, a, b, (u32)(color));
     }
     else
         luaL_error(lua, "invalid parameters, elli(x,y,a,b,color)\n");
@@ -467,9 +474,9 @@ static s32 lua_ellib(lua_State* lua)
         s32 y = getLuaNumber(lua, 2);
         s32 a = getLuaNumber(lua, 3);
         s32 b = getLuaNumber(lua, 4);
-        s32 color = getLuaNumber(lua, 5);
+        u32 color = getLuaColor(lua, 5);
 
-        core->api.ellib(tic, x, y, a, b, (u8)(color));
+        core->api.ellib(tic, x, y, a, b, (u32)(color));
     }
     else
         luaL_error(lua, "invalid parameters, ellib(x,y,a,b,color)\n");
@@ -488,12 +495,12 @@ static s32 lua_tri(lua_State* lua)
         for(s32 i = 0; i < COUNT_OF(pt); i++)
             pt[i] = (float)(lua_tonumber(lua, i + 1));
 
-        s32 color = getLuaNumber(lua, 7);
+        u32 color = getLuaColor(lua, 7);
 
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
+        core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u32)(color));
     }
     else
         luaL_error(lua, "invalid parameters, tri(x1,y1,x2,y2,x3,y3,color)\n");
@@ -512,12 +519,12 @@ static s32 lua_trib(lua_State* lua)
         for(s32 i = 0; i < COUNT_OF(pt); i++)
             pt[i] = (float)(lua_tonumber(lua, i + 1));
 
-        s32 color = getLuaNumber(lua, 7);
+        u32 color = getLuaColor(lua, 7);
 
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u8)(color));
+        core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], (u32)(color));
     }
     else
         luaL_error(lua, "invalid parameters, trib(x1,y1,x2,y2,x3,y3,color)\n");
