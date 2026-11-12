@@ -60,6 +60,7 @@ target_include_directories(tic80core
         ${THIRDPARTY_DIR}/fennel
         ${THIRDPARTY_DIR}/yuescript
         ${POCKETPY_DIR}/src
+        ${CMAKE_CURRENT_BINARY_DIR}
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)

@@ -1702,3 +1702,10 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Janet) =
         .demo = {DemoRom, sizeof DemoRom, NULL},
         .mark = {MarkRom, sizeof MarkRom, "janetmark.tic"},
 };
+
+#if !defined(TIC_RUNTIME_STATIC)
+
+#include "../../build/runtime_versions.h"
+TIC_EXPORT const char* SCRIPT_RUNTIME_VERSION = TIC_RUNTIME_VERSION_JANET;
+
+#endif

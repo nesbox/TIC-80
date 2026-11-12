@@ -3525,6 +3525,17 @@ static bool onEnumModule(const char* name, const char* title, const char* hash, 
             if(config)
             {
                 tic_add_script(config);
+
+                const char** version = dlsym(module, DEF2STR(SCRIPT_RUNTIME_VERSION));
+
+                if(version)
+                {
+                    tic_add_script_version(config, *version);
+                }
+                else
+                {
+                    fprintf(stderr, "WARNING: %s not exported from %s; will report version as unknown\n", DEF2STR(SCRIPT_RUNTIME_VERSION), name);
+                }
             }
             else
             {

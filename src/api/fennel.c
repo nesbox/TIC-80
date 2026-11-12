@@ -235,3 +235,10 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Fennel) =
 
         .demo = {DemoRom, sizeof DemoRom, NULL},
 };
+
+#if !defined(TIC_RUNTIME_STATIC)
+
+#include "../../build/runtime_versions.h"
+TIC_EXPORT const char* SCRIPT_RUNTIME_VERSION = TIC_RUNTIME_VERSION_FENNEL;
+
+#endif

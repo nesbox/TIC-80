@@ -77,16 +77,28 @@ struct tic_script
     s32 (*errorLine)(tic_mem* memory, const char* text);
 };
 
+struct LangRuntimeVersion
+{
+    const char* script;
+    const char* version;
+};
+
 typedef struct tic_script tic_script;
 
 const tic_script* tic_get_script(tic_mem* memory);
 void tic_add_script(const tic_script* script);
+void tic_add_script_version(const tic_script* script, const char* version);
 const tic_script** tic_scripts();
+struct LangRuntimeVersion* tic_runtime_versions();
 
 #define FOREACH_LANG(script) \
     for(const tic_script **MACROVAR(it) = tic_scripts(), *script = *MACROVAR(it); *MACROVAR(it); script = *++MACROVAR(it))
 
-#define SCRIPT_CONFIG ScriptConfig
+#define FOREACH_VERSION(version) \
+    for(struct LangRuntimeVersion* version = tic_runtime_versions(); version->script; ++version)
+
+#define SCRIPT_CONFIG          ScriptConfig
+#define SCRIPT_RUNTIME_VERSION RuntimeVersion
 
 #if defined(TIC_RUNTIME_STATIC)
 #define EXPORT_SCRIPT(X) CONCAT(X, SCRIPT_CONFIG)

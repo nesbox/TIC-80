@@ -234,3 +234,10 @@ extern "C" TIC_EXPORT const tic_script EXPORT_SCRIPT(Yue) = {
     nullptr, // demos
     nullptr  // errorLine
 };
+
+#if !defined(TIC_RUNTIME_STATIC)
+
+#include "../../build/runtime_versions.h"
+TIC_EXPORT const char* SCRIPT_RUNTIME_VERSION = TIC_RUNTIME_VERSION_YUE;
+
+#endif
