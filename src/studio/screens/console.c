@@ -35,6 +35,7 @@
 #include "zip.h"
 #include "retro_endianness.h"
 #include "runtime_versions.h"
+#include "script.h"
 
 #if defined(TIC80_PRO)
 #include "studio/project.h"
@@ -3995,34 +3996,10 @@ static void onHelp_ram(Console* console)
     printTable(console, buf);
 }
 
-static const struct LangRuntimeVersion
-{
-    const char* script;
-    const char* version;
-} LangRuntimeVersions[] =
-    {
-        {"lua", TIC_RUNTIME_VERSION_LUA},
-        {"ruby", TIC_RUNTIME_VERSION_RUBY},
-        {"js", TIC_RUNTIME_VERSION_JS},
-        {"moon", TIC_RUNTIME_VERSION_MOON},
-        {"yue", TIC_RUNTIME_VERSION_YUE},
-        {"fennel", TIC_RUNTIME_VERSION_FENNEL},
-        {"scheme", TIC_RUNTIME_VERSION_SCHEME},
-        {"squirrel", TIC_RUNTIME_VERSION_SQUIRREL},
-        {"wren", TIC_RUNTIME_VERSION_WREN},
-        {"wasm", TIC_RUNTIME_VERSION_WASM},
-        {"janet", TIC_RUNTIME_VERSION_JANET},
-        {"python", TIC_RUNTIME_VERSION_PYTHON},
-        {"miniscript", TIC_RUNTIME_VERSION_MINISCRIPT},
-        {"forth", TIC_RUNTIME_VERSION_FORTH},
-        {"gravity", TIC_RUNTIME_VERSION_GRAVITY},
-        {NULL, NULL},
-};
-
 static const char* getLangRuntimeVersion(const tic_script* script)
 {
     if(script)
-        FOR(const struct LangRuntimeVersion*, it, LangRuntimeVersions)
+        FOREACH_VERSION(it)
     if(it->script && strcmp(script->name, it->script) == 0)
         return it->version;
 

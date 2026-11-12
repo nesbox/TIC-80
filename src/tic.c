@@ -90,6 +90,14 @@ TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
             if(config)
             {
                 tic_add_script(config);
+
+                const char** version = dlsym(module, DEF2STR(SCRIPT_RUNTIME_VERSION));
+
+                if(version)
+                {
+                    tic_add_script_version(config, *version);
+                }
+
                 tic_api_reset(mem);
             }
             else

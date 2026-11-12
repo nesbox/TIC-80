@@ -977,3 +977,10 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Forth) =
         .demo = {DemoRom, sizeof DemoRom, "forthdemo.tic"},
         .mark = {MarkRom, sizeof MarkRom, "forthmark.tic"},
 };
+
+#if !defined(TIC_RUNTIME_STATIC)
+
+#include "../../build/runtime_versions.h"
+TIC_EXPORT const char* SCRIPT_RUNTIME_VERSION = TIC_RUNTIME_VERSION_FORTH;
+
+#endif

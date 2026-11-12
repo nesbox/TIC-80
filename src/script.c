@@ -22,6 +22,7 @@
 
 #include "script.h"
 #include "tools.h"
+#include "runtime_versions.h"
 
 #include <stdio.h>
 
@@ -157,6 +158,74 @@ static const tic_script* Scripts[MAX_SUPPORTED_LANGS + 1] =
         NULL,
 };
 
+static struct LangRuntimeVersion LangRuntimeVersions[MAX_SUPPORTED_LANGS + 1] =
+    {
+#if defined(TIC_RUNTIME_STATIC)
+
+#if defined(TIC_BUILD_WITH_LUA)
+        {"lua", TIC_RUNTIME_VERSION_LUA},
+#endif
+
+#if defined(TIC_BUILD_WITH_RUBY)
+        {"ruby", TIC_RUNTIME_VERSION_RUBY},
+#endif
+
+#if defined(TIC_BUILD_WITH_JS)
+        {"js", TIC_RUNTIME_VERSION_JS},
+#endif
+
+#if defined(TIC_BUILD_WITH_MOON)
+        {"moon", TIC_RUNTIME_VERSION_MOON},
+#endif
+
+#if defined(TIC_BUILD_WITH_YUE)
+        {"yue", TIC_RUNTIME_VERSION_YUE},
+#endif
+
+#if defined(TIC_BUILD_WITH_FENNEL)
+        {"fennel", TIC_RUNTIME_VERSION_FENNEL},
+#endif
+
+#if defined(TIC_BUILD_WITH_SCHEME)
+        {"scheme", TIC_RUNTIME_VERSION_SCHEME},
+#endif
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+        {"squirrel", TIC_RUNTIME_VERSION_SQUIRREL},
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+        {"wren", TIC_RUNTIME_VERSION_WREN},
+#endif
+
+#if defined(TIC_BUILD_WITH_WASM)
+        {"wasm", TIC_RUNTIME_VERSION_WASM},
+#endif
+
+#if defined(TIC_BUILD_WITH_JANET)
+        {"janet", TIC_RUNTIME_VERSION_JANET},
+#endif
+
+#if defined(TIC_BUILD_WITH_PYTHON)
+        {"python", TIC_RUNTIME_VERSION_PYTHON},
+#endif
+
+#if defined(TIC_BUILD_WITH_MINISCRIPT)
+        {"miniscript", TIC_RUNTIME_VERSION_MINISCRIPT},
+#endif
+
+#if defined(TIC_BUILD_WITH_FORTH)
+        {"forth", TIC_RUNTIME_VERSION_FORTH},
+#endif
+
+#if defined(TIC_BUILD_WITH_GRAVITY)
+        {"gravity", TIC_RUNTIME_VERSION_GRAVITY},
+#endif
+
+#endif
+        {NULL},
+};
+
 static int compareScripts(const void* a, const void* b)
 {
     const tic_script* script1 = *(const tic_script**)a;
@@ -188,9 +257,35 @@ void tic_add_script(const tic_script* script)
     }
 }
 
+void tic_add_script_version(const tic_script* script, const char* version)
+{
+    s32 index = 0;
+    while (LangRuntimeVersions[index].script)
+    {
+        if(strcmp(LangRuntimeVersions[index].script, script->name) == 0)
+        {
+            // script version already exists
+            return;
+        }
+
+        ++index;
+    }
+
+    if (index < MAX_SUPPORTED_LANGS)
+    {
+        LangRuntimeVersions[index].script = script->name;
+        LangRuntimeVersions[index].version = version;
+    }
+}
+
 const tic_script** tic_scripts()
 {
     return Scripts;
+}
+
+struct LangRuntimeVersion* tic_runtime_versions()
+{
+    return LangRuntimeVersions;
 }
 
 const tic_script* tic_get_script(tic_mem* memory)

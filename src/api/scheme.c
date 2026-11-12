@@ -1473,3 +1473,10 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Scheme) =
         .demo = {DemoRom, sizeof DemoRom, NULL},
         .mark = {MarkRom, sizeof MarkRom, "schememark.tic"},
 };
+
+#if !defined(TIC_RUNTIME_STATIC)
+
+#include "../../build/runtime_versions.h"
+TIC_EXPORT const char* SCRIPT_RUNTIME_VERSION = TIC_RUNTIME_VERSION_SCHEME;
+
+#endif
