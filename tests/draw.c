@@ -262,10 +262,62 @@ static void refPaint(s32 x, s32 y, u8 color, u8 border)
             continue;
 
         expected[p] = color;
-        queue[tail++] = p - 1;
-        queue[tail++] = p + 1;
-        queue[tail++] = p - TIC80_WIDTH;
-        queue[tail++] = p + TIC80_WIDTH;
+        if(px > 0) queue[tail++] = p - 1;
+        if(px + 1 < TIC80_WIDTH) queue[tail++] = p + 1;
+        if(py > 0) queue[tail++] = p - TIC80_WIDTH;
+        if(py + 1 < TIC80_HEIGHT) queue[tail++] = p + TIC80_WIDTH;
+    }
+}
+
+// The patterned paint: a visited set bounds the walk where the paint color
+// cannot, and a transparent c2 leaves the pixel as it was.
+static void refPaintPattern(s32 x, s32 y, u8 c1, u8 c2, u16 pattern, u8 border)
+{
+    const struct ClipRect* clip = &core()->state.clip;
+
+    if(x < clip->l || y < clip->t || x >= clip->r || y >= clip->b)
+        return;
+
+    u8 original = expected[y * TIC80_WIDTH + x];
+
+    if(original == border)
+        return;
+
+    static u8 visited[TIC80_WIDTH * TIC80_HEIGHT];
+    memset(visited, 0, sizeof visited);
+
+    static s32 queue[TIC80_WIDTH * TIC80_HEIGHT * 4 + 1];
+    s32 head = 0, tail = 0;
+    queue[tail++] = y * TIC80_WIDTH + x;
+
+    while(head < tail)
+    {
+        s32 p = queue[head++];
+        s32 px = p % TIC80_WIDTH, py = p / TIC80_WIDTH;
+
+        if(px < clip->l || py < clip->t || px >= clip->r || py >= clip->b)
+            continue;
+
+        if(visited[p])
+            continue;
+
+        u8 pix = expected[p];
+        bool inside = border == 255 ? pix == original : pix != border;
+
+        if(!inside)
+            continue;
+
+        visited[p] = 1;
+
+        u8 color = (pattern >> ((py & 3) * 4 + (px & 3))) & 1 ? c1 : c2;
+
+        if(color != 255)
+            expected[p] = color;
+
+        if(px > 0) queue[tail++] = p - 1;
+        if(px + 1 < TIC80_WIDTH) queue[tail++] = p + 1;
+        if(py > 0) queue[tail++] = p - TIC80_WIDTH;
+        if(py + 1 < TIC80_HEIGHT) queue[tail++] = p + TIC80_WIDTH;
     }
 }
 
@@ -2134,6 +2186,93 @@ static void testPaint(void)
     tic_api_paint(Tic, 120, 68, 9, 1);
     refPaint(120, 68, 9, 1);
     expectFrame("paint circle border frame");
+
+    // The primary color is the region's own: without the visited set the fill
+    // would find its own output again.
+    reset();
+    tic_api_rect(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 3);
+    refReset();
+    memset(expected, 3, sizeof(expected));
+    tic_api_paint(Tic, 120, 68, fillWord(3, 8, 0xA5A5), 255);
+    refPaintPattern(120, 68, 3, 8, 0xA5A5, 255);
+    expectFrame("paint pattern own color frame");
+
+    // The region's own color as c1 and a transparent c2: the screen does not
+    // change at all, so only the visited set can end the walk.
+    reset();
+    tic_api_rect(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 6);
+    refReset();
+    memset(expected, 6, sizeof(expected));
+    tic_api_paint(Tic, 120, 68, fillWord(6, 255, 0xA5A5), 255);
+    refPaintPattern(120, 68, 6, 255, 0xA5A5, 255);
+    expectFrame("paint pattern fixed point frame");
+
+    // The second color is the region's own: the clear bits still equal the
+    // original, so only the visited set can stop the walk.
+    reset();
+    tic_api_rect(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 8);
+    refReset();
+    memset(expected, 8, sizeof(expected));
+    tic_api_paint(Tic, 120, 68, fillWord(6, 8, 0x5A5A), 255);
+    refPaintPattern(120, 68, 6, 8, 0x5A5A, 255);
+    expectFrame("paint pattern second own color frame");
+
+    // A transparent second color leaves the region's pixels alone.
+    reset();
+    tic_api_rect(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 3);
+    refReset();
+    memset(expected, 3, sizeof(expected));
+    tic_api_paint(Tic, 120, 68, fillWord(6, 255, 0x8421), 255);
+    refPaintPattern(120, 68, 6, 255, 0x8421, 255);
+    expectFrame("paint transparent pattern frame");
+
+    // A bordered region takes the tile, and the border stays.
+    reset();
+    tic_api_rectb(Tic, 50, 40, 100, 50, 1);
+    refCapture();
+    tic_api_paint(Tic, 100, 65, fillWord(6, 8, 0x0F0F), 1);
+    refPaintPattern(100, 65, 6, 8, 0x0F0F, 1);
+    expectFrame("paint bordered pattern frame");
+
+    // A patterned border fill does not treat c1/c2 pixels as walls.
+    reset();
+    tic_api_rectb(Tic, 10, 10, 60, 40, 1);
+    tic_api_rect(Tic, 11, 11, 20, 38, 6);
+    tic_api_rect(Tic, 31, 11, 20, 38, 8);
+    refCapture();
+    tic_api_paint(Tic, 15, 15, fillWord(6, 8, 0xA5A5), 1);
+    refPaintPattern(15, 15, 6, 8, 0xA5A5, 1);
+    expectFrame("paint bordered own colors frame");
+
+    // The clip bounds both the walk and the tile.
+    reset();
+    tic_api_rectb(Tic, 50, 40, 100, 50, 1);
+    tic_api_clip(Tic, 60, 50, 20, 10);
+    refCapture();
+    tic_api_paint(Tic, 70, 55, fillWord(6, 8, 0x5555), 1);
+    refPaintPattern(70, 55, 6, 8, 0x5555, 1);
+    expectFrame("paint clipped pattern frame");
+
+    // A second paint starts from a fresh visited set.
+    reset();
+    tic_api_rect(Tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, 3);
+    refReset();
+    memset(expected, 3, sizeof(expected));
+    tic_api_paint(Tic, 120, 68, fillWord(6, 8, 0x0F0F), 255);
+    refPaintPattern(120, 68, 6, 8, 0x0F0F, 255);
+    tic_api_paint(Tic, 120, 68, fillWord(9, 12, 0x5555), 255);
+    refPaintPattern(120, 68, 9, 12, 0x5555, 255);
+    expectFrame("paint pattern twice frame");
+
+    // The solid border mode keeps the paint color acting as a wall.
+    reset();
+    tic_api_rectb(Tic, 10, 10, 31, 21, 1);
+    tic_api_rect(Tic, 11, 11, 29, 19, 3);
+    tic_api_rect(Tic, 25, 11, 1, 19, 15);
+    refCapture();
+    tic_api_paint(Tic, 15, 15, 15, 1);
+    refPaint(15, 15, 15, 1);
+    expectFrame("paint wall frame");
 
     reset();
     puts("paint ok");

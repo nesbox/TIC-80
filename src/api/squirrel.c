@@ -548,13 +548,13 @@ static SQInteger squirrel_paint(HSQUIRRELVM vm)
     {
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
-        s32 color = getSquirrelNumber(vm, 4);
+        u32 color = getSquirrelColor(vm, 4);
         s32 bordercolor = top >= 5 ? getSquirrelNumber(vm, 5) : -1;
 
         tic_core* core = getSquirrelCore(vm);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.paint(tic, x, y, (u8)(color), (u8)(bordercolor));
+        core->api.paint(tic, x, y, color, (u8)(bordercolor));
     }
     else
         return sq_throwerror(vm, "invalid parameters, paint(x,y,color,[bordercolor=-1])\n");

@@ -1000,7 +1000,7 @@ static Janet janet_paint(int32_t argc, Janet* argv)
 
     s32 x = janet_getinteger(argv, 0);
     s32 y = janet_getinteger(argv, 1);
-    u8 color = (u8)(janet_getinteger(argv, 2));
+    u32 color = (u32)(s64)janet_getnumber(argv, 2);
     u8 bordercolor = (u8)(janet_optnumber(argv, argc, 3, 255));
 
     tic_core* core = getJanetMachine();

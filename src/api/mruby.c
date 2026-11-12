@@ -395,7 +395,7 @@ static mrb_value mrb_paint(mrb_state* mrb, mrb_value self)
     tic_core* core = getMRubyMachine(mrb);
     tic_mem* tic = (tic_mem*)core;
 
-    core->api.paint(tic, (s32)(x), (s32)y, (u8)(color), (u8)bordercolor);
+    core->api.paint(tic, (s32)(x), (s32)y, (u32)(color), (u8)bordercolor);
 
     return mrb_nil_value();
 }

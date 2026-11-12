@@ -481,6 +481,12 @@
     239 135 PIX DROP
 ;
 
+: P_PAINT_PATTERN
+    0 CLS
+    5 5 6 8 256 * + 42405 65536 * + -1 PAINT
+    0 0 PIX DROP
+;
+
 \ paint/missing-color: the reference refuses the call and forth's stack cannot refuse one
 
 \ ---- tri
@@ -811,6 +817,7 @@
     ['] P_ELLI_ZERO_RADIUS S" #elli/zero-radius" PROBE
     ['] P_ELLIB_BORDER S" #ellib/border" PROBE
     ['] P_PAINT_FILL S" #paint/fill" PROBE
+    ['] P_PAINT_PATTERN S" #paint/pattern" PROBE
     ['] P_TRI_FILL S" #tri/fill" PROBE
     ['] P_TRIB_BORDER S" #trib/border" PROBE
     ['] P_TTRI_BASIC S" #ttri/basic" PROBE

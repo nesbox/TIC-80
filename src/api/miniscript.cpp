@@ -747,7 +747,7 @@ static void TIC80Intrinsics(ValueDict& tic80Module)
             return IntrinsicResult::Null;
         s32 x = context.GetArg(0).IntValue();
         s32 y = context.GetArg(1).IntValue();
-        u8 color = (u8)context.GetArg(2).IntValue();
+        u32 color = (u32)(s64)context.GetArg(2).DoubleValue();
         u8 bordercolor = (u8)context.GetArg(3).IntValue();
 
         core->api.paint(tic, x, y, color, bordercolor);

@@ -1188,10 +1188,10 @@ static bool grav_paint(gravity_vm* vm, gravity_value_t* args, uint16_t nargs, ui
 
     s32 x = grav_get_int(args[1]);
     s32 y = grav_get_int(args[2]);
-    s32 color = grav_get_int(args[3]);
+    u32 color = (u32)grav_get_int(args[3]);
     s32 bordercolor = nargs == 5 ? grav_get_int(args[4]) : -1;
 
-    core->api.paint(tic, x, y, (u8)color, (u8)bordercolor);
+    core->api.paint(tic, x, y, color, (u8)bordercolor);
 
     RETURN_NOVALUE();
 }

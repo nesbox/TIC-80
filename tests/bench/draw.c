@@ -395,6 +395,16 @@ static void bodyPaintSmall(tic_core* core)
     core->api.paint((tic_mem*)core, 100, 65, 15, 1);
 }
 
+static void bodyPaintFullPattern(tic_core* core)
+{
+    core->api.paint((tic_mem*)core, TIC80_WIDTH / 2, TIC80_HEIGHT / 2, FILL_WORD, 1);
+}
+
+static void bodyPaintSmallPattern(tic_core* core)
+{
+    core->api.paint((tic_mem*)core, 100, 65, FILL_WORD, 1);
+}
+
 static void bodyClip(tic_core* core)
 {
     core->api.clip((tic_mem*)core, 20, 10, 60, 40);
@@ -512,6 +522,8 @@ static const Scenario Scenarios[] =
         {"font", "6x8", setupZero, bodyFont, true, false},
         {"paint", "full screen", setupPaintFull, bodyPaintFull, false, false},
         {"paint", "region 100x50", setupPaintSmall, bodyPaintSmall, false, false},
+        {"paint", "full screen pattern", setupPaintFull, bodyPaintFullPattern, false, false},
+        {"paint", "region pattern", setupPaintSmall, bodyPaintSmallPattern, false, false},
         {"blit", "default clear", setupBlitClear, bodyBlit, true, true},
         {"blit", "mixed banks", setupBlitMixed, bodyBlit, true, true},
         {"blit", "offsets", setupBlitOffsets, bodyBlit, true, true},

@@ -540,6 +540,12 @@
   (t80::pix 239 135)
   ))
 
+(probe "paint/pattern" (lambda ()
+  (t80::cls 0)
+  (t80::paint 5 5 (+ 6 (* 8 256) (* 42405 65536)))
+  (t80::pix 0 0)
+  ))
+
 (probe "paint/missing-color" (lambda ()
   (t80::cls 0)
   (t80::paint 5 5)

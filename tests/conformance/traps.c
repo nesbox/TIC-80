@@ -336,7 +336,7 @@ static void trap_ellib(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u32 color)
     api_record("ellib(%d,%d,%d,%d,%u)", x, y, a, b, (unsigned)color);
 }
 
-static void trap_paint(tic_mem* tic, s32 x, s32 y, u8 color, u8 bordercolor)
+static void trap_paint(tic_mem* tic, s32 x, s32 y, u32 color, u8 bordercolor)
 {
     Real_paint(tic, x, y, color, bordercolor);
     api_record("paint(%d,%d,%u,%u)", x, y, (unsigned)color, (unsigned)bordercolor);

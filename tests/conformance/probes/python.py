@@ -633,6 +633,13 @@ def p_paint_fill():
 
 probe('paint/fill', p_paint_fill)
 
+def p_paint_pattern():
+    cls(0)
+    paint(5, 5, 6 + 8*256 + 42405*65536)
+    pix(0, 0)
+
+probe('paint/pattern', p_paint_pattern)
+
 def p_paint_missing_color():
     cls(0)
     paint(5, 5)

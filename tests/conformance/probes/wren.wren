@@ -509,6 +509,12 @@ class Game is TIC {
       TIC.pix(239, 135)
     }
 
+    probe("paint/pattern") {
+      TIC.cls(0)
+      TIC.paint(5, 5, 6 + 8*256 + 42405*65536)
+      TIC.pix(0, 0)
+    }
+
     probe("paint/missing-color") {
       TIC.cls(0)
       TIC.paint(5, 5)
