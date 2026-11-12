@@ -34,6 +34,14 @@
 #define SUPERELLIPSE_MAX_EXPONENT    8
 #define SUPERELLIPSE_CIRCLE_EXPONENT 2
 
+#if defined(_MSC_VER)
+#define DRAW_NOINLINE      __declspec(noinline)
+#define DRAW_ALWAYS_INLINE __forceinline
+#else
+#define DRAW_NOINLINE      __attribute__((noinline))
+#define DRAW_ALWAYS_INLINE inline __attribute__((always_inline))
+#endif
+
 typedef void (*PixelFunc)(tic_mem* memory, s32 x, s32 y, u8 color);
 
 static tic_tilesheet getTileSheetFromSegment(tic_mem* memory, u8 segment)
@@ -1004,7 +1012,8 @@ static void setSidePixel(s32 x, s32 y)
     }
 }
 
-static void drawEllipse(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, PixelFunc pix)
+// Forced so each caller's literal pixel function stays devirtualized.
+static DRAW_ALWAYS_INLINE void drawEllipse(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, PixelFunc pix)
 {
     if(x0 > x1 || y0 > y1)
         return;
@@ -1054,7 +1063,8 @@ static void drawEllipse(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 colo
     }
 }
 
-static void drawSuperEllipseCapsule(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, int radius, float exponent, u8 color, PixelFunc pix)
+// Forced so each caller's literal pixel function stays devirtualized.
+static DRAW_ALWAYS_INLINE void drawSuperEllipseCapsule(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, int radius, float exponent, u8 color, PixelFunc pix)
 {
     if(x0 > x1 || y0 > y1)
         return;
@@ -1127,9 +1137,25 @@ static void drawSuperEllipseCapsule(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32
     }
 }
 
+typedef struct
+{
+    u8 c1, c2;
+    u16 pattern;
+} FillData;
+
+// The ellipse and capsule rasterizers take one color per pixel function; the
+// patterned ones read the fill from here for the duration of a call.
+static FillData FillContext;
+
 static void setElliPixel(tic_mem* tic, s32 x, s32 y, u8 color)
 {
     setPixel((tic_core*)tic, x, y, color);
+}
+
+static void setElliPixelFill(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+    (void)color;
+    setPixelFill((tic_core*)tic, x, y, FillContext.c1, FillContext.c2, FillContext.pattern);
 }
 
 static void setElliSide(tic_mem* tic, s32 x, s32 y, u8 color)
@@ -1143,22 +1169,6 @@ static void setElliBoth(tic_mem* tic, s32 x, s32 y, u8 color)
 {
     setPixel((tic_core*)tic, x, y, color);
     setSidePixel(x, y);
-}
-
-typedef struct
-{
-    u8 c1, c2;
-    u16 pattern;
-} FillData;
-
-// The ellipse and capsule rasterizers take one color per pixel function; the
-// patterned pixel functions read the fill from here for the duration of a call.
-static FillData FillContext;
-
-static void setElliPixelFill(tic_mem* tic, s32 x, s32 y, u8 color)
-{
-    (void)color;
-    setPixelFill((tic_core*)tic, x, y, FillContext.c1, FillContext.c2, FillContext.pattern);
 }
 
 static void setElliBothFill(tic_mem* tic, s32 x, s32 y, u8 color)
@@ -1494,14 +1504,6 @@ static inline double edgeFn(const Vec2* a, const Vec2* b, const Vec2* c)
 {
     return (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
 }
-
-#if defined(_MSC_VER)
-#define DRAW_NOINLINE      __declspec(noinline)
-#define DRAW_ALWAYS_INLINE __forceinline
-#else
-#define DRAW_NOINLINE      __attribute__((noinline))
-#define DRAW_ALWAYS_INLINE inline __attribute__((always_inline))
-#endif
 
 // Forced into the per-texture wrappers so their literal shaders inline.
 static DRAW_ALWAYS_INLINE void drawTriBody(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
