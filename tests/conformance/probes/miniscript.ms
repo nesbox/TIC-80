@@ -627,6 +627,14 @@ end function
 
 probe("paint/fill", @p_paint_fill)
 
+p_paint_pattern = function
+    tic80.cls(0)
+    tic80.paint(5, 5, 6 + 8*256 + 42405*65536)
+    tic80.pix(0, 0)
+end function
+
+probe("paint/pattern", @p_paint_pattern)
+
 // ---- tri
 
 p_tri_fill = function

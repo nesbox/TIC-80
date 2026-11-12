@@ -382,7 +382,7 @@ u32 w2c_tic80_api(LugforthVM* vm, u32 id, u32 base, u32 n)
             core->api.ellib(tic, a[0], a[1], a[2], a[3], (u32)a[4]);
             break;
         case Api_PAINT:
-            core->api.paint(tic, a[0], a[1], (u8)a[2], (u8)a[3]);
+            core->api.paint(tic, a[0], a[1], (u32)a[2], (u8)a[3]);
             break;
         case Api_TRI:
             core->api.tri(tic, (float)a[0], (float)a[1], (float)a[2], (float)a[3], (float)a[4], (float)a[5], (u32)a[6]);

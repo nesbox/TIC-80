@@ -714,12 +714,13 @@ enum
         "paint(x y color bordercolor=-1)",                                                                              \
                                                                                                                         \
         "This function fills a contiguous area with a new color.\n"                                                     \
-        "If bordercolor is given fill will extend to color boundary.",                                                  \
+        "If bordercolor is given fill will extend to color boundary."                                                   \
+        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
         4,                                                                                                              \
         3,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, u8 color, u8 bordercolor)                                                               \
+        tic_mem*, s32 x, s32 y, u32 color, u8 bordercolor)                                                              \
                                                                                                                         \
                                                                                                                         \
     macro(tri,                                                                                                          \

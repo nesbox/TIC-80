@@ -1412,20 +1412,49 @@ static inline bool fillDequeue(s32* y, s32* xl, s32* xr, s32* dy)
     return true;
 }
 
-static inline bool floodFillInside(u8 pix, u8 paint, u8 border, u8 original)
+// A patterned fill cannot recognize its own output by color, so it marks what
+// it has painted instead.
+static u8 FillVisited[(TIC80_WIDTH * TIC80_HEIGHT + 7) / 8];
+
+static inline bool fillVisitedTest(s32 index)
 {
-    return border == 255 ? pix == original : pix != paint && pix != border;
+    return (FillVisited[(u32)index >> 3] >> (index & 7)) & 1;
+}
+
+static inline void fillVisitedMark(s32 index)
+{
+    FillVisited[(u32)index >> 3] |= (u8)(1 << (index & 7));
+}
+
+static inline bool fillInside(tic_core* tic, s32 x, s32 y, u8 c1, u8 border, u8 original, bool patterned)
+{
+    const u8 pix = screenPixel(tic, x, y);
+
+    if(patterned)
+        return !fillVisitedTest(y * TIC80_WIDTH + x) && (border == 255 ? pix == original : pix != border);
+
+    return border == 255 ? pix == original : pix != c1 && pix != border;
+}
+
+static inline void fillSpan(tic_core* tic, s32 x, s32 y, s32 width, u8 c1, u8 c2, u16 pattern)
+{
+    if(pattern)
+    {
+        drawHLineFill(tic, x, y, width, c1, c2, pattern);
+
+        for(s32 i = x; i < x + width; ++i)
+            fillVisitedMark(y * TIC80_WIDTH + i);
+    }
+    else
+        drawHLine(tic, x, y, width, c1);
 }
 
 // "A Seed Fill Algorithm", Paul S. Heckbert, Graphics Gems, Andrew Glassner
 // https://github.com/erich666/GraphicsGems/blob/master/gems/SeedFill.c
-static void floodFill(tic_core* tic, s32 x, s32 y, u8 color, u8 border)
+// Forced inline into the two floodFill callers so the solid walk folds the
+// patterned tests away.
+static DRAW_ALWAYS_INLINE void floodFillWalk(tic_core* tic, s32 x, s32 y, u8 c1, u8 c2, u16 pattern, u8 border, u8 ov, bool patterned)
 {
-    if(x < tic->state.clip.l || y < tic->state.clip.t || x >= tic->state.clip.r || y >= tic->state.clip.b)
-        return;
-    u8 ov = screenPixel(tic, x, y);
-    if(ov == color || ov == border)
-        return;
     fillQueue.ini = fillQueue.outi = 0;
     fillEnqueue(tic, y, x, x, 1);      // needed in some cases
     fillEnqueue(tic, y + 1, x, x, -1); // seed segment
@@ -1435,11 +1464,11 @@ static void floodFill(tic_core* tic, s32 x, s32 y, u8 color, u8 border)
         // segment of scan line y-dy for x1<=x<=x2 was previously filled,
         // now explore adjacent pixels in scan line y
         s32 left = x1;
-        while(left >= tic->state.clip.l && floodFillInside(screenPixel(tic, left, y), color, border, ov))
+        while(left >= tic->state.clip.l && fillInside(tic, left, y, c1, border, ov, patterned))
             left--;
 
         if(left < x1)
-            drawHLine(tic, left + 1, y, x1 - left, color);
+            fillSpan(tic, left + 1, y, x1 - left, c1, c2, pattern);
 
         if(left >= x1)
         {
@@ -1454,20 +1483,44 @@ static void floodFill(tic_core* tic, s32 x, s32 y, u8 color, u8 border)
         do
         {
             s32 start = x;
-            while(x < tic->state.clip.r && floodFillInside(screenPixel(tic, x, y), color, border, ov))
+            while(x < tic->state.clip.r && fillInside(tic, x, y, c1, border, ov, patterned))
                 x++;
 
             if(x > start)
-                drawHLine(tic, start, y, x - start, color);
+                fillSpan(tic, start, y, x - start, c1, c2, pattern);
 
             fillEnqueue(tic, y, l, x - 1, dy);
             if(x > x2 + 1)
                 fillEnqueue(tic, y, x2 + 1, x - 1, -dy); // check leak right
         floodFill_skip:
-            for(x++; x <= x2 && !floodFillInside(screenPixel(tic, x, y), color, border, ov); x++)
+            for(x++; x <= x2 && !fillInside(tic, x, y, c1, border, ov, patterned); x++)
                 ;
             l = x;
         } while(x <= x2);
+    }
+}
+
+static void floodFill(tic_core* tic, s32 x, s32 y, u8 c1, u8 c2, u16 pattern, u8 border)
+{
+    if(x < tic->state.clip.l || y < tic->state.clip.t || x >= tic->state.clip.r || y >= tic->state.clip.b)
+        return;
+
+    const u8 ov = screenPixel(tic, x, y);
+
+    if(pattern)
+    {
+        if(ov == border)
+            return;
+
+        memset(FillVisited, 0, sizeof FillVisited);
+        floodFillWalk(tic, x, y, c1, c2, pattern, border, ov, true);
+    }
+    else
+    {
+        if(ov == c1 || ov == border)
+            return;
+
+        floodFillWalk(tic, x, y, c1, c2, pattern, border, ov, false);
     }
 }
 
@@ -2335,10 +2388,15 @@ void tic_api_line(tic_mem* memory, float x0, float y0, float x1, float y1, u32 c
     drawLine(memory, x0, y0, x1, y1, c1, c2, pattern);
 }
 
-void tic_api_paint(tic_mem* memory, s32 x, s32 y, u8 color, u8 bordercolor)
+void tic_api_paint(tic_mem* memory, s32 x, s32 y, u32 color, u8 bordercolor)
 {
+    u16 pattern = fillPattern(color);
+    u8 c1 = fillPrimary(memory, color);
+    u8 c2 = pattern ? fillSecondary(memory, color) : TRANSPARENT_COLOR;
+
     bordercolor = bordercolor == 255 ? 255 : mapColor(memory, bordercolor);
-    floodFill((tic_core*)memory, x, y, mapColor(memory, color), bordercolor);
+
+    floodFill((tic_core*)memory, x, y, c1, c2, pattern, bordercolor);
 }
 
 #if defined(BUILD_DEPRECATED)

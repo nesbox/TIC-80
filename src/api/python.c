@@ -775,7 +775,7 @@ static bool py_peek4(int argc, py_Ref argv)
 }
 
 // paint(x: int, y: int, color: int, border_color=-1)
-// void (*paint)(tic_mem*, s32, s32, u8, u8)
+// void (*paint)(tic_mem*, s32, s32, u32, u8)
 static bool py_paint(int argc, py_Ref argv)
 {
     (void)argc;
@@ -785,7 +785,7 @@ static bool py_paint(int argc, py_Ref argv)
     PY_CHECK_ARG_TYPE(3, tp_int);
     s32 x = (s32)(py_toint(py_arg(0)));
     s32 y = (s32)(py_toint(py_arg(1)));
-    u8 color = (u8)(py_toint(py_arg(2)));
+    u32 color = (u32)(py_toint(py_arg(2)));
     u8 border_color = (u8)(py_toint(py_arg(3)));
 
     tic_core* core = get_core();

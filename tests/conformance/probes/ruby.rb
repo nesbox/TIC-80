@@ -549,6 +549,12 @@ probe('paint/fill') do
   pix(239, 135)
 end
 
+probe('paint/pattern') do
+  cls(0)
+  paint(5, 5, 6 + 8*256 + 42405*65536)
+  pix(0, 0)
+end
+
 probe('paint/missing-color') do
   cls(0)
   paint(5, 5)

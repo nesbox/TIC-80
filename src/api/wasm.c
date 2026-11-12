@@ -268,7 +268,7 @@ m3ApiRawFunction(wasmtic_paint)
     (void)_mem;
     m3ApiGetArg(int32_t, x);
     m3ApiGetArg(int32_t, y);
-    m3ApiGetArg(int8_t, color);
+    m3ApiGetArg(int32_t, color);
     m3ApiGetArg(int8_t, bordercolor);
 
     tic_core* core = getWasmCore(runtime);

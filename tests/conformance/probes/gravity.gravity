@@ -526,6 +526,13 @@ func TIC() {
         pix(239, 135)
     }
     probe("paint/fill", p_paint_fill)
+    func p_paint_pattern() {
+        cls(0)
+        paint(5, 5, 6 + 8*256 + 42405*65536)
+        pix(0, 0)
+    }
+    probe("paint/pattern", p_paint_pattern)
+
     // paint/missing-color: the call refuses here, and gravity has no catch to report it
     // ---- tri
 

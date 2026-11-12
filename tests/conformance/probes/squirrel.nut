@@ -549,6 +549,12 @@ probe("paint/fill", function() {
     pix(239, 135);
 });
 
+probe("paint/pattern", function() {
+    cls(0);
+    paint(5, 5, 6 + 8*256 + 42405*65536);
+    pix(0, 0);
+});
+
 probe("paint/missing-color", function() {
     cls(0);
     paint(5, 5);

@@ -544,6 +544,12 @@ probe('paint/fill', () => {
     pix(239, 135);
 });
 
+probe('paint/pattern', () => {
+    cls(0);
+    paint(5, 5, 6 + 8*256 + 42405*65536);
+    pix(0, 0);
+});
+
 probe('paint/missing-color', () => {
     cls(0);
     paint(5, 5);

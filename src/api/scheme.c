@@ -750,9 +750,9 @@ s7_pointer scheme_paint(s7_scheme* sc, s7_pointer args)
     tic_mem* tic = (tic_mem*)core;
     const s32 x = (s32)(s7_integer(s7_car(args)));
     const s32 y = (s32)(s7_integer(s7_cadr(args)));
-    const s32 color = (s32)(s7_integer(s7_caddr(args)));
+    const u32 color = (u32)(s7_integer(s7_caddr(args)));
     const s32 bordercolor = argn >= 4 ? (s32)(s7_integer(s7_cadddr(args))) : -1;
-    core->api.paint(tic, x, y, (u8)(color), (u8)(bordercolor));
+    core->api.paint(tic, x, y, color, (u8)(bordercolor));
     return s7_nil(sc);
 }
 s7_pointer scheme_tri(s7_scheme* sc, s7_pointer args)

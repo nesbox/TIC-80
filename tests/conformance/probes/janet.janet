@@ -540,6 +540,12 @@
   (tic80/pix 239 135)
   ))
 
+(probe "paint/pattern" (fn []
+  (tic80/cls 0)
+  (tic80/paint 5 5 (+ 6 (* 8 256) (* 42405.0 65536)))
+  (tic80/pix 0 0)
+  ))
+
 (probe "paint/missing-color" (fn []
   (tic80/cls 0)
   (tic80/paint 5 5)

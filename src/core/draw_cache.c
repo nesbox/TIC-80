@@ -131,7 +131,7 @@ typedef struct
 {
     u8 type;
     s32 x, y;
-    u8 color;
+    u32 color;
     u8 bordercolor;
 } DrawCallPaint;
 
@@ -716,7 +716,7 @@ static void cache_api_ellib(tic_mem* tic, s32 x, s32 y, s32 a, s32 b, u32 color)
     }
 }
 
-static void cache_api_paint(tic_mem* tic, s32 x, s32 y, u8 color, u8 bordercolor)
+static void cache_api_paint(tic_mem* tic, s32 x, s32 y, u32 color, u8 bordercolor)
 {
     tic_core* core = (tic_core*)tic;
     DrawCallPaint call;

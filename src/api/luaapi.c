@@ -232,13 +232,13 @@ static s32 lua_paint(lua_State* lua)
     {
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
-        s32 color = getLuaNumber(lua, 3);
+        u32 color = getLuaColor(lua, 3);
         s32 bordercolor = top >= 4 ? getLuaNumber(lua, 4) : -1;
 
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        core->api.paint(tic, x, y, (u8)(color), (u8)(bordercolor));
+        core->api.paint(tic, x, y, color, (u8)(bordercolor));
     }
     else
         luaL_error(lua, "invalid parameters, paint(x y color [bordercolor])\n");
