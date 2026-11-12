@@ -46,6 +46,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -169,6 +175,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -328,6 +340,12 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: 2.6
@@ -482,6 +500,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Install Toolchain and Dependencies
         run: |
@@ -548,6 +572,12 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
+
       - name: Install Host toolchain
         run: |
           apt-get update
@@ -555,9 +585,9 @@ jobs:
 
       - name: Build
         run: |
-          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake \
+          CFLAGS="-w -DLUA_32BITS" CXXFLAGS="-w -DLUA_32BITS" cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake \
             -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=ON \
-            -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF
+            -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_JS=OFF -DBUILD_WITH_PYTHON=OFF -DBUILD_WITH_YUE=OFF
           cmake --build build --parallel
 
       - name: Deploy
@@ -578,6 +608,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Install Host toolchain
         run: |
@@ -611,6 +647,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Install
         run: |
@@ -754,6 +796,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Install
         run: |
@@ -891,6 +939,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -924,6 +978,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -971,6 +1031,13 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -1014,6 +1081,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -1100,6 +1173,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -1249,6 +1328,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Prebuild
         run: |
@@ -1271,8 +1356,8 @@ jobs:
           git apply build/baremetalpi/circle.patch
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
-                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
-                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
                 ..
           make tic80studio -j$(nproc)
           cd baremetalpi
@@ -1307,6 +1392,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Prebuild
         run: |
@@ -1330,8 +1421,8 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
-                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
-                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
                 ..
           make tic80studio -j$(nproc)
           cd baremetalpi
@@ -1367,6 +1458,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Prebuild
         run: |
@@ -1390,8 +1487,8 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
-                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
-                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
                 ..
           make tic80studio -j$(nproc)
           cd baremetalpi
@@ -1427,6 +1524,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - name: Prebuild
         run: |
@@ -1450,8 +1553,8 @@ jobs:
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
-                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
-                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
                 ..
           make tic80studio -j$(nproc)
           cd baremetalpi
@@ -1495,6 +1598,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -1727,6 +1836,12 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          cd vendor/lua
+          git apply ../../build/lua5.4.patch
 
       - uses: ruby/setup-ruby@v1
         with:

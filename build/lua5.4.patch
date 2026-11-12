@@ -1,0 +1,61 @@
+diff --git a/lbaselib.c b/lbaselib.c
+--- a/lbaselib.c
++++ b/lbaselib.c
+@@ -516,7 +516,7 @@ static const luaL_Reg base_funcs[] = {
+   {"pairs", luaB_pairs},
+   {"pcall", luaB_pcall},
+   {"print", luaB_print},
+-  {"warn", luaB_warn},
++  /* TIC-80: no global `warn`; 5.3 carts may use that name. */
+   {"rawequal", luaB_rawequal},
+   {"rawlen", luaB_rawlen},
+   {"rawget", luaB_rawget},
+diff --git a/llex.c b/llex.c
+--- a/llex.c
++++ b/llex.c
+@@ -239,8 +239,7 @@ static int read_numeral (LexState *ls, SemInfo *seminfo) {
+       save_and_next(ls);
+     else break;
+   }
+-  if (lislalpha(ls->current))  /* is numeral touching a letter? */
+-    save_and_next(ls);  /* force an error */
++  /* TIC-80: 5.3 kept a numeral touching a letter as two tokens. */
+   save(ls, '\0');
+   if (luaO_str2num(luaZ_buffer(ls->buff), &obj) == 0)  /* format error? */
+     lexerror(ls, "malformed number", TK_FLT);
+diff --git a/lmathlib.c b/lmathlib.c
+--- a/lmathlib.c
++++ b/lmathlib.c
+@@ -638,8 +638,9 @@ static int math_randomseed (lua_State *L) {
+     randseed(L, state);
+   }
+   else {
+-    lua_Integer n1 = luaL_checkinteger(L, 1);
+-    lua_Integer n2 = luaL_optinteger(L, 2, 0);
++    /* TIC-80: 5.3 accepted a float seed and truncated it. */
++    lua_Integer n1 = (lua_Integer)luaL_checknumber(L, 1);
++    lua_Integer n2 = (lua_Integer)luaL_optnumber(L, 2, 0);
+     setseed(L, state->s, n1, n2);
+   }
+   return 2;  /* return seeds */
+diff --git a/lstrlib.c b/lstrlib.c
+--- a/lstrlib.c
++++ b/lstrlib.c
+@@ -1278,12 +1278,12 @@ static void checkformat (lua_State *L, const char *form, const char *flags,
+   const char *spec = form + 1;  /* skip '%' */
+   spec += strspn(spec, flags);  /* skip flags */
+-  if (*spec != '0') {  /* a width cannot start with '0' */
+-    spec = get2digits(spec);  /* skip width */
+-    if (*spec == '.' && precision) {
+-      spec++;
+-      spec = get2digits(spec);  /* skip precision */
+-    }
++  if (*spec == '0')  /* TIC-80: 5.3 took a leading zero as a width */
++    spec++;
++  spec = get2digits(spec);  /* skip width */
++  if (*spec == '.' && precision) {
++    spec++;
++    spec = get2digits(spec);  /* skip precision */
+   }
+   if (!isalpha(uchar(*spec)))  /* did not go to the end? */
+     luaL_error(L, "invalid conversion specification: '%s'", form);

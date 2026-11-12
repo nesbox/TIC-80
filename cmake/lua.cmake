@@ -64,7 +64,6 @@ if(BUILD_WITH_LUA OR BUILD_WITH_MOON OR BUILD_WITH_YUE OR BUILD_WITH_FENNEL)
         ${LUA_DIR}/lutf8lib.c
         ${LUA_DIR}/loadlib.c
         ${LUA_DIR}/linit.c
-        ${LUA_DIR}/lbitlib.c
     )
 
     add_library(luaapi STATIC
@@ -74,7 +73,7 @@ if(BUILD_WITH_LUA OR BUILD_WITH_MOON OR BUILD_WITH_YUE OR BUILD_WITH_FENNEL)
     )
     target_link_libraries(luaapi PRIVATE runtime)
 
-    target_compile_definitions(luaapi PRIVATE LUA_COMPAT_5_2)
+    target_compile_definitions(luaapi PRIVATE LUA_COMPAT_5_3)
 
     target_include_directories(luaapi
         PUBLIC ${THIRDPARTY_DIR}/lua
