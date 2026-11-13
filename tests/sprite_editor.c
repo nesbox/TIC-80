@@ -138,6 +138,11 @@ static void hold(s32 x, s32 y)
     Mouse[tic_mouse_left] = (MouseState){.down = true, .start = {x, y}, .end = {x, y}};
 }
 
+static void holdRight(s32 x, s32 y)
+{
+    Mouse[tic_mouse_right] = (MouseState){.down = true, .start = {x, y}, .end = {x, y}};
+}
+
 static void click(s32 x, s32 y)
 {
     Mouse[tic_mouse_left] = (MouseState){.click = true, .start = {x, y}, .end = {x, y}};
@@ -558,6 +563,378 @@ static void testBrushMarker(void)
     puts("brush marker ok");
 }
 
+static void testCanvasJump(void)
+{
+    setup();
+
+    assert(Sprite_.spritePos.x == 1);
+
+    noMouse();
+    press(tic_key_right);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(Sprite_.spritePos.x == 2);
+
+    // The step follows the canvas: 16 px is two tiles, 64 px is eight.
+    spriteSetSize(&Sprite_, TIC_SPRITESIZE * 2);
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+
+    press(tic_key_right);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(Sprite_.spritePos.x == 4);
+
+    spriteSetSize(&Sprite_, TIC_SPRITESIZE * 8);
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+
+    press(tic_key_right);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(Sprite_.spritePos.x == 8);
+
+    // The sheet edge stops the canvas whole, not half past it.
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+    press(tic_key_right);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(Sprite_.spritePos.x == 8);
+
+    press(tic_key_down);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(Sprite_.spritePos.y == 8);
+
+    // A jump at the edge still drops the selection, like a plain step.
+    Sprite_.mode = SPRITE_SELECT_MODE;
+    Sprite_.select.rect = (tic_rect){0, 0, 1, 1};
+
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+    press(tic_key_right);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(Sprite_.select.rect.w == 0);
+
+    puts("canvas jump ok");
+}
+
+static void testSheetPages(void)
+{
+    setup();
+
+    spriteSetBpp(&Sprite_, tic_bpp_2);
+    assert(Sprite_.blit.pages == 2);
+    assert(Sprite_.blit.page == 0);
+
+    // Ctrl+arrows move the cursor; the page takes Ctrl+Shift.
+    noMouse();
+    press(tic_key_right);
+    alsoDown(tic_key_ctrl);
+    frame();
+    assert(Sprite_.blit.page == 0);
+
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+
+    press(tic_key_right);
+    alsoDown(tic_key_ctrl);
+    alsoDown(tic_key_shift);
+    frame();
+    assert(Sprite_.blit.page == 1);
+
+    // The page animation has to finish before the next switch.
+    for(s32 i = 0; i < 10; i++)
+    {
+        noMouse();
+        press(tic_key_unknown);
+        frame();
+    }
+
+    press(tic_key_left);
+    alsoDown(tic_key_ctrl);
+    alsoDown(tic_key_shift);
+    frame();
+    assert(Sprite_.blit.page == 0);
+
+    puts("sheet pages ok");
+}
+
+static void testCtrlRightPick(void)
+{
+    setup();
+
+    tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, 0, 5);
+
+    Sprite_.color = 1;
+    Sprite_.color2 = 9;
+
+    noMouse();
+    pointer(28, 24);
+    holdRight(28, 24);
+    alsoDown(tic_key_ctrl);
+    frame();
+
+    assert(Sprite_.color == 5);
+    assert(Sprite_.color2 == 9);
+    assert(tilePixel(1, 0, 0) == 5);
+
+    // Without Ctrl the right button paints the second color as before.
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+
+    pointer(36, 24);
+    holdRight(36, 24);
+    frame();
+
+    assert(tilePixel(1, 1, 0) == 9);
+
+    puts("ctrl right pick ok");
+}
+
+static void selectBlock(s32 w, s32 h)
+{
+    noMouse();
+    pointer(24, 20);
+    hold(24, 20);
+    frame();
+
+    pointer(24 + (w - 1) * TIC_SPRITESIZE, 20 + (h - 1) * TIC_SPRITESIZE);
+    frame();
+
+    noMouse();
+    frame();
+}
+
+static void testSelectionClipboard(void)
+{
+    setup();
+
+    tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, 0, 5);
+    tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, 1, 6);
+    tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, 8, 0);
+    tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, 9, 7);
+
+    spriteSetMode(&Sprite_, SPRITE_SELECT_MODE);
+    selectBlock(2, 2);
+
+    assert(Sprite_.select.rect.w == 2 && Sprite_.select.rect.h == 2);
+
+    SpriteClipboard.copy(&Sprite_);
+    assert(Clipboard);
+
+    {
+        u8 data[64];
+        tic_tool_str2buf(Clipboard, (s32)strlen(Clipboard), data, true);
+
+        assert(data[0] == 'T' && data[1] == 'S' && data[2] == 'E' && data[3] == 'L');
+        assert(data[4] == 2 && data[5] == 2);
+        assert(data[6] == Sprite_.color2);
+    }
+
+    // The destination is filled first, so a skipped background pixel is visible.
+    for(s32 y = 3; y < 5; y++)
+        for(s32 x = 4; x < 6; x++)
+            tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, x + y * TIC_SPRITESIZE, 9);
+
+    // Paste from another mode still starts a floating selection.
+    Sprite_.mode = SPRITE_DRAW_MODE;
+
+    noMouse();
+    pointer(24 + 4 * TIC_SPRITESIZE, 20 + 3 * TIC_SPRITESIZE);
+    SpriteClipboard.paste(&Sprite_);
+
+    assert(Sprite_.mode == SPRITE_SELECT_MODE);
+    assert(Sprite_.select.rect.x == 4 && Sprite_.select.rect.y == 3);
+    assert(Sprite_.select.rect.w == 2 && Sprite_.select.rect.h == 2);
+    assert(Sprite_.select.transparent);
+
+    assert(tilePixel(1, 4, 3) == 5);
+    assert(tilePixel(1, 5, 3) == 6);
+    assert(tilePixel(1, 4, 4) == 9);
+    assert(tilePixel(1, 5, 4) == 7);
+
+    // Copying the floating selection keeps the background it was pasted with.
+    Sprite_.color2 = 3;
+    SpriteClipboard.copy(&Sprite_);
+    {
+        u8 data[64];
+        tic_tool_str2buf(Clipboard, (s32)strlen(Clipboard), data, true);
+
+        assert(data[6] == 0);
+    }
+    Sprite_.color2 = 0;
+
+    // A move restores the canvas under the floating selection.
+    noMouse();
+    press(tic_key_right);
+    frame();
+
+    assert(Sprite_.select.rect.x == 5);
+    assert(tilePixel(1, 4, 3) == 9);
+    assert(tilePixel(1, 5, 3) == 5);
+    assert(tilePixel(1, 6, 3) == 6);
+    assert(tilePixel(1, 5, 4) == 9);
+    assert(tilePixel(1, 6, 4) == 7);
+
+    // Cut copies the selection and erases what it covers; the canvas under
+    // its background stays.
+    SpriteClipboard.cut(&Sprite_);
+    assert(Sprite_.select.rect.w == 0 && Sprite_.select.rect.h == 0);
+    assert(tilePixel(1, 5, 3) == 0);
+    assert(tilePixel(1, 6, 3) == 0);
+    assert(tilePixel(1, 5, 4) == 9);
+    assert(tilePixel(1, 6, 4) == 0);
+
+    // A paste near the edge keeps the whole selection on the canvas.
+    noMouse();
+    pointer(24 + 7 * TIC_SPRITESIZE, 20 + 7 * TIC_SPRITESIZE);
+    SpriteClipboard.paste(&Sprite_);
+    assert(Sprite_.select.rect.x == 6 && Sprite_.select.rect.y == 6);
+
+    puts("selection clipboard ok");
+}
+
+static void testSelectionFlip(void)
+{
+    setup();
+
+    tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, 0, 5);
+    tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, 1, 6);
+    tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, 9, 7);
+
+    spriteSetMode(&Sprite_, SPRITE_SELECT_MODE);
+    selectBlock(2, 2);
+
+    spriteToolAction(&Sprite_, SPRITE_TOOL_FLIP_HORZ);
+
+    assert(tilePixel(1, 0, 0) == 6);
+    assert(tilePixel(1, 1, 0) == 5);
+    assert(tilePixel(1, 0, 1) == 7);
+    assert(tilePixel(1, 1, 1) == 0);
+
+    spriteToolAction(&Sprite_, SPRITE_TOOL_FLIP_VERT);
+
+    assert(tilePixel(1, 0, 0) == 7);
+    assert(tilePixel(1, 1, 0) == 0);
+    assert(tilePixel(1, 0, 1) == 6);
+    assert(tilePixel(1, 1, 1) == 5);
+
+    spriteToolAction(&Sprite_, SPRITE_TOOL_ROTATE);
+
+    assert(tilePixel(1, 0, 0) == 6);
+    assert(tilePixel(1, 1, 0) == 7);
+    assert(tilePixel(1, 0, 1) == 5);
+    assert(tilePixel(1, 1, 1) == 0);
+
+    puts("selection flip ok");
+}
+
+static void testSelectionUndo(void)
+{
+    setup();
+
+    tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, 0, 5);
+
+    spriteSetMode(&Sprite_, SPRITE_SELECT_MODE);
+    selectBlock(2, 2);
+
+    SpriteClipboard.copy(&Sprite_);
+
+    noMouse();
+    pointer(24 + 4 * TIC_SPRITESIZE, 20 + 3 * TIC_SPRITESIZE);
+    SpriteClipboard.paste(&Sprite_);
+    assert(tilePixel(1, 4, 3) == 5);
+
+    // Undo must drop the floating buffers along with the paste, or the next
+    // selection move brings the undone pixels back.
+    SpriteClipboard.undo(&Sprite_);
+    assert(Sprite_.select.rect.w == 0 && Sprite_.select.rect.h == 0);
+    assert(tilePixel(1, 4, 3) == 0);
+
+    noMouse();
+    press(tic_key_right);
+    frame();
+    assert(tilePixel(1, 4, 3) == 0);
+    assert(tilePixel(1, 5, 3) == 0);
+
+    // Redo brings the paste back with no floating buffers to restamp it.
+    SpriteClipboard.redo(&Sprite_);
+    assert(tilePixel(1, 4, 3) == 5);
+    assert(Sprite_.select.rect.w == 0 && Sprite_.select.rect.h == 0);
+
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+    press(tic_key_right);
+    frame();
+    assert(tilePixel(1, 5, 3) == 0);
+
+    puts("selection undo ok");
+}
+
+static void testSelectionToolSwitch(void)
+{
+    setup();
+
+    tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, 0, 5);
+
+    spriteSetMode(&Sprite_, SPRITE_SELECT_MODE);
+    selectBlock(2, 2);
+    assert(Sprite_.select.rect.w == 2);
+
+    // Leaving the selection tool drops the floating buffers: switching back
+    // to SELECT must not move the old content again.
+    noMouse();
+    press(tic_key_1);
+    frame();
+    assert(Sprite_.mode == SPRITE_DRAW_MODE);
+    assert(Sprite_.select.rect.w == 0 && Sprite_.select.rect.h == 0);
+
+    noMouse();
+    press(tic_key_unknown);
+    frame();
+    press(tic_key_3);
+    frame();
+    assert(Sprite_.mode == SPRITE_SELECT_MODE);
+    assert(Sprite_.select.rect.w == 0 && Sprite_.select.rect.h == 0);
+
+    puts("selection tool switch ok");
+}
+
+static void testClipboardShape(void)
+{
+    setup();
+
+    // A whole-sprite copy whose first bytes spell the selection magic must
+    // still paste as a whole sprite when the rest of the header is invalid.
+    static const u8 first[] = {4, 5, 3, 5, 5, 4, 12, 4, 0, 0};
+
+    for(s32 i = 0; i < COUNT_OF(first); i++)
+        tic_tool_poke4(Tic->cart.banks[0].tiles.data[1].data, i, first[i]);
+
+    SpriteClipboard.copy(&Sprite_);
+
+    memset(Tic->cart.banks[0].tiles.data[1].data, 0, sizeof(tic_tile));
+    SpriteClipboard.paste(&Sprite_);
+
+    assert(Sprite_.mode == SPRITE_DRAW_MODE);
+    assert(tilePixel(1, 0, 0) == 4);
+    assert(tilePixel(1, 1, 0) == 5);
+    assert(tilePixel(1, 2, 0) == 3);
+    assert(tilePixel(1, 3, 0) == 5);
+
+    puts("clipboard shape ok");
+}
+
 static void testFlagsOnly4bpp(void)
 {
     setup();
@@ -700,6 +1077,14 @@ int main(void)
     testScroll();
     testCanvasSizeButtons();
     testBrushMarker();
+    testCanvasJump();
+    testSheetPages();
+    testCtrlRightPick();
+    testSelectionClipboard();
+    testSelectionFlip();
+    testSelectionUndo();
+    testSelectionToolSwitch();
+    testClipboardShape();
     testFlagsOnly4bpp();
     testFlagsHex();
     testGesture();

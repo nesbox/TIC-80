@@ -222,7 +222,10 @@ static const struct HotkeysRowSpriteEditor
 } HotkeysTextSpriteEditor[] =
     {
         {"TAB", "Switch tiles/sprites."},
-        {"CTRL+LEFT/RIGHT", "Switch sheet page."},
+        {"CTRL+SHIFT+LEFT/RIGHT", "Switch sheet page."},
+        {"CTRL+ARROWS", "Move the cursor by the canvas size."},
+        {"CTRL+RIGHT CLICK", "Pick the color under the pointer (brush tool)."},
+        {"CTRL+C/X/V", "Copy, cut or paste the selection; the right-click color stays empty."},
         {"[]", "Choose previous/next palette color."},
         {"-/=", "Change brush size."},
         {"SCROLL", "Sheet: canvas; canvas: brush."},

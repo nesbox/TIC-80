@@ -26,6 +26,7 @@
 #include "studio/icons.h"
 #include "studio/layout.h"
 #include "studio/ram.h"
+#include "studio/system.h"
 #include "studio/ui.h"
 #include "ext/history.h"
 
@@ -42,6 +43,15 @@
 #define PALETTE_WIDTH     (PALETTE_COLS * PALETTE_CELL_SIZE)
 #define PALETTE_HEIGHT    (PALETTE_ROWS * PALETTE_CELL_SIZE)
 #define BRUSH_SIZES       4
+
+// The selection clipboard's header: magic, width, height, background color.
+enum
+{
+    SelectionMagicSize = 4,
+    SelectionHeader = SelectionMagicSize + 3,
+};
+
+static const u8 SelectionMagic[SelectionMagicSize] = {'T', 'S', 'E', 'L'};
 
 enum
 {
@@ -378,7 +388,13 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
         if(sprite->brush.symmetryHorizontal && sprite->brush.symmetryVertical)
             drawCursorBorder(sprite, x + hx, y + vy, brushSize, brushSize);
 
-        if(left || right)
+        if(!left && right && tic_api_key(tic, tic_key_ctrl))
+        {
+            // Ctrl turns the right button into the eyedropper.
+            sprite->color = tic_tilesheet_getpix(&sprite->sheet, sx + mx / Size, sy + my / Size);
+            sprite->draw.start = false;
+        }
+        else if(left || right)
         {
             drawing = true;
 
@@ -407,7 +423,7 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
     }
 }
 
-static void pasteSelection(Sprite* sprite)
+static void restoreSelection(Sprite* sprite)
 {
     s32 l = getIndexPosX(sprite);
     s32 t = getIndexPosY(sprite);
@@ -417,17 +433,25 @@ static void pasteSelection(Sprite* sprite)
     for(s32 sy = t, i = 0; sy < b; sy++)
         for(s32 sx = l; sx < r; sx++)
             tic_tilesheet_setpix(&sprite->sheet, sx, sy, sprite->select.back[i++]);
+}
 
-    tic_rect* rect = &sprite->select.rect;
+static void pasteSelection(Sprite* sprite)
+{
+    restoreSelection(sprite);
 
-    l += rect->x;
-    t += rect->y;
-    r = l + rect->w;
-    b = t + rect->h;
+    s32 l = getIndexPosX(sprite) + sprite->select.rect.x;
+    s32 t = getIndexPosY(sprite) + sprite->select.rect.y;
+    s32 r = l + sprite->select.rect.w;
+    s32 b = t + sprite->select.rect.h;
 
     for(s32 sy = t, i = 0; sy < b; sy++)
         for(s32 sx = l; sx < r; sx++)
-            tic_tilesheet_setpix(&sprite->sheet, sx, sy, sprite->select.front[i++]);
+        {
+            u8 color = sprite->select.front[i++];
+
+            if(!sprite->select.transparent || color != sprite->select.bg)
+                tic_tilesheet_setpix(&sprite->sheet, sx, sy, color);
+        }
 
     history_add(sprite->history);
 }
@@ -437,6 +461,9 @@ static void copySelection(Sprite* sprite)
     tic_rect rect = getSpriteRect(sprite);
     s32 r = rect.x + rect.w;
     s32 b = rect.y + rect.h;
+
+    sprite->select.transparent = false;
+    sprite->select.bg = sprite->color2;
 
     for(s32 sy = rect.y, i = 0; sy < b; sy++)
         for(s32 sx = rect.x; sx < r; sx++)
@@ -451,7 +478,7 @@ static void copySelection(Sprite* sprite)
             {
                 u8* color = &sprite->select.back[i + j * sprite->canvasSize];
                 sprite->select.front[index++] = *color;
-                *color = sprite->color2;
+                *color = sprite->select.bg;
             }
     }
 }
@@ -862,9 +889,16 @@ static void deleteCanvas(Sprite* sprite)
     s32 right = left + rect->w;
     s32 bottom = top + rect->h;
 
-    for(s32 pixel_y = top; pixel_y < bottom; pixel_y++)
-        for(s32 pixel_x = left; pixel_x < right; pixel_x++)
+    // A pasted selection shows the canvas snapshot through its background:
+    // erase what it covers, not the snapshot under it.
+    for(s32 pixel_y = top, i = 0; pixel_y < bottom; pixel_y++)
+        for(s32 pixel_x = left; pixel_x < right; pixel_x++, i++)
+        {
+            if(sprite->select.transparent && sprite->select.front[i] == sprite->select.bg)
+                continue;
+
             tic_tilesheet_setpix(&sprite->sheet, pixel_x, pixel_y, sprite->color2);
+        }
 
     clearCanvasSelection(sprite);
 
@@ -875,44 +909,22 @@ static void flipCanvasHorz(Sprite* sprite)
 {
     tic_rect* rect = &sprite->select.rect;
 
-    s32 sprite_x = getIndexPosX(sprite);
-    s32 sprite_y = getIndexPosY(sprite);
+    for(s32 y = 0; y < rect->h; y++)
+        for(s32 x = 0, i = rect->w - 1; x < i; x++, i--)
+            SWAP(sprite->select.front[x + y * rect->w], sprite->select.front[i + y * rect->w], u8);
 
-    s32 right = sprite_x + rect->x + rect->w / 2;
-    s32 bottom = sprite_y + rect->y + rect->h;
-
-    for(s32 y = sprite_y + rect->y; y < bottom; y++)
-        for(s32 x = sprite_x + rect->x, i = sprite_x + rect->x + rect->w - 1; x < right; x++, i--)
-        {
-            u8 color = tic_tilesheet_getpix(&sprite->sheet, x, y);
-            tic_tilesheet_setpix(&sprite->sheet, x, y, tic_tilesheet_getpix(&sprite->sheet, i, y));
-            tic_tilesheet_setpix(&sprite->sheet, i, y, color);
-        }
-
-    history_add(sprite->history);
-    copySelection(sprite);
+    pasteSelection(sprite);
 }
 
 static void flipCanvasVert(Sprite* sprite)
 {
     tic_rect* rect = &sprite->select.rect;
 
-    s32 sprite_x = getIndexPosX(sprite);
-    s32 sprite_y = getIndexPosY(sprite);
+    for(s32 y = 0, i = rect->h - 1; y < i; y++, i--)
+        for(s32 x = 0; x < rect->w; x++)
+            SWAP(sprite->select.front[x + y * rect->w], sprite->select.front[x + i * rect->w], u8);
 
-    s32 right = sprite_x + rect->x + rect->w;
-    s32 bottom = sprite_y + rect->y + rect->h / 2;
-
-    for(s32 y = sprite_y + rect->y, i = sprite_y + rect->y + rect->h - 1; y < bottom; y++, i--)
-        for(s32 x = sprite_x + rect->x; x < right; x++)
-        {
-            u8 color = tic_tilesheet_getpix(&sprite->sheet, x, y);
-            tic_tilesheet_setpix(&sprite->sheet, x, y, tic_tilesheet_getpix(&sprite->sheet, x, i));
-            tic_tilesheet_setpix(&sprite->sheet, x, i, color);
-        }
-
-    history_add(sprite->history);
-    copySelection(sprite);
+    pasteSelection(sprite);
 }
 
 static s32* getSpriteIndexes(Sprite* sprite)
@@ -1705,11 +1717,134 @@ static inline s32 getClipboardSize(Sprite* sprite)
     return getClipboardSpritesSize(sprite) + getClipboardFlagsSize(sprite);
 }
 
+// The clipboard as bytes, with the spaces the hex text may carry removed.
+static u8* readClipboard(s32* size)
+{
+    if(!tic_sys_clipboard_has()) return NULL;
+
+    char* text = tic_sys_clipboard_get();
+    if(!text) return NULL;
+
+    s32 len = 0;
+    for(s32 i = 0; text[i]; i++)
+        if(!isspace((u8)text[i]))
+            text[len++] = text[i];
+
+    text[len] = '\0';
+
+    u8* data = len ? malloc((size_t)len / 2) : NULL;
+
+    if(data)
+        tic_tool_str2buf(text, len, data, true);
+
+    tic_sys_clipboard_free(text);
+    *size = data ? len / 2 : 0;
+
+    return data;
+}
+
+static void copySelectionToClipboard(Sprite* sprite)
+{
+    tic_rect rect = sprite->select.rect;
+
+    if(rect.w <= 0 || rect.h <= 0) return;
+
+    s32 size = SelectionHeader + (rect.w * rect.h + 1) / 2;
+    u8* buffer = calloc(1, size);
+
+    if(buffer)
+    {
+        memcpy(buffer, SelectionMagic, SelectionMagicSize);
+        buffer[SelectionMagicSize + 0] = (u8)rect.w;
+        buffer[SelectionMagicSize + 1] = (u8)rect.h;
+        buffer[SelectionMagicSize + 2] = sprite->select.bg;
+
+        for(s32 i = 0; i < rect.w * rect.h; i++)
+            tic_tool_poke4(buffer + SelectionHeader, i, sprite->select.front[i]);
+
+        toClipboard(buffer, size, true);
+        free(buffer);
+    }
+}
+
+static bool pasteSelectionData(Sprite* sprite, const u8* pixels, s32 w, s32 h, u8 bg)
+{
+    tic_rect rect = {0, 0, w, h};
+    tic_rect canvas = {CanvasX, CanvasY, CANVAS_SIZE, CANVAS_SIZE};
+
+    if(mousePos(sprite, &canvas))
+    {
+        const s32 Size = CANVAS_SIZE / sprite->canvasSize;
+        tic_point mouse = tic_api_mouse(sprite->tic);
+
+        rect.x = (mouse.x - CanvasX) / Size;
+        rect.y = (mouse.y - CanvasY) / Size;
+    }
+
+    rect.x = CLAMP(rect.x, 0, sprite->canvasSize - w);
+    rect.y = CLAMP(rect.y, 0, sprite->canvasSize - h);
+
+    {
+        tic_rect spriteRect = getSpriteRect(sprite);
+        s32 r = spriteRect.x + spriteRect.w;
+        s32 b = spriteRect.y + spriteRect.h;
+
+        for(s32 sy = spriteRect.y, i = 0; sy < b; sy++)
+            for(s32 sx = spriteRect.x; sx < r; sx++)
+                sprite->select.back[i++] = tic_tilesheet_getpix(&sprite->sheet, sx, sy);
+    }
+
+    for(s32 i = 0; i < w * h; i++)
+        sprite->select.front[i] = tic_tool_peek4(pixels, i);
+
+    sprite->select.rect = rect;
+    sprite->select.transparent = true;
+    sprite->select.bg = bg;
+    sprite->select.drag = false;
+    sprite->draw.start = false;
+    sprite->needsHistoryUpdate = false;
+    sprite->mode = SPRITE_SELECT_MODE;
+
+    pasteSelection(sprite);
+
+    return true;
+}
+
+static bool pasteSelectionFromClipboard(Sprite* sprite)
+{
+    s32 size = 0;
+    u8* data = readClipboard(&size);
+    bool pasted = false;
+
+    if(data)
+    {
+        if(size >= SelectionHeader && memcmp(data, SelectionMagic, SelectionMagicSize) == 0)
+        {
+            s32 w = data[SelectionMagicSize + 0];
+            s32 h = data[SelectionMagicSize + 1];
+
+            if(w > 0 && h > 0 && w <= sprite->canvasSize && h <= sprite->canvasSize &&
+               SelectionHeader + (w * h + 1) / 2 == size)
+                pasted = pasteSelectionData(sprite, data + SelectionHeader, w, h, data[SelectionMagicSize + 2]);
+        }
+
+        free(data);
+    }
+
+    return pasted;
+}
+
 static void copyToClipboard(Sprite* sprite)
 {
     if(sprite->palette.edit)
     {
         copyPalette(sprite);
+        return;
+    }
+
+    if(hasCanvasSelection(sprite) && !sprite->select.drag)
+    {
+        copySelectionToClipboard(sprite);
         return;
     }
 
@@ -1749,6 +1884,13 @@ static void cutToClipboard(Sprite* sprite)
         return;
     }
 
+    if(hasCanvasSelection(sprite) && !sprite->select.drag)
+    {
+        copySelectionToClipboard(sprite);
+        deleteCanvas(sprite);
+        return;
+    }
+
     copyToClipboard(sprite);
     deleteSprite(sprite);
 }
@@ -1760,6 +1902,9 @@ static void copyFromClipboard(Sprite* sprite)
         pasteColor(sprite);
         return;
     }
+
+    if(pasteSelectionFromClipboard(sprite))
+        return;
 
     s32 size = getClipboardSize(sprite);
 
@@ -1786,6 +1931,7 @@ static void copyFromClipboard(Sprite* sprite)
             }
 
             history_add(sprite->history);
+            clearCanvasSelection(sprite);
         }
     }
 }
@@ -1814,14 +1960,44 @@ static void rightSprite(Sprite* sprite)
     updateIndex(sprite);
 }
 
+// Ctrl+arrows: one canvas per step, so frames laid side by side are one key apart.
+static void jumpSprite(Sprite* sprite, s32 dx, s32 dy)
+{
+    s32 step = sprite->canvasSize / TIC_SPRITESIZE;
+    s32 max = TIC_SPRITESHEET_COLS - step;
+
+    tic_point pos =
+        {
+            CLAMP(sprite->spritePos.x + dx * step, 0, max),
+            CLAMP(sprite->spritePos.y + dy * step, 0, max),
+        };
+
+    sprite->spritePos = pos;
+    updateIndex(sprite);
+}
+
+// The floating buffers hold the sheet as it was when the selection was made;
+// an undo moves the sheet out from under them, so the selection goes with it.
 static void undo(Sprite* sprite)
 {
-    history_undo(sprite->palette.edit ? sprite->paletteHistory : sprite->history);
+    if(sprite->palette.edit)
+        history_undo(sprite->paletteHistory);
+    else
+    {
+        history_undo(sprite->history);
+        clearCanvasSelection(sprite);
+    }
 }
 
 static void redo(Sprite* sprite)
 {
-    history_redo(sprite->palette.edit ? sprite->paletteHistory : sprite->history);
+    if(sprite->palette.edit)
+        history_redo(sprite->paletteHistory);
+    else
+    {
+        history_redo(sprite->history);
+        clearCanvasSelection(sprite);
+    }
 }
 
 static void switchBanks(Sprite* sprite)
@@ -1994,10 +2170,21 @@ static void processKeyboard(Sprite* sprite)
 
         if(ctrl)
         {
-            if(keyPressed(sprite, tic_key_left))
+            bool shift = tic_api_key(tic, tic_key_shift);
+
+            if(shift && keyPressed(sprite, tic_key_left))
                 leftViewport(sprite);
-            else if(keyPressed(sprite, tic_key_right))
+            else if(shift && keyPressed(sprite, tic_key_right))
                 rightViewport(sprite);
+
+            else if(keyPressed(sprite, tic_key_left))
+                jumpSprite(sprite, -1, 0);
+            else if(keyPressed(sprite, tic_key_right))
+                jumpSprite(sprite, +1, 0);
+            else if(keyPressed(sprite, tic_key_up))
+                jumpSprite(sprite, 0, -1);
+            else if(keyPressed(sprite, tic_key_down))
+                jumpSprite(sprite, 0, +1);
 
             else if(keyPressed(sprite, tic_key_tab))
                 switchBitMode(sprite, sprite->blit.mode == tic_bpp_4
@@ -2024,13 +2211,22 @@ static void processKeyboard(Sprite* sprite)
                         deleteCanvas(sprite);
                     // To be able to change tool after selection
                     else if(keyPressed(sprite, tic_key_1))
+                    {
                         sprite->mode = SPRITE_DRAW_MODE;
+                        clearCanvasSelection(sprite);
+                    }
                     else if(keyPressed(sprite, tic_key_2))
+                    {
                         sprite->mode = SPRITE_PICK_MODE;
+                        clearCanvasSelection(sprite);
+                    }
                     else if(keyPressed(sprite, tic_key_3))
                         sprite->mode = SPRITE_SELECT_MODE;
                     else if(keyPressed(sprite, tic_key_4))
+                    {
                         sprite->mode = SPRITE_FILL_MODE;
+                        clearCanvasSelection(sprite);
+                    }
                     else if(keyPressed(sprite, tic_key_5))
                         flipCanvasHorz(sprite);
                     else if(keyPressed(sprite, tic_key_6))
