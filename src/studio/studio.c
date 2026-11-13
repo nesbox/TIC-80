@@ -3047,6 +3047,20 @@ static void doCodeImport(Studio* studio)
 }
 #endif
 
+// The hand closes its finger while a mouse button is held. btns also carries
+// the wheel deltas and the relative bit, so only the button bits count.
+static tic_cursor cursorSprite(const Studio* studio)
+{
+    const tic_mem* tic = studio->tic;
+    const u16 buttons = (1 << tic_mouse_left) | (1 << tic_mouse_middle) | (1 << tic_mouse_right);
+
+    if(tic->ram->vram.vars.cursor.system && tic->ram->vram.vars.cursor.sprite == tic_cursor_hand &&
+       (tic->ram->input.mouse.btns & buttons))
+        return tic_cursor_hand_pressed;
+
+    return tic->ram->vram.vars.cursor.sprite;
+}
+
 static void blitCursor(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -3056,7 +3070,7 @@ static void blitCursor(Studio* studio)
     // that height the cursor's spans would run off the end of the framebuffer.
     if(studio->mouse.idle < CURSOR_HIDE_TICKS && tic->input.mouse && !m->relative && (s32)m->y < TIC80_FULLHEIGHT)
     {
-        s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
+        s32 sprite = CLAMP(cursorSprite(studio), 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;
 
         tic_point hot = {0};
@@ -3068,7 +3082,8 @@ static void blitCursor(Studio* studio)
                 {0, 0},
                 {3, 0},
                 {2, 3},
-            }[CLAMP(sprite, 0, 2)];
+                {3, 0},
+            }[CLAMP(sprite, 0, 3)];
         }
         else if(sprite == 0)
             return;
@@ -3226,18 +3241,19 @@ void studio_tick(Studio* studio, tic80_input input)
 
 #if defined(BUILD_RENDER_CACHE)
         tic80_mouse* m = &tic->ram->input.mouse;
+        tic_cursor cursor = cursorSprite(studio);
         bool mouse_visible = (studio->mouse.idle < CURSOR_HIDE_TICKS && tic->input.mouse && !m->relative && (s32)m->y < TIC80_FULLHEIGHT);
         if(mouse_visible || studio->mouse.prev.visible)
         {
             if(m->x != studio->mouse.prev.x || m->y != studio->mouse.prev.y ||
-               tic->ram->vram.vars.cursor.sprite != studio->mouse.prev.sprite ||
+               cursor != studio->mouse.prev.sprite ||
                tic->ram->vram.vars.cursor.system != studio->mouse.prev.system ||
                mouse_visible != studio->mouse.prev.visible)
             {
                 tic_core_invalidate(tic);
                 studio->mouse.prev.x = m->x;
                 studio->mouse.prev.y = m->y;
-                studio->mouse.prev.sprite = tic->ram->vram.vars.cursor.sprite;
+                studio->mouse.prev.sprite = cursor;
                 studio->mouse.prev.system = tic->ram->vram.vars.cursor.system;
                 studio->mouse.prev.visible = mouse_visible;
             }
