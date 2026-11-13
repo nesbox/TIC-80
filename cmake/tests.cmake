@@ -71,6 +71,12 @@ if(BUILD_TESTS)
     add_executable(sgamepad-hid-test ${CMAKE_SOURCE_DIR}/tests/sgamepad_hid.c)
     tic80_add_test(sgamepad-hid-test)
 
+    # The mapping table is data and its parser and matcher are pure functions:
+    # a reference string and a pad's ids are all a test needs to hold the
+    # generated table and the grammar together.
+    add_executable(sgamepad-map-test ${CMAKE_SOURCE_DIR}/tests/sgamepad_map.c)
+    tic80_add_test(sgamepad-map-test)
+
     # The studio's sound is a module of its own, and links with the core alone:
     # nothing the test reaches goes near the studio, and its header names only
     # the core, so no build directory is needed here either.

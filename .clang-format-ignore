@@ -6,6 +6,10 @@
 src/system/sokol/crt.h
 src/system/sokol/blit.h
 
+# The game controller database's mapping table: tools/gamecontrollerdb.py
+# writes it again on the next run.
+src/system/sokol/sgamepad_map_db.h
+
 # Third-party files that live inside src/.
 src/ext/miniaudio.h
 src/ext/msf_gif.h
