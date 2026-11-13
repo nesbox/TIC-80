@@ -514,7 +514,17 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 #include SGAMEPAD_XINPUT_H
 #include SGAMEPAD_HIDSDI_H
 #include SGAMEPAD_SETUPAPI_H
+#include <objbase.h>
 #include <stdlib.h>
+#include <wchar.h>
+
+// DirectInput reads the pads XInput does not place, and it numbers the
+// elements the mapping table's references name. It is a COM object, which is
+// what objbase.h is for: the lean Windows headers leave it out.
+#ifndef DIRECTINPUT_VERSION
+#define DIRECTINPUT_VERSION 0x0800
+#endif
+#include <dinput.h>
 
 // Two things read a pad here. XInput reaches the Xbox family and whatever
 // presents as one, and it is the floor: a pad it places is read there and
@@ -528,6 +538,11 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 // of its own unclaimed rather than read as buttons nobody pressed.
 #define SGAMEPAD_HID_IMPL
 #include "sgamepad_hid.h"
+
+// The pads neither XInput nor the readers above place are read generically,
+// with the mapping table's DirectInput element references.
+#define SGAMEPAD_MAP_IMPL
+#include "sgamepad_map.h"
 
 // XInput's sticks are signed shorts with y upwards, and the machine's axis is
 // the mouse's: x to the right, y downwards.
@@ -559,9 +574,12 @@ static bool _sgamepad_xinput_use(const XINPUT_GAMEPAD* pad, const sgamepad_state
 #define _SGAMEPAD_HID_PATH         260
 #define _SGAMEPAD_HID_DETAIL_SIZE  (sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W) + _SGAMEPAD_HID_PATH * sizeof(wchar_t))
 
-// The XInput pads take the first slots of the device table, the way XInput
-// numbers them; these take what is left.
-#define _SGAMEPAD_HID_MAX          (SGAMEPAD_MAX_DEVICES - XUSER_MAX_COUNT)
+// The device table is split the way the pads are read: XInput's four first,
+// the way XInput numbers them, then the HID families' pads, then the generic
+// ones. Each backend owns a range, so two of them cannot write one entry.
+#define _SGAMEPAD_HID_MAX          8
+#define _SGAMEPAD_DINPUT_MAX       4
+#define _SGAMEPAD_DINPUT_SLOT      (XUSER_MAX_COUNT + _SGAMEPAD_HID_MAX)
 
 typedef struct
 {
@@ -886,6 +904,531 @@ static void _sgamepad_hid_scan(void)
     SetupDiDestroyDeviceInfoList(set);
 }
 
+// The generic half. DirectInput sees every game controller, the ones XInput
+// and the HID families read included, so a device is taken here only when
+// neither of them does: its ids are not a family's, its path is not an XInput
+// one, and the mapping table names it. A pad no entry names — a wheel, a
+// flight stick, a pad in a vendor mode with a layout of its own — is left
+// unclaimed rather than read as buttons nobody pressed.
+//
+// The table's references are DirectInput element indices, which is why this
+// backend reads the standard joystick format's arrays by index rather than
+// decoding a report.
+
+typedef struct
+{
+    IDirectInputDevice8* device;
+    GUID instance; // which device it is, across scans
+    const sgamepad_map_entry* entry;
+    // Which field of the standard format each axis the table numbers is:
+    // SDL numbers the axes a device has, not the fields they sit in.
+    int axis[SGAMEPAD_MAP_AXES];
+    int axes;
+    bool present; // the device answered the last read
+    bool seen;    // the last scan found it still attached
+} _sgamepad_dinput_device;
+
+static struct
+{
+    IDirectInput8* dinput;
+    HWND hwnd; // the window the pads are read against
+    DWORD scanned;
+    bool com; // the apartment this backend made, and has to give back
+    _sgamepad_dinput_device devices[_SGAMEPAD_DINPUT_MAX];
+} _sgamepad_dinput;
+
+// DirectInput is made once the window it reads the pads against is up, which
+// may be after the layer is set up: the scan that finds it first makes it.
+static void _sgamepad_dinput_setup(void)
+{
+    if(_sgamepad_dinput.dinput)
+        return;
+
+    if(!_sgamepad_dinput.hwnd)
+        _sgamepad_dinput.hwnd = (HWND)sapp_win32_get_hwnd();
+
+    if(!_sgamepad_dinput.hwnd)
+        return;
+
+    // A COM apartment whose model another part already chose is not this
+    // backend's to change; DirectInput works in either.
+    _sgamepad_dinput.com = SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED));
+
+    const HINSTANCE instance = GetModuleHandleW(NULL);
+
+    if(instance && FAILED(DirectInput8Create(instance, DIRECTINPUT_VERSION, &IID_IDirectInput8, (void**)&_sgamepad_dinput.dinput, NULL)))
+        _sgamepad_dinput.dinput = NULL;
+
+    if(!_sgamepad_dinput.dinput && _sgamepad_dinput.com)
+    {
+        CoUninitialize();
+        _sgamepad_dinput.com = false;
+    }
+}
+
+typedef struct
+{
+    _sgamepad_dinput_device* pad;
+    IDirectInputDevice8* device;
+    int sliders; // which of the format's two sliders comes next
+} _sgamepad_dinput_axes;
+
+// The field of the standard joystick format an axis object feeds, in the
+// order the format lays them out; -1 for an object the format has no field
+// for.
+static int _sgamepad_dinput_field(const GUID* type, int slider)
+{
+    if(IsEqualGUID(type, &GUID_XAxis))
+        return 0;
+
+    if(IsEqualGUID(type, &GUID_YAxis))
+        return 1;
+
+    if(IsEqualGUID(type, &GUID_ZAxis))
+        return 2;
+
+    if(IsEqualGUID(type, &GUID_RxAxis))
+        return 3;
+
+    if(IsEqualGUID(type, &GUID_RyAxis))
+        return 4;
+
+    if(IsEqualGUID(type, &GUID_RzAxis))
+        return 5;
+
+    if(IsEqualGUID(type, &GUID_Slider))
+        return 6 + slider;
+
+    return -1;
+}
+
+// SDL numbers the axes a device has rather than the fields they feed, so a pad
+// without, say, Rx reads its Rz as axis 3: the table's references were written
+// against that numbering. The fields are kept in that order, and the ones past
+// the eighth are not numbered by the table at all.
+static void _sgamepad_dinput_add_axis(_sgamepad_dinput_device* pad, int field)
+{
+    int i = pad->axes < SGAMEPAD_MAP_AXES ? pad->axes : SGAMEPAD_MAP_AXES - 1;
+
+    if(pad->axes == SGAMEPAD_MAP_AXES && field >= pad->axis[SGAMEPAD_MAP_AXES - 1])
+        return;
+
+    while(i > 0 && pad->axis[i - 1] > field)
+    {
+        pad->axis[i] = pad->axis[i - 1];
+        i--;
+    }
+
+    pad->axis[i] = field;
+
+    if(pad->axes < SGAMEPAD_MAP_AXES)
+        pad->axes++;
+}
+
+// An axis is read in the range the table's arithmetic expects, -32768..32767,
+// and with no deadzone of the driver's: the layer applies its own. An axis
+// that will not take the range is not one the table can index, which is the
+// same rule SDL applies.
+static BOOL CALLBACK _sgamepad_dinput_axis_prepare(LPCDIDEVICEOBJECTINSTANCE object, LPVOID context)
+{
+    _sgamepad_dinput_axes* axes = context;
+    const int field = _sgamepad_dinput_field(&object->guidType, axes->sliders);
+    IDirectInputDevice8* device = axes->device;
+
+    if(field < 0 || field >= SGAMEPAD_MAP_AXES)
+        return DIENUM_CONTINUE;
+
+    if(IsEqualGUID(&object->guidType, &GUID_Slider))
+        axes->sliders++;
+
+    DIPROPRANGE range;
+
+    memset(&range, 0, sizeof range);
+
+    range.diph.dwSize = sizeof range;
+    range.diph.dwHeaderSize = sizeof range.diph;
+    range.diph.dwObj = object->dwType;
+    range.diph.dwHow = DIPH_BYID;
+    range.lMin = -32768;
+    range.lMax = 32767;
+
+    if(FAILED(IDirectInputDevice8_SetProperty(device, DIPROP_RANGE, &range.diph)))
+        return DIENUM_CONTINUE;
+
+    DIPROPDWORD deadzone;
+
+    memset(&deadzone, 0, sizeof deadzone);
+
+    deadzone.diph.dwSize = sizeof deadzone;
+    deadzone.diph.dwHeaderSize = sizeof deadzone.diph;
+    deadzone.diph.dwObj = object->dwType;
+    deadzone.diph.dwHow = DIPH_BYID;
+    deadzone.dwData = 0;
+
+    if(FAILED(IDirectInputDevice8_SetProperty(device, DIPROP_DEADZONE, &deadzone.diph)))
+        return DIENUM_CONTINUE;
+
+    _sgamepad_dinput_add_axis(axes->pad, field);
+
+    return DIENUM_CONTINUE;
+}
+
+static bool _sgamepad_dinput_prepare(IDirectInputDevice8* device, _sgamepad_dinput_device* pad)
+{
+    if(FAILED(IDirectInputDevice8_SetDataFormat(device, &c_dfDIJoystick2)))
+        return false;
+
+    // Shared background access: the machine reads the pad, it does not drive
+    // it, and exclusive access is what force feedback asks for.
+    if(FAILED(IDirectInputDevice8_SetCooperativeLevel(device, _sgamepad_dinput.hwnd, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
+        return false;
+
+    _sgamepad_dinput_axes axes = {pad, device, 0};
+
+    IDirectInputDevice8_EnumObjects(device, _sgamepad_dinput_axis_prepare, &axes, DIDFT_AXIS);
+
+    IDirectInputDevice8_Acquire(device);
+
+    return true;
+}
+
+// The CRC of the device's product name, byte for byte the one SDL computes
+// for the entries its database writes with a `crc:`: a reflected CRC-16 over
+// the name's UTF-8 bytes, with an all-zero first value.
+static uint16_t _sgamepad_dinput_crc16(const char* name)
+{
+    uint16_t crc = 0;
+
+    for(const unsigned char* character = (const unsigned char*)name; *character != 0; character++)
+    {
+        crc ^= *character;
+
+        for(int i = 0; i < 8; i++)
+            crc = (crc >> 1) ^ ((crc & 1) ? 0xA001 : 0);
+    }
+
+    return crc;
+}
+
+static uint16_t _sgamepad_dinput_name_crc(IDirectInputDevice8* device)
+{
+    DIPROPSTRING name;
+
+    memset(&name, 0, sizeof name);
+
+    name.diph.dwSize = sizeof name;
+    name.diph.dwHeaderSize = sizeof name.diph;
+    name.diph.dwHow = DIPH_DEVICE;
+
+    if(FAILED(IDirectInputDevice8_GetProperty(device, DIPROP_PRODUCTNAME, &name.diph)))
+        return 0;
+
+    char utf8[1024];
+    const int length = WideCharToMultiByte(CP_UTF8, 0, name.wsz, -1, utf8, (int)sizeof utf8, NULL, NULL);
+
+    return length > 1 ? _sgamepad_dinput_crc16(utf8) : 0;
+}
+
+static BOOL CALLBACK _sgamepad_dinput_enum(LPCDIDEVICEINSTANCE instance, LPVOID context)
+{
+    (void)context;
+
+    // Only a HID device is a pad in the standard format the table indexes.
+    if(!(instance->dwDevType & DIDEVTYPE_HID))
+        return DIENUM_CONTINUE;
+
+    // A pad already open is only marked as still there.
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+    {
+        _sgamepad_dinput_device* pad = &_sgamepad_dinput.devices[i];
+
+        if(pad->device && IsEqualGUID(&pad->instance, &instance->guidInstance))
+        {
+            pad->seen = true;
+            return DIENUM_CONTINUE;
+        }
+    }
+
+    IDirectInputDevice8* device = NULL;
+
+    if(FAILED(IDirectInput8_CreateDevice(_sgamepad_dinput.dinput, &instance->guidInstance, &device, NULL)))
+        return DIENUM_CONTINUE;
+
+    DIPROPDWORD ids;
+
+    memset(&ids, 0, sizeof ids);
+
+    ids.diph.dwSize = sizeof ids;
+    ids.diph.dwHeaderSize = sizeof ids.diph;
+    ids.diph.dwHow = DIPH_DEVICE;
+
+    if(FAILED(IDirectInputDevice8_GetProperty(device, DIPROP_VIDPID, &ids.diph)))
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    const uint16_t vendor = LOWORD(ids.dwData);
+    const uint16_t product = HIWORD(ids.dwData);
+
+    // A family's pad is read from its reports above, and an XInput pad by
+    // XInput: reading either here too would report every press twice, from
+    // two slots. XInput pads answer DirectInput as well, and SDL tells them
+    // by the `IG_` of the hardware id in their device path.
+    if(sgamepad_hid_family_of(vendor, product) != SGAMEPAD_HID_NONE)
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    DIPROPGUIDANDPATH path;
+
+    memset(&path, 0, sizeof path);
+
+    path.diph.dwSize = sizeof path;
+    path.diph.dwHeaderSize = sizeof path.diph;
+    path.diph.dwHow = DIPH_DEVICE;
+
+    if(FAILED(IDirectInputDevice8_GetProperty(device, DIPROP_GUIDANDPATH, &path.diph)) || wcsstr(path.wszPath, L"IG_") != NULL)
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    // The name CRC tells apart the pads that share an id, and a pad whose ids
+    // and name the table does not name is left unclaimed.
+    const sgamepad_map_entry* entry = sgamepad_map_find(vendor, product, _sgamepad_dinput_name_crc(device));
+
+    if(entry == NULL)
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    int slot = -1;
+
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX && slot < 0; i++)
+        if(!_sgamepad_dinput.devices[i].device)
+            slot = i;
+
+    if(slot < 0)
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    _sgamepad_dinput_device* pad = &_sgamepad_dinput.devices[slot];
+
+    memset(pad, 0, sizeof *pad);
+
+    if(!_sgamepad_dinput_prepare(device, pad))
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    pad->device = device;
+    pad->instance = instance->guidInstance;
+    pad->entry = entry;
+    pad->seen = true;
+
+    return DIENUM_CONTINUE;
+}
+
+static void _sgamepad_dinput_scan(void)
+{
+    _sgamepad_dinput.scanned = GetTickCount();
+
+    _sgamepad_dinput_setup();
+
+    if(!_sgamepad_dinput.dinput)
+        return;
+
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+        _sgamepad_dinput.devices[i].seen = false;
+
+    IDirectInput8_EnumDevices(_sgamepad_dinput.dinput, DI8DEVCLASS_GAMECTRL, _sgamepad_dinput_enum, NULL, DIEDFL_ATTACHEDONLY);
+
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+    {
+        _sgamepad_dinput_device* pad = &_sgamepad_dinput.devices[i];
+
+        if(pad->device && !pad->seen)
+        {
+            IDirectInputDevice8_Release(pad->device);
+            memset(pad, 0, sizeof *pad);
+        }
+    }
+}
+
+// The field an axis the table numbers reads, in the format's own range.
+static LONG _sgamepad_dinput_axis_field(const DIJOYSTATE2* joystick, int field)
+{
+    switch(field)
+    {
+        case 0: return joystick->lX;
+        case 1: return joystick->lY;
+        case 2: return joystick->lZ;
+        case 3: return joystick->lRx;
+        case 4: return joystick->lRy;
+        case 5: return joystick->lRz;
+        case 6: return joystick->rglSlider[0];
+        case 7: return joystick->rglSlider[1];
+        default: return 0;
+    }
+}
+
+// The axis a reference names, in the machine's own sign: the table stores a
+// reversed axis as the negative reference.
+static float _sgamepad_dinput_axis(const DIJOYSTATE2* joystick, const _sgamepad_dinput_device* pad, uint16_t ref)
+{
+    const int index = SGAMEPAD_MAP_INDEX_OF(ref);
+
+    if(SGAMEPAD_MAP_KIND_OF(ref) != SGAMEPAD_MAP_KIND_AXIS || index >= pad->axes)
+        return 0.0f;
+
+    const float value = _sgamepad_dinput_axis_field(joystick, pad->axis[index]) / 32767.0f;
+
+    return SGAMEPAD_MAP_IS_NEGATIVE(ref) ? -value : value;
+}
+
+// A hat's direction, in the table's masks: the point of view is in hundredths
+// of a degree, clockwise from up, and one value says it is centered.
+static int _sgamepad_dinput_hat(const DIJOYSTATE2* joystick, int index)
+{
+    if(index >= SGAMEPAD_MAP_HATS)
+        return 0;
+
+    DWORD value = joystick->rgdwPOV[index];
+
+    if(LOWORD(value) == 0xFFFF)
+        return 0;
+
+    value = (value + 2250) % 36000;
+
+    switch(value / 4500)
+    {
+        case 0: return 1;
+        case 1: return 1 | 2;
+        case 2: return 2;
+        case 3: return 2 | 4;
+        case 4: return 4;
+        case 5: return 4 | 8;
+        case 6: return 8;
+        case 7: return 8 | 1;
+        default: return 0;
+    }
+}
+
+// Whether a reference is held: a button is itself, a hat is the direction it
+// names, and an axis is the half past the layer's deadzone.
+static bool _sgamepad_dinput_pressed(const DIJOYSTATE2* joystick, const _sgamepad_dinput_device* pad, uint16_t ref)
+{
+    switch(SGAMEPAD_MAP_KIND_OF(ref))
+    {
+        case SGAMEPAD_MAP_KIND_BUTTON:
+        {
+            const int index = SGAMEPAD_MAP_INDEX_OF(ref);
+
+            return index < SGAMEPAD_MAP_BUTTONS && joystick->rgbButtons[index] != 0;
+        }
+
+        case SGAMEPAD_MAP_KIND_HAT:
+            return (_sgamepad_dinput_hat(joystick, SGAMEPAD_MAP_INDEX_OF(ref)) & SGAMEPAD_MAP_HAT_MASK_OF(ref)) != 0;
+
+        case SGAMEPAD_MAP_KIND_AXIS:
+            return _sgamepad_direction(_sgamepad_dinput_axis(joystick, pad, ref), +1);
+
+        default:
+            return false;
+    }
+}
+
+// A pad that shows use the layer does not read — a shoulder, a stick pressed
+// in, a hat — is in use all the same, and takes a slot while it is played.
+static bool _sgamepad_dinput_use(const DIJOYSTATE2* joystick)
+{
+    for(int i = 0; i < SGAMEPAD_MAP_BUTTONS; i++)
+        if(joystick->rgbButtons[i] != 0)
+            return true;
+
+    for(int i = 0; i < SGAMEPAD_MAP_HATS; i++)
+        if(_sgamepad_dinput_hat(joystick, i) != 0)
+            return true;
+
+    return false;
+}
+
+static void _sgamepad_dinput_record(int slot, const DIJOYSTATE2* joystick, const _sgamepad_dinput_device* pad)
+{
+    const sgamepad_map_entry* entry = pad->entry;
+    _sgamepad_device* device = &_sgamepad.devices[_SGAMEPAD_DINPUT_SLOT + slot];
+    sgamepad_state* state = &device->state;
+
+    // The table's y axes read downwards, as the machine's do; the table's
+    // references are SDL's, and SDL is the way round the machine already is.
+    const float left_x = _sgamepad_dinput_axis(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_LEFTX]);
+    const float left_y = _sgamepad_dinput_axis(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_LEFTY]);
+
+    state->up = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_DPUP]) || _sgamepad_direction(left_y, -1);
+    state->down = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_DPDOWN]) || _sgamepad_direction(left_y, +1);
+    state->left = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_DPLEFT]) || _sgamepad_direction(left_x, -1);
+    state->right = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_DPRIGHT]) || _sgamepad_direction(left_x, +1);
+
+    state->a = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_A]);
+    state->b = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_B]);
+    state->x = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_X]);
+    state->y = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_Y]);
+
+    state->back = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_BACK]);
+    state->start = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_START]);
+
+    state->right_x = _sgamepad_deadzone(_sgamepad_dinput_axis(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_RIGHTX]));
+    state->right_y = _sgamepad_deadzone(_sgamepad_dinput_axis(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_RIGHTY]));
+
+    device->present = true;
+    device->used = _sgamepad_holding(state) || _sgamepad_dinput_use(joystick);
+}
+
+static void _sgamepad_dinput_read(void)
+{
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+    {
+        _sgamepad_dinput_device* pad = &_sgamepad_dinput.devices[i];
+
+        if(!pad->device)
+            continue;
+
+        // A polled device is not read until it is asked for its state, and the
+        // call is harmless on the ones that push it.
+        IDirectInputDevice8_Poll(pad->device);
+
+        DIJOYSTATE2 joystick;
+
+        HRESULT result = IDirectInputDevice8_GetDeviceState(pad->device, (DWORD)sizeof joystick, &joystick);
+
+        // A pad that lost the device — the window came or went — is asked for
+        // it once; one that will not answer is not there this frame, and the
+        // next scan closes it.
+        if(FAILED(result))
+        {
+            IDirectInputDevice8_Acquire(pad->device);
+            IDirectInputDevice8_Poll(pad->device);
+            result = IDirectInputDevice8_GetDeviceState(pad->device, (DWORD)sizeof joystick, &joystick);
+        }
+
+        if(FAILED(result))
+        {
+            pad->present = false;
+            continue;
+        }
+
+        pad->present = true;
+
+        _sgamepad_dinput_record(i, &joystick, pad);
+    }
+}
+
 static int _sgamepad_connected_count(void)
 {
     int count = 0;
@@ -899,6 +1442,9 @@ static int _sgamepad_connected_count(void)
 
         count += pad->file != NULL && pad->reported;
     }
+
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+        count += _sgamepad_dinput.devices[i].present;
 
     return count;
 }
@@ -969,12 +1515,24 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
     if(gone || GetTickCount() - _sgamepad_hid.scanned >= _SGAMEPAD_HID_SCAN_MS)
         _sgamepad_hid_scan();
 
+    // The generic pads come last: one XInput or a family reader places is
+    // read there, and this reads only what they leave. The scan makes
+    // DirectInput itself once the window it reads the pads against is up,
+    // and until then it is retried at the scan's own rhythm.
+    if(GetTickCount() - _sgamepad_dinput.scanned >= _SGAMEPAD_HID_SCAN_MS)
+        _sgamepad_dinput_scan();
+
+    _sgamepad_dinput_read();
+
     _sgamepad_assign(SGAMEPAD_MAX_DEVICES);
 }
 
 static void _sgamepad_backend_setup(void)
 {
     memset(&_sgamepad_hid, 0, sizeof _sgamepad_hid);
+    memset(&_sgamepad_dinput, 0, sizeof _sgamepad_dinput);
+
+    _sgamepad_dinput_setup();
 }
 
 static void _sgamepad_backend_shutdown(void)
@@ -982,6 +1540,18 @@ static void _sgamepad_backend_shutdown(void)
     for(int i = 0; i < _SGAMEPAD_HID_MAX; i++)
         if(_sgamepad_hid.devices[i].file)
             _sgamepad_hid_close(&_sgamepad_hid.devices[i]);
+
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+        if(_sgamepad_dinput.devices[i].device)
+            IDirectInputDevice8_Release(_sgamepad_dinput.devices[i].device);
+
+    if(_sgamepad_dinput.dinput)
+        IDirectInput8_Release(_sgamepad_dinput.dinput);
+
+    if(_sgamepad_dinput.com)
+        CoUninitialize();
+
+    memset(&_sgamepad_dinput, 0, sizeof _sgamepad_dinput);
 }
 
 #elif defined(__ANDROID__)
