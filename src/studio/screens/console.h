@@ -47,6 +47,7 @@ typedef struct ConsoleAnswer ConsoleAnswer;
     macro(vram, "VRAM")         \
     macro(commands, "COMMANDS") \
     macro(api, "API")           \
+    macro(fill, "FILL")         \
     macro(keys, "KEYS")         \
     macro(buttons, "BUTTONS")   \
     macro(startup, "STARTUP")   \
