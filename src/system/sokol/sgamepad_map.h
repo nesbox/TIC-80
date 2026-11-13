@@ -1,10 +1,11 @@
 // sgamepad_map.h -- the mapping table's element references, parsed and matched.
 //
 // A pad that neither XInput nor a HID family reader places is read through
-// DirectInput, by the element indices of the standard joystick data format.
-// SDL's game controller database says which index carries which role, and the
-// table generated from it lives in sgamepad_map_db.h: a pad's vendor and
-// product ids, and one reference per role.
+// DirectInput, by the element indices of the standard joystick data format;
+// Linux and macOS read the pads their own APIs leave the same way, by evdev
+// and IOHID element indices. SDL's game controller database says which index
+// carries which role, and one table is generated from it per platform: a
+// pad's bus, vendor and product ids, and one reference per role.
 //
 // A reference is stored as a small integer rather than the string SDL writes:
 // what kind of element it is, its index, and, for an axis, the half that
@@ -77,18 +78,19 @@ enum
 #define SGAMEPAD_MAP_HAT_MASK_OF(ref) ((int)(((ref) >> 8) & 0x0Fu))
 #define SGAMEPAD_MAP_IS_NEGATIVE(ref) (((ref) & SGAMEPAD_MAP_NEGATIVE) != 0)
 
-// The elements the DirectInput table indexes: the standard joystick format's
-// buttons and axes, and its four point-of-view hats.
+// The elements a table may index. A backend reads only the indices its own
+// element list has; past these a reference is not one it can read.
 #define SGAMEPAD_MAP_BUTTONS 128
-#define SGAMEPAD_MAP_AXES    8
+#define SGAMEPAD_MAP_AXES    16
 #define SGAMEPAD_MAP_HATS    4
 
 typedef struct
 {
+    uint16_t bus;
     uint16_t vendor;
     uint16_t product;
-    // The CRC of the device's product name for a pad that shares its ids with
-    // another device, zero otherwise. A zero entry is the one any name matches.
+    // The CRC of the device name for a pad that shares its ids with another
+    // device, zero otherwise. A zero entry is the one any name matches.
     uint16_t crc;
     uint16_t ref[SGAMEPAD_MAP_ROLES];
 } sgamepad_map_entry;
@@ -97,12 +99,17 @@ typedef struct
 // Anything the grammar does not know reads as SGAMEPAD_MAP_NONE.
 uint16_t sgamepad_map_parse(const char* text);
 
-// The entry a pad's ids and product name CRC name, or NULL when the table has
-// none. An entry whose CRC matches the name is the pad's own; an entry with a
-// zero CRC is the fallback for a pad that no named entry claims. The
-// DirectInput version is not part of the match: the driver's numbering of a
-// pad's elements does not change with it.
-const sgamepad_map_entry* sgamepad_map_find(uint16_t vendor, uint16_t product, uint16_t crc);
+// The CRC of a device name, in the reflected form the database's entries
+// carry: start with zero, and feed a further string to it to continue the sum
+// — macOS hashes the manufacturer and the product name with a space between.
+uint16_t sgamepad_map_crc16(uint16_t crc, const char* text);
+
+// The entry a pad's bus, ids and name CRC name, in one platform's table, or
+// NULL when the table has none. An entry whose CRC matches the name is the
+// pad's own; an entry with a zero CRC is the fallback for a pad that no named
+// entry claims. The device's driver version is not part of the match: the
+// numbering of a pad's elements does not change with it.
+const sgamepad_map_entry* sgamepad_map_find(const sgamepad_map_entry* table, int count, uint16_t bus, uint16_t vendor, uint16_t product, uint16_t crc);
 
 #endif /* SGAMEPAD_MAP_INCLUDED */
 
@@ -114,8 +121,6 @@ const sgamepad_map_entry* sgamepad_map_find(uint16_t vendor, uint16_t product, u
 #ifndef SGAMEPAD_MAP_IMPL_INCLUDED
 #define SGAMEPAD_MAP_IMPL_INCLUDED
 #endif
-
-#include "sgamepad_map_db.h"
 
 // The number after a reference's letter: one to three digits, and then the
 // end of the text. A longer one is not an index the table carries.
@@ -156,12 +161,12 @@ uint16_t sgamepad_map_parse(const char* text)
     {
         case 'b':
             if(sign > 0 && _sgamepad_map_number(&text, &index) && index < SGAMEPAD_MAP_BUTTONS)
-                return SGAMEPAD_MAP_BUTTON(index);
+                return (uint16_t)SGAMEPAD_MAP_BUTTON(index);
             break;
 
         case 'a':
             if(_sgamepad_map_number(&text, &index) && index < SGAMEPAD_MAP_AXES)
-                return sign < 0 ? SGAMEPAD_MAP_AXIS_NEGATIVE(index) : SGAMEPAD_MAP_AXIS(index);
+                return (uint16_t)(sign < 0 ? SGAMEPAD_MAP_AXIS_NEGATIVE(index) : SGAMEPAD_MAP_AXIS(index));
             break;
 
         case 'h':
@@ -173,25 +178,38 @@ uint16_t sgamepad_map_parse(const char* text)
                 index = text[0] - '0';
 
                 if(index < SGAMEPAD_MAP_HATS && (mask == 1 || mask == 2 || mask == 4 || mask == 8))
-                    return SGAMEPAD_MAP_HAT(index, mask);
+                    return (uint16_t)SGAMEPAD_MAP_HAT(index, mask);
             }
             break;
 
         default: break;
     }
 
-    return SGAMEPAD_MAP_NONE;
+    return (uint16_t)SGAMEPAD_MAP_NONE;
 }
 
-const sgamepad_map_entry* sgamepad_map_find(uint16_t vendor, uint16_t product, uint16_t crc)
+uint16_t sgamepad_map_crc16(uint16_t crc, const char* text)
+{
+    for(const unsigned char* character = (const unsigned char*)text; *character != 0; character++)
+    {
+        crc ^= *character;
+
+        for(int i = 0; i < 8; i++)
+            crc = (crc >> 1) ^ ((crc & 1) ? 0xA001 : 0);
+    }
+
+    return crc;
+}
+
+const sgamepad_map_entry* sgamepad_map_find(const sgamepad_map_entry* table, int count, uint16_t bus, uint16_t vendor, uint16_t product, uint16_t crc)
 {
     const sgamepad_map_entry* fallback = NULL;
 
-    for(int i = 0; i < SGAMEPAD_MAP_TABLE_SIZE; i++)
+    for(int i = 0; i < count; i++)
     {
-        const sgamepad_map_entry* entry = &_sgamepad_map_table[i];
+        const sgamepad_map_entry* entry = &table[i];
 
-        if(entry->vendor != vendor || entry->product != product)
+        if(entry->bus != bus || entry->vendor != vendor || entry->product != product)
             continue;
 
         if(entry->crc == crc)

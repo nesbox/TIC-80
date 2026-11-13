@@ -10,9 +10,18 @@
  */
 #define SGAMEPAD_MAP_IMPL
 #include "system/sokol/sgamepad_map.h"
+#include "system/sokol/sgamepad_map_windows.h"
 
 #include <assert.h>
 #include <stdio.h>
+
+// The Windows table is plain data, so the matcher is asked about it on every
+// platform the tests run on: the Linux and macOS tables hold the numbering of
+// their own element lists, and the lookup is the same for all three.
+static const sgamepad_map_entry* find_pad(uint16_t vendor, uint16_t product, uint16_t crc)
+{
+    return sgamepad_map_find(_sgamepad_map_windows_table, SGAMEPAD_MAP_WINDOWS_TABLE_SIZE, 3, vendor, product, crc);
+}
 
 // A button reference resolves to the backend's button index.
 static void testButtonReference(void)
@@ -78,7 +87,7 @@ static void testUnknownReferences(void)
         "h0.3",  // not a direction
         "h0.1x", // trailing text
         "h4.1",  // past the hats the table indexes
-        "a8",    // past the axes
+        "a16",   // past the axes
         "b128",  // past the buttons
     };
 
@@ -91,11 +100,12 @@ static void testUnknownReferences(void)
 // The entry a pad's ids name, and the encoding the generated table is in.
 static void testMatcher(void)
 {
-    // The Saitek P990 Dual Analog Pad. SDL's database writes it twice, with
-    // two DirectInput versions of the GUID, and the version is not part of
-    // the match: the ids alone name the entry, wherever the pad's driver
-    // version moves.
-    const sgamepad_map_entry* pad = sgamepad_map_find(0x06A3, 0x040B, 0);
+    // The Saitek P990. SDL's database writes the id twice, with two
+    // DirectInput versions and a different back and start; the version is
+    // not part of the match, so the later entry is the one kept — SDL itself
+    // would prefer the entry whose version the device reports, which a table
+    // without versions cannot.
+    const sgamepad_map_entry* pad = find_pad(0x06A3, 0x040B, 0);
 
     assert(pad != NULL);
     assert(pad->vendor == 0x06A3 && pad->product == 0x040B);
@@ -111,9 +121,25 @@ static void testMatcher(void)
 
     // A wheel or a pad in a vendor mode: the ids name nothing, so the device
     // is left alone rather than read as buttons nobody pressed.
-    assert(sgamepad_map_find(0xFFFF, 0xFFFF, 0) == NULL);
+    assert(find_pad(0xFFFF, 0xFFFF, 0) == NULL);
 
     puts("the matcher ok");
+}
+
+// The CRC the database's `crc:` fields carry, over the device names SDL
+// computed them from.
+static void testNameCRC(void)
+{
+    assert(sgamepad_map_crc16(0, "Defender Joystick Cobra R4") == 0xC77A);
+    assert(sgamepad_map_crc16(0, "SPEEDLINK STRIKE Gamepad") == 0x5811);
+    assert(sgamepad_map_crc16(0, "SplitFish Game Controller") == 0x5628);
+
+    // Feeding a second string continues the sum, which is how macOS hashes
+    // the manufacturer and the product name into one.
+    const uint16_t space = sgamepad_map_crc16(sgamepad_map_crc16(0, "Manufacturer"), " ");
+    assert(space == sgamepad_map_crc16(0, "Manufacturer "));
+
+    puts("the name CRC ok");
 }
 
 // A vendor and product id two devices share: the CRC of the product name is
@@ -123,8 +149,8 @@ static void testProductNameCRC(void)
 {
     // 0x054C:0x0268 is the DualShock 3, and the SplitFish Game Controller
     // shares the id. The name CRC picks each one's own entry.
-    const sgamepad_map_entry* ds3 = sgamepad_map_find(0x054C, 0x0268, 0);
-    const sgamepad_map_entry* splitfish = sgamepad_map_find(0x054C, 0x0268, 0x5628);
+    const sgamepad_map_entry* ds3 = find_pad(0x054C, 0x0268, 0);
+    const sgamepad_map_entry* splitfish = find_pad(0x054C, 0x0268, 0x5628);
 
     assert(ds3 != NULL && ds3->crc == 0);
     assert(ds3->ref[SGAMEPAD_MAP_ROLE_A] == SGAMEPAD_MAP_BUTTON(2));
@@ -134,12 +160,12 @@ static void testProductNameCRC(void)
     assert(splitfish->ref[SGAMEPAD_MAP_ROLE_A] == SGAMEPAD_MAP_BUTTON(0));
 
     // A name neither entry was written for is the DualShock 3's generic one.
-    assert(sgamepad_map_find(0x054C, 0x0268, 0x1234) == ds3);
+    assert(find_pad(0x054C, 0x0268, 0x1234) == ds3);
 
     // 0x0079:0x0006 names three pads, every one of them by its CRC, so an
     // unknown name there names no pad at all.
-    assert(sgamepad_map_find(0x0079, 0x0006, 0x20F0)->ref[SGAMEPAD_MAP_ROLE_A] == SGAMEPAD_MAP_BUTTON(0));
-    assert(sgamepad_map_find(0x0079, 0x0006, 0x0001) == NULL);
+    assert(find_pad(0x0079, 0x0006, 0x20F0)->ref[SGAMEPAD_MAP_ROLE_A] == SGAMEPAD_MAP_BUTTON(0));
+    assert(find_pad(0x0079, 0x0006, 0x0001) == NULL);
 
     puts("the product name CRC ok");
 }
@@ -151,6 +177,7 @@ int main(void)
     testHatReference();
     testUnknownReferences();
     testMatcher();
+    testNameCRC();
     testProductNameCRC();
 
     puts("sgamepad map ok");
