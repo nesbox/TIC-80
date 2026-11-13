@@ -7,10 +7,19 @@
 
 static tic_tiles Tiles;
 
-static void fillTile(tic_tile* tile, u8 value)
+// The config cart packs four 1bpp cells to a sprite in page 1 order; this
+// fills every row of cell `id` with `bits`.
+static void fillCell(s32 id, u8 bits)
 {
-    for(s32 i = 0; i < TIC_SPRITESIZE * TIC_SPRITESIZE; i++)
-        tic_tool_poke4(tile->data, i, value);
+    enum
+    {
+        CellsPerSprite = 4
+    };
+
+    tic_tile* cell = &Tiles.data[(id / TIC_SPRITESHEET_COLS) * TIC_SPRITESHEET_COLS + (id % TIC_SPRITESHEET_COLS) / CellsPerSprite];
+
+    for(s32 y = 0; y < TIC_SPRITESIZE; y++)
+        cell->data[y * CellsPerSprite + id % CellsPerSprite] = bits;
 }
 
 static void testIcon(tic_mem* tic)
@@ -22,7 +31,7 @@ static void testIcon(tic_mem* tic)
         Y = 20
     };
 
-    fillTile(&Tiles.data[Id], 1);
+    fillCell(Id, 0xff);
     ui_icon(tic, &Tiles, Id, X, Y, tic_color_red);
 
     for(s32 y = 0; y < TIC_SPRITESIZE; y++)
@@ -30,7 +39,7 @@ static void testIcon(tic_mem* tic)
             assert(tic_tool_peek4(tic->ram->vram.screen.data, (Y + y) * TIC80_WIDTH + X + x) == tic_color_red);
 
     // A zero pixel leaves the screen alone.
-    fillTile(&Tiles.data[Id], 0);
+    fillCell(Id, 0);
     ui_icon(tic, &Tiles, Id, X, Y, tic_color_white);
 
     for(s32 y = 0; y < TIC_SPRITESIZE; y++)

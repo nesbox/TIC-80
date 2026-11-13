@@ -2835,10 +2835,6 @@ static void renderStudio(Studio* studio)
     }
 }
 
-// The config cart stores the system font 1bpp in the sprite editor's page 1
-// order: four 8x8 cells to a sprite, a byte a glyph row.
-#define FONT_CELLS_PER_SPRITE 4
-
 static void updateSystemFont(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -2866,7 +2862,7 @@ static void updateSystemFont(Studio* studio)
             }};
 
     u8* dst = (u8*)&studio->systemFont;
-    const tic_tile* sprites = studio->config->cart->bank0.sprites.data;
+    const tic_tiles* sprites = &studio->config->cart->bank0.sprites;
 
     for(s32 i = 0; i < TIC_FONT_CHARS * 2; i++)
     {
@@ -2874,10 +2870,8 @@ static void updateSystemFont(Studio* studio)
         if(i % TIC_FONT_CHARS == TIC_FONT_CHARS - 1)
             continue;
 
-        const tic_tile* cell = &sprites[(i / TIC_SPRITESHEET_COLS) * TIC_SPRITESHEET_COLS + (i % TIC_SPRITESHEET_COLS) / FONT_CELLS_PER_SPRITE];
-
         for(s32 y = 0; y < TIC_SPRITESIZE; y++)
-            dst[i * BITS_IN_BYTE + y] = cell->data[y * FONT_CELLS_PER_SPRITE + i % FONT_CELLS_PER_SPRITE];
+            dst[i * BITS_IN_BYTE + y] = ui_cell_row(sprites, i, y);
     }
 
     tic->ram->font = studio->systemFont;
