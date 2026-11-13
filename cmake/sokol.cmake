@@ -69,8 +69,11 @@ if(BUILD_SOKOL)
         # Xbox-family pad or anything that presents as one. The pads it does
         # not place are read from the raw HID reports they send, which is what
         # hid — the HID class calls — and setupapi — the device list — are for.
-        # Both come with every Windows SDK, and neither is a redistributable.
-        target_link_libraries(sokol PRIVATE d3d11 xinput hid setupapi)
+        # The generic ones are read through DirectInput, whose joystick format
+        # is what the mapping table's references index: dinput8 is the library,
+        # and dxguid the interface id the DirectInput8Create call asks for.
+        # All come with every Windows SDK, and none is a redistributable.
+        target_link_libraries(sokol PRIVATE d3d11 xinput hid setupapi dinput8 dxguid)
     elseif(ANDROID)
         # GLES3 through EGL, and AAudio is the audio backend.
         target_link_libraries(sokol PRIVATE android log aaudio EGL GLESv3 m)

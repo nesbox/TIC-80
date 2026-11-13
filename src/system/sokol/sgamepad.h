@@ -13,7 +13,8 @@
 //     The following defines are used by the implementation to pick a backend:
 //     __EMSCRIPTEN__      the browser's Gamepad API
 //     _WIN32              XInput, and raw HID for what it does not place
-//     __APPLE__           GameController.framework, which is Objective-C
+//     __APPLE__           GameController.framework, which is Objective-C, and
+//                         IOHID for the HID pads the framework does not list
 //     __linux__           evdev, through /dev/input/event*
 //
 //     ...and this one to compile the backend the tests drive, which asks the
@@ -185,9 +186,9 @@ typedef struct
 static _sgamepad_t _sgamepad;
 
 // A backend that holds something of the platform's own — Linux with a file
-// per pad, Windows with a HID handle per pad — is told at setup and at
-// shutdown; the others have nothing to do.
-#if ((defined(__linux__) && !defined(__ANDROID__)) || defined(_WIN32)) && !defined(SGAMEPAD_TEST)
+// per pad, Windows with a HID handle per pad, macOS with an IOHID manager —
+// is told at setup and at shutdown; the others have nothing to do.
+#if ((defined(__linux__) && !defined(__ANDROID__)) || defined(_WIN32) || (defined(__APPLE__) && defined(__OBJC__))) && !defined(SGAMEPAD_TEST)
 static void _sgamepad_backend_setup(void);
 static void _sgamepad_backend_shutdown(void);
 #else
@@ -447,6 +448,62 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 
 #elif defined(__APPLE__) && defined(__OBJC__)
 
+#include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/hid/IOHIDLib.h>
+#include <stdlib.h>
+#include <time.h>
+
+// GameController.framework lists only the controllers it can place. A pad
+// outside its profiles — an arcade stick, an older controller, a pad in a
+// vendor mode — is a plain HID device, and IOHID is where it is read: the
+// mapping table says which element carries which role, the way DirectInput's
+// says on Windows. The families the framework reads are left to it.
+
+#define SGAMEPAD_MAP_IMPL
+#include "sgamepad_map.h"
+#include "sgamepad_map_macos.h"
+
+// The device table is split: the framework's pads first, the generic ones
+// past them, so the two readers never write one entry.
+#define _SGAMEPAD_IOHID_SLOT 8
+#define _SGAMEPAD_IOHID_MAX  (SGAMEPAD_MAX_DEVICES - _SGAMEPAD_IOHID_SLOT)
+
+// What a pad's scan interval holds: an open HID device is not cheap to find,
+// and one that comes or goes is noticed within it.
+#define _SGAMEPAD_IOHID_SCAN 1.0
+
+// The axes are collected before they are sorted, and only the first ones in
+// usage order are the table's: a device with more axes than the table carries
+// still numbers the low ones right.
+#define _SGAMEPAD_IOHID_AXES 32
+
+typedef struct
+{
+    IOHIDElementRef element;
+    int minimum;
+    int maximum;
+} _sgamepad_iohid_element;
+
+typedef struct
+{
+    IOHIDDeviceRef device; // retained while the pad is here
+    const sgamepad_map_entry* entry;
+    bool seen; // the last scan found it still attached
+    _sgamepad_iohid_element axis[_SGAMEPAD_IOHID_AXES];
+    int axes;
+    _sgamepad_iohid_element button[SGAMEPAD_MAP_BUTTONS];
+    int buttons;
+    _sgamepad_iohid_element hat[SGAMEPAD_MAP_HATS];
+    int hats;
+} _sgamepad_iohid_device;
+
+static struct
+{
+    IOHIDManagerRef manager;
+    double scanned;
+    _sgamepad_iohid_device devices[_SGAMEPAD_IOHID_MAX];
+} _sgamepad_iohid;
+
 // Anything on the pad the layer would not see otherwise is still use: a
 // shoulder, a trigger, a stick pressed in.
 static bool _sgamepad_use(GCExtendedGamepad* pad, const sgamepad_state* state)
@@ -459,6 +516,537 @@ static bool _sgamepad_use(GCExtendedGamepad* pad, const sgamepad_state* state)
     // clang-format on
 }
 
+static int _sgamepad_iohid_number(IOHIDDeviceRef device, CFStringRef key)
+{
+    CFTypeRef value = IOHIDDeviceGetProperty(device, key);
+    int number = 0;
+
+    if(value && CFGetTypeID(value) == CFNumberGetTypeID())
+        CFNumberGetValue(value, kCFNumberIntType, &number);
+
+    return number;
+}
+
+static void _sgamepad_iohid_string(IOHIDDeviceRef device, CFStringRef key, char* text, size_t size)
+{
+    CFTypeRef value = IOHIDDeviceGetProperty(device, key);
+
+    text[0] = 0;
+
+    if(value && CFGetTypeID(value) == CFStringGetTypeID())
+        CFStringGetCString(value, text, (CFIndex)size, kCFStringEncodingUTF8);
+}
+
+// Whether the framework reads this device: from macOS 11 it answers for
+// itself, which is the only way a third-party MFi pad is told apart from a
+// generic one. Before that the vendors it handles are the guide.
+static bool _sgamepad_iohid_framework(IOHIDDeviceRef device, uint16_t vendor)
+{
+    if(@available(macOS 11.0, *))
+        return [GCController supportsHIDDevice:device];
+
+    return vendor == 0x054C || vendor == 0x057E || vendor == 0x045E;
+}
+
+// Whether the device's primary usage is one the layer reads: a composite
+// device with a gamepad collection somewhere is not a pad.
+static bool _sgamepad_iohid_primary(IOHIDDeviceRef device)
+{
+    const int page = _sgamepad_iohid_number(device, CFSTR(kIOHIDPrimaryUsagePageKey));
+    const int usage = _sgamepad_iohid_number(device, CFSTR(kIOHIDPrimaryUsageKey));
+
+    return page == kHIDPage_GenericDesktop && (usage == kHIDUsage_GD_Joystick || usage == kHIDUsage_GD_GamePad || usage == kHIDUsage_GD_MultiAxisController);
+}
+
+// The usage a Generic Desktop axis element carries, or a Simulation one; the
+// table's references count the axes in this order.
+static bool _sgamepad_iohid_axis_usage(uint32_t page, uint32_t usage)
+{
+    if(page == kHIDPage_GenericDesktop)
+        return usage >= kHIDUsage_GD_X && usage <= kHIDUsage_GD_Wheel;
+
+    if(page == kHIDPage_Simulation)
+        return usage == kHIDUsage_Sim_Rudder || usage == kHIDUsage_Sim_Throttle || usage == kHIDUsage_Sim_Accelerator || usage == kHIDUsage_Sim_Brake;
+
+    return false;
+}
+
+// The buttons SDL counts: the Button and Consumer pages, and the direction
+// pad and start/select usages the Generic Desktop page has.
+static bool _sgamepad_iohid_button_usage(uint32_t page, uint32_t usage)
+{
+    if(page == kHIDPage_Button || page == kHIDPage_Consumer)
+        return true;
+
+    if(page != kHIDPage_GenericDesktop)
+        return false;
+
+    switch(usage)
+    {
+        case kHIDUsage_GD_DPadUp:
+        case kHIDUsage_GD_DPadDown:
+        case kHIDUsage_GD_DPadRight:
+        case kHIDUsage_GD_DPadLeft:
+        case kHIDUsage_GD_Start:
+        case kHIDUsage_GD_Select:
+        case kHIDUsage_GD_SystemMainMenu:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+// SDL adds an element once, however many collections list it.
+static bool _sgamepad_iohid_known(const _sgamepad_iohid_device* pad, IOHIDElementRef element)
+{
+    const IOHIDElementCookie cookie = IOHIDElementGetCookie(element);
+
+    for(int i = 0; i < pad->axes; i++)
+        if(IOHIDElementGetCookie(pad->axis[i].element) == cookie)
+            return true;
+
+    for(int i = 0; i < pad->buttons; i++)
+        if(IOHIDElementGetCookie(pad->button[i].element) == cookie)
+            return true;
+
+    for(int i = 0; i < pad->hats; i++)
+        if(IOHIDElementGetCookie(pad->hat[i].element) == cookie)
+            return true;
+
+    return false;
+}
+
+static void _sgamepad_iohid_collect(_sgamepad_iohid_device* pad, CFArrayRef array)
+{
+    if(array == NULL)
+        return;
+
+    const CFIndex count = CFArrayGetCount(array);
+
+    for(CFIndex i = 0; i < count; i++)
+    {
+        IOHIDElementRef element = (IOHIDElementRef)CFArrayGetValueAtIndex(array, i);
+
+        if(element == NULL || CFGetTypeID(element) != IOHIDElementGetTypeID())
+            continue;
+
+        switch(IOHIDElementGetType(element))
+        {
+            case kIOHIDElementTypeInput_Misc:
+            case kIOHIDElementTypeInput_Button:
+            case kIOHIDElementTypeInput_Axis:
+            {
+                const uint32_t page = IOHIDElementGetUsagePage(element);
+                const uint32_t usage = IOHIDElementGetUsage(element);
+
+                if(_sgamepad_iohid_known(pad, element))
+                    break;
+
+                _sgamepad_iohid_element entry;
+
+                entry.element = element;
+                entry.minimum = (int)IOHIDElementGetLogicalMin(element);
+                entry.maximum = (int)IOHIDElementGetLogicalMax(element);
+
+                if(_sgamepad_iohid_axis_usage(page, usage))
+                {
+                    if(pad->axes < _SGAMEPAD_IOHID_AXES)
+                        pad->axis[pad->axes++] = entry;
+                }
+                else if(page == kHIDPage_GenericDesktop && usage == kHIDUsage_GD_Hatswitch)
+                {
+                    if(pad->hats < SGAMEPAD_MAP_HATS)
+                        pad->hat[pad->hats++] = entry;
+                }
+                else if(_sgamepad_iohid_button_usage(page, usage))
+                {
+                    if(pad->buttons < SGAMEPAD_MAP_BUTTONS)
+                        pad->button[pad->buttons++] = entry;
+                }
+
+                break;
+            }
+
+            case kIOHIDElementTypeCollection:
+                _sgamepad_iohid_collect(pad, IOHIDElementGetChildren(element));
+                break;
+
+            default: break;
+        }
+    }
+}
+
+// SDL numbers a device's elements by usage, in the order it found them, and
+// the table's references are those numbers.
+static void _sgamepad_iohid_sort(_sgamepad_iohid_element* list, int count)
+{
+    for(int i = 1; i < count; i++)
+    {
+        const _sgamepad_iohid_element element = list[i];
+        int j = i - 1;
+
+        while(j >= 0 && IOHIDElementGetUsage(list[j].element) > IOHIDElementGetUsage(element.element))
+        {
+            list[j + 1] = list[j];
+            j--;
+        }
+
+        list[j + 1] = element;
+    }
+}
+
+static void _sgamepad_iohid_close(_sgamepad_iohid_device* pad)
+{
+    if(pad->device)
+        CFRelease(pad->device);
+
+    memset(pad, 0, sizeof *pad);
+}
+
+static void _sgamepad_iohid_setup(void)
+{
+    if(_sgamepad_iohid.manager)
+        return;
+
+    IOHIDManagerRef manager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
+
+    if(manager == NULL)
+        return;
+
+    CFMutableArrayRef matches = CFArrayCreateMutable(kCFAllocatorDefault, 0, &kCFTypeArrayCallBacks);
+    int Usages[] = {kHIDUsage_GD_Joystick, kHIDUsage_GD_GamePad, kHIDUsage_GD_MultiAxisController};
+
+    for(int i = 0; matches && i < 3; i++)
+    {
+        CFMutableDictionaryRef match = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+        int page = kHIDPage_GenericDesktop;
+        CFNumberRef page_number = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &page);
+        CFNumberRef usage_number = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &Usages[i]);
+
+        if(match && page_number && usage_number)
+        {
+            CFDictionarySetValue(match, CFSTR(kIOHIDDeviceUsagePageKey), page_number);
+            CFDictionarySetValue(match, CFSTR(kIOHIDDeviceUsageKey), usage_number);
+            CFArrayAppendValue(matches, match);
+        }
+
+        if(match)
+            CFRelease(match);
+
+        if(page_number)
+            CFRelease(page_number);
+
+        if(usage_number)
+            CFRelease(usage_number);
+    }
+
+    if(matches)
+    {
+        IOHIDManagerSetDeviceMatchingMultiple(manager, matches);
+        CFRelease(matches);
+    }
+
+    IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+
+    if(IOHIDManagerOpen(manager, kIOHIDOptionsTypeNone) != kIOReturnSuccess)
+    {
+        IOHIDManagerUnscheduleFromRunLoop(manager, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+        CFRelease(manager);
+        return;
+    }
+
+    _sgamepad_iohid.manager = manager;
+}
+
+static void _sgamepad_iohid_add(IOHIDDeviceRef device)
+{
+    for(int i = 0; i < _SGAMEPAD_IOHID_MAX; i++)
+        if(_sgamepad_iohid.devices[i].device == device)
+        {
+            _sgamepad_iohid.devices[i].seen = true;
+            return;
+        }
+
+    if(!_sgamepad_iohid_primary(device))
+        return;
+
+    const uint16_t vendor = (uint16_t)_sgamepad_iohid_number(device, CFSTR(kIOHIDVendorIDKey));
+    const uint16_t product = (uint16_t)_sgamepad_iohid_number(device, CFSTR(kIOHIDProductIDKey));
+
+    // A pad the framework reads is its: reading one here too would report
+    // every press twice, from two slots. The question is the framework's,
+    // which knows MFi pads by more than a vendor id.
+    if(_sgamepad_iohid_framework(device, vendor))
+        return;
+
+    char manufacturer[256];
+    char name[256];
+
+    _sgamepad_iohid_string(device, CFSTR(kIOHIDManufacturerKey), manufacturer, sizeof manufacturer);
+    _sgamepad_iohid_string(device, CFSTR(kIOHIDProductKey), name, sizeof name);
+
+    // SDL hashes the manufacturer and the name into the GUID its entries
+    // carry, with a space between them.
+    uint16_t crc = 0;
+
+    if(manufacturer[0] && name[0])
+        crc = sgamepad_map_crc16(sgamepad_map_crc16(0, manufacturer), " ");
+
+    if(name[0])
+        crc = sgamepad_map_crc16(crc, name);
+
+    // SDL's IOKit backend builds every GUID as USB, whatever the transport,
+    // and the table is matched the same way.
+    const sgamepad_map_entry* entry = sgamepad_map_find(_sgamepad_map_macos_table, SGAMEPAD_MAP_MACOS_TABLE_SIZE,
+                                                        3, vendor, product, crc);
+
+    if(entry == NULL)
+        return;
+
+    int slot = -1;
+
+    for(int i = 0; i < _SGAMEPAD_IOHID_MAX && slot < 0; i++)
+        if(_sgamepad_iohid.devices[i].device == NULL)
+            slot = i;
+
+    if(slot < 0)
+        return;
+
+    _sgamepad_iohid_device* pad = &_sgamepad_iohid.devices[slot];
+
+    memset(pad, 0, sizeof *pad);
+
+    pad->device = (IOHIDDeviceRef)CFRetain(device);
+    pad->entry = entry;
+
+    CFArrayRef array = IOHIDDeviceCopyMatchingElements(device, NULL, kIOHIDOptionsTypeNone);
+
+    if(array)
+    {
+        _sgamepad_iohid_collect(pad, array);
+        CFRelease(array);
+    }
+
+    _sgamepad_iohid_sort(pad->axis, pad->axes);
+    _sgamepad_iohid_sort(pad->button, pad->buttons);
+    _sgamepad_iohid_sort(pad->hat, pad->hats);
+
+    // Only the axes the table numbers are kept; the rest sort past them.
+    if(pad->axes > SGAMEPAD_MAP_AXES)
+        pad->axes = SGAMEPAD_MAP_AXES;
+
+    pad->seen = true;
+}
+
+// The scan's own clock, which a wall-clock change must not move.
+static double _sgamepad_iohid_now(void)
+{
+    struct timespec now;
+
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    return (double)now.tv_sec + (double)now.tv_nsec / 1000000000.0;
+}
+
+static void _sgamepad_iohid_scan(void)
+{
+    _sgamepad_iohid.scanned = _sgamepad_iohid_now();
+
+    _sgamepad_iohid_setup();
+
+    if(_sgamepad_iohid.manager == NULL)
+        return;
+
+    for(int i = 0; i < _SGAMEPAD_IOHID_MAX; i++)
+        _sgamepad_iohid.devices[i].seen = false;
+
+    CFSetRef devices = IOHIDManagerCopyDevices(_sgamepad_iohid.manager);
+
+    if(devices)
+    {
+        const CFIndex count = CFSetGetCount(devices);
+        IOHIDDeviceRef* list = calloc((size_t)count, sizeof *list);
+
+        if(list)
+        {
+            CFSetGetValues(devices, (const void**)list);
+
+            for(CFIndex i = 0; i < count; i++)
+                _sgamepad_iohid_add(list[i]);
+
+            free(list);
+        }
+
+        CFRelease(devices);
+    }
+
+    for(int i = 0; i < _SGAMEPAD_IOHID_MAX; i++)
+        if(_sgamepad_iohid.devices[i].device && !_sgamepad_iohid.devices[i].seen)
+            _sgamepad_iohid_close(&_sgamepad_iohid.devices[i]);
+}
+
+// An element's value; false when the device does not answer, which is not
+// the same as a value of zero — a hat at zero is up, and an axis at its
+// minimum is a direction held.
+static bool _sgamepad_iohid_value(const _sgamepad_iohid_device* pad, IOHIDElementRef element, int* result)
+{
+    IOHIDValueRef value = NULL;
+
+    if(IOHIDDeviceGetValue(pad->device, element, &value) != kIOReturnSuccess || value == NULL)
+        return false;
+
+    *result = (int)IOHIDValueGetIntegerValue(value);
+
+    return true;
+}
+
+// The axis a reference names, in the machine's sign: the table stores a
+// reversed axis as the negative reference.
+static float _sgamepad_iohid_axis(const _sgamepad_iohid_device* pad, uint16_t ref)
+{
+    const int index = SGAMEPAD_MAP_INDEX_OF(ref);
+
+    if(SGAMEPAD_MAP_KIND_OF(ref) != SGAMEPAD_MAP_KIND_AXIS || index >= pad->axes)
+        return 0.0f;
+
+    const _sgamepad_iohid_element* element = &pad->axis[index];
+    const int range = element->maximum - element->minimum;
+    int value = 0;
+
+    // A pad that does not answer reads as centered, not as a direction held.
+    if(!_sgamepad_iohid_value(pad, element->element, &value) || range <= 0)
+        return 0.0f;
+
+    const float scaled = ((value - element->minimum) / (float)range) * 2.0f - 1.0f;
+
+    return SGAMEPAD_MAP_IS_NEGATIVE(ref) ? -scaled : scaled;
+}
+
+// A hat's direction, in the table's masks: the value counts clockwise from
+// up, and a four-position hat counts twice.
+static int _sgamepad_iohid_hat(const _sgamepad_iohid_device* pad, int index)
+{
+    if(index >= pad->hats)
+        return 0;
+
+    const _sgamepad_iohid_element* element = &pad->hat[index];
+    const int range = element->maximum - element->minimum + 1;
+    int raw = 0;
+
+    if(!_sgamepad_iohid_value(pad, element->element, &raw))
+        return 0;
+
+    const int value = raw - element->minimum;
+
+    switch(range == 4 ? value * 2 : (range == 8 ? value : -1))
+    {
+        case 0: return 1;
+        case 1: return 1 | 2;
+        case 2: return 2;
+        case 3: return 2 | 4;
+        case 4: return 4;
+        case 5: return 4 | 8;
+        case 6: return 8;
+        case 7: return 8 | 1;
+        default: return 0;
+    }
+}
+
+// Whether a reference is held: a button is itself, a hat is the direction it
+// names, and an axis is the half past the layer's deadzone.
+static bool _sgamepad_iohid_pressed(const _sgamepad_iohid_device* pad, uint16_t ref)
+{
+    const int index = SGAMEPAD_MAP_INDEX_OF(ref);
+
+    switch(SGAMEPAD_MAP_KIND_OF(ref))
+    {
+        case SGAMEPAD_MAP_KIND_BUTTON:
+        {
+            int value = 0;
+
+            return index < pad->buttons && _sgamepad_iohid_value(pad, pad->button[index].element, &value) && value != 0;
+        }
+
+        case SGAMEPAD_MAP_KIND_HAT:
+            return (_sgamepad_iohid_hat(pad, index) & SGAMEPAD_MAP_HAT_MASK_OF(ref)) != 0;
+
+        case SGAMEPAD_MAP_KIND_AXIS:
+            return _sgamepad_direction(_sgamepad_iohid_axis(pad, ref), +1);
+
+        default:
+            return false;
+    }
+}
+
+// A pad that shows use the layer does not read — a shoulder, a stick pressed
+// in, a hat — is in use all the same, and takes a slot while it is played.
+static bool _sgamepad_iohid_use(const _sgamepad_iohid_device* pad)
+{
+    for(int i = 0; i < pad->buttons; i++)
+    {
+        int value = 0;
+
+        if(_sgamepad_iohid_value(pad, pad->button[i].element, &value) && value != 0)
+            return true;
+    }
+
+    for(int i = 0; i < pad->hats; i++)
+        if(_sgamepad_iohid_hat(pad, i) != 0)
+            return true;
+
+    return false;
+}
+
+static void _sgamepad_iohid_record(int slot, const _sgamepad_iohid_device* pad)
+{
+    const sgamepad_map_entry* entry = pad->entry;
+    _sgamepad_device* device = &_sgamepad.devices[_SGAMEPAD_IOHID_SLOT + slot];
+    sgamepad_state* state = &device->state;
+
+    const float left_x = _sgamepad_iohid_axis(pad, entry->ref[SGAMEPAD_MAP_ROLE_LEFTX]);
+    const float left_y = _sgamepad_iohid_axis(pad, entry->ref[SGAMEPAD_MAP_ROLE_LEFTY]);
+
+    state->up = _sgamepad_iohid_pressed(pad, entry->ref[SGAMEPAD_MAP_ROLE_DPUP]) || _sgamepad_direction(left_y, -1);
+    state->down = _sgamepad_iohid_pressed(pad, entry->ref[SGAMEPAD_MAP_ROLE_DPDOWN]) || _sgamepad_direction(left_y, +1);
+    state->left = _sgamepad_iohid_pressed(pad, entry->ref[SGAMEPAD_MAP_ROLE_DPLEFT]) || _sgamepad_direction(left_x, -1);
+    state->right = _sgamepad_iohid_pressed(pad, entry->ref[SGAMEPAD_MAP_ROLE_DPRIGHT]) || _sgamepad_direction(left_x, +1);
+
+    state->a = _sgamepad_iohid_pressed(pad, entry->ref[SGAMEPAD_MAP_ROLE_A]);
+    state->b = _sgamepad_iohid_pressed(pad, entry->ref[SGAMEPAD_MAP_ROLE_B]);
+    state->x = _sgamepad_iohid_pressed(pad, entry->ref[SGAMEPAD_MAP_ROLE_X]);
+    state->y = _sgamepad_iohid_pressed(pad, entry->ref[SGAMEPAD_MAP_ROLE_Y]);
+
+    state->back = _sgamepad_iohid_pressed(pad, entry->ref[SGAMEPAD_MAP_ROLE_BACK]);
+    state->start = _sgamepad_iohid_pressed(pad, entry->ref[SGAMEPAD_MAP_ROLE_START]);
+
+    state->right_x = _sgamepad_deadzone(_sgamepad_iohid_axis(pad, entry->ref[SGAMEPAD_MAP_ROLE_RIGHTX]));
+    state->right_y = _sgamepad_deadzone(_sgamepad_iohid_axis(pad, entry->ref[SGAMEPAD_MAP_ROLE_RIGHTY]));
+
+    device->present = true;
+    device->used = _sgamepad_holding(state) || _sgamepad_iohid_use(pad);
+}
+
+static void _sgamepad_backend_setup(void)
+{
+    memset(&_sgamepad_iohid, 0, sizeof _sgamepad_iohid);
+}
+
+static void _sgamepad_backend_shutdown(void)
+{
+    for(int i = 0; i < _SGAMEPAD_IOHID_MAX; i++)
+        _sgamepad_iohid_close(&_sgamepad_iohid.devices[i]);
+
+    if(_sgamepad_iohid.manager)
+    {
+        IOHIDManagerUnscheduleFromRunLoop(_sgamepad_iohid.manager, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+        IOHIDManagerClose(_sgamepad_iohid.manager, kIOHIDOptionsTypeNone);
+        CFRelease(_sgamepad_iohid.manager);
+    }
+
+    memset(&_sgamepad_iohid, 0, sizeof _sgamepad_iohid);
+}
+
 SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 {
     // The framework lists only controllers it can place, so the list is the
@@ -467,7 +1055,7 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 
     memset(_sgamepad.devices, 0, sizeof _sgamepad.devices);
 
-    const NSUInteger count = MIN(controllers.count, (NSUInteger)SGAMEPAD_MAX_DEVICES);
+    const NSUInteger count = MIN(controllers.count, (NSUInteger)_SGAMEPAD_IOHID_SLOT);
 
     for(NSUInteger index = 0; index < count; index++)
     {
@@ -502,7 +1090,16 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
         device->used = _sgamepad_use(pad, state);
     }
 
-    _sgamepad_assign((int)controllers.count);
+    // The HID pads the framework does not list come after its own: a device
+    // it reads is never read here.
+    if(_sgamepad_iohid_now() - _sgamepad_iohid.scanned >= _SGAMEPAD_IOHID_SCAN)
+        _sgamepad_iohid_scan();
+
+    for(int i = 0; i < _SGAMEPAD_IOHID_MAX; i++)
+        if(_sgamepad_iohid.devices[i].device)
+            _sgamepad_iohid_record(i, &_sgamepad_iohid.devices[i]);
+
+    _sgamepad_assign(SGAMEPAD_MAX_DEVICES);
 }
 
 #elif defined(_WIN32)
@@ -514,7 +1111,17 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 #include SGAMEPAD_XINPUT_H
 #include SGAMEPAD_HIDSDI_H
 #include SGAMEPAD_SETUPAPI_H
+#include <objbase.h>
 #include <stdlib.h>
+#include <wchar.h>
+
+// DirectInput reads the pads XInput does not place, and it numbers the
+// elements the mapping table's references name. It is a COM object, which is
+// what objbase.h is for: the lean Windows headers leave it out.
+#ifndef DIRECTINPUT_VERSION
+#define DIRECTINPUT_VERSION 0x0800
+#endif
+#include <dinput.h>
 
 // Two things read a pad here. XInput reaches the Xbox family and whatever
 // presents as one, and it is the floor: a pad it places is read there and
@@ -528,6 +1135,12 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 // of its own unclaimed rather than read as buttons nobody pressed.
 #define SGAMEPAD_HID_IMPL
 #include "sgamepad_hid.h"
+
+// The pads neither XInput nor the readers above place are read generically,
+// with the mapping table's DirectInput element references.
+#define SGAMEPAD_MAP_IMPL
+#include "sgamepad_map.h"
+#include "sgamepad_map_windows.h"
 
 // XInput's sticks are signed shorts with y upwards, and the machine's axis is
 // the mouse's: x to the right, y downwards.
@@ -559,9 +1172,12 @@ static bool _sgamepad_xinput_use(const XINPUT_GAMEPAD* pad, const sgamepad_state
 #define _SGAMEPAD_HID_PATH         260
 #define _SGAMEPAD_HID_DETAIL_SIZE  (sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W) + _SGAMEPAD_HID_PATH * sizeof(wchar_t))
 
-// The XInput pads take the first slots of the device table, the way XInput
-// numbers them; these take what is left.
-#define _SGAMEPAD_HID_MAX          (SGAMEPAD_MAX_DEVICES - XUSER_MAX_COUNT)
+// The device table is split the way the pads are read: XInput's four first,
+// the way XInput numbers them, then the HID families' pads, then the generic
+// ones. Each backend owns a range, so two of them cannot write one entry.
+#define _SGAMEPAD_HID_MAX          8
+#define _SGAMEPAD_DINPUT_MAX       4
+#define _SGAMEPAD_DINPUT_SLOT      (XUSER_MAX_COUNT + _SGAMEPAD_HID_MAX)
 
 typedef struct
 {
@@ -886,6 +1502,517 @@ static void _sgamepad_hid_scan(void)
     SetupDiDestroyDeviceInfoList(set);
 }
 
+// The generic half. DirectInput sees every game controller, the ones XInput
+// and the HID families read included, so a device is taken here only when
+// neither of them does: its ids are not a family's, its path is not an XInput
+// one, and the mapping table names it. A pad no entry names — a wheel, a
+// flight stick, a pad in a vendor mode with a layout of its own — is left
+// unclaimed rather than read as buttons nobody pressed.
+//
+// The table's references are DirectInput element indices, which is why this
+// backend reads the standard joystick format's arrays by index rather than
+// decoding a report.
+
+typedef struct
+{
+    IDirectInputDevice8* device;
+    GUID instance; // which device it is, across scans
+    const sgamepad_map_entry* entry;
+    // Which field of the standard format each axis the table numbers is:
+    // SDL numbers the axes a device has, not the fields they sit in.
+    int axis[SGAMEPAD_MAP_AXES];
+    int axes;
+    bool present; // the device answered the last read
+    bool seen;    // the last scan found it still attached
+} _sgamepad_dinput_device;
+
+static struct
+{
+    IDirectInput8* dinput;
+    HWND hwnd; // the window the pads are read against
+    DWORD scanned;
+    bool com; // the apartment this backend made, and has to give back
+    _sgamepad_dinput_device devices[_SGAMEPAD_DINPUT_MAX];
+} _sgamepad_dinput;
+
+// DirectInput is made once the window it reads the pads against is up, which
+// may be after the layer is set up: the scan that finds it first makes it.
+static void _sgamepad_dinput_setup(void)
+{
+    if(_sgamepad_dinput.dinput)
+        return;
+
+    if(!_sgamepad_dinput.hwnd)
+        _sgamepad_dinput.hwnd = (HWND)sapp_win32_get_hwnd();
+
+    if(!_sgamepad_dinput.hwnd)
+        return;
+
+    // A COM apartment whose model another part already chose is not this
+    // backend's to change; DirectInput works in either.
+    _sgamepad_dinput.com = SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED));
+
+    const HINSTANCE instance = GetModuleHandleW(NULL);
+
+    if(instance && FAILED(DirectInput8Create(instance, DIRECTINPUT_VERSION, &IID_IDirectInput8, (void**)&_sgamepad_dinput.dinput, NULL)))
+        _sgamepad_dinput.dinput = NULL;
+
+    if(!_sgamepad_dinput.dinput && _sgamepad_dinput.com)
+    {
+        CoUninitialize();
+        _sgamepad_dinput.com = false;
+    }
+}
+
+typedef struct
+{
+    _sgamepad_dinput_device* pad;
+    IDirectInputDevice8* device;
+    int sliders; // which of the format's two sliders comes next
+} _sgamepad_dinput_axes;
+
+// The field of the standard joystick format an axis object feeds, in the
+// order the format lays them out; -1 for an object the format has no field
+// for.
+static int _sgamepad_dinput_field(const GUID* type, int slider)
+{
+    if(IsEqualGUID(type, &GUID_XAxis))
+        return 0;
+
+    if(IsEqualGUID(type, &GUID_YAxis))
+        return 1;
+
+    if(IsEqualGUID(type, &GUID_ZAxis))
+        return 2;
+
+    if(IsEqualGUID(type, &GUID_RxAxis))
+        return 3;
+
+    if(IsEqualGUID(type, &GUID_RyAxis))
+        return 4;
+
+    if(IsEqualGUID(type, &GUID_RzAxis))
+        return 5;
+
+    // The standard format has two sliders; a third object has no field.
+    if(IsEqualGUID(type, &GUID_Slider))
+        return slider < 2 ? 6 + slider : -1;
+
+    return -1;
+}
+
+// SDL numbers the axes a device has rather than the fields they feed, so a pad
+// without, say, Rx reads its Rz as axis 3: the table's references were written
+// against that numbering. The fields are kept in that order.
+static void _sgamepad_dinput_add_axis(_sgamepad_dinput_device* pad, int field)
+{
+    int i = pad->axes < SGAMEPAD_MAP_AXES ? pad->axes : SGAMEPAD_MAP_AXES - 1;
+
+    if(pad->axes == SGAMEPAD_MAP_AXES && field >= pad->axis[SGAMEPAD_MAP_AXES - 1])
+        return;
+
+    while(i > 0 && pad->axis[i - 1] > field)
+    {
+        pad->axis[i] = pad->axis[i - 1];
+        i--;
+    }
+
+    pad->axis[i] = field;
+
+    if(pad->axes < SGAMEPAD_MAP_AXES)
+        pad->axes++;
+}
+
+// An axis is read in the range the table's arithmetic expects, -32768..32767,
+// and with no deadzone of the driver's: the layer applies its own. An axis
+// that will not take the range is not one the table can index, which is the
+// same rule SDL applies.
+static BOOL CALLBACK _sgamepad_dinput_axis_prepare(LPCDIDEVICEOBJECTINSTANCE object, LPVOID context)
+{
+    _sgamepad_dinput_axes* axes = context;
+    const int field = _sgamepad_dinput_field(&object->guidType, axes->sliders);
+    IDirectInputDevice8* device = axes->device;
+
+    if(field < 0 || field >= SGAMEPAD_MAP_AXES)
+        return DIENUM_CONTINUE;
+
+    if(IsEqualGUID(&object->guidType, &GUID_Slider))
+        axes->sliders++;
+
+    DIPROPRANGE range;
+
+    memset(&range, 0, sizeof range);
+
+    range.diph.dwSize = sizeof range;
+    range.diph.dwHeaderSize = sizeof range.diph;
+    range.diph.dwObj = object->dwType;
+    range.diph.dwHow = DIPH_BYID;
+    range.lMin = -32768;
+    range.lMax = 32767;
+
+    if(FAILED(IDirectInputDevice8_SetProperty(device, DIPROP_RANGE, &range.diph)))
+        return DIENUM_CONTINUE;
+
+    DIPROPDWORD deadzone;
+
+    memset(&deadzone, 0, sizeof deadzone);
+
+    deadzone.diph.dwSize = sizeof deadzone;
+    deadzone.diph.dwHeaderSize = sizeof deadzone.diph;
+    deadzone.diph.dwObj = object->dwType;
+    deadzone.diph.dwHow = DIPH_BYID;
+    deadzone.dwData = 0;
+
+    if(FAILED(IDirectInputDevice8_SetProperty(device, DIPROP_DEADZONE, &deadzone.diph)))
+        return DIENUM_CONTINUE;
+
+    _sgamepad_dinput_add_axis(axes->pad, field);
+
+    return DIENUM_CONTINUE;
+}
+
+static bool _sgamepad_dinput_prepare(IDirectInputDevice8* device, _sgamepad_dinput_device* pad)
+{
+    if(FAILED(IDirectInputDevice8_SetDataFormat(device, &c_dfDIJoystick2)))
+        return false;
+
+    // Shared background access: the machine reads the pad, it does not drive
+    // it, and exclusive access is what force feedback asks for.
+    if(FAILED(IDirectInputDevice8_SetCooperativeLevel(device, _sgamepad_dinput.hwnd, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
+        return false;
+
+    _sgamepad_dinput_axes axes = {pad, device, 0};
+
+    IDirectInputDevice8_EnumObjects(device, _sgamepad_dinput_axis_prepare, &axes, DIDFT_AXIS);
+
+    IDirectInputDevice8_Acquire(device);
+
+    return true;
+}
+
+// The CRC of the device's product name, which is the one the entries the
+// database writes with a `crc:` carry: SDL hashes the UTF-8 name there.
+static uint16_t _sgamepad_dinput_name_crc(IDirectInputDevice8* device)
+{
+    DIPROPSTRING name;
+
+    memset(&name, 0, sizeof name);
+
+    name.diph.dwSize = sizeof name;
+    name.diph.dwHeaderSize = sizeof name.diph;
+    name.diph.dwHow = DIPH_DEVICE;
+
+    if(FAILED(IDirectInputDevice8_GetProperty(device, DIPROP_PRODUCTNAME, &name.diph)))
+        return 0;
+
+    char utf8[1024];
+    const int length = WideCharToMultiByte(CP_UTF8, 0, name.wsz, -1, utf8, (int)sizeof utf8, NULL, NULL);
+
+    return length > 1 ? sgamepad_map_crc16(0, utf8) : 0;
+}
+
+static BOOL CALLBACK _sgamepad_dinput_enum(LPCDIDEVICEINSTANCE instance, LPVOID context)
+{
+    (void)context;
+
+    // Only a HID device is a pad in the standard format the table indexes.
+    if(!(instance->dwDevType & DIDEVTYPE_HID))
+        return DIENUM_CONTINUE;
+
+    // A pad already open is only marked as still there.
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+    {
+        _sgamepad_dinput_device* pad = &_sgamepad_dinput.devices[i];
+
+        if(pad->device && IsEqualGUID(&pad->instance, &instance->guidInstance))
+        {
+            pad->seen = true;
+            return DIENUM_CONTINUE;
+        }
+    }
+
+    IDirectInputDevice8* device = NULL;
+
+    if(FAILED(IDirectInput8_CreateDevice(_sgamepad_dinput.dinput, &instance->guidInstance, &device, NULL)))
+        return DIENUM_CONTINUE;
+
+    DIPROPDWORD ids;
+
+    memset(&ids, 0, sizeof ids);
+
+    ids.diph.dwSize = sizeof ids;
+    ids.diph.dwHeaderSize = sizeof ids.diph;
+    ids.diph.dwHow = DIPH_DEVICE;
+
+    if(FAILED(IDirectInputDevice8_GetProperty(device, DIPROP_VIDPID, &ids.diph)))
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    const uint16_t vendor = LOWORD(ids.dwData);
+    const uint16_t product = HIWORD(ids.dwData);
+
+    // A family's pad is read from its reports above, and an XInput pad by
+    // XInput: reading either here too would report every press twice, from
+    // two slots. XInput pads answer DirectInput as well, and SDL tells them
+    // by the `IG_` of the hardware id in their device path.
+    if(sgamepad_hid_family_of(vendor, product) != SGAMEPAD_HID_NONE)
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    DIPROPGUIDANDPATH path;
+
+    memset(&path, 0, sizeof path);
+
+    path.diph.dwSize = sizeof path;
+    path.diph.dwHeaderSize = sizeof path.diph;
+    path.diph.dwHow = DIPH_DEVICE;
+
+    if(FAILED(IDirectInputDevice8_GetProperty(device, DIPROP_GUIDANDPATH, &path.diph)) || wcsstr(path.wszPath, L"IG_") != NULL)
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    // The name CRC tells apart the pads that share an id, and a pad whose ids
+    // and name the table does not name is left unclaimed. Every DirectInput
+    // GUID is of the USB bus, which is what the table's entries carry.
+    const sgamepad_map_entry* entry = sgamepad_map_find(_sgamepad_map_windows_table, SGAMEPAD_MAP_WINDOWS_TABLE_SIZE,
+                                                        3, vendor, product, _sgamepad_dinput_name_crc(device));
+
+    if(entry == NULL)
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    int slot = -1;
+
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX && slot < 0; i++)
+        if(!_sgamepad_dinput.devices[i].device)
+            slot = i;
+
+    if(slot < 0)
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    _sgamepad_dinput_device* pad = &_sgamepad_dinput.devices[slot];
+
+    memset(pad, 0, sizeof *pad);
+
+    if(!_sgamepad_dinput_prepare(device, pad))
+    {
+        IDirectInputDevice8_Release(device);
+        return DIENUM_CONTINUE;
+    }
+
+    pad->device = device;
+    pad->instance = instance->guidInstance;
+    pad->entry = entry;
+    pad->seen = true;
+
+    return DIENUM_CONTINUE;
+}
+
+static void _sgamepad_dinput_scan(void)
+{
+    _sgamepad_dinput.scanned = GetTickCount();
+
+    _sgamepad_dinput_setup();
+
+    if(!_sgamepad_dinput.dinput)
+        return;
+
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+        _sgamepad_dinput.devices[i].seen = false;
+
+    IDirectInput8_EnumDevices(_sgamepad_dinput.dinput, DI8DEVCLASS_GAMECTRL, _sgamepad_dinput_enum, NULL, DIEDFL_ATTACHEDONLY);
+
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+    {
+        _sgamepad_dinput_device* pad = &_sgamepad_dinput.devices[i];
+
+        if(pad->device && !pad->seen)
+        {
+            IDirectInputDevice8_Release(pad->device);
+            memset(pad, 0, sizeof *pad);
+        }
+    }
+}
+
+// The field an axis the table numbers reads, in the format's own range.
+static LONG _sgamepad_dinput_axis_field(const DIJOYSTATE2* joystick, int field)
+{
+    switch(field)
+    {
+        case 0: return joystick->lX;
+        case 1: return joystick->lY;
+        case 2: return joystick->lZ;
+        case 3: return joystick->lRx;
+        case 4: return joystick->lRy;
+        case 5: return joystick->lRz;
+        case 6: return joystick->rglSlider[0];
+        case 7: return joystick->rglSlider[1];
+        default: return 0;
+    }
+}
+
+// The axis a reference names, in the machine's own sign: the table stores a
+// reversed axis as the negative reference.
+static float _sgamepad_dinput_axis(const DIJOYSTATE2* joystick, const _sgamepad_dinput_device* pad, uint16_t ref)
+{
+    const int index = SGAMEPAD_MAP_INDEX_OF(ref);
+
+    if(SGAMEPAD_MAP_KIND_OF(ref) != SGAMEPAD_MAP_KIND_AXIS || index >= pad->axes)
+        return 0.0f;
+
+    const float value = _sgamepad_dinput_axis_field(joystick, pad->axis[index]) / 32767.0f;
+
+    return SGAMEPAD_MAP_IS_NEGATIVE(ref) ? -value : value;
+}
+
+// A hat's direction, in the table's masks: the point of view is in hundredths
+// of a degree, clockwise from up, and one value says it is centered.
+static int _sgamepad_dinput_hat(const DIJOYSTATE2* joystick, int index)
+{
+    if(index >= SGAMEPAD_MAP_HATS)
+        return 0;
+
+    DWORD value = joystick->rgdwPOV[index];
+
+    if(LOWORD(value) == 0xFFFF)
+        return 0;
+
+    value = (value + 2250) % 36000;
+
+    switch(value / 4500)
+    {
+        case 0: return 1;
+        case 1: return 1 | 2;
+        case 2: return 2;
+        case 3: return 2 | 4;
+        case 4: return 4;
+        case 5: return 4 | 8;
+        case 6: return 8;
+        case 7: return 8 | 1;
+        default: return 0;
+    }
+}
+
+// Whether a reference is held: a button is itself, a hat is the direction it
+// names, and an axis is the half past the layer's deadzone.
+static bool _sgamepad_dinput_pressed(const DIJOYSTATE2* joystick, const _sgamepad_dinput_device* pad, uint16_t ref)
+{
+    switch(SGAMEPAD_MAP_KIND_OF(ref))
+    {
+        case SGAMEPAD_MAP_KIND_BUTTON:
+        {
+            const int index = SGAMEPAD_MAP_INDEX_OF(ref);
+
+            return index < SGAMEPAD_MAP_BUTTONS && joystick->rgbButtons[index] != 0;
+        }
+
+        case SGAMEPAD_MAP_KIND_HAT:
+            return (_sgamepad_dinput_hat(joystick, SGAMEPAD_MAP_INDEX_OF(ref)) & SGAMEPAD_MAP_HAT_MASK_OF(ref)) != 0;
+
+        case SGAMEPAD_MAP_KIND_AXIS:
+            return _sgamepad_direction(_sgamepad_dinput_axis(joystick, pad, ref), +1);
+
+        default:
+            return false;
+    }
+}
+
+// A pad that shows use the layer does not read — a shoulder, a stick pressed
+// in, a hat — is in use all the same, and takes a slot while it is played.
+static bool _sgamepad_dinput_use(const DIJOYSTATE2* joystick)
+{
+    for(int i = 0; i < SGAMEPAD_MAP_BUTTONS; i++)
+        if(joystick->rgbButtons[i] != 0)
+            return true;
+
+    for(int i = 0; i < SGAMEPAD_MAP_HATS; i++)
+        if(_sgamepad_dinput_hat(joystick, i) != 0)
+            return true;
+
+    return false;
+}
+
+static void _sgamepad_dinput_record(int slot, const DIJOYSTATE2* joystick, const _sgamepad_dinput_device* pad)
+{
+    const sgamepad_map_entry* entry = pad->entry;
+    _sgamepad_device* device = &_sgamepad.devices[_SGAMEPAD_DINPUT_SLOT + slot];
+    sgamepad_state* state = &device->state;
+
+    // The table's y axes read downwards, as the machine's do; the table's
+    // references are SDL's, and SDL is the way round the machine already is.
+    const float left_x = _sgamepad_dinput_axis(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_LEFTX]);
+    const float left_y = _sgamepad_dinput_axis(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_LEFTY]);
+
+    state->up = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_DPUP]) || _sgamepad_direction(left_y, -1);
+    state->down = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_DPDOWN]) || _sgamepad_direction(left_y, +1);
+    state->left = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_DPLEFT]) || _sgamepad_direction(left_x, -1);
+    state->right = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_DPRIGHT]) || _sgamepad_direction(left_x, +1);
+
+    state->a = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_A]);
+    state->b = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_B]);
+    state->x = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_X]);
+    state->y = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_Y]);
+
+    state->back = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_BACK]);
+    state->start = _sgamepad_dinput_pressed(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_START]);
+
+    state->right_x = _sgamepad_deadzone(_sgamepad_dinput_axis(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_RIGHTX]));
+    state->right_y = _sgamepad_deadzone(_sgamepad_dinput_axis(joystick, pad, entry->ref[SGAMEPAD_MAP_ROLE_RIGHTY]));
+
+    device->present = true;
+    device->used = _sgamepad_holding(state) || _sgamepad_dinput_use(joystick);
+}
+
+static void _sgamepad_dinput_read(void)
+{
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+    {
+        _sgamepad_dinput_device* pad = &_sgamepad_dinput.devices[i];
+
+        if(!pad->device)
+            continue;
+
+        // A polled device is not read until it is asked for its state, and the
+        // call is harmless on the ones that push it.
+        IDirectInputDevice8_Poll(pad->device);
+
+        DIJOYSTATE2 joystick;
+
+        HRESULT result = IDirectInputDevice8_GetDeviceState(pad->device, (DWORD)sizeof joystick, &joystick);
+
+        // A pad that lost the device — the window came or went — is asked for
+        // it once; one that will not answer is not there this frame, and the
+        // next scan closes it.
+        if(FAILED(result))
+        {
+            IDirectInputDevice8_Acquire(pad->device);
+            IDirectInputDevice8_Poll(pad->device);
+            result = IDirectInputDevice8_GetDeviceState(pad->device, (DWORD)sizeof joystick, &joystick);
+        }
+
+        if(FAILED(result))
+        {
+            pad->present = false;
+            continue;
+        }
+
+        pad->present = true;
+
+        _sgamepad_dinput_record(i, &joystick, pad);
+    }
+}
+
 static int _sgamepad_connected_count(void)
 {
     int count = 0;
@@ -899,6 +2026,9 @@ static int _sgamepad_connected_count(void)
 
         count += pad->file != NULL && pad->reported;
     }
+
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+        count += _sgamepad_dinput.devices[i].present;
 
     return count;
 }
@@ -969,12 +2099,24 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
     if(gone || GetTickCount() - _sgamepad_hid.scanned >= _SGAMEPAD_HID_SCAN_MS)
         _sgamepad_hid_scan();
 
+    // The generic pads come last: one XInput or a family reader places is
+    // read there, and this reads only what they leave. The scan makes
+    // DirectInput itself once the window it reads the pads against is up,
+    // and until then it is retried at the scan's own rhythm.
+    if(GetTickCount() - _sgamepad_dinput.scanned >= _SGAMEPAD_HID_SCAN_MS)
+        _sgamepad_dinput_scan();
+
+    _sgamepad_dinput_read();
+
     _sgamepad_assign(SGAMEPAD_MAX_DEVICES);
 }
 
 static void _sgamepad_backend_setup(void)
 {
     memset(&_sgamepad_hid, 0, sizeof _sgamepad_hid);
+    memset(&_sgamepad_dinput, 0, sizeof _sgamepad_dinput);
+
+    _sgamepad_dinput_setup();
 }
 
 static void _sgamepad_backend_shutdown(void)
@@ -982,6 +2124,18 @@ static void _sgamepad_backend_shutdown(void)
     for(int i = 0; i < _SGAMEPAD_HID_MAX; i++)
         if(_sgamepad_hid.devices[i].file)
             _sgamepad_hid_close(&_sgamepad_hid.devices[i]);
+
+    for(int i = 0; i < _SGAMEPAD_DINPUT_MAX; i++)
+        if(_sgamepad_dinput.devices[i].device)
+            IDirectInputDevice8_Release(_sgamepad_dinput.devices[i].device);
+
+    if(_sgamepad_dinput.dinput)
+        IDirectInput8_Release(_sgamepad_dinput.dinput);
+
+    if(_sgamepad_dinput.com)
+        CoUninitialize();
+
+    memset(&_sgamepad_dinput, 0, sizeof _sgamepad_dinput);
 }
 
 #elif defined(__ANDROID__)
@@ -1120,6 +2274,13 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+// A pad whose kernel report is not positional has no layout the layer can
+// assume; the mapping table's evdev element references say what its buttons,
+// axes and hats are.
+#define SGAMEPAD_MAP_IMPL
+#include "sgamepad_map.h"
+#include "sgamepad_map_linux.h"
+
 // The kernel spells a pad's buttons by position since 4.16; a build whose
 // headers are older has the same codes under the older names.
 #ifndef BTN_SOUTH
@@ -1206,6 +2367,22 @@ typedef struct
     float stick[_SGAMEPAD_LINUX_AXES];
     int hat_x, hat_y;
     sgamepad_state state; // the buttons, held between the events that set them
+
+    // The table path: the entry, and the elements its references name, in
+    // SDL's numbering — buttons by their key code rank, axes by their ABS
+    // code rank, hats by their digital pair.
+    const sgamepad_map_entry* entry;
+    int key_code[SGAMEPAD_MAP_BUTTONS]; // rank -> key code
+    int keys;                           // ranks the device has
+    int table_buttons[_SGAMEPAD_LINUX_BUTTONS];
+    int dpad[4];
+    int axis_code[SGAMEPAD_MAP_AXES]; // rank -> ABS code
+    int axis_min[SGAMEPAD_MAP_AXES];
+    int axis_max[SGAMEPAD_MAP_AXES];
+    float axis_value[SGAMEPAD_MAP_AXES];
+    int axes;
+    int hat_pair[SGAMEPAD_MAP_HATS]; // hat -> its ABS_HATnX pair
+    int hat_value[SGAMEPAD_MAP_HATS][2];
 } _sgamepad_linux_device;
 
 static struct
@@ -1214,14 +2391,50 @@ static struct
     int inotify;
 } _sgamepad_linux = {.inotify = -1};
 
-static float _sgamepad_linux_stick(const struct input_absinfo* info, int value)
+static float _sgamepad_linux_range(int minimum, int maximum, int value)
 {
-    const int range = info->maximum - info->minimum;
+    const int range = maximum - minimum;
 
     if(range == 0)
         return 0.0f;
 
-    return ((value - info->minimum) / (float)range) * 2.0f - 1.0f;
+    return ((value - minimum) / (float)range) * 2.0f - 1.0f;
+}
+
+static float _sgamepad_linux_stick(const struct input_absinfo* info, int value)
+{
+    return _sgamepad_linux_range(info->minimum, info->maximum, value);
+}
+
+// The direction and face buttons, by the place the layout below gives them.
+static bool _sgamepad_linux_direction(sgamepad_state* state, int index, bool held)
+{
+    switch(index)
+    {
+        case 0: state->up = held; break;
+        case 1: state->down = held; break;
+        case 2: state->left = held; break;
+        case 3: state->right = held; break;
+        default: return false;
+    }
+
+    return true;
+}
+
+static bool _sgamepad_linux_face(sgamepad_state* state, int index, bool held)
+{
+    switch(index)
+    {
+        case _SGAMEPAD_LINUX_BTN_A: state->a = held; break;
+        case _SGAMEPAD_LINUX_BTN_B: state->b = held; break;
+        case _SGAMEPAD_LINUX_BTN_X: state->x = held; break;
+        case _SGAMEPAD_LINUX_BTN_Y: state->y = held; break;
+        case _SGAMEPAD_LINUX_BTN_BACK: state->back = held; break;
+        case _SGAMEPAD_LINUX_BTN_START: state->start = held; break;
+        default: return false;
+    }
+
+    return true;
 }
 
 // Sets the button a key code stands for on this pad; false when the code is
@@ -1230,33 +2443,33 @@ static bool _sgamepad_linux_button(_sgamepad_linux_device* pad, int code, bool h
 {
     sgamepad_state* state = &pad->state;
 
+    // A pad read through the table answers only to the codes its entry names:
+    // the raw codes of another layout are not the pad's buttons.
+    if(pad->entry)
+    {
+        for(int i = 0; i < 4; i++)
+            if(pad->dpad[i] == code)
+                return _sgamepad_linux_direction(state, i, held);
+
+        for(int i = 0; i < _SGAMEPAD_LINUX_BUTTONS; i++)
+            if(pad->table_buttons[i] == code)
+                return _sgamepad_linux_face(state, i, held);
+
+        return false;
+    }
+
     switch(code)
     {
-        case BTN_DPAD_UP: state->up = held; return true;
-        case BTN_DPAD_DOWN: state->down = held; return true;
-        case BTN_DPAD_LEFT: state->left = held; return true;
-        case BTN_DPAD_RIGHT: state->right = held; return true;
+        case BTN_DPAD_UP: return _sgamepad_linux_direction(state, 0, held);
+        case BTN_DPAD_DOWN: return _sgamepad_linux_direction(state, 1, held);
+        case BTN_DPAD_LEFT: return _sgamepad_linux_direction(state, 2, held);
+        case BTN_DPAD_RIGHT: return _sgamepad_linux_direction(state, 3, held);
         default: break;
     }
 
     for(int i = 0; i < _SGAMEPAD_LINUX_BUTTONS; i++)
-    {
-        if(pad->buttons[i] != code)
-            continue;
-
-        switch(i)
-        {
-            case _SGAMEPAD_LINUX_BTN_A: state->a = held; break;
-            case _SGAMEPAD_LINUX_BTN_B: state->b = held; break;
-            case _SGAMEPAD_LINUX_BTN_X: state->x = held; break;
-            case _SGAMEPAD_LINUX_BTN_Y: state->y = held; break;
-            case _SGAMEPAD_LINUX_BTN_BACK: state->back = held; break;
-            case _SGAMEPAD_LINUX_BTN_START: state->start = held; break;
-            default: break;
-        }
-
-        return true;
-    }
+        if(pad->buttons[i] == code)
+            return _sgamepad_linux_face(state, i, held);
 
     return false;
 }
@@ -1265,6 +2478,47 @@ static bool _sgamepad_linux_button(_sgamepad_linux_device* pad, int code, bool h
 // a stick held, or one whose events the kernel dropped, reads what it holds.
 static void _sgamepad_linux_read_all(_sgamepad_linux_device* pad)
 {
+    if(pad->entry)
+    {
+        unsigned char keys[(KEY_CNT + 7) / 8] = {0};
+
+        if(ioctl(pad->fd, EVIOCGKEY(sizeof keys), keys) >= 0)
+        {
+            for(int i = 0; i < _SGAMEPAD_LINUX_BUTTONS; i++)
+                if(pad->table_buttons[i] >= 0)
+                    _sgamepad_linux_button(pad, pad->table_buttons[i], _sgamepad_linux_bit(keys, pad->table_buttons[i]));
+
+            for(int i = 0; i < 4; i++)
+                if(pad->dpad[i] >= 0)
+                    _sgamepad_linux_button(pad, pad->dpad[i], _sgamepad_linux_bit(keys, pad->dpad[i]));
+        }
+
+        for(int rank = 0; rank < pad->axes; rank++)
+        {
+            struct input_absinfo info;
+
+            if(ioctl(pad->fd, EVIOCGABS(pad->axis_code[rank]), &info) == 0)
+                pad->axis_value[rank] = _sgamepad_linux_range(pad->axis_min[rank], pad->axis_max[rank], info.value);
+        }
+
+        for(int hat = 0; hat < SGAMEPAD_MAP_HATS; hat++)
+        {
+            if(pad->hat_pair[hat] < 0)
+                continue;
+
+            struct input_absinfo info;
+            const int x = ABS_HAT0X + pad->hat_pair[hat] * 2;
+
+            if(ioctl(pad->fd, EVIOCGABS(x), &info) == 0)
+                pad->hat_value[hat][0] = info.value;
+
+            if(ioctl(pad->fd, EVIOCGABS(x + 1), &info) == 0)
+                pad->hat_value[hat][1] = info.value;
+        }
+
+        return;
+    }
+
     static const int Axes[] = {ABS_X, ABS_Y, ABS_RX, ABS_RY};
 
     for(size_t i = 0; i < sizeof Axes / sizeof Axes[0]; i++)
@@ -1297,6 +2551,46 @@ static void _sgamepad_linux_read_all(_sgamepad_linux_device* pad)
         _sgamepad_linux_button(pad, pad->buttons[i], _sgamepad_linux_bit(keys, pad->buttons[i]));
 }
 
+// The value of the axis a reference names, in the machine's sign: the table
+// stores a reversed axis as the negative reference.
+static float _sgamepad_linux_axis_ref(const _sgamepad_linux_device* pad, uint16_t ref)
+{
+    const int index = SGAMEPAD_MAP_INDEX_OF(ref);
+
+    if(SGAMEPAD_MAP_KIND_OF(ref) != SGAMEPAD_MAP_KIND_AXIS || index >= pad->axes)
+        return 0.0f;
+
+    return SGAMEPAD_MAP_IS_NEGATIVE(ref) ? -pad->axis_value[index] : pad->axis_value[index];
+}
+
+// Whether a reference is held: a hat direction, or an axis half past the
+// layer's deadzone. A button reference is already in the state the events
+// left, so it is not asked here.
+static bool _sgamepad_linux_ref(const _sgamepad_linux_device* pad, uint16_t ref)
+{
+    const int index = SGAMEPAD_MAP_INDEX_OF(ref);
+
+    if(SGAMEPAD_MAP_KIND_OF(ref) == SGAMEPAD_MAP_KIND_HAT)
+    {
+        if(index >= SGAMEPAD_MAP_HATS)
+            return false;
+
+        const int x = pad->hat_value[index][0];
+        const int y = pad->hat_value[index][1];
+        const int mask = SGAMEPAD_MAP_HAT_MASK_OF(ref);
+
+        // clang-format off
+        return ((mask & 1) && y < 0) || ((mask & 4) && y > 0)
+            || ((mask & 8) && x < 0) || ((mask & 2) && x > 0);
+        // clang-format on
+    }
+
+    if(SGAMEPAD_MAP_KIND_OF(ref) == SGAMEPAD_MAP_KIND_AXIS)
+        return _sgamepad_direction(_sgamepad_linux_axis_ref(pad, ref), +1);
+
+    return false;
+}
+
 // A pad has a direction — a hat, four direction buttons or a pair of axes — and
 // two buttons in one of the layouts above; keyboards, mice and touchpads have neither.
 static const int* _sgamepad_linux_claimed(int fd)
@@ -1324,6 +2618,154 @@ static const int* _sgamepad_linux_claimed(int fd)
         return _sgamepad_linux_joystick_buttons;
 
     return NULL;
+}
+
+// Whether a pair of hat axes is a digital hat: SDL calls it one when the pair
+// ranges over -1..1, or when neither axis has fuzz, flat or resolution. The
+// table's indices count only the pairs it judges digital as hats.
+static bool _sgamepad_linux_digital_hat(int fd, int pair)
+{
+    struct input_absinfo x, y;
+    const bool has_x = ioctl(fd, EVIOCGABS(ABS_HAT0X + pair * 2), &x) == 0;
+    const bool has_y = ioctl(fd, EVIOCGABS(ABS_HAT0X + pair * 2 + 1), &y) == 0;
+
+    if(!has_x && !has_y)
+        return false;
+
+    // clang-format off
+    const bool tight = (!has_x || (x.minimum == -1 && x.maximum == 1))
+        && (!has_y || (y.minimum == -1 && y.maximum == 1));
+    const bool plain = (!has_x || (!x.fuzz && !x.flat && !x.resolution))
+        && (!has_y || (!y.fuzz && !y.flat && !y.resolution));
+    // clang-format on
+
+    return tight || plain;
+}
+
+// The key code a button reference names, or -1.
+static int _sgamepad_linux_key(const _sgamepad_linux_device* pad, uint16_t ref)
+{
+    const int index = SGAMEPAD_MAP_INDEX_OF(ref);
+
+    return SGAMEPAD_MAP_KIND_OF(ref) == SGAMEPAD_MAP_KIND_BUTTON && index < pad->keys ? pad->key_code[index] : -1;
+}
+
+// SDL numbers a device's elements in the order it finds them, and the table's
+// references are those numbers: the buttons run from BTN_JOYSTICK upwards and
+// then the codes below it, the axes are the absolute axes that are not digital
+// hats, and the hats are the digital pairs.
+static void _sgamepad_linux_bind(_sgamepad_linux_device* pad, int fd)
+{
+    struct input_id ids;
+
+    if(ioctl(fd, EVIOCGID, &ids) < 0)
+        return;
+
+    char name[256];
+    const int length = ioctl(fd, EVIOCGNAME(sizeof name), name);
+    const uint16_t crc = length > 0 ? sgamepad_map_crc16(0, name) : 0;
+
+    const sgamepad_map_entry* entry = sgamepad_map_find(_sgamepad_map_linux_table, SGAMEPAD_MAP_LINUX_TABLE_SIZE,
+                                                        ids.bustype, ids.vendor, ids.product, crc);
+
+    if(entry == NULL)
+        return;
+
+    unsigned char abs[(ABS_CNT + 7) / 8] = {0};
+    unsigned char keys[(KEY_CNT + 7) / 8] = {0};
+
+    if(ioctl(fd, EVIOCGBIT(EV_ABS, sizeof abs), abs) < 0 || ioctl(fd, EVIOCGBIT(EV_KEY, sizeof keys), keys) < 0)
+        return;
+
+    pad->entry = entry;
+
+    int rank = 0;
+
+    for(int pass = 0; pass < 2; pass++)
+    {
+        const int from = pass == 0 ? BTN_JOYSTICK : 0;
+        const int to = pass == 0 ? KEY_MAX : BTN_JOYSTICK;
+
+        for(int code = from; code < to; code++)
+            if(_sgamepad_linux_bit(keys, code))
+            {
+                if(rank < SGAMEPAD_MAP_BUTTONS)
+                    pad->key_code[rank] = code;
+
+                rank++;
+            }
+    }
+
+    pad->keys = rank;
+
+    bool digital[4];
+
+    for(int pair = 0; pair < 4; pair++)
+        digital[pair] = _sgamepad_linux_digital_hat(fd, pair);
+
+    int axis = 0;
+    int hat = 0;
+
+    for(int i = 0; i < SGAMEPAD_MAP_HATS; i++)
+        pad->hat_pair[i] = -1;
+
+    for(int code = 0; code < ABS_MAX; code++)
+    {
+        if(!_sgamepad_linux_bit(abs, code))
+            continue;
+
+        if(code >= ABS_HAT0X && code <= ABS_HAT3Y)
+        {
+            const int pair = (code - ABS_HAT0X) / 2;
+
+            if(digital[pair])
+                continue;
+        }
+
+        struct input_absinfo info;
+
+        // An axis the device will not describe is not one SDL numbers, and
+        // the ranks after it move up the way SDL's do.
+        if(ioctl(fd, EVIOCGABS(code), &info) < 0)
+            continue;
+
+        if(axis < SGAMEPAD_MAP_AXES)
+        {
+            pad->axis_code[axis] = code;
+            pad->axis_min[axis] = info.minimum;
+            pad->axis_max[axis] = info.maximum;
+            pad->axis_value[axis] = _sgamepad_linux_stick(&info, info.value);
+        }
+
+        axis++;
+    }
+
+    pad->axes = axis < SGAMEPAD_MAP_AXES ? axis : SGAMEPAD_MAP_AXES;
+
+    for(int pair = 0; pair < 4; pair++)
+        if(digital[pair])
+        {
+            if(hat < SGAMEPAD_MAP_HATS)
+                pad->hat_pair[hat] = pair;
+
+            hat++;
+        }
+
+    static const sgamepad_map_role Face[6] = {
+        SGAMEPAD_MAP_ROLE_A, SGAMEPAD_MAP_ROLE_B, SGAMEPAD_MAP_ROLE_X,
+        SGAMEPAD_MAP_ROLE_Y, SGAMEPAD_MAP_ROLE_BACK, SGAMEPAD_MAP_ROLE_START};
+
+    static const sgamepad_map_role Dpad[4] = {
+        SGAMEPAD_MAP_ROLE_DPUP, SGAMEPAD_MAP_ROLE_DPDOWN,
+        SGAMEPAD_MAP_ROLE_DPLEFT, SGAMEPAD_MAP_ROLE_DPRIGHT};
+
+    for(int i = 0; i < _SGAMEPAD_LINUX_BUTTONS; i++)
+        pad->table_buttons[i] = _sgamepad_linux_key(pad, entry->ref[Face[i]]);
+
+    for(int i = 0; i < 4; i++)
+        pad->dpad[i] = _sgamepad_linux_key(pad, entry->ref[Dpad[i]]);
+
+    pad->buttons = pad->table_buttons;
 }
 
 static void _sgamepad_linux_close(_sgamepad_linux_device* pad)
@@ -1373,6 +2815,12 @@ static void _sgamepad_linux_open(const char* path)
     pad->buttons = buttons;
 
     snprintf(pad->path, sizeof pad->path, "%s", path);
+
+    // A pad whose kernel report is not the positional gamepad layout is read
+    // through the table when the table names it; one it does not name keeps
+    // the generic joystick layout's guess.
+    if(buttons == _sgamepad_linux_joystick_buttons)
+        _sgamepad_linux_bind(pad, fd);
 
     _sgamepad_linux_read_all(pad);
 }
@@ -1433,6 +2881,26 @@ static void _sgamepad_linux_event(_sgamepad_linux_device* pad, const struct inpu
 
     if(event->type == EV_ABS)
     {
+        if(pad->entry)
+        {
+            if(event->code >= ABS_HAT0X && event->code <= ABS_HAT3Y)
+            {
+                const int pair = (event->code - ABS_HAT0X) / 2;
+
+                for(int hat = 0; hat < SGAMEPAD_MAP_HATS; hat++)
+                    if(pad->hat_pair[hat] == pair)
+                        pad->hat_value[hat][(event->code - ABS_HAT0X) & 1] = event->value;
+            }
+
+            // A hat pair SDL judged analog is an axis, and its codes are
+            // ranked as such: one code can be both.
+            for(int rank = 0; rank < pad->axes; rank++)
+                if(pad->axis_code[rank] == event->code)
+                    pad->axis_value[rank] = _sgamepad_linux_range(pad->axis_min[rank], pad->axis_max[rank], event->value);
+
+            return;
+        }
+
         switch(event->code)
         {
             case ABS_HAT0X:
@@ -1555,6 +3023,25 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
         // The buttons are the ones the events left behind; everything else is
         // what the axes say right now, the way the other backends read it.
         *state = pad->state;
+
+        if(pad->entry)
+        {
+            const sgamepad_map_entry* entry = pad->entry;
+            const float left_x = _sgamepad_linux_axis_ref(pad, entry->ref[SGAMEPAD_MAP_ROLE_LEFTX]);
+            const float left_y = _sgamepad_linux_axis_ref(pad, entry->ref[SGAMEPAD_MAP_ROLE_LEFTY]);
+
+            state->up = state->up || _sgamepad_linux_ref(pad, entry->ref[SGAMEPAD_MAP_ROLE_DPUP]) || _sgamepad_direction(left_y, -1);
+            state->down = state->down || _sgamepad_linux_ref(pad, entry->ref[SGAMEPAD_MAP_ROLE_DPDOWN]) || _sgamepad_direction(left_y, +1);
+            state->left = state->left || _sgamepad_linux_ref(pad, entry->ref[SGAMEPAD_MAP_ROLE_DPLEFT]) || _sgamepad_direction(left_x, -1);
+            state->right = state->right || _sgamepad_linux_ref(pad, entry->ref[SGAMEPAD_MAP_ROLE_DPRIGHT]) || _sgamepad_direction(left_x, +1);
+
+            state->right_x = _sgamepad_deadzone(_sgamepad_linux_axis_ref(pad, entry->ref[SGAMEPAD_MAP_ROLE_RIGHTX]));
+            state->right_y = _sgamepad_deadzone(_sgamepad_linux_axis_ref(pad, entry->ref[SGAMEPAD_MAP_ROLE_RIGHTY]));
+
+            device->present = true;
+            device->used = pad->used || _sgamepad_holding(state);
+            continue;
+        }
 
         const float left_y = pad->stick[_SGAMEPAD_LINUX_Y];
         const float left_x = pad->stick[_SGAMEPAD_LINUX_X];
