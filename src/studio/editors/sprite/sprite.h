@@ -111,6 +111,8 @@ struct Sprite
         tic_rect rect;
         tic_point start;
         bool drag;
+        bool transparent;
+        u8 bg;
         u8* back;
         u8* front;
     } select;
