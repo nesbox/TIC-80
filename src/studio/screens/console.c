@@ -460,9 +460,11 @@ static char* replaceHelpTokens(const char* text)
     char* replaced1 = str_replace(text, "$LANG_NAMES$", langnames);
     char* replaced2 = str_replace(replaced1, "$LANG_EXTENSIONS$", langextensions);
     char* replaced3 = str_replace(replaced2, "$LANG_NAMES_SPACED$", langnamesspaced);
+    char* replaced4 = str_replace(replaced3, "$FILL_PATTERNS$", "`help fill`");
+    free(replaced3);
     free(replaced2);
     free(replaced1);
-    return replaced3;
+    return replaced4;
 }
 
 static void scrollBuffer(char* buffer)
@@ -3681,8 +3683,15 @@ static void printMdCell(char** ptr, const char* str)
     // lines). The escaping has to see the real text and not the token: a
     // value carrying a pipe, written after this loop, would split the row
     // and drop everything past it.
-    char* replaced = strchr(str, '$') ? replaceHelpTokens(str) : NULL;
-    const char* text = replaced ? replaced : str;
+    // The fill reference is a console topic in the source and a section link
+    // in the document.
+    char* linked = strstr(str, "$FILL_PATTERNS$")
+                       ? str_replace(str, "$FILL_PATTERNS$", "[Fill patterns](#fill-patterns)")
+                       : NULL;
+    const char* source = linked ? linked : str;
+
+    char* replaced = strchr(source, '$') ? replaceHelpTokens(source) : NULL;
+    const char* text = replaced ? replaced : source;
 
     for(const char* c = text; *c; ++c)
     {
@@ -3695,7 +3704,22 @@ static void printMdCell(char** ptr, const char* str)
     }
 
     free(replaced);
+    free(linked);
 }
+
+typedef struct
+{
+    const char* coverage;
+    const char* mask;
+} FillMask;
+
+// One list for the console topic and the document table.
+static const FillMask FillMasks[] =
+    {
+#define FILL_MASK_ROW(coverage, mask) {coverage, mask},
+        TIC_API_FILL_MASKS(FILL_MASK_ROW)
+#undef FILL_MASK_ROW
+};
 
 static void onExport_help(Console* console, const char* param, const char* name, ExportParams params)
 {
@@ -3710,7 +3734,7 @@ static void onExport_help(Console* console, const char* param, const char* name,
         ptr += sprintf(ptr, "# " TIC_NAME_FULL "\n" TIC_VERSION "\n" TIC_COPYRIGHT "\n");
 
         ptr += sprintf(ptr, "\n## Table of Contents\n\n");
-        ptr += sprintf(ptr, "- [Welcome](#welcome)\n- [Specification](#specification)\n- [Console commands](#console-commands)\n- [API functions](#api-functions)\n- [Button IDs](#button-ids)\n- [Key IDs](#key-ids)\n- [Startup options](#startup-options)\n- [Hotkeys](#hotkeys)\n- [Terms of Use](#terms-of-use)\n- [Privacy Policy](#privacy-policy)\n- [MIT License](#mit-license)\n");
+        ptr += sprintf(ptr, "- [Welcome](#welcome)\n- [Specification](#specification)\n- [Console commands](#console-commands)\n- [API functions](#api-functions)\n- [Fill patterns](#fill-patterns)\n- [Button IDs](#button-ids)\n- [Key IDs](#key-ids)\n- [Startup options](#startup-options)\n- [Hotkeys](#hotkeys)\n- [Terms of Use](#terms-of-use)\n- [Privacy Policy](#privacy-policy)\n- [MIT License](#mit-license)\n");
 
         ptr += sprintf(ptr, "\n## Welcome\n%s\n", WelcomeText);
 
@@ -3745,6 +3769,13 @@ static void onExport_help(Console* console, const char* param, const char* name,
             ptr += sprintf(ptr, "` | ");
             printMdCell(&ptr, api->help);
             ptr += sprintf(ptr, " |\n");
+        }
+
+        ptr += sprintf(ptr, "\n## Fill patterns\n\n%s\n\nOrdered-dither masks by coverage:\n\n| Coverage | Mask |\n|---|---|\n", TIC_API_FILL_HELP);
+
+        FOR(const FillMask*, row, FillMasks)
+        {
+            ptr += sprintf(ptr, "| %s | `%s` |\n", row->coverage, row->mask);
         }
 
         ptr += sprintf(ptr, "\n## Button IDs\n");
@@ -3908,7 +3939,11 @@ static bool printApi(Console* console, const char* param)
             consolePrint(console, "---=== API ===---\n", tic_color_blue);
             consolePrint(console, api->def, tic_color_light_blue);
             printFront(console, "\n\n");
-            printBack(console, api->help);
+
+            char* helpReplaced = replaceHelpTokens(api->help);
+            printBack(console, helpReplaced);
+            free(helpReplaced);
+
             printLine(console);
             return true;
         }
@@ -3952,6 +3987,23 @@ static void onHelp_commands(Console* console)
 }
 
 #undef STRBUF_SIZE
+
+static void onHelp_fill(Console* console)
+{
+    consolePrint(console, "\nFill patterns:\n", tic_color_blue);
+    printBack(console, TIC_API_FILL_HELP);
+
+    consolePrint(console, "\nOrdered-dither masks by coverage:\n", tic_color_blue);
+
+    FOR(const FillMask*, row, FillMasks)
+    {
+        char buf[32];
+        sprintf(buf, "%-7s %s\n", row->coverage, row->mask);
+        printBack(console, buf);
+    }
+
+    printLine(console);
+}
 
 static void printTable(Console* console, const char* text)
 {

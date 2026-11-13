@@ -136,16 +136,33 @@ enum
 // clang-format on
 
 // Shared help for the primitives whose color word can carry a fill pattern:
-// c1 | c2 << 8 | pattern << 16.
+// c1 | c2 << 8 | pattern << 16. The text lives once, in the Fill patterns
+// topic; each primitive points at it.
+#define TIC_API_FILL_REF \
+    "\nThe color may carry a fill pattern; see $FILL_PATTERNS$."
+
 #define TIC_API_FILL_HELP                                                                                      \
-    "\nThe color may pack a fill pattern: `c1 + c2*256 + pattern*65536`. `pattern` is a 4x4 bitmap of the\n"   \
+    "The color may pack a fill pattern: `c1 + c2*256 + pattern*65536`. `pattern` is a 4x4 bitmap of the\n"     \
     "screen (bit n = (y&3)*4 + (x&3), bit 0 at the top left); a set bit draws `c1`, a clear bit draws `c2`,\n" \
     "and `c2 = 255` leaves the screen unchanged. `pattern = 0` draws solid `c1`."
 
-#define TIC_API_FILL_MASKS                                                                              \
-    "\nOrdered-dither masks by coverage: 1/16 `0x0001`, 2/16 `0x0401`, 3/16 `0x0405`, 4/16 `0x0505`,\n" \
-    "5/16 `0x0525`, 6/16 `0x8525`, 7/16 `0x85A5`, 8/16 `0xA5A5`, 9/16 `0xA5A7`, 10/16 `0xADA7`,\n"      \
-    "11/16 `0xADAF`, 12/16 `0xAFAF`, 13/16 `0xAFBF`, 14/16 `0xEFBF`, 15/16 `0xEFFF`."
+// Ordered-dither masks by coverage. Each consumer renders its own table.
+#define TIC_API_FILL_MASKS(macro)                                                \
+    macro("1/16", "0x0001")                                                      \
+        macro("2/16", "0x0401")                                                  \
+            macro("3/16", "0x0405")                                              \
+                macro("4/16", "0x0505")                                          \
+                    macro("5/16", "0x0525")                                      \
+                        macro("6/16", "0x8525")                                  \
+                            macro("7/16", "0x85A5")                              \
+                                macro("8/16", "0xA5A5")                          \
+                                    macro("9/16", "0xA5A7")                      \
+                                        macro("10/16", "0xADA7")                 \
+                                            macro("11/16", "0xADAF")             \
+                                                macro("12/16", "0xAFAF")         \
+                                                    macro("13/16", "0xAFBF")     \
+                                                        macro("14/16", "0xEFBF") \
+                                                            macro("15/16", "0xEFFF")
 
 // API DEFINITION TABLE
 //  macro
@@ -209,7 +226,7 @@ enum
         "line(x0 y0 x1 y1 color)",                                                                                      \
                                                                                                                         \
         "Draws a straight line from point (x0,y0) to point (x1,y1) in the specified color."                             \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         5,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
@@ -222,7 +239,7 @@ enum
                                                                                                                         \
         "This function draws a filled rectangle of the desired size and color at the specified position.\n"             \
         "If you only need to draw the the border or outline of a rectangle (ie not filled) see `rectb()`."              \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         5,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
@@ -235,7 +252,7 @@ enum
                                                                                                                         \
         "This function draws a one pixel thick rectangle border at the position requested.\n"                           \
         "If you need to fill the rectangle with a color, see `rect()` instead."                                         \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         5,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
@@ -249,7 +266,7 @@ enum
         "This function draws a filled rounded rectangle of the desired size, color, and radius "                        \
         "at the specified position.\n"                                                                                  \
         "If you only need to draw the the border or outline of a rounded rectangle (ie not filled) see `rrectb()`."     \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         7,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
@@ -262,7 +279,7 @@ enum
                                                                                                                         \
         "This function draws a one pixel thick rounded rectangle border at the position requested.\n"                   \
         "If you need to fill the rounded rectangle with a color, see `rrect()` instead."                                \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         7,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
@@ -663,7 +680,7 @@ enum
                                                                                                                         \
         "This function draws a filled circle of the desired radius and color with its center at x, y.\n"                \
         "It uses the Bresenham algorithm."                                                                              \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         4,                                                                                                              \
         4,                                                                                                              \
         0,                                                                                                              \
@@ -676,7 +693,7 @@ enum
                                                                                                                         \
         "Draws the circumference of a circle with its center at x, y using the radius and color requested.\n"           \
         "It uses the Bresenham algorithm."                                                                              \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         4,                                                                                                              \
         4,                                                                                                              \
         0,                                                                                                              \
@@ -689,7 +706,7 @@ enum
                                                                                                                         \
         "This function draws a filled ellipse of the desired a, b radiuses and color with its center at x, y.\n"        \
         "It uses the Bresenham algorithm."                                                                              \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         5,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
@@ -702,7 +719,7 @@ enum
                                                                                                                         \
         "This function draws an ellipse border with the desired radiuses a b and color with its center at x, y.\n"      \
         "It uses the Bresenham algorithm."                                                                              \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         5,                                                                                                              \
         5,                                                                                                              \
         0,                                                                                                              \
@@ -715,7 +732,7 @@ enum
                                                                                                                         \
         "This function fills a contiguous area with a new color.\n"                                                     \
         "If bordercolor is given fill will extend to color boundary."                                                   \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         4,                                                                                                              \
         3,                                                                                                              \
         0,                                                                                                              \
@@ -727,7 +744,7 @@ enum
         "tri(x1 y1 x2 y2 x3 y3 color)",                                                                                 \
                                                                                                                         \
         "This function draws a triangle filled with color, using the supplied vertices."                                \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         7,                                                                                                              \
         7,                                                                                                              \
         0,                                                                                                              \
@@ -738,7 +755,7 @@ enum
         "trib(x1 y1 x2 y2 x3 y3 color)",                                                                                \
                                                                                                                         \
         "This function draws a triangle border with color, using the supplied vertices."                                \
-        TIC_API_FILL_HELP TIC_API_FILL_MASKS,                                                                           \
+        TIC_API_FILL_REF,                                                                                               \
         7,                                                                                                              \
         7,                                                                                                              \
         0,                                                                                                              \

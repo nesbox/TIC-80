@@ -1108,6 +1108,36 @@ static bool apiAllowsEmpty(const char* name)
            !strcmp(name, "t80::vbank");
 }
 
+// The API help points at a console topic through a token; a Scheme docstring
+// has no console, so it names the manual instead.
+static char* schemeFillHelp(const char* text)
+{
+    static const char Token[] = "$FILL_PATTERNS$";
+    static const char With[] = "the fill patterns section of the TIC-80 manual";
+
+    const char* found = strstr(text, Token);
+    if(!found) return NULL;
+
+    enum
+    {
+        TokenLen = sizeof Token - 1,
+        WithLen = sizeof With - 1,
+    };
+
+    size_t length = strlen(text);
+    char* result = malloc(length - TokenLen + WithLen + 1);
+
+    if(result)
+    {
+        size_t head = (size_t)(found - text);
+        memcpy(result, text, head);
+        memcpy(result + head, With, WithLen);
+        strcpy(result + head + WithLen, found + TokenLen);
+    }
+
+    return result;
+}
+
 static void initAPI(tic_core* core)
 {
     s7_scheme* sc = core->currentVM;
@@ -1130,6 +1160,7 @@ static void initAPI(tic_core* core)
     for(s32 i = 0; i < COUNT_OF(ApiItems); i++)
     {
         const int required = apiAllowsEmpty(ApiItems[i].name) ? 0 : ApiItems[i].reqcount;
+        char* help = schemeFillHelp(ApiItems[i].helpstr);
 
         s7_define_function(sc,
                            ApiItems[i].name,
@@ -1137,7 +1168,9 @@ static void initAPI(tic_core* core)
                            required,
                            ApiItems[i].count - required, // opt count
                            false,                        // rest_arg
-                           ApiItems[i].helpstr);
+                           help ? help : ApiItems[i].helpstr);
+
+        free(help);
     }
 }
 

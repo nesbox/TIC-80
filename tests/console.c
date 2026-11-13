@@ -599,6 +599,85 @@ static void testHelpAlias(void)
     hostFree(host);
 }
 
+// The fill help is one topic: the API pages point at it, and the document
+// carries it once instead of in every primitive's row.
+static void testHelpFill(void)
+{
+    Host* host = hostNew("help fill");
+    ConsoleAsk ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+
+    hostTick(host);
+
+    assert(said(host, "Fill patterns:"));
+    assert(said(host, "Ordered-dither"));
+    assert(said(host, "0x0001"));
+    assert(said(host, "0xEFFF"));
+    assert(!said(host, "$FILL_PATTERNS$"));
+
+    hostFree(host);
+
+    host = hostNew("help rect");
+    ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+
+    hostTick(host);
+
+    assert(said(host, "`help fill`"));
+    assert(!said(host, "$FILL_PATTERNS$"));
+
+    hostFree(host);
+}
+
+static void testExportHelp(void)
+{
+    Host* host = hostNew("export help smoke.md");
+    ConsoleAsk ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+
+    hostTick(host);
+
+    s32 size = 0;
+    char* raw = fs_read(tic_fs_path(host->fs, "smoke.md"), &size);
+    assert(raw);
+
+    char* text = malloc(size + 1);
+    memcpy(text, raw, size);
+    text[size] = '\0';
+    free(raw);
+
+    s32 sections = 0, paragraphs = 0, refs = 0, tables = 0;
+
+    for(const char* at = text; (at = strstr(at, "## Fill patterns")); at++)
+        sections++;
+    for(const char* at = text; (at = strstr(at, "The color may pack a fill pattern")); at++)
+        paragraphs++;
+    for(const char* at = text; (at = strstr(at, "see [Fill patterns](#fill-patterns)")); at++)
+        refs++;
+    for(const char* at = text; (at = strstr(at, "Ordered-dither masks by coverage:")); at++)
+        tables++;
+
+    assert(sections == 1);
+    assert(paragraphs == 1);
+    assert(refs == 12);
+    assert(tables == 1);
+    assert(strstr(text, "masks by coverage:\n\n| Coverage | Mask |"));
+    assert(strstr(text, "| 1/16 | `0x0001` |"));
+    assert(strstr(text, "| 15/16 | `0xEFFF` |"));
+    assert(!strstr(text, "$FILL_PATTERNS$"));
+
+    free(text);
+    tic_fs_delfile(host->fs, "smoke.md");
+
+    hostFree(host);
+}
+
 // The console asks the current script where an error sits: this one places
 // "line 8" and nothing else. A NULL hook is a language that cannot place them.
 static s32 placedErrorLine(tic_mem* memory, const char* text)
@@ -785,9 +864,11 @@ int main(void)
     testExport(true);
     testExport(false);
     testHelpAlias();
+    testHelpFill();
+    testExportHelp();
     testErrorLink();
 
-    puts("moves ok / confirm ok / load ok / save ok / config ok / export ok / replay ok / run / error link");
+    puts("moves ok / confirm ok / load ok / save ok / config ok / export ok / replay ok / run / help fill / error link");
 
     return 0;
 }
