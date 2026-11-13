@@ -2137,8 +2137,9 @@ static void generateScreenshotName(Studio* studio, const char* extension, char f
     // --- Format the timestamp string ---
     char timestamp[32] = {0};
 
-    // Format as -yymmdd-hhmmss
-    strftime(timestamp, sizeof(timestamp), "-%y%m%d-%H%M%S", &tm_local);
+    // Format as -yymmdd-hhmmss; a cart with no name takes the stamp alone,
+    // with no leading dash.
+    strftime(timestamp, sizeof(timestamp), baseLen ? "-%y%m%d-%H%M%S" : "%y%m%d-%H%M%S", &tm_local);
 
     // Append milliseconds
     size_t len = strlen(timestamp);
@@ -2597,10 +2598,15 @@ static void drawBitIconRaw(Studio* studio, u32* frame, s32 sx, s32 sy, s32 id, t
     const tic_bank* bank = &getConfig(studio)->cart->bank0;
 
     u32* dst = frame + sx + sy * TIC80_FULLWIDTH;
-    for(s32 src = 0; src != TIC_SPRITESIZE * TIC_SPRITESIZE; dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
-        for(s32 i = 0; i != TIC_SPRITESIZE; ++i, ++dst)
-            if(tic_tool_peek4(&bank->tiles.data[id].data, src++))
-                *dst = tic_rgba(&bank->palette.vbank0.colors[color]);
+
+    for(s32 row = 0; row < TIC_SPRITESIZE; row++, dst += TIC80_FULLWIDTH)
+    {
+        const u8 bits = ui_cell_row(&bank->tiles, id, row);
+
+        for(s32 col = 0; col < TIC_SPRITESIZE; col++)
+            if(bits & (1 << col))
+                dst[col] = tic_rgba(&bank->palette.vbank0.colors[color]);
+    }
 }
 
 static void drawRecordLabel(Studio* studio, u32* frame, s32 sx, s32 sy)
@@ -2862,12 +2868,17 @@ static void updateSystemFont(Studio* studio)
             }};
 
     u8* dst = (u8*)&studio->systemFont;
+    const tic_tiles* sprites = &studio->config->cart->bank0.sprites;
 
     for(s32 i = 0; i < TIC_FONT_CHARS * 2; i++)
+    {
+        // The last cell of each bank carries the width/height pair, not a glyph.
+        if(i % TIC_FONT_CHARS == TIC_FONT_CHARS - 1)
+            continue;
+
         for(s32 y = 0; y < TIC_SPRITESIZE; y++)
-            for(s32 x = 0; x < TIC_SPRITESIZE; x++)
-                if(tic_tool_peek4(&studio->config->cart->bank0.sprites.data[i], TIC_SPRITESIZE * y + x))
-                    dst[i * BITS_IN_BYTE + y] |= 1 << x;
+            dst[i * BITS_IN_BYTE + y] = ui_cell_row(sprites, i, y);
+    }
 
     tic->ram->font = studio->systemFont;
 }
@@ -3047,6 +3058,24 @@ static void doCodeImport(Studio* studio)
 }
 #endif
 
+// The hand closes its finger while a mouse button is held. btns also carries
+// the wheel deltas and the relative bit, so only the button bits count.
+static tic_cursor cursorSprite(const Studio* studio)
+{
+    const tic_mem* tic = studio->tic;
+    const u16 buttons = (1 << tic_mouse_left) | (1 << tic_mouse_middle) | (1 << tic_mouse_right);
+
+    if(tic->ram->vram.vars.cursor.system && tic->ram->vram.vars.cursor.sprite == tic_cursor_hand &&
+       (tic->ram->input.mouse.btns & buttons))
+        return tic_cursor_hand_pressed;
+
+    return tic->ram->vram.vars.cursor.sprite;
+}
+
+// The config cart keeps the cursor art in its tiles bank, after the touch art,
+// so the sprite bank's first cells stay the font's blank control characters.
+#define CURSOR_TILE_FIRST 53
+
 static void blitCursor(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -3056,25 +3085,27 @@ static void blitCursor(Studio* studio)
     // that height the cursor's spans would run off the end of the framebuffer.
     if(studio->mouse.idle < CURSOR_HIDE_TICKS && tic->input.mouse && !m->relative && (s32)m->y < TIC80_FULLHEIGHT)
     {
-        s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
+        s32 sprite = CLAMP(cursorSprite(studio), 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;
+        const tic_tile* tile = &bank->sprites.data[sprite];
 
         tic_point hot = {0};
 
         if(tic->ram->vram.vars.cursor.system)
         {
             bank = &getConfig(studio)->cart->bank0;
+            tile = &bank->tiles.data[CURSOR_TILE_FIRST + sprite];
             hot = (tic_point[]){
                 {0, 0},
                 {3, 0},
                 {2, 3},
-            }[CLAMP(sprite, 0, 2)];
+                {3, 0},
+            }[CLAMP(sprite, 0, 3)];
         }
         else if(sprite == 0)
             return;
 
         const tic_palette* pal = &bank->palette.vbank0;
-        const tic_tile* tile = &bank->sprites.data[sprite];
 
         tic_point s = {m->x - hot.x, m->y - hot.y};
         u32* dst = tic->product.screen + TIC80_FULLWIDTH * s.y + s.x;
@@ -3226,18 +3257,19 @@ void studio_tick(Studio* studio, tic80_input input)
 
 #if defined(BUILD_RENDER_CACHE)
         tic80_mouse* m = &tic->ram->input.mouse;
+        tic_cursor cursor = cursorSprite(studio);
         bool mouse_visible = (studio->mouse.idle < CURSOR_HIDE_TICKS && tic->input.mouse && !m->relative && (s32)m->y < TIC80_FULLHEIGHT);
         if(mouse_visible || studio->mouse.prev.visible)
         {
             if(m->x != studio->mouse.prev.x || m->y != studio->mouse.prev.y ||
-               tic->ram->vram.vars.cursor.sprite != studio->mouse.prev.sprite ||
+               cursor != studio->mouse.prev.sprite ||
                tic->ram->vram.vars.cursor.system != studio->mouse.prev.system ||
                mouse_visible != studio->mouse.prev.visible)
             {
                 tic_core_invalidate(tic);
                 studio->mouse.prev.x = m->x;
                 studio->mouse.prev.y = m->y;
-                studio->mouse.prev.sprite = tic->ram->vram.vars.cursor.sprite;
+                studio->mouse.prev.sprite = cursor;
                 studio->mouse.prev.system = tic->ram->vram.vars.cursor.system;
                 studio->mouse.prev.visible = mouse_visible;
             }

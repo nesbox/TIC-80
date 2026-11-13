@@ -40,6 +40,20 @@ static MouseState Mouse[3];
 static s32 Hits[32];
 static tic_tiles Tiles;
 
+// One row of the 1bpp cell `id`, as the config cart packs it: four cells to a
+// sprite in page 1 order.
+static void pokeCell(s32 id, s32 row, u8 bits)
+{
+    enum
+    {
+        CellsPerSprite = 4
+    };
+
+    tic_tile* cell = &Tiles.data[(id / TIC_SPRITESHEET_COLS) * TIC_SPRITESHEET_COLS + (id % TIC_SPRITESHEET_COLS) / CellsPerSprite];
+
+    cell->data[row * CellsPerSprite + id % CellsPerSprite] = bits;
+}
+
 static void hit(void* data, s32 id)
 {
     (void)data;
@@ -1205,7 +1219,7 @@ static void testCompact(tic_mem* tic)
 
     // One inked pixel in the first tab's icon: the white glyph, its black
     // shadow and the grey tab behind it are each visible.
-    tic_tool_poke4(Tiles.data[TabItems[0].icon].data, 0, 1);
+    pokeCell(TabItems[0].icon, 0, 1);
 
     still(&bar, tic);
 
@@ -1392,7 +1406,7 @@ static void testCompact(tic_mem* tic)
         IconOnly = 10
     };
 
-    tic_tool_poke4(Tiles.data[IconOnly].data, 0, 1);
+    pokeCell(IconOnly, 0, 1);
 
     MenuBarCategory iconCats[] =
         {
@@ -1479,9 +1493,9 @@ int main(void)
     tic_mem* tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
     assert(tic);
 
-    // The check circle's tile is the only one the test needs inked.
-    for(s32 i = 0; i < TIC_SPRITESIZE * TIC_SPRITESIZE; i++)
-        tic_tool_poke4(Tiles.data[CheckIcon].data, i, 1);
+    // The check circle's cell is the only one the test needs inked.
+    for(s32 row = 0; row < TIC_SPRITESIZE; row++)
+        pokeCell(CheckIcon, row, 0xff);
 
     testOpenAndDispatch(tic);
     testToggleStaysOpen(tic);

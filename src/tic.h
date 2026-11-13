@@ -780,4 +780,5 @@ typedef enum
     tic_cursor_arrow,
     tic_cursor_hand,
     tic_cursor_ibeam,
+    tic_cursor_hand_pressed,
 } tic_cursor;

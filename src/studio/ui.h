@@ -28,7 +28,12 @@
 // What every screen draws and points with, out of the shell's file: the bar
 // needs both, and the panels use them too.
 
-// Blits tile `id` of `tiles` at x, y; its zero pixels leave the screen alone.
+// A row of the 1bpp cell `id` in a config-cart bank. The cart packs four cells
+// to a sprite in the sprite editor's page 1 order: a byte a cell row.
+u8 ui_cell_row(const tic_tiles* tiles, s32 id, s32 row);
+
+// Blits the 1bpp cell `id` of `tiles` at x, y; its zero pixels leave the
+// screen alone.
 void ui_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color);
 
 // Points with the cursor sprite `id`.

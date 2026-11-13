@@ -7,35 +7,55 @@
 
 static tic_tiles Tiles;
 
-static void fillTile(tic_tile* tile, u8 value)
+// The cell rows at literal addresses: the cart packs four 1bpp cells to a
+// sprite in page 1 order, so cell 5 is the second cell of sprite 1 and cell
+// 200 the third of sprite 194, one byte a row. A wrong reader formula fails
+// here; one copied into the test would not.
+static const u8 Cell5[] = {1, 5, 9, 13, 17, 21, 25, 29};
+static const u8 Cell200[] = {0, 4, 8, 12, 16, 20, 24, 28};
+
+static void inkCell(tic_tile* sprite, const u8* rows, u8 bits)
 {
-    for(s32 i = 0; i < TIC_SPRITESIZE * TIC_SPRITESIZE; i++)
-        tic_tool_poke4(tile->data, i, value);
+    for(s32 row = 0; row < TIC_SPRITESIZE; row++)
+        sprite->data[rows[row]] = bits;
+}
+
+static void assertIcon(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+    for(s32 row = 0; row < TIC_SPRITESIZE; row++)
+        for(s32 col = 0; col < TIC_SPRITESIZE; col++)
+            assert(tic_tool_peek4(tic->ram->vram.screen.data, (y + row) * TIC80_WIDTH + x + col) == color);
 }
 
 static void testIcon(tic_mem* tic)
 {
     enum
     {
-        Id = 5,
+        First = 5,
+        Second = 200,
         X = 10,
-        Y = 20
+        Y = 20,
+        Gap = TIC_SPRITESIZE
     };
 
-    fillTile(&Tiles.data[Id], 1);
-    ui_icon(tic, &Tiles, Id, X, Y, tic_color_red);
+    inkCell(&Tiles.data[1], Cell5, 0xff);
+    inkCell(&Tiles.data[194], Cell200, 0xff);
 
-    for(s32 y = 0; y < TIC_SPRITESIZE; y++)
-        for(s32 x = 0; x < TIC_SPRITESIZE; x++)
-            assert(tic_tool_peek4(tic->ram->vram.screen.data, (Y + y) * TIC80_WIDTH + X + x) == tic_color_red);
+    ui_icon(tic, &Tiles, First, X, Y, tic_color_red);
+    ui_icon(tic, &Tiles, Second, X + Gap, Y, tic_color_red);
+
+    assertIcon(tic, X, Y, tic_color_red);
+    assertIcon(tic, X + Gap, Y, tic_color_red);
 
     // A zero pixel leaves the screen alone.
-    fillTile(&Tiles.data[Id], 0);
-    ui_icon(tic, &Tiles, Id, X, Y, tic_color_white);
+    inkCell(&Tiles.data[1], Cell5, 0);
+    inkCell(&Tiles.data[194], Cell200, 0);
 
-    for(s32 y = 0; y < TIC_SPRITESIZE; y++)
-        for(s32 x = 0; x < TIC_SPRITESIZE; x++)
-            assert(tic_tool_peek4(tic->ram->vram.screen.data, (Y + y) * TIC80_WIDTH + X + x) == tic_color_red);
+    ui_icon(tic, &Tiles, First, X, Y, tic_color_white);
+    ui_icon(tic, &Tiles, Second, X + Gap, Y, tic_color_white);
+
+    assertIcon(tic, X, Y, tic_color_red);
+    assertIcon(tic, X + Gap, Y, tic_color_red);
 
     puts("icon ok");
 }

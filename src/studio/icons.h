@@ -23,7 +23,8 @@
 #pragma once
 
 // The icon ids the bar, the screens and the editors draw from the cart's
-// tiles; one list so they never disagree.
+// tiles: each id is a 1bpp cell of the editor's page 1. One list so they
+// never disagree.
 
 enum
 {

@@ -21,22 +21,26 @@
 // SOFTWARE.
 
 #include "ui.h"
-#include "tools.h"
+
+// Four cells to a sprite, laid out as the sprite editor's 1bpp page 1.
+#define UI_CELLS_PER_SPRITE 4
+
+u8 ui_cell_row(const tic_tiles* tiles, s32 id, s32 row)
+{
+    const tic_tile* cell = &tiles->data[(id / TIC_SPRITESHEET_COLS) * TIC_SPRITESHEET_COLS + (id % TIC_SPRITESHEET_COLS) / UI_CELLS_PER_SPRITE];
+
+    return cell->data[row * UI_CELLS_PER_SPRITE + id % UI_CELLS_PER_SPRITE];
+}
 
 void ui_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color)
 {
-    const tic_tile* tile = &tiles->data[id];
-
-    for(s32 i = 0, sx = x, ex = sx + TIC_SPRITESIZE; i != TIC_SPRITESIZE * TIC_SPRITESIZE; ++i, ++x)
+    for(s32 row = 0; row < TIC_SPRITESIZE; row++)
     {
-        if(x == ex)
-        {
-            x = sx;
-            y++;
-        }
+        const u8 bits = ui_cell_row(tiles, id, row);
 
-        if(tic_tool_peek4(tile, i))
-            tic_api_pix(tic, x, y, color, false);
+        for(s32 col = 0; col < TIC_SPRITESIZE; col++)
+            if(bits & (1 << col))
+                tic_api_pix(tic, x + col, y + row, color, false);
     }
 }
 
