@@ -3066,6 +3066,10 @@ static tic_cursor cursorSprite(const Studio* studio)
     return tic->ram->vram.vars.cursor.sprite;
 }
 
+// The config cart keeps the cursor art in its tiles bank, after the touch art,
+// so the sprite bank's first cells stay the font's blank control characters.
+#define CURSOR_TILE_FIRST 53
+
 static void blitCursor(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -3077,12 +3081,14 @@ static void blitCursor(Studio* studio)
     {
         s32 sprite = CLAMP(cursorSprite(studio), 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;
+        const tic_tile* tile = &bank->sprites.data[sprite];
 
         tic_point hot = {0};
 
         if(tic->ram->vram.vars.cursor.system)
         {
             bank = &getConfig(studio)->cart->bank0;
+            tile = &bank->tiles.data[CURSOR_TILE_FIRST + sprite];
             hot = (tic_point[]){
                 {0, 0},
                 {3, 0},
@@ -3094,7 +3100,6 @@ static void blitCursor(Studio* studio)
             return;
 
         const tic_palette* pal = &bank->palette.vbank0;
-        const tic_tile* tile = &bank->sprites.data[sprite];
 
         tic_point s = {m->x - hot.x, m->y - hot.y};
         u32* dst = tic->product.screen + TIC80_FULLWIDTH * s.y + s.x;
