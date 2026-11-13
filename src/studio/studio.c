@@ -2137,8 +2137,9 @@ static void generateScreenshotName(Studio* studio, const char* extension, char f
     // --- Format the timestamp string ---
     char timestamp[32] = {0};
 
-    // Format as -yymmdd-hhmmss
-    strftime(timestamp, sizeof(timestamp), "-%y%m%d-%H%M%S", &tm_local);
+    // Format as -yymmdd-hhmmss; a cart with no name takes the stamp alone,
+    // with no leading dash.
+    strftime(timestamp, sizeof(timestamp), baseLen ? "-%y%m%d-%H%M%S" : "%y%m%d-%H%M%S", &tm_local);
 
     // Append milliseconds
     size_t len = strlen(timestamp);
