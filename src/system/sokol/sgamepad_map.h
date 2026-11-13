@@ -166,7 +166,7 @@ uint16_t sgamepad_map_parse(const char* text)
 
         case 'a':
             if(_sgamepad_map_number(&text, &index) && index < SGAMEPAD_MAP_AXES)
-                return (uint16_t)(sign < 0 ? SGAMEPAD_MAP_AXIS_NEGATIVE(index) : SGAMEPAD_MAP_AXIS(index));
+                return sign < 0 ? (uint16_t)SGAMEPAD_MAP_AXIS_NEGATIVE(index) : (uint16_t)SGAMEPAD_MAP_AXIS(index);
             break;
 
         case 'h':
