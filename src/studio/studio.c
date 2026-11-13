@@ -2597,10 +2597,15 @@ static void drawBitIconRaw(Studio* studio, u32* frame, s32 sx, s32 sy, s32 id, t
     const tic_bank* bank = &getConfig(studio)->cart->bank0;
 
     u32* dst = frame + sx + sy * TIC80_FULLWIDTH;
-    for(s32 src = 0; src != TIC_SPRITESIZE * TIC_SPRITESIZE; dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
-        for(s32 i = 0; i != TIC_SPRITESIZE; ++i, ++dst)
-            if(tic_tool_peek4(&bank->tiles.data[id].data, src++))
-                *dst = tic_rgba(&bank->palette.vbank0.colors[color]);
+
+    for(s32 row = 0; row < TIC_SPRITESIZE; row++, dst += TIC80_FULLWIDTH)
+    {
+        const u8 bits = ui_cell_row(&bank->tiles, id, row);
+
+        for(s32 col = 0; col < TIC_SPRITESIZE; col++)
+            if(bits & (1 << col))
+                dst[col] = tic_rgba(&bank->palette.vbank0.colors[color]);
+    }
 }
 
 static void drawRecordLabel(Studio* studio, u32* frame, s32 sx, s32 sy)
