@@ -656,6 +656,34 @@ jobs:
           path: |
             build/bin/tic80
 
+      # Main builds get the same signed and notarized app a release does. The
+      # raw tic80 above stays unsigned: it is the export stub. Pull requests
+      # never reach this step — they get no secrets.
+      - name: Package, sign and notarize (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          MACOS_SIGNING: 1
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          mkdir -p signed-artifact
+          cp build/bin/tic80 signed-artifact/
+          bash bin/release/make-dmg.sh signed-artifact out-main 0.0.0 dev "-arm64"
+          rm -rf signed-artifact
+
+      - name: Deploy signed main build
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-arm64-signed"
+          path: |
+            out-main/*.dmg
+            out-main/*.app.zip
+
       - name: Build Pro
         run: |
           cd build
