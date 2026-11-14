@@ -211,7 +211,18 @@ jobs:
           cmake --build . --parallel
 
       - name: Build dmg
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          : "${MACOS_CERT_P12:?MACOS_CERT_P12 secret is not set}"
+          : "${MACOS_CERT_PASSWORD:?MACOS_CERT_PASSWORD secret is not set}"
+          : "${APPLE_ID:?APPLE_ID secret is not set}"
+          : "${APPLE_APP_PASSWORD:?APPLE_APP_PASSWORD secret is not set}"
+          : "${APPLE_TEAM_ID:?APPLE_TEAM_ID secret is not set}"
           VER="${TAG#v}"
           SHORT="${VER%.*}"
           bash bin/release/make-dmg.sh build/bin out "$VER" "$SHORT" "-arm64"
@@ -256,7 +267,18 @@ jobs:
           cmake --build . --parallel
 
       - name: Build dmg
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
+          : "${MACOS_CERT_P12:?MACOS_CERT_P12 secret is not set}"
+          : "${MACOS_CERT_PASSWORD:?MACOS_CERT_PASSWORD secret is not set}"
+          : "${APPLE_ID:?APPLE_ID secret is not set}"
+          : "${APPLE_APP_PASSWORD:?APPLE_APP_PASSWORD secret is not set}"
+          : "${APPLE_TEAM_ID:?APPLE_TEAM_ID secret is not set}"
           VER="${TAG#v}"
           SHORT="${VER%.*}"
           bash bin/release/make-dmg.sh build/bin out "$VER" "$SHORT" ""
