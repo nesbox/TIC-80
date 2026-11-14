@@ -656,46 +656,6 @@ jobs:
           path: |
             build/bin/tic80
 
-      # The same app a release packages, on every run except the release call
-      # itself (release.yml packages its own). The raw tic80 above stays
-      # unsigned: it is the export stub. A fork PR is handed no secrets, so
-      # its bundle is ad-hoc; every other run signs and notarizes.
-      - name: Package, sign and notarize
-        if: github.event_name != 'workflow_call'
-        env:
-          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
-          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
-              echo "fork pull request: no repository secrets, the app is ad-hoc signed"
-          else
-              : "${MACOS_CERT_P12:?MACOS_CERT_P12 secret is not set}"
-              : "${MACOS_CERT_PASSWORD:?MACOS_CERT_PASSWORD secret is not set}"
-              : "${APPLE_ID:?APPLE_ID secret is not set}"
-              : "${APPLE_APP_PASSWORD:?APPLE_APP_PASSWORD secret is not set}"
-              : "${APPLE_TEAM_ID:?APPLE_TEAM_ID secret is not set}"
-          fi
-          # The snapshot's own version (1.5.<commits>), so the asset names the
-          # build it came from and cannot pass for a release line.
-          version="$(awk '/TIC_VERSION_MAJOR|TIC_VERSION_MINOR|TIC_VERSION_REVISION/ {printf "%s%s", sep, $3; sep="."}' build/version.h)"
-          mkdir -p signed-artifact
-          cp build/bin/tic80 signed-artifact/
-          bash bin/release/make-dmg.sh signed-artifact out-main "$version" "$version" "-arm64"
-          rm -rf signed-artifact
-
-      - name: Deploy app bundle
-        if: github.event_name != 'workflow_call'
-        uses: actions/upload-artifact@v6
-        with:
-          if-no-files-found: error
-          name: "tic80-macos-arm64-app"
-          path: |
-            out-main/*.dmg
-            out-main/*.app.zip
-
       - name: Build Pro
         run: |
           cd build
