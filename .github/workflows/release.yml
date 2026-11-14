@@ -65,15 +65,19 @@ jobs:
 
       - name: Build dmgs and app bundles
         env:
-          # Signing is opt-in; a pull request never sets this and never sees
-          # the secrets. A release run fails here when a credential is absent.
           MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
           MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          MACOS_SIGNING: 1
         run: |
+          # A release run must sign: a lost secret is a failure here, not an
+          # unnotarized dmg on the release page.
+          : "${MACOS_CERT_P12:?MACOS_CERT_P12 secret is not set}"
+          : "${MACOS_CERT_PASSWORD:?MACOS_CERT_PASSWORD secret is not set}"
+          : "${APPLE_ID:?APPLE_ID secret is not set}"
+          : "${APPLE_APP_PASSWORD:?APPLE_APP_PASSWORD secret is not set}"
+          : "${APPLE_TEAM_ID:?APPLE_TEAM_ID secret is not set}"
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
           # make-dmg.sh writes both the dmg and the zipped .app bundle; the
