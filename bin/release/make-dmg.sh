@@ -10,9 +10,9 @@
 #   APPLE_ID             Apple ID of the developer account
 #   APPLE_APP_PASSWORD   app-specific password for that Apple ID
 #   APPLE_TEAM_ID        Team ID the Apple ID belongs to
-# Without MACOS_CERT_P12 the bundle is ad-hoc signed; that is the local path.
-# REQUIRE_MACOS_SIGNING=1 on a release path turns missing credentials into a
-# failure instead of an unnotarized artifact.
+# Signing is opt-in: only MACOS_SIGNING=1 enables it, and then every missing
+# credential is fatal. Without the switch the bundle is ad-hoc signed, even if
+# credentials happen to be in the environment — a pull request never signs.
 #
 # Usage: make-dmg.sh <artifact-dir> <out-dir> <version> <shortver> <name>
 #   version  full "1.2.0"
@@ -74,19 +74,15 @@ if compgen -G "$ART"/*.dylib >/dev/null; then
 fi
 
 SIGN=0
-if [ -n "${MACOS_CERT_P12:-}" ]; then
+if [ "${MACOS_SIGNING:-0}" = 1 ]; then
     SIGN=1
 fi
 
-if [ "$SIGN" = 0 ] && [ "${REQUIRE_MACOS_SIGNING:-0}" = 1 ]; then
-    echo "MACOS_CERT_P12 is not set: refusing to ship an unnotarized macOS release" >&2
-    exit 1
-fi
-
 if [ "$SIGN" = 1 ]; then
-    if [ -z "${MACOS_CERT_PASSWORD:-}" ] || [ -z "${APPLE_ID:-}" ] ||
-        [ -z "${APPLE_APP_PASSWORD:-}" ] || [ -z "${APPLE_TEAM_ID:-}" ]; then
-        echo "signing needs MACOS_CERT_PASSWORD, APPLE_ID, APPLE_APP_PASSWORD and APPLE_TEAM_ID" >&2
+    if [ -z "${MACOS_CERT_P12:-}" ] || [ -z "${MACOS_CERT_PASSWORD:-}" ] ||
+        [ -z "${APPLE_ID:-}" ] || [ -z "${APPLE_APP_PASSWORD:-}" ] ||
+        [ -z "${APPLE_TEAM_ID:-}" ]; then
+        echo "MACOS_SIGNING=1 needs MACOS_CERT_P12, MACOS_CERT_PASSWORD, APPLE_ID, APPLE_APP_PASSWORD and APPLE_TEAM_ID" >&2
         exit 1
     fi
 
@@ -153,7 +149,7 @@ if [ "$SIGN" = 1 ]; then
     xcrun stapler staple "$BUNDLE" >/dev/null
 else
     # Ad-hoc so Gatekeeper reports "unidentified developer" (right-click → Open)
-    # rather than "damaged". Notarization needs the Developer ID credentials.
+    # rather than "damaged". Every pull request and local run lands here.
     codesign --force --deep -s - "$BUNDLE" >/dev/null
 fi
 

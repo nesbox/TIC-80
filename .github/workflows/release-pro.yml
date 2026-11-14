@@ -217,7 +217,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          REQUIRE_MACOS_SIGNING: 1
+          MACOS_SIGNING: 1
         run: |
           VER="${TAG#v}"
           SHORT="${VER%.*}"
@@ -269,7 +269,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          REQUIRE_MACOS_SIGNING: 1
+          MACOS_SIGNING: 1
         run: |
           VER="${TAG#v}"
           SHORT="${VER%.*}"

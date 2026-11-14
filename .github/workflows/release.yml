@@ -65,14 +65,14 @@ jobs:
 
       - name: Build dmgs and app bundles
         env:
-          # make-dmg.sh signs and notarizes; on a release path missing
-          # credentials must fail the job rather than ship an unstamped app.
+          # Signing is opt-in; a pull request never sets this and never sees
+          # the secrets. A release run fails here when a credential is absent.
           MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
           MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          REQUIRE_MACOS_SIGNING: 1
+          MACOS_SIGNING: 1
         run: |
           VER="${GITHUB_REF_NAME#v}"
           SHORT="${VER%.*}"
