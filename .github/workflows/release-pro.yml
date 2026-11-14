@@ -211,6 +211,13 @@ jobs:
           cmake --build . --parallel
 
       - name: Build dmg
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          REQUIRE_MACOS_SIGNING: 1
         run: |
           VER="${TAG#v}"
           SHORT="${VER%.*}"
@@ -256,6 +263,13 @@ jobs:
           cmake --build . --parallel
 
       - name: Build dmg
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          REQUIRE_MACOS_SIGNING: 1
         run: |
           VER="${TAG#v}"
           SHORT="${VER%.*}"
