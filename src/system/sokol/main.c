@@ -1499,7 +1499,7 @@ static sapp_desc app_desc(void)
 #if defined(SOKOL_GLES3)
         // The renderer's shaders are `#version 300 es`; sokol_app asks for
         // GLES 3.1 by default on Linux and Android, which older GPUs lack.
-        .gl = { .major_version = 3, .minor_version = 0 },
+        .gl = {.major_version = 3, .minor_version = 0},
 #endif
         TIC80_LOGGER
             // The framebuffer follows the display's own pixels wherever there are
