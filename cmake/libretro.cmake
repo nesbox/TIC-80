@@ -129,6 +129,13 @@ if(BUILD_LIBRETRO)
     )
     if(NOT LIBRETRO_STATIC)
         target_link_libraries(tic80_libretro tic80core)
+
+        # Export only the libretro API (retro_*). Every other symbol becomes local, so calls
+        # inside the core no longer go through the PLT and link-time optimization can inline
+        # them: tic_api_*() calls made by the drawing code and the script bindings, for example.
+        if(NOT APPLE AND NOT WIN32 AND CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+            target_link_options(tic80_libretro PRIVATE "-Wl,--version-script=${LIBRETRO_DIR}/link.T")
+        endif()
     endif()
     set_target_properties(tic80_libretro PROPERTIES PREFIX "")
 endif()
