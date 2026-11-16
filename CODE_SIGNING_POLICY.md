@@ -7,8 +7,8 @@ by [SignPath Foundation](https://signpath.org).
 
 - Authors: Vadim Grigoruk (@nesbox), the repository maintainer.
 - Reviewers: Vadim Grigoruk (@nesbox).
-- Approvers: Vadim Grigoruk (@nesbox). Every signing request is approved by
-  hand in SignPath.
+- Approvers: Vadim Grigoruk (@nesbox). The signing policy in SignPath defines
+  the approval flow for each request.
 
 ## Trusted build source
 
@@ -21,9 +21,9 @@ invalidates the signature.
 
 ## Approval flow
 
-A release signing request waits for an approver in SignPath. A rejected
-request, a timeout, or an exe without a signer fails the release job; an
-unsigned executable is not published.
+A release signing request is handled by the signing policy configured in
+SignPath. A rejected request, a timeout, or an exe without a signer fails the
+release job; an unsigned executable is not published.
 
 ## Revocation
 
