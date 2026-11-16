@@ -2265,7 +2265,10 @@ static void exportGame(Console* console, const char* name, const char* system, n
 static bool canExportNativeFromLocalTemplate(const char* system)
 {
 #if defined(__TIC_WINDOWS__)
-    return strcmp(system, "win") == 0;
+    // A signed client cannot be a template: appending the cart invalidates
+    // its signature. Windows native exports always come from the server.
+    (void)system;
+    return false;
 #elif defined(__TIC_LINUX__)
     return strcmp(system, "linux") == 0;
 #elif defined(__TIC_MACOSX__)
