@@ -1199,6 +1199,8 @@ static struct
 {
     _sgamepad_hid_device devices[_SGAMEPAD_HID_MAX];
     DWORD scanned; // when the devices were last looked for
+    DWORD checked; // when the device count was last read
+    UINT count;    // the raw input devices the system listed then
 } _sgamepad_hid;
 
 // A pad that sends nothing for this long over Bluetooth is stalled rather than
@@ -2096,14 +2098,33 @@ SGAMEPAD_API_IMPL void sgamepad_record_state(void)
         _sgamepad_hid_keepalive(pad);
     }
 
-    if(gone || GetTickCount() - _sgamepad_hid.scanned >= _SGAMEPAD_HID_SCAN_MS)
+    // The scans open every HID device on the machine and stall the frame they
+    // run in, so the clock only reads how many devices the system lists — a
+    // cheap call — and the scans run when that count moves.
+    bool changed = false;
+
+    if(GetTickCount() - _sgamepad_hid.checked >= _SGAMEPAD_HID_SCAN_MS)
+    {
+        UINT count = 0;
+
+        _sgamepad_hid.checked = GetTickCount();
+
+        if(GetRawInputDeviceList(NULL, &count, sizeof(RAWINPUTDEVICELIST)) == 0)
+        {
+            changed = count != _sgamepad_hid.count;
+            _sgamepad_hid.count = count;
+        }
+    }
+
+    if(gone || changed)
         _sgamepad_hid_scan();
 
     // The generic pads come last: one XInput or a family reader places is
     // read there, and this reads only what they leave. The scan makes
     // DirectInput itself once the window it reads the pads against is up,
-    // and until then it is retried at the scan's own rhythm.
-    if(GetTickCount() - _sgamepad_dinput.scanned >= _SGAMEPAD_HID_SCAN_MS)
+    // and until then it is retried at the scan's own rhythm; the retry that
+    // makes it lists the pads.
+    if(changed || (!_sgamepad_dinput.dinput && GetTickCount() - _sgamepad_dinput.scanned >= _SGAMEPAD_HID_SCAN_MS))
         _sgamepad_dinput_scan();
 
     _sgamepad_dinput_read();
