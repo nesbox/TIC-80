@@ -124,22 +124,22 @@ if [ "$SIGN" = 1 ]; then
     codesign --force --options runtime --timestamp --sign "$IDENTITY" "$BUNDLE" >/dev/null
 
     notarize() { # notarize <file> <label>
-        local file="$1" label="$2" out
-        echo "notarizing $label"
-        if ! out="$(xcrun notarytool submit "$file" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_APP_PASSWORD" \
-            --team-id "$APPLE_TEAM_ID" \
-            --wait --timeout 30m 2>&1)"; then
+        local file="$1" label="$2" attempt out
+        for attempt in 1 2; do
+            echo "notarizing $label (attempt $attempt)"
+            if out="$(xcrun notarytool submit "$file" \
+                --apple-id "$APPLE_ID" \
+                --password "$APPLE_APP_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID" \
+                --wait --timeout 60m 2>&1)" &&
+                printf '%s' "$out" | grep -q "status: Accepted"; then
+                return 0
+            fi
             printf '%s\n' "$out" >&2
-            echo "notary service rejected $label" >&2
-            exit 1
-        fi
-        if ! printf '%s' "$out" | grep -q "status: Accepted"; then
-            printf '%s\n' "$out" >&2
-            echo "notarization of $label did not reach Accepted" >&2
-            exit 1
-        fi
+            echo "notarization of $label did not reach Accepted (attempt $attempt)" >&2
+        done
+        echo "notary service did not accept $label after two submissions" >&2
+        exit 1
     }
 
     ditto -c -k --keepParent "$BUNDLE" "$WORK/TIC-80.zip"

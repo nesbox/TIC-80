@@ -48,9 +48,12 @@ jobs:
           name: release-assets
           path: out/*
 
-  dmg:
+  # Apple's notary service can take tens of minutes per file, so the two
+  # architectures notarize in parallel instead of serialising four submissions.
+  dmg-arm64:
     needs: build
     runs-on: macos-15
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v6
 
@@ -58,12 +61,8 @@ jobs:
         with:
           name: tic80-macos-arm64
           path: artifacts/tic80-macos-arm64
-      - uses: actions/download-artifact@v6
-        with:
-          name: tic80-macos
-          path: artifacts/tic80-macos
 
-      - name: Build dmgs and app bundles
+      - name: Build the dmg and app bundle
         env:
           MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
           MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
@@ -83,7 +82,6 @@ jobs:
           # make-dmg.sh writes both the dmg and the zipped .app bundle; the
           # bundle is what the itch.io jobs push for macOS.
           bash bin/release/make-dmg.sh artifacts/tic80-macos-arm64 out "$VER" "$SHORT" "-arm64"
-          bash bin/release/make-dmg.sh artifacts/tic80-macos out "$VER" "$SHORT" ""
 
       - uses: actions/upload-artifact@v6
         with:
@@ -92,13 +90,50 @@ jobs:
           # published a draft without the macOS assets and only then broken
           # stage-itch.sh, after the Windows and Linux channels were pushed
           if-no-files-found: error
-          name: tic80-mac-pkg
+          name: tic80-mac-pkg-arm64
+          path: |
+            out/*.dmg
+            out/*.app.zip
+
+  dmg-intel:
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: tic80-macos
+          path: artifacts/tic80-macos
+
+      - name: Build the dmg and app bundle
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          : "${MACOS_CERT_P12:?MACOS_CERT_P12 secret is not set}"
+          : "${MACOS_CERT_PASSWORD:?MACOS_CERT_PASSWORD secret is not set}"
+          : "${APPLE_ID:?APPLE_ID secret is not set}"
+          : "${APPLE_APP_PASSWORD:?APPLE_APP_PASSWORD secret is not set}"
+          : "${APPLE_TEAM_ID:?APPLE_TEAM_ID secret is not set}"
+          VER="${GITHUB_REF_NAME#v}"
+          SHORT="${VER%.*}"
+          bash bin/release/make-dmg.sh artifacts/tic80-macos out "$VER" "$SHORT" ""
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: tic80-mac-pkg-intel
           path: |
             out/*.dmg
             out/*.app.zip
 
   publish:
-    needs: [package, dmg]
+    needs: [package, dmg-arm64, dmg-intel]
     # 24.04, not -latest: the label moves to 26.04 (runner-images#14748).
     runs-on: ubuntu-24.04
     steps:
@@ -110,7 +145,11 @@ jobs:
           path: flat
       - uses: actions/download-artifact@v6
         with:
-          name: tic80-mac-pkg
+          name: tic80-mac-pkg-arm64
+          path: flat
+      - uses: actions/download-artifact@v6
+        with:
+          name: tic80-mac-pkg-intel
           path: flat
 
       # A re-pushed tag runs the whole pipeline again, and the steps below must
