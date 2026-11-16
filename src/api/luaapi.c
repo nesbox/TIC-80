@@ -2099,17 +2099,55 @@ void callLuaIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
     }
 }
 
+// The blitter calls SCN and BDR for every row, 144 times a frame each. Most carts define
+// neither, and looking the globals up every time costs more than the rest of the frame
+// conversion. Row 0 always comes first, so check there which callbacks exist and use the
+// answer for the rest of the frame.
+static struct
+{
+    lua_State* vm;
+    bool scn, scanline, bdr;
+} LuaRowCallbacks;
+
+static bool isLuaGlobalFunction(lua_State* lua, const char* name)
+{
+    lua_getglobal(lua, name);
+    bool result = lua_isfunction(lua, -1);
+    lua_pop(lua, 1);
+    return result;
+}
+
+static void updateLuaRowCallbacks(tic_mem* tic, s32 row)
+{
+    lua_State* lua = ((tic_core*)tic)->currentVM;
+
+    if(row == 0 || lua != LuaRowCallbacks.vm)
+    {
+        LuaRowCallbacks.vm = lua;
+        LuaRowCallbacks.scn = lua && isLuaGlobalFunction(lua, SCN_FN);
+        LuaRowCallbacks.scanline = lua && isLuaGlobalFunction(lua, "scanline");
+        LuaRowCallbacks.bdr = lua && isLuaGlobalFunction(lua, BDR_FN);
+    }
+}
+
 void luaapi_scn(tic_mem* tic, s32 row, void* data)
 {
-    callLuaIntCallback(tic, row, data, SCN_FN);
+    updateLuaRowCallbacks(tic, row);
+
+    if(LuaRowCallbacks.scn)
+        callLuaIntCallback(tic, row, data, SCN_FN);
 
     // try to call old scanline
-    callLuaIntCallback(tic, row, data, "scanline");
+    if(LuaRowCallbacks.scanline)
+        callLuaIntCallback(tic, row, data, "scanline");
 }
 
 void luaapi_bdr(tic_mem* tic, s32 row, void* data)
 {
-    callLuaIntCallback(tic, row, data, BDR_FN);
+    updateLuaRowCallbacks(tic, row);
+
+    if(LuaRowCallbacks.bdr)
+        callLuaIntCallback(tic, row, data, BDR_FN);
 }
 
 void luaapi_menu(tic_mem* tic, s32 index, void* data)
