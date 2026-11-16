@@ -885,6 +885,9 @@ void tic_api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u32 colo
 }
 
 static double ZBuffer[TIC80_WIDTH * TIC80_HEIGHT];
+// Set once ttri() with depth may have written to ZBuffer. While it is false, ZBuffer is all
+// zeros and cls() does not need to clear its 261 KB again.
+static bool ZBufferDirty = false;
 
 void tic_api_cls(tic_mem* tic, u8 color)
 {
@@ -898,7 +901,12 @@ void tic_api_cls(tic_mem* tic, u8 color)
     if(MEMCMP(core->state.clip, EmptyClip))
     {
         memset(&vram->screen, (color & 0xf) | (color << TIC_PALETTE_BPP), sizeof(tic_screen));
-        ZEROMEM(ZBuffer);
+
+        if(ZBufferDirty)
+        {
+            ZEROMEM(ZBuffer);
+            ZBufferDirty = false;
+        }
     }
     else
     {
@@ -909,7 +917,9 @@ void tic_api_cls(tic_mem* tic, u8 color)
             for(s32 y = core->state.clip.t; y < core->state.clip.b; ++y)
             {
                 drawHLine(core, x, y, width, color);
-                memset(&ZBuffer[y * TIC80_WIDTH + x], 0, sizeof(double) * (size_t)width);
+
+                if(ZBufferDirty)
+                    memset(&ZBuffer[y * TIC80_WIDTH + x], 0, sizeof(double) * (size_t)width);
             }
     }
 }
@@ -1097,6 +1107,50 @@ static DRAW_ALWAYS_INLINE void drawSuperEllipseCapsule(tic_mem* memory, s32 x0, 
     x1 -= radius;
     y0 += radius;
     y1 -= radius;
+
+    // Round corners (exponent 2, the default) are exact integer arithmetic in the float code
+    // below: powf(n, 2) is exact for |n| <= 4096, and for radius <= 2895 every sum stays
+    // under 2^24. The same steps with integers give identical pixels without 4 powf() calls
+    // per step.
+    if(exponent == 2.0f && radius <= 2895)
+    {
+        const s64 rn2 = (s64)radius * radius;
+
+        while(x <= y)
+        {
+            pix(memory, x0 - x, y0 - y, color);
+            pix(memory, x0 - x, y1 + y, color);
+            pix(memory, x1 + x, y0 - y, color);
+            pix(memory, x1 + x, y1 + y, color);
+
+            if(x != y)
+            {
+                pix(memory, x0 - y, y0 - x, color);
+                pix(memory, x0 - y, y1 + x, color);
+                pix(memory, x1 + y, y0 - x, color);
+                pix(memory, x1 + y, y1 + x, color);
+            }
+
+            s64 xp0 = (s64)x * x, xp1 = (s64)(x + 1) * (x + 1);
+            s64 yp0 = (s64)y * y, yp1 = (s64)(y - 1) * (y - 1);
+
+            s64 eh = llabs(xp1 + yp0 - rn2);
+            s64 ed = llabs(xp1 + yp1 - rn2);
+            s64 ev = llabs(xp0 + yp1 - rn2);
+
+            if(eh <= ed && eh <= ev && x < y - 1)
+                x++;
+            else if(ev <= ed && x < y - 1)
+                y--;
+            else
+            {
+                x++;
+                y--;
+            }
+        }
+
+        return;
+    }
 
     while(x <= y)
     {
@@ -2286,6 +2340,8 @@ void tic_api_ttri(tic_mem* tic,
 
     if(depth)
     {
+        ZBufferDirty = true;
+
         switch(src)
         {
             case tic_tiles_texture: DRAW_TTRI(triTexTileShader); break;
