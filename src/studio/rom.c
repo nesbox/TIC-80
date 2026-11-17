@@ -56,10 +56,22 @@ void rom_set_cart_name(const RomDeps* deps, const char* name, const char* path)
     if(rom->path != path) strcpy(rom->path, path);
 }
 
-// The one cart loader: the filesystem's bytes and the name it resolved.
-void rom_load_bytes(const RomDeps* deps, const char* name, const void* bytes, s32 size)
+// A launch or a drop names its own file; the name is the path's last part.
+static const char* pathName(const char* path)
+{
+    const char* ptr = path + strlen(path);
+
+    while(ptr > path && ptr[-1] != '/' && ptr[-1] != '\\')
+        --ptr;
+
+    return ptr;
+}
+
+// The one cart loader; a name that is not a cart or fails to parse loads nothing.
+bool rom_load_bytes(const RomDeps* deps, const char* name, const void* bytes, s32 size)
 {
     tic_mem* tic = deps->tic;
+    bool loaded = false;
 
     if(tic_tool_has_ext(name, PNG_EXT))
     {
@@ -69,20 +81,41 @@ void rom_load_bytes(const RomDeps* deps, const char* name, const void* bytes, s3
         {
             memcpy(&tic->cart, cart, sizeof(tic_cartridge));
             free(cart);
+            loaded = true;
         }
+    }
+    else if(tic_tool_has_ext(name, CART_EXT))
+    {
+        tic_cart_load(&tic->cart, bytes, size);
+        loaded = true;
     }
 #if defined(TIC80_PRO)
     else if(tic_tool_is_project(name))
-        tic_project_load(name, bytes, size, &tic->cart);
+    {
+        tic_cartridge* cart = malloc(sizeof(tic_cartridge));
+
+        if(cart)
+        {
+            loaded = tic_project_load(name, bytes, size, cart);
+
+            if(loaded)
+                memcpy(&tic->cart, cart, sizeof(tic_cartridge));
+
+            free(cart);
+        }
+    }
 #endif
-    else
-        tic_cart_load(&tic->cart, bytes, size);
+
+    if(!loaded)
+        return false;
 
     tic_api_reset(tic);
 
     rom_set_cart_name(deps, name, tic_fs_path(deps->fs, name));
 
     deps->loaded(deps->host);
+
+    return true;
 }
 
 typedef struct
@@ -96,8 +129,8 @@ static void asyncLoadDone(const char* name, const u8* bytes, s32 size, fs_result
 {
     LoadCartData* load = data;
 
-    if(result.code == FS_OK)
-        rom_load_bytes(load->deps, name, bytes, size);
+    if(result.code == FS_OK && !rom_load_bytes(load->deps, name, bytes, size))
+        result = (fs_result){FS_UNSUPPORTED, "not a cart"};
 
     if(load->done)
         load->done(result, load->data);
@@ -129,6 +162,7 @@ typedef struct
     bool loaded;
     bool finished;
     bool waited;
+    bool cancelled;
 } SyncLoadData;
 
 static void syncLoadDone(const char* name, const u8* bytes, s32 size, fs_result result, void* data)
@@ -137,10 +171,8 @@ static void syncLoadDone(const char* name, const u8* bytes, s32 size, fs_result 
 
     load->finished = true;
 
-    if(result.code == FS_OK)
+    if(result.code == FS_OK && !load->cancelled && rom_load_bytes(load->deps, name, bytes, size))
     {
-        rom_load_bytes(load->deps, name, bytes, size);
-
         // A launch named the file itself; its path stays the cart's.
         rom_set_cart_name(load->deps, name, load->path);
 
@@ -164,6 +196,29 @@ bool rom_load_cart(const RomDeps* deps, const char* path)
     tic_fs_load(deps->fs, path, syncLoadDone, load);
 
     bool loaded = load->loaded;
+
+    if(!loaded)
+    {
+        // The process's own path, as a launch or a drop names it.
+        s32 size = 0;
+        void* data = fs_read(path, &size);
+
+        if(data)
+        {
+            load->cancelled = true;
+
+            const char* name = pathName(path);
+
+            if(rom_load_bytes(deps, name, data, size))
+            {
+                rom_set_cart_name(deps, name, path);
+                loaded = true;
+            }
+
+            free(data);
+        }
+    }
+
     load->waited = true;
 
     if(load->finished)

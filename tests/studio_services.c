@@ -353,6 +353,81 @@ static void testCart(tic_mem* tic, tic_fs* fs)
         tic_fs_homedir(fs);
     }
 
+    // A file that is not a cart is refused; the machine keeps its cart.
+    {
+        static const char Notes[] = "not a cartridge";
+        assert(fs_write(tic_fs_path(fs, "notes.txt"), Notes, sizeof Notes));
+
+        s32 loaded = host.loaded;
+        assert(!rom_load_cart(&deps, "notes.txt"));
+        assert(host.loaded == loaded);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+
+        LoadAnswer answer = {0};
+        rom_load_cart_async(&deps, "notes.txt", onLoadAnswer, &answer);
+        assert(answer.done);
+        assert(answer.result.code == FS_UNSUPPORTED);
+        assert(host.loaded == loaded);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+
+        tic_fs_delfile(fs, "notes.txt");
+    }
+
+    // A .png that is not a cart is refused too, not loaded as an empty cart.
+    {
+        static const char Garbage[] = "not a png cart";
+        assert(fs_write(tic_fs_path(fs, "bad.png"), Garbage, sizeof Garbage));
+
+        s32 loaded = host.loaded;
+        assert(!rom_load_cart(&deps, "bad.png"));
+        assert(host.loaded == loaded);
+
+        LoadAnswer answer = {0};
+        rom_load_cart_async(&deps, "bad.png", onLoadAnswer, &answer);
+        assert(answer.done);
+        assert(answer.result.code == FS_UNSUPPORTED);
+        assert(host.loaded == loaded);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+
+        tic_fs_delfile(fs, "bad.png");
+    }
+
+    // A drop under the site's cwd is still the process's own file.
+    {
+        u8* buffer = malloc(TIC_CART_SAVE_SIZE);
+        assert(buffer);
+
+        s32 size = tic_cart_save(&tic->cart, buffer);
+        assert(size > 0);
+
+        char dropDir[] = "/tmp/tic80-drop-XXXXXX";
+        assert(mkdtemp(dropDir));
+
+        char drop[TICNAME_MAX];
+        snprintf(drop, sizeof drop, "%s/drop.tic", dropDir);
+        assert(fs_write(drop, buffer, size));
+        free(buffer);
+
+        tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0x5);
+        tic_fs_changedir(fs, TIC_HOST);
+
+        s32 loaded = host.loaded;
+        assert(rom_load_cart(&deps, drop));
+
+        // The site provider held a listing for the dropped path's folder.
+        assert(NetCallback);
+        answerNetJson("{\"folders\":[],\"files\":[]}");
+
+        assert(host.loaded == loaded + 1);
+        assert(strcmp(cart.name, "drop.tic") == 0);
+        assert(strcmp(cart.path, drop) == 0);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+
+        tic_fs_homedir(fs);
+        assert(remove(drop) == 0);
+        assert(rmdir(dropDir) == 0);
+    }
+
     // The config's own cart is a save like any other, through the same callbacks.
     assert(rom_save_cart(&deps, CONFIG_TIC_PATH) == CART_SAVE_OK);
     assert(host.saved == 3);
