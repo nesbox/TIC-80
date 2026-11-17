@@ -224,7 +224,6 @@ if(BUILD_TESTS)
     add_executable(studio-services-test
         ${CMAKE_SOURCE_DIR}/tests/studio_services.c
         ${CMAKE_SOURCE_DIR}/src/studio/fs.c
-        ${CMAKE_SOURCE_DIR}/src/studio/net.c
         ${CMAKE_SOURCE_DIR}/src/studio/config.c
         ${CMAKE_SOURCE_DIR}/src/studio/rom.c
         ${CMAKE_SOURCE_DIR}/src/ext/json.c
@@ -236,6 +235,25 @@ if(BUILD_TESTS)
     target_compile_definitions(studio-services-test PRIVATE BUILD_EDITORS)
     target_link_libraries(studio-services-test PRIVATE tic80core zip)
     tic80_add_test(studio-services-test)
+
+    # The filesystem's provider contract: the core, the json it parses and the
+    # zip the cart service links, with no studio.c anywhere. The link set is
+    # the assertion — a call into the studio would fail to link here.
+    add_executable(fs-test
+        ${CMAKE_SOURCE_DIR}/tests/fs.c
+        ${CMAKE_SOURCE_DIR}/src/studio/fs.c
+        ${CMAKE_SOURCE_DIR}/src/ext/json.c
+    )
+
+    target_include_directories(fs-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    # The site provider is behind the editors/browser guard in fs.c.
+    target_compile_definitions(fs-test PRIVATE BUILD_EDITORS)
+    target_link_libraries(fs-test PRIVATE tic80core zip)
+    get_target_property(FS_TEST_LIBS fs-test LINK_LIBRARIES)
+    if(FS_TEST_LIBS MATCHES "tic80studio")
+        message(FATAL_ERROR "fs-test must not link the studio")
+    endif()
+    tic80_add_test(fs-test)
 
     # The code editor's text model links with the history module alone: the
     # buffer, the state array, the cap and the caret are driven without the
