@@ -2269,7 +2269,10 @@ static bool canExportNativeFromLocalTemplate(const char* system)
 #elif defined(__TIC_LINUX__)
     return strcmp(system, "linux") == 0;
 #elif defined(__TIC_MACOSX__)
-    return strcmp(system, "mac") == 0;
+    // A signed bundle cannot be a template: appending the cart invalidates
+    // its signature. macOS native exports always come from the server.
+    (void)system;
+    return false;
 #else
     (void)system;
     return false;
@@ -2590,7 +2593,13 @@ static void onExport_mac(Console* console, const char* param, const char* filena
 {
     (void)param;
     // arm64 is the default mac target now; the legacy x64 build is macintel.
+    // The local template is gone on macOS, so an Intel client asks the server
+    // for the x64 stub it used to append to itself.
+#if defined(__TIC_MACOSX__) && defined(__x86_64__)
+    exportNativeGame(console, filename, "macintel", params);
+#else
     exportNativeGame(console, filename, "mac", params);
+#endif
 }
 
 static void onExport_macintel(Console* console, const char* param, const char* filename, ExportParams params)
