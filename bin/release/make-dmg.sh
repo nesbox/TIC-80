@@ -40,6 +40,8 @@ old_keychains=()
 cleanup() {
     rm -rf "$BUNDLE" "$STAGE"
     if [ -n "$KEYCHAIN" ]; then
+        # The signing path refuses to run with an empty list, so this guard
+        # is only for the failure before that check.
         if [ "${#old_keychains[@]}" -gt 0 ]; then
             security list-keychains -d user -s "${old_keychains[@]}" 2>/dev/null || true
         fi
@@ -93,6 +95,13 @@ if [ "$SIGN" = 1 ]; then
         old_keychains+=("$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/"//g')")
     done < <(security list-keychains -d user)
 
+    # Never replace the user's list with nothing: every runner and every
+    # normal Mac has at least one keychain in it.
+    if [ "${#old_keychains[@]}" -eq 0 ]; then
+        echo "no user keychain search list; refusing to sign" >&2
+        exit 1
+    fi
+
     security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
     security set-keychain-settings -lut 21600 "$KEYCHAIN"
     security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
@@ -101,11 +110,7 @@ if [ "$SIGN" = 1 ]; then
     # The portal ships the leaf only; the intermediate is Apple's public CA.
     security import "$(dirname "$0")/DeveloperIDG2CA.cer" -k "$KEYCHAIN" -T /usr/bin/codesign >/dev/null
     security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
-    if [ "${#old_keychains[@]}" -gt 0 ]; then
-        security list-keychains -d user -s "$KEYCHAIN" "${old_keychains[@]}"
-    else
-        security list-keychains -d user -s "$KEYCHAIN"
-    fi
+    security list-keychains -d user -s "$KEYCHAIN" "${old_keychains[@]}"
 
     IDENTITIES="$(security find-identity -v -p codesigning "$KEYCHAIN" | sed -n 's/.*"\(Developer ID Application: .*\)"$/\1/p')"
     IDENTITY="${IDENTITIES%%$'\n'*}"
@@ -120,6 +125,8 @@ if [ "$SIGN" = 1 ]; then
             codesign --force --options runtime --timestamp --sign "$IDENTITY" "$lib" >/dev/null
         fi
     done
+    # Hardened runtime blocks unsigned custom-runtime dylibs; the release ships
+    # every built-in runtime, so it needs no library-validation entitlement.
     codesign --force --options runtime --timestamp --sign "$IDENTITY" "$BUNDLE/Contents/MacOS/tic80" >/dev/null
     codesign --force --options runtime --timestamp --sign "$IDENTITY" "$BUNDLE" >/dev/null
 
