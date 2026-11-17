@@ -194,6 +194,8 @@ jobs:
 
   macos-arm64-pro:
     runs-on: macos-15
+    # A cold PRO build plus the notary retry budget needs more than the default.
+    timeout-minutes: 480
     steps:
       - uses: actions/checkout@v6
         with:
@@ -250,6 +252,7 @@ jobs:
 
   macos-intel-pro:
     runs-on: macos-15-intel
+    timeout-minutes: 480
     steps:
       - uses: actions/checkout@v6
         with:
