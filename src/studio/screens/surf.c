@@ -91,6 +91,7 @@ typedef struct
     fs_done_callback done;
     void* data;
     char dir[TICNAME_MAX];
+    bool site; // a listed cart with a hash, until the listing carries no hash
 } AddMenuItemData;
 
 static void drawTopToolbar(Surf* surf, s32 x, s32 y)
@@ -254,6 +255,8 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
         else
         {
             item->label = title ? strdup(title) : strdup(name);
+            if(hash && *hash)
+                data->site = true;
 
             if(tic_tool_has_ext(name, CartExt))
                 cutExt(item->label, CartExt);
@@ -323,7 +326,8 @@ static void addMenuItemsDone(void* data)
         surf->menu.items = addMenuItemData->items;
         surf->menu.count = addMenuItemData->count;
 
-        if(!tic_fs_ispubdir(surf->fs))
+        // The site's listing keeps the server's order; a local one is sorted.
+        if(!addMenuItemData->site)
             qsort(surf->menu.items, surf->menu.count, sizeof *surf->menu.items, itemcmp);
 
         if(surf->menu.pos >= surf->menu.count)
@@ -502,7 +506,8 @@ static void loadCover(Surf* surf)
     if(item->coverLoading || surf->ticks < item->coverRetry)
         return;
 
-    if(!tic_fs_ispubdir(surf->fs))
+    // A cart with a hash is the site's; its cover is fetched by the provider.
+    if(!item->hash)
     {
         item->coverLoading = true;
 

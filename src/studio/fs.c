@@ -163,11 +163,6 @@ static bool isPublic(tic_fs* fs)
     return memcmp(fs->work, PublicDir, STRLEN(PublicDir)) == 0;
 }
 
-bool tic_fs_ispubdir(tic_fs* fs)
-{
-    return isPublic(fs);
-}
-
 #if defined(__TIC_WINDOWS__)
 
 typedef wchar_t FsString;

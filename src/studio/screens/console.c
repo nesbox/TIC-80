@@ -2939,35 +2939,53 @@ static void onEvalCommand(Console* console)
     commandDone(console);
 }
 
+typedef struct
+{
+    Console* console;
+    bool dir;
+} DeleteData;
+
+static void onDeleteDone(fs_result result, void* data)
+{
+    DeleteData* del = data;
+    Console* console = del->console;
+
+    if(result.code == FS_OK)
+        printBack(console, del->dir ? "\ndir successfully deleted" : "\nfile successfully deleted");
+    else
+    {
+        printError(console, "\n");
+        printError(console, result.message ? result.message : (del->dir ? "dir not deleted" : "file not deleted"));
+        printLine(console);
+    }
+
+    commandDone(console);
+    free(del);
+}
+
 static void onDelCommandConfirmed(Console* console, const void* data)
 {
     (void)data;
+
     if(console->desc->count)
     {
-        if(tic_fs_ispubdir(console->fs))
-        {
-            printError(console, "\naccess denied");
-        }
-        else
-        {
-            const char* param = console->desc->params->key;
-            if(tic_fs_isdir(console->fs, param))
-            {
-                printBack(console, tic_fs_deldir(console->fs, param)
-                                       ? "\ndir not deleted"
-                                       : "\ndir successfully deleted");
-            }
-            else
-            {
-                printBack(console, tic_fs_delfile(console->fs, param)
-                                       ? "\nfile not deleted"
-                                       : "\nfile successfully deleted");
-            }
-        }
-    }
-    else
-        printBack(console, "\nname is missing");
+        const char* param = console->desc->params->key;
+        DeleteData* del = malloc(sizeof(DeleteData));
 
+        if(!del)
+        {
+            printError(console, "\nout of memory");
+            printLine(console);
+            commandDone(console);
+            return;
+        }
+
+        *del = (DeleteData){console, tic_fs_isdir(console->fs, param)};
+        tic_fs_delete(console->fs, param, onDeleteDone, del);
+        return;
+    }
+
+    printBack(console, "\nname is missing");
     commandDone(console);
 }
 
