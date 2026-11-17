@@ -336,12 +336,18 @@ static void testCart(tic_mem* tic, tic_fs* fs)
             free(data);
         }
 
-        // A name the cached listing lacks fails without a fetch; the cart stays.
+        // A name the cached listing lacks is listed for before the refusal;
+        // the cart stays.
         {
             s32 before = host.loaded;
             LoadAnswer missing = {0};
 
             rom_load_cart_async(&deps, "missing.tic", onLoadAnswer, &missing);
+            assert(!missing.done);
+            assert(NetCallback);
+            assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+
+            answerNetJson(SiteCartListing);
             assert(missing.done);
             assert(!NetCallback);
             assert(missing.result.code == FS_NOT_FOUND);

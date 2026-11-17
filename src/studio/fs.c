@@ -1255,12 +1255,17 @@ static void siteResolve(SiteRequest* request, void (*found)(SiteRequest*, fs_res
         if(siteFindEntry(request->fs->site.items, request->fs->site.count, request->name, request->allowDir, &entry))
         {
             siteTake(request, &entry);
-            found(request, (fs_result){FS_OK, NULL});
-        }
-        else
-            found(request, (fs_result){FS_NOT_FOUND, "not found"});
 
-        return;
+            // A load consumes the listing it resolved from: the next load
+            // lists again, so an update the last listing predates is seen.
+            if(request->loadDone)
+                siteCacheClear(request->fs);
+
+            found(request, (fs_result){FS_OK, NULL});
+            return;
+        }
+
+        // A name the cache predates: list the folder again before refusing.
     }
 
     SiteResolve* resolve = calloc(1, sizeof(SiteResolve));

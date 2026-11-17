@@ -1212,22 +1212,30 @@ static void testSiteListing(void)
         assert(memcmp(cached, Cart, sizeof Cart) == 0);
         free(cached);
 
-        // The second load is served from that cache, with no request at all.
-        Answer again = loadPath(&contract, "demo.tic");
+        // The first load consumed the listing; the second lists again and is
+        // served from the cart's own cache, with no cart fetch.
+        Answer again = {0};
+        tic_fs_load(site.fs, "demo.tic", onLoad, &again);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+        answerJson(SiteListing);
+        assert(again.done);
         assert(again.result.code == FS_OK);
         assert(!netCallbackPending());
     }
 
     {
-        // A new listing replaces the cached one; a name it lacks is not found.
+        // A new listing replaces the cached one; a name it lacks is listed
+        // for again before the refusal.
         Answer list = {0};
         tic_fs_list(site.fs, "", onItem, onListDone, &list);
         answerJson(OtherListing);
         assert(list.result.code == FS_OK);
 
-        Answer load = loadPath(&contract, "demo.tic");
+        Answer load = {0};
+        tic_fs_load(site.fs, "demo.tic", onLoad, &load);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+        answerJson(OtherListing);
         assert(load.result.code == FS_NOT_FOUND);
-        assert(!netCallbackPending());
     }
 
     siteTeardown(&site);
@@ -1336,6 +1344,37 @@ static void testSiteLookupWithoutListing(void)
     puts("site lookup ok");
 }
 
+static void testSiteLoadListsMiss(void)
+{
+    Site site;
+    siteSetup(&site);
+
+    // A listing fills the provider's hash cache with the old catalog.
+    {
+        Answer list = {0};
+        tic_fs_list(site.fs, "", onItem, onListDone, &list);
+        answerJson(SiteListing);
+        assert(list.result.code == FS_OK);
+    }
+
+    // A name the cache lacks is listed for: the fresh catalog's hash is
+    // fetched instead of refusing.
+    {
+        static const u8 Cart[] = {3, 2, 1};
+        Answer load = {0};
+
+        tic_fs_load(site.fs, "new.tic", onLoad, &load);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+        answerJson(UpdatedSiteListing);
+        assert(strcmp(NetUrl, "/cart/ghi/new.tic") == 0);
+        answerData(Cart, sizeof Cart);
+        assert(load.result.code == FS_OK);
+    }
+
+    siteTeardown(&site);
+    puts("site load miss ok");
+}
+
 static void testSiteStat(void)
 {
     Site site;
@@ -1372,7 +1411,13 @@ static void testSiteStat(void)
     }
 
     {
-        Answer stat = statPath(&contract, "nope");
+        // A name the cache lacks is listed for before the refusal.
+        Answer stat = {0};
+        tic_fs_stat(site.fs, "nope", onStat, &stat);
+        assert(!stat.done);
+        assert(netCallbackPending());
+        answerJson(SiteListing);
+        assert(stat.done);
         assert(stat.result.code == FS_NOT_FOUND);
     }
 
@@ -1667,6 +1712,7 @@ int main(void)
     testSiteListing();
     testSiteLegacyListing();
     testSiteLookupWithoutListing();
+    testSiteLoadListsMiss();
     testSiteStat();
     testSiteCover();
     testSiteWrites();
