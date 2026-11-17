@@ -326,34 +326,10 @@ static fs_code errorCode(int error)
 }
 #endif
 
-// A path relative to the working directory, or an absolute one the platform opened.
+// Every unified path is the mount's own: a host path never reaches outside it.
 static const char* localPath(tic_fs* fs, const char* path)
 {
-#if defined(__TIC_WINDOWS__)
-    if(path[0] && path[1] == ':')
-        return path;
-#elif !defined(BAREMETALPI)
-    if(path[0] == '/' && fs_exists(path))
-        return path;
-#endif
-
     return tic_fs_path(fs, path);
-}
-
-// A load reads the mount's path first, then the process's own, as a launch names it.
-static const char* localReadPath(tic_fs* fs, const char* path)
-{
-    const char* resolved = tic_fs_path(fs, path);
-
-    if(fs_exists(resolved))
-        return resolved;
-
-#if !defined(BAREMETALPI)
-    if(fs_exists(path))
-        return path;
-#endif
-
-    return resolved;
 }
 
 static void* localRead(const char* path, s32* size, fs_result* result)
@@ -536,7 +512,7 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
 static void localLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
 {
     char resolved[TICNAME_MAX];
-    snprintf(resolved, sizeof resolved, "%s", localReadPath(fs, path));
+    snprintf(resolved, sizeof resolved, "%s", localPath(fs, path));
 
     s32 size = 0;
     fs_result result;
@@ -548,8 +524,9 @@ static void localLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void
         return;
     }
 
+    // The name as asked: a nested cart keeps its folder, so a save follows it.
     char name[TICNAME_MAX];
-    snprintf(name, sizeof name, "%s", baseName(path));
+    snprintf(name, sizeof name, "%s", path);
 
     onDone(name, bytes, size, (fs_result){FS_OK, NULL}, data);
     free(bytes);
@@ -855,7 +832,7 @@ fail:
 static void localCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
 {
     char resolved[TICNAME_MAX];
-    snprintf(resolved, sizeof resolved, "%s", localReadPath(fs, path));
+    snprintf(resolved, sizeof resolved, "%s", localPath(fs, path));
 
     s32 size = 0;
     fs_result result;
@@ -1453,6 +1430,14 @@ static void siteCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, voi
 
 static void siteStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void* data)
 {
+    // The working directory is a directory on every mount.
+    if(!*path)
+    {
+        fs_item item = {"", NULL, true, -1, 0};
+        onDone(&item, (fs_result){FS_OK, NULL}, data);
+        return;
+    }
+
     SiteRequest* request = calloc(1, sizeof(SiteRequest));
 
     if(!request)
@@ -1720,6 +1705,9 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     if(isPublic(fs))
     {
+        // An old-style listing still invalidates the hash cache it could contradict.
+        siteCacheClear(fs);
+
         char request[TICNAME_MAX];
         snprintf(request, sizeof request, "/json?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
 

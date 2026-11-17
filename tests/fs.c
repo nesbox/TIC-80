@@ -717,6 +717,13 @@ static void runContract(tic_fs* fs, bool remote)
     }
 
     {
+        // The working directory itself is a directory on either mount.
+        Answer stat = statPath(&contract, "");
+        assert(stat.result.code == FS_OK);
+        assert(stat.item.dir);
+    }
+
+    {
         Answer save = savePath(&contract, "contract.tic", Payload, sizeof Payload);
         assert(save.result.code == FS_OK);
         assert(strcmp(save.name, "contract.tic") == 0);
@@ -766,6 +773,18 @@ static void runContract(tic_fs* fs, bool remote)
     }
 
     {
+        // A folder with a file in it is not deleted, and that is an I/O refusal.
+        Answer save = savePath(&contract, "sub/keep.tic", Payload, sizeof Payload);
+        assert(save.result.code == FS_OK);
+
+        Answer del = deletePath(&contract, "sub");
+        assert(del.result.code == FS_IO);
+
+        del = deletePath(&contract, "sub/keep.tic");
+        assert(del.result.code == FS_OK);
+    }
+
+    {
         // A save into a folder that is not there fails without a new file.
         Answer save = savePath(&contract, "missing/contract.tic", Payload, sizeof Payload);
         assert(save.result.code != FS_OK);
@@ -803,7 +822,7 @@ static void runContract(tic_fs* fs, bool remote)
 
     {
         Answer mkdir = makeDir(&contract, "sub");
-        assert(mkdir.result.code != FS_OK);
+        assert(mkdir.result.code == FS_IO);
     }
 
     {
@@ -848,6 +867,22 @@ static void runContract(tic_fs* fs, bool remote)
         Answer cover = coverPath(&contract, "contract.tic");
         assert(cover.result.code == FS_NOT_FOUND);
     }
+    else
+    {
+        // The local mount answers the status it can produce: no read permission.
+        static const u8 Data[] = {4};
+        assert(savePath(&contract, "denied.tic", Data, sizeof Data).result.code == FS_OK);
+
+        char path[TICNAME_MAX];
+        snprintf(path, sizeof path, "%s", tic_fs_path(fs, "denied.tic"));
+        assert(chmod(path, 0) == 0);
+
+        Answer load = loadPath(&contract, "denied.tic");
+        assert(load.result.code == FS_DENIED);
+
+        assert(chmod(path, 0600) == 0);
+        assert(deletePath(&contract, "denied.tic").result.code == FS_OK);
+    }
 }
 
 static void testLocalContract(void)
@@ -866,6 +901,85 @@ static void testLocalContract(void)
     tic_fs_deldir(fs, "");
 
     puts("local contract ok");
+}
+
+// A host path the process owns is not a mount path: the unified calls stay inside.
+static void testHostPathConfined(void)
+{
+    char* root = makeRoot("tic80-fs-confine");
+    tic_fs* fs = tic_fs_create(root, NULL);
+    assert(fs);
+
+    char outsideDir[] = "/tmp/tic80-fs-outside-XXXXXX";
+    assert(mkdtemp(outsideDir));
+
+    char outside[TICNAME_MAX];
+    snprintf(outside, sizeof outside, "%s/outside.txt", outsideDir);
+
+    static const u8 Contents[] = {0x5a, 0x5b, 0x5c};
+    assert(fs_write(outside, Contents, sizeof Contents));
+
+    Contract contract = {fs, false};
+    static const u8 Payload[] = {1, 2, 3};
+
+    Answer load = loadPath(&contract, outside);
+    assert(load.result.code == FS_NOT_FOUND);
+
+    Answer save = savePath(&contract, outside, Payload, sizeof Payload);
+    assert(save.result.code != FS_OK);
+
+    Answer del = deletePath(&contract, outside);
+    assert(del.result.code == FS_NOT_FOUND);
+
+    {
+        s32 size = 0;
+        void* data = fs_read(outside, &size);
+        assert(data);
+        assert(size == (s32)sizeof Contents);
+        assert(memcmp(data, Contents, sizeof Contents) == 0);
+        free(data);
+    }
+
+    assert(remove(outside) == 0);
+    assert(rmdir(outsideDir) == 0);
+    tic_fs_deldir(fs, "");
+
+    puts("host paths confined ok");
+}
+
+// A nested load answers its name as asked, so a save writes the same file.
+static void testLocalLoadName(void)
+{
+    char* root = makeRoot("tic80-fs-name");
+    tic_fs* fs = tic_fs_create(root, NULL);
+    assert(fs);
+
+    Contract contract = {fs, false};
+    static const u8 First[] = {0x11, 0x22};
+    static const u8 Second[] = {0x33, 0x44};
+
+    assert(makeDir(&contract, "sub").result.code == FS_OK);
+    assert(savePath(&contract, "sub/foo.tic", First, sizeof First).result.code == FS_OK);
+
+    Answer load = loadPath(&contract, "sub/foo.tic");
+    assert(load.result.code == FS_OK);
+    assert(strcmp(load.name, "sub/foo.tic") == 0);
+    assert(strcmp(tic_fs_path(fs, load.name), tic_fs_path(fs, "sub/foo.tic")) == 0);
+
+    Answer save = savePath(&contract, load.name, Second, sizeof Second);
+    assert(save.result.code == FS_OK);
+
+    Answer again = loadPath(&contract, "sub/foo.tic");
+    assert(again.result.code == FS_OK);
+    assert(again.size == (s32)sizeof Second);
+    assert(memcmp(again.bytes, Second, sizeof Second) == 0);
+    assert(!fs_exists(tic_fs_path(fs, "foo.tic")));
+
+    tic_fs_delfile(fs, "sub/foo.tic");
+    tic_fs_deldir(fs, "sub");
+    tic_fs_deldir(fs, "");
+
+    puts("local load name ok");
 }
 
 static void testFakeRemoteContract(void)
@@ -1120,6 +1234,85 @@ static void testSiteListing(void)
     puts("site listing ok");
 }
 
+static const char UpdatedSiteListing[] =
+    "{\"folders\":[],\"files\":["
+    "{\"name\":\"Demo\",\"hash\":\"def\",\"filename\":\"demo.tic\",\"id\":7},"
+    "{\"name\":\"New\",\"hash\":\"ghi\",\"filename\":\"new.tic\",\"id\":8}]}";
+
+typedef struct
+{
+    s32 items;
+    bool done;
+} LegacyListing;
+
+static bool onLegacyItem(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    (void)name;
+    (void)title;
+    (void)hash;
+    (void)id;
+    (void)dir;
+
+    ((LegacyListing*)data)->items++;
+    return true;
+}
+
+static void onLegacyDone(void* data)
+{
+    ((LegacyListing*)data)->done = true;
+}
+
+static void testSiteLegacyListing(void)
+{
+    Site site;
+    siteSetup(&site);
+
+    // The unified listing caches the old catalog.
+    {
+        Answer list = {0};
+        tic_fs_list(site.fs, "", onItem, onListDone, &list);
+        answerJson(SiteListing);
+        assert(list.result.code == FS_OK);
+    }
+
+    // The legacy listing sees a newer catalog; its cached hashes must not survive.
+    {
+        LegacyListing legacy = {0};
+        tic_fs_enum(site.fs, onLegacyItem, onLegacyDone, &legacy);
+        assert(netCallbackPending());
+        answerJson(UpdatedSiteListing);
+        assert(legacy.done);
+        assert(legacy.items == 2);
+    }
+
+    // The load lists again: the old hash is gone and the new one is fetched.
+    {
+        static const u8 Cart[] = {9, 8, 7};
+        Answer load = {0};
+
+        tic_fs_load(site.fs, "demo.tic", onLoad, &load);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+        answerJson(UpdatedSiteListing);
+        assert(strcmp(NetUrl, "/cart/def/demo.tic") == 0);
+        answerData(Cart, sizeof Cart);
+        assert(load.result.code == FS_OK);
+    }
+
+    // A cart the newer listing added is found from the listing the load read.
+    {
+        static const u8 Cart[] = {6, 5};
+        Answer load = {0};
+
+        tic_fs_load(site.fs, "new.tic", onLoad, &load);
+        assert(strcmp(NetUrl, "/cart/ghi/new.tic") == 0);
+        answerData(Cart, sizeof Cart);
+        assert(load.result.code == FS_OK);
+    }
+
+    siteTeardown(&site);
+    puts("site legacy listing ok");
+}
+
 static void testSiteLookupWithoutListing(void)
 {
     Site site;
@@ -1149,6 +1342,14 @@ static void testSiteStat(void)
     siteSetup(&site);
 
     Contract contract = {site.fs, false};
+
+    {
+        // The working directory itself answers without touching the network.
+        Answer stat = statPath(&contract, "");
+        assert(stat.result.code == FS_OK);
+        assert(stat.item.dir);
+        assert(!netCallbackPending());
+    }
 
     {
         Answer list = {0};
@@ -1459,9 +1660,12 @@ static void testLocalCover(void)
 int main(void)
 {
     testLocalContract();
+    testHostPathConfined();
+    testLocalLoadName();
     testFakeRemoteContract();
     testHeldOperations();
     testSiteListing();
+    testSiteLegacyListing();
     testSiteLookupWithoutListing();
     testSiteStat();
     testSiteCover();
