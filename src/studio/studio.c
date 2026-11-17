@@ -997,14 +997,9 @@ void gotoCode(Studio* studio)
 #if defined(BUILD_SURF)
 // The browser's host side: the cart loads and the exits it asks for, as
 // one-line wrappers, so the screen keeps its decisions.
-static void surfLoadCart(void* host, const char* name)
+static void surfLoadCart(void* host, const char* name, fs_done_cb done, void* data)
 {
-    studioLoadCart(host, name);
-}
-
-static void surfLoadByHash(void* host, const char* name, const char* hash, const char* section, fs_done_callback done, void* data)
-{
-    studioLoadByHash(host, name, hash, section, done, data);
+    studioLoadCartAsync(host, name, done, data);
 }
 
 static void surfAutoSave(void* host)
@@ -1068,7 +1063,6 @@ static SurfDeps surfDeps(Studio* studio)
         .config = studio->config,
 
         .loadCart = surfLoadCart,
-        .loadByHash = surfLoadByHash,
         .autoSave = surfAutoSave,
         .cartChanged = surfCartChanged,
         .confirmLoadCart = surfConfirmLoadCart,
@@ -1940,16 +1934,6 @@ void runGame(Studio* studio, RunOrigin origin)
 }
 
 #if defined(BUILD_EDITORS)
-// The cart a fetch found is in the machine and taken as the host's own by the
-// time this is called; all that is left is telling the console it arrived.
-static void onConsoleFetched(void* data)
-{
-    Studio* studio = data;
-
-    ConsoleAnswer answer = {.name = studioCart(studio)->name};
-    console_answer(studio->console, &answer);
-}
-
 // The dialog the console asked for has been answered; its own flow continues
 // from there, whichever of its commands wanted one.
 static void onConsoleConfirmed(Studio* studio, bool yes, void* data)
@@ -1961,8 +1945,7 @@ static void onConsoleConfirmed(Studio* studio, bool yes, void* data)
 
 // What the console asks the host for: it reports, and this does it and answers.
 // A move is answered on the spot, and the answer can lead to the next ask — a
-// dialog, then the load it confirmed — while a cart fetched by hash is answered
-// later, from wherever it arrives.
+// dialog, then the load it confirmed.
 static void serveConsole(Studio* studio)
 {
     ConsoleAsk ask;
@@ -2018,12 +2001,6 @@ static void serveConsole(Studio* studio)
             case CONSOLE_ASK_CART_SAVE:
                 answer.save = studioSaveCart(studio, ask.name);
                 answer.name = studioCart(studio)->name;
-                break;
-
-            case CONSOLE_ASK_CART_FETCH:
-                // Answered from the fetch's own callback, not here.
-                answered = false;
-                studioLoadByHash(studio, ask.name, ask.hash, ask.section, onConsoleFetched, studio);
                 break;
 
             // Both answer with the written path, or nothing when they could not
@@ -2164,7 +2141,7 @@ static void stopVideoRecord(Studio* studio)
     generateScreenshotName(studio, ".gif", filename);
 
     // Now that it has found an available filename, save it.
-    if(tic_fs_save(studio->fs, filename, result.data, (s32)(result.dataSize), true))
+    if(fs_write(tic_fs_path(studio->fs, filename), result.data, (s32)(result.dataSize)))
     {
         char msg[TICNAME_MAX + sizeof " saved :)"];
         sprintf(msg, "%s saved :)", filename);
@@ -3147,14 +3124,14 @@ bool studioLoadCart(Studio* studio, const char* path)
     return rom_load_cart(&studio->romDeps, path);
 }
 
+void studioLoadCartAsync(Studio* studio, const char* path, fs_done_cb done, void* data)
+{
+    rom_load_cart_async(&studio->romDeps, path, done, data);
+}
+
 void studioReloadCart(Studio* studio)
 {
     rom_reload_cart(&studio->romDeps);
-}
-
-void studioLoadByHash(Studio* studio, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data)
-{
-    rom_load_by_hash(&studio->romDeps, name, hash, section, callback, data);
 }
 
 CartSaveResult studioSaveCart(Studio* studio, const char* name)

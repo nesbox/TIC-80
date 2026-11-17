@@ -42,9 +42,8 @@ typedef struct
     tic_net* net;
     struct Config* config;
 
-    void (*loadCart)(void* host, const char* name);
-    void (*loadByHash)(void* host, const char* name, const char* hash,
-                       const char* section, fs_done_callback done, void* data);
+    // The one load entry for every mount; the host answers with the load result.
+    void (*loadCart)(void* host, const char* name, fs_done_cb done, void* data);
     void (*autoSave)(void* host);
     bool (*cartChanged)(void* host);
     void (*confirmLoadCart)(void* host, SurfConfirm callback, void* data);

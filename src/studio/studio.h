@@ -225,8 +225,8 @@ CartName* studioCart(Studio* studio);
 void studioSetCartName(Studio* studio, const char* name, const char* path);
 
 bool studioLoadCart(Studio* studio, const char* path);
+void studioLoadCartAsync(Studio* studio, const char* path, fs_done_cb done, void* data);
 void studioReloadCart(Studio* studio);
-void studioLoadByHash(Studio* studio, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
 CartSaveResult studioSaveCart(Studio* studio, const char* name);
 CartSaveResult studioAutoSave(Studio* studio);
 

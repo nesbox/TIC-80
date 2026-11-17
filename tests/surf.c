@@ -39,10 +39,9 @@ static s32 ExitCalls;
 static s32 ConfirmCalls;
 
 static char LoadedName[TICNAME_MAX];
-static char LoadedHash[TICNAME_MAX];
 
-static fs_done_callback HashDone;
-static void* HashDoneData;
+static fs_done_cb LoadDone;
+static void* LoadDoneData;
 
 static SurfConfirm ConfirmAnswer;
 static void* ConfirmAnswerData;
@@ -57,23 +56,14 @@ static char NetUrl[TICNAME_MAX];
 // screen's own retry is the test's to watch.
 static s32 CoverRequests;
 
-static void fakeLoadCart(void* host, const char* name)
+// The host load answers through the completion, held until the cart is "in".
+static void fakeLoadCart(void* host, const char* name, fs_done_cb done, void* data)
 {
     (void)host;
     LoadCartCalls++;
     snprintf(LoadedName, sizeof LoadedName, "%s", name);
-}
-
-static void fakeLoadByHash(void* host, const char* name, const char* hash, const char* section, fs_done_callback done, void* data)
-{
-    (void)host;
-    (void)section;
-
-    LoadByHashCalls++;
-    snprintf(LoadedName, sizeof LoadedName, "%s", name);
-    snprintf(LoadedHash, sizeof LoadedHash, "%s", hash);
-    HashDone = done;
-    HashDoneData = data;
+    LoadDone = done;
+    LoadDoneData = data;
 }
 
 static void fakeAutoSave(void* host)
@@ -193,12 +183,12 @@ static void settle(void);
 // answer to `isActive`, so the exit flips it.
 static void setup(void)
 {
-    LoadCartCalls = LoadByHashCalls = AutoSaveCalls = 0;
+    LoadCartCalls = AutoSaveCalls = 0;
     RunCalls = ExitCalls = ConfirmCalls = 0;
     CoverRequests = 0;
-    LoadedName[0] = LoadedHash[0] = '\0';
-    HashDone = NULL;
-    HashDoneData = NULL;
+    LoadedName[0] = '\0';
+    LoadDone = NULL;
+    LoadDoneData = NULL;
     ConfirmAnswer = NULL;
     ConfirmAnswerData = NULL;
 
@@ -222,7 +212,6 @@ static void setup(void)
                           .config = &Cfg,
 
                           .loadCart = fakeLoadCart,
-                          .loadByHash = fakeLoadByHash,
                           .autoSave = fakeAutoSave,
                           .cartChanged = fakeCartChanged,
                           .confirmLoadCart = fakeConfirmLoadCart,
@@ -377,7 +366,8 @@ static void testSiteListing(void)
     answerNet(SiteListing);
     settle();
 
-    // The answered cart loads by hash, and the host's answer runs it.
+    // The answered cart loads through the host's one load entry, and the
+    // host's answer runs it.
     press(tic_key_down);
     settle();
 
@@ -393,12 +383,11 @@ static void testSiteListing(void)
     press(tic_key_return);
     settle();
 
-    assert(LoadByHashCalls == 1);
+    assert(LoadCartCalls == 1);
     assert(strcmp(LoadedName, "demo.tic") == 0);
-    assert(strcmp(LoadedHash, "abc") == 0);
     assert(RunCalls == 0);
 
-    HashDone(HashDoneData);
+    LoadDone((fs_result){FS_OK, NULL}, LoadDoneData);
     assert(RunCalls == 1);
     assert(AutoSaveCalls == 0);
 
@@ -411,9 +400,9 @@ static void testSiteListing(void)
     Cfg.data.options.autosave = true;
     press(tic_key_return);
     settle();
-    assert(LoadByHashCalls == 2);
+    assert(LoadCartCalls == 2);
 
-    HashDone(HashDoneData);
+    LoadDone((fs_result){FS_OK, NULL}, LoadDoneData);
     assert(RunCalls == 2);
     assert(AutoSaveCalls == 1);
 
@@ -436,6 +425,9 @@ static void testLocalCart(void)
 
     assert(LoadCartCalls == 1);
     assert(strcmp(LoadedName, "local.tic") == 0);
+    assert(RunCalls == 0);
+
+    LoadDone((fs_result){FS_OK, NULL}, LoadDoneData);
     assert(RunCalls == 1);
 
     teardown();
@@ -472,6 +464,9 @@ static void testConfirm(void)
 
     ConfirmAnswer(NULL, true, ConfirmAnswerData);
     assert(LoadCartCalls == 1);
+    assert(RunCalls == 0);
+
+    LoadDone((fs_result){FS_OK, NULL}, LoadDoneData);
     assert(RunCalls == 1);
 
     teardown();
@@ -540,7 +535,7 @@ int main(void)
         tic_cartridge cart = {0};
 
         s32 size = tic_cart_save(&cart, buffer);
-        assert(tic_fs_save(Fs, "local.tic", buffer, size, false));
+        assert(fs_write(tic_fs_path(Fs, "local.tic"), buffer, size));
 
         free(buffer);
         tic_fs_makedir(Fs, "zzz");

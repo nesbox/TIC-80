@@ -110,7 +110,6 @@ typedef enum
     CONSOLE_ASK_CONFIRM,      // these rows: yes or no
     CONSOLE_ASK_CART_LOADED,  // take the loaded cart's identity, or refresh
     CONSOLE_ASK_CART_SAVE,    // save the cart under this name
-    CONSOLE_ASK_CART_FETCH,   // find and load the cart with this hash
     CONSOLE_ASK_EXPORT_SFX,   // write sample `index` to `name`
     CONSOLE_ASK_EXPORT_MUSIC, // write track `index` of bank `bank` to `name`
 
@@ -128,9 +127,6 @@ typedef struct
     // idea of the cart, which is what replacing one section asks for.
     const char* name;
     bool clear;
-
-    const char* hash;    // CART_FETCH
-    const char* section; // CART_FETCH
 
     s32 index; // EXPORT_SFX / EXPORT_MUSIC
     s32 bank;  // EXPORT_MUSIC
@@ -158,7 +154,7 @@ struct ConsoleAnswer
     bool yes;            // CONFIRM
     bool ok;             // EXPORT_SFX / EXPORT_MUSIC: it was written
     CartSaveResult save; // CART_SAVE
-    const char* name;    // the cart's name after the ask: LOADED, SAVE, FETCH
+    const char* name;    // the cart's name after the ask: LOADED, SAVE
 };
 
 struct Console
@@ -188,19 +184,7 @@ struct Console
     // The flow that asked, picking itself up when the answer comes.
     void (*onAnswer)(Console*, const ConsoleAnswer*);
 
-    // What a CART_FETCH needs when it is answered: the caller's callback and
-    // data, and the cart's own name, hash and section — owned here, because a
-    // public-directory load frees its strings the moment it has asked.
-    struct
-    {
-        fs_done_callback callback;
-        void* calldata;
-
-        char name[TICNAME_MAX];
-        char hash[TICNAME_MAX];
-        char section[TICNAME_MAX];
-
-    } fetch;
+    char loadedName[TICNAME_MAX]; // the resolved name the host is told about
 
     struct
     {

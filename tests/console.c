@@ -242,6 +242,12 @@ static bool promptAtInput(Host* host)
            host->console->input.text[-1] == '>';
 }
 
+static void onSaved(const char* name, fs_result result, void* data)
+{
+    (void)name;
+    *(bool*)data = result.code == FS_OK;
+}
+
 // A cart on the filesystem the console reads: the test's own, so a load has
 // something real to find.
 static void putCart(Host* host, const char* name)
@@ -253,7 +259,10 @@ static void putCart(Host* host, const char* name)
     s32 size = tic_cart_save(&host->tic->cart, buffer);
 
     assert(size > 0);
-    assert(tic_fs_save(host->fs, name, buffer, size, true));
+
+    bool saved = false;
+    tic_fs_save(host->fs, name, buffer, size, onSaved, &saved);
+    assert(saved);
 }
 
 // The first frame loads the language's demo cart, so the cart's name is the

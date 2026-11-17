@@ -507,7 +507,7 @@ static void loadCover(Surf* surf)
         item->coverLoading = true;
 
         s32 size = 0;
-        void* data = tic_fs_load(surf->fs, item->name, &size);
+        void* data = fs_read(tic_fs_path(surf->fs, item->name), &size);
 
         if(data)
         {
@@ -677,9 +677,12 @@ static void autoSave(Surf* surf)
     surf->deps.autoSave(surf->deps.host);
 }
 
-static void onCartLoaded(void* data)
+static void onCartLoaded(fs_result result, void* data)
 {
     Surf* surf = data;
+
+    if(result.code != FS_OK)
+        return;
 
     if(surf->config->data.options.autosave)
     {
@@ -697,15 +700,8 @@ static void onLoadCommandConfirmed(void* host, bool yes, void* data)
         Surf* surf = data;
         SurfItem* item = getMenuItem(surf);
 
-        if(item->hash)
-        {
-            surf->deps.loadByHash(surf->deps.host, item->name, item->hash, NULL, onCartLoaded, surf);
-        }
-        else
-        {
-            surf->deps.loadCart(surf->deps.host, item->name);
-            surf->deps.run(surf->deps.host);
-        }
+        // One load entry for every mount; the cart runs when the host answers.
+        surf->deps.loadCart(surf->deps.host, item->name, onCartLoaded, surf);
     }
 }
 
@@ -725,7 +721,7 @@ static void loadCart(Surf* surf)
     if(tic_tool_has_ext(item->name, PngExt))
     {
         s32 size = 0;
-        void* data = tic_fs_load(surf->fs, item->name, &size);
+        void* data = fs_read(tic_fs_path(surf->fs, item->name), &size);
 
         if(data)
         {

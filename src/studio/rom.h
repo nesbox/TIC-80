@@ -49,8 +49,9 @@ typedef struct
 
 void rom_set_cart_name(const RomDeps* deps, const char* name, const char* path);
 
+void rom_load_bytes(const RomDeps* deps, const char* name, const void* bytes, s32 size);
 bool rom_load_cart(const RomDeps* deps, const char* path);
+void rom_load_cart_async(const RomDeps* deps, const char* path, fs_done_cb done, void* data);
 void rom_reload_cart(const RomDeps* deps);
-void rom_load_by_hash(const RomDeps* deps, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
 CartSaveResult rom_save_cart(const RomDeps* deps, const char* name);
 CartSaveResult rom_autosave(const RomDeps* deps);

@@ -48,11 +48,6 @@
 #include "project.h"
 #endif
 
-static inline tic_cartridge* newCart()
-{
-    return malloc(sizeof(tic_cartridge));
-}
-
 void rom_set_cart_name(const RomDeps* deps, const char* name, const char* path)
 {
     CartName* rom = deps->cart;
@@ -61,47 +56,120 @@ void rom_set_cart_name(const RomDeps* deps, const char* name, const char* path)
     if(rom->path != path) strcpy(rom->path, path);
 }
 
+// The one cart loader: the filesystem's bytes and the name it resolved.
+void rom_load_bytes(const RomDeps* deps, const char* name, const void* bytes, s32 size)
+{
+    tic_mem* tic = deps->tic;
+
+    if(tic_tool_has_ext(name, PNG_EXT))
+    {
+        tic_cartridge* cart = loadPngCart((png_buffer){(u8*)bytes, size});
+
+        if(cart)
+        {
+            memcpy(&tic->cart, cart, sizeof(tic_cartridge));
+            free(cart);
+        }
+    }
+#if defined(TIC80_PRO)
+    else if(tic_tool_is_project(name))
+        tic_project_load(name, bytes, size, &tic->cart);
+#endif
+    else
+        tic_cart_load(&tic->cart, bytes, size);
+
+    tic_api_reset(tic);
+
+    rom_set_cart_name(deps, name, tic_fs_path(deps->fs, name));
+
+    deps->loaded(deps->host);
+}
+
 typedef struct
 {
     const RomDeps* deps;
-    char* name;
-    char* section;
-    fs_done_callback callback;
-    void* calldata;
-} LoadByHashData;
+    fs_done_cb done;
+    void* data;
+} LoadCartData;
 
-static void hashLoadDone(const u8* buffer, s32 size, void* data)
+static void asyncLoadDone(const char* name, const u8* bytes, s32 size, fs_result result, void* data)
 {
-    LoadByHashData* loadByHashData = data;
-    const RomDeps* deps = loadByHashData->deps;
+    LoadCartData* load = data;
 
-    tic_cartridge* cart = newCart();
+    if(result.code == FS_OK)
+        rom_load_bytes(load->deps, name, bytes, size);
 
-    SCOPE(free(cart))
-    {
-        tic_cart_load(cart, buffer, size);
-        tic_tool_load_section(deps->tic, cart, loadByHashData->section);
+    if(load->done)
+        load->done(result, load->data);
 
-        tic_api_reset(deps->tic);
-
-        if(!loadByHashData->section)
-            rom_set_cart_name(deps, loadByHashData->name, tic_fs_path(deps->fs, loadByHashData->name));
-
-        deps->loaded(deps->host);
-    }
-
-    if(loadByHashData->callback)
-        loadByHashData->callback(loadByHashData->calldata);
-
-    FREE(loadByHashData->name);
-    FREE(loadByHashData->section);
-    FREE(loadByHashData);
+    free(load);
 }
 
-void rom_load_by_hash(const RomDeps* deps, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data)
+void rom_load_cart_async(const RomDeps* deps, const char* path, fs_done_cb done, void* data)
 {
-    LoadByHashData loadByHashData = {deps, strdup(name), section ? strdup(section) : NULL, callback, data};
-    tic_fs_hashload(deps->fs, name, hash, hashLoadDone, MOVE(loadByHashData));
+    LoadCartData* load = malloc(sizeof(LoadCartData));
+
+    if(!load)
+    {
+        if(done)
+            done((fs_result){FS_IO, "out of memory"}, data);
+        return;
+    }
+
+    *load = (LoadCartData){deps, done, data};
+
+    tic_fs_load(deps->fs, path, asyncLoadDone, load);
+}
+
+// The launch and a drop load a local path; a remote answer would come later.
+typedef struct
+{
+    const RomDeps* deps;
+    char path[TICNAME_MAX];
+    bool loaded;
+    bool finished;
+    bool waited;
+} SyncLoadData;
+
+static void syncLoadDone(const char* name, const u8* bytes, s32 size, fs_result result, void* data)
+{
+    SyncLoadData* load = data;
+
+    load->finished = true;
+
+    if(result.code == FS_OK)
+    {
+        rom_load_bytes(load->deps, name, bytes, size);
+
+        // A launch named the file itself; its path stays the cart's.
+        rom_set_cart_name(load->deps, name, load->path);
+
+        load->loaded = true;
+    }
+
+    if(load->waited)
+        free(load);
+}
+
+bool rom_load_cart(const RomDeps* deps, const char* path)
+{
+    SyncLoadData* load = calloc(1, sizeof(SyncLoadData));
+
+    if(!load)
+        return false;
+
+    load->deps = deps;
+    snprintf(load->path, sizeof load->path, "%s", path);
+
+    tic_fs_load(deps->fs, path, syncLoadDone, load);
+
+    bool loaded = load->loaded;
+    load->waited = true;
+
+    if(load->finished)
+        free(load);
+
+    return loaded;
 }
 
 // The cart's file changed under the studio — another editor, a build — and the
@@ -275,7 +343,7 @@ CartSaveResult rom_save_cart(const RomDeps* deps, const char* name)
                 }
             }
 
-            if(size && tic_fs_save(deps->fs, name, buffer, size, true))
+            if(size && fs_write(tic_fs_path(deps->fs, name), buffer, size))
             {
                 rom_set_cart_name(deps, name, tic_fs_path(deps->fs, name));
                 success = true;
@@ -293,70 +361,6 @@ CartSaveResult rom_save_cart(const RomDeps* deps, const char* name)
         return CART_SAVE_MISSING_NAME;
 
     return success ? CART_SAVE_OK : CART_SAVE_ERROR;
-}
-
-static inline bool isslash(char c)
-{
-    return c == '/' || c == '\\';
-}
-
-bool rom_load_cart(const RomDeps* deps, const char* path)
-{
-    bool done = false;
-
-    s32 size = 0;
-    // A name from the browser is relative to the cart folder, a path from the
-    // command line or a drop is the process's own.
-    void* data = tic_fs_load(deps->fs, path, &size);
-
-    if(!data)
-        data = fs_read(path, &size);
-
-    if(data)
-    {
-        const char* cartName = NULL;
-
-        {
-            const char* ptr = path + strlen(path);
-            while(ptr > path && !isslash(*ptr))
-                --ptr;
-            cartName = ptr + isslash(*ptr);
-        }
-
-        rom_set_cart_name(deps, cartName, path);
-        tic_mem* tic = deps->tic;
-
-        if(tic_tool_has_ext(cartName, PNG_EXT))
-        {
-            tic_cartridge* cart = loadPngCart((png_buffer){data, size});
-
-            if(cart)
-            {
-                memcpy(&tic->cart, cart, sizeof(tic_cartridge));
-                free(cart);
-                done = true;
-            }
-        }
-        else if(tic_tool_has_ext(cartName, CART_EXT))
-        {
-            tic_cart_load(&tic->cart, data, size);
-            done = true;
-        }
-#if defined(TIC80_PRO)
-        else if(tic_tool_is_project(cartName))
-        {
-            if(tic_project_load(cartName, data, size, &tic->cart))
-                done = true;
-        }
-#endif
-
-        free(data);
-    }
-
-    if(done)
-        deps->loaded(deps->host);
-
-    return done;
 }
 
 CartSaveResult rom_autosave(const RomDeps* deps)
