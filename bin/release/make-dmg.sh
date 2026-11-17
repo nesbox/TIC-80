@@ -124,17 +124,22 @@ if [ "$SIGN" = 1 ]; then
     codesign --force --options runtime --timestamp --sign "$IDENTITY" "$BUNDLE" >/dev/null
 
     notarize() { # notarize <file> <label>
-        local file="$1" label="$2" attempt out
+        local file="$1" label="$2" attempt out rc
         for attempt in 1 2; do
             echo "notarizing $label (attempt $attempt)"
-            if out="$(xcrun notarytool submit "$file" \
+            # A network error must not abort the script before the retry.
+            set +e
+            out="$(xcrun notarytool submit "$file" \
                 --apple-id "$APPLE_ID" \
                 --password "$APPLE_APP_PASSWORD" \
                 --team-id "$APPLE_TEAM_ID" \
-                --wait --timeout 60m 2>&1)" &&
-                printf '%s' "$out" | grep -q "status: Accepted"; then
+                --wait --timeout 60m 2>&1)"
+            rc=$?
+            set -e
+            if [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q "status: Accepted"; then
                 return 0
             fi
+            printf 'notarytool exit %s\n' "$rc" >&2
             printf '%s\n' "$out" >&2
             echo "notarization of $label did not reach Accepted (attempt $attempt)" >&2
         done
