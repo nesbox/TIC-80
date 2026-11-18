@@ -51,8 +51,10 @@ typedef struct
     volatile req_state state;
 
     // for callback
-    net_get_callback callback;
+    net_request_callback callback;
     void* calldata;
+    s32 status;
+    struct curl_slist* headers;
 
     // for progress function
     curl_off_t lastruntime;
@@ -118,8 +120,8 @@ static int switch_xferinfo_cb(void* userp, curl_off_t dltotal, curl_off_t dlnow,
             if(mutexTryLock(&ctx->net->lock))
             {
                 // send progress
-                net_get_data getData = {
-                    .type = net_get_progress,
+                net_request_data requestData = {
+                    .type = net_request_progress,
                     .progress = {
                         .size = dlnow,
                         .total = dltotal,
@@ -127,7 +129,7 @@ static int switch_xferinfo_cb(void* userp, curl_off_t dltotal, curl_off_t dlnow,
                     .calldata = ctx->calldata,
                     .url = ctx->url,
                 };
-                ctx->callback(&getData);
+                ctx->callback(&requestData);
                 mutexUnlock(&ctx->net->lock);
             }
         }
@@ -186,7 +188,10 @@ static void switch_worker_thread(void* userp)
                     if(ctx)
                     {
                         if(msg->data.result == CURLE_OK)
-                        { // all ok
+                        { // all ok — the status is the HTTP answer's, 4xx included
+                            long code = 0;
+                            if(curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code) == CURLE_OK)
+                                ctx->status = (s32)code;
                             ctx->state = RS_OK;
                         }
                         else
@@ -257,7 +262,7 @@ tic_net* tic_net_create(const char* host)
     return net;
 }
 
-void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
 {
     net_ctx* ctx = NEW(net_ctx);
     memset(ctx, 0, sizeof(*ctx));
@@ -289,6 +294,39 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
         curl_easy_setopt(ctx->curl, CURLOPT_XFERINFOFUNCTION, switch_xferinfo_cb);
         curl_easy_setopt(ctx->curl, CURLOPT_XFERINFODATA, ctx);
         curl_easy_setopt(ctx->curl, CURLOPT_NOPROGRESS, 0L);
+
+        switch(method)
+        {
+        case net_method_post:
+            curl_easy_setopt(ctx->curl, CURLOPT_POST, 1L);
+            break;
+        case net_method_put:
+            curl_easy_setopt(ctx->curl, CURLOPT_CUSTOMREQUEST, "PUT");
+            break;
+        case net_method_delete:
+            curl_easy_setopt(ctx->curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+            break;
+        default:
+            break;
+        }
+
+        if(body)
+        {
+            curl_easy_setopt(ctx->curl, CURLOPT_POSTFIELDS, body);
+            curl_easy_setopt(ctx->curl, CURLOPT_POSTFIELDSIZE, (long)bodySize);
+        }
+
+        for(s32 i = 0; i < headersCount; i++)
+        {
+            char line[URL_SIZE];
+            snprintf(line, sizeof line, "%s: %s", headers[i].name, headers[i].value);
+            ctx->headers = curl_slist_append(ctx->headers, line);
+        }
+        if(ctx->headers)
+        {
+            curl_easy_setopt(ctx->curl, CURLOPT_HTTPHEADER, ctx->headers);
+        }
+
         //curl_easy_setopt(ctx->curl, CURLOPT_VERBOSE, 1L);
         curl_multi_add_handle(net->curl_multi, ctx->curl);
         ueventSignal(&net->poll_event);
@@ -321,6 +359,11 @@ void tic_net_close(tic_net* net)
                 free(ctx->buffer);
                 ctx->buffer = NULL;
                 ctx->size = 0;
+            }
+            if(ctx->headers)
+            {
+                curl_slist_free_all(ctx->headers);
+                ctx->headers = NULL;
             }
             free(ctx);
         }
@@ -356,23 +399,24 @@ void tic_net_end(tic_net* net)
         {
             if(ctx->callback != NULL)
             {
-                net_get_data getData = {
+                net_request_data requestData = {
                     .calldata = ctx->calldata,
                     .url = ctx->url,
                 };
 
                 if(ctx->state == RS_OK)
                 {
-                    getData.type = net_get_done;
-                    getData.done.data = (u8*)ctx->buffer;
-                    getData.done.size = ctx->size;
+                    requestData.type = net_request_done;
+                    requestData.done.status = ctx->status;
+                    requestData.done.data = (u8*)ctx->buffer;
+                    requestData.done.size = ctx->size;
                 }
                 else
                 {
-                    getData.type = net_get_error;
-                    getData.error.code = -1;
+                    requestData.type = net_request_error;
+                    requestData.error.code = -1;
                 }
-                ctx->callback(&getData);
+                ctx->callback(&requestData);
             }
 
             // reset buffer
@@ -381,6 +425,12 @@ void tic_net_end(tic_net* net)
                 free(ctx->buffer);
                 ctx->buffer = NULL;
                 ctx->size = 0;
+            }
+
+            if(ctx->headers)
+            {
+                curl_slist_free_all(ctx->headers);
+                ctx->headers = NULL;
             }
 
             // delete context

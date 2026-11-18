@@ -88,8 +88,14 @@ typedef struct
 {
     char url[URL_SIZE];
 
-    net_get_callback callback;
+    net_request_callback callback;
     void* calldata;
+
+    net_method method;
+    const net_header* headers;
+    s32 headersCount;
+    const void* body;
+    s32 bodySize;
 
     // Written by the worker, read by the main task once done is set. done is
     // the handover: everything else is stable by the time it becomes true.
@@ -261,6 +267,17 @@ static bool network_available(void)
 // enough to be worth not bothering the user with, and a GET is safe to repeat.
 #define REQUEST_ATTEMPTS 2
 
+static esp_http_client_method_t esp_method(net_method method)
+{
+    switch(method)
+    {
+    case net_method_post: return HTTP_METHOD_POST;
+    case net_method_put: return HTTP_METHOD_PUT;
+    case net_method_delete: return HTTP_METHOD_DELETE;
+    default: return HTTP_METHOD_GET;
+    }
+}
+
 static void perform_once(HttpGet* get)
 {
     install_ca_store();
@@ -281,17 +298,36 @@ static void perform_once(HttpGet* get)
         return;
     }
 
-    if(esp_http_client_open(client, 0) != ESP_OK)
+    esp_http_client_set_method(client, esp_method(get->method));
+
+    for(s32 i = 0; i < get->headersCount; i++)
+    {
+        esp_http_client_set_header(client, get->headers[i].name, get->headers[i].value);
+    }
+
+    if(esp_http_client_open(client, get->bodySize) != ESP_OK)
     {
         get->status = -1;
         esp_http_client_cleanup(client);
         return;
     }
 
+    if(get->body && get->bodySize > 0)
+    {
+        int written = esp_http_client_write(client, get->body, get->bodySize);
+        if(written != get->bodySize)
+        {
+            get->status = -1;
+            esp_http_client_close(client);
+            esp_http_client_cleanup(client);
+            return;
+        }
+    }
+
     s64 length = esp_http_client_fetch_headers(client);
     get->status = esp_http_client_get_status_code(client);
 
-    if(get->status == 200 && length <= RESPONSE_LIMIT)
+    if(get->status > 0 && length <= RESPONSE_LIMIT)
     {
         // A chunked response reports a length of zero, so grow as it arrives
         // rather than trusting the header.
@@ -346,7 +382,7 @@ static void perform_once(HttpGet* get)
             get->size = size;
         }
     }
-    else if(get->status == 200)
+    else if(get->status > 0)
     {
         get->status = -1; // Too big to hold.
     }
@@ -366,7 +402,9 @@ static void perform(HttpGet* get)
 
         perform_once(get);
 
-        if(get->status == 200)
+        // Only a GET is safe to repeat: the other methods write, and a retry
+        // could apply the same upload twice.
+        if(get->method != net_method_get || get->status == 200)
         {
             return;
         }
@@ -436,7 +474,7 @@ tic_net* tic_net_create(const char* host)
     return net;
 }
 
-void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
 {
     if(net == NULL || net->work == NULL)
     {
@@ -452,6 +490,11 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
     snprintf(get->url, sizeof(get->url), "%s%s", net->host, url);
     get->callback = callback;
     get->calldata = calldata;
+    get->method = method;
+    get->headers = headers;
+    get->headersCount = headersCount;
+    get->body = body;
+    get->bodySize = bodySize;
 
     xSemaphoreTake(net->lock, portMAX_DELAY);
 
@@ -479,8 +522,8 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
         // comes. This is the one place a callback runs inside tic_net_get
         // rather than from tic_net_end, and it takes eight requests in flight
         // at once to reach it.
-        net_get_data data = {
-            .type = net_get_error,
+        net_request_data data = {
+            .type = net_request_error,
             .calldata = calldata,
             .url = get->url,
             .error.code = -1,
@@ -529,20 +572,21 @@ void tic_net_end(tic_net* net)
             continue;
         }
 
-        net_get_data data = {
+        net_request_data data = {
             .calldata = get->calldata,
             .url = get->url,
         };
 
-        if(get->status == 200 && get->data != NULL)
+        if(get->status > 0)
         {
-            data.type = net_get_done;
+            data.type = net_request_done;
+            data.done.status = get->status;
             data.done.data = get->data;
             data.done.size = get->size;
         }
         else
         {
-            data.type = net_get_error;
+            data.type = net_request_error;
             data.error.code = get->status;
         }
 

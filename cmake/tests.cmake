@@ -255,6 +255,38 @@ if(BUILD_TESTS)
     endif()
     tic80_add_test(fs-test)
 
+    # The get bridge over the request primitive: tests/net.c holds the fake
+    # primitive, net.c built with NET_TEST supplies only tic_net_get, and the
+    # translation of 200, a 4xx status, a transport error and progress is
+    # asserted. No backend, no core, no socket.
+    add_executable(net-test
+        ${CMAKE_SOURCE_DIR}/tests/net.c
+        ${CMAKE_SOURCE_DIR}/src/studio/net.c
+    )
+
+    target_compile_definitions(net-test PRIVATE NET_TEST)
+    tic80_add_test(net-test)
+
+    # The desktop transport over the wire: the naett backend against a local
+    # HTTP server started by the test, which checks the method, the headers and
+    # the body it receives, and that a 200 and a 409 both deliver their status
+    # and body. A closed port is the transport error.
+    if(USE_NAETT)
+        add_executable(net-naett-test
+            ${CMAKE_SOURCE_DIR}/tests/net_naett.c
+            ${CMAKE_SOURCE_DIR}/src/studio/net.c
+        )
+
+        target_compile_definitions(net-naett-test PRIVATE USE_NAETT)
+        target_link_libraries(net-naett-test PRIVATE naett)
+
+        if(UNIX AND NOT APPLE)
+            target_link_libraries(net-naett-test PRIVATE pthread)
+        endif()
+
+        tic80_add_test(net-naett-test)
+    endif()
+
     # The code editor's text model links with the history module alone: the
     # buffer, the state array, the cap and the caret are driven without the
     # studio, a machine or a screen. The PRO target compiles the same model
