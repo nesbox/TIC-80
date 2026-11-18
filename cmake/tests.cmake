@@ -205,6 +205,7 @@ if(BUILD_TESTS)
     add_executable(console-test
         ${CMAKE_SOURCE_DIR}/tests/console.c
         ${CMAKE_SOURCE_DIR}/src/studio/screens/console.c
+        ${CMAKE_SOURCE_DIR}/src/studio/account.c
         ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
         ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
         ${CMAKE_SOURCE_DIR}/src/studio/ui.c
@@ -215,6 +216,9 @@ if(BUILD_TESTS)
     )
 
     target_include_directories(console-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    # The console is an editors screen, and the filesystem's remote mounts are
+    # compiled under the same condition.
+    target_compile_definitions(console-test PRIVATE BUILD_EDITORS)
     target_link_libraries(console-test PRIVATE tic80core zip)
     tic80_add_test(console-test)
 

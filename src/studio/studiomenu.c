@@ -908,12 +908,32 @@ static const MenuBarItem MenubarEdit[] =
         MENU_ITEM_COLOR("PASTE", "CTRL+V", menubarAction, MenuActionPaste, tic_icon_paste, tic_color_yellow),
 };
 
+#if !defined(__EMSCRIPTEN__)
+// The shelf is a console shortcut: it opens the shelf and lists it; a
+// signed-out member gets the console's own sign-in hint.
+static void menubarShelf(void* data, s32 id)
+{
+    (void)id;
+    StudioMenuContext* ctx = data;
+    Studio* studio = ctx->studio;
+
+    studiomenu_command(studio, "cd /shelf");
+
+    if(studioSignedIn(studio))
+        studiomenu_command(studio, "dir");
+}
+#endif
+
 static MenuBarItem MenubarTic[] =
     {
         MENU_ITEM("NEW", NULL, NULL, 0),
         MENU_ITEM("RUN", "CTRL+R", menubarAction, MenuActionRun),
         MENU_ITEM("RESUME", NULL, menubarAction, MenuActionResume),
         MENU_ITEM("SAVE", "CTRL+S", menubarAction, MenuActionSave),
+#if !defined(__EMSCRIPTEN__)
+        MENU_SEPARATOR,
+        MENU_ITEM("SHELF", NULL, menubarShelf, 0),
+#endif
         MENU_SEPARATOR,
         MENU_SUBMENU("EXPORT", &MenubarExportMenu),
         MENU_SUBMENU("CAPTURE", &MenubarCaptureMenu),

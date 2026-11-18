@@ -81,6 +81,9 @@ static MapView mapFrame(Studio* studio);
 #include "screens/mainmenu.h"
 
 #include "fs.h"
+#if !defined(__EMSCRIPTEN__)
+#include "account.h"
+#endif
 
 #include "argparse.h"
 
@@ -310,6 +313,10 @@ struct Studio
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     tic_net* net;
+#if !defined(__EMSCRIPTEN__)
+    // The member's account: NULL in the wasm IDE, which has its own change.
+    tic_account* account;
+#endif
 #endif
 
     Start* start;
@@ -1115,6 +1122,16 @@ void exitSurf(Studio* studio)
 bool studio_is_cart_loaded(Studio* studio)
 {
     return strlen(studio->rom.name) > 0 || studio->boot.cart;
+}
+
+bool studioSignedIn(Studio* studio)
+{
+#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(__EMSCRIPTEN__)
+    return studio->account && tic_account_signedin(studio->account);
+#else
+    (void)studio;
+    return false;
+#endif
 }
 
 s32 getStudioEditorTop(Studio* studio)
@@ -3457,6 +3474,10 @@ void studio_delete(Studio* studio)
         surf_free(studio->surf);
 #endif
 
+#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(__EMSCRIPTEN__)
+        tic_account_close(studio->account);
+#endif
+
         start_free(studio->start);
         run_free(studio->run);
         freeConfig(studio->config);
@@ -3723,6 +3744,10 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
         }
     }
 
+#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(__EMSCRIPTEN__)
+    studio->account = tic_account_create(studio->fs, studio->net);
+#endif
+
     {
 
 #if defined(BUILD_EDITORS)
@@ -3839,6 +3864,9 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
         .tic = studio->tic,
         .fs = studio->fs,
         .net = studio->net,
+#if !defined(__EMSCRIPTEN__)
+        .account = studio->account,
+#endif
         .config = getConfig(studio),
         .mouse = studio->mouse.state,
         .view = &studio->consoleView,

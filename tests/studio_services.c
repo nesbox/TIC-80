@@ -30,6 +30,22 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
     snprintf(NetUrl, sizeof NetUrl, "%s", url);
 }
 
+// The shelf is not driven here; a request through the primitive is a bug.
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
+{
+    (void)net;
+    (void)method;
+    (void)url;
+    (void)headers;
+    (void)headersCount;
+    (void)body;
+    (void)bodySize;
+    (void)callback;
+    (void)calldata;
+
+    assert(false);
+}
+
 static void answerNetData(const void* data, s32 size)
 {
     assert(NetCallback);

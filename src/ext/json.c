@@ -27,6 +27,7 @@
 #include <jsmn.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 
 static struct
 {
@@ -86,6 +87,13 @@ bool json_bool(const char* var, s32 parent)
 s32 json_int(const char* var, s32 parent)
 {
     return atoi(state.json + state.t[getJsonItem(var, parent, JSMN_PRIMITIVE)].start);
+}
+
+// A millisecond timestamp does not fit s32: the shelf's created/updated are
+// ~1.8e12.
+s64 json_long(const char* var, s32 parent)
+{
+    return strtoll(state.json + state.t[getJsonItem(var, parent, JSMN_PRIMITIVE)].start, NULL, 10);
 }
 
 bool json_string(const char* var, s32 parent, char* value, s32 size)

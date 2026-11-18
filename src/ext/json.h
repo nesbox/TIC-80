@@ -30,6 +30,7 @@ bool json_has(const char* var, s32 parent);
 s32 json_int(const char* var, s32 parent);
 bool json_bool(const char* var, s32 parent);
 bool json_string(const char* var, s32 parent, char* value, s32 size);
+s64 json_long(const char* var, s32 parent);
 s32 json_array(const char* var, s32 parent);
 s32 json_array_size(s32 array);
 s32 json_array_item(s32 array, s32 index);

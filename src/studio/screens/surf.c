@@ -229,7 +229,7 @@ static bool addMenuItem(const fs_item* entry, void* ptr)
         if(entry->dir)
         {
             char folder[TICNAME_MAX];
-            sprintf(folder, "[%s]", name);
+            sprintf(folder, "[%s]", entry->title ? entry->title : name);
             item->label = strdup(folder);
         }
         else

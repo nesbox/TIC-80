@@ -47,6 +47,118 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
     snprintf(NetUrl, sizeof NetUrl, "%s", url);
 }
 
+// The shelf's requests go through the primitive: one held request, answered by
+// the test; no socket.
+typedef struct
+{
+    bool held;
+    net_request_callback callback;
+    void* calldata;
+    net_method method;
+    char url[TICNAME_MAX * 2];
+    char authorization[128];
+    u8 body[TICNAME_MAX];
+    s32 bodySize;
+} HeldRequest;
+
+static HeldRequest Held;
+
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
+{
+    (void)net;
+    assert(!Held.held);
+
+    Held.held = true;
+    Held.callback = callback;
+    Held.calldata = calldata;
+    Held.method = method;
+    Held.authorization[0] = '\0';
+    Held.bodySize = 0;
+
+    snprintf(Held.url, sizeof Held.url, "%s", url);
+
+    for(s32 i = 0; i < headersCount; i++)
+        if(strcmp(headers[i].name, "Authorization") == 0)
+            snprintf(Held.authorization, sizeof Held.authorization, "%s", headers[i].value);
+
+    if(body && bodySize > 0 && bodySize <= (s32)sizeof Held.body)
+    {
+        memcpy(Held.body, body, bodySize);
+        Held.bodySize = bodySize;
+    }
+}
+
+static void answerRequestBytes(s32 status, const u8* body, s32 size)
+{
+    assert(Held.held);
+
+    net_request_callback callback = Held.callback;
+    void* calldata = Held.calldata;
+    char url[TICNAME_MAX * 2];
+    snprintf(url, sizeof url, "%s", Held.url);
+    Held.held = false;
+
+    net_request_data answer = {
+        .type = net_request_done,
+        .done = {.status = status, .size = size, .data = (u8*)body},
+        .calldata = calldata,
+        .url = url,
+    };
+
+    callback(&answer);
+}
+
+static void answerRequest(s32 status, const char* json)
+{
+    answerRequestBytes(status, (const u8*)json, (s32)strlen(json));
+}
+
+static void answerRequestError(s32 code)
+{
+    assert(Held.held);
+
+    net_request_callback callback = Held.callback;
+    void* calldata = Held.calldata;
+    char url[TICNAME_MAX * 2];
+    snprintf(url, sizeof url, "%s", Held.url);
+    Held.held = false;
+
+    net_request_data answer = {
+        .type = net_request_error,
+        .error = {.code = code},
+        .calldata = calldata,
+        .url = url,
+    };
+
+    callback(&answer);
+}
+
+// The account the shelf's remote inputs read: the token and the member's state.
+typedef struct
+{
+    bool signedIn;
+    char token[64];
+    s32 unauthorizedCalls;
+    char unauthorizedToken[64];
+} TestAccount;
+
+static bool accountSignedIn(void* data)
+{
+    return ((TestAccount*)data)->signedIn;
+}
+
+static const char* accountToken(void* data)
+{
+    return ((TestAccount*)data)->token;
+}
+
+static void accountUnauthorized(void* data, const char* token)
+{
+    TestAccount* account = data;
+    account->unauthorizedCalls++;
+    snprintf(account->unauthorizedToken, sizeof account->unauthorizedToken, "%s", token ? token : "");
+}
+
 // The name the filesystem remembers from a load: the fake's own.
 typedef struct
 {
@@ -1794,6 +1906,348 @@ static void testLocalCover(void)
     puts("local cover ok");
 }
 
+// ---- the shelf mount ----
+
+typedef struct
+{
+    char root[TICNAME_MAX];
+    tic_fs* fs;
+    TestAccount account;
+} Shelf;
+
+static void shelfSetup(Shelf* shelf, bool signedIn)
+{
+    snprintf(shelf->root, sizeof shelf->root, "%s", makeRoot("tic80-fs-shelf"));
+    shelf->fs = tic_fs_create(shelf->root, NULL);
+    assert(shelf->fs);
+
+    shelf->account = (TestAccount){.signedIn = signedIn};
+    snprintf(shelf->account.token, sizeof shelf->account.token, "tok123");
+
+    tic_fs_set_remote(shelf->fs, &(tic_fs_remote){
+                                     .signed_in = accountSignedIn,
+                                     .token = accountToken,
+                                     .unauthorized = accountUnauthorized,
+                                     .data = &shelf->account,
+                                 });
+
+    Held.held = false;
+}
+
+static void shelfTeardown(Shelf* shelf)
+{
+    Held.held = false;
+    tic_fs_deldir(shelf->fs, "");
+}
+
+// The root lists the shelf only while signed in, and the shelf name answers a
+// cd with the sign-in hint when signed out.
+static void testShelfMount(void)
+{
+    Shelf shelf;
+    shelfSetup(&shelf, false);
+
+    {
+        Answer list = {0};
+        tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
+        assert(list.result.code == FS_OK);
+
+        for(s32 i = 0; i < list.count; i++)
+            assert(strcmp(list.items[i].name, TIC_SHELF_DIR) != 0);
+
+        Answer stat = {0};
+        tic_fs_stat(shelf.fs, TIC_SHELF_DIR, onStat, &stat);
+        assert(stat.result.code == FS_DENIED);
+        assert(strstr(stat.message, "login"));
+    }
+
+    shelf.account.signedIn = true;
+
+    {
+        Answer list = {0};
+        tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
+        assert(list.result.code == FS_OK);
+
+        s32 found = -1;
+        for(s32 i = 0; i < list.count; i++)
+            if(strcmp(list.items[i].name, TIC_SHELF_DIR) == 0)
+                found = i;
+
+        assert(found >= 0);
+        assert(list.items[found].dir);
+        assert(strcmp(list.items[found].title, "SHELF") == 0);
+
+        // A leading slash still names the mount, for `cd /shelf`.
+        Answer stat = {0};
+        tic_fs_stat(shelf.fs, "/" TIC_SHELF_DIR, onStat, &stat);
+        assert(stat.result.code == FS_OK);
+        assert(stat.item.dir);
+        assert(strcmp(stat.item.name, TIC_SHELF_DIR) == 0);
+
+        tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+        char dir[TICNAME_MAX];
+        tic_fs_dir(shelf.fs, dir);
+        assert(strcmp(dir, TIC_SHELF_DIR) == 0);
+
+        tic_fs_dirback(shelf.fs);
+        tic_fs_dir(shelf.fs, dir);
+        assert(strcmp(dir, "") == 0);
+    }
+
+    shelfTeardown(&shelf);
+    puts("shelf mount ok");
+}
+
+static void testShelfList(void)
+{
+    Shelf shelf;
+    shelfSetup(&shelf, true);
+    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+
+    {
+        Answer list = {0};
+        tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
+
+        assert(Held.held);
+        assert(Held.method == net_method_get);
+        assert(strcmp(Held.url, "/api/v1/client/shelf") == 0);
+        assert(strcmp(Held.authorization, "Bearer tok123") == 0);
+
+        answerRequest(200,
+                      "{\"carts\":[{\"key\":\"my-game\",\"title\":\"My Game\",\"size\":123,\"updated\":1794940745061}],"
+                      "\"count\":1,\"bytes\":123,\"max_count\":100,\"max_bytes\":33554432}");
+
+        assert(list.result.code == FS_OK);
+        assert(list.count == 1);
+        assert(strcmp(list.items[0].name, "my-game.tic") == 0);
+        assert(list.items[0].title == NULL); // the shelf shows keys
+        assert(!list.items[0].dir);
+        assert(list.items[0].size == 123);
+        assert(list.items[0].date == 1794940745061LL);
+        assert(list.hasUsage);
+        assert(list.usage.count == 1 && list.usage.max_count == 100);
+        assert(list.usage.bytes == 123 && list.usage.max_bytes == 33554432);
+    }
+
+    {
+        // A 401 ends the session the request was sent with.
+        Answer list = {0};
+        tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
+        answerRequest(401, "{\"error\":\"token revoked\"}");
+
+        assert(list.result.code == FS_SESSION);
+        assert(shelf.account.unauthorizedCalls == 1);
+        assert(strcmp(shelf.account.unauthorizedToken, "tok123") == 0);
+    }
+
+    {
+        // A transport error says the shelf needs a network.
+        Answer list = {0};
+        tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
+        answerRequestError(-1);
+
+        assert(list.result.code == FS_OFFLINE);
+        assert(strstr(list.message, "network"));
+    }
+
+    shelfTeardown(&shelf);
+    puts("shelf list ok");
+}
+
+static void testShelfLoad(void)
+{
+    Shelf shelf;
+    shelfSetup(&shelf, true);
+    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+
+    {
+        static const u8 Cart[] = {0x54, 0x49, 0x43};
+        Answer load = {0};
+
+        tic_fs_load(shelf.fs, "my-game.tic", onLoad, &load);
+
+        assert(Held.held);
+        assert(Held.method == net_method_get);
+        assert(strcmp(Held.url, "/api/v1/client/shelf/my-game/cart.tic") == 0);
+
+        answerRequestBytes(200, Cart, sizeof Cart);
+        assert(load.result.code == FS_OK);
+        assert(strcmp(load.name, "my-game") == 0); // the key is the identity
+        assert(load.size == (s32)sizeof Cart);
+        assert(memcmp(load.bytes, Cart, sizeof Cart) == 0);
+    }
+
+    {
+        Answer load = {0};
+        tic_fs_load(shelf.fs, "my-game", onLoad, &load);
+        assert(Held.held);
+        assert(strcmp(Held.url, "/api/v1/client/shelf/my-game/cart.tic") == 0);
+
+        answerRequest(404, "{\"error\":\"no such cart\"}");
+        assert(load.result.code == FS_NOT_FOUND);
+        assert(strcmp(load.message, "no such cart") == 0);
+    }
+
+    shelfTeardown(&shelf);
+    puts("shelf load ok");
+}
+
+static void testShelfSave(void)
+{
+    Shelf shelf;
+    shelfSetup(&shelf, true);
+    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+
+    static const u8 Cart[] = {0x54, 0x49, 0x43, 0x00};
+
+    {
+        Answer save = {0};
+        tic_fs_save(shelf.fs, "My Game.tic", Cart, sizeof Cart, onSave, &save);
+
+        assert(Held.held);
+        assert(Held.method == net_method_put);
+        assert(strcmp(Held.url, "/api/v1/client/shelf/My-Game") == 0);
+        assert(Held.bodySize == (s32)sizeof Cart);
+        assert(memcmp(Held.body, Cart, sizeof Cart) == 0);
+
+        answerRequest(201,
+                      "{\"key\":\"My-Game\",\"count\":1,\"bytes\":4,"
+                      "\"max_count\":100,\"max_bytes\":33554432}");
+
+        assert(save.result.code == FS_OK);
+        assert(strcmp(save.name, "My-Game") == 0);
+        assert(strstr(save.message, "created on the shelf"));
+        assert(strstr(save.message, "1/100 carts"));
+        assert(strstr(save.message, "4/33554432 bytes"));
+    }
+
+    {
+        // The same key replaces; the server says so and answers its spelling.
+        Answer save = {0};
+        tic_fs_save(shelf.fs, "My Game", Cart, sizeof Cart, onSave, &save);
+        assert(Held.held);
+        answerRequest(200, "{\"key\":\"my-game\",\"count\":1,\"bytes\":4,\"max_count\":100,\"max_bytes\":33554432}");
+        assert(save.result.code == FS_OK);
+        assert(strcmp(save.name, "my-game") == 0);
+        assert(strstr(save.message, "replaced on the shelf"));
+    }
+
+    {
+        // A quota refusal passes the server's message through.
+        Answer save = {0};
+        tic_fs_save(shelf.fs, "big.tic", Cart, sizeof Cart, onSave, &save);
+        answerRequest(413, "{\"error\":\"the shelf is full\"}");
+        assert(save.result.code == FS_QUOTA);
+        assert(strcmp(save.message, "the shelf is full") == 0);
+    }
+
+    shelfTeardown(&shelf);
+    puts("shelf save ok");
+}
+
+static void testShelfDelete(void)
+{
+    Shelf shelf;
+    shelfSetup(&shelf, true);
+    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+
+    {
+        Answer del = {0};
+        tic_fs_delete(shelf.fs, "my-game.tic", onDone, &del);
+
+        assert(Held.held);
+        assert(Held.method == net_method_delete);
+        assert(strcmp(Held.url, "/api/v1/client/shelf/my-game") == 0);
+
+        answerRequest(200, "{\"count\":0,\"bytes\":0,\"max_count\":100,\"max_bytes\":33554432}");
+        assert(del.result.code == FS_OK);
+        assert(strstr(del.message, "0/100 carts"));
+    }
+
+    {
+        Answer del = {0};
+        tic_fs_delete(shelf.fs, "missing", onDone, &del);
+        answerRequest(404, "{\"error\":\"no such cart\"}");
+        assert(del.result.code == FS_NOT_FOUND);
+    }
+
+    shelfTeardown(&shelf);
+    puts("shelf delete ok");
+}
+
+// The shelf has no cheap stat, no folders and no covers; the server answers
+// whether a key exists.
+static void testShelfStatAndShape(void)
+{
+    Shelf shelf;
+    shelfSetup(&shelf, true);
+    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+
+    {
+        Answer stat = {0};
+        tic_fs_stat(shelf.fs, "", onStat, &stat);
+        assert(stat.result.code == FS_OK);
+        assert(stat.item.dir);
+    }
+
+    {
+        Answer stat = {0};
+        tic_fs_stat(shelf.fs, "my-game.tic", onStat, &stat);
+        assert(stat.result.code == FS_NOT_FOUND);
+    }
+
+    {
+        Answer mkdir = {0};
+        tic_fs_mkdir(shelf.fs, "folder", onDone, &mkdir);
+        assert(mkdir.result.code == FS_UNSUPPORTED);
+
+        Answer folder = {0};
+        tic_fs_openfolder(shelf.fs, "", onDone, &folder);
+        assert(folder.result.code == FS_UNSUPPORTED);
+
+        Answer cover = {0};
+        tic_fs_cover(shelf.fs, "my-game.tic", onCover, &cover);
+        assert(cover.result.code == FS_NOT_FOUND);
+    }
+
+    shelfTeardown(&shelf);
+    puts("shelf shape ok");
+}
+
+// Signed out, every shelf operation answers the sign-in hint without a request.
+static void testShelfSignedOut(void)
+{
+    Shelf shelf;
+    shelfSetup(&shelf, false);
+    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+
+    {
+        Answer list = {0};
+        tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
+        assert(list.result.code == FS_DENIED);
+        assert(strstr(list.message, "login"));
+        assert(!Held.held);
+
+        Answer load = {0};
+        tic_fs_load(shelf.fs, "my-game.tic", onLoad, &load);
+        assert(load.result.code == FS_DENIED);
+        assert(!Held.held);
+
+        Answer save = {0};
+        tic_fs_save(shelf.fs, "my-game.tic", (const u8*)"x", 1, onSave, &save);
+        assert(save.result.code == FS_DENIED);
+        assert(!Held.held);
+
+        Answer del = {0};
+        tic_fs_delete(shelf.fs, "my-game.tic", onDone, &del);
+        assert(del.result.code == FS_DENIED);
+        assert(!Held.held);
+    }
+
+    shelfTeardown(&shelf);
+    puts("shelf signed out ok");
+}
+
 int main(void)
 {
     testLocalContract();
@@ -1812,6 +2266,13 @@ int main(void)
     testSiteWrites();
     testSiteErrors();
     testLocalCover();
+    testShelfMount();
+    testShelfList();
+    testShelfLoad();
+    testShelfSave();
+    testShelfDelete();
+    testShelfStatAndShape();
+    testShelfSignedOut();
 
     puts("fs ok");
     return 0;

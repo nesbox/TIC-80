@@ -90,6 +90,26 @@ void tic_fs_cover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* d
 
 tic_fs* tic_fs_create(const char* path, struct tic_net* net);
 
+// The shelf is the account's remote mount, listed at the root when signed in.
+#define TIC_SHELF_DIR "shelf"
+
+// The remote mounts' inputs: the account, injected so a test can drive a
+// remote mount with no studio, no socket and no account. A NULL signed_in is
+// signed out.
+typedef struct
+{
+    bool (*signed_in)(void* data);
+    const char* (*token)(void* data);
+    // A 401 from the shelf carries the token that request used: the account
+    // clears its token only when it is still the current one, so an answer to
+    // an old request cannot sign out a newer session.
+    void (*unauthorized)(void* data, const char* token);
+    void* data;
+} tic_fs_remote;
+
+void tic_fs_set_remote(tic_fs* fs, const tic_fs_remote* remote);
+bool tic_fs_signedin(tic_fs* fs);
+
 // App storage: config, options, cache, persistent data and the token; local and sync.
 const char* tic_fs_path(tic_fs* fs, const char* name);
 const char* tic_fs_pathroot(tic_fs* fs, const char* name);
