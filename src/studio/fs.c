@@ -117,7 +117,7 @@ void syncfs()
 
 const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 {
-    static char path[TICNAME_MAX * 2];
+    static char path[TICNAME_MAX * 3];
 
     snprintf(path, sizeof path, "%s%s", fs->dir, name);
 
@@ -135,7 +135,7 @@ const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 
 const char* tic_fs_path(tic_fs* fs, const char* name)
 {
-    static char path[TICNAME_MAX + 1];
+    static char path[TICNAME_MAX * 2];
 
     if(*name == '/')
         snprintf(path, sizeof path, "%s", name + 1);
