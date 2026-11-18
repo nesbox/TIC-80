@@ -1059,7 +1059,6 @@ static SurfDeps surfDeps(Studio* studio)
         .host = studio,
         .tic = studio->tic,
         .fs = studio->fs,
-        .net = studio->net,
         .config = studio->config,
 
         .loadCart = surfLoadCart,

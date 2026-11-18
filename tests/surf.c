@@ -1,6 +1,6 @@
 /* The browser links without the studio: this file builds it with the menu
- * widget, the animation, the filesystem and the sound modules, a fake net that
- * holds its requests, a filesystem on a temporary root and a fake host that
+ * widget, the animation, the filesystem and the sound modules, a fake
+ * filesystem that answers the listings and covers, and a fake host that
  * records the actions, so a call into studio.c fails to link here rather than
  * appearing quietly in the app build.
  *
@@ -9,6 +9,7 @@
 #include "studio/screens/surf.h"
 #include "studio/config.h"
 #include "studio/fs.h"
+#include "studio/fs_internal.h"
 #include "studio/net.h"
 #include "studio/paths.h"
 #include "studio/system.h"
@@ -32,11 +33,11 @@ static bool Active;
 static bool CartChanged;
 
 static s32 LoadCartCalls;
-static s32 LoadByHashCalls;
 static s32 AutoSaveCalls;
 static s32 RunCalls;
 static s32 ExitCalls;
 static s32 ConfirmCalls;
+static s32 CoverRequests;
 
 static char LoadedName[TICNAME_MAX];
 
@@ -45,16 +46,6 @@ static void* LoadDoneData;
 
 static SurfConfirm ConfirmAnswer;
 static void* ConfirmAnswerData;
-
-// The test's network: the covers are answered at once with an error, so the
-// listing is the only request the test holds. No socket is opened.
-static net_get_callback NetCallback;
-static void* NetCalldata;
-static char NetUrl[TICNAME_MAX];
-
-// The covers the screen asks for: answered with an error at once, so the
-// screen's own retry is the test's to watch.
-static s32 CoverRequests;
 
 // The host load answers through the completion, held until the cart is "in".
 static void fakeLoadCart(void* host, const char* name, fs_done_cb done, void* data)
@@ -105,27 +96,131 @@ static bool fakeIsActive(void* host)
     return Active;
 }
 
-void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+// The fake filesystem's answers: two folders and a cart at the root, one cart
+// on the site, nothing in the test's own folder.
+static const char* RootNames[] = {TIC_HOST, "zzz", "local.tic"};
+static const bool RootDirs[] = {true, true, false};
+
+static const char* SiteNames[] = {"demo.tic"};
+static const char* SiteTitles[] = {"Demo"};
+static const bool SiteDirs[] = {false};
+
+static void fakeEmit(const char* const* names, const char* const* titles, const bool* dirs, s32 count,
+                     fs_list_item_cb onItem, void* data)
 {
-    (void)net;
-
-    if(strncmp(url, "/cart/", 6) == 0)
+    for(s32 i = 0; i < count; i++)
     {
-        CoverRequests++;
+        fs_item item = {names[i], titles ? titles[i] : NULL, dirs[i], -1, 0};
 
-        net_get_data answer = {.type = net_get_error, .error = {.code = 404}, .calldata = calldata, .url = url};
-        callback(&answer);
+        if(!onItem(&item, data))
+            break;
+    }
+}
+
+static void fakeList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_list_done_cb onDone, void* data)
+{
+    (void)path;
+
+    char dir[TICNAME_MAX];
+    tic_fs_dir(fs, dir);
+
+    if(strcmp(dir, "") == 0)
+        fakeEmit(RootNames, NULL, RootDirs, COUNT_OF(RootNames), onItem, data);
+    else if(strcmp(dir, TIC_HOST) == 0)
+        fakeEmit(SiteNames, SiteTitles, SiteDirs, COUNT_OF(SiteNames), onItem, data);
+    else if(strcmp(dir, "zzz") != 0)
+    {
+        onDone(NULL, (fs_result){FS_NOT_FOUND, "not found"}, data);
         return;
     }
 
-    assert(!NetCallback);
-
-    NetCallback = callback;
-    NetCalldata = calldata;
-    snprintf(NetUrl, sizeof NetUrl, "%s", url);
+    onDone(NULL, (fs_result){FS_OK, NULL}, data);
 }
 
+static void fakeLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
+{
+    (void)fs;
+    (void)path;
+
+    onDone(NULL, NULL, 0, (fs_result){FS_NOT_FOUND, "not found"}, data);
+}
+
+static void fakeSave(tic_fs* fs, const char* path, const void* bytes, s32 size, fs_save_done_cb onDone, void* data)
+{
+    (void)fs;
+    (void)path;
+    (void)bytes;
+    (void)size;
+
+    onDone(NULL, (fs_result){FS_DENIED, "access denied"}, data);
+}
+
+static void fakeDelete(tic_fs* fs, const char* path, fs_done_cb onDone, void* data)
+{
+    (void)fs;
+    (void)path;
+
+    onDone((fs_result){FS_DENIED, "access denied"}, data);
+}
+
+static void fakeStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void* data)
+{
+    (void)fs;
+    (void)path;
+
+    onDone(NULL, (fs_result){FS_NOT_FOUND, "not found"}, data);
+}
+
+static void fakeMkdir(tic_fs* fs, const char* path, fs_done_cb onDone, void* data)
+{
+    (void)fs;
+    (void)path;
+
+    onDone((fs_result){FS_UNSUPPORTED, "not supported"}, data);
+}
+
+static void fakeOpen(tic_fs* fs, const char* path, fs_done_cb onDone, void* data)
+{
+    (void)fs;
+    (void)path;
+
+    onDone((fs_result){FS_UNSUPPORTED, "not supported"}, data);
+}
+
+static void fakeCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
+{
+    (void)fs;
+    (void)path;
+
+    CoverRequests++;
+    onDone(NULL, 0, (fs_result){FS_NOT_FOUND, "no cover"}, data);
+}
+
+static const fs_mount_ops FakeMount = {
+    .list = fakeList,
+    .load = fakeLoad,
+    .save = fakeSave,
+    .delete = fakeDelete,
+    .stat = fakeStat,
+    .mkdir = fakeMkdir,
+    .openfolder = fakeOpen,
+    .cover = fakeCover,
+};
+
 // The platform the screen and the filesystem ask: the test is all of it.
+
+// The screen must never reach the net for a cart or a cover: the fake mount
+// answers everything, so a request here is the screen's bug.
+void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+{
+    (void)net;
+    (void)url;
+    (void)callback;
+    (void)calldata;
+
+    assert(false);
+}
+
 void tic_sys_open_url(const char* url)
 {
     (void)url;
@@ -141,34 +236,6 @@ bool tic_sys_keyboard_text(char* text)
     (void)text;
     return false;
 }
-
-static bool netPending(void)
-{
-    return NetCallback != NULL;
-}
-
-static void answerNet(const char* json)
-{
-    assert(NetCallback);
-
-    net_get_callback callback = NetCallback;
-    NetCallback = NULL;
-
-    net_get_data answer = {
-        .type = net_get_done,
-        .done = {.size = (s32)strlen(json), .data = (u8*)json},
-        .calldata = NetCalldata,
-        .url = NetUrl,
-    };
-
-    callback(&answer);
-}
-
-static const char SiteListing[] =
-    "{\"folders\":[{\"name\":\"games\"}],"
-    "\"files\":[{\"name\":\"Demo\",\"hash\":\"abc\",\"filename\":\"demo.tic\",\"id\":7}]}";
-
-static const char EmptyListing[] = "{\"folders\":[],\"files\":[]}";
 
 static const char* dirName(void)
 {
@@ -208,7 +275,6 @@ static void setup(void)
                           .host = NULL,
                           .tic = Tic,
                           .fs = Fs,
-                          .net = (tic_net*)&Cfg,
                           .config = &Cfg,
 
                           .loadCart = fakeLoadCart,
@@ -270,9 +336,8 @@ static void moveTo(s32 index)
     }
 }
 
-// The root's entries in the browser's order: the folders first, each group by
-// name. The screen's cache folder starts with a dot and the listing skips
-// those, so the site folder is first, then the test's own folder and cart.
+// The fake root's entries in the browser's order: the site folder, the test's
+// own folder, the test's cart.
 enum
 {
     RootSiteIndex = 0,
@@ -320,11 +385,30 @@ static void openSiteFolder(void)
     press(tic_key_return);
     settle();
 
-    assert(netPending());
     assert(strcmp(dirName(), TIC_HOST) == 0);
 }
 
-static void testSiteListing(void)
+// The fake root's listing is the browser's menu: the folders and the cart it
+// answered are the items, with no net and no mount knowledge in the screen.
+static void testListing(void)
+{
+    setup();
+
+    assert(Screen->menu.count == 3);
+    assert(strcmp(Screen->menu.items[RootSiteIndex].name, TIC_HOST) == 0);
+    assert(Screen->menu.items[RootSiteIndex].dir);
+    assert(strcmp(Screen->menu.items[RootSubIndex].name, "zzz") == 0);
+    assert(Screen->menu.items[RootSubIndex].dir);
+    assert(strcmp(Screen->menu.items[RootCartIndex].name, "local.tic") == 0);
+    assert(!Screen->menu.items[RootCartIndex].dir);
+
+    teardown();
+    puts("listing ok");
+}
+
+// A site cart plays through the same host entry, the cover comes from the
+// filesystem, and the retry asks again after its time.
+static void testSiteCart(void)
 {
     setup();
 
@@ -333,46 +417,17 @@ static void testSiteListing(void)
 
     openSiteFolder();
 
-    answerNet(SiteListing);
-    settle();
+    // The listing opens on "..", the step back to the root; the cart is after.
+    assert(Screen->menu.count == 2);
+    assert(strcmp(Screen->menu.items[0].name, "..") == 0);
+    assert(strcmp(Screen->menu.items[1].name, "demo.tic") == 0);
+    assert(strcmp(Screen->menu.items[1].label, "Demo") == 0);
 
-    // A move plays the config cart's system sound. The listing opens on "..",
-    // the step back to the root.
     press(tic_key_down);
     assert(channelNote() == 3 + 12);
     settle();
-    press(tic_key_up);
-    settle();
 
-    // The answered folder is the entry after "..": opening it asks the site
-    // for that folder.
-    press(tic_key_down);
-    settle();
-    press(tic_key_return);
-    settle();
-    assert(netPending());
-    assert(strstr(NetUrl, "path=games"));
-
-    answerNet(EmptyListing);
-    settle();
-
-    // Back to the site root, which lists again, and the cursor returns to the
-    // folder it left.
-    press(tic_key_backspace);
-    settle();
-    assert(netPending());
-    assert(strcmp(dirName(), TIC_HOST) == 0);
-
-    answerNet(SiteListing);
-    settle();
-
-    // The answered cart loads through the host's one load entry, and the
-    // host's answer runs it.
-    press(tic_key_down);
-    settle();
-
-    // The cover the site did not give is asked for again once the retry is
-    // due, rather than staying blank for the session.
+    // The cover is the filesystem's answer; a missing one is asked again later.
     assert(CoverRequests == 1);
 
     for(s32 i = 0; i <= CoverRetryTicks; i++)
@@ -396,7 +451,7 @@ static void testSiteListing(void)
     Screen->resume(Screen);
     settle();
 
-    // The autosave writes the loaded cart when the option is on.
+    // The autosave runs through the host when the option is on.
     Cfg.data.options.autosave = true;
     press(tic_key_return);
     settle();
@@ -406,13 +461,45 @@ static void testSiteListing(void)
     assert(RunCalls == 2);
     assert(AutoSaveCalls == 1);
 
-    // The autosave made the downloads folder at the root; the tests after this
-    // one count the root's entries. The screen is still in the site folder, so
-    // the path is the root's.
-    tic_fs_deldir(Fs, "/downloads");
+    teardown();
+    puts("site cart ok");
+}
+
+// A failed load leaves the listing in place, reports the result's message and
+// does not run the cart.
+static void testFailedLoad(void)
+{
+    setup();
+
+    openSiteFolder();
+    press(tic_key_down);
+    settle();
+
+    press(tic_key_return);
+    settle();
+
+    assert(LoadCartCalls == 1);
+    assert(RunCalls == 0);
+
+    LoadDone((fs_result){FS_OFFLINE, "no network"}, LoadDoneData);
+    settle();
+
+    assert(RunCalls == 0);
+    assert(strcmp(dirName(), TIC_HOST) == 0);
+    assert(Screen->menu.count == 2);
+    assert(strcmp(Screen->message, "no network") == 0);
+
+    // The next load clears the message and plays.
+    press(tic_key_return);
+    settle();
+    assert(LoadCartCalls == 2);
+
+    LoadDone((fs_result){FS_OK, NULL}, LoadDoneData);
+    assert(RunCalls == 1);
+    assert(Screen->message[0] == '\0');
 
     teardown();
-    puts("site listing ok");
+    puts("failed load ok");
 }
 
 static void testLocalCart(void)
@@ -481,6 +568,8 @@ static void testSubfolder(void)
     press(tic_key_return);
     settle();
     assert(strcmp(dirName(), "zzz") == 0);
+    assert(Screen->menu.count == 1);
+    assert(strcmp(Screen->menu.items[0].name, "..") == 0);
 
     press(tic_key_backspace);
     settle();
@@ -518,30 +607,20 @@ static void testExit(void)
 
 int main(void)
 {
-    // A root of this run's own: two runs never share one.
     char root[] = "/tmp/tic80-surf-XXXXXX";
     assert(mkdtemp(root));
 
     Fs = tic_fs_create(root, NULL);
     assert(Fs);
 
+    tic_fs_set_mount(Fs, &FakeMount);
+
     Tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
     assert(Tic);
 
-    // A cart of the test's own and a folder to walk into; the screen makes the
-    // cache folder where it always does.
-    {
-        u8* buffer = malloc(TIC_CART_SAVE_SIZE);
-        tic_cartridge cart = {0};
-
-        s32 size = tic_cart_save(&cart, buffer);
-        assert(fs_write(tic_fs_path(Fs, "local.tic"), buffer, size));
-
-        free(buffer);
-        tic_fs_makedir(Fs, "zzz");
-    }
-
-    testSiteListing();
+    testListing();
+    testSiteCart();
+    testFailedLoad();
     testLocalCart();
     testConfirm();
     testSubfolder();
@@ -549,11 +628,6 @@ int main(void)
 
     tic_core_close(Tic);
 
-    tic_fs_delfile(Fs, "local.tic");
-    tic_fs_deldir(Fs, "zzz");
-    tic_fs_deldir(Fs, "/downloads");
-    tic_fs_deldir(Fs, TIC_CACHE);
-    tic_fs_deldir(Fs, TIC_LOCAL);
     tic_fs_deldir(Fs, "");
 
     puts("surf ok");
