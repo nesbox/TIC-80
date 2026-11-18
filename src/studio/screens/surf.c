@@ -26,7 +26,6 @@
 #include "studio/fs.h"
 #include "studio/keyboard.h"
 #include "studio/layout.h"
-#include "studio/net.h"
 #include "studio/paths.h"
 #include "studio/ram.h"
 #include "studio/sound.h"
@@ -55,33 +54,15 @@
 #define COVER_FADEIN  96
 #define COVER_FADEOUT 256
 
-// Cover requests the browser may have in flight at once.
-#define COVERS_IN_FLIGHT 2
-
-// How long a cover the site did not give is left alone before it is asked for
+// How long a cover the mount did not give is left alone before it is asked for
 // again, while its item stays under the cursor.
 #define COVER_RETRY_TICKS (TIC80_FRAMERATE * 5)
-#define CAN_OPEN_URL      (__TIC_WINDOWS__ || __TIC_LINUX__ || __TIC_MACOSX__ || __TIC_ANDROID__)
+
+// Cover requests the browser may have in flight at once.
+#define COVERS_IN_FLIGHT 2
+#define CAN_OPEN_URL     (__TIC_WINDOWS__ || __TIC_LINUX__ || __TIC_MACOSX__ || __TIC_ANDROID__)
 
 static const char* PngExt = PNG_EXT;
-
-typedef struct SurfItem SurfItem;
-
-struct SurfItem
-{
-    char* label;
-    char* name;
-    char* hash;
-    s32 id;
-    tic_screen* cover;
-
-    tic_palette* palette;
-
-    bool coverLoading;
-    s32 coverRetry;
-    bool dir;
-    bool project;
-};
 
 typedef struct
 {
@@ -172,7 +153,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
 #ifdef CAN_OPEN_URL
 
-    if(surf->menu.count > 0 && getMenuItem(surf)->hash)
+    if(surf->menu.count > 0 && getMenuItem(surf)->token)
     {
         enum
         {
@@ -223,13 +204,14 @@ static inline void cutExt(char* name, const char* ext)
     name[strlen(name) - strlen(ext)] = '\0';
 }
 
-static bool addMenuItem(const char* name, const char* title, const char* hash, s32 id, void* ptr, bool dir)
+static bool addMenuItem(const fs_item* entry, void* ptr)
 {
     AddMenuItemData* data = (AddMenuItemData*)ptr;
+    const char* name = entry->name;
 
     static const char CartExt[] = CART_EXT;
 
-    if(dir || tic_tool_has_ext(name, CartExt) || tic_tool_has_ext(name, PngExt)
+    if(entry->dir || tic_tool_has_ext(name, CartExt) || tic_tool_has_ext(name, PngExt)
 #if defined(TIC80_PRO)
        || tic_tool_is_project(name)
 #endif
@@ -240,12 +222,11 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
 
         *item = (SurfItem){
             .name = strdup(name),
-            .hash = hash ? strdup(hash) : NULL,
-            .id = id,
-            .dir = dir,
+            .token = entry->dir ? 0 : entry->token,
+            .dir = entry->dir,
         };
 
-        if(dir)
+        if(entry->dir)
         {
             char folder[TICNAME_MAX];
             sprintf(folder, "[%s]", name);
@@ -253,41 +234,18 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
         }
         else
         {
-            item->label = title ? strdup(title) : strdup(name);
+            // The site's name is the title plus the cart extension, so the
+            // label loses it whether it came from the title or the name.
+            item->label = entry->title ? strdup(entry->title) : strdup(name);
 
-            if(tic_tool_has_ext(name, CartExt))
+            if(tic_tool_has_ext(name, CartExt) && strlen(item->label) > strlen(CartExt))
                 cutExt(item->label, CartExt);
-            else
+            else if(!tic_tool_has_ext(name, CartExt))
                 item->project = true;
         }
     }
 
     return true;
-}
-
-static s32 casecmp(const char* str1, const char* str2)
-{
-    while(*str1 && *str2)
-    {
-        if(tolower((u8)*str1) != tolower((u8)*str2))
-            break;
-
-        ++str1;
-        ++str2;
-    }
-
-    return (s32)((u8)tolower((u8)(*str1)) - (u8)tolower((u8)(*str2)));
-}
-
-static int itemcmp(const void* a, const void* b)
-{
-    const SurfItem* item1 = a;
-    const SurfItem* item2 = b;
-
-    if(item1->dir != item2->dir)
-        return item1->dir ? -1 : 1;
-
-    return casecmp(item1->name, item2->name);
 }
 
 static void freeMenuItems(SurfItem* items, s32 count)
@@ -298,7 +256,6 @@ static void freeMenuItems(SurfItem* items, s32 count)
 
         free(item->name);
 
-        FREE(item->hash);
         FREE(item->cover);
         FREE(item->label);
         FREE(item->palette);
@@ -307,8 +264,10 @@ static void freeMenuItems(SurfItem* items, s32 count)
     free(items);
 }
 
-static void addMenuItemsDone(void* data)
+static void addMenuItemsDone(const fs_usage* usage, fs_result result, void* data)
 {
+    (void)usage;
+
     AddMenuItemData* addMenuItemData = data;
     Surf* surf = addMenuItemData->surf;
 
@@ -323,13 +282,16 @@ static void addMenuItemsDone(void* data)
         surf->menu.items = addMenuItemData->items;
         surf->menu.count = addMenuItemData->count;
 
-        if(!tic_fs_ispubdir(surf->fs))
-            qsort(surf->menu.items, surf->menu.count, sizeof *surf->menu.items, itemcmp);
-
         if(surf->menu.pos >= surf->menu.count)
             surf->menu.pos = 0;
 
         surf->loading = false;
+
+        if(result.code != FS_OK)
+            snprintf(surf->message, sizeof surf->message, "%s",
+                     result.message ? result.message : "could not list the folder");
+        else
+            surf->message[0] = '\0';
     }
     else
         freeMenuItems(addMenuItemData->items, addMenuItemData->count);
@@ -389,8 +351,7 @@ typedef struct
 {
     Surf* surf;
     s32 pos;
-    char hash[TICNAME_MAX];
-    char cachePath[TICNAME_MAX];
+    char name[TICNAME_MAX];
     char dir[TICNAME_MAX];
 } CoverLoadingData;
 
@@ -406,151 +367,67 @@ static SurfItem* coverItem(Surf* surf, const CoverLoadingData* data)
     char dir[TICNAME_MAX];
     tic_fs_dir(surf->fs, dir);
 
-    return strcmp(dir, data->dir) == 0 && item->hash && strcmp(item->hash, data->hash) == 0
-               ? item
-               : NULL;
+    return strcmp(dir, data->dir) == 0 && strcmp(item->name, data->name) == 0 ? item : NULL;
 }
 
-static void coverLoaded(const net_get_data* netData)
+static void coverLoaded(const u8* bytes, s32 size, fs_result result, void* data)
 {
-    CoverLoadingData* coverLoadingData = netData->calldata;
-    Surf* surf = coverLoadingData->surf;
+    CoverLoadingData* cover = data;
+    Surf* surf = cover->surf;
+    SurfItem* item = coverItem(surf, cover);
 
-    if(netData->type == net_get_done)
+    if(surf->coversInFlight > 0)
+        surf->coversInFlight--;
+
+    if(result.code == FS_OK)
     {
-        tic_fs_saveroot(surf->fs, coverLoadingData->cachePath, netData->done.data, netData->done.size, false);
-
-        if(coverItem(surf, coverLoadingData))
-            updateMenuItemCover(surf, coverLoadingData->pos, netData->done.data, netData->done.size);
+        if(item)
+            updateMenuItemCover(surf, cover->pos, bytes, size);
+    }
+    else if(item)
+    {
+        // A cover the mount did not give is asked for again later, not every frame.
+        item->coverLoading = false;
+        item->coverRetry = surf->ticks + COVER_RETRY_TICKS;
     }
 
-    switch(netData->type)
-    {
-        case net_get_done:
-        case net_get_error:
-
-            // A cover the site did not give is asked for again later, rather than
-            // staying blank for the session — but not before the retry is due, or
-            // a cursor resting on one item would ask the site every frame. The
-            // failed request leaves the item free to ask again.
-            if(netData->type == net_get_error)
-            {
-                SurfItem* item = coverItem(surf, coverLoadingData);
-
-                if(item)
-                {
-                    item->coverLoading = false;
-                    item->coverRetry = surf->ticks + COVER_RETRY_TICKS;
-                }
-            }
-
-            if(surf->coversInFlight > 0)
-                surf->coversInFlight--;
-
-            free(coverLoadingData);
-            break;
-        default: break;
-    }
+    free(cover);
 }
 
 static void requestCover(Surf* surf, SurfItem* item)
 {
-    const char* hash = item->hash;
+    item->coverLoading = true;
 
-    char cachePath[TICNAME_MAX];
-    sprintf(cachePath, TIC_CACHE "%s.gif", hash);
+    CoverLoadingData* data = malloc(sizeof(CoverLoadingData));
 
+    if(!data)
     {
-        s32 size = 0;
-        void* data = tic_fs_loadroot(surf->fs, cachePath, &size);
-
-        if(data)
-        {
-            // The cache answers for the site, and nothing is asked over the
-            // network: a folder read through once costs no requests at all.
-            item->coverLoading = true;
-            updateMenuItemCover(surf, surf->menu.pos, data, size);
-            free(data);
-            return;
-        }
+        item->coverLoading = false;
+        return;
     }
+
+    *data = (CoverLoadingData){.surf = surf, .pos = surf->menu.pos};
+    snprintf(data->name, sizeof data->name, "%s", item->name);
+    tic_fs_dir(surf->fs, data->dir);
+
+    surf->coversInFlight++;
+
+    tic_fs_cover(surf->fs, item->name, coverLoaded, data);
+}
+
+static void loadCover(Surf* surf)
+{
+    SurfItem* item = getMenuItem(surf);
+
+    if(item->dir || item->coverLoading || surf->ticks < item->coverRetry || item->cover)
+        return;
 
     // A handful of pending covers is what the browser can hold without the
     // folder listings and downloads queueing behind them.
     if(surf->coversInFlight >= COVERS_IN_FLIGHT)
         return;
 
-    item->coverLoading = true;
-    surf->coversInFlight++;
-
-    CoverLoadingData coverLoadingData = {.surf = surf, .pos = surf->menu.pos};
-    strcpy(coverLoadingData.hash, hash);
-    strcpy(coverLoadingData.cachePath, cachePath);
-    tic_fs_dir(surf->fs, coverLoadingData.dir);
-
-    char path[TICNAME_MAX];
-    sprintf(path, "/cart/%s/cover.gif", hash);
-
-    tic_net_get(surf->net, path, coverLoaded, MOVE(coverLoadingData));
-}
-
-static void loadCover(Surf* surf)
-{
-
-    SurfItem* item = getMenuItem(surf);
-
-    if(item->coverLoading || surf->ticks < item->coverRetry)
-        return;
-
-    if(!tic_fs_ispubdir(surf->fs))
-    {
-        item->coverLoading = true;
-
-        s32 size = 0;
-        void* data = tic_fs_load(surf->fs, item->name, &size);
-
-        if(data)
-        {
-            tic_cartridge* cart = (tic_cartridge*)malloc(sizeof(tic_cartridge));
-
-            if(cart)
-            {
-
-                if(tic_tool_has_ext(item->name, PngExt))
-                {
-                    tic_cartridge* pngcart = loadPngCart((png_buffer){data, size});
-
-                    if(pngcart)
-                    {
-                        memcpy(cart, pngcart, sizeof(tic_cartridge));
-                        free(pngcart);
-                    }
-                    else
-                        memset(cart, 0, sizeof(tic_cartridge));
-                }
-#if defined(TIC80_PRO)
-                else if(tic_tool_is_project(item->name))
-                    tic_project_load(item->name, data, size, cart);
-#endif
-                else
-                    tic_cart_load(cart, data, size);
-
-                if(!EMPTY(cart->bank0.screen.data) && !EMPTY(cart->bank0.palette.vbank0.data))
-                {
-                    memcpy((item->palette = malloc(sizeof(tic_palette))), &cart->bank0.palette.vbank0, sizeof(tic_palette));
-                    memcpy((item->cover = malloc(sizeof(tic_screen))), &cart->bank0.screen, sizeof(tic_screen));
-                }
-
-                free(cart);
-            }
-
-            free(data);
-        }
-    }
-    else if(item->hash && !item->cover)
-    {
-        requestCover(surf, item);
-    }
+    requestCover(surf, item);
 }
 
 static void initItemsAsync(Surf* surf, fs_done_callback callback, void* calldata)
@@ -568,9 +445,12 @@ static void initItemsAsync(Surf* surf, fs_done_callback callback, void* calldata
     strcpy(data.dir, dir);
 
     if(strcmp(dir, "") != 0)
-        addMenuItem("..", NULL, NULL, 0, &data, true);
+    {
+        fs_item parent = {"..", NULL, true, -1, 0, 0};
+        addMenuItem(&parent, &data);
+    }
 
-    tic_fs_enum(surf->fs, addMenuItem, addMenuItemsDone, MOVE(data));
+    tic_fs_list(surf->fs, "", addMenuItem, addMenuItemsDone, MOVE(data));
 }
 
 typedef struct
@@ -677,9 +557,21 @@ static void autoSave(Surf* surf)
     surf->deps.autoSave(surf->deps.host);
 }
 
-static void onCartLoaded(void* data)
+static void onCartLoaded(fs_result result, void* data)
 {
     Surf* surf = data;
+
+    if(result.code != FS_OK)
+    {
+        snprintf(surf->message, sizeof surf->message, "%s",
+                 result.message ? result.message : "cart not loaded");
+
+        // The play movie is over without a cart: the browser comes back.
+        surf->anim.movie = resetMovie(&surf->anim.show);
+        return;
+    }
+
+    surf->message[0] = '\0';
 
     if(surf->config->data.options.autosave)
     {
@@ -697,15 +589,8 @@ static void onLoadCommandConfirmed(void* host, bool yes, void* data)
         Surf* surf = data;
         SurfItem* item = getMenuItem(surf);
 
-        if(item->hash)
-        {
-            surf->deps.loadByHash(surf->deps.host, item->name, item->hash, NULL, onCartLoaded, surf);
-        }
-        else
-        {
-            surf->deps.loadCart(surf->deps.host, item->name);
-            surf->deps.run(surf->deps.host);
-        }
+        // One load entry for every mount; the cart runs when the host answers.
+        surf->deps.loadCart(surf->deps.host, item->name, onCartLoaded, surf);
     }
 }
 
@@ -725,7 +610,7 @@ static void loadCart(Surf* surf)
     if(tic_tool_has_ext(item->name, PngExt))
     {
         s32 size = 0;
-        void* data = tic_fs_load(surf->fs, item->name, &size);
+        void* data = fs_read(tic_fs_path(surf->fs, item->name), &size);
 
         if(data)
         {
@@ -831,12 +716,8 @@ static void processGamepad(Surf* surf)
             {
                 SurfItem* item = getMenuItem(surf);
 
-                if(!item->dir)
-                {
-                    char url[TICNAME_MAX];
-                    sprintf(url, TIC_WEBSITE "/play?cart=%i", item->id);
-                    tic_sys_open_url(url);
-                }
+                if(item->token)
+                    surf->deps.openItemPage(surf->deps.host, item->token);
             }
 #endif
         }
@@ -912,12 +793,20 @@ static void tick(Surf* surf)
 
         drawTopToolbar(surf, 0, surf->anim.val.topBarY - MENU_HEIGHT);
         drawBottomToolbar(surf, 0, TIC80_HEIGHT - surf->anim.val.bottomBarY);
+
+        if(surf->message[0])
+        {
+            s32 size = tic_api_print(tic, surf->message, 0, -TIC_FONT_HEIGHT, tic_color_red, true, 1, false);
+            tic_api_print(tic, surf->message, (TIC80_WIDTH - size) / 2,
+                          TIC80_HEIGHT - 2 * MENU_HEIGHT - TIC_FONT_HEIGHT, tic_color_red, true, 1, false);
+        }
     }
 }
 
 static void resume(Surf* surf)
 {
     surf->anim.movie = resetMovie(&surf->anim.show);
+    surf->message[0] = '\0';
 }
 
 // The cover's palette is faded in as its cart is picked.
@@ -990,7 +879,6 @@ void surf_init(Surf* surf, const SurfDeps* deps)
         .tic = deps->tic,
         .config = deps->config,
         .fs = deps->fs,
-        .net = deps->net,
         .tick = tick,
         .ticks = 0,
         .init = false,
@@ -1054,8 +942,6 @@ void surf_init(Surf* surf, const SurfDeps* deps)
     };
 
     surf->anim.movie = resetMovie(&surf->anim.idle);
-
-    tic_fs_makedir(surf->fs, TIC_CACHE);
 }
 
 void surf_free(Surf* surf)

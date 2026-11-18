@@ -1,8 +1,10 @@
 /* The studio's three services without the studio: a filesystem on its own
  * temporary root, a config written and read back, and a cart saved, reloaded,
- * auto-saved and loaded by hash — every notification recorded by the test. */
+ * auto-saved and loaded from a path and from the site — every notification
+ * recorded by the test. */
 #include "studio/fs.h"
 #include "studio/config.h"
+#include "studio/net.h"
 #include "studio/rom.h"
 #include "studio/paths.h"
 #include "core/core.h"
@@ -12,6 +14,44 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+// The test's network: a request is held until the test answers it; no socket opens.
+static net_get_callback NetCallback;
+static void* NetCalldata;
+static char NetUrl[TICNAME_MAX];
+
+void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+{
+    (void)net;
+    assert(!NetCallback);
+
+    NetCallback = callback;
+    NetCalldata = calldata;
+    snprintf(NetUrl, sizeof NetUrl, "%s", url);
+}
+
+static void answerNetData(const void* data, s32 size)
+{
+    assert(NetCallback);
+
+    net_get_callback callback = NetCallback;
+    void* calldata = NetCalldata;
+    NetCallback = NULL;
+
+    net_get_data answer = {
+        .type = net_get_done,
+        .done = {.size = size, .data = (u8*)data},
+        .calldata = calldata,
+        .url = NetUrl,
+    };
+
+    callback(&answer);
+}
+
+static void answerNetJson(const char* json)
+{
+    answerNetData(json, (s32)strlen(json));
+}
 
 // The host the services notify; every callback lands here.
 typedef struct
@@ -72,6 +112,43 @@ static void onEnumDone(void* data)
     ((EnumData*)data)->done = true;
 }
 
+static void onSaveDone(const char* name, fs_result result, void* data)
+{
+    (void)name;
+    *(bool*)data = result.code == FS_OK;
+}
+
+static bool saveFile(tic_fs* fs, const char* name, const void* data, s32 size)
+{
+    bool saved = false;
+    tic_fs_save(fs, name, data, size, onSaveDone, &saved);
+    return saved;
+}
+
+typedef struct
+{
+    u8 bytes[TICNAME_MAX];
+    s32 size;
+    fs_result result;
+} ReadAnswer;
+
+static void onReadDone(const char* name, const u8* bytes, s32 size, fs_result result, void* data)
+{
+    (void)name;
+
+    ReadAnswer* read = data;
+    read->result = result;
+    read->size = MIN(size, (s32)sizeof read->bytes);
+    memcpy(read->bytes, bytes, read->size);
+}
+
+static ReadAnswer readFile(tic_fs* fs, const char* name)
+{
+    ReadAnswer read = {0};
+    tic_fs_load(fs, name, onReadDone, &read);
+    return read;
+}
+
 static void testFilesystem(tic_fs* fs)
 {
     const char* name = "fs-smoke.tic";
@@ -79,18 +156,16 @@ static void testFilesystem(tic_fs* fs)
 
     tic_fs_delfile(fs, name);
 
-    assert(tic_fs_save(fs, name, payload, sizeof payload, false));
+    assert(saveFile(fs, name, payload, sizeof payload));
     assert(tic_fs_exists(fs, name));
 
-    // Without overwrite the second save is refused, not silently allowed.
-    assert(!tic_fs_save(fs, name, payload, sizeof payload, false));
+    // A save replaces what the name held.
+    assert(saveFile(fs, name, payload, sizeof payload));
 
-    s32 size = 0;
-    u8* data = tic_fs_load(fs, name, &size);
-    assert(data);
-    assert(size == (s32)sizeof payload);
-    assert(memcmp(data, payload, sizeof payload) == 0);
-    free(data);
+    ReadAnswer read = readFile(fs, name);
+    assert(read.result.code == FS_OK);
+    assert(read.size == (s32)sizeof payload);
+    assert(memcmp(read.bytes, payload, sizeof payload) == 0);
 
     EnumData enumData = {0};
     tic_fs_enum(fs, onEnumItem, onEnumDone, &enumData);
@@ -160,10 +235,36 @@ static void testConfig(tic_mem* tic, tic_fs* fs)
     puts("config ok");
 }
 
-static void onHashDone(void* data)
+typedef struct
 {
-    *(bool*)data = true;
+    bool done;
+    fs_result result;
+} LoadAnswer;
+
+static void onLoadAnswer(fs_result result, void* data)
+{
+    LoadAnswer* answer = data;
+    answer->done = true;
+    answer->result = result;
 }
+
+typedef struct
+{
+    bool done;
+    char name[TICNAME_MAX];
+    fs_result result;
+} SaveAnswer;
+
+static void onSaveAnswer(const char* name, fs_result result, void* data)
+{
+    SaveAnswer* answer = data;
+    answer->done = true;
+    snprintf(answer->name, sizeof answer->name, "%s", name ? name : "");
+    answer->result = result;
+}
+
+static const char SiteCartListing[] =
+    "{\"folders\":[],\"files\":[{\"name\":\"Site Cart\",\"hash\":\"abc\",\"filename\":\"site.tic\",\"id\":1}]}";
 
 static void testCart(tic_mem* tic, tic_fs* fs)
 {
@@ -190,21 +291,43 @@ static void testCart(tic_mem* tic, tic_fs* fs)
     // A cart with a byte the reload has to bring back.
     tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0xa);
 
-    // The saved name gets its extension, the identity takes it, the host hears.
-    assert(rom_save_cart(&deps, "smoke") == CART_SAVE_OK);
+    // The save serializes in the host and the filesystem writes it; the stored
+    // name becomes the identity and the host hears when it has.
+    SaveAnswer saved = {0};
+    rom_save_cart(&deps, "smoke", onSaveAnswer, &saved);
+    assert(saved.done);
+    assert(saved.result.code == FS_OK);
+    assert(strcmp(saved.name, "smoke.tic") == 0);
     assert(host.saved == 1);
     assert(strcmp(cart.name, "smoke.tic") == 0);
     assert(strcmp(cart.path, tic_fs_path(fs, "smoke.tic")) == 0);
+
+    // A refused write answers its message and leaves the identity alone.
+    {
+        SaveAnswer refused = {0};
+        rom_save_cart(&deps, "missing/smoke.tic", onSaveAnswer, &refused);
+        assert(refused.done);
+        assert(refused.result.code == FS_NOT_FOUND);
+        assert(host.saved == 1);
+        assert(strcmp(cart.name, "smoke.tic") == 0);
+    }
 
     tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0);
     rom_reload_cart(&deps);
     assert(host.loaded == 1);
     assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
 
-    // The autosave goes to its own folder under the same name.
-    assert(rom_autosave(&deps) == CART_SAVE_OK);
-    assert(host.saved == 2);
-    assert(tic_fs_exists(fs, "downloads/smoke.tic"));
+    // The autosave goes to its own folder through the same call.
+    {
+        SaveAnswer autosaved = {0};
+        rom_autosave(&deps, onSaveAnswer, &autosaved);
+        assert(autosaved.done);
+        assert(autosaved.result.code == FS_OK);
+        assert(strcmp(autosaved.name, "smoke.tic") == 0);
+        assert(host.saved == 2);
+        assert(tic_fs_exists(fs, "downloads/smoke.tic"));
+        assert(strcmp(cart.path, tic_fs_path(fs, "downloads/smoke.tic")) == 0);
+    }
 
     // A load by name reads the file into the machine and resets the identity.
     tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0);
@@ -213,26 +336,160 @@ static void testCart(tic_mem* tic, tic_fs* fs)
     assert(strcmp(cart.name, "smoke.tic") == 0);
     assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
 
-    // A cached cart loads by hash with no network at all.
+    // The site: list, hash lookup and fetch are the filesystem's; its name is the cart's.
     {
-        s32 size = 0;
-        u8* data = tic_fs_load(fs, "smoke.tic", &size);
-        assert(data);
-        assert(tic_fs_saveroot(fs, TIC_CACHE "hash-cache.tic", data, size, true));
-        free(data);
+        u8* buffer = malloc(TIC_CART_SAVE_SIZE);
+        assert(buffer);
+
+        s32 size = tic_cart_save(&tic->cart, buffer);
+        assert(size > 0);
+
+        tic_fs_changedir(fs, TIC_HOST);
+
+        s32 loaded = host.loaded;
+        LoadAnswer answer = {0};
+
+        rom_load_cart_async(&deps, "site.tic", onLoadAnswer, &answer);
+        assert(!answer.done);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+
+        answerNetJson(SiteCartListing);
+        assert(strcmp(NetUrl, "/cart/abc/site.tic") == 0);
+
+        answerNetData(buffer, size);
+        assert(answer.done);
+        assert(answer.result.code == FS_OK);
+        assert(host.loaded == loaded + 1);
+        assert(strcmp(cart.name, "site.tic") == 0);
+        assert(strcmp(cart.path, tic_fs_path(fs, "site.tic")) == 0);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+
+        // The fetched cart is kept in the app's cache.
+        {
+            s32 cached = 0;
+            void* data = tic_fs_loadroot(fs, TIC_CACHE "abc.tic", &cached);
+            assert(data);
+            assert(cached == size);
+            free(data);
+        }
+
+        // A name the cached listing lacks is listed for before the refusal;
+        // the cart stays.
+        {
+            s32 before = host.loaded;
+            LoadAnswer missing = {0};
+
+            rom_load_cart_async(&deps, "missing.tic", onLoadAnswer, &missing);
+            assert(!missing.done);
+            assert(NetCallback);
+            assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+
+            answerNetJson(SiteCartListing);
+            assert(missing.done);
+            assert(!NetCallback);
+            assert(missing.result.code == FS_NOT_FOUND);
+            assert(host.loaded == before);
+            assert(strcmp(cart.name, "site.tic") == 0);
+        }
+
+        // A refused autosave answers its message and leaves the cart as it was.
+        {
+            SaveAnswer refused = {0};
+            s32 saved = host.saved;
+
+            rom_autosave(&deps, onSaveAnswer, &refused);
+            assert(refused.done);
+            assert(refused.result.code == FS_DENIED);
+            assert(host.saved == saved);
+            assert(strcmp(cart.name, "site.tic") == 0);
+        }
+
+        free(buffer);
+        tic_fs_homedir(fs);
     }
 
-    tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0);
-    bool hashDone = false;
-    rom_load_by_hash(&deps, "hash-cart", "hash-cache", NULL, onHashDone, &hashDone);
-    assert(hashDone);
-    assert(host.loaded == 3);
-    assert(strcmp(cart.name, "hash-cart") == 0);
-    assert(strcmp(cart.path, tic_fs_path(fs, "hash-cart")) == 0);
-    assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+    // A file that is not a cart is refused; the machine keeps its cart.
+    {
+        static const char Notes[] = "not a cartridge";
+        assert(fs_write(tic_fs_path(fs, "notes.txt"), Notes, sizeof Notes));
+
+        s32 loaded = host.loaded;
+        assert(!rom_load_cart(&deps, "notes.txt"));
+        assert(host.loaded == loaded);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+
+        LoadAnswer answer = {0};
+        rom_load_cart_async(&deps, "notes.txt", onLoadAnswer, &answer);
+        assert(answer.done);
+        assert(answer.result.code == FS_UNSUPPORTED);
+        assert(host.loaded == loaded);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+
+        tic_fs_delfile(fs, "notes.txt");
+    }
+
+    // A .png that is not a cart is refused too, not loaded as an empty cart.
+    {
+        static const char Garbage[] = "not a png cart";
+        assert(fs_write(tic_fs_path(fs, "bad.png"), Garbage, sizeof Garbage));
+
+        s32 loaded = host.loaded;
+        assert(!rom_load_cart(&deps, "bad.png"));
+        assert(host.loaded == loaded);
+
+        LoadAnswer answer = {0};
+        rom_load_cart_async(&deps, "bad.png", onLoadAnswer, &answer);
+        assert(answer.done);
+        assert(answer.result.code == FS_UNSUPPORTED);
+        assert(host.loaded == loaded);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+
+        tic_fs_delfile(fs, "bad.png");
+    }
+
+    // A drop under the site's cwd is still the process's own file.
+    {
+        u8* buffer = malloc(TIC_CART_SAVE_SIZE);
+        assert(buffer);
+
+        s32 size = tic_cart_save(&tic->cart, buffer);
+        assert(size > 0);
+
+        char dropDir[] = "/tmp/tic80-drop-XXXXXX";
+        assert(mkdtemp(dropDir));
+
+        char drop[TICNAME_MAX];
+        snprintf(drop, sizeof drop, "%s/drop.tic", dropDir);
+        assert(fs_write(drop, buffer, size));
+        free(buffer);
+
+        tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0x5);
+        tic_fs_changedir(fs, TIC_HOST);
+
+        s32 loaded = host.loaded;
+        assert(rom_load_cart(&deps, drop));
+
+        // The site provider held a listing for the dropped path's folder.
+        assert(NetCallback);
+        answerNetJson("{\"folders\":[],\"files\":[]}");
+
+        assert(host.loaded == loaded + 1);
+        assert(strcmp(cart.name, "drop.tic") == 0);
+        assert(strcmp(cart.path, drop) == 0);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
+
+        tic_fs_homedir(fs);
+        assert(remove(drop) == 0);
+        assert(rmdir(dropDir) == 0);
+    }
 
     // The config's own cart is a save like any other, through the same callbacks.
-    assert(rom_save_cart(&deps, CONFIG_TIC_PATH) == CART_SAVE_OK);
+    {
+        SaveAnswer configSaved = {0};
+        rom_save_cart(&deps, CONFIG_TIC_PATH, onSaveAnswer, &configSaved);
+        assert(configSaved.done);
+        assert(configSaved.result.code == FS_OK);
+    }
     assert(host.saved == 3);
     assert(host.changed == 2);
 
@@ -269,7 +526,7 @@ int main(void)
     tic_fs_delfile(fs, "downloads/smoke.tic");
     tic_fs_delfile(fs, CONFIG_TIC_PATH);
     tic_fs_delfile(fs, TIC_LOCAL_VERSION "options.json");
-    tic_fs_delfile(fs, TIC_CACHE "hash-cache.tic");
+    tic_fs_delfile(fs, TIC_CACHE "abc.tic");
     tic_fs_deldir(fs, "downloads");
     tic_fs_deldir(fs, TIC_CACHE);
     tic_fs_deldir(fs, TIC_LOCAL_VERSION);

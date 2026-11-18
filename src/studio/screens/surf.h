@@ -25,29 +25,42 @@
 #include "api.h"
 #include "studio/anim.h"
 #include "studio/fs.h"
-#include "studio/net.h"
 
 typedef struct Surf Surf;
+
+// One cart or folder in the browser's menu.
+typedef struct SurfItem
+{
+    char* label;
+    char* name;
+    tic_screen* cover;
+    tic_palette* palette;
+
+    bool coverLoading;
+    s32 coverRetry;
+    s32 token; // the site's page handle, 0 when the item has no page
+    bool dir;
+    bool project;
+} SurfItem;
 
 // The confirm the host asks: the screen hands its answer back through it.
 typedef void (*SurfConfirm)(void* host, bool yes, void* data);
 
-// What the browser gets once: the machine, its filesystem, net and config, and
-// the host actions it asks for.
+// What the browser gets once: the machine, its filesystem and config, and the
+// host actions it asks for.
 typedef struct
 {
     void* host;
     tic_mem* tic;
     tic_fs* fs;
-    tic_net* net;
     struct Config* config;
 
-    void (*loadCart)(void* host, const char* name);
-    void (*loadByHash)(void* host, const char* name, const char* hash,
-                       const char* section, fs_done_callback done, void* data);
+    // The one load entry for every mount; the host answers with the load result.
+    void (*loadCart)(void* host, const char* name, fs_done_cb done, void* data);
     void (*autoSave)(void* host);
     bool (*cartChanged)(void* host);
     void (*confirmLoadCart)(void* host, SurfConfirm callback, void* data);
+    void (*openItemPage)(void* host, s32 token); // the page for a listed cart's token
     void (*run)(void* host);
     void (*exit)(void* host);
     bool (*isActive)(void* host);
@@ -59,16 +72,14 @@ struct Surf
 
     tic_mem* tic;
     struct tic_fs* fs;
-    struct tic_net* net;
     struct Config* config;
 
     bool init;
     bool loading;
     s32 ticks;
+    s32 coversInFlight; // cover requests the screen may keep pending at once
 
-    // Cover requests the site has not answered yet, so the browser cannot
-    // hold every connection slot with them, see requestCover().
-    s32 coversInFlight;
+    char message[TICNAME_MAX]; // the last failure the browser has to report
 
     struct
     {

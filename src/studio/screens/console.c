@@ -672,6 +672,13 @@ static void clearSelection(Console* console)
 static void commandDoneLine(Console* console, bool newLine)
 {
     console->progressLine = -1;
+    console->fsPending = false;
+
+    if(console->counting)
+    {
+        console->counting = false;
+        console->commands.current++;
+    }
 
     if(!console->args.cli)
     {
@@ -700,6 +707,36 @@ static void commandDoneLine(Console* console, bool newLine)
 static void commandDone(Console* console)
 {
     commandDoneLine(console, true);
+}
+
+// One filesystem operation per command: the next command waits for its answer.
+static void fsBegin(Console* console)
+{
+    console->fsPending = true;
+}
+
+// The one result renderer: a session that ended points at signing in.
+static void printFsError(Console* console, fs_result result)
+{
+    printError(console, "\n");
+
+    if(result.code == FS_SESSION)
+        printError(console, "the session ended, please sign in");
+    else
+        printError(console, result.message ? result.message : "the operation failed");
+
+    printLine(console);
+}
+
+static void printFsUsage(Console* console, const fs_usage* usage)
+{
+    if(usage && usage->has_usage)
+    {
+        char line[96];
+        snprintf(line, sizeof line, "\n%d/%d carts, %lld/%lld bytes", usage->count, usage->max_count,
+                 (long long)usage->bytes, (long long)usage->max_bytes);
+        printBack(console, line);
+    }
 }
 
 // The console reports what it wants and the host serves it after the tick; what
@@ -952,84 +989,112 @@ static inline tic_cartridge* newCart()
     return malloc(sizeof(tic_cartridge));
 }
 
-static void onFetched(Console* console, const ConsoleAnswer* answer)
-{
-    printCartLoaded(console, answer->name);
-
-    if(console->fetch.callback)
-        console->fetch.callback(console->fetch.calldata);
-
-    commandDone(console);
-}
-
-static void loadByHash(Console* console, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data)
-{
-    console->active = false;
-
-    console->fetch.callback = callback;
-    console->fetch.calldata = data;
-
-    // The ask is served a frame from now, and whoever asked is free to let its
-    // strings go in the meantime — the public-directory path does.
-    strcpy(console->fetch.name, name);
-    strcpy(console->fetch.hash, hash);
-    console->fetch.section[0] = '\0';
-    if(section)
-        strcpy(console->fetch.section, section);
-
-    console->ask = (ConsoleAsk){
-        .kind = CONSOLE_ASK_CART_FETCH,
-        .name = console->fetch.name,
-        .hash = console->fetch.hash,
-        .section = section ? console->fetch.section : NULL,
-    };
-
-    console->onAnswer = onFetched;
-}
-
 typedef struct
 {
     Console* console;
-    char* name;
-    char* hash;
-    char* section;
-} LoadPublicCartData;
+    char name[TICNAME_MAX];    // the cart name the console derived
+    char param[TICNAME_MAX];   // the name as typed
+    char section[TICNAME_MAX]; // the section to replace, empty for a whole cart
+    bool retried;              // the typed name was tried after the derived one
+} LoadCartData;
 
-static bool compareFilename(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+static void onLoadDone(const char* name, const u8* bytes, s32 size, fs_result result, void* data)
 {
-    (void)dir;
-    (void)id;
-    (void)title;
-    LoadPublicCartData* loadPublicCartData = data;
+    LoadCartData* load = data;
+    Console* console = load->console;
+    const char* section = *load->section ? load->section : NULL;
 
-    if(strcmp(name, loadPublicCartData->name) == 0 && hash && strlen(hash))
+    if(result.code != FS_OK)
     {
-        loadPublicCartData->hash = strdup(hash);
-        return false;
+        // A typed PNG/project extension gets its own try, as before one call.
+        if(!load->retried && strcmp(load->param, load->name) != 0 &&
+           (tic_tool_has_ext(load->param, PngExt) || tic_tool_is_project(load->param)))
+        {
+            load->retried = true;
+            tic_fs_load(console->fs, load->param, onLoadDone, load);
+            return;
+        }
+
+        printFsError(console, result);
+        commandDone(console);
+        free(load);
+        return;
     }
 
-    return true;
-}
+    tic_cartridge* cart = newCart();
 
-static void fileFound(void* data)
-{
-    LoadPublicCartData* loadPublicCartData = data;
-    Console* console = loadPublicCartData->console;
+    if(cart)
+    {
+        bool loaded = false;
 
-    if(loadPublicCartData->hash)
-        loadByHash(console, loadPublicCartData->name, loadPublicCartData->hash, loadPublicCartData->section, NULL, NULL);
+        if(tic_tool_has_ext(name, PngExt))
+        {
+            tic_cartridge* png = loadPngCart((png_buffer){(u8*)bytes, size});
+
+            if(png)
+            {
+                memcpy(cart, png, sizeof(tic_cartridge));
+                free(png);
+                loaded = true;
+            }
+            else
+            {
+                printError(console, "\npng cart loading error");
+                printLine(console);
+            }
+        }
+#if defined(TIC80_PRO)
+        else if(tic_tool_is_project(name))
+        {
+            loaded = tic_project_load(name, (const char*)bytes, size, cart);
+
+            if(!loaded)
+            {
+                printError(console, "\nproject loading error");
+                printLine(console);
+            }
+        }
+#else
+        else if(tic_tool_is_project(name))
+        {
+            printError(console, "\nproject loading error");
+            printFront(console, "\nThis version only supports binary .png or .tic cartridges.");
+            printLine(console);
+            printFront(console, "\nTIC-80 ");
+            consolePrint(console, "PRO", tic_color_light_blue);
+            printFront(console, " is needed for text files.");
+            printLine(console);
+            printFront(console, "\nLearn more:\n");
+            printLink(console, "https://tic80.com/pro");
+        }
+#endif
+        else
+        {
+            tic_cart_load(cart, bytes, size);
+            loaded = true;
+        }
+
+        if(loaded)
+        {
+            // The ask outlives the answer: the name is the console's own now.
+            snprintf(console->loadedName, sizeof console->loadedName, "%s", name);
+
+            tic_tool_load_section(console->tic, cart, section);
+            onCartLoaded(console, console->loadedName, section);
+        }
+
+        free(cart);
+
+        if(!loaded)
+            commandDone(console);
+    }
     else
     {
-        char msg[TICNAME_MAX];
-        sprintf(msg, "\nerror: `%s` file not loaded", loadPublicCartData->name);
-        printError(console, msg);
+        printFsError(console, result);
         commandDone(console);
     }
 
-    FREE(loadPublicCartData->name);
-    FREE(loadPublicCartData->hash);
-    FREE(loadPublicCartData->section);
-    FREE(loadPublicCartData);
+    free(load);
 }
 
 static bool printUsage(Console* console, const char* command);
@@ -1037,9 +1102,9 @@ static bool printUsage(Console* console, const char* command);
 static void onLoadCommandConfirmed(Console* console, const void* data)
 {
     (void)data;
+
     if(console->desc->count > 0)
     {
-
         const char* param = console->desc->params->key;
         const char* name = tic_tool_cart_name(param);
         const char* section = console->desc->count > 1 ? console->desc->params[1].key : NULL;
@@ -1073,103 +1138,62 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
             }
         }
 
-        if(tic_fs_ispubdir(console->fs))
         {
-            LoadPublicCartData loadPublicCartData = {console, strdup(name), NULL, section ? strdup(section) : NULL};
-            tic_fs_enum(console->fs, compareFilename, fileFound, MOVE(loadPublicCartData));
+            LoadCartData* load = calloc(1, sizeof(LoadCartData));
 
-            return;
-        }
-        else
-        {
-            s32 size = 0;
-            void* buf = strcmp(name, CONFIG_TIC_PATH) == 0
-                            ? tic_fs_loadroot(console->fs, name, &size)
-                            : tic_fs_load(console->fs, name, &size);
+            if(!load)
+            {
+                printError(console, "\nout of memory");
+                printLine(console);
+                commandDone(console);
+                return;
+            }
 
-            if(buf) SCOPE(free(buf))
-                {
-                    tic_cartridge* cart = newCart();
+            load->console = console;
+            strcpy(load->name, name);
+            strcpy(load->param, param);
+            if(section)
+                strcpy(load->section, section);
 
-                    SCOPE(free(cart))
+            // The config is app storage, not a mount's file.
+            if(strcmp(name, CONFIG_TIC_PATH) == 0)
+            {
+                s32 size = 0;
+                void* bytes = tic_fs_loadroot(console->fs, name, &size);
+
+                if(bytes) SCOPE(free(bytes))
                     {
-                        tic_cart_load(cart, buf, size);
-                        tic_tool_load_section(console->tic, cart, section);
-                        onCartLoaded(console, name, section);
-                    }
-                }
-            else if(tic_tool_has_ext(param, PngExt) && tic_fs_exists(console->fs, param))
-            {
-                png_buffer buffer;
-                buffer.data = tic_fs_load(console->fs, param, &buffer.size);
+                        tic_cartridge* cart = newCart();
 
-                SCOPE(free(buffer.data))
-                {
-                    tic_cartridge* cart = loadPngCart(buffer);
-
-                    if(cart) SCOPE(free(cart))
+                        SCOPE(free(cart))
                         {
+                            snprintf(console->loadedName, sizeof console->loadedName, "%s", name);
+                            tic_cart_load(cart, bytes, size);
                             tic_tool_load_section(console->tic, cart, section);
-                            onCartLoaded(console, param, section);
+                            onCartLoaded(console, console->loadedName, section);
                         }
-                    else
-                        printError(console, "\npng cart loading error");
-                }
-            }
-            else
-            {
-                const char* path = param;
-
-#if defined(TIC80_PRO)
-                if(tic_tool_is_project(path))
-                {
-                    void* cartData = tic_fs_load(console->fs, path, &size);
-
-                    if(cartData) SCOPE(free(cartData))
-                        {
-                            tic_cartridge* cart = newCart();
-
-                            SCOPE(free(cart))
-                            {
-                                tic_project_load(path, cartData, size, cart);
-                                tic_tool_load_section(console->tic, cart, section);
-                                onCartLoaded(console, path, section);
-                            }
-                        }
-                    else
-                        printError(console, "\nproject loading error");
-                }
+                    }
                 else
+                {
                     printError(console, "\nfile not found");
-#else
-                if(tic_tool_is_project(path))
-                {
-                    printError(console, "\nproject loading error");
-                    printFront(console, "\nThis version only supports binary .png or .tic cartridges.");
                     printLine(console);
-                    printFront(console, "\nTIC-80 ");
-                    consolePrint(console, "PRO", tic_color_light_blue);
-                    printFront(console, " is needed for text files.");
-                    printLine(console);
-                    printFront(console, "\nLearn more:\n");
-                    printLink(console, "https://tic80.com/pro");
-                }
-                else
-                {
-                    printError(console, "\ncart loading error");
+                    commandDone(console);
                 }
 
-#endif
+                free(load);
+                return;
             }
-        }
-    }
-    else
-        printUsage(console, console->desc->command);
 
-    // A load that asked the host for the cart's name finishes on that answer,
-    // where the message and the prompt are printed.
-    if(console->ask.kind == CONSOLE_ASK_NONE)
-        commandDone(console);
+            // One command, one outstanding load: nothing starts until it answers.
+            fsBegin(console);
+            tic_fs_load(console->fs, name, onLoadDone, load);
+        }
+
+        return;
+    }
+
+    printUsage(console, console->desc->command);
+    commandDone(console);
 }
 
 typedef void (*ConsoleConfirmCallback)(Console* console, const void* data);
@@ -1542,15 +1566,12 @@ typedef struct
     s32 count;
 } PrintFileNameData;
 
-static bool printFilename(const char* name, const char* title, const char* hash, s32 id, void* ctx, bool dir)
+static bool printFilename(const fs_item* item, void* ctx)
 {
-    (void)hash;
-    (void)id;
-    (void)title;
     PrintFileNameData* data = ctx;
 
     data->items = realloc(data->items, (data->count + 1) * sizeof *data->items);
-    data->items[data->count++] = (FileItem){strdup(name), dir};
+    data->items[data->count++] = (FileItem){strdup(item->name), item->dir};
 
     return true;
 }
@@ -1580,10 +1601,18 @@ static inline int itemcmp(const void* a, const void* b)
     return casecmp(item1->name, item2->name);
 }
 
-static void onDirDone(void* ctx)
+static void onDirDone(const fs_usage* usage, fs_result result, void* ctx)
 {
     PrintFileNameData* data = ctx;
     Console* console = data->console;
+
+    if(result.code != FS_OK)
+    {
+        printFsError(console, result);
+        free(ctx);
+        commandDone(console);
+        return;
+    }
 
     qsort(data->items, data->count, sizeof *data->items, itemcmp);
 
@@ -1609,8 +1638,10 @@ static void onDirDone(void* ctx)
         printFront(console, "DEMO");
         printBack(console, " command to install demo carts");
     }
-    else
-        free(data->items);
+
+    free(data->items);
+
+    printFsUsage(console, usage);
 
     printLine(console);
     commandDone(console);
@@ -1624,17 +1655,17 @@ typedef struct
     char* name;
 } ChangeDirData;
 
-static void onChangeDirectoryDone(bool dir, void* data)
+static void onChangeDirectoryDone(const fs_item* item, fs_result result, void* data)
 {
     ChangeDirData* changeDirData = data;
     Console* console = changeDirData->console;
 
-    if(dir)
-    {
-        tic_fs_changedir(console->fs, changeDirData->name);
-    }
+    if(result.code != FS_OK)
+        printFsError(console, result);
+    else if(!item->dir)
+        printBack(console, "\nnot a folder");
     else
-        printBack(console, "\ndir doesn't exist");
+        tic_fs_changedir(console->fs, changeDirData->name);
 
     free(changeDirData->name);
     free(changeDirData);
@@ -1658,8 +1689,19 @@ static void onChangeDirectory(Console* console)
         }
         else
         {
-            ChangeDirData data = {console, strdup(param)};
-            tic_fs_isdir_async(console->fs, param, onChangeDirectoryDone, MOVE(data));
+            ChangeDirData* data = malloc(sizeof(ChangeDirData));
+
+            if(!data)
+            {
+                printError(console, "\nout of memory");
+                printLine(console);
+                commandDone(console);
+                return;
+            }
+
+            *data = (ChangeDirData){console, strdup(param)};
+            fsBegin(console);
+            tic_fs_stat(console->fs, param, onChangeDirectoryDone, data);
             return;
         }
     }
@@ -1671,30 +1713,53 @@ static void onChangeDirectory(Console* console)
     commandDone(console);
 }
 
+typedef struct
+{
+    Console* console;
+    char name[TICNAME_MAX];
+} MakeDirData;
+
+static void onMakeDirectoryDone(fs_result result, void* data)
+{
+    MakeDirData* mkdir = data;
+    Console* console = mkdir->console;
+
+    if(result.code == FS_OK)
+    {
+        char msg[TICNAME_MAX + sizeof "\ncreated [] folder :)"];
+        sprintf(msg, "\ncreated [%s] folder :)", mkdir->name);
+        printBack(console, msg);
+    }
+    else
+        printFsError(console, result);
+
+    free(mkdir);
+    commandDone(console);
+}
+
 static void onMakeDirectory(Console* console)
 {
     if(console->desc->count)
     {
-        char msg[TICNAME_MAX];
-        const char* param = console->desc->params->key;
+        MakeDirData* data = malloc(sizeof(MakeDirData));
 
-        if(tic_fs_exists(console->fs, param))
+        if(!data)
         {
-            sprintf(msg, "\nerror, [%s] already exists :(", param);
-            printError(console, msg);
+            printError(console, "\nout of memory");
+            printLine(console);
             commandDone(console);
             return;
         }
 
-        sprintf(msg, "\ncreated [%s] folder :)", param);
+        *data = (MakeDirData){.console = console};
+        snprintf(data->name, sizeof data->name, "%s", console->desc->params->key);
 
-        printBack(console, tic_fs_makedir(console->fs, param)
-                               ? "\nerror, dir not created :("
-                               : msg);
+        fsBegin(console);
+        tic_fs_mkdir(console->fs, data->name, onMakeDirectoryDone, data);
+        return;
     }
-    else
-        printError(console, "\ninvalid dir name");
 
+    printError(console, "\ninvalid dir name");
     commandDone(console);
 }
 
@@ -1703,7 +1768,18 @@ static void onDirCommand(Console* console)
     printLine(console);
 
     PrintFileNameData data = {.console = console};
-    tic_fs_enum(console->fs, printFilename, onDirDone, MOVE(data));
+    fsBegin(console);
+    tic_fs_list(console->fs, "", printFilename, onDirDone, MOVE(data));
+}
+
+static void onFolderDone(fs_result result, void* data)
+{
+    Console* console = data;
+
+    if(result.code != FS_OK)
+        printFsError(console, result);
+
+    commandDone(console);
 }
 
 static void onFolderCommand(Console* console)
@@ -1712,9 +1788,8 @@ static void onFolderCommand(Console* console)
     printBack(console, "\nStorage path:\n");
     printFront(console, tic_fs_pathroot(console->fs, ""));
 
-    tic_fs_openfolder(console->fs);
-
-    commandDone(console);
+    fsBegin(console);
+    tic_fs_openfolder(console->fs, "", onFolderDone, console);
 }
 
 static void onClsCommand(Console* console)
@@ -1746,7 +1821,7 @@ static void onInstallDemosCommand(Console* console)
         {
             for(const struct tic_demo* demo = ln->demos; demo && demo->data; demo++)
             {
-                tic_fs_save(fs, demo->name, data, tic_tool_unzip(data, TIC_CART_SAVE_SIZE, demo->data, demo->size), true);
+                fs_write(tic_fs_path(fs, demo->name), data, tic_tool_unzip(data, TIC_CART_SAVE_SIZE, demo->data, demo->size));
                 printFront(console, demo->name);
                 printLine(console);
             }
@@ -1762,7 +1837,7 @@ static void onInstallDemosCommand(Console* console)
             // having a Mark is not mandatory
             if(ln->mark.data != NULL)
             {
-                tic_fs_save(fs, ln->mark.name, data, tic_tool_unzip(data, TIC_CART_SAVE_SIZE, ln->mark.data, ln->mark.size), true);
+                fs_write(tic_fs_path(fs, ln->mark.name), data, tic_tool_unzip(data, TIC_CART_SAVE_SIZE, ln->mark.data, ln->mark.size));
                 printFront(console, Bunny);
                 printFront(console, "/");
                 printFront(console, ln->mark.name);
@@ -2063,7 +2138,7 @@ static void onImportCommand(Console* console)
 
         const char* filename = console->desc->params[1].key;
         s32 size = 0;
-        const void* data = tic_fs_load(console->fs, filename, &size);
+        const void* data = fs_read(tic_fs_path(console->fs, filename), &size);
 
         if(data) SCOPE(free((void*)data))
             {
@@ -2104,6 +2179,13 @@ static void onImportCommand(Console* console)
 
         commandDone(console);
     }
+}
+
+// Exports and demos write the working directory's file directly, outside the
+// editor's asynchronous save.
+static bool saveWorkingFile(Console* console, const char* name, const void* data, s32 size)
+{
+    return fs_write(tic_fs_path(console->fs, name), data, size);
 }
 
 static void onFileExported(Console* console, const char* filename, bool result)
@@ -2150,7 +2232,7 @@ static void exportSprites(Console* console, const char* filename, tic_tile* base
 
         SCOPE(free(png.data))
         {
-            onFileExported(console, filename, tic_fs_save(console->fs, filename, png.data, png.size, true));
+            onFileExported(console, filename, saveWorkingFile(console, filename, png.data, png.size));
         }
     }
 }
@@ -2633,7 +2715,7 @@ static void onExport_binary(Console* console, const char* param, const char* pat
     {
         memcpy(buffer, binary->data, binary->size);
 
-        onFileExported(console, filename, tic_fs_save(console->fs, filename, buffer, binary->size, true));
+        onFileExported(console, filename, saveWorkingFile(console, filename, buffer, binary->size));
     }
 }
 
@@ -2659,7 +2741,7 @@ static void onExport_map(Console* console, const char* param, const char* path, 
         tic_map* map = &getBank(console, params.bank)->map;
         memcpy(buffer, map->data, Size);
 
-        onFileExported(console, filename, tic_fs_save(console->fs, filename, buffer, Size, true));
+        onFileExported(console, filename, saveWorkingFile(console, filename, buffer, Size));
     }
 }
 
@@ -2702,7 +2784,7 @@ static void onExport_mapimg(Console* console, const char* param, const char* pat
 
         SCOPE(free(png.data))
         {
-            onFileExported(console, filename, tic_fs_save(console->fs, filename, png.data, png.size, true));
+            onFileExported(console, filename, saveWorkingFile(console, filename, png.data, png.size));
         }
     }
 }
@@ -2763,7 +2845,7 @@ static void onExport_screen(Console* console, const char* param, const char* nam
 
         SCOPE(free(png.data))
         {
-            onFileExported(console, filename, tic_fs_save(console->fs, filename, png.data, png.size, true));
+            onFileExported(console, filename, saveWorkingFile(console, filename, png.data, png.size));
         }
     }
 }
@@ -2818,34 +2900,46 @@ const char* readMetatag(const char* code, const char* tag, const char* comment);
 
 static void onSaved(Console* console, const ConsoleAnswer* answer)
 {
-    if(answer->save == CART_SAVE_OK)
+    if(answer->result.code == FS_OK)
     {
         printBack(console, "\ncart ");
         printFront(console, answer->name);
         printBack(console, " saved!\n");
     }
-    else if(answer->save == CART_SAVE_MISSING_NAME)
-        printBack(console, "\ncart name is missing\n");
     else
-        printBack(console, "\ncart saving error");
+        printFsError(console, answer->result);
 
     commandDone(console);
+}
+
+static void askSave(Console* console, const char* name)
+{
+    console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CART_SAVE, .name = name};
+    console->onAnswer = onSaved;
 }
 
 static void onSaveCommandConfirmed(Console* console, const void* data)
 {
     (void)data;
-    console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CART_SAVE, .name = console->desc->count ? console->desc->params->key : NULL};
-    console->onAnswer = onSaved;
+    askSave(console, console->desc->count ? console->desc->params->key : NULL);
 }
 
-static void onSaveCommand(Console* console)
+typedef struct
 {
-    const char* param = console->desc->count ? console->desc->params->key : NULL;
+    Console* console;
+    char param[TICNAME_MAX];
+    char cart[TICNAME_MAX];
+    bool checkedCart;
+} SaveCheckData;
 
-    if(param && strlen(param) &&
-       (tic_fs_exists(console->fs, param) ||
-        tic_fs_exists(console->fs, tic_tool_cart_name(param))))
+static void onSaveChecked(const fs_item* item, fs_result result, void* data)
+{
+    (void)item;
+
+    SaveCheckData* check = data;
+    Console* console = check->console;
+
+    if(result.code == FS_OK)
     {
         static const char* Rows[] =
             {
@@ -2855,11 +2949,54 @@ static void onSaveCommand(Console* console)
             };
 
         confirmCommand(console, Rows, COUNT_OF(Rows), onSaveCommandConfirmed, NULL);
+        free(check);
+        return;
     }
+
+    if(result.code == FS_NOT_FOUND && !check->checkedCart && strcmp(check->param, check->cart) != 0)
+    {
+        check->checkedCart = true;
+        tic_fs_stat(console->fs, check->cart, onSaveChecked, check);
+        return;
+    }
+
+    if(result.code == FS_NOT_FOUND)
+        askSave(console, console->desc->count ? console->desc->params->key : NULL);
     else
     {
-        onSaveCommandConfirmed(console, NULL);
+        printFsError(console, result);
+        commandDone(console);
     }
+
+    free(check);
+}
+
+static void onSaveCommand(Console* console)
+{
+    const char* param = console->desc->count ? console->desc->params->key : NULL;
+
+    if(param && strlen(param))
+    {
+        SaveCheckData* check = calloc(1, sizeof(SaveCheckData));
+
+        if(!check)
+        {
+            printError(console, "\nout of memory");
+            printLine(console);
+            commandDone(console);
+            return;
+        }
+
+        check->console = console;
+        snprintf(check->param, sizeof check->param, "%s", param);
+        snprintf(check->cart, sizeof check->cart, "%s", tic_tool_cart_name(param));
+
+        fsBegin(console);
+        tic_fs_stat(console->fs, check->param, onSaveChecked, check);
+        return;
+    }
+
+    onSaveCommandConfirmed(console, NULL);
 }
 
 static void onRunCommand(Console* console)
@@ -2926,35 +3063,68 @@ static void onEvalCommand(Console* console)
     commandDone(console);
 }
 
+typedef struct
+{
+    Console* console;
+    char name[TICNAME_MAX];
+    bool dir;
+} DeleteData;
+
+static void onDeleteDone(fs_result result, void* data)
+{
+    DeleteData* del = data;
+    Console* console = del->console;
+
+    if(result.code == FS_OK)
+        printBack(console, del->dir ? "\ndir successfully deleted" : "\nfile successfully deleted");
+    else
+        printFsError(console, result);
+
+    commandDone(console);
+    free(del);
+}
+
+static void onDeleteStat(const fs_item* item, fs_result result, void* data)
+{
+    DeleteData* del = data;
+
+    if(result.code != FS_OK)
+    {
+        printFsError(del->console, result);
+        commandDone(del->console);
+        free(del);
+        return;
+    }
+
+    del->dir = item->dir;
+    tic_fs_delete(del->console->fs, del->name, onDeleteDone, del);
+}
+
 static void onDelCommandConfirmed(Console* console, const void* data)
 {
     (void)data;
+
     if(console->desc->count)
     {
-        if(tic_fs_ispubdir(console->fs))
-        {
-            printError(console, "\naccess denied");
-        }
-        else
-        {
-            const char* param = console->desc->params->key;
-            if(tic_fs_isdir(console->fs, param))
-            {
-                printBack(console, tic_fs_deldir(console->fs, param)
-                                       ? "\ndir not deleted"
-                                       : "\ndir successfully deleted");
-            }
-            else
-            {
-                printBack(console, tic_fs_delfile(console->fs, param)
-                                       ? "\nfile not deleted"
-                                       : "\nfile successfully deleted");
-            }
-        }
-    }
-    else
-        printBack(console, "\nname is missing");
+        DeleteData* del = malloc(sizeof(DeleteData));
 
+        if(!del)
+        {
+            printError(console, "\nout of memory");
+            printLine(console);
+            commandDone(console);
+            return;
+        }
+
+        *del = (DeleteData){.console = console};
+        snprintf(del->name, sizeof del->name, "%s", console->desc->params->key);
+
+        fsBegin(console);
+        tic_fs_stat(console->fs, del->name, onDeleteStat, del);
+        return;
+    }
+
+    printBack(console, "\nname is missing");
     commandDone(console);
 }
 
@@ -3837,7 +4007,7 @@ static void onExport_help(Console* console, const char* param, const char* name,
 
         SCOPE(free(helpReplaced))
         {
-            onFileExported(console, filename, tic_fs_save(console->fs, filename, helpReplaced, (s32)(strlen(helpReplaced)), true));
+            onFileExported(console, filename, saveWorkingFile(console, filename, helpReplaced, (s32)(strlen(helpReplaced))));
         }
     }
 }
@@ -5009,8 +5179,9 @@ static void tick(Console* console)
 
         // One ask at a time: what the console asked the host for — the demo
         // cart's name, say — is served, and answered, before the next command
-        // starts, or the first ask of a frame would be lost to the second.
-        bool ready = console->ask.kind == CONSOLE_ASK_NONE;
+        // starts, or the first ask of a frame would be lost to the second. A
+        // filesystem operation holds the next command the same way.
+        bool ready = console->ask.kind == CONSOLE_ASK_NONE && !console->waiting && !console->fsPending;
 
         if(console->active && ready)
         {
@@ -5022,12 +5193,11 @@ static void tick(Console* console)
 
                 processCommand(console, command);
 
-                // A command that asked the host for its effect counts as run
-                // when that has happened, not when it asked: `run` hands the
+                // A command that asked the host or the filesystem for its
+                // effect counts as run when that has answered: `run` hands the
                 // whole of it over, and runGame reads this count on the spot
-                // for the rewind --keepcmd does. A command that asked for
-                // nothing is done here.
-                if(console->ask.kind == CONSOLE_ASK_NONE)
+                // for the rewind --keepcmd does.
+                if(console->ask.kind == CONSOLE_ASK_NONE && !console->waiting && !console->fsPending)
                     console->commands.current++;
                 else
                     console->counting = true;
