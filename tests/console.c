@@ -1453,12 +1453,11 @@ static void testFakeSession(void)
     hostFree(host);
 }
 
-
 // ---- the shelf in the console ----
 
-#define SHELF_START_JSON "{\"device_code\":\"dev-code\",\"user_code\":\"ABCD-EFGH\",\"verification_uri\":\"https://dev.tic80.com/link\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_START_JSON    "{\"device_code\":\"dev-code\",\"user_code\":\"ABCD-EFGH\",\"verification_uri\":\"https://dev.tic80.com/link\",\"expires_in\":600,\"interval\":1}"
 #define SHELF_APPROVED_JSON "{\"status\":\"approved\",\"token\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"user\":\"member\"}"
-#define SHELF_CARTS_JSON "{\"carts\":[{\"key\":\"my-game\",\"title\":\"My Game\",\"author\":\"Me\",\"lang\":\"lua\",\"size\":123,\"created\":1,\"updated\":1794940745061}],\"count\":1,\"bytes\":123,\"max_count\":100,\"max_bytes\":33554432}"
+#define SHELF_CARTS_JSON    "{\"carts\":[{\"key\":\"my-game\",\"title\":\"My Game\",\"author\":\"Me\",\"lang\":\"lua\",\"size\":123,\"created\":1,\"updated\":1794940745061}],\"count\":1,\"bytes\":123,\"max_count\":100,\"max_bytes\":33554432}"
 
 static const char* consoleRoot(void)
 {
@@ -1698,7 +1697,7 @@ static void testShelfLoad(void)
 
     ConsoleAsk ask = hostTick(host);
     assert(ask.kind == CONSOLE_ASK_CART_LOADED);
-    assert(strcmp(ask.name, "my-game") == 0);
+    assert(strcmp(ask.name, "my-game.tic") == 0);
 
     hostFreeEx(host);
     puts("console shelf load ok");
@@ -1774,6 +1773,36 @@ static void testShelfDirErrors(void)
     puts("console shelf 401 ok");
 }
 
+// A missing file on the site keeps the stat's answer, as before: the delete
+// never runs and its refusal does not replace the message.
+static void testDelMissingSite(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "del missing");
+    tic_fs_changedir(host->fs, TIC_HOST);
+
+    hostBoot(host);
+
+    ConsoleAsk ask = {0};
+
+    for(s32 i = 0; i < 4 && ask.kind == CONSOLE_ASK_NONE; i++)
+        ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CONFIRM);
+    hostAnswer(host, (ConsoleAnswer){.yes = true});
+
+    for(s32 i = 0; i < 4 && !netCallback; i++)
+        hostTick(host);
+
+    assert(netCallback);
+    answerNetDone("{\"folders\":[],\"files\":[]}", (s32)strlen("{\"folders\":[],\"files\":[]}"));
+
+    assert(said(host, "not found"));
+    assert(!said(host, "access denied"));
+
+    hostFreeEx(host);
+    puts("console del missing ok");
+}
+
 int main(void)
 {
     testMoves();
@@ -1803,6 +1832,7 @@ int main(void)
     testShelfLoadMissing();
     testShelfSave();
     testShelfDirErrors();
+    testDelMissingSite();
     testFakeDir();
     testFakeCd();
     testFakeDelRefused();

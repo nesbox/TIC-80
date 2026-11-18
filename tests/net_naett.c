@@ -170,19 +170,19 @@ static void onAnswer(const net_request_data* data)
 
     switch(data->type)
     {
-    case net_request_done:
-        result->done++;
-        result->status = data->done.status;
-        result->size = data->done.size;
-        assert(data->done.size <= (s32)sizeof result->body);
-        memcpy(result->body, data->done.data, data->done.size);
-        break;
-    case net_request_error:
-        result->error++;
-        result->errorCode = data->error.code;
-        break;
-    default:
-        break;
+        case net_request_done:
+            result->done++;
+            result->status = data->done.status;
+            result->size = data->done.size;
+            assert(data->done.size <= (s32)sizeof result->body);
+            memcpy(result->body, data->done.data, data->done.size);
+            break;
+        case net_request_error:
+            result->error++;
+            result->errorCode = data->error.code;
+            break;
+        default:
+            break;
     }
 }
 

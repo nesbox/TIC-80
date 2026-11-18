@@ -62,10 +62,10 @@ static HTTPC_Method n3ds_method(net_method method)
 {
     switch(method)
     {
-    case net_method_post: return HTTPC_METHOD_POST;
-    case net_method_put: return HTTPC_METHOD_PUT;
-    case net_method_delete: return HTTPC_METHOD_DELETE;
-    default: return HTTPC_METHOD_GET;
+        case net_method_post: return HTTPC_METHOD_POST;
+        case net_method_put: return HTTPC_METHOD_PUT;
+        case net_method_delete: return HTTPC_METHOD_DELETE;
+        default: return HTTPC_METHOD_GET;
     }
 }
 

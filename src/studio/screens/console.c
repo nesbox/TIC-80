@@ -79,14 +79,14 @@
 #else
 #define CAN_OPEN_URL 0
 #endif
-#define CONSOLE_BUFFER_WIDTH        (STUDIO_TEXT_BUFFER_WIDTH)
-#define CONSOLE_BUFFER_HEIGHT       (STUDIO_TEXT_BUFFER_HEIGHT)
-#define CONSOLE_BUFFER_SCREENS      64
-#define CONSOLE_BUFFER_SCREEN       (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT)
-#define CONSOLE_BUFFER_SIZE         (CONSOLE_BUFFER_SCREEN * CONSOLE_BUFFER_SCREENS)
-#define CONSOLE_BUFFER_ROWS         (CONSOLE_BUFFER_SIZE / CONSOLE_BUFFER_WIDTH)
-#define CONSOLE_ERROR_UNSET         (-CONSOLE_BUFFER_SIZE - 1)
-#define DEFAULT_CHMOD               0755
+#define CONSOLE_BUFFER_WIDTH   (STUDIO_TEXT_BUFFER_WIDTH)
+#define CONSOLE_BUFFER_HEIGHT  (STUDIO_TEXT_BUFFER_HEIGHT)
+#define CONSOLE_BUFFER_SCREENS 64
+#define CONSOLE_BUFFER_SCREEN  (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT)
+#define CONSOLE_BUFFER_SIZE    (CONSOLE_BUFFER_SCREEN * CONSOLE_BUFFER_SCREENS)
+#define CONSOLE_BUFFER_ROWS    (CONSOLE_BUFFER_SIZE / CONSOLE_BUFFER_WIDTH)
+#define CONSOLE_ERROR_UNSET    (-CONSOLE_BUFFER_SIZE - 1)
+#define DEFAULT_CHMOD          0755
 
 // clang-format off
 #define IMPORT_CMD_LIST(macro)  \
@@ -1732,7 +1732,9 @@ static void onChangeDirectory(Console* console)
 
             *data = (ChangeDirData){console, strdup(name), absolute};
             fsBegin(console);
-            tic_fs_stat(console->fs, name, onChangeDirectoryDone, data);
+
+            // The stat sees the absolute spelling: the mount name is root-level.
+            tic_fs_stat(console->fs, absolute ? param : name, onChangeDirectoryDone, data);
             return;
         }
     }
@@ -2991,6 +2993,15 @@ static void onSaveChecked(const fs_item* item, fs_result result, void* data)
         return;
     }
 
+    // A mount without the stat operation cannot answer the overwrite
+    // question; the server's answer reports create versus replace.
+    if(result.code == FS_UNSUPPORTED)
+    {
+        askSave(console, console->desc->count ? console->desc->params->key : NULL);
+        free(check);
+        return;
+    }
+
     if(result.code == FS_NOT_FOUND && !check->checkedCart && strcmp(check->param, check->cart) != 0)
     {
         check->checkedCart = true;
@@ -3135,9 +3146,9 @@ static void onDeleteStat(const fs_item* item, fs_result result, void* data)
 {
     DeleteData* del = data;
 
-    // A mount that cannot stat — the shelf has no cheap stat — still lets the
-    // delete answer: the mount is the authority on whether the file exists.
-    if(result.code != FS_OK && result.code != FS_NOT_FOUND)
+    // A mount without the stat operation still lets the delete answer; a
+    // missing file keeps the stat's answer, as it always did.
+    if(result.code != FS_OK && result.code != FS_UNSUPPORTED)
     {
         printFsError(del->console, result);
         commandDone(del->console);
@@ -3329,53 +3340,58 @@ static void onLoginAnswer(account_pairing_state state, const char* text, void* d
 
     switch(state)
     {
-    case account_pairing_code:
-    {
-        char buffer[512];
-        snprintf(buffer, sizeof buffer, "%s", text ? text : "");
-
-        char* code = strchr(buffer, '\n');
-        if(code)
-            *code++ = '\0';
-
-        memset(&console->login, 0, sizeof console->login);
-        snprintf(console->login.url, sizeof console->login.url, "%s", buffer);
-
-        printBack(console, "\nopen ");
-        console->login.urlBlock = cursorOffset(console);
-        console->login.urlSize = (s32)strlen(buffer);
-        consolePrint(console, buffer, CONSOLE_LINK_TEXT_COLOR);
-        printLine(console);
-
-        if(code && code[0])
+        case account_pairing_code:
         {
-            snprintf(console->login.code, sizeof console->login.code, "%s", code);
-            printBack(console, "\nenter the code ");
-            console->login.codeBlock = cursorOffset(console);
-            console->login.codeSize = (s32)strlen(code);
-            printFront(console, code);
-            printLine(console);
-        }
+            char buffer[512];
+            snprintf(buffer, sizeof buffer, "%s", text ? text : "");
 
-        printBack(console, "\npress ESC to cancel\n");
-        break;
-    }
-    case account_pairing_approved:
-        printBack(console, "\nsigned in as ");
-        printFront(console, text ? text : "");
-        printLine(console);
-        break;
-    case account_pairing_denied:
-        printBack(console, "\nthe pairing was denied\n");
-        break;
-    case account_pairing_expired:
-        printBack(console, "\nthe code expired, run `login` again\n");
-        break;
-    case account_pairing_error:
-        printBack(console, "\n");
-        printBack(console, text && text[0] ? text : "the network is unavailable");
-        printBack(console, "\n");
-        break;
+            char* code = strchr(buffer, '\n');
+            if(code)
+                *code++ = '\0';
+
+            memset(&console->login, 0, sizeof console->login);
+
+            // Both texts are the server's: copy what fits and print the copy.
+            s32 urlLength = snprintf(console->login.url, sizeof console->login.url, "%.*s",
+                                     (s32)sizeof console->login.url - 1, buffer);
+
+            printBack(console, "\nopen ");
+            console->login.urlBlock = cursorOffset(console);
+            console->login.urlSize = urlLength;
+            consolePrint(console, console->login.url, CONSOLE_LINK_TEXT_COLOR);
+            printLine(console);
+
+            if(code && code[0])
+            {
+                s32 codeLength = snprintf(console->login.code, sizeof console->login.code, "%.*s",
+                                          (s32)sizeof console->login.code - 1, code);
+
+                printBack(console, "\nenter the code ");
+                console->login.codeBlock = cursorOffset(console);
+                console->login.codeSize = codeLength;
+                printFront(console, console->login.code);
+                printLine(console);
+            }
+
+            printBack(console, "\npress ESC to cancel\n");
+            break;
+        }
+        case account_pairing_approved:
+            printBack(console, "\nsigned in as ");
+            printFront(console, text ? text : "");
+            printLine(console);
+            break;
+        case account_pairing_denied:
+            printBack(console, "\nthe pairing was denied\n");
+            break;
+        case account_pairing_expired:
+            printBack(console, "\nthe code expired, run `login` again\n");
+            break;
+        case account_pairing_error:
+            printBack(console, "\n");
+            printBack(console, text && text[0] ? text : "the network is unavailable");
+            printBack(console, "\n");
+            break;
     }
 
     // The code is the pairing's first answer, not its end: the command stays

@@ -297,17 +297,17 @@ void tic_net_request(tic_net* net, net_method method, const char* url, const net
 
         switch(method)
         {
-        case net_method_post:
-            curl_easy_setopt(ctx->curl, CURLOPT_POST, 1L);
-            break;
-        case net_method_put:
-            curl_easy_setopt(ctx->curl, CURLOPT_CUSTOMREQUEST, "PUT");
-            break;
-        case net_method_delete:
-            curl_easy_setopt(ctx->curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-            break;
-        default:
-            break;
+            case net_method_post:
+                curl_easy_setopt(ctx->curl, CURLOPT_POST, 1L);
+                break;
+            case net_method_put:
+                curl_easy_setopt(ctx->curl, CURLOPT_CUSTOMREQUEST, "PUT");
+                break;
+            case net_method_delete:
+                curl_easy_setopt(ctx->curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+                break;
+            default:
+                break;
         }
 
         if(body)

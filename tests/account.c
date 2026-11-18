@@ -58,6 +58,18 @@ void tic_net_request(tic_net* net, net_method method, const char* url, const net
     held.calldata = calldata;
 }
 
+static void answerProgress(s32 size, s32 total)
+{
+    assert(held.held);
+
+    held.callback(&(net_request_data){
+        .type = net_request_progress,
+        .progress = {.size = size, .total = total},
+        .calldata = held.calldata,
+        .url = held.url,
+    });
+}
+
 static void answerDone(s32 status, const char* json)
 {
     assert(held.held);
@@ -114,6 +126,12 @@ static void startPairing(tic_account* account, Capture* capture)
     assert(strcmp(held.url, "/api/v1/client/device") == 0);
     assert(strstr(held.body, "name=") == held.body);
 
+    // A progress tick is not the pairing's answer.
+    answerProgress(10, 100);
+    assert(held.held);
+    assert(tic_account_login_active(account));
+    assert(capture->calls == 0);
+
     answerDone(201,
                "{\"device_code\":\"0123456789abcdef\","
                "\"user_code\":\"ABCD-EFGH\","
@@ -142,6 +160,11 @@ static void testTokenRoundTrip(tic_fs* fs)
     assert(held.held);
     assert(held.method == net_method_get);
     assert(strcmp(held.url, "/api/v1/client/device/0123456789abcdef") == 0);
+
+    answerProgress(10, 100);
+    assert(held.held);
+    assert(tic_account_login_active(account));
+
     answerDone(200, "{\"status\":\"pending\"}");
 
     tic_account_update(account, 1000);
@@ -194,6 +217,10 @@ static void testTokenRoundTrip(tic_fs* fs)
     char bearer[128];
     snprintf(bearer, sizeof bearer, "Bearer %s", token);
     assert(strcmp(held.headers[0].value, bearer) == 0);
+
+    answerProgress(10, 100);
+    assert(held.held);
+
     answerDone(200, "{\"ok\":true}");
 
     tic_account_close(next);

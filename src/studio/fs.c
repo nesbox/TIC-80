@@ -764,9 +764,11 @@ static void localStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void
 
 #if defined(TIC_SHELF_MOUNT)
     {
+        // The mount name is root-level: a local folder called "shelf" inside a
+        // folder is that folder, and only the absolute name names the mount.
         const char* mount = *path == '/' ? path + 1 : path;
 
-        if(strcmp(mount, TIC_SHELF_DIR) == 0)
+        if(strcmp(mount, TIC_SHELF_DIR) == 0 && (*path == '/' || isRoot(fs)))
         {
             if(tic_fs_signedin(fs))
             {
@@ -1671,7 +1673,6 @@ static const fs_mount_ops SiteOps = {
 };
 #endif
 
-
 // ---- the shelf: the account's remote mount ----
 
 #if defined(TIC_SHELF_MOUNT)
@@ -1679,7 +1680,6 @@ static bool shelfSignedIn(tic_fs* fs)
 {
     return tic_fs_signedin(fs);
 }
-
 
 #define SHELF_API "/api/v1/client/shelf"
 
@@ -1754,12 +1754,12 @@ static fs_result shelfFailure(s32 status, const char* message)
 {
     switch(status)
     {
-    case 401: return (fs_result){FS_SESSION, "the session ended, use `login`"};
-    case 404: return (fs_result){FS_NOT_FOUND, message ? message : "no such cart"};
-    case 409:
-    case 413: return (fs_result){FS_QUOTA, message ? message : "the shelf is full"};
-    case 0: return (fs_result){FS_OFFLINE, "the shelf needs a network"};
-    default: return (fs_result){FS_IO, message ? message : "the shelf request failed"};
+        case 401: return (fs_result){FS_SESSION, "the session ended, use `login`"};
+        case 404: return (fs_result){FS_NOT_FOUND, message ? message : "no such cart"};
+        case 409:
+        case 413: return (fs_result){FS_QUOTA, message ? message : "the shelf is full"};
+        case 0: return (fs_result){FS_OFFLINE, "the shelf needs a network"};
+        default: return (fs_result){FS_IO, message ? message : "the shelf request failed"};
     }
 }
 
@@ -1862,6 +1862,10 @@ typedef struct
 
 static void onShelfList(const net_request_data* answer)
 {
+    // A progress tick is not an answer: the request is still the transport's.
+    if(answer->type == net_request_progress)
+        return;
+
     ShelfList* list = answer->calldata;
     s32 status = shelfStatus(answer);
     char error[256] = {0};
@@ -1896,7 +1900,7 @@ static void onShelfList(const net_request_data* answer)
             if(!json_has("key", item) || !json_string("key", item, key, sizeof key))
                 continue;
 
-            char name[TICNAME_MAX];
+            char name[TICNAME_MAX + sizeof CART_EXT];
             snprintf(name, sizeof name, "%s" CART_EXT, key);
 
             // The key is the file name; a title belongs to the site's carts.
@@ -1933,20 +1937,23 @@ typedef struct
 {
     fs_load_done_cb onDone;
     void* data;
-    char key[TICNAME_MAX];
+    char name[TICNAME_MAX + sizeof CART_EXT];
 } ShelfLoad;
 
 static void onShelfLoad(const net_request_data* answer)
 {
+    if(answer->type == net_request_progress)
+        return;
+
     ShelfLoad* load = answer->calldata;
     s32 status = shelfStatus(answer);
     char error[256] = {0};
     const char* message = shelfMessage(answer, error, sizeof error);
 
     if(status == 200)
-        load->onDone(load->key, answer->done.data, answer->done.size, (fs_result){FS_OK, NULL}, load->data);
+        load->onDone(load->name, answer->done.data, answer->done.size, (fs_result){FS_OK, NULL}, load->data);
     else
-        load->onDone(load->key, NULL, 0, shelfFailure(status, message), load->data);
+        load->onDone(load->name, NULL, 0, shelfFailure(status, message), load->data);
 
     free(load);
 }
@@ -1965,10 +1972,11 @@ static void shelfLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void
     char url[TICNAME_MAX * 2];
     shelfPath(url, sizeof url, key, "/cart.tic");
 
+    // The listing's file name is the identity the one loader accepts.
     ShelfLoad* load = calloc(1, sizeof(ShelfLoad));
     load->onDone = onDone;
     load->data = data;
-    snprintf(load->key, sizeof load->key, "%s", key);
+    snprintf(load->name, sizeof load->name, "%s" CART_EXT, key);
 
     shelfRequest(fs, net_method_get, url, NULL, 0, onShelfLoad, load);
 }
@@ -1978,10 +1986,14 @@ typedef struct
     fs_save_done_cb onDone;
     void* data;
     char key[TICNAME_MAX];
+    u8* bytes; // the caller's bytes are only valid during the call
 } ShelfSave;
 
 static void onShelfSave(const net_request_data* answer)
 {
+    if(answer->type == net_request_progress)
+        return;
+
     ShelfSave* save = answer->calldata;
     s32 status = shelfStatus(answer);
     char error[256] = {0};
@@ -2016,6 +2028,7 @@ static void onShelfSave(const net_request_data* answer)
     else
         save->onDone(NULL, shelfFailure(status, message), save->data);
 
+    free(save->bytes);
     free(save);
 }
 
@@ -2027,12 +2040,23 @@ static void shelfSave(tic_fs* fs, const char* path, const void* bytes, s32 size,
         return;
     }
 
+    // The shelf is a flat store and a save uploads one cart: a path with a
+    // directory is another operation (the autosave's /downloads case).
+    if(strchr(path, '/'))
+    {
+        onDone(NULL, (fs_result){FS_UNSUPPORTED, "a shelf save takes a file name, not a path"}, data);
+        return;
+    }
+
     char key[TICNAME_MAX];
     shelfKey(path, key, sizeof key);
 
     if(!key[0])
     {
-        onDone(NULL, (fs_result){FS_IO, "the cart has no name"}, data);
+        char stem[TICNAME_MAX];
+        shelfStem(path, stem, sizeof stem);
+
+        onDone(NULL, (fs_result){FS_IO, stem[0] ? "the shelf key is unusable" : "the cart has no name"}, data);
         return;
     }
 
@@ -2044,7 +2068,18 @@ static void shelfSave(tic_fs* fs, const char* path, const void* bytes, s32 size,
     save->data = data;
     snprintf(save->key, sizeof save->key, "%s", key);
 
-    shelfRequest(fs, net_method_put, url, bytes, size, onShelfSave, save);
+    // The request outlives the call: keep a copy of the bytes for it.
+    if(size > 0 && (save->bytes = malloc(size)))
+        memcpy(save->bytes, bytes, size);
+
+    if(size > 0 && !save->bytes)
+    {
+        free(save);
+        onDone(NULL, (fs_result){FS_IO, "out of memory"}, data);
+        return;
+    }
+
+    shelfRequest(fs, net_method_put, url, save->bytes, size, onShelfSave, save);
 }
 
 typedef struct
@@ -2055,6 +2090,9 @@ typedef struct
 
 static void onShelfDelete(const net_request_data* answer)
 {
+    if(answer->type == net_request_progress)
+        return;
+
     ShelfDelete* del = answer->calldata;
     s32 status = shelfStatus(answer);
     char error[256] = {0};
@@ -2117,9 +2155,9 @@ static void shelfStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void
         return;
     }
 
-    // The shelf is a flat cart store: no cheap stat, and the server answers
-    // whether a key exists.
-    onDone(NULL, (fs_result){FS_NOT_FOUND, "no such cart"}, data);
+    // The shelf cannot stat a cart without a request: a mount without the
+    // operation, not a missing file.
+    onDone(NULL, (fs_result){FS_UNSUPPORTED, "the shelf cannot stat a cart"}, data);
 }
 
 static void shelfMkdir(tic_fs* fs, const char* path, fs_done_cb onDone, void* data)

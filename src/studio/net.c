@@ -252,14 +252,14 @@ static const char* methodName(net_method method)
 {
     switch(method)
     {
-    case net_method_post:
-        return "POST";
-    case net_method_put:
-        return "PUT";
-    case net_method_delete:
-        return "DELETE";
-    default:
-        return "GET";
+        case net_method_post:
+            return "POST";
+        case net_method_put:
+            return "PUT";
+        case net_method_delete:
+            return "DELETE";
+        default:
+            return "GET";
     }
 }
 
@@ -454,33 +454,33 @@ static void bridgeRequest(const net_request_data* requestData)
 
     switch(requestData->type)
     {
-    case net_request_progress:
-        getData.type = net_get_progress;
-        getData.progress.size = requestData->progress.size;
-        getData.progress.total = requestData->progress.total;
-        bridge->callback(&getData);
-        break;
-    case net_request_done:
-        if(requestData->done.status == 200)
-        {
-            getData.type = net_get_done;
-            getData.done.size = requestData->done.size;
-            getData.done.data = requestData->done.data;
-        }
-        else
-        {
+        case net_request_progress:
+            getData.type = net_get_progress;
+            getData.progress.size = requestData->progress.size;
+            getData.progress.total = requestData->progress.total;
+            bridge->callback(&getData);
+            break;
+        case net_request_done:
+            if(requestData->done.status == 200)
+            {
+                getData.type = net_get_done;
+                getData.done.size = requestData->done.size;
+                getData.done.data = requestData->done.data;
+            }
+            else
+            {
+                getData.type = net_get_error;
+                getData.error.code = requestData->done.status;
+            }
+            bridge->callback(&getData);
+            free(bridge);
+            break;
+        case net_request_error:
             getData.type = net_get_error;
-            getData.error.code = requestData->done.status;
-        }
-        bridge->callback(&getData);
-        free(bridge);
-        break;
-    case net_request_error:
-        getData.type = net_get_error;
-        getData.error.code = requestData->error.code;
-        bridge->callback(&getData);
-        free(bridge);
-        break;
+            getData.error.code = requestData->error.code;
+            bridge->callback(&getData);
+            free(bridge);
+            break;
     }
 }
 

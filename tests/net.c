@@ -102,19 +102,19 @@ static void onAnswer(const net_get_data* data)
 
     switch(data->type)
     {
-    case net_get_progress:
-        result->progress++;
-        break;
-    case net_get_done:
-        result->done++;
-        result->size = data->done.size;
-        assert(data->done.size <= (s32)sizeof result->body);
-        memcpy(result->body, data->done.data, data->done.size);
-        break;
-    case net_get_error:
-        result->error++;
-        result->errorCode = data->error.code;
-        break;
+        case net_get_progress:
+            result->progress++;
+            break;
+        case net_get_done:
+            result->done++;
+            result->size = data->done.size;
+            assert(data->done.size <= (s32)sizeof result->body);
+            memcpy(result->body, data->done.data, data->done.size);
+            break;
+        case net_get_error:
+            result->error++;
+            result->errorCode = data->error.code;
+            break;
     }
 }
 

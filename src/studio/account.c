@@ -31,10 +31,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define TOKEN_SIZE  96
-#define CODE_SIZE   32
-#define URI_SIZE    256
-#define NAME_SIZE   TICNAME_MAX
+#define TOKEN_SIZE 96
+#define CODE_SIZE  32
+#define URI_SIZE   256
+#define NAME_SIZE  TICNAME_MAX
 
 // The pairing is the server's (client-auth spec): a start returns a device
 // code, a user code and the URL to show; the poll repeats at the server's
@@ -214,11 +214,11 @@ tic_account* tic_account_create(tic_fs* fs, tic_net* net)
     loadAccount(account);
 
     tic_fs_set_remote(fs, &(tic_fs_remote){
-                               .signed_in = remoteSignedIn,
-                               .token = remoteToken,
-                               .unauthorized = remoteUnauthorized,
-                               .data = account,
-                           });
+                              .signed_in = remoteSignedIn,
+                              .token = remoteToken,
+                              .unauthorized = remoteUnauthorized,
+                              .data = account,
+                          });
 
     return account;
 }
@@ -253,6 +253,10 @@ static void finishPairing(tic_account* account, account_pairing_state state, con
 
 static void onDeviceStart(const net_request_data* response)
 {
+    // A progress tick is not an answer: the request is still the transport's.
+    if(response->type == net_request_progress)
+        return;
+
     AccountOp* op = response->calldata;
     tic_account* account = op->account;
 
@@ -306,6 +310,9 @@ static void onDeviceStart(const net_request_data* response)
 
 static void onPoll(const net_request_data* response)
 {
+    if(response->type == net_request_progress)
+        return;
+
     AccountOp* op = response->calldata;
     tic_account* account = op->account;
 
@@ -461,7 +468,9 @@ typedef struct
 
 static void onLogout(const net_request_data* response)
 {
-    (void)response;
+    if(response->type == net_request_progress)
+        return;
+
     free(response->calldata);
 }
 

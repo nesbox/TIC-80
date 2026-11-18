@@ -184,8 +184,8 @@ struct Console
     // what the host last said, and what the console last asked
     const struct ConsoleView* view;
     ConsoleAsk ask;
-    bool waiting;   // the host has taken the ask and owes an answer
-    bool counting;  // the command's ask is out: it counts on the answer
+    bool waiting;  // the host has taken the ask and owes an answer
+    bool counting; // the command's ask is out: it counts on the answer
 
 #if !defined(__EMSCRIPTEN__)
     // A `login` is waiting for its terminal answer: ESC cancels it, and the

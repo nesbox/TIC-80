@@ -57,7 +57,7 @@ typedef struct
     net_method method;
     char url[TICNAME_MAX * 2];
     char authorization[128];
-    u8 body[TICNAME_MAX];
+    const u8* body; // the request's bytes, read when the answer comes
     s32 bodySize;
 } HeldRequest;
 
@@ -81,11 +81,22 @@ void tic_net_request(tic_net* net, net_method method, const char* url, const net
         if(strcmp(headers[i].name, "Authorization") == 0)
             snprintf(Held.authorization, sizeof Held.authorization, "%s", headers[i].value);
 
-    if(body && bodySize > 0 && bodySize <= (s32)sizeof Held.body)
-    {
-        memcpy(Held.body, body, bodySize);
-        Held.bodySize = bodySize;
-    }
+    Held.body = body;
+    Held.bodySize = bodySize;
+}
+
+static void answerRequestProgress(s32 size, s32 total)
+{
+    assert(Held.held);
+
+    net_request_data answer = {
+        .type = net_request_progress,
+        .progress = {.size = size, .total = total},
+        .calldata = Held.calldata,
+        .url = Held.url,
+    };
+
+    Held.callback(&answer);
 }
 
 static void answerRequestBytes(s32 status, const u8* body, s32 size)
@@ -1998,6 +2009,49 @@ static void testShelfMount(void)
     puts("shelf mount ok");
 }
 
+// The mount name is root-level: a folder called "shelf" inside a folder is a
+// real folder, and only the absolute name names the mount.
+static void testShelfShadow(void)
+{
+    Shelf shelf;
+    shelfSetup(&shelf, true);
+
+    assert(tic_fs_makedir(shelf.fs, "sub") == 0);
+    tic_fs_changedir(shelf.fs, "sub");
+
+    {
+        // No local "sub/shelf": the relative name is not the mount.
+        Answer stat = {0};
+        tic_fs_stat(shelf.fs, TIC_SHELF_DIR, onStat, &stat);
+        assert(stat.result.code == FS_NOT_FOUND);
+    }
+
+    {
+        // The absolute name still names the mount from anywhere.
+        Answer stat = {0};
+        tic_fs_stat(shelf.fs, "/" TIC_SHELF_DIR, onStat, &stat);
+        assert(stat.result.code == FS_OK);
+        assert(stat.item.dir);
+    }
+
+    {
+        // A real local folder of that name is that folder.
+        assert(tic_fs_makedir(shelf.fs, TIC_SHELF_DIR) == 0);
+
+        Answer stat = {0};
+        tic_fs_stat(shelf.fs, TIC_SHELF_DIR, onStat, &stat);
+        assert(stat.result.code == FS_OK);
+        assert(stat.item.dir);
+
+        assert(tic_fs_deldir(shelf.fs, TIC_SHELF_DIR) == 0);
+    }
+
+    tic_fs_homedir(shelf.fs);
+    tic_fs_deldir(shelf.fs, "sub");
+    shelfTeardown(&shelf);
+    puts("shelf shadow ok");
+}
+
 static void testShelfList(void)
 {
     Shelf shelf;
@@ -2012,6 +2066,10 @@ static void testShelfList(void)
         assert(Held.method == net_method_get);
         assert(strcmp(Held.url, "/api/v1/client/shelf") == 0);
         assert(strcmp(Held.authorization, "Bearer tok123") == 0);
+
+        answerRequestProgress(10, 100);
+        assert(!list.done);
+        assert(Held.held);
 
         answerRequest(200,
                       "{\"carts\":[{\"key\":\"my-game\",\"title\":\"My Game\",\"size\":123,\"updated\":1794940745061}],"
@@ -2070,9 +2128,13 @@ static void testShelfLoad(void)
         assert(Held.method == net_method_get);
         assert(strcmp(Held.url, "/api/v1/client/shelf/my-game/cart.tic") == 0);
 
+        answerRequestProgress(10, 100);
+        assert(!load.done);
+        assert(Held.held);
+
         answerRequestBytes(200, Cart, sizeof Cart);
         assert(load.result.code == FS_OK);
-        assert(strcmp(load.name, "my-game") == 0); // the key is the identity
+        assert(strcmp(load.name, "my-game.tic") == 0); // the listed name is the identity
         assert(load.size == (s32)sizeof Cart);
         assert(memcmp(load.bytes, Cart, sizeof Cart) == 0);
     }
@@ -2110,6 +2172,10 @@ static void testShelfSave(void)
         assert(Held.bodySize == (s32)sizeof Cart);
         assert(memcmp(Held.body, Cart, sizeof Cart) == 0);
 
+        answerRequestProgress(10, 100);
+        assert(!save.done);
+        assert(Held.held);
+
         answerRequest(201,
                       "{\"key\":\"My-Game\",\"count\":1,\"bytes\":4,"
                       "\"max_count\":100,\"max_bytes\":33554432}");
@@ -2130,6 +2196,37 @@ static void testShelfSave(void)
         assert(save.result.code == FS_OK);
         assert(strcmp(save.name, "my-game") == 0);
         assert(strstr(save.message, "replaced on the shelf"));
+    }
+
+    {
+        // The provider keeps its own copy: the caller's bytes may go after
+        // the call and the deferred transport still sends them.
+        u8* mine = malloc(sizeof Cart);
+        assert(mine);
+        memcpy(mine, Cart, sizeof Cart);
+
+        Answer save = {0};
+        tic_fs_save(shelf.fs, "copy.tic", mine, sizeof Cart, onSave, &save);
+        assert(Held.held);
+
+        memset(mine, 0xee, sizeof Cart);
+        free(mine);
+
+        assert(Held.bodySize == (s32)sizeof Cart);
+        assert(memcmp(Held.body, Cart, sizeof Cart) == 0);
+
+        answerRequest(201, "{\"key\":\"copy\",\"count\":1,\"bytes\":4,\"max_count\":100,\"max_bytes\":33554432}");
+        assert(save.result.code == FS_OK);
+    }
+
+    {
+        // The autosave's "/downloads/<name>" is a path: the shelf refuses it
+        // and spends nothing on the network.
+        Answer save = {0};
+        tic_fs_save(shelf.fs, "/downloads/my-game.tic", Cart, sizeof Cart, onSave, &save);
+        assert(save.result.code == FS_UNSUPPORTED);
+        assert(strstr(save.message, "file name"));
+        assert(!Held.held);
     }
 
     {
@@ -2158,6 +2255,10 @@ static void testShelfDelete(void)
         assert(Held.held);
         assert(Held.method == net_method_delete);
         assert(strcmp(Held.url, "/api/v1/client/shelf/my-game") == 0);
+
+        answerRequestProgress(10, 100);
+        assert(!del.done);
+        assert(Held.held);
 
         answerRequest(200, "{\"count\":0,\"bytes\":0,\"max_count\":100,\"max_bytes\":33554432}");
         assert(del.result.code == FS_OK);
@@ -2193,7 +2294,8 @@ static void testShelfStatAndShape(void)
     {
         Answer stat = {0};
         tic_fs_stat(shelf.fs, "my-game.tic", onStat, &stat);
-        assert(stat.result.code == FS_NOT_FOUND);
+        assert(stat.result.code == FS_UNSUPPORTED);
+        assert(strstr(stat.message, "stat"));
     }
 
     {
@@ -2267,6 +2369,7 @@ int main(void)
     testSiteErrors();
     testLocalCover();
     testShelfMount();
+    testShelfShadow();
     testShelfList();
     testShelfLoad();
     testShelfSave();
