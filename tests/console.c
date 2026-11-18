@@ -1803,6 +1803,39 @@ static void testDelMissingSite(void)
     puts("console del missing ok");
 }
 
+// The site enters by its absolute name too, from the root and with the
+// account's state playing no part.
+static void testSiteAbsoluteCd(void)
+{
+    char command[TICNAME_MAX + 8];
+    snprintf(command, sizeof command, "cd /%s & dir", TIC_HOST);
+
+    for(s32 account = 0; account < 2; account++)
+    {
+        Host* host = hostNewAt(consoleRoot(), command);
+
+        if(account)
+            signIn(host);
+
+        hostBoot(host);
+
+        for(s32 i = 0; i < 8 && !netCallback; i++)
+            hostTick(host);
+
+        char dir[TICNAME_MAX];
+        tic_fs_dir(host->fs, dir);
+        assert(strcmp(dir, TIC_HOST) == 0);
+        assert(netCallback);
+        assert(strcmp(netUrl, "/json?fn=dir&path=") == 0);
+
+        answerNetDone("{\"folders\":[],\"files\":[]}", (s32)strlen("{\"folders\":[],\"files\":[]}"));
+
+        hostFreeEx(host);
+    }
+
+    puts("console site absolute cd ok");
+}
+
 int main(void)
 {
     testMoves();
@@ -1833,6 +1866,7 @@ int main(void)
     testShelfSave();
     testShelfDirErrors();
     testDelMissingSite();
+    testSiteAbsoluteCd();
     testFakeDir();
     testFakeCd();
     testFakeDelRefused();

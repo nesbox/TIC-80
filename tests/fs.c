@@ -2035,6 +2035,29 @@ static void testShelfShadow(void)
     }
 
     {
+        // The site's name takes both spellings, from a folder too.
+        Answer relative = {0};
+        Answer absolute = {0};
+
+        tic_fs_stat(shelf.fs, TIC_HOST, onStat, &relative);
+        tic_fs_stat(shelf.fs, "/" TIC_HOST, onStat, &absolute);
+
+        assert(relative.result.code == FS_NOT_FOUND); // not at the root from here
+        assert(absolute.result.code == FS_OK);
+        assert(absolute.item.dir);
+        assert(strcmp(absolute.item.name, TIC_HOST) == 0);
+
+        tic_fs_homedir(shelf.fs);
+        Answer root = {0};
+        tic_fs_stat(shelf.fs, TIC_HOST, onStat, &root);
+        assert(root.result.code == FS_OK);
+        assert(root.item.dir);
+        assert(strcmp(root.item.name, absolute.item.name) == 0);
+
+        tic_fs_changedir(shelf.fs, "sub");
+    }
+
+    {
         // A real local folder of that name is that folder.
         assert(tic_fs_makedir(shelf.fs, TIC_SHELF_DIR) == 0);
 

@@ -754,11 +754,17 @@ static void localStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void
     }
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-    if(isRoot(fs) && strcmp(path, PublicDir) == 0)
     {
-        fs_item item = {PublicDir, NULL, true, -1, 0, 0};
-        onDone(&item, (fs_result){FS_OK, NULL}, data);
-        return;
+        // The site answers its name at the root and in the absolute form from
+        // anywhere, as the shelf does.
+        const char* mount = *path == '/' ? path + 1 : path;
+
+        if(strcmp(mount, PublicDir) == 0 && (*path == '/' || isRoot(fs)))
+        {
+            fs_item item = {PublicDir, NULL, true, -1, 0, 0};
+            onDone(&item, (fs_result){FS_OK, NULL}, data);
+            return;
+        }
     }
 #endif
 
