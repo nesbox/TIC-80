@@ -179,7 +179,8 @@ static void remoteUnauthorized(void* data, const char* token)
 static void saveAccount(tic_account* account)
 {
     char json[TOKEN_SIZE + NAME_SIZE + 32];
-    tic_fs_makedir(account->fs, TIC_LOCAL);
+    // Root-relative: a pairing may run with any working directory current.
+    tic_fs_makedir(account->fs, "/" TIC_LOCAL);
 
     s32 size = snprintf(json, sizeof json, "{\"token\":\"%s\",\"user\":\"%s\"}",
                         account->token, account->user);
