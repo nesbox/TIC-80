@@ -3186,8 +3186,11 @@ static void onAutoSaved(const char* name, fs_result result, void* data)
     if(result.code != FS_OK)
         showPopupMessage((Studio*)data, result.message ? result.message : "the cart was not saved");
 #else
-    (void)result;
     (void)data;
+
+    // A build without the popup reports the refusal where its other errors go.
+    if(result.code != FS_OK)
+        fprintf(stderr, "error: %s\n", result.message ? result.message : "the cart was not saved");
 #endif
 }
 
