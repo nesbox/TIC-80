@@ -66,7 +66,7 @@ typedef struct
 
 // #define DEBUG
 
-static HTTPC_Method n3ds_method(net_method method)
+static HTTPC_RequestMethod n3ds_method(net_method method)
 {
     switch(method)
     {
@@ -114,7 +114,7 @@ static int n3ds_net_setup_context(net_ctx* ctx)
 
     if(ctx->body)
     {
-        if(httpcAddPostDataBinary(httpc, ctx->body, ctx->bodySize))
+        if(httpcAddPostDataRaw(httpc, (const u32*)ctx->body, (u32)ctx->bodySize))
         {
             httpcCloseContext(httpc);
             return -107;
