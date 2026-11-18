@@ -287,6 +287,21 @@ if(BUILD_TESTS)
         tic80_add_test(net-naett-test)
     endif()
 
+    # The account without the studio: the token file under the unversioned
+    # path, the pairing state machine over a held fake network, logout's
+    # revoke and the 401 path. The filesystem is a real one on a temporary
+    # root; no studio.c, no socket.
+    add_executable(account-test
+        ${CMAKE_SOURCE_DIR}/tests/account.c
+        ${CMAKE_SOURCE_DIR}/src/studio/account.c
+        ${CMAKE_SOURCE_DIR}/src/studio/fs.c
+        ${CMAKE_SOURCE_DIR}/src/ext/json.c
+    )
+
+    target_include_directories(account-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    target_compile_definitions(account-test PRIVATE BUILD_EDITORS)
+    tic80_add_test(account-test)
+
     # The code editor's text model links with the history module alone: the
     # buffer, the state array, the cap and the caret are driven without the
     # studio, a machine or a screen. The PRO target compiles the same model
