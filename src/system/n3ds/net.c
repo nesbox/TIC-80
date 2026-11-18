@@ -30,10 +30,18 @@
 
 #define URL_SIZE 2048
 
+// A net outlives the workers it starts: they read its tick lock and its
+// closing flag, so close joins them before the net goes.
+#define NET_THREADS 8
+
 struct tic_net
 {
     LightLock tick_lock;
     const char* host;
+
+    bool closing;
+    Thread threads[NET_THREADS];
+    s32 threadCount;
 };
 
 typedef struct
@@ -229,7 +237,7 @@ static void n3ds_net_execute(net_ctx* ctx, bool ignore_lock)
 
     u32 state = HTTPC_RESULTCODE_DOWNLOADPENDING;
     u32 read_size = 0;
-    while(state == HTTPC_RESULTCODE_DOWNLOADPENDING)
+    while(state == HTTPC_RESULTCODE_DOWNLOADPENDING && !ctx->net->closing)
     {
         s32 old_size = ctx->size;
         if(!ctx_resize_buf(ctx, ctx->size + NET_PAGE_SIZE))
@@ -243,7 +251,7 @@ static void n3ds_net_execute(net_ctx* ctx, bool ignore_lock)
         if(state == HTTPC_RESULTCODE_DOWNLOADPENDING || state == 0)
         {
             ctx_resize_buf(ctx, old_size + (s32)read_size);
-            if(ctx->callback != NULL)
+            if(ctx->callback != NULL && !ctx->net->closing)
             {
                 if(ignore_lock || !LightLock_TryLock(&ctx->net->tick_lock))
                 {
@@ -276,7 +284,7 @@ static void n3ds_net_execute(net_ctx* ctx, bool ignore_lock)
     }
     NET_EXEC_ERROR_CHECK;
 
-    if(ctx->callback != NULL)
+    if(ctx->callback != NULL && !ctx->net->closing)
     {
         ctx->data.type = net_request_done;
         ctx->data.done.status = ctx->status;
@@ -355,11 +363,36 @@ void tic_net_request(tic_net* net, net_method method, const char* url, const net
 
     s32 priority;
     svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
-    threadCreate((ThreadFunc)n3ds_net_get_thread, MOVE(ctx), 16 * 1024, priority - 1, -1, true);
+    Thread thread = threadCreate((ThreadFunc)n3ds_net_get_thread, MOVE(ctx), 16 * 1024, priority - 1, -1, false);
+
+    if(!thread)
+        return;
+
+    if(net->threadCount >= (s32)COUNT_OF(net->threads))
+    {
+        // More requests than the table holds: wait for the oldest batch, then
+        // reuse the slots.
+        for(s32 i = 0; i < net->threadCount; i++)
+            threadJoin(net->threads[i], U64_MAX);
+
+        net->threadCount = 0;
+    }
+
+    net->threads[net->threadCount++] = thread;
 }
 
 void tic_net_close(tic_net* net)
 {
+    // The workers leave on the closing flag at the next page read (or the
+    // httpc timeout); joining them is what makes the net and the callbacks
+    // they would call safe to free.
+    net->closing = true;
+
+    for(s32 i = 0; i < net->threadCount; i++)
+        threadJoin(net->threads[i], U64_MAX);
+
+    net->threadCount = 0;
+
     n3ds_net_free(net);
     free(net);
 }
