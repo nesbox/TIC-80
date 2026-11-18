@@ -153,7 +153,6 @@ struct ConsoleAnswer
 {
     bool yes;            // CONFIRM
     bool ok;             // EXPORT_SFX / EXPORT_MUSIC: it was written
-    CartSaveResult save; // CART_SAVE
     fs_result result;    // CART_SAVE: the filesystem's answer
     const char* name;    // the cart's name after the ask: LOADED, SAVE
 };

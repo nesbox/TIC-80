@@ -25,15 +25,6 @@
 #include "tic.h"
 #include "ext/png.h"
 
-// How saving a cart went: the studio's cart layer answers with it, and the
-// console — which reports what it prints — names it too.
-typedef enum
-{
-    CART_SAVE_OK,
-    CART_SAVE_ERROR,
-    CART_SAVE_MISSING_NAME,
-} CartSaveResult;
-
 // A saved cart is its own bytes plus a 4-byte header a chunk: ten chunks a
 // bank, five for the binary, nine for the code, one for the language. It is
 // bigger than the struct, so a buffer holding one is this, not sizeof().

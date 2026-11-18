@@ -2900,14 +2900,12 @@ const char* readMetatag(const char* code, const char* tag, const char* comment);
 
 static void onSaved(Console* console, const ConsoleAnswer* answer)
 {
-    if(answer->save == CART_SAVE_OK)
+    if(answer->result.code == FS_OK)
     {
         printBack(console, "\ncart ");
         printFront(console, answer->name);
         printBack(console, " saved!\n");
     }
-    else if(answer->save == CART_SAVE_MISSING_NAME)
-        printBack(console, "\ncart name is missing\n");
     else
         printFsError(console, answer->result);
 
@@ -5183,7 +5181,7 @@ static void tick(Console* console)
         // cart's name, say — is served, and answered, before the next command
         // starts, or the first ask of a frame would be lost to the second. A
         // filesystem operation holds the next command the same way.
-        bool ready = console->ask.kind == CONSOLE_ASK_NONE && !console->fsPending;
+        bool ready = console->ask.kind == CONSOLE_ASK_NONE && !console->waiting && !console->fsPending;
 
         if(console->active && ready)
         {
@@ -5199,7 +5197,7 @@ static void tick(Console* console)
                 // effect counts as run when that has answered: `run` hands the
                 // whole of it over, and runGame reads this count on the spot
                 // for the rewind --keepcmd does.
-                if(console->ask.kind == CONSOLE_ASK_NONE && !console->fsPending)
+                if(console->ask.kind == CONSOLE_ASK_NONE && !console->waiting && !console->fsPending)
                     console->commands.current++;
                 else
                     console->counting = true;

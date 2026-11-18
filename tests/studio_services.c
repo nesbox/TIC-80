@@ -248,6 +248,21 @@ static void onLoadAnswer(fs_result result, void* data)
     answer->result = result;
 }
 
+typedef struct
+{
+    bool done;
+    char name[TICNAME_MAX];
+    fs_result result;
+} SaveAnswer;
+
+static void onSaveAnswer(const char* name, fs_result result, void* data)
+{
+    SaveAnswer* answer = data;
+    answer->done = true;
+    snprintf(answer->name, sizeof answer->name, "%s", name ? name : "");
+    answer->result = result;
+}
+
 static const char SiteCartListing[] =
     "{\"folders\":[],\"files\":[{\"name\":\"Site Cart\",\"hash\":\"abc\",\"filename\":\"site.tic\",\"id\":1}]}";
 
@@ -276,21 +291,43 @@ static void testCart(tic_mem* tic, tic_fs* fs)
     // A cart with a byte the reload has to bring back.
     tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0xa);
 
-    // The saved name gets its extension, the identity takes it, the host hears.
-    assert(rom_save_cart(&deps, "smoke") == CART_SAVE_OK);
+    // The save serializes in the host and the filesystem writes it; the stored
+    // name becomes the identity and the host hears when it has.
+    SaveAnswer saved = {0};
+    rom_save_cart(&deps, "smoke", onSaveAnswer, &saved);
+    assert(saved.done);
+    assert(saved.result.code == FS_OK);
+    assert(strcmp(saved.name, "smoke.tic") == 0);
     assert(host.saved == 1);
     assert(strcmp(cart.name, "smoke.tic") == 0);
     assert(strcmp(cart.path, tic_fs_path(fs, "smoke.tic")) == 0);
+
+    // A refused write answers its message and leaves the identity alone.
+    {
+        SaveAnswer refused = {0};
+        rom_save_cart(&deps, "missing/smoke.tic", onSaveAnswer, &refused);
+        assert(refused.done);
+        assert(refused.result.code == FS_NOT_FOUND);
+        assert(host.saved == 1);
+        assert(strcmp(cart.name, "smoke.tic") == 0);
+    }
 
     tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0);
     rom_reload_cart(&deps);
     assert(host.loaded == 1);
     assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
 
-    // The autosave goes to its own folder under the same name.
-    assert(rom_autosave(&deps) == CART_SAVE_OK);
-    assert(host.saved == 2);
-    assert(tic_fs_exists(fs, "downloads/smoke.tic"));
+    // The autosave goes to its own folder through the same call.
+    {
+        SaveAnswer autosaved = {0};
+        rom_autosave(&deps, onSaveAnswer, &autosaved);
+        assert(autosaved.done);
+        assert(autosaved.result.code == FS_OK);
+        assert(strcmp(autosaved.name, "smoke.tic") == 0);
+        assert(host.saved == 2);
+        assert(tic_fs_exists(fs, "downloads/smoke.tic"));
+        assert(strcmp(cart.path, tic_fs_path(fs, "downloads/smoke.tic")) == 0);
+    }
 
     // A load by name reads the file into the machine and resets the identity.
     tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0);
@@ -352,6 +389,18 @@ static void testCart(tic_mem* tic, tic_fs* fs)
             assert(!NetCallback);
             assert(missing.result.code == FS_NOT_FOUND);
             assert(host.loaded == before);
+            assert(strcmp(cart.name, "site.tic") == 0);
+        }
+
+        // A refused autosave answers its message and leaves the cart as it was.
+        {
+            SaveAnswer refused = {0};
+            s32 saved = host.saved;
+
+            rom_autosave(&deps, onSaveAnswer, &refused);
+            assert(refused.done);
+            assert(refused.result.code == FS_DENIED);
+            assert(host.saved == saved);
             assert(strcmp(cart.name, "site.tic") == 0);
         }
 
@@ -435,7 +484,12 @@ static void testCart(tic_mem* tic, tic_fs* fs)
     }
 
     // The config's own cart is a save like any other, through the same callbacks.
-    assert(rom_save_cart(&deps, CONFIG_TIC_PATH) == CART_SAVE_OK);
+    {
+        SaveAnswer configSaved = {0};
+        rom_save_cart(&deps, CONFIG_TIC_PATH, onSaveAnswer, &configSaved);
+        assert(configSaved.done);
+        assert(configSaved.result.code == FS_OK);
+    }
     assert(host.saved == 3);
     assert(host.changed == 2);
 

@@ -227,8 +227,8 @@ void studioSetCartName(Studio* studio, const char* name, const char* path);
 bool studioLoadCart(Studio* studio, const char* path);
 void studioLoadCartAsync(Studio* studio, const char* path, fs_done_cb done, void* data);
 void studioReloadCart(Studio* studio);
-CartSaveResult studioSaveCart(Studio* studio, const char* name);
-CartSaveResult studioAutoSave(Studio* studio);
+void studioSaveCart(Studio* studio, const char* name, rom_save_done done, void* data);
+void studioAutoSave(Studio* studio);
 
 void gotoMenu(Studio* studio);
 void gotoCode(Studio* studio);

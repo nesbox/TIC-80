@@ -379,7 +379,7 @@ static void testSave(void)
     assert(ask.kind == CONSOLE_ASK_CART_SAVE);
     assert(strcmp(ask.name, "smoke") == 0);
 
-    hostAnswer(host, (ConsoleAnswer){.save = CART_SAVE_OK, .name = "smoke.tic"});
+    hostAnswer(host, (ConsoleAnswer){.result = {FS_OK, NULL}, .name = "smoke.tic"});
     assert(said(host, "cart smoke.tic saved!"));
 
     char screen[1024];
@@ -1309,7 +1309,7 @@ static void testFakePending(void)
         hostTick(host); // the pending save refuses the dir
         assert(Fake.pending == 0);
 
-        hostAnswer(host, (ConsoleAnswer){.save = CART_SAVE_OK, .name = "smoke.tic"});
+        hostAnswer(host, (ConsoleAnswer){.result = {FS_OK, NULL}, .name = "smoke.tic"});
 
         hostTick(host); // the save answered; now the dir starts
         assert(Fake.pending == 1);

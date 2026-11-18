@@ -1942,9 +1942,30 @@ static void onConsoleConfirmed(Studio* studio, bool yes, void* data)
     console_answer(studio->console, &answer);
 }
 
-// What the console asks the host for: it reports, and this does it and answers.
+// What the console asked the host for: it reports, and this does it and answers.
 // A move is answered on the spot, and the answer can lead to the next ask — a
 // dialog, then the load it confirmed.
+typedef struct
+{
+    Studio* studio;
+    ConsoleAnswer answer;
+} ConsoleSave;
+
+static void onConsoleSaved(const char* name, fs_result result, void* data)
+{
+    (void)name;
+
+    ConsoleSave* save = data;
+    Studio* studio = save->studio;
+
+    save->answer.result = result;
+    save->answer.name = studioCart(studio)->name;
+
+    console_answer(studio->console, &save->answer);
+
+    free(save);
+}
+
 static void serveConsole(Studio* studio)
 {
     ConsoleAsk ask;
@@ -1998,9 +2019,21 @@ static void serveConsole(Studio* studio)
                 break;
 
             case CONSOLE_ASK_CART_SAVE:
-                answer.save = studioSaveCart(studio, ask.name);
-                answer.name = studioCart(studio)->name;
+            {
+                ConsoleSave* save = calloc(1, sizeof(ConsoleSave));
+
+                if(!save)
+                {
+                    answer.result = (fs_result){FS_IO, "out of memory"};
+                    break;
+                }
+
+                // The answer comes when the filesystem has written the cart.
+                save->studio = studio;
+                answered = false;
+                studioSaveCart(studio, ask.name, onConsoleSaved, save);
                 break;
+            }
 
             // Both answer with the written path, or nothing when they could not
             // write it.
@@ -2020,38 +2053,45 @@ static void serveConsole(Studio* studio)
     }
 }
 
+static void onProjectSaved(const char* name, fs_result result, void* data)
+{
+    Studio* studio = data;
+
+    if(result.code != FS_OK)
+    {
+        showPopupMessage(studio, result.message ? result.message : "error: file not saved :(");
+        return;
+    }
+
+    if(!name || !*name)
+        name = studio->rom.name;
+
+    char buffer[STUDIO_TEXT_BUFFER_WIDTH];
+    char str_saved[] = " saved :)";
+
+    s32 name_len = (s32)strlen(name);
+    if(name_len + strlen(str_saved) > sizeof(buffer))
+    {
+        char subbuf[sizeof(buffer) - sizeof(str_saved) - 5];
+        memset(subbuf, '\0', sizeof subbuf);
+        strncpy(subbuf, name, sizeof subbuf - 1);
+
+        snprintf(buffer, sizeof buffer, "%s[...]%s", subbuf, str_saved);
+    }
+    else
+    {
+        snprintf(buffer, sizeof buffer, "%.*s%s",
+                 (s32)(sizeof buffer - sizeof str_saved), name, str_saved);
+    }
+
+    showPopupMessage(studio, buffer);
+}
+
 void saveProject(Studio* studio)
 {
     if(getConfig(studio)->trim) trimWhitespace(studio->code);
 
-    CartSaveResult rom = studioSaveCart(studio, NULL);
-
-    if(rom == CART_SAVE_OK)
-    {
-        char buffer[STUDIO_TEXT_BUFFER_WIDTH];
-        char str_saved[] = " saved :)";
-
-        s32 name_len = (s32)strlen(studio->rom.name);
-        if(name_len + strlen(str_saved) > sizeof(buffer))
-        {
-            char subbuf[sizeof(buffer) - sizeof(str_saved) - 5];
-            memset(subbuf, '\0', sizeof subbuf);
-            strncpy(subbuf, studio->rom.name, sizeof subbuf - 1);
-
-            snprintf(buffer, sizeof buffer, "%s[...]%s", subbuf, str_saved);
-        }
-        else
-        {
-            snprintf(buffer, sizeof buffer, "%.*s%s",
-                     (s32)(sizeof buffer - sizeof str_saved), studio->rom.name, str_saved);
-        }
-
-        showPopupMessage(studio, buffer);
-    }
-    else if(rom == CART_SAVE_MISSING_NAME)
-        showPopupMessage(studio, "error: missing cart name :(");
-    else
-        showPopupMessage(studio, "error: file not saved :(");
+    studioSaveCart(studio, NULL, onProjectSaved, studio);
 }
 
 static void setCoverImage(Studio* studio)
@@ -3133,14 +3173,27 @@ void studioReloadCart(Studio* studio)
     rom_reload_cart(&studio->romDeps);
 }
 
-CartSaveResult studioSaveCart(Studio* studio, const char* name)
+void studioSaveCart(Studio* studio, const char* name, rom_save_done done, void* data)
 {
-    return rom_save_cart(&studio->romDeps, name);
+    rom_save_cart(&studio->romDeps, name, done, data);
 }
 
-CartSaveResult studioAutoSave(Studio* studio)
+static void onAutoSaved(const char* name, fs_result result, void* data)
 {
-    return rom_autosave(&studio->romDeps);
+    (void)name;
+
+#if defined(BUILD_EDITORS)
+    if(result.code != FS_OK)
+        showPopupMessage((Studio*)data, result.message ? result.message : "the cart was not saved");
+#else
+    (void)result;
+    (void)data;
+#endif
+}
+
+void studioAutoSave(Studio* studio)
+{
+    rom_autosave(&studio->romDeps, onAutoSaved, studio);
 }
 
 const tic_mem* studio_mem(Studio* studio)
