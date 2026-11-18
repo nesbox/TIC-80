@@ -672,6 +672,13 @@ static void clearSelection(Console* console)
 static void commandDoneLine(Console* console, bool newLine)
 {
     console->progressLine = -1;
+    console->fsPending = false;
+
+    if(console->counting)
+    {
+        console->counting = false;
+        console->commands.current++;
+    }
 
     if(!console->args.cli)
     {
@@ -700,6 +707,36 @@ static void commandDoneLine(Console* console, bool newLine)
 static void commandDone(Console* console)
 {
     commandDoneLine(console, true);
+}
+
+// One filesystem operation per command: the next command waits for its answer.
+static void fsBegin(Console* console)
+{
+    console->fsPending = true;
+}
+
+// The one result renderer: a session that ended points at signing in.
+static void printFsError(Console* console, fs_result result)
+{
+    printError(console, "\n");
+
+    if(result.code == FS_SESSION)
+        printError(console, "the session ended, please sign in");
+    else
+        printError(console, result.message ? result.message : "the operation failed");
+
+    printLine(console);
+}
+
+static void printFsUsage(Console* console, const fs_usage* usage)
+{
+    if(usage && usage->has_usage)
+    {
+        char line[96];
+        snprintf(line, sizeof line, "\n%d/%d carts, %lld/%lld bytes", usage->count, usage->max_count,
+                 (long long)usage->bytes, (long long)usage->max_bytes);
+        printBack(console, line);
+    }
 }
 
 // The console reports what it wants and the host serves it after the tick; what
@@ -961,13 +998,6 @@ typedef struct
     bool retried;              // the typed name was tried after the derived one
 } LoadCartData;
 
-static void printLoadError(Console* console, fs_result result)
-{
-    printError(console, "\n");
-    printError(console, result.message ? result.message : "cart loading error");
-    printLine(console);
-}
-
 static void onLoadDone(const char* name, const u8* bytes, s32 size, fs_result result, void* data)
 {
     LoadCartData* load = data;
@@ -985,7 +1015,7 @@ static void onLoadDone(const char* name, const u8* bytes, s32 size, fs_result re
             return;
         }
 
-        printLoadError(console, result);
+        printFsError(console, result);
         commandDone(console);
         free(load);
         return;
@@ -1060,7 +1090,7 @@ static void onLoadDone(const char* name, const u8* bytes, s32 size, fs_result re
     }
     else
     {
-        printLoadError(console, result);
+        printFsError(console, result);
         commandDone(console);
     }
 
@@ -1155,7 +1185,7 @@ static void onLoadCommandConfirmed(Console* console, const void* data)
             }
 
             // One command, one outstanding load: nothing starts until it answers.
-            console->active = false;
+            fsBegin(console);
             tic_fs_load(console->fs, name, onLoadDone, load);
         }
 
@@ -1536,15 +1566,12 @@ typedef struct
     s32 count;
 } PrintFileNameData;
 
-static bool printFilename(const char* name, const char* title, const char* hash, s32 id, void* ctx, bool dir)
+static bool printFilename(const fs_item* item, void* ctx)
 {
-    (void)hash;
-    (void)id;
-    (void)title;
     PrintFileNameData* data = ctx;
 
     data->items = realloc(data->items, (data->count + 1) * sizeof *data->items);
-    data->items[data->count++] = (FileItem){strdup(name), dir};
+    data->items[data->count++] = (FileItem){strdup(item->name), item->dir};
 
     return true;
 }
@@ -1574,10 +1601,18 @@ static inline int itemcmp(const void* a, const void* b)
     return casecmp(item1->name, item2->name);
 }
 
-static void onDirDone(void* ctx)
+static void onDirDone(const fs_usage* usage, fs_result result, void* ctx)
 {
     PrintFileNameData* data = ctx;
     Console* console = data->console;
+
+    if(result.code != FS_OK)
+    {
+        printFsError(console, result);
+        free(ctx);
+        commandDone(console);
+        return;
+    }
 
     qsort(data->items, data->count, sizeof *data->items, itemcmp);
 
@@ -1603,8 +1638,10 @@ static void onDirDone(void* ctx)
         printFront(console, "DEMO");
         printBack(console, " command to install demo carts");
     }
-    else
-        free(data->items);
+
+    free(data->items);
+
+    printFsUsage(console, usage);
 
     printLine(console);
     commandDone(console);
@@ -1618,17 +1655,17 @@ typedef struct
     char* name;
 } ChangeDirData;
 
-static void onChangeDirectoryDone(bool dir, void* data)
+static void onChangeDirectoryDone(const fs_item* item, fs_result result, void* data)
 {
     ChangeDirData* changeDirData = data;
     Console* console = changeDirData->console;
 
-    if(dir)
-    {
-        tic_fs_changedir(console->fs, changeDirData->name);
-    }
+    if(result.code != FS_OK)
+        printFsError(console, result);
+    else if(!item->dir)
+        printBack(console, "\nnot a folder");
     else
-        printBack(console, "\ndir doesn't exist");
+        tic_fs_changedir(console->fs, changeDirData->name);
 
     free(changeDirData->name);
     free(changeDirData);
@@ -1652,8 +1689,19 @@ static void onChangeDirectory(Console* console)
         }
         else
         {
-            ChangeDirData data = {console, strdup(param)};
-            tic_fs_isdir_async(console->fs, param, onChangeDirectoryDone, MOVE(data));
+            ChangeDirData* data = malloc(sizeof(ChangeDirData));
+
+            if(!data)
+            {
+                printError(console, "\nout of memory");
+                printLine(console);
+                commandDone(console);
+                return;
+            }
+
+            *data = (ChangeDirData){console, strdup(param)};
+            fsBegin(console);
+            tic_fs_stat(console->fs, param, onChangeDirectoryDone, data);
             return;
         }
     }
@@ -1665,30 +1713,53 @@ static void onChangeDirectory(Console* console)
     commandDone(console);
 }
 
+typedef struct
+{
+    Console* console;
+    char name[TICNAME_MAX];
+} MakeDirData;
+
+static void onMakeDirectoryDone(fs_result result, void* data)
+{
+    MakeDirData* mkdir = data;
+    Console* console = mkdir->console;
+
+    if(result.code == FS_OK)
+    {
+        char msg[TICNAME_MAX + sizeof "\ncreated [] folder :)"];
+        sprintf(msg, "\ncreated [%s] folder :)", mkdir->name);
+        printBack(console, msg);
+    }
+    else
+        printFsError(console, result);
+
+    free(mkdir);
+    commandDone(console);
+}
+
 static void onMakeDirectory(Console* console)
 {
     if(console->desc->count)
     {
-        char msg[TICNAME_MAX];
-        const char* param = console->desc->params->key;
+        MakeDirData* data = malloc(sizeof(MakeDirData));
 
-        if(tic_fs_exists(console->fs, param))
+        if(!data)
         {
-            sprintf(msg, "\nerror, [%s] already exists :(", param);
-            printError(console, msg);
+            printError(console, "\nout of memory");
+            printLine(console);
             commandDone(console);
             return;
         }
 
-        sprintf(msg, "\ncreated [%s] folder :)", param);
+        *data = (MakeDirData){.console = console};
+        snprintf(data->name, sizeof data->name, "%s", console->desc->params->key);
 
-        printBack(console, tic_fs_makedir(console->fs, param)
-                               ? "\nerror, dir not created :("
-                               : msg);
+        fsBegin(console);
+        tic_fs_mkdir(console->fs, data->name, onMakeDirectoryDone, data);
+        return;
     }
-    else
-        printError(console, "\ninvalid dir name");
 
+    printError(console, "\ninvalid dir name");
     commandDone(console);
 }
 
@@ -1697,7 +1768,8 @@ static void onDirCommand(Console* console)
     printLine(console);
 
     PrintFileNameData data = {.console = console};
-    tic_fs_enum(console->fs, printFilename, onDirDone, MOVE(data));
+    fsBegin(console);
+    tic_fs_list(console->fs, "", printFilename, onDirDone, MOVE(data));
 }
 
 static void onFolderDone(fs_result result, void* data)
@@ -1705,11 +1777,7 @@ static void onFolderDone(fs_result result, void* data)
     Console* console = data;
 
     if(result.code != FS_OK)
-    {
-        printError(console, "\n");
-        printError(console, result.message ? result.message : "could not open the folder");
-        printLine(console);
-    }
+        printFsError(console, result);
 
     commandDone(console);
 }
@@ -1720,6 +1788,7 @@ static void onFolderCommand(Console* console)
     printBack(console, "\nStorage path:\n");
     printFront(console, tic_fs_pathroot(console->fs, ""));
 
+    fsBegin(console);
     tic_fs_openfolder(console->fs, "", onFolderDone, console);
 }
 
@@ -2840,25 +2909,39 @@ static void onSaved(Console* console, const ConsoleAnswer* answer)
     else if(answer->save == CART_SAVE_MISSING_NAME)
         printBack(console, "\ncart name is missing\n");
     else
-        printBack(console, "\ncart saving error");
+        printFsError(console, answer->result);
 
     commandDone(console);
+}
+
+static void askSave(Console* console, const char* name)
+{
+    console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CART_SAVE, .name = name};
+    console->onAnswer = onSaved;
 }
 
 static void onSaveCommandConfirmed(Console* console, const void* data)
 {
     (void)data;
-    console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CART_SAVE, .name = console->desc->count ? console->desc->params->key : NULL};
-    console->onAnswer = onSaved;
+    askSave(console, console->desc->count ? console->desc->params->key : NULL);
 }
 
-static void onSaveCommand(Console* console)
+typedef struct
 {
-    const char* param = console->desc->count ? console->desc->params->key : NULL;
+    Console* console;
+    char param[TICNAME_MAX];
+    char cart[TICNAME_MAX];
+    bool checkedCart;
+} SaveCheckData;
 
-    if(param && strlen(param) &&
-       (tic_fs_exists(console->fs, param) ||
-        tic_fs_exists(console->fs, tic_tool_cart_name(param))))
+static void onSaveChecked(const fs_item* item, fs_result result, void* data)
+{
+    (void)item;
+
+    SaveCheckData* check = data;
+    Console* console = check->console;
+
+    if(result.code == FS_OK)
     {
         static const char* Rows[] =
             {
@@ -2868,11 +2951,54 @@ static void onSaveCommand(Console* console)
             };
 
         confirmCommand(console, Rows, COUNT_OF(Rows), onSaveCommandConfirmed, NULL);
+        free(check);
+        return;
     }
+
+    if(result.code == FS_NOT_FOUND && !check->checkedCart && strcmp(check->param, check->cart) != 0)
+    {
+        check->checkedCart = true;
+        tic_fs_stat(console->fs, check->cart, onSaveChecked, check);
+        return;
+    }
+
+    if(result.code == FS_NOT_FOUND)
+        askSave(console, console->desc->count ? console->desc->params->key : NULL);
     else
     {
-        onSaveCommandConfirmed(console, NULL);
+        printFsError(console, result);
+        commandDone(console);
     }
+
+    free(check);
+}
+
+static void onSaveCommand(Console* console)
+{
+    const char* param = console->desc->count ? console->desc->params->key : NULL;
+
+    if(param && strlen(param))
+    {
+        SaveCheckData* check = calloc(1, sizeof(SaveCheckData));
+
+        if(!check)
+        {
+            printError(console, "\nout of memory");
+            printLine(console);
+            commandDone(console);
+            return;
+        }
+
+        check->console = console;
+        snprintf(check->param, sizeof check->param, "%s", param);
+        snprintf(check->cart, sizeof check->cart, "%s", tic_tool_cart_name(param));
+
+        fsBegin(console);
+        tic_fs_stat(console->fs, check->param, onSaveChecked, check);
+        return;
+    }
+
+    onSaveCommandConfirmed(console, NULL);
 }
 
 static void onRunCommand(Console* console)
@@ -2942,6 +3068,7 @@ static void onEvalCommand(Console* console)
 typedef struct
 {
     Console* console;
+    char name[TICNAME_MAX];
     bool dir;
 } DeleteData;
 
@@ -2953,14 +3080,26 @@ static void onDeleteDone(fs_result result, void* data)
     if(result.code == FS_OK)
         printBack(console, del->dir ? "\ndir successfully deleted" : "\nfile successfully deleted");
     else
-    {
-        printError(console, "\n");
-        printError(console, result.message ? result.message : (del->dir ? "dir not deleted" : "file not deleted"));
-        printLine(console);
-    }
+        printFsError(console, result);
 
     commandDone(console);
     free(del);
+}
+
+static void onDeleteStat(const fs_item* item, fs_result result, void* data)
+{
+    DeleteData* del = data;
+
+    if(result.code != FS_OK)
+    {
+        printFsError(del->console, result);
+        commandDone(del->console);
+        free(del);
+        return;
+    }
+
+    del->dir = item->dir;
+    tic_fs_delete(del->console->fs, del->name, onDeleteDone, del);
 }
 
 static void onDelCommandConfirmed(Console* console, const void* data)
@@ -2969,7 +3108,6 @@ static void onDelCommandConfirmed(Console* console, const void* data)
 
     if(console->desc->count)
     {
-        const char* param = console->desc->params->key;
         DeleteData* del = malloc(sizeof(DeleteData));
 
         if(!del)
@@ -2980,8 +3118,11 @@ static void onDelCommandConfirmed(Console* console, const void* data)
             return;
         }
 
-        *del = (DeleteData){console, tic_fs_isdir(console->fs, param)};
-        tic_fs_delete(console->fs, param, onDeleteDone, del);
+        *del = (DeleteData){.console = console};
+        snprintf(del->name, sizeof del->name, "%s", console->desc->params->key);
+
+        fsBegin(console);
+        tic_fs_stat(console->fs, del->name, onDeleteStat, del);
         return;
     }
 
@@ -5040,8 +5181,9 @@ static void tick(Console* console)
 
         // One ask at a time: what the console asked the host for — the demo
         // cart's name, say — is served, and answered, before the next command
-        // starts, or the first ask of a frame would be lost to the second.
-        bool ready = console->ask.kind == CONSOLE_ASK_NONE;
+        // starts, or the first ask of a frame would be lost to the second. A
+        // filesystem operation holds the next command the same way.
+        bool ready = console->ask.kind == CONSOLE_ASK_NONE && !console->fsPending;
 
         if(console->active && ready)
         {
@@ -5053,12 +5195,11 @@ static void tick(Console* console)
 
                 processCommand(console, command);
 
-                // A command that asked the host for its effect counts as run
-                // when that has happened, not when it asked: `run` hands the
+                // A command that asked the host or the filesystem for its
+                // effect counts as run when that has answered: `run` hands the
                 // whole of it over, and runGame reads this count on the spot
-                // for the rewind --keepcmd does. A command that asked for
-                // nothing is done here.
-                if(console->ask.kind == CONSOLE_ASK_NONE)
+                // for the rewind --keepcmd does.
+                if(console->ask.kind == CONSOLE_ASK_NONE && !console->fsPending)
                     console->commands.current++;
                 else
                     console->counting = true;

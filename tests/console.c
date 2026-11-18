@@ -6,6 +6,7 @@
  */
 #include "studio/screens/console.h"
 #include "studio/fs.h"
+#include "studio/fs_internal.h"
 #include "core/core.h"
 #include "tools.h"
 #include <assert.h>
@@ -699,6 +700,7 @@ static const tic_script PlacedScript =
     {
         .id = 200,
         .name = "placed",
+        .fileExtension = ".placed",
         .singleComment = "--",
         .errorLine = placedErrorLine,
 };
@@ -707,6 +709,7 @@ static const tic_script UnplacedScript =
     {
         .id = 201,
         .name = "unplaced",
+        .fileExtension = ".unplaced",
         .singleComment = "--",
 };
 
@@ -858,6 +861,527 @@ static void testErrorLink(void)
     hostFree(host);
 }
 
+// The console's file commands over a fake filesystem: each operation is a
+// scripted answer, held until the test pumps it (or answered inline).
+typedef enum
+{
+    FakeList,
+    FakeLoad,
+    FakeStat,
+    FakeDelete,
+    FakeMkdir,
+    FakeOpen,
+    FakeSave,
+} FakeKind;
+
+typedef struct FakeOp
+{
+    struct FakeOp* next;
+    FakeKind kind;
+    char path[TICNAME_MAX];
+
+    fs_list_item_cb onItem;
+    fs_list_done_cb onListDone;
+    fs_load_done_cb onLoadDone;
+    fs_stat_done_cb onStatDone;
+    fs_done_cb onDone;
+    fs_save_done_cb onSaveDone;
+    void* data;
+} FakeOp;
+
+static struct
+{
+    FakeOp* head;
+    FakeOp* tail;
+    s32 pending;
+    bool inlineAnswers;
+
+    fs_result result;
+    fs_item item;
+    char itemName[TICNAME_MAX];
+    char loadName[TICNAME_MAX];
+    const u8* bytes;
+    s32 size;
+    char stored[TICNAME_MAX];
+    fs_item items[8];
+    char names[8][TICNAME_MAX];
+    s32 count;
+    fs_usage usage;
+    bool hasUsage;
+} Fake;
+
+static void fakeReset(void)
+{
+    assert(Fake.head == NULL);
+    memset(&Fake, 0, sizeof Fake);
+}
+
+static void fakeList(fs_result result, const char* const* names, const bool* dirs, s32 count)
+{
+    Fake.result = result;
+    Fake.count = count;
+
+    for(s32 i = 0; i < count && i < (s32)COUNT_OF(Fake.items); i++)
+    {
+        snprintf(Fake.names[i], sizeof Fake.names[i], "%s", names[i]);
+        Fake.items[i] = (fs_item){Fake.names[i], NULL, dirs[i], -1, 0};
+    }
+}
+
+static void fakeUsage(s32 count, s32 maxCount, s64 bytes, s64 maxBytes)
+{
+    Fake.hasUsage = true;
+    Fake.usage = (fs_usage){true, count, maxCount, bytes, maxBytes};
+}
+
+static void fakeStatResult(fs_result result, const char* name, bool dir)
+{
+    Fake.result = result;
+    snprintf(Fake.itemName, sizeof Fake.itemName, "%s", name);
+    Fake.item = (fs_item){Fake.itemName, NULL, dir, -1, 0};
+}
+
+static void fakeLoadResult(fs_result result, const char* name, const u8* bytes, s32 size)
+{
+    Fake.result = result;
+    snprintf(Fake.loadName, sizeof Fake.loadName, "%s", name);
+    Fake.bytes = bytes;
+    Fake.size = size;
+}
+
+static void fakeDone(fs_result result)
+{
+    Fake.result = result;
+}
+
+static FakeOp* fakePush(FakeKind kind, const char* path, void* data)
+{
+    FakeOp* op = calloc(1, sizeof(FakeOp));
+    assert(op);
+
+    op->kind = kind;
+    snprintf(op->path, sizeof op->path, "%s", path);
+    op->data = data;
+
+    if(Fake.tail)
+        Fake.tail->next = op;
+    else
+        Fake.head = op;
+
+    Fake.tail = op;
+    Fake.pending++;
+
+    return op;
+}
+
+static void fakeServe(FakeOp* op)
+{
+    fs_result result = Fake.result;
+
+    switch(op->kind)
+    {
+    case FakeList:
+        if(result.code == FS_OK)
+            for(s32 i = 0; i < Fake.count; i++)
+                if(!op->onItem(&Fake.items[i], op->data))
+                    break;
+
+        op->onListDone(Fake.hasUsage ? &Fake.usage : NULL, result, op->data);
+        break;
+
+    case FakeLoad:
+        op->onLoadDone(Fake.loadName, Fake.bytes, Fake.size, result, op->data);
+        break;
+
+    case FakeStat:
+        op->onStatDone(result.code == FS_OK ? &Fake.item : NULL, result, op->data);
+        break;
+
+    case FakeDelete:
+    case FakeMkdir:
+    case FakeOpen:
+        op->onDone(result, op->data);
+        break;
+
+    case FakeSave:
+        op->onSaveDone(Fake.stored, result, op->data);
+        break;
+    }
+}
+
+static bool fakePump(void)
+{
+    FakeOp* op = Fake.head;
+
+    if(!op)
+        return false;
+
+    Fake.head = op->next;
+
+    if(!Fake.head)
+        Fake.tail = NULL;
+
+    Fake.pending--;
+    fakeServe(op);
+
+    free(op);
+    return true;
+}
+
+static void fakeOpDone(FakeKind kind, void* data, fs_done_cb done)
+{
+    fakePush(kind, "", data)->onDone = done;
+
+    if(Fake.inlineAnswers)
+        fakePump();
+}
+
+static void fakeListOp(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_list_done_cb onDone, void* data)
+{
+    (void)fs;
+    FakeOp* op = fakePush(FakeList, path, data);
+    op->onItem = onItem;
+    op->onListDone = onDone;
+
+    if(Fake.inlineAnswers)
+        fakePump();
+}
+
+static void fakeLoadOp(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
+{
+    (void)fs;
+    fakePush(FakeLoad, path, data)->onLoadDone = onDone;
+
+    if(Fake.inlineAnswers)
+        fakePump();
+}
+
+static void fakeSaveOp(tic_fs* fs, const char* path, const void* bytes, s32 size, fs_save_done_cb onDone, void* data)
+{
+    (void)fs;
+    (void)bytes;
+    (void)size;
+    fakePush(FakeSave, path, data)->onSaveDone = onDone;
+
+    if(Fake.inlineAnswers)
+        fakePump();
+}
+
+static void fakeDeleteOp(tic_fs* fs, const char* path, fs_done_cb onDone, void* data)
+{
+    (void)fs;
+    fakeOpDone(FakeDelete, data, onDone);
+    (void)path;
+}
+
+static void fakeStatOp(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void* data)
+{
+    (void)fs;
+    fakePush(FakeStat, path, data)->onStatDone = onDone;
+
+    if(Fake.inlineAnswers)
+        fakePump();
+}
+
+static void fakeMkdirOp(tic_fs* fs, const char* path, fs_done_cb onDone, void* data)
+{
+    (void)fs;
+    fakeOpDone(FakeMkdir, data, onDone);
+    (void)path;
+}
+
+static void fakeOpenOp(tic_fs* fs, const char* path, fs_done_cb onDone, void* data)
+{
+    (void)fs;
+    fakeOpDone(FakeOpen, data, onDone);
+    (void)path;
+}
+
+static void fakeCoverOp(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
+{
+    (void)fs;
+    (void)path;
+    onDone(NULL, 0, (fs_result){FS_NOT_FOUND, "no cover"}, data);
+}
+
+static const fs_mount_ops FakeMount = {
+    .list = fakeListOp,
+    .load = fakeLoadOp,
+    .save = fakeSaveOp,
+    .delete = fakeDeleteOp,
+    .stat = fakeStatOp,
+    .mkdir = fakeMkdirOp,
+    .openfolder = fakeOpenOp,
+    .cover = fakeCoverOp,
+};
+
+static Host* fakeHost(const char* cmd, bool inlineAnswers)
+{
+    Host* host = hostNew(cmd);
+
+    fakeReset();
+    Fake.inlineAnswers = inlineAnswers;
+    tic_fs_set_mount(host->fs, &FakeMount);
+
+    return host;
+}
+
+// The first frame loads the language's demo cart and asks for its name.
+static void firstFrame(Host* host)
+{
+    ConsoleAsk ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+}
+
+// `dir` prints the items, the mount's optional usage line and the prompt, the
+// same code path for a local or a remote listing.
+static void testFakeDir(void)
+{
+    static const char* names[] = {"sub", "cart.tic"};
+    static const bool dirs[] = {true, false};
+
+    {
+        Host* host = fakeHost("dir", false);
+        firstFrame(host);
+
+        hostTick(host);
+        assert(Fake.pending == 1);
+
+        fakeList((fs_result){FS_OK, NULL}, names, dirs, 2);
+        fakeUsage(2, 10, 100, 1000);
+        assert(fakePump());
+
+        assert(said(host, "[sub]"));
+        assert(said(host, "cart.tic"));
+        assert(said(host, "2/10 carts, 100/1000 bytes"));
+        assert(promptAtInput(host));
+
+        hostFree(host);
+    }
+
+    {
+        // A mount with no usage numbers leaves the line out.
+        Host* host = fakeHost("dir", false);
+        firstFrame(host);
+
+        hostTick(host);
+        fakeList((fs_result){FS_OK, NULL}, names, dirs, 2);
+        assert(fakePump());
+
+        assert(said(host, "[sub]"));
+        assert(said(host, "cart.tic"));
+        assert(!said(host, "carts,"));
+        assert(promptAtInput(host));
+
+        hostFree(host);
+    }
+}
+
+static void testFakeCd(void)
+{
+    Host* host = fakeHost("cd sub & cd nope & cd cart.tic", false);
+    firstFrame(host);
+
+    hostTick(host);
+    fakeStatResult((fs_result){FS_OK, NULL}, "sub", true);
+    assert(fakePump());
+    assert(said(host, "sub>"));
+
+    hostTick(host);
+    fakeStatResult((fs_result){FS_NOT_FOUND, "not found"}, "nope", false);
+    assert(fakePump());
+    assert(said(host, "not found"));
+
+    hostTick(host);
+    fakeStatResult((fs_result){FS_OK, NULL}, "cart.tic", false);
+    assert(fakePump());
+    assert(said(host, "not a folder"));
+
+    hostFree(host);
+}
+
+// A refused delete shows the mount's message and changes nothing.
+static void testFakeDelRefused(void)
+{
+    Host* host = fakeHost("del cart.tic", false);
+    firstFrame(host);
+
+    ConsoleAsk ask = hostTick(host);
+    assert(ask.kind == CONSOLE_ASK_CONFIRM);
+    hostAnswer(host, (ConsoleAnswer){.yes = true});
+
+    fakeStatResult((fs_result){FS_OK, NULL}, "cart.tic", false);
+    assert(fakePump());
+    assert(Fake.pending == 1);
+
+    fakeDone((fs_result){FS_DENIED, "access denied"});
+    assert(fakePump());
+
+    assert(said(host, "access denied"));
+    assert(promptAtInput(host));
+
+    hostFree(host);
+}
+
+static void testFakeMkdir(void)
+{
+    Host* host = fakeHost("mkdir sub & mkdir sub", false);
+    firstFrame(host);
+
+    hostTick(host);
+    fakeDone((fs_result){FS_OK, NULL});
+    assert(fakePump());
+    assert(said(host, "created [sub] folder :)"));
+
+    hostTick(host);
+    fakeDone((fs_result){FS_IO, "the folder exists"});
+    assert(fakePump());
+    assert(said(host, "the folder exists"));
+
+    hostFree(host);
+}
+
+static void testFakeFolder(void)
+{
+    Host* host = fakeHost("folder", false);
+    firstFrame(host);
+
+    hostTick(host);
+    fakeDone((fs_result){FS_UNSUPPORTED, "not supported on the site"});
+    assert(fakePump());
+
+    assert(said(host, "Storage path:"));
+    assert(said(host, "not supported on the site"));
+
+    hostFree(host);
+}
+
+// One outstanding filesystem operation per command: the next command waits for
+// the answer, and a pending save keeps a file command from starting.
+static void testFakePending(void)
+{
+    static const char* names[] = {"cart.tic"};
+    static const bool dirs[] = {false};
+
+    {
+        Host* host = fakeHost("dir & dir", false);
+        firstFrame(host);
+
+        hostTick(host);
+        assert(Fake.pending == 1);
+
+        hostTick(host); // the second dir must wait for the first answer
+        assert(Fake.pending == 1);
+
+        fakeList((fs_result){FS_OK, NULL}, names, dirs, 1);
+        assert(fakePump());
+        assert(Fake.pending == 0);
+
+        hostTick(host); // the first command is done; the second starts
+        assert(Fake.pending == 1);
+
+        fakeList((fs_result){FS_OK, NULL}, names, dirs, 1);
+        assert(fakePump());
+        assert(Fake.pending == 0);
+
+        hostFree(host);
+    }
+
+    {
+        Host* host = fakeHost("save smoke & dir", false);
+        firstFrame(host);
+
+        // The save checks its target through the filesystem first.
+        hostTick(host);
+        assert(Fake.pending == 1);
+        fakeStatResult((fs_result){FS_NOT_FOUND, "not found"}, "smoke", false);
+        assert(fakePump());
+        assert(Fake.pending == 1);
+        fakeStatResult((fs_result){FS_NOT_FOUND, "not found"}, "smoke.tic", false);
+        assert(fakePump());
+
+        ConsoleAsk save = hostTick(host);
+        assert(save.kind == CONSOLE_ASK_CART_SAVE);
+        assert(strcmp(save.name, "smoke") == 0);
+
+        hostTick(host); // the pending save refuses the dir
+        assert(Fake.pending == 0);
+
+        hostAnswer(host, (ConsoleAnswer){.save = CART_SAVE_OK, .name = "smoke.tic"});
+
+        hostTick(host); // the save answered; now the dir starts
+        assert(Fake.pending == 1);
+        fakeList((fs_result){FS_OK, NULL}, names, dirs, 1);
+        assert(fakePump());
+
+        hostFree(host);
+    }
+}
+
+// A local mount answers inline: the command completes inside its own tick.
+static void testFakeInline(void)
+{
+    static const char* names[] = {"cart.tic"};
+    static const bool dirs[] = {false};
+
+    Host* host = fakeHost("dir", true);
+    firstFrame(host);
+
+    fakeList((fs_result){FS_OK, NULL}, names, dirs, 1);
+    hostTick(host);
+
+    assert(Fake.pending == 0);
+    assert(said(host, "cart.tic"));
+    assert(promptAtInput(host));
+
+    hostFree(host);
+}
+
+// A load answers through the one call and asks for the resolved name; a local
+// mount answers inside the command's tick.
+static void testFakeLoad(void)
+{
+    Host* host = fakeHost("load cart.tic", true);
+    firstFrame(host);
+
+    static tic_cartridge cart;
+    memset(&cart, 0, sizeof cart);
+    tic_tool_poke4(cart.bank0.tiles.data[0].data, 0, 0x7);
+
+    u8 buffer[TIC_CART_SAVE_SIZE];
+    s32 size = tic_cart_save(&cart, buffer);
+    assert(size > 0);
+
+    fakeLoadResult((fs_result){FS_OK, NULL}, "cart.tic", buffer, size);
+    ConsoleAsk ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    assert(strcmp(ask.name, "cart.tic") == 0);
+    hostAnswer(host, (ConsoleAnswer){.name = "cart.tic"});
+
+    assert(said(host, "cart cart.tic loaded!"));
+    assert(promptAtInput(host));
+
+    hostFree(host);
+}
+
+// A session that ended points at signing in, whatever the command.
+static void testFakeSession(void)
+{
+    Host* host = fakeHost("dir", false);
+    firstFrame(host);
+
+    hostTick(host);
+    fakeList((fs_result){FS_SESSION, "the session ended"}, NULL, NULL, 0);
+    assert(fakePump());
+
+    assert(said(host, "the session ended, please sign in"));
+
+    hostFree(host);
+}
+
 int main(void)
 {
     testMoves();
@@ -876,8 +1400,17 @@ int main(void)
     testHelpFill();
     testExportHelp();
     testErrorLink();
+    testFakeDir();
+    testFakeCd();
+    testFakeDelRefused();
+    testFakeMkdir();
+    testFakeFolder();
+    testFakePending();
+    testFakeInline();
+    testFakeLoad();
+    testFakeSession();
 
-    puts("moves ok / confirm ok / load ok / save ok / config ok / export ok / replay ok / run / help fill / error link");
+    puts("moves ok / confirm ok / load ok / save ok / config ok / export ok / replay ok / run / help fill / error link / fs ok");
 
     return 0;
 }

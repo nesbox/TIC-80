@@ -154,6 +154,7 @@ struct ConsoleAnswer
     bool yes;            // CONFIRM
     bool ok;             // EXPORT_SFX / EXPORT_MUSIC: it was written
     CartSaveResult save; // CART_SAVE
+    fs_result result;    // CART_SAVE: the filesystem's answer
     const char* name;    // the cart's name after the ask: LOADED, SAVE
 };
 
@@ -180,6 +181,7 @@ struct Console
     ConsoleAsk ask;
     bool waiting;  // the host has taken the ask and owes an answer
     bool counting; // the command's ask is out: it counts on the answer
+    bool fsPending; // the command's filesystem operation has not answered yet
 
     // The flow that asked, picking itself up when the answer comes.
     void (*onAnswer)(Console*, const ConsoleAnswer*);
