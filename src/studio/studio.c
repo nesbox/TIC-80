@@ -3453,6 +3453,12 @@ void exitGame(Studio* studio)
 void studio_delete(Studio* studio)
 {
     {
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+        // The transport goes first: a pending request's callback must not
+        // reach a screen or the account after they are freed.
+        tic_net_close(studio->net);
+#endif
+
 #if defined(BUILD_EDITORS)
         for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
         {
@@ -3488,9 +3494,6 @@ void studio_delete(Studio* studio)
 
     tic_core_close(studio->tic);
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-    tic_net_close(studio->net);
-#endif
 #if defined(BUILD_EDITORS)
     free(studio->video.buffer);
     if(studio->bytebattle.exp) free(studio->bytebattle.exp);
