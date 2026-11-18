@@ -58,6 +58,10 @@
 // again, while its item stays under the cursor.
 #define COVER_RETRY_TICKS (TIC80_FRAMERATE * 5)
 
+// Cover requests the browser may have in flight at once.
+#define COVERS_IN_FLIGHT 2
+#define CAN_OPEN_URL     (__TIC_WINDOWS__ || __TIC_LINUX__ || __TIC_MACOSX__ || __TIC_ANDROID__)
+
 static const char* PngExt = PNG_EXT;
 
 typedef struct
@@ -146,6 +150,29 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
         tic_api_print(tic, label, xl, yl + 1, tic_color_black, true, 1, false);
         tic_api_print(tic, label, xl, yl, tic_color_white, true, 1, false);
     }
+
+#ifdef CAN_OPEN_URL
+
+    if(surf->menu.count > 0 && getMenuItem(surf)->token)
+    {
+        enum
+        {
+            Gap = 10,
+            TipX = 134,
+            SelectWidth = 54
+        };
+
+        u8 colorkey = 0;
+
+        tiles2ram(tic->ram, &surf->config->cart->bank0.tiles);
+        tic_api_spr(tic, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+        {
+            static const char Label[] = "WEBSITE";
+            tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 3, tic_color_black, true, 1, false);
+            tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 2, tic_color_white, true, 1, false);
+        }
+    }
+#endif
 }
 
 static void drawMenu(Surf* surf, s32 x, s32 y)
@@ -195,6 +222,7 @@ static bool addMenuItem(const fs_item* entry, void* ptr)
 
         *item = (SurfItem){
             .name = strdup(name),
+            .token = entry->dir ? 0 : entry->token,
             .dir = entry->dir,
         };
 
@@ -206,17 +234,13 @@ static bool addMenuItem(const fs_item* entry, void* ptr)
         }
         else
         {
-            if(entry->title)
-                item->label = strdup(entry->title);
-            else
-            {
-                item->label = strdup(name);
+            // The site's name is the title plus the cart extension, so the
+            // label loses it whether it came from the title or the name.
+            item->label = entry->title ? strdup(entry->title) : strdup(name);
 
-                if(tic_tool_has_ext(name, CartExt))
-                    cutExt(item->label, CartExt);
-            }
-
-            if(!tic_tool_has_ext(name, CartExt))
+            if(tic_tool_has_ext(name, CartExt) && strlen(item->label) > strlen(CartExt))
+                cutExt(item->label, CartExt);
+            else if(!tic_tool_has_ext(name, CartExt))
                 item->project = true;
         }
     }
@@ -266,6 +290,8 @@ static void addMenuItemsDone(const fs_usage* usage, fs_result result, void* data
         if(result.code != FS_OK)
             snprintf(surf->message, sizeof surf->message, "%s",
                      result.message ? result.message : "could not list the folder");
+        else
+            surf->message[0] = '\0';
     }
     else
         freeMenuItems(addMenuItemData->items, addMenuItemData->count);
@@ -350,6 +376,9 @@ static void coverLoaded(const u8* bytes, s32 size, fs_result result, void* data)
     Surf* surf = cover->surf;
     SurfItem* item = coverItem(surf, cover);
 
+    if(surf->coversInFlight > 0)
+        surf->coversInFlight--;
+
     if(result.code == FS_OK)
     {
         if(item)
@@ -381,6 +410,8 @@ static void requestCover(Surf* surf, SurfItem* item)
     snprintf(data->name, sizeof data->name, "%s", item->name);
     tic_fs_dir(surf->fs, data->dir);
 
+    surf->coversInFlight++;
+
     tic_fs_cover(surf->fs, item->name, coverLoaded, data);
 }
 
@@ -389,6 +420,11 @@ static void loadCover(Surf* surf)
     SurfItem* item = getMenuItem(surf);
 
     if(item->dir || item->coverLoading || surf->ticks < item->coverRetry || item->cover)
+        return;
+
+    // A handful of pending covers is what the browser can hold without the
+    // folder listings and downloads queueing behind them.
+    if(surf->coversInFlight >= COVERS_IN_FLIGHT)
         return;
 
     requestCover(surf, item);
@@ -673,6 +709,17 @@ static void processGamepad(Surf* surf)
                     ? changeDirectory(surf, item->name)
                     : loadCart(surf);
             }
+
+#ifdef CAN_OPEN_URL
+
+            if(tic_api_btnp(tic, Y, -1, -1))
+            {
+                SurfItem* item = getMenuItem(surf);
+
+                if(item->token)
+                    surf->deps.openSitePage(surf->deps.host, item->token);
+            }
+#endif
         }
 
         if(tic_api_btnp(tic, B, -1, -1) || tic_api_keyp(tic, tic_key_backspace, -1, -1))
@@ -759,6 +806,7 @@ static void tick(Surf* surf)
 static void resume(Surf* surf)
 {
     surf->anim.movie = resetMovie(&surf->anim.show);
+    surf->message[0] = '\0';
 }
 
 // The cover's palette is faded in as its cart is picked.

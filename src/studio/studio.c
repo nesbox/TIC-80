@@ -1027,6 +1027,17 @@ static bool surfIsActive(void* host)
     return getStudioMode(host) == TIC_SURF_MODE;
 }
 
+// The site's own page for a listed cart: the screen hands the item's token and
+// the host builds the address.
+static void surfOpenSitePage(void* host, s32 token)
+{
+    (void)host;
+
+    char url[TICNAME_MAX];
+    snprintf(url, sizeof url, TIC_WEBSITE "/play?cart=%i", token);
+    tic_sys_open_url(url);
+}
+
 // The confirm's answer is the screen's own callback; the dialog holds it until
 // one of its items is picked.
 typedef struct
@@ -1051,8 +1062,7 @@ static void surfConfirmLoadCart(void* host, SurfConfirm callback, void* data)
     confirmLoadCart(host, surfConfirmAnswered, confirm);
 }
 
-// What the browser gets once: its filesystem, its net and config, and the
-// actions.
+// What the browser gets once: its filesystem and config, and the actions.
 static SurfDeps surfDeps(Studio* studio)
 {
     return (SurfDeps){
@@ -1065,6 +1075,7 @@ static SurfDeps surfDeps(Studio* studio)
         .autoSave = surfAutoSave,
         .cartChanged = surfCartChanged,
         .confirmLoadCart = surfConfirmLoadCart,
+        .openSitePage = surfOpenSitePage,
         .run = surfRun,
         .exit = surfExit,
         .isActive = surfIsActive,

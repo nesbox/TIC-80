@@ -38,6 +38,8 @@ static s32 RunCalls;
 static s32 ExitCalls;
 static s32 ConfirmCalls;
 static s32 CoverRequests;
+static s32 OpenPageCalls;
+static s32 OpenPageToken;
 
 static char LoadedName[TICNAME_MAX];
 
@@ -96,21 +98,31 @@ static bool fakeIsActive(void* host)
     return Active;
 }
 
-// The fake filesystem's answers: two folders and a cart at the root, one cart
-// on the site, nothing in the test's own folder.
-static const char* RootNames[] = {TIC_HOST, "zzz", "local.tic"};
-static const bool RootDirs[] = {true, true, false};
+// The site page the browser asks its host for: recorded, not opened.
+static void fakeOpenSitePage(void* host, s32 token)
+{
+    (void)host;
+    OpenPageCalls++;
+    OpenPageToken = token;
+}
 
-static const char* SiteNames[] = {"demo.tic"};
-static const char* SiteTitles[] = {"Demo"};
-static const bool SiteDirs[] = {false};
+// The fake filesystem's answers: two folders and a cart at the root, three
+// carts with the mount's tokens on the site, one folder that fails to list.
+static const char* RootNames[] = {TIC_HOST, "zzz", "bad", "local.tic"};
+static const bool RootDirs[] = {true, true, true, false};
+static const s32 RootTokens[] = {0, 0, 0, 0};
 
-static void fakeEmit(const char* const* names, const char* const* titles, const bool* dirs, s32 count,
-                     fs_list_item_cb onItem, void* data)
+static const char* SiteNames[] = {"demo.tic", "b.tic", "c.tic"};
+static const char* SiteTitles[] = {"Demo.tic", "B.tic", "C.tic"};
+static const bool SiteDirs[] = {false, false, false};
+static const s32 SiteTokens[] = {11, 12, 13};
+
+static void fakeEmit(const char* const* names, const char* const* titles, const bool* dirs, const s32* tokens,
+                     s32 count, fs_list_item_cb onItem, void* data)
 {
     for(s32 i = 0; i < count; i++)
     {
-        fs_item item = {names[i], titles ? titles[i] : NULL, dirs[i], -1, 0, 0};
+        fs_item item = {names[i], titles ? titles[i] : NULL, dirs[i], -1, 0, tokens ? tokens[i] : 0};
 
         if(!onItem(&item, data))
             break;
@@ -125,9 +137,14 @@ static void fakeList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_li
     tic_fs_dir(fs, dir);
 
     if(strcmp(dir, "") == 0)
-        fakeEmit(RootNames, NULL, RootDirs, COUNT_OF(RootNames), onItem, data);
+        fakeEmit(RootNames, NULL, RootDirs, RootTokens, COUNT_OF(RootNames), onItem, data);
     else if(strcmp(dir, TIC_HOST) == 0)
-        fakeEmit(SiteNames, SiteTitles, SiteDirs, COUNT_OF(SiteNames), onItem, data);
+        fakeEmit(SiteNames, SiteTitles, SiteDirs, SiteTokens, COUNT_OF(SiteNames), onItem, data);
+    else if(strcmp(dir, "bad") == 0)
+    {
+        onDone(NULL, (fs_result){FS_OFFLINE, "no network"}, data);
+        return;
+    }
     else if(strcmp(dir, "zzz") != 0)
     {
         onDone(NULL, (fs_result){FS_NOT_FOUND, "not found"}, data);
@@ -187,12 +204,41 @@ static void fakeOpen(tic_fs* fs, const char* path, fs_done_cb onDone, void* data
     onDone((fs_result){FS_UNSUPPORTED, "not supported"}, data);
 }
 
+// A cover request the test holds, to see how many the screen keeps in flight.
+typedef struct
+{
+    fs_cover_done_cb onDone;
+    void* data;
+} HeldCover;
+
+static bool HoldCovers;
+static HeldCover HeldCovers[8];
+static s32 HeldCoverCount;
+
+static void answerHeldCover(void)
+{
+    assert(HeldCoverCount > 0);
+
+    HeldCover held = HeldCovers[0];
+    memmove(HeldCovers, HeldCovers + 1, sizeof(HeldCover) * --HeldCoverCount);
+
+    held.onDone(NULL, 0, (fs_result){FS_NOT_FOUND, "no cover"}, held.data);
+}
+
 static void fakeCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
 {
     (void)fs;
     (void)path;
 
     CoverRequests++;
+
+    if(HoldCovers)
+    {
+        assert(HeldCoverCount < COUNT_OF(HeldCovers));
+        HeldCovers[HeldCoverCount++] = (HeldCover){onDone, data};
+        return;
+    }
+
     onDone(NULL, 0, (fs_result){FS_NOT_FOUND, "no cover"}, data);
 }
 
@@ -253,6 +299,9 @@ static void setup(void)
     LoadCartCalls = AutoSaveCalls = 0;
     RunCalls = ExitCalls = ConfirmCalls = 0;
     CoverRequests = 0;
+    OpenPageCalls = OpenPageToken = 0;
+    HoldCovers = false;
+    HeldCoverCount = 0;
     LoadedName[0] = '\0';
     LoadDone = NULL;
     LoadDoneData = NULL;
@@ -281,6 +330,7 @@ static void setup(void)
                           .autoSave = fakeAutoSave,
                           .cartChanged = fakeCartChanged,
                           .confirmLoadCart = fakeConfirmLoadCart,
+                          .openSitePage = fakeOpenSitePage,
                           .run = fakeRun,
                           .exit = fakeExit,
                           .isActive = fakeIsActive,
@@ -318,6 +368,14 @@ static void press(tic_key key)
     keys(tic_key_unknown);
 }
 
+// A gamepad button, on the frame it is pressed and off after it.
+static void pressButton(u8 button)
+{
+    Tic->ram->input.gamepads.data = button;
+    frame();
+    Tic->ram->input.gamepads.data = 0;
+}
+
 // Enough frames for the longest animations, and the listing behind them.
 static void settle(void)
 {
@@ -337,12 +395,14 @@ static void moveTo(s32 index)
 }
 
 // The fake root's entries in the browser's order: the site folder, the test's
-// own folder, the test's cart.
+// own folder, the folder that fails to list, the test's cart.
 enum
 {
     RootSiteIndex = 0,
     RootSubIndex = 1,
-    RootCartIndex = 2,
+    RootBadIndex = 2,
+    RootCartIndex = 3,
+    RootCount = 4,
 };
 
 // The screen's cover retry, five seconds: see COVER_RETRY_TICKS in surf.c.
@@ -394,13 +454,19 @@ static void testListing(void)
 {
     setup();
 
-    assert(Screen->menu.count == 3);
+    assert(Screen->menu.count == RootCount);
+
     assert(strcmp(Screen->menu.items[RootSiteIndex].name, TIC_HOST) == 0);
     assert(Screen->menu.items[RootSiteIndex].dir);
     assert(strcmp(Screen->menu.items[RootSubIndex].name, "zzz") == 0);
     assert(Screen->menu.items[RootSubIndex].dir);
+    assert(strcmp(Screen->menu.items[RootBadIndex].name, "bad") == 0);
+    assert(Screen->menu.items[RootBadIndex].dir);
     assert(strcmp(Screen->menu.items[RootCartIndex].name, "local.tic") == 0);
     assert(!Screen->menu.items[RootCartIndex].dir);
+
+    // A local item has no site token.
+    assert(Screen->menu.items[RootCartIndex].token == 0);
 
     teardown();
     puts("listing ok");
@@ -417,14 +483,33 @@ static void testSiteCart(void)
 
     openSiteFolder();
 
-    // The listing opens on "..", the step back to the root; the cart is after.
-    assert(Screen->menu.count == 2);
+    // The listing opens on "..", the step back to the root; the carts follow.
+    assert(Screen->menu.count == 4);
     assert(strcmp(Screen->menu.items[0].name, "..") == 0);
     assert(strcmp(Screen->menu.items[1].name, "demo.tic") == 0);
+
+    // The server's name is the title plus the extension; the menu shows the title.
     assert(strcmp(Screen->menu.items[1].label, "Demo") == 0);
+
+    // The mount's token travels with the item.
+    assert(Screen->menu.items[1].token == 11);
 
     press(tic_key_down);
     assert(channelNote() == 3 + 12);
+    settle();
+
+    // Y asks the host for the site's page of this cart.
+    pressButton(1 << 7);
+    assert(OpenPageCalls == 1);
+    assert(OpenPageToken == 11);
+
+    // A folder has no site page.
+    press(tic_key_up);
+    settle();
+    pressButton(1 << 7);
+    assert(OpenPageCalls == 1);
+
+    press(tic_key_down);
     settle();
 
     // The cover is the filesystem's answer; a missing one is asked again later.
@@ -486,7 +571,7 @@ static void testFailedLoad(void)
 
     assert(RunCalls == 0);
     assert(strcmp(dirName(), TIC_HOST) == 0);
-    assert(Screen->menu.count == 2);
+    assert(Screen->menu.count == 4);
     assert(strcmp(Screen->message, "no network") == 0);
 
     // The next load clears the message and plays.
@@ -500,6 +585,64 @@ static void testFailedLoad(void)
 
     teardown();
     puts("failed load ok");
+}
+
+// A listing that succeeds clears the last failure the browser showed.
+static void testFailedListing(void)
+{
+    setup();
+
+    moveTo(RootBadIndex);
+    press(tic_key_return);
+    settle();
+
+    assert(strcmp(dirName(), "bad") == 0);
+    assert(Screen->menu.count == 1);
+    assert(strcmp(Screen->menu.items[0].name, "..") == 0);
+    assert(strcmp(Screen->message, "no network") == 0);
+
+    press(tic_key_backspace);
+    settle();
+
+    assert(strcmp(dirName(), "") == 0);
+    assert(Screen->menu.count == RootCount);
+    assert(Screen->message[0] == '\0');
+
+    teardown();
+    puts("failed listing ok");
+}
+
+// The browser keeps at most two cover requests in flight.
+static void testCoverCap(void)
+{
+    setup();
+    HoldCovers = true;
+
+    openSiteFolder();
+    assert(CoverRequests == 0); // ".." is a folder
+
+    press(tic_key_down); // demo
+    settle();
+    assert(CoverRequests == 1);
+
+    press(tic_key_down); // b
+    settle();
+    assert(CoverRequests == 2);
+
+    press(tic_key_down); // c: the cap holds the third
+    settle();
+    assert(CoverRequests == 2);
+
+    // One answer frees a slot; the selected item asks on the next frame.
+    answerHeldCover();
+    frame();
+    assert(CoverRequests == 3);
+
+    while(HeldCoverCount > 0)
+        answerHeldCover();
+
+    teardown();
+    puts("cover cap ok");
 }
 
 static void testLocalCart(void)
@@ -621,6 +764,8 @@ int main(void)
     testListing();
     testSiteCart();
     testFailedLoad();
+    testFailedListing();
+    testCoverCap();
     testLocalCart();
     testConfirm();
     testSubfolder();

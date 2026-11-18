@@ -38,6 +38,7 @@ typedef struct SurfItem
 
     bool coverLoading;
     s32 coverRetry;
+    s32 token; // the site's page handle, 0 when the item has no page
     bool dir;
     bool project;
 } SurfItem;
@@ -59,6 +60,7 @@ typedef struct
     void (*autoSave)(void* host);
     bool (*cartChanged)(void* host);
     void (*confirmLoadCart)(void* host, SurfConfirm callback, void* data);
+    void (*openSitePage)(void* host, s32 token); // the site's page for a listed cart
     void (*run)(void* host);
     void (*exit)(void* host);
     bool (*isActive)(void* host);
@@ -75,6 +77,7 @@ struct Surf
     bool init;
     bool loading;
     s32 ticks;
+    s32 coversInFlight; // cover requests the screen may keep pending at once
 
     char message[TICNAME_MAX]; // the last failure the browser has to report
 
