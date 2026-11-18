@@ -482,7 +482,7 @@ void rom_save_cart(const RomDeps* deps, const char* name, rom_save_done done, vo
 
 void rom_autosave(const RomDeps* deps, rom_save_done done, void* data)
 {
-    char namepath[TICNAME_MAX];
+    char namepath[TICNAME_MAX + 16];
     snprintf(namepath, sizeof namepath, "/downloads/%s", deps->cart->name);
 
     rom_save_cart(deps, namepath, done, data);

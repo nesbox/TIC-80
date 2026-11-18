@@ -980,32 +980,32 @@ static void fakeServe(FakeOp* op)
 
     switch(op->kind)
     {
-    case FakeList:
-        if(result.code == FS_OK)
-            for(s32 i = 0; i < Fake.count; i++)
-                if(!op->onItem(&Fake.items[i], op->data))
-                    break;
+        case FakeList:
+            if(result.code == FS_OK)
+                for(s32 i = 0; i < Fake.count; i++)
+                    if(!op->onItem(&Fake.items[i], op->data))
+                        break;
 
-        op->onListDone(Fake.hasUsage ? &Fake.usage : NULL, result, op->data);
-        break;
+            op->onListDone(Fake.hasUsage ? &Fake.usage : NULL, result, op->data);
+            break;
 
-    case FakeLoad:
-        op->onLoadDone(Fake.loadName, Fake.bytes, Fake.size, result, op->data);
-        break;
+        case FakeLoad:
+            op->onLoadDone(Fake.loadName, Fake.bytes, Fake.size, result, op->data);
+            break;
 
-    case FakeStat:
-        op->onStatDone(result.code == FS_OK ? &Fake.item : NULL, result, op->data);
-        break;
+        case FakeStat:
+            op->onStatDone(result.code == FS_OK ? &Fake.item : NULL, result, op->data);
+            break;
 
-    case FakeDelete:
-    case FakeMkdir:
-    case FakeOpen:
-        op->onDone(result, op->data);
-        break;
+        case FakeDelete:
+        case FakeMkdir:
+        case FakeOpen:
+            op->onDone(result, op->data);
+            break;
 
-    case FakeSave:
-        op->onSaveDone(Fake.stored, result, op->data);
-        break;
+        case FakeSave:
+            op->onSaveDone(Fake.stored, result, op->data);
+            break;
     }
 }
 

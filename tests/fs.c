@@ -1222,8 +1222,6 @@ static void testSiteListing(void)
     Site site;
     siteSetup(&site);
 
-    Contract contract = {site.fs, false};
-
     {
         Answer list = {0};
 

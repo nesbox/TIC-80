@@ -31,6 +31,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -170,8 +171,8 @@ static bool isPublic(tic_fs* fs)
 
 typedef wchar_t FsString;
 
-#define __S(x) L##x
-#define _S(x)  __S(x)
+#define __FS_WIDE(x) L##x
+#define FS_WIDE(x)   __FS_WIDE(x)
 
 static const FsString* utf8ToString(const char* str)
 {
@@ -268,7 +269,7 @@ static int _wstat_win32_shim(const wchar_t* path, struct _stat* buffer)
 
 typedef char FsString;
 
-#define _S(x) (x)
+#define FS_WIDE(x) (x)
 
 #define utf8ToString(S) (S)
 #define stringToUtf8(S) (S)
@@ -307,11 +308,11 @@ static fs_result localError(fs_code code)
 {
     switch(code)
     {
-    case FS_NOT_FOUND: return (fs_result){code, "not found"};
-    case FS_DENIED: return (fs_result){code, "access denied"};
-    case FS_QUOTA: return (fs_result){code, "no space left"};
-    case FS_UNSUPPORTED: return (fs_result){code, "not supported"};
-    default: return (fs_result){code, "I/O error"};
+        case FS_NOT_FOUND: return (fs_result){code, "not found"};
+        case FS_DENIED: return (fs_result){code, "access denied"};
+        case FS_QUOTA: return (fs_result){code, "no space left"};
+        case FS_UNSUPPORTED: return (fs_result){code, "not supported"};
+        default: return (fs_result){code, "I/O error"};
     }
 }
 
@@ -320,12 +321,39 @@ static fs_code errorCode(int error)
 {
     switch(error)
     {
-    case ENOENT: return FS_NOT_FOUND;
-    case EACCES:
-    case EPERM: return FS_DENIED;
-    case ENOSPC: return FS_QUOTA;
-    default: return FS_IO;
+        case ENOENT: return FS_NOT_FOUND;
+        case EACCES:
+        case EPERM: return FS_DENIED;
+        case ENOSPC: return FS_QUOTA;
+        default: return FS_IO;
     }
+}
+#endif
+
+// Bounded copies keep the compiler's truncation checks quiet and the result safe.
+static void copyString(char* out, s32 size, const char* text)
+{
+    if(size <= 0)
+        return;
+
+    s32 len = (s32)strlen(text);
+
+    if(len > size - 1)
+        len = size - 1;
+
+    memcpy(out, text, len);
+    out[len] = '\0';
+}
+
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+static void appendString(char* out, s32 size, const char* text)
+{
+    s32 len = (s32)strlen(out);
+
+    if(len > size)
+        len = size;
+
+    copyString(out + len, size - len, text);
 }
 #endif
 
@@ -378,7 +406,7 @@ static void* localRead(const char* path, s32* size, fs_result* result)
     errno = 0;
 
     const FsString* pathString = utf8ToString(path);
-    FILE* file = tic_fopen(pathString, _S("rb"));
+    FILE* file = tic_fopen(pathString, FS_WIDE("rb"));
     freeString(pathString);
 
     if(!file)
@@ -436,7 +464,7 @@ static fs_result localWrite(const char* path, const void* bytes, s32 size)
     errno = 0;
 
     const FsString* pathString = utf8ToString(path);
-    FILE* file = tic_fopen(pathString, _S("wb"));
+    FILE* file = tic_fopen(pathString, FS_WIDE("wb"));
     freeString(pathString);
 
     if(!file)
@@ -521,7 +549,7 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
 {
     // A copy: a callback starting another operation must not move the path being read.
     char resolved[TICNAME_MAX];
-    snprintf(resolved, sizeof resolved, "%s", localPath(fs, path));
+    copyString(resolved, sizeof resolved, localPath(fs, path));
     bool root = isRoot(fs) && (!*path || (path[0] == '/' && !path[1]));
 
     LocalListData list = {0};
@@ -550,7 +578,9 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
     }
 
     fs_enum(resolved, localListItem, &list);
-    qsort(list.items, list.count, sizeof *list.items, localItemCmp);
+
+    if(list.count > 0)
+        qsort(list.items, list.count, sizeof *list.items, localItemCmp);
 
     for(s32 i = 0; i < list.count; i++)
     {
@@ -568,7 +598,7 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
 static void localLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
 {
     char resolved[TICNAME_MAX];
-    snprintf(resolved, sizeof resolved, "%s", localPath(fs, path));
+    copyString(resolved, sizeof resolved, localPath(fs, path));
 
     s32 size = 0;
     fs_result result;
@@ -582,7 +612,7 @@ static void localLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void
 
     // The name as asked: a nested cart keeps its folder, so a save follows it.
     char name[TICNAME_MAX];
-    snprintf(name, sizeof name, "%s", path);
+    copyString(name, sizeof name, path);
 
     onDone(name, bytes, size, (fs_result){FS_OK, NULL}, data);
     free(bytes);
@@ -591,10 +621,10 @@ static void localLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void
 static void localSave(tic_fs* fs, const char* path, const void* bytes, s32 size, fs_save_done_cb onDone, void* data)
 {
     char resolved[TICNAME_MAX];
-    snprintf(resolved, sizeof resolved, "%s", localPath(fs, path));
+    copyString(resolved, sizeof resolved, localPath(fs, path));
 
     char name[TICNAME_MAX];
-    snprintf(name, sizeof name, "%s", baseName(path));
+    copyString(name, sizeof name, baseName(path));
 
     onDone(name, localWrite(resolved, bytes, size), data);
 }
@@ -602,7 +632,7 @@ static void localSave(tic_fs* fs, const char* path, const void* bytes, s32 size,
 static void localDelete(tic_fs* fs, const char* path, fs_done_cb onDone, void* data)
 {
     char resolved[TICNAME_MAX];
-    snprintf(resolved, sizeof resolved, "%s", localPath(fs, path));
+    copyString(resolved, sizeof resolved, localPath(fs, path));
 
     if(!fs_exists(resolved))
     {
@@ -640,7 +670,7 @@ static void localDelete(tic_fs* fs, const char* path, fs_done_cb onDone, void* d
 static void localMkdir(tic_fs* fs, const char* path, fs_done_cb onDone, void* data)
 {
     char resolved[TICNAME_MAX];
-    snprintf(resolved, sizeof resolved, "%s", localPath(fs, path));
+    copyString(resolved, sizeof resolved, localPath(fs, path));
 
     fs_result result = (fs_result){FS_OK, NULL};
 
@@ -675,7 +705,7 @@ static void localOpen(tic_fs* fs, const char* path, fs_done_cb onDone, void* dat
 static void localStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void* data)
 {
     char resolved[TICNAME_MAX];
-    snprintf(resolved, sizeof resolved, "%s", localPath(fs, path));
+    copyString(resolved, sizeof resolved, localPath(fs, path));
 
     if(!*path || (path[0] == '/' && !path[1]))
     {
@@ -738,8 +768,15 @@ static bool bufferByte(ByteBuffer* buffer, u8 byte)
 {
     if(buffer->size >= buffer->capacity)
     {
+        if(buffer->capacity > INT_MAX / 2)
+            return false;
+
         s32 capacity = buffer->capacity ? buffer->capacity * 2 : 1024;
-        u8* data = realloc(buffer->data, capacity);
+
+        if(capacity <= 0)
+            return false;
+
+        u8* data = realloc(buffer->data, (size_t)capacity);
 
         if(!data)
             return false;
@@ -888,7 +925,7 @@ fail:
 static void localCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
 {
     char resolved[TICNAME_MAX];
-    snprintf(resolved, sizeof resolved, "%s", localPath(fs, path));
+    copyString(resolved, sizeof resolved, localPath(fs, path));
 
     s32 size = 0;
     fs_result result;
@@ -1071,11 +1108,11 @@ static fs_result siteError(const net_get_data* netData)
 
     switch(code)
     {
-    case 401: return (fs_result){FS_SESSION, "the session ended"};
-    case 403: return (fs_result){FS_DENIED, "access denied"};
-    case 404: return (fs_result){FS_NOT_FOUND, "not found"};
-    case 413: return (fs_result){FS_QUOTA, "the site's limit refused it"};
-    default: return code <= 0 ? (fs_result){FS_OFFLINE, "no network"} : (fs_result){FS_IO, "the site did not answer"};
+        case 401: return (fs_result){FS_SESSION, "the session ended"};
+        case 403: return (fs_result){FS_DENIED, "access denied"};
+        case 404: return (fs_result){FS_NOT_FOUND, "not found"};
+        case 413: return (fs_result){FS_QUOTA, "the site's limit refused it"};
+        default: return code <= 0 ? (fs_result){FS_OFFLINE, "no network"} : (fs_result){FS_IO, "the site did not answer"};
     }
 }
 
@@ -1088,23 +1125,25 @@ static void siteDirOf(tic_fs* fs, const char* path, char* out, s32 size)
         cwd++;
 
     char rel[TICNAME_MAX];
-    snprintf(rel, sizeof rel, "%s", path);
+    copyString(rel, sizeof rel, path);
 
     const char* ptr = rel;
 
     while(*ptr == '/')
         ptr++;
 
+    copyString(out, size, *cwd ? cwd : "");
+
     if(*cwd && *ptr)
-        snprintf(out, size, "%s/%s", cwd, ptr);
-    else
-        snprintf(out, size, "%s%s", *cwd ? cwd : "", ptr);
+        appendString(out, size, "/");
+
+    appendString(out, size, ptr);
 }
 
 static void siteSplit(tic_fs* fs, const char* path, char* dir, s32 dirSize, char* name, s32 nameSize)
 {
     char rel[TICNAME_MAX];
-    snprintf(rel, sizeof rel, "%s", path);
+    copyString(rel, sizeof rel, path);
 
     char* ptr = rel;
 
@@ -1117,12 +1156,12 @@ static void siteSplit(tic_fs* fs, const char* path, char* dir, s32 dirSize, char
     {
         *slash = '\0';
         siteDirOf(fs, ptr, dir, dirSize);
-        snprintf(name, nameSize, "%s", slash + 1);
+        copyString(name, nameSize, slash + 1);
     }
     else
     {
         siteDirOf(fs, "", dir, dirSize);
-        snprintf(name, nameSize, "%s", ptr);
+        copyString(name, nameSize, ptr);
     }
 }
 
@@ -1200,7 +1239,7 @@ static void onSiteList(tic_fs* fs, SiteEntry* items, s32 count, fs_result result
         for(s32 i = 0; i < count; i++)
         {
             fs_item item = {items[i].name, items[i].dir ? NULL : items[i].title, items[i].dir, -1, 0,
-                        items[i].dir ? 0 : items[i].id};
+                            items[i].dir ? 0 : items[i].id};
 
             if(!request->onItem(&item, request->data))
                 break;
@@ -1372,7 +1411,7 @@ static void onSiteCart(const net_get_data* netData)
 
     if(netData->type == net_get_done)
     {
-        char cachePath[TICNAME_MAX];
+        char cachePath[TICNAME_MAX + 32];
         snprintf(cachePath, sizeof cachePath, TIC_CACHE "%s.tic", request->hash);
 
         siteCacheSave(request->fs, cachePath, netData->done.data, netData->done.size);
@@ -1394,7 +1433,7 @@ static void siteLoadFound(SiteRequest* request, fs_result result)
         return;
     }
 
-    char cachePath[TICNAME_MAX];
+    char cachePath[TICNAME_MAX + 32];
     snprintf(cachePath, sizeof cachePath, TIC_CACHE "%s.tic", request->hash);
 
     s32 size = 0;
@@ -1408,7 +1447,7 @@ static void siteLoadFound(SiteRequest* request, fs_result result)
         return;
     }
 
-    char url[TICNAME_MAX * 2];
+    char url[TICNAME_MAX * 3];
     snprintf(url, sizeof url, "/cart/%s/%s", request->hash, request->name);
 
     tic_net_get(request->fs->net, url, onSiteCart, request);
@@ -1423,7 +1462,7 @@ static void onSiteCover(const net_get_data* netData)
 
     if(netData->type == net_get_done)
     {
-        char cachePath[TICNAME_MAX];
+        char cachePath[TICNAME_MAX + 32];
         snprintf(cachePath, sizeof cachePath, TIC_CACHE "%s.gif", request->hash);
 
         siteCacheSave(request->fs, cachePath, netData->done.data, netData->done.size);
@@ -1445,7 +1484,7 @@ static void siteCoverFound(SiteRequest* request, fs_result result)
         return;
     }
 
-    char cachePath[TICNAME_MAX];
+    char cachePath[TICNAME_MAX + 32];
     snprintf(cachePath, sizeof cachePath, TIC_CACHE "%s.gif", request->hash);
 
     s32 size = 0;
@@ -1737,7 +1776,7 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
 
         while((ent = tic_readdir(dir)) != NULL)
         {
-            if(*ent->d_name != _S('.'))
+            if(*ent->d_name != FS_WIDE('.'))
             {
                 size_t pathLen = tic_strlen(pathString);
                 size_t nameLen = tic_strlen(ent->d_name);
@@ -2005,7 +2044,7 @@ bool fs_write(const char* name, const void* buffer, s32 size)
     return true;
 #else
     const FsString* pathString = utf8ToString(name);
-    FILE* file = tic_fopen(pathString, _S("wb"));
+    FILE* file = tic_fopen(pathString, FS_WIDE("wb"));
     freeString(pathString);
 
     if(file)
@@ -2046,7 +2085,7 @@ void* fs_read(const char* path, s32* size)
 
 #else
     const FsString* pathString = utf8ToString(path);
-    FILE* file = tic_fopen(pathString, _S("rb"));
+    FILE* file = tic_fopen(pathString, FS_WIDE("rb"));
     freeString(pathString);
 
     void* buffer = NULL;
