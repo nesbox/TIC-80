@@ -410,7 +410,7 @@ static void initItemsAsync(Surf* surf, fs_done_callback callback, void* calldata
 
     if(strcmp(dir, "") != 0)
     {
-        fs_item parent = {"..", NULL, true, -1, 0};
+        fs_item parent = {"..", NULL, true, -1, 0, 0};
         addMenuItem(&parent, &data);
     }
 

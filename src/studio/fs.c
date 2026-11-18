@@ -77,12 +77,14 @@
 
 static const char* PublicDir = TIC_HOST;
 
-// One entry of the site's last listing: the name, display title and fetch hash.
+// One entry of the site's last listing: the name, display title, fetch hash
+// and the server's own id, which the caller sees as an opaque token.
 typedef struct
 {
     char name[TICNAME_MAX];
     char title[TICNAME_MAX];
     char hash[TICNAME_MAX];
+    s32 id;
     bool dir;
 } SiteEntry;
 
@@ -552,7 +554,7 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
 
     for(s32 i = 0; i < list.count; i++)
     {
-        fs_item item = {list.items[i].name, NULL, list.items[i].dir, -1, 0};
+        fs_item item = {list.items[i].name, NULL, list.items[i].dir, -1, 0, 0};
 
         if(!onItem(&item, data))
             break;
@@ -677,7 +679,7 @@ static void localStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void
 
     if(!*path || (path[0] == '/' && !path[1]))
     {
-        fs_item item = {"", NULL, true, -1, 0};
+        fs_item item = {"", NULL, true, -1, 0, 0};
         onDone(&item, (fs_result){FS_OK, NULL}, data);
         return;
     }
@@ -685,7 +687,7 @@ static void localStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     if(isRoot(fs) && strcmp(path, PublicDir) == 0)
     {
-        fs_item item = {PublicDir, NULL, true, -1, 0};
+        fs_item item = {PublicDir, NULL, true, -1, 0, 0};
         onDone(&item, (fs_result){FS_OK, NULL}, data);
         return;
     }
@@ -701,7 +703,7 @@ static void localStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void
         return;
     }
 
-    fs_item item = {baseName(path), NULL, (info.fattrib & AM_DIR) != 0, -1, 0};
+    fs_item item = {baseName(path), NULL, (info.fattrib & AM_DIR) != 0, -1, 0, 0};
     onDone(&item, (fs_result){FS_OK, NULL}, data);
 #else
     errno = 0;
@@ -719,7 +721,7 @@ static void localStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void
     }
 
     bool dir = S_ISDIR(info.st_mode);
-    fs_item item = {baseName(path), NULL, dir, dir ? -1 : (s64)info.st_size, (s64)info.st_mtime};
+    fs_item item = {baseName(path), NULL, dir, dir ? -1 : (s64)info.st_size, (s64)info.st_mtime, 0};
     onDone(&item, (fs_result){FS_OK, NULL}, data);
 #endif
 }
@@ -1029,6 +1031,7 @@ static bool siteParseListing(tic_fs* fs, const char* dir, const char* json, s32 
                 snprintf(entry.name, sizeof entry.name, "%s", filename);
                 snprintf(entry.title, sizeof entry.title, "%s", name);
                 snprintf(entry.hash, sizeof entry.hash, "%s", hash);
+                entry.id = json_int("id", item);
                 ok = siteAddEntry(&list, &listCount, &entry);
             }
         }
@@ -1196,7 +1199,8 @@ static void onSiteList(tic_fs* fs, SiteEntry* items, s32 count, fs_result result
     {
         for(s32 i = 0; i < count; i++)
         {
-            fs_item item = {items[i].name, items[i].dir ? NULL : items[i].title, items[i].dir, -1, 0};
+            fs_item item = {items[i].name, items[i].dir ? NULL : items[i].title, items[i].dir, -1, 0,
+                        items[i].dir ? 0 : items[i].id};
 
             if(!request->onItem(&item, request->data))
                 break;
@@ -1340,7 +1344,7 @@ static void siteStatFound(SiteRequest* request, fs_result result)
 {
     if(result.code == FS_OK)
     {
-        fs_item item = {request->name, NULL, request->dirEntry, -1, 0};
+        fs_item item = {request->name, NULL, request->dirEntry, -1, 0, 0};
         request->statDone(&item, result, request->data);
     }
     else
@@ -1349,10 +1353,13 @@ static void siteStatFound(SiteRequest* request, fs_result result)
     free(request);
 }
 
-// The provider owns its cache, the directory included.
+// The provider owns its cache, the directory included. Root-relative on
+// purpose: the provider runs under the public dir, whose .local is not the app's.
 static void siteCacheSave(tic_fs* fs, const char* path, const void* data, s32 size)
 {
-    tic_fs_makedir(fs, TIC_CACHE);
+    tic_fs_makedir(fs, "/" TIC_LOCAL);
+    tic_fs_makedir(fs, "/" TIC_CACHE);
+
     tic_fs_saveroot(fs, path, data, size, false);
 }
 
@@ -1499,7 +1506,7 @@ static void siteStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void*
     // The working directory is a directory on every mount.
     if(!*path)
     {
-        fs_item item = {"", NULL, true, -1, 0};
+        fs_item item = {"", NULL, true, -1, 0, 0};
         onDone(&item, (fs_result){FS_OK, NULL}, data);
         return;
     }

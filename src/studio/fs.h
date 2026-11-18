@@ -57,8 +57,9 @@ typedef struct
     const char* name;  // the file's name in this directory
     const char* title; // display title, NULL when the name is the title
     bool dir;
-    s64 size; // -1 when unknown
-    s64 date; // 0 when unknown
+    s64 size;   // -1 when unknown
+    s64 date;   // 0 when unknown
+    s32 token;  // the mount's own handle for the item, opaque to the caller; 0 when none
 } fs_item;
 
 typedef struct

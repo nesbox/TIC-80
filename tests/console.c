@@ -924,7 +924,7 @@ static void fakeList(fs_result result, const char* const* names, const bool* dir
     for(s32 i = 0; i < count && i < (s32)COUNT_OF(Fake.items); i++)
     {
         snprintf(Fake.names[i], sizeof Fake.names[i], "%s", names[i]);
-        Fake.items[i] = (fs_item){Fake.names[i], NULL, dirs[i], -1, 0};
+        Fake.items[i] = (fs_item){Fake.names[i], NULL, dirs[i], -1, 0, 0};
     }
 }
 
@@ -938,7 +938,7 @@ static void fakeStatResult(fs_result result, const char* name, bool dir)
 {
     Fake.result = result;
     snprintf(Fake.itemName, sizeof Fake.itemName, "%s", name);
-    Fake.item = (fs_item){Fake.itemName, NULL, dir, -1, 0};
+    Fake.item = (fs_item){Fake.itemName, NULL, dir, -1, 0, 0};
 }
 
 static void fakeLoadResult(fs_result result, const char* name, const u8* bytes, s32 size)

@@ -1021,6 +1021,10 @@ static void testLocalListOrder(void)
     for(s32 i = firstFile; i < list.count; i++)
         assert(!list.items[i].dir);
 
+    // A local item has no site token.
+    for(s32 i = 0; i < list.count; i++)
+        assert(list.items[i].token == 0);
+
     tic_fs_delfile(fs, "A.tic");
     tic_fs_delfile(fs, "b.tic");
     tic_fs_deldir(fs, "sub");
@@ -1234,6 +1238,11 @@ static void testSiteListing(void)
         assert(strcmp(list.items[0].name, "games") == 0 && list.items[0].dir);
         assert(strcmp(list.items[1].name, "demo.tic") == 0 && !list.items[1].dir);
         assert(strcmp(list.items[1].title, "Demo") == 0);
+
+        // The site's own id travels as an opaque token; a folder has none.
+        assert(list.items[0].token == 0);
+        assert(list.items[1].token == 7);
+
         assert(!list.hasUsage);
     }
 
@@ -1315,6 +1324,44 @@ static bool onLegacyItem(const char* name, const char* title, const char* hash, 
 static void onLegacyDone(void* data)
 {
     ((LegacyListing*)data)->done = true;
+}
+
+// The provider owns its cache: a profile where the cache folder does not
+// exist yet (boot makes .local, not .local/cache) still caches a fetched cart.
+static void testSiteCacheFresh(void)
+{
+    char* root = makeRoot("tic80-fs-fresh");
+    tic_fs* fs = tic_fs_create(root, NULL);
+    assert(fs);
+
+    assert(tic_fs_makedir(fs, TIC_LOCAL) == 0);
+    tic_fs_changedir(fs, TIC_HOST);
+
+    Answer list = {0};
+    tic_fs_list(fs, "", onItem, onListDone, &list);
+    answerJson(SiteListing);
+    assert(list.result.code == FS_OK);
+
+    static const u8 Cart[] = {0x54, 0x49, 0x43};
+
+    Answer load = {0};
+    tic_fs_load(fs, "demo.tic", onLoad, &load);
+    answerData(Cart, sizeof Cart);
+    assert(load.result.code == FS_OK);
+
+    s32 size = 0;
+    void* cached = tic_fs_loadroot(fs, TIC_CACHE "abc.tic", &size);
+    assert(cached);
+    assert(size == (s32)sizeof Cart);
+    free(cached);
+
+    tic_fs_homedir(fs);
+    tic_fs_delfile(fs, TIC_CACHE "abc.tic");
+    tic_fs_deldir(fs, TIC_CACHE);
+    tic_fs_deldir(fs, TIC_LOCAL);
+    tic_fs_deldir(fs, "");
+
+    puts("site cache fresh ok");
 }
 
 static void testSiteLegacyListing(void)
@@ -1758,6 +1805,7 @@ int main(void)
     testFakeRemoteContract();
     testHeldOperations();
     testSiteListing();
+    testSiteCacheFresh();
     testSiteLegacyListing();
     testSiteLookupWithoutListing();
     testSiteLoadListsMiss();

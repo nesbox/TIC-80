@@ -110,7 +110,7 @@ static void fakeEmit(const char* const* names, const char* const* titles, const 
 {
     for(s32 i = 0; i < count; i++)
     {
-        fs_item item = {names[i], titles ? titles[i] : NULL, dirs[i], -1, 0};
+        fs_item item = {names[i], titles ? titles[i] : NULL, dirs[i], -1, 0, 0};
 
         if(!onItem(&item, data))
             break;
