@@ -60,7 +60,7 @@ typedef struct
     void (*autoSave)(void* host);
     bool (*cartChanged)(void* host);
     void (*confirmLoadCart)(void* host, SurfConfirm callback, void* data);
-    void (*openSitePage)(void* host, s32 token); // the site's page for a listed cart
+    void (*openItemPage)(void* host, s32 token); // the page for a listed cart's token
     void (*run)(void* host);
     void (*exit)(void* host);
     bool (*isActive)(void* host);

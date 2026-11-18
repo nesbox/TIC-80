@@ -99,7 +99,7 @@ static bool fakeIsActive(void* host)
 }
 
 // The site page the browser asks its host for: recorded, not opened.
-static void fakeOpenSitePage(void* host, s32 token)
+static void fakeOpenItemPage(void* host, s32 token)
 {
     (void)host;
     OpenPageCalls++;
@@ -330,7 +330,7 @@ static void setup(void)
                           .autoSave = fakeAutoSave,
                           .cartChanged = fakeCartChanged,
                           .confirmLoadCart = fakeConfirmLoadCart,
-                          .openSitePage = fakeOpenSitePage,
+                          .openItemPage = fakeOpenItemPage,
                           .run = fakeRun,
                           .exit = fakeExit,
                           .isActive = fakeIsActive,

@@ -1029,7 +1029,7 @@ static bool surfIsActive(void* host)
 
 // The site's own page for a listed cart: the screen hands the item's token and
 // the host builds the address.
-static void surfOpenSitePage(void* host, s32 token)
+static void surfOpenPage(void* host, s32 token)
 {
     (void)host;
 
@@ -1075,7 +1075,7 @@ static SurfDeps surfDeps(Studio* studio)
         .autoSave = surfAutoSave,
         .cartChanged = surfCartChanged,
         .confirmLoadCart = surfConfirmLoadCart,
-        .openSitePage = surfOpenSitePage,
+        .openItemPage = surfOpenPage,
         .run = surfRun,
         .exit = surfExit,
         .isActive = surfIsActive,

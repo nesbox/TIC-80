@@ -717,7 +717,7 @@ static void processGamepad(Surf* surf)
                 SurfItem* item = getMenuItem(surf);
 
                 if(item->token)
-                    surf->deps.openSitePage(surf->deps.host, item->token);
+                    surf->deps.openItemPage(surf->deps.host, item->token);
             }
 #endif
         }
