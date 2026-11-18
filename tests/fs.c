@@ -982,6 +982,53 @@ static void testLocalLoadName(void)
     puts("local load name ok");
 }
 
+// The local mount delivers its own order: folders first, then names without case.
+static void testLocalListOrder(void)
+{
+    char* root = makeRoot("tic80-fs-order");
+    tic_fs* fs = tic_fs_create(root, NULL);
+    assert(fs);
+
+    Contract contract = {fs, false};
+    static const u8 Data[] = {0};
+
+    assert(savePath(&contract, "b.tic", Data, sizeof Data).result.code == FS_OK);
+    assert(savePath(&contract, "A.tic", Data, sizeof Data).result.code == FS_OK);
+    assert(makeDir(&contract, "sub").result.code == FS_OK);
+
+    Answer list = listPath(&contract, "");
+    assert(list.result.code == FS_OK);
+
+    s32 sub = -1, upper = -1, lower = -1, firstFile = list.count;
+
+    for(s32 i = 0; i < list.count; i++)
+    {
+        if(strcmp(list.items[i].name, "sub") == 0)
+            sub = i;
+        else if(strcmp(list.items[i].name, "A.tic") == 0)
+            upper = i;
+        else if(strcmp(list.items[i].name, "b.tic") == 0)
+            lower = i;
+
+        if(!list.items[i].dir && firstFile == list.count)
+            firstFile = i;
+    }
+
+    assert(sub >= 0 && upper >= 0 && lower >= 0);
+    assert(sub < firstFile);
+    assert(upper < lower);
+
+    for(s32 i = firstFile; i < list.count; i++)
+        assert(!list.items[i].dir);
+
+    tic_fs_delfile(fs, "A.tic");
+    tic_fs_delfile(fs, "b.tic");
+    tic_fs_deldir(fs, "sub");
+    tic_fs_deldir(fs, "");
+
+    puts("local list order ok");
+}
+
 static void testFakeRemoteContract(void)
 {
     char* root = makeRoot("tic80-fs-remote");
@@ -1707,6 +1754,7 @@ int main(void)
     testLocalContract();
     testHostPathConfined();
     testLocalLoadName();
+    testLocalListOrder();
     testFakeRemoteContract();
     testHeldOperations();
     testSiteListing();

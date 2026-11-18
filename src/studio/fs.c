@@ -29,6 +29,7 @@
 #include "cart.h"
 #include "tools.h"
 
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -459,8 +460,14 @@ static fs_result localWrite(const char* path, const void* bytes, s32 size)
 
 typedef struct
 {
-    fs_list_item_cb onItem;
-    void* data;
+    char name[TICNAME_MAX];
+    bool dir;
+} LocalEntry;
+
+typedef struct
+{
+    LocalEntry* items;
+    s32 count;
 } LocalListData;
 
 static bool localListItem(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
@@ -470,9 +477,42 @@ static bool localListItem(const char* name, const char* title, const char* hash,
     (void)id;
 
     LocalListData* list = data;
-    fs_item item = {name, NULL, dir, -1, 0};
+    list->items = realloc(list->items, sizeof(LocalEntry) * (list->count + 1));
 
-    return list->onItem(&item, list->data);
+    if(!list->items)
+        return false;
+
+    LocalEntry* entry = &list->items[list->count++];
+    snprintf(entry->name, sizeof entry->name, "%s", name);
+    entry->dir = dir;
+
+    return true;
+}
+
+static int localItemCmp(const void* a, const void* b)
+{
+    const LocalEntry* left = a;
+    const LocalEntry* right = b;
+
+    if(left->dir != right->dir)
+        return left->dir ? -1 : 1;
+
+    const char* l = left->name;
+    const char* r = right->name;
+
+    while(*l && *r)
+    {
+        int dl = tolower((u8)*l);
+        int dr = tolower((u8)*r);
+
+        if(dl != dr)
+            return dl - dr;
+
+        l++;
+        r++;
+    }
+
+    return tolower((u8)*l) - tolower((u8)*r);
 }
 
 static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_list_done_cb onDone, void* data)
@@ -482,15 +522,18 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
     snprintf(resolved, sizeof resolved, "%s", localPath(fs, path));
     bool root = isRoot(fs) && (!*path || (path[0] == '/' && !path[1]));
 
+    LocalListData list = {0};
+
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     if(root)
     {
-        fs_item item = {PublicDir, NULL, true, -1, 0};
+        LocalEntry* items = realloc(list.items, sizeof(LocalEntry) * (list.count + 1));
 
-        if(!onItem(&item, data))
+        if(items)
         {
-            onDone(NULL, (fs_result){FS_OK, NULL}, data);
-            return;
+            list.items = items;
+            snprintf(list.items[list.count].name, sizeof list.items[list.count].name, "%s", PublicDir);
+            list.items[list.count++].dir = true;
         }
     }
 #else
@@ -499,12 +542,23 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
 
     if(!fs_isdir(resolved))
     {
+        free(list.items);
         onDone(NULL, localError(FS_NOT_FOUND), data);
         return;
     }
 
-    LocalListData list = {onItem, data};
     fs_enum(resolved, localListItem, &list);
+    qsort(list.items, list.count, sizeof *list.items, localItemCmp);
+
+    for(s32 i = 0; i < list.count; i++)
+    {
+        fs_item item = {list.items[i].name, NULL, list.items[i].dir, -1, 0};
+
+        if(!onItem(&item, data))
+            break;
+    }
+
+    free(list.items);
 
     onDone(NULL, (fs_result){FS_OK, NULL}, data);
 }
@@ -1295,6 +1349,13 @@ static void siteStatFound(SiteRequest* request, fs_result result)
     free(request);
 }
 
+// The provider owns its cache, the directory included.
+static void siteCacheSave(tic_fs* fs, const char* path, const void* data, s32 size)
+{
+    tic_fs_makedir(fs, TIC_CACHE);
+    tic_fs_saveroot(fs, path, data, size, false);
+}
+
 static void onSiteCart(const net_get_data* netData)
 {
     SiteRequest* request = netData->calldata;
@@ -1307,7 +1368,7 @@ static void onSiteCart(const net_get_data* netData)
         char cachePath[TICNAME_MAX];
         snprintf(cachePath, sizeof cachePath, TIC_CACHE "%s.tic", request->hash);
 
-        tic_fs_saveroot(request->fs, cachePath, netData->done.data, netData->done.size, false);
+        siteCacheSave(request->fs, cachePath, netData->done.data, netData->done.size);
 
         request->loadDone(request->name, netData->done.data, netData->done.size, (fs_result){FS_OK, NULL}, request->data);
     }
@@ -1358,7 +1419,7 @@ static void onSiteCover(const net_get_data* netData)
         char cachePath[TICNAME_MAX];
         snprintf(cachePath, sizeof cachePath, TIC_CACHE "%s.gif", request->hash);
 
-        tic_fs_saveroot(request->fs, cachePath, netData->done.data, netData->done.size, false);
+        siteCacheSave(request->fs, cachePath, netData->done.data, netData->done.size);
 
         request->coverDone(netData->done.data, netData->done.size, (fs_result){FS_OK, NULL}, request->data);
     }
