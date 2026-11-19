@@ -11,6 +11,8 @@ on:
 
 permissions:
   contents: write
+  # The windows job reads its uploaded artifact through the API for SignPath.
+  actions: read
 
 jobs:
   build:
@@ -22,6 +24,7 @@ jobs:
     secrets:
       RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
       RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+      SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
 
   package:
     needs: build

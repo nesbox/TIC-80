@@ -29,6 +29,9 @@ on:
         required: true
       RELEASE_KEY_PASSWORD:
         required: true
+      # The windows job signs a release exe with this; same rule as above.
+      SIGNPATH_API_TOKEN:
+        required: true
 
 # A new push supersedes the previous run on the same ref: cancel it instead
 # of burning matrix runners on stale commits.
@@ -40,6 +43,10 @@ jobs:
   # === Windows ===
   windows:
     runs-on: windows-2022
+    # The SignPath action reads the uploaded artifact through the API.
+    permissions:
+      actions: read
+      contents: read
 
     steps:
       - uses: actions/checkout@v6
@@ -64,6 +71,50 @@ jobs:
           rem in there — a file called tic80-export.exe would fail packaging.
           if not exist "%GITHUB_WORKSPACE%\stub" mkdir "%GITHUB_WORKSPACE%\stub"
           copy /Y bin\tic80.exe "%GITHUB_WORKSPACE%\stub\tic80.exe" || exit /b 1
+
+      # A release exe is signed through SignPath Foundation. The stub copied
+      # above stays unsigned; a main push or a pull request skips all three.
+      - name: Upload the unsigned exe for signing
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: upload-unsigned
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-windows-unsigned"
+          path: build/bin/tic80.exe
+
+      - name: Sign the release exe
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed
+
+      - name: Install and check the signed exe
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          Copy-Item signed/tic80.exe build/bin/tic80.exe -Force
+          $sig = Get-AuthenticodeSignature build/bin/tic80.exe
+          if ($null -eq $sig.SignerCertificate) { throw "the signed exe has no signer" }
+          Write-Host "signer: $($sig.SignerCertificate.Subject)"
+          Write-Host "status: $($sig.Status)"
+          # The test certificate is self-signed, so the trusted-status gate is
+          # fail-closed: only an explicit test-phase opt-out skips it.
+          if ($sig.Status -ne "Valid") {
+            if ("${{ vars.SIGNPATH_ALLOW_TEST_CERT }}" -eq "1") {
+              Write-Host "test certificate: status $($sig.Status) allowed"
+            } else {
+              throw "signature status $($sig.Status), expected Valid"
+            }
+          }
 
       - name: Deploy
         uses: actions/upload-artifact@v6
