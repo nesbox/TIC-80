@@ -146,7 +146,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 
     // Every copy stops at the end of the body: a truncated or foreign file must
     // not read past its buffer.
-#define LOAD_CHUNK(to) memcpy(&to, ptr, MIN(MIN((s32)sizeof(to), chunk->size ? retro_le_to_cpu16(chunk->size) : TIC_BANK_SIZE), (s32)(end - ptr)))
+#define LOAD_CHUNK(to) memcpy(&to, ptr, MIN(MIN((s32)sizeof(to), (s32)(chunk->size ? retro_le_to_cpu16(chunk->size) : TIC_BANK_SIZE)), (s32)(end - ptr)))
 
     // load palette chunk first
     {
@@ -223,17 +223,16 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                         binary[chunk->bank] = (struct BinaryChunk){MIN(chunkSize(chunk), (s32)(end - ptr)), ptr};
                     break;
                 case CHUNK_CODE:
-                    if(chunk->bank < TIC_BANKS)
-                        code[chunk->bank] = (struct CodeChunk){MIN(chunkSize(chunk), (s32)(end - ptr)), (char*)ptr};
+                    code[chunk->bank] = (struct CodeChunk){MIN(chunkSize(chunk), (s32)(end - ptr)), (char*)ptr};
                     break;
 #if defined(BUILD_DEPRECATED)
                 case CHUNK_CODE_ZIP:
-                    tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, ptr, MIN(retro_le_to_cpu16(chunk->size), (s32)(end - ptr)));
+                    tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, ptr, MIN((s32)retro_le_to_cpu16(chunk->size), (s32)(end - ptr)));
                     break;
                 case CHUNK_COVER_DEP:
                 {
                     // workaround to load deprecated cover section
-                    gif_image* image = gif_read_data(ptr, MIN(retro_le_to_cpu16(chunk->size), (s32)(end - ptr)));
+                    gif_image* image = gif_read_data(ptr, MIN((s32)retro_le_to_cpu16(chunk->size), (s32)(end - ptr)));
 
                     if(image)
                     {
