@@ -582,6 +582,11 @@ static void consolePrintOffset(Console* console, const char* text, u8 color, s32
 
     console->cursor.pos = cursorPos(console);
 
+    // A run as wide as the line or wider cannot fit on a fresh one either: let
+    // the line's edge wrap it, keeping its pieces together.
+    bool inRun = false;
+    bool longRun = false;
+
     for(const char* ptr = text; *ptr; ptr++)
     {
         char symbol = *ptr;
@@ -589,21 +594,41 @@ static void consolePrintOffset(Console* console, const char* text, u8 color, s32
         scrollConsole(console);
 
         if(symbol == '\n')
+        {
             nextLine(console);
+            inRun = false;
+        }
         else
         {
-            if(!iswrap(symbol))
+            if(iswrap(symbol))
+                inRun = false;
+            else
             {
-                const char* cur = ptr;
-                s32 len = CONSOLE_BUFFER_WIDTH;
-
-                while(*cur && !iswrap(*cur++))
-                    len--;
-
-                if(len > 0 && len <= console->cursor.pos.x)
+                if(!inRun)
                 {
-                    nextLine(console);
-                    console->cursor.pos.x = wrapLineOffset;
+                    const char* cur = ptr;
+                    s32 run = 0;
+
+                    while(*cur && !iswrap(*cur++))
+                        run++;
+
+                    longRun = run >= CONSOLE_BUFFER_WIDTH;
+                    inRun = true;
+                }
+
+                if(!longRun)
+                {
+                    const char* cur = ptr;
+                    s32 len = CONSOLE_BUFFER_WIDTH;
+
+                    while(*cur && !iswrap(*cur++))
+                        len--;
+
+                    if(len > 0 && len <= console->cursor.pos.x)
+                    {
+                        nextLine(console);
+                        console->cursor.pos.x = wrapLineOffset;
+                    }
                 }
             }
 
@@ -753,9 +778,11 @@ static void printFsUsage(Console* console, const fs_usage* usage)
 {
     if(usage && usage->has_usage)
     {
+        char used[32], limit[32];
         char line[96];
-        snprintf(line, sizeof line, "\n%d/%d carts, %lld/%lld bytes", usage->count, usage->max_count,
-                 (long long)usage->bytes, (long long)usage->max_bytes);
+        snprintf(line, sizeof line, "\n%d/%d carts, %s/%s", usage->count, usage->max_count,
+                 tic_fs_size_text(usage->bytes, used, sizeof used),
+                 tic_fs_size_text(usage->max_bytes, limit, sizeof limit));
         printBack(console, line);
     }
 }
@@ -3351,11 +3378,31 @@ static void onLoginAnswer(account_pairing_state state, const char* text, void* d
 
             memset(&console->login, 0, sizeof console->login);
 
+            // Where the platform has a browser, the code rides in the link and
+            // one click finishes the pairing. Otherwise both are shown.
+            char target[768];
+
+#if CAN_OPEN_URL
+            if(code && code[0])
+            {
+                snprintf(target, sizeof target, "%s%scode=%s", buffer, strchr(buffer, '?') ? "&" : "?", code);
+                code = NULL;
+            }
+            else
+#endif
+                snprintf(target, sizeof target, "%s", buffer);
+
             // Both texts are the server's: copy what fits and print the copy.
             s32 urlLength = snprintf(console->login.url, sizeof console->login.url, "%.*s",
-                                     (s32)sizeof console->login.url - 1, buffer);
+                                     (s32)sizeof console->login.url - 1, target);
 
-            printBack(console, "\nopen ");
+            printBack(console, "\nopen");
+
+            // A link that does not fit after the word moves to a fresh line
+            // first, so the recorded block starts where the link is drawn.
+            bool ownLine = urlLength >= CONSOLE_BUFFER_WIDTH - (console->cursor.pos.x + 1);
+
+            printBack(console, ownLine ? "\n" : " ");
             console->login.urlBlock = cursorOffset(console);
             console->login.urlSize = urlLength;
             consolePrint(console, console->login.url, CONSOLE_LINK_TEXT_COLOR);
@@ -4953,10 +5000,20 @@ static void copyToClipboard(Console* console)
     // member is trying to copy.
     if(!text && loginLinkActive(console) && console->login.url[0])
     {
-        char pair[512];
-        snprintf(pair, sizeof pair, "%s\n%s", console->login.url, console->login.code);
-        tic_sys_clipboard_set(pair);
-        printBack(console, "\nthe link and the code are in the clipboard\n");
+        char pair[1024];
+
+        if(console->login.code[0])
+        {
+            snprintf(pair, sizeof pair, "%s\n%s", console->login.url, console->login.code);
+            tic_sys_clipboard_set(pair);
+            printBack(console, "\nthe link and the code are in the clipboard\n");
+        }
+        else
+        {
+            tic_sys_clipboard_set(console->login.url);
+            printBack(console, "\nthe link is in the clipboard\n");
+        }
+
         return;
     }
 #endif

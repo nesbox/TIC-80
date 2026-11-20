@@ -1226,7 +1226,7 @@ static void testFakeDir(void)
 
         assert(said(host, "[sub]"));
         assert(said(host, "cart.tic"));
-        assert(said(host, "2/10 carts, 100/1000 bytes"));
+        assert(said(host, "2/10 carts, 100 bytes/1000 bytes"));
         assert(promptAtInput(host));
 
         hostFree(host);
@@ -1455,9 +1455,13 @@ static void testFakeSession(void)
 
 // ---- the shelf in the console ----
 
-#define SHELF_START_JSON    "{\"device_code\":\"dev-code\",\"user_code\":\"ABCD-EFGH\",\"verification_uri\":\"https://dev.tic80.com/link\",\"expires_in\":600,\"interval\":1}"
-#define SHELF_APPROVED_JSON "{\"status\":\"approved\",\"token\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"user\":\"member\"}"
-#define SHELF_CARTS_JSON    "{\"carts\":[{\"key\":\"my-game\",\"title\":\"My Game\",\"author\":\"Me\",\"lang\":\"lua\",\"size\":123,\"created\":1,\"updated\":1794940745061}],\"count\":1,\"bytes\":123,\"max_count\":100,\"max_bytes\":33554432}"
+#define SHELF_START_JSON       "{\"device_code\":\"dev-code\",\"user_code\":\"ABCD-EFGH\",\"verification_uri\":\"https://dev.tic80.com/link\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_START_PROD_JSON  "{\"device_code\":\"dev-code\",\"user_code\":\"ABCD-EFGH\",\"verification_uri\":\"https://tic80.com/link\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_START_QUERY_JSON "{\"device_code\":\"dev-code\",\"user_code\":\"ABCD-EFGH\",\"verification_uri\":\"https://tic80.com/link?x=1\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_START_FIT_JSON   "{\"device_code\":\"dev-code\",\"user_code\":\"ABCDEF\",\"verification_uri\":\"https://tic80.com/link\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_START_EDGE_JSON  "{\"device_code\":\"dev-code\",\"user_code\":\"ABCDEFG\",\"verification_uri\":\"https://tic80.com/link\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_APPROVED_JSON    "{\"status\":\"approved\",\"token\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"user\":\"member\"}"
+#define SHELF_CARTS_JSON       "{\"carts\":[{\"key\":\"my-game\",\"title\":\"My Game\",\"author\":\"Me\",\"lang\":\"lua\",\"size\":123,\"created\":1,\"updated\":1794940745061}],\"count\":1,\"bytes\":123,\"max_count\":100,\"max_bytes\":33554432}"
 
 static const char* consoleRoot(void)
 {
@@ -1502,7 +1506,20 @@ static void signIn(Host* host)
     assert(tic_account_signedin(host->account));
 }
 
-// The login command prints the page and the code, polls, and reports the member.
+// The link the console recorded is the one drawn, and it is under the cursor.
+static void assertLoginLink(Host* host, const char* url)
+{
+    s32 length = (s32)strlen(url);
+
+    assert(host->console->login.urlSize == length);
+    assert(host->console->login.urlBlock >= 0);
+    assert(memcmp(host->console->text + host->console->login.urlBlock, url, length) == 0);
+    assert(said(host, url));
+    assert(!said(host, "enter the code"));
+}
+
+// The login command prints the link with the code in it, polls, and reports
+// the member.
 static void testShelfLogin(void)
 {
     Host* host = hostNewAt(consoleRoot(), "login");
@@ -1514,8 +1531,7 @@ static void testShelfLogin(void)
     assert(strcmp(requestUrl, "/api/v1/client/device") == 0);
 
     answerRequest(201, SHELF_START_JSON);
-    assert(said(host, "https://dev.tic80.com/link"));
-    assert(said(host, "ABCD-EFGH"));
+    assertLoginLink(host, "https://dev.tic80.com/link?code=ABCD-EFGH");
     assert(said(host, "ESC to cancel"));
 
     for(s32 i = 0; i < 120 && !requestHeld(); i++)
@@ -1530,6 +1546,39 @@ static void testShelfLogin(void)
 
     hostFreeEx(host);
     puts("console shelf login ok");
+}
+
+// A link that does not fit after "open" moves to its own line, and a link that
+// already has a query takes the code with `&`; the recorded block starts where
+// the link is drawn.
+static void testShelfLoginLinks(void)
+{
+    static const struct
+    {
+        const char* start;
+        const char* url;
+    } Cases[] = {
+        {SHELF_START_FIT_JSON, "https://tic80.com/link?code=ABCDEF"},          // 34: after the space
+        {SHELF_START_EDGE_JSON, "https://tic80.com/link?code=ABCDEFG"},        // 35: its own line
+        {SHELF_START_PROD_JSON, "https://tic80.com/link?code=ABCD-EFGH"},      // 37: its own line
+        {SHELF_START_QUERY_JSON, "https://tic80.com/link?x=1&code=ABCD-EFGH"}, // an existing query
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Cases); i++)
+    {
+        Host* host = hostNewAt(consoleRoot(), "login");
+        hostBoot(host);
+
+        hostTick(host);
+        assert(requestHeld());
+        answerRequest(201, Cases[i].start);
+        assertLoginLink(host, Cases[i].url);
+
+        tic_account_cancel_login(host->account);
+        hostFreeEx(host);
+    }
+
+    puts("console shelf links ok");
 }
 
 static void testShelfLoginDenied(void)
@@ -1593,13 +1642,13 @@ static void testShelfDir(void)
     assert(said(host, "my-game.tic"));
     assert(!said(host, "My Game"));
     assert(said(host, "1/100 carts"));
-    assert(said(host, "123/33554432 bytes"));
+    assert(said(host, "123 bytes/32 MB"));
 
     hostFreeEx(host);
     puts("console shelf dir ok");
 }
 
-// The root names the mount [SHELF] while signed in, and not while signed out.
+// The root names the mount [shelf] signed in and signed out alike.
 static void testShelfRootListing(void)
 {
     Host* host = hostNewAt(consoleRoot(), "dir");
@@ -1611,7 +1660,7 @@ static void testShelfRootListing(void)
     char site[TICNAME_MAX + 3];
     snprintf(site, sizeof site, "[%s]", TIC_HOST);
 
-    assert(said(host, "[SHELF]"));
+    assert(said(host, "[shelf]"));
     assert(said(host, site));
 
     hostFreeEx(host);
@@ -1620,18 +1669,21 @@ static void testShelfRootListing(void)
     hostBoot(host);
     hostTick(host);
 
-    assert(!said(host, "[SHELF]"));
+    assert(said(host, "[shelf]"));
 
     hostFreeEx(host);
     puts("console shelf root ok");
 }
 
-// Signed out, the shelf name answers the sign-in hint.
+// Signed out, the shelf is listed and can be entered; its listing answers the
+// sign-in hint.
 static void testShelfRootSignedOut(void)
 {
-    Host* host = hostNewAt(consoleRoot(), "cd shelf");
+    Host* host = hostNewAt(consoleRoot(), "cd shelf & dir");
     hostBoot(host);
-    hostTick(host);
+
+    for(s32 i = 0; i < 8 && !said(host, "the shelf is not signed in"); i++)
+        hostTick(host);
 
     assert(said(host, "the shelf is not signed in"));
     assert(said(host, "login"));
@@ -1639,7 +1691,7 @@ static void testShelfRootSignedOut(void)
 
     char dir[TICNAME_MAX];
     tic_fs_dir(host->fs, dir);
-    assert(strcmp(dir, "") == 0);
+    assert(strcmp(dir, "shelf") == 0);
 
     hostFreeEx(host);
     puts("console shelf signed out ok");
@@ -1741,7 +1793,7 @@ static void testShelfSave(void)
     assert(!requestHeld());
 
     hostAnswer(host, (ConsoleAnswer){
-                         .result = {FS_OK, "created on the shelf, 1/100 carts, 123/33554432 bytes"},
+                         .result = {FS_OK, "created on the shelf, 1/100 carts, 123 bytes/32 MB"},
                          .name = "my-cart",
                      });
 
@@ -1855,6 +1907,7 @@ int main(void)
     testExportHelp();
     testErrorLink();
     testShelfLogin();
+    testShelfLoginLinks();
     testShelfLoginDenied();
     testShelfLogout();
     testShelfDir();

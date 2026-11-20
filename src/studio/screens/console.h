@@ -193,10 +193,11 @@ struct Console
     bool loginPending;
 
     // The pairing's link and code and their places in the text: a click opens
-    // the link, and the code copies to the clipboard.
+    // the link, and the code copies to the clipboard. On a platform with a
+    // browser the link carries the code, and the code line is left out.
     struct
     {
-        char url[256];
+        char url[512];
         char code[TICNAME_MAX];
         s32 urlBlock;
         s32 urlSize;

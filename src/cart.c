@@ -121,6 +121,10 @@ tic_cartridge* loadPngCart(png_buffer buffer)
 void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 {
     memset(cart, 0, sizeof(tic_cartridge));
+
+    if(size < (s32)sizeof(Chunk))
+        return;
+
     const u8* end = buffer + size;
     u8* chunk_cart = NULL;
 
@@ -140,13 +144,18 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             return;
     }
 
-#define LOAD_CHUNK(to) memcpy(&to, ptr, MIN(sizeof(to), chunk->size ? retro_le_to_cpu16(chunk->size) : TIC_BANK_SIZE))
+    // Every copy stops at the end of the body: a truncated or foreign file must
+    // not read past its buffer.
+#define LOAD_CHUNK(to) memcpy(&to, ptr, MIN(MIN((s32)sizeof(to), chunk->size ? retro_le_to_cpu16(chunk->size) : TIC_BANK_SIZE), (s32)(end - ptr)))
 
     // load palette chunk first
     {
         const u8* ptr = buffer;
         while(ptr < end)
         {
+            if((s32)(end - ptr) < (s32)sizeof(Chunk))
+                break;
+
             const Chunk* chunk = (Chunk*)ptr;
             ptr += sizeof(Chunk);
 
@@ -191,6 +200,9 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
         const u8* ptr = buffer;
         while(ptr < end)
         {
+            if((s32)(end - ptr) < (s32)sizeof(Chunk))
+                break;
+
             const Chunk* chunk = (Chunk*)ptr;
             ptr += sizeof(Chunk);
 
@@ -207,19 +219,21 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                 case CHUNK_SCREEN: LOAD_CHUNK(cart->banks[chunk->bank].screen); break;
                 case CHUNK_LANG: LOAD_CHUNK(cart->lang); break;
                 case CHUNK_BINARY:
-                    binary[chunk->bank] = (struct BinaryChunk){chunkSize(chunk), ptr};
+                    if(chunk->bank < TIC_BINARY_BANKS)
+                        binary[chunk->bank] = (struct BinaryChunk){MIN(chunkSize(chunk), (s32)(end - ptr)), ptr};
                     break;
                 case CHUNK_CODE:
-                    code[chunk->bank] = (struct CodeChunk){chunkSize(chunk), (char*)ptr};
+                    if(chunk->bank < TIC_BANKS)
+                        code[chunk->bank] = (struct CodeChunk){MIN(chunkSize(chunk), (s32)(end - ptr)), (char*)ptr};
                     break;
 #if defined(BUILD_DEPRECATED)
                 case CHUNK_CODE_ZIP:
-                    tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, ptr, retro_le_to_cpu16(chunk->size));
+                    tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, ptr, MIN(retro_le_to_cpu16(chunk->size), (s32)(end - ptr)));
                     break;
                 case CHUNK_COVER_DEP:
                 {
                     // workaround to load deprecated cover section
-                    gif_image* image = gif_read_data(ptr, retro_le_to_cpu16(chunk->size));
+                    gif_image* image = gif_read_data(ptr, MIN(retro_le_to_cpu16(chunk->size), (s32)(end - ptr)));
 
                     if(image)
                     {

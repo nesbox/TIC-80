@@ -1124,16 +1124,6 @@ bool studio_is_cart_loaded(Studio* studio)
     return strlen(studio->rom.name) > 0 || studio->boot.cart;
 }
 
-bool studioSignedIn(Studio* studio)
-{
-#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(__EMSCRIPTEN__)
-    return studio->account && tic_account_signedin(studio->account);
-#else
-    (void)studio;
-    return false;
-#endif
-}
-
 s32 getStudioEditorTop(Studio* studio)
 {
 #if defined(BUILD_EDITORS)

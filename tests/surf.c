@@ -109,7 +109,7 @@ static void fakeOpenItemPage(void* host, s32 token)
 // The fake filesystem's answers: two folders and a cart at the root, three
 // carts with the mount's tokens on the site, one folder that fails to list.
 static const char* RootNames[] = {TIC_HOST, "zzz", "bad", "local.tic", "shelf"};
-static const char* RootTitles[] = {NULL, NULL, NULL, NULL, "SHELF"};
+static const char* RootTitles[] = {NULL, NULL, NULL, NULL, NULL};
 static const bool RootDirs[] = {true, true, true, false, true};
 static const s32 RootTokens[] = {0, 0, 0, 0, 0};
 
@@ -668,7 +668,7 @@ static void testCoverCap(void)
     puts("cover cap ok");
 }
 
-// The shelf is a folder at the root like the site's, titled [SHELF]; its carts
+// The shelf is a folder at the root like the site's, titled [shelf]; its carts
 // are keys, and a selection plays through the same host load.
 static void testShelfFolder(void)
 {
@@ -676,7 +676,7 @@ static void testShelfFolder(void)
 
     assert(strcmp(Screen->menu.items[RootShelfIndex].name, "shelf") == 0);
     assert(Screen->menu.items[RootShelfIndex].dir);
-    assert(strcmp(Screen->menu.items[RootShelfIndex].label, "[SHELF]") == 0);
+    assert(strcmp(Screen->menu.items[RootShelfIndex].label, "[shelf]") == 0);
 
     moveTo(RootShelfIndex);
     press(tic_key_return);

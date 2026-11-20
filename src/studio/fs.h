@@ -71,6 +71,9 @@ typedef struct
     s64 max_bytes;
 } fs_usage;
 
+// A byte count the member reads: bytes below 1 KB, then KB, MB or GB.
+const char* tic_fs_size_text(s64 bytes, char* out, s32 size);
+
 typedef bool (*fs_list_item_cb)(const fs_item* item, void* data);
 typedef void (*fs_list_done_cb)(const fs_usage* usage, fs_result result, void* data);
 typedef void (*fs_load_done_cb)(const char* name, const u8* bytes, s32 size, fs_result result, void* data);
@@ -90,7 +93,7 @@ void tic_fs_cover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* d
 
 tic_fs* tic_fs_create(const char* path, struct tic_net* net);
 
-// The shelf is the account's remote mount, listed at the root when signed in.
+// The shelf is the account's remote mount, always listed at the root.
 #define TIC_SHELF_DIR "shelf"
 
 // The remote mounts' inputs: the account, injected so a test can drive a

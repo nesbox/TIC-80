@@ -79,8 +79,9 @@
 static const char* PublicDir = TIC_HOST;
 
 // The shelf mount is a native-build feature: the web IDE's own change decides
-// between the pairing and the site session, so it carries none of this.
-#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(__EMSCRIPTEN__)
+// between the pairing and the site session, so it carries none of this, and a
+// bare-metal build has no transport to mount.
+#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(__EMSCRIPTEN__) && !defined(BAREMETALPI)
 #define TIC_SHELF_MOUNT
 #endif
 
@@ -190,6 +191,35 @@ bool tic_fs_signedin(tic_fs* fs)
 void tic_fs_set_remote(tic_fs* fs, const tic_fs_remote* remote)
 {
     fs->remote = remote ? *remote : (tic_fs_remote){0};
+}
+
+const char* tic_fs_size_text(s64 bytes, char* out, s32 size)
+{
+    static const struct
+    {
+        s64 unit;
+        const char* name;
+    } Units[] = {
+        {1024LL * 1024 * 1024, "GB"},
+        {1024LL * 1024, "MB"},
+        {1024LL, "KB"},
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Units); i++)
+    {
+        if(bytes >= Units[i].unit)
+        {
+            if(bytes % Units[i].unit == 0)
+                snprintf(out, size, "%lld %s", (long long)(bytes / Units[i].unit), Units[i].name);
+            else
+                snprintf(out, size, "%.1f %s", (double)bytes / Units[i].unit, Units[i].name);
+
+            return out;
+        }
+    }
+
+    snprintf(out, size, "%lld bytes", (long long)bytes);
+    return out;
 }
 
 #if defined(__TIC_WINDOWS__)
@@ -524,6 +554,7 @@ typedef struct
 {
     LocalEntry* items;
     s32 count;
+    bool root;
 } LocalListData;
 
 static bool localListItem(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
@@ -533,6 +564,13 @@ static bool localListItem(const char* name, const char* title, const char* hash,
     (void)id;
 
     LocalListData* list = data;
+
+#if defined(TIC_SHELF_MOUNT)
+    // The mount shadows a local folder of its name at the root.
+    if(list->root && strcmp(name, TIC_SHELF_DIR) == 0)
+        return true;
+#endif
+
     list->items = realloc(list->items, sizeof(LocalEntry) * (list->count + 1));
 
     if(!list->items)
@@ -579,7 +617,7 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
     copyString(resolved, sizeof resolved, localPath(fs, path));
     bool root = isRoot(fs) && (!*path || (path[0] == '/' && !path[1]));
 
-    LocalListData list = {0};
+    LocalListData list = {.root = root};
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     if(root)
@@ -595,12 +633,12 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
         }
 
 #if defined(TIC_SHELF_MOUNT)
-        // The shelf exists only while the member is signed in.
-        if(tic_fs_signedin(fs) && (items = realloc(list.items, sizeof(LocalEntry) * (list.count + 1))))
+        // The shelf is always listed, signed in or out.
+        if((items = realloc(list.items, sizeof(LocalEntry) * (list.count + 1))))
         {
             list.items = items;
             snprintf(list.items[list.count].name, sizeof list.items[list.count].name, "%s", TIC_SHELF_DIR);
-            list.items[list.count].title = "SHELF";
+            list.items[list.count].title = NULL;
             list.items[list.count++].dir = true;
         }
 #endif
@@ -772,17 +810,13 @@ static void localStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void
     {
         // The mount name is root-level: a local folder called "shelf" inside a
         // folder is that folder, and only the absolute name names the mount.
+        // The mount shadows such a folder at the root, signed in or out.
         const char* mount = *path == '/' ? path + 1 : path;
 
         if(strcmp(mount, TIC_SHELF_DIR) == 0 && (*path == '/' || isRoot(fs)))
         {
-            if(tic_fs_signedin(fs))
-            {
-                fs_item item = {TIC_SHELF_DIR, "SHELF", true, -1, 0, 0};
-                onDone(&item, (fs_result){FS_OK, NULL}, data);
-            }
-            else
-                onDone(NULL, (fs_result){FS_DENIED, "the shelf is not signed in, use `login`"}, data);
+            fs_item item = {TIC_SHELF_DIR, NULL, true, -1, 0, 0};
+            onDone(&item, (fs_result){FS_OK, NULL}, data);
 
             return;
         }
@@ -2025,9 +2059,11 @@ static void onShelfSave(const net_request_data* answer)
     {
         // The server answers the key it stored, and the account's usage.
         char text[160];
-        snprintf(text, sizeof text, "%s on the shelf, %d/%d carts, %lld/%lld bytes",
+        char used[32], limit[32];
+        snprintf(text, sizeof text, "%s on the shelf, %d/%d carts, %s/%s",
                  status == 201 ? "created" : "replaced", count, maxCount,
-                 (long long)bytes, (long long)maxBytes);
+                 tic_fs_size_text(bytes, used, sizeof used),
+                 tic_fs_size_text(maxBytes, limit, sizeof limit));
 
         save->onDone(key[0] ? key : save->key, (fs_result){FS_OK, text}, save->data);
     }
@@ -2119,8 +2155,10 @@ static void onShelfDelete(const net_request_data* answer)
     if(status == 200)
     {
         char text[128];
-        snprintf(text, sizeof text, "%d/%d carts, %lld/%lld bytes", count, maxCount,
-                 (long long)bytes, (long long)maxBytes);
+        char used[32], limit[32];
+        snprintf(text, sizeof text, "%d/%d carts, %s/%s", count, maxCount,
+                 tic_fs_size_text(bytes, used, sizeof used),
+                 tic_fs_size_text(maxBytes, limit, sizeof limit));
         del->onDone((fs_result){FS_OK, text}, del->data);
     }
     else
@@ -2180,11 +2218,70 @@ static void shelfOpen(tic_fs* fs, const char* path, fs_done_cb onDone, void* dat
     onDone((fs_result){FS_UNSUPPORTED, "not supported on the shelf"}, data);
 }
 
+typedef struct
+{
+    fs_cover_done_cb onDone;
+    void* data;
+} ShelfCover;
+
+// The shelf stores no cover of its own: the cart's bytes carry its screen, and
+// the cover is drawn from them as the local mount draws it.
+static void onShelfCoverCart(const char* name, const u8* bytes, s32 size, fs_result result, void* data)
+{
+    (void)name;
+
+    ShelfCover* cover = data;
+
+    if(result.code == FS_OK)
+    {
+        if(bytes)
+        {
+            tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
+
+            if(cart)
+            {
+                tic_cart_load(cart, bytes, size);
+
+                if(!EMPTY(cart->bank0.screen.data) && !EMPTY(cart->bank0.palette.vbank0.data))
+                {
+                    s32 gifSize = 0;
+                    u8* gif = gifCover(cart->bank0.screen.data, cart->bank0.palette.vbank0.colors, &gifSize);
+
+                    if(gif)
+                    {
+                        cover->onDone(gif, gifSize, (fs_result){FS_OK, NULL}, cover->data);
+                        free(gif);
+                        free(cart);
+                        free(cover);
+                        return;
+                    }
+                }
+
+                free(cart);
+            }
+        }
+
+        result = localError(FS_NOT_FOUND);
+    }
+
+    cover->onDone(NULL, 0, result, cover->data);
+    free(cover);
+}
+
 static void shelfCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
 {
-    (void)fs;
-    (void)path;
-    onDone(NULL, 0, (fs_result){FS_NOT_FOUND, "no cover"}, data);
+    ShelfCover* cover = calloc(1, sizeof(ShelfCover));
+
+    if(!cover)
+    {
+        onDone(NULL, 0, (fs_result){FS_IO, "out of memory"}, data);
+        return;
+    }
+
+    cover->onDone = onDone;
+    cover->data = data;
+
+    shelfLoad(fs, path, onShelfCoverCart, cover);
 }
 
 static const fs_mount_ops ShelfOps = {
@@ -2424,6 +2521,25 @@ static void shelfLegacyDone(const fs_usage* usage, fs_result result, void* data)
 }
 #endif
 
+#if defined(TIC_SHELF_MOUNT)
+// The root lists the mount in place of a local folder of its name.
+typedef struct
+{
+    fs_list_callback item;
+    void* data;
+} RootFilter;
+
+static bool rootFilterItem(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    RootFilter* filter = data;
+
+    if(strcmp(name, TIC_SHELF_DIR) == 0)
+        return true;
+
+    return filter->item(name, title, hash, id, filter->data, dir);
+}
+#endif
+
 void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data)
 {
 #ifndef BAREMETALPI
@@ -2434,7 +2550,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
     }
 
 #if defined(TIC_SHELF_MOUNT)
-    if(isRoot(fs) && tic_fs_signedin(fs) && !onItem(TIC_SHELF_DIR, "SHELF", NULL, 0, data, true))
+    if(isRoot(fs) && !onItem(TIC_SHELF_DIR, NULL, NULL, 0, data, true))
     {
         onDone(data);
         return;
@@ -2475,7 +2591,17 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
 
     const char* path = tic_fs_path(fs, "");
 
+#if defined(TIC_SHELF_MOUNT)
+    if(isRoot(fs))
+    {
+        RootFilter filter = {onItem, data};
+        fs_enum(path, rootFilterItem, &filter);
+    }
+    else
+        fs_enum(path, onItem, data);
+#else
     fs_enum(path, onItem, data);
+#endif
 
     onDone(data);
 }
@@ -2631,6 +2757,10 @@ bool tic_fs_isdir(tic_fs* fs, const char* name)
 {
     if(*name == '.') return false;
     if(isRoot(fs) && strcmp(name, PublicDir) == 0) return true;
+
+#if defined(TIC_SHELF_MOUNT)
+    if(isRoot(fs) && strcmp(name, TIC_SHELF_DIR) == 0) return true;
+#endif
 
 #if defined(BAREMETALPI)
     dbg("fsIsDirSync %s\n", name);
