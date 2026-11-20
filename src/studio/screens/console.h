@@ -64,6 +64,9 @@ typedef struct
     tic_mem* tic;
     struct tic_fs* fs;
     struct tic_net* net;
+#if !defined(__EMSCRIPTEN__)
+    struct tic_account* account;
+#endif
     const StudioConfig* config;
     MouseState* mouse;
 
@@ -163,6 +166,9 @@ struct Console
     tic_mem* tic;
     struct tic_fs* fs;
     struct tic_net* net;
+#if !defined(__EMSCRIPTEN__)
+    struct tic_account* account;
+#endif
     const StudioConfig* config;
     MouseState* mouse;
 
@@ -178,8 +184,27 @@ struct Console
     // what the host last said, and what the console last asked
     const struct ConsoleView* view;
     ConsoleAsk ask;
-    bool waiting;   // the host has taken the ask and owes an answer
-    bool counting;  // the command's ask is out: it counts on the answer
+    bool waiting;  // the host has taken the ask and owes an answer
+    bool counting; // the command's ask is out: it counts on the answer
+
+#if !defined(__EMSCRIPTEN__)
+    // A `login` is waiting for its terminal answer: ESC cancels it, and the
+    // console holds the next command until then.
+    bool loginPending;
+
+    // The pairing's link and code and their places in the text: a click opens
+    // the link, and the code copies to the clipboard. On a platform with a
+    // browser the link carries the code, and the code line is left out.
+    struct
+    {
+        char url[512];
+        char code[TICNAME_MAX];
+        s32 urlBlock;
+        s32 urlSize;
+        s32 codeBlock;
+        s32 codeSize;
+    } login;
+#endif
     bool fsPending; // the command's filesystem operation has not answered yet
 
     // The flow that asked, picking itself up when the answer comes.

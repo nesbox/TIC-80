@@ -37,5 +37,10 @@
 #define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_HASH "/"
 #define TIC_CACHE         TIC_LOCAL "cache/"
 
+// The account is not versioned: a token that died with every build would ask
+// the member to pair again after each update, and the itch build shares the
+// origin (the versioned paths exist for that shared-options reason).
+#define TIC_ACCOUNT_PATH TIC_LOCAL "account.json"
+
 #define CONFIG_TIC      "config.tic"
 #define CONFIG_TIC_PATH TIC_LOCAL_VERSION CONFIG_TIC

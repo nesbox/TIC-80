@@ -33,7 +33,12 @@
 
 #define URL_SIZE 2048
 
-#if defined(__3DS__) || defined(__SWITCH__)
+#if defined(NET_TEST)
+
+// The transport contract's test provides tic_net_request itself (tests/net.c);
+// this file supplies the get bridge that is exercised through it.
+
+#elif defined(__3DS__) || defined(__SWITCH__)
 
 // See net.c in src/system
 
@@ -56,7 +61,7 @@ static bool isShortRequest(const char* path)
 
 typedef struct
 {
-    net_get_callback callback;
+    net_request_callback callback;
     void* calldata;
 } FetchData;
 
@@ -69,11 +74,12 @@ static void downloadSucceeded(emscripten_fetch_t* fetch)
 {
     FetchData* data = (FetchData*)fetch->userData;
 
-    net_get_data getData =
+    net_request_data requestData =
         {
-            .type = net_get_done,
+            .type = net_request_done,
             .done =
                 {
+                    .status = fetch->status,
                     .size = fetch->numBytes,
                     .data = (u8*)fetch->data,
                 },
@@ -81,7 +87,7 @@ static void downloadSucceeded(emscripten_fetch_t* fetch)
             .url = fetch->url,
         };
 
-    data->callback(&getData);
+    data->callback(&requestData);
 
     // The body lives with the fetch and emscripten_fetch_close() frees it:
     // freeing it here as well was a double free on every answered request,
@@ -95,18 +101,28 @@ static void downloadFailed(emscripten_fetch_t* fetch)
 {
     FetchData* data = (FetchData*)fetch->userData;
 
-    net_get_data getData =
+    // An HTTP answer is completed whether it says 200 or 500: only a fetch
+    // without a status is a transport failure.
+    net_request_data requestData =
         {
-            .type = net_get_error,
-            .error =
-                {
-                    .code = fetch->status,
-                },
             .calldata = data->calldata,
             .url = fetch->url,
         };
 
-    data->callback(&getData);
+    if(fetch->status > 0)
+    {
+        requestData.type = net_request_done;
+        requestData.done.status = fetch->status;
+        requestData.done.size = fetch->numBytes;
+        requestData.done.data = (u8*)fetch->data;
+    }
+    else
+    {
+        requestData.type = net_request_error;
+        requestData.error.code = fetch->status;
+    }
+
+    data->callback(&requestData);
 
     free(data);
 
@@ -117,9 +133,9 @@ static void downloadProgress(emscripten_fetch_t* fetch)
 {
     FetchData* data = (FetchData*)fetch->userData;
 
-    net_get_data getData =
+    net_request_data requestData =
         {
-            .type = net_get_progress,
+            .type = net_request_progress,
             .progress =
                 {
                     .size = fetch->dataOffset + fetch->numBytes,
@@ -129,11 +145,32 @@ static void downloadProgress(emscripten_fetch_t* fetch)
             .url = fetch->url,
         };
 
-    data->callback(&getData);
+    data->callback(&requestData);
 }
 
-void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void* calldata)
+// The browser build carries the primitive's GET half: the web IDE's own change
+// decides the rest, so every other method answers an error here.
+void tic_net_request(tic_net* net, net_method method, const char* path, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
 {
+    (void)headers;
+    (void)headersCount;
+    (void)body;
+    (void)bodySize;
+
+    if(method != net_method_get)
+    {
+        net_request_data requestData =
+            {
+                .type = net_request_error,
+                .error = {.code = -1},
+                .calldata = calldata,
+                .url = path,
+            };
+
+        callback(&requestData);
+        return;
+    }
+
     FetchData* data = calloc(1, sizeof(FetchData));
     *data = (FetchData){
         .callback = callback,
@@ -147,15 +184,15 @@ void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void
     // caller is left waiting on a callback that will never come.
     if(!emscripten_fetch(&net->attr, path))
     {
-        net_get_data getData =
+        net_request_data requestData =
             {
-                .type = net_get_error,
+                .type = net_request_error,
                 .error = {.code = -1},
                 .calldata = calldata,
                 .url = path,
             };
 
-        callback(&getData);
+        callback(&requestData);
         free(data);
     }
 }
@@ -199,17 +236,32 @@ typedef struct
     naettRes* res;
     char url[URL_SIZE];
 
-    net_get_callback callback;
+    net_request_callback callback;
     void* calldata;
-} HttpGet;
+} HttpRequest;
 
 struct tic_net
 {
     char host[URL_SIZE];
 
-    HttpGet** requests;
+    HttpRequest** requests;
     s32 count;
 };
+
+static const char* methodName(net_method method)
+{
+    switch(method)
+    {
+        case net_method_post:
+            return "POST";
+        case net_method_put:
+            return "PUT";
+        case net_method_delete:
+            return "DELETE";
+        default:
+            return "GET";
+    }
+}
 
 tic_net* tic_net_create(const char* host)
 {
@@ -227,27 +279,58 @@ tic_net* tic_net_create(const char* host)
     return net;
 }
 
-void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
 {
-    HttpGet* get = NEW(HttpGet);
-    memset(get, 0, sizeof *get);
+    HttpRequest* request = NEW(HttpRequest);
+    memset(request, 0, sizeof *request);
 
-    sprintf(get->url, "%s%s", net->host, url);
+    snprintf(request->url, sizeof request->url, "%s%s", net->host, url);
 
-    get->req = naettRequest(get->url, naettMethod("GET"), naettHeader("accept", "*/*"));
-    get->res = naettMake(get->req);
-    get->callback = callback;
-    get->calldata = calldata;
+    // The options are consumed (and freed) by naettRequestWithOptions.
+    s32 optionsCount = 2 + headersCount + (body ? 1 : 0);
+    const naettOption** options = calloc(optionsCount, sizeof *options);
+    options[0] = naettMethod(methodName(method));
+    options[1] = naettHeader("accept", "*/*");
+    for(s32 i = 0; i < headersCount; i++)
+    {
+        options[2 + i] = naettHeader(headers[i].name, headers[i].value);
+    }
+    if(body)
+    {
+        options[2 + headersCount] = naettBody(body, bodySize);
+    }
+
+    request->req = naettRequestWithOptions(request->url, optionsCount, options);
+    free(options);
+
+    if(request->req == NULL)
+    {
+        net_request_data requestData =
+            {
+                .type = net_request_error,
+                .error = {.code = -1},
+                .calldata = calldata,
+                .url = request->url,
+            };
+
+        callback(&requestData);
+        free(request);
+        return;
+    }
+
+    request->res = naettMake(request->req);
+    request->callback = callback;
+    request->calldata = calldata;
 
     net->requests = realloc(net->requests, sizeof *net->requests * ++net->count);
-    net->requests[net->count - 1] = get;
+    net->requests[net->count - 1] = request;
 }
 
 void tic_net_close(tic_net* net)
 {
     for(s32 i = 0; i < net->count; i++)
     {
-        HttpGet* it = net->requests[i];
+        HttpRequest* it = net->requests[i];
 
         if(it)
         {
@@ -273,30 +356,31 @@ void tic_net_end(tic_net* net)
 
     for(s32 i = 0; i < net->count; i++)
     {
-        const HttpGet* it = net->requests[i];
+        const HttpRequest* it = net->requests[i];
 
         if(it && naettComplete(it->res))
         {
             s32 status = naettGetStatus(it->res);
 
-            net_get_data getData =
+            net_request_data requestData =
                 {
                     .calldata = it->calldata,
                     .url = it->url,
                 };
 
-            if(status == 200)
+            if(status > 0)
             {
-                getData.type = net_get_done;
-                getData.done.data = (u8*)naettGetBody(it->res, &getData.done.size);
+                requestData.type = net_request_done;
+                requestData.done.status = status;
+                requestData.done.data = (u8*)naettGetBody(it->res, &requestData.done.size);
             }
             else
             {
-                getData.type = net_get_error;
-                getData.error.code = status;
+                requestData.type = net_request_error;
+                requestData.error.code = status;
             }
 
-            it->callback(&getData);
+            it->callback(&requestData);
 
             naettClose(it->res);
             naettFree(it->req);
@@ -318,18 +402,24 @@ tic_net* tic_net_create(const char* host)
     (void)host;
     return NULL;
 }
-void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
 {
     (void)net;
+    (void)method;
+    (void)headers;
+    (void)headersCount;
+    (void)body;
+    (void)bodySize;
+
     // close all requests with error to keep frontend responsive
-    net_get_data getData =
+    net_request_data requestData =
         {
-            .type = net_get_error,
+            .type = net_request_error,
             .calldata = calldata,
             .url = url,
             .error.code = -1, // abitrary
         };
-    callback(&getData);
+    callback(&requestData);
 }
 void tic_net_close(tic_net* net)
 {
@@ -345,3 +435,60 @@ void tic_net_end(tic_net* net)
 }
 
 #endif
+
+// tic_net_get is the site mount's old shape kept on top of the primitive: a
+// 200 is done, any other status is its error code, and an error's body is
+// dropped. The bridge lives with the call so the two cannot disagree about the
+// translation, and every backend gets it from one place.
+typedef struct
+{
+    net_get_callback callback;
+    void* calldata;
+} GetBridge;
+
+static void bridgeRequest(const net_request_data* requestData)
+{
+    GetBridge* bridge = requestData->calldata;
+
+    net_get_data getData = {.calldata = bridge->calldata, .url = requestData->url};
+
+    switch(requestData->type)
+    {
+        case net_request_progress:
+            getData.type = net_get_progress;
+            getData.progress.size = requestData->progress.size;
+            getData.progress.total = requestData->progress.total;
+            bridge->callback(&getData);
+            break;
+        case net_request_done:
+            if(requestData->done.status == 200)
+            {
+                getData.type = net_get_done;
+                getData.done.size = requestData->done.size;
+                getData.done.data = requestData->done.data;
+            }
+            else
+            {
+                getData.type = net_get_error;
+                getData.error.code = requestData->done.status;
+            }
+            bridge->callback(&getData);
+            free(bridge);
+            break;
+        case net_request_error:
+            getData.type = net_get_error;
+            getData.error.code = requestData->error.code;
+            bridge->callback(&getData);
+            free(bridge);
+            break;
+    }
+}
+
+void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+{
+    GetBridge* bridge = calloc(1, sizeof(GetBridge));
+    bridge->callback = callback;
+    bridge->calldata = calldata;
+
+    tic_net_request(net, net_method_get, url, NULL, 0, NULL, 0, bridgeRequest, bridge);
+}

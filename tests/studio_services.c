@@ -30,6 +30,57 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
     snprintf(NetUrl, sizeof NetUrl, "%s", url);
 }
 
+// The shelf's requests over the primitive: one held request, answered by the
+// test.
+static net_request_callback RequestCallback;
+static void* RequestCalldata;
+static char RequestUrl[TICNAME_MAX * 2];
+
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
+{
+    (void)net;
+    (void)method;
+    (void)headers;
+    (void)headersCount;
+    (void)body;
+    (void)bodySize;
+    assert(!RequestCallback);
+
+    RequestCallback = callback;
+    RequestCalldata = calldata;
+    snprintf(RequestUrl, sizeof RequestUrl, "%s", url);
+}
+
+static void answerRequestData(const void* data, s32 size)
+{
+    assert(RequestCallback);
+
+    net_request_callback callback = RequestCallback;
+    void* calldata = RequestCalldata;
+    RequestCallback = NULL;
+
+    net_request_data answer = {
+        .type = net_request_done,
+        .done = {.status = 200, .size = size, .data = (u8*)data},
+        .calldata = calldata,
+        .url = RequestUrl,
+    };
+
+    callback(&answer);
+}
+
+static bool remoteSignedIn(void* data)
+{
+    (void)data;
+    return true;
+}
+
+static const char* remoteToken(void* data)
+{
+    (void)data;
+    return "tok123";
+}
+
 static void answerNetData(const void* data, s32 size)
 {
     assert(NetCallback);
@@ -481,6 +532,40 @@ static void testCart(tic_mem* tic, tic_fs* fs)
         tic_fs_homedir(fs);
         assert(remove(drop) == 0);
         assert(rmdir(dropDir) == 0);
+    }
+
+    // The shelf through the real chain: the provider's answer is the listed
+    // name, so the one loader accepts it and the cart takes that identity.
+    {
+        tic_fs_set_remote(fs, &(tic_fs_remote){
+                                  .signed_in = remoteSignedIn,
+                                  .token = remoteToken,
+                              });
+        tic_fs_changedir(fs, TIC_SHELF_DIR);
+
+        char shelfCart[TIC_CART_SAVE_SIZE];
+        tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0x7);
+        s32 shelfSize = tic_cart_save(&tic->cart, shelfCart);
+        assert(shelfSize > 0);
+
+        s32 loaded = host.loaded;
+        LoadAnswer answer = {0};
+
+        rom_load_cart_async(&deps, "my-game.tic", onLoadAnswer, &answer);
+        assert(!answer.done);
+        assert(RequestCallback);
+        assert(strcmp(RequestUrl, "/api/v1/client/shelf/my-game/cart.tic") == 0);
+
+        answerRequestData(shelfCart, shelfSize);
+
+        assert(answer.done);
+        assert(answer.result.code == FS_OK);
+        assert(host.loaded == loaded + 1);
+        assert(strcmp(cart.name, "my-game.tic") == 0);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0x7);
+
+        tic_fs_homedir(fs);
+        tic_fs_set_remote(fs, NULL);
     }
 
     // The config's own cart is a save like any other, through the same callbacks.

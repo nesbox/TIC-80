@@ -5,6 +5,7 @@
  * Target console-test in cmake/tests.cmake; `ctest -R console` runs it.
  */
 #include "studio/screens/console.h"
+#include "studio/account.h"
 #include "studio/fs.h"
 #include "studio/fs_internal.h"
 #include "core/core.h"
@@ -13,10 +14,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 // The platform the console and the modules under it reach for: nothing opens,
 // the keyboard types nothing and the clipboard is empty.
 void tic_sys_open_path(const char* path)
+{
+}
+void tic_sys_open_url(const char* url)
 {
 }
 bool tic_sys_keyboard_text(char* text)
@@ -80,6 +85,61 @@ static void answerNetLast(net_get_data answer)
     callback(&answer);
 }
 
+// The shelf's requests go through the primitive: one held request, answered
+// by the test, so a pairing or a shelf command is seen both waiting and
+// answered.
+static net_request_callback requestCallback;
+static void* requestCalldata;
+static net_method requestMethod;
+static char requestUrl[TICNAME_MAX * 2];
+static char requestAuthorization[128];
+
+static bool requestHeld(void)
+{
+    return requestCallback != NULL;
+}
+
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
+{
+    (void)net;
+    (void)body;
+    (void)bodySize;
+    assert(!requestCallback);
+
+    requestCallback = callback;
+    requestCalldata = calldata;
+    requestMethod = method;
+    requestAuthorization[0] = '\0';
+    snprintf(requestUrl, sizeof requestUrl, "%s", url);
+
+    for(s32 i = 0; i < headersCount; i++)
+        if(strcmp(headers[i].name, "Authorization") == 0)
+            snprintf(requestAuthorization, sizeof requestAuthorization, "%s", headers[i].value);
+}
+
+static void answerRequestBytes(s32 status, const u8* body, s32 size)
+{
+    assert(requestCallback);
+
+    net_request_callback callback = requestCallback;
+    void* calldata = requestCalldata;
+    requestCallback = NULL;
+
+    net_request_data answer = {
+        .type = net_request_done,
+        .done = {.status = status, .size = size, .data = (u8*)body},
+        .calldata = calldata,
+        .url = requestUrl,
+    };
+
+    callback(&answer);
+}
+
+static void answerRequest(s32 status, const char* json)
+{
+    answerRequestBytes(status, (const u8*)json, (s32)strlen(json));
+}
+
 static void answerNetProgress(s32 size, s32 total)
 {
     answerNet((net_get_data){.type = net_get_progress, .progress = {.size = size, .total = total}});
@@ -99,6 +159,7 @@ typedef struct
 {
     tic_mem* tic;
     tic_fs* fs;
+    tic_account* account;
     Console* console;
     ConsoleView view;
     StudioConfig config;
@@ -107,20 +168,22 @@ typedef struct
 
 } Host;
 
-// A machine, a filesystem pointing at nothing, a config that prints nothing,
-// and the console made out of them — everything a host gives a module.
-static Host* hostNew(const char* cmd)
+// A machine, a filesystem at the root the test names, an account over it, a
+// config that prints nothing, and the console made out of them.
+static Host* hostNewAt(const char* root, const char* cmd)
 {
     Host* host = calloc(1, sizeof(Host));
 
     host->tic = tic_core_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_RGBA8888);
-    host->fs = tic_fs_create("/tmp/", NULL);
+    host->fs = tic_fs_create(root, NULL);
+    host->account = tic_account_create(host->fs, NULL);
     host->view.inFront = true;
     host->cmd = cmd ? strdup(cmd) : NULL;
 
     host->console = console_create(&(ConsoleDeps){
         .tic = host->tic,
         .fs = host->fs,
+        .account = host->account,
         .config = &host->config,
         .mouse = host->mouse,
         .view = &host->view,
@@ -133,9 +196,17 @@ static Host* hostNew(const char* cmd)
     return host;
 }
 
+// A machine, a filesystem pointing at nothing, a config that prints nothing,
+// and the console made out of them — everything a host gives a module.
+static Host* hostNew(const char* cmd)
+{
+    return hostNewAt("/tmp/", cmd);
+}
+
 static void hostFree(Host* host)
 {
     console_free(host->console);
+    tic_account_close(host->account);
     tic_core_close(host->tic);
     free(host->cmd);
     free(host);
@@ -1155,7 +1226,7 @@ static void testFakeDir(void)
 
         assert(said(host, "[sub]"));
         assert(said(host, "cart.tic"));
-        assert(said(host, "2/10 carts, 100/1000 bytes"));
+        assert(said(host, "2/10 carts, 100 bytes/1000 bytes"));
         assert(promptAtInput(host));
 
         hostFree(host);
@@ -1382,6 +1453,441 @@ static void testFakeSession(void)
     hostFree(host);
 }
 
+// ---- the shelf in the console ----
+
+#define SHELF_START_JSON       "{\"device_code\":\"dev-code\",\"user_code\":\"ABCD-EFGH\",\"verification_uri\":\"https://dev.tic80.com/link\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_START_PROD_JSON  "{\"device_code\":\"dev-code\",\"user_code\":\"ABCD-EFGH\",\"verification_uri\":\"https://tic80.com/link\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_START_QUERY_JSON "{\"device_code\":\"dev-code\",\"user_code\":\"ABCD-EFGH\",\"verification_uri\":\"https://tic80.com/link?x=1\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_START_FIT_JSON   "{\"device_code\":\"dev-code\",\"user_code\":\"ABCDEF\",\"verification_uri\":\"https://tic80.com/link\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_START_EDGE_JSON  "{\"device_code\":\"dev-code\",\"user_code\":\"ABCDEFG\",\"verification_uri\":\"https://tic80.com/link\",\"expires_in\":600,\"interval\":1}"
+#define SHELF_APPROVED_JSON    "{\"status\":\"approved\",\"token\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\",\"user\":\"member\"}"
+#define SHELF_CARTS_JSON       "{\"carts\":[{\"key\":\"my-game\",\"title\":\"My Game\",\"author\":\"Me\",\"lang\":\"lua\",\"size\":123,\"created\":1,\"updated\":1794940745061}],\"count\":1,\"bytes\":123,\"max_count\":100,\"max_bytes\":33554432}"
+
+static const char* consoleRoot(void)
+{
+    static char root[TICNAME_MAX];
+    snprintf(root, sizeof root, "/tmp/tic80-console-XXXXXX");
+    assert(mkdtemp(root));
+    return root;
+}
+
+static void hostBoot(Host* host)
+{
+    ConsoleAsk ask = hostTick(host);
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+}
+
+// The first frame of a session: the launch asks for the cart's name.
+static void hostFreeEx(Host* host)
+{
+    tic_fs_deldir(host->fs, "");
+    hostFree(host);
+}
+
+static void onPairingNoop(account_pairing_state state, const char* text, void* data)
+{
+    (void)state;
+    (void)text;
+    (void)data;
+}
+
+// signIn pairs through the fake transport before any command runs.
+static void signIn(Host* host)
+{
+    assert(tic_account_login(host->account, onPairingNoop, NULL));
+    assert(requestHeld());
+    answerRequest(201, SHELF_START_JSON);
+
+    tic_account_update(host->account, 1000);
+    assert(requestHeld());
+    answerRequest(200, SHELF_APPROVED_JSON);
+
+    assert(tic_account_signedin(host->account));
+}
+
+// The link the console recorded is the one drawn, and it is under the cursor.
+static void assertLoginLink(Host* host, const char* url)
+{
+    s32 length = (s32)strlen(url);
+
+    assert(host->console->login.urlSize == length);
+    assert(host->console->login.urlBlock >= 0);
+    assert(memcmp(host->console->text + host->console->login.urlBlock, url, length) == 0);
+    assert(said(host, url));
+    assert(!said(host, "enter the code"));
+}
+
+// The login command prints the link with the code in it, polls, and reports
+// the member.
+static void testShelfLogin(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "login");
+    hostBoot(host);
+
+    hostTick(host);
+    assert(requestHeld());
+    assert(requestMethod == net_method_post);
+    assert(strcmp(requestUrl, "/api/v1/client/device") == 0);
+
+    answerRequest(201, SHELF_START_JSON);
+    assertLoginLink(host, "https://dev.tic80.com/link?code=ABCD-EFGH");
+    assert(said(host, "ESC to cancel"));
+
+    for(s32 i = 0; i < 120 && !requestHeld(); i++)
+        hostTick(host);
+
+    assert(requestHeld());
+    assert(strcmp(requestUrl, "/api/v1/client/device/dev-code") == 0);
+
+    answerRequest(200, SHELF_APPROVED_JSON);
+    assert(said(host, "signed in as"));
+    assert(said(host, "member"));
+
+    hostFreeEx(host);
+    puts("console shelf login ok");
+}
+
+// A link that does not fit after "open" moves to its own line, and a link that
+// already has a query takes the code with `&`; the recorded block starts where
+// the link is drawn.
+static void testShelfLoginLinks(void)
+{
+    static const struct
+    {
+        const char* start;
+        const char* url;
+    } Cases[] = {
+        {SHELF_START_FIT_JSON, "https://tic80.com/link?code=ABCDEF"},          // 34: after the space
+        {SHELF_START_EDGE_JSON, "https://tic80.com/link?code=ABCDEFG"},        // 35: its own line
+        {SHELF_START_PROD_JSON, "https://tic80.com/link?code=ABCD-EFGH"},      // 37: its own line
+        {SHELF_START_QUERY_JSON, "https://tic80.com/link?x=1&code=ABCD-EFGH"}, // an existing query
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Cases); i++)
+    {
+        Host* host = hostNewAt(consoleRoot(), "login");
+        hostBoot(host);
+
+        hostTick(host);
+        assert(requestHeld());
+        answerRequest(201, Cases[i].start);
+        assertLoginLink(host, Cases[i].url);
+
+        tic_account_cancel_login(host->account);
+        hostFreeEx(host);
+    }
+
+    puts("console shelf links ok");
+}
+
+static void testShelfLoginDenied(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "login");
+    hostBoot(host);
+
+    hostTick(host);
+    answerRequest(201, SHELF_START_JSON);
+
+    for(s32 i = 0; i < 120 && !requestHeld(); i++)
+        hostTick(host);
+
+    answerRequest(200, "{\"status\":\"denied\"}");
+    assert(said(host, "the pairing was denied"));
+    assert(!tic_account_signedin(host->account));
+
+    hostFreeEx(host);
+    puts("console shelf denied ok");
+}
+
+static void testShelfLogout(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "logout");
+    signIn(host);
+
+    hostBoot(host);
+    hostTick(host);
+
+    assert(requestHeld());
+    assert(requestMethod == net_method_delete);
+    assert(strcmp(requestUrl, "/api/v1/client/token") == 0);
+    assert(strncmp(requestAuthorization, "Bearer ", 7) == 0);
+    assert(said(host, "signed out"));
+    assert(!tic_account_signedin(host->account));
+
+    answerRequest(200, "{\"ok\":true}");
+    hostFreeEx(host);
+    puts("console shelf logout ok");
+}
+
+// The listing shows the keys with the cart extension and the server's usage.
+static void testShelfDir(void)
+{
+    // The menubar's shortcut runs the absolute form.
+    Host* host = hostNewAt(consoleRoot(), "cd /shelf & dir");
+    signIn(host);
+
+    hostBoot(host);
+
+    for(s32 i = 0; i < 8 && !requestHeld(); i++)
+        hostTick(host);
+
+    assert(requestHeld());
+    assert(requestMethod == net_method_get);
+    assert(strcmp(requestUrl, "/api/v1/client/shelf") == 0);
+    assert(strcmp(requestAuthorization, "Bearer 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef") == 0);
+
+    answerRequest(200, SHELF_CARTS_JSON);
+
+    assert(said(host, "my-game.tic"));
+    assert(!said(host, "My Game"));
+    assert(said(host, "1/100 carts"));
+    assert(said(host, "123 bytes/32 MB"));
+
+    hostFreeEx(host);
+    puts("console shelf dir ok");
+}
+
+// The root names the mount [shelf] signed in and signed out alike.
+static void testShelfRootListing(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "dir");
+    signIn(host);
+
+    hostBoot(host);
+    hostTick(host);
+
+    char site[TICNAME_MAX + 3];
+    snprintf(site, sizeof site, "[%s]", TIC_HOST);
+
+    assert(said(host, "[shelf]"));
+    assert(said(host, site));
+
+    hostFreeEx(host);
+
+    host = hostNewAt(consoleRoot(), "dir");
+    hostBoot(host);
+    hostTick(host);
+
+    assert(said(host, "[shelf]"));
+
+    hostFreeEx(host);
+    puts("console shelf root ok");
+}
+
+// Signed out, the shelf is listed and can be entered; its listing answers the
+// sign-in hint.
+static void testShelfRootSignedOut(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "cd shelf & dir");
+    hostBoot(host);
+
+    for(s32 i = 0; i < 8 && !said(host, "the shelf is not signed in"); i++)
+        hostTick(host);
+
+    assert(said(host, "the shelf is not signed in"));
+    assert(said(host, "login"));
+    assert(!requestHeld());
+
+    char dir[TICNAME_MAX];
+    tic_fs_dir(host->fs, dir);
+    assert(strcmp(dir, "shelf") == 0);
+
+    hostFreeEx(host);
+    puts("console shelf signed out ok");
+}
+
+static void testShelfDelete(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "cd shelf & del my-game");
+    signIn(host);
+
+    hostBoot(host);
+
+    ConsoleAsk ask = {0};
+
+    for(s32 i = 0; i < 8 && ask.kind == CONSOLE_ASK_NONE; i++)
+        ask = hostTick(host); // del asks for confirmation
+
+    assert(ask.kind == CONSOLE_ASK_CONFIRM);
+    hostAnswer(host, (ConsoleAnswer){.yes = true});
+
+    for(s32 i = 0; i < 8 && !requestHeld(); i++)
+        hostTick(host);
+
+    assert(requestHeld());
+    assert(requestMethod == net_method_delete);
+    assert(strcmp(requestUrl, "/api/v1/client/shelf/my-game") == 0);
+
+    answerRequest(200, "{\"count\":0,\"bytes\":0,\"max_count\":100,\"max_bytes\":33554432}");
+
+    assert(said(host, "deleted"));
+    assert(said(host, "0/100 carts"));
+
+    hostFreeEx(host);
+    puts("console shelf delete ok");
+}
+
+static void testShelfLoad(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "cd shelf & load my-game.tic");
+    signIn(host);
+
+    hostBoot(host);
+
+    for(s32 i = 0; i < 8 && !requestHeld(); i++)
+        hostTick(host);
+
+    assert(requestHeld());
+    assert(requestMethod == net_method_get);
+    assert(strcmp(requestUrl, "/api/v1/client/shelf/my-game/cart.tic") == 0);
+
+    u8 buffer[TIC_CART_SAVE_SIZE];
+    s32 size = tic_cart_save(&host->tic->cart, buffer);
+    assert(size > 0);
+    answerRequestBytes(200, buffer, size);
+
+    ConsoleAsk ask = hostTick(host);
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    assert(strcmp(ask.name, "my-game.tic") == 0);
+
+    hostFreeEx(host);
+    puts("console shelf load ok");
+}
+
+static void testShelfLoadMissing(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "cd shelf & load gone");
+    signIn(host);
+
+    hostBoot(host);
+
+    for(s32 i = 0; i < 8 && !requestHeld(); i++)
+        hostTick(host);
+
+    answerRequest(404, "{\"error\":\"No such cart.\"}");
+    assert(said(host, "No such cart."));
+
+    hostFreeEx(host);
+    puts("console shelf load missing ok");
+}
+
+// The save ask is the host's, and it stays pending until the answer comes.
+static void testShelfSave(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "cd shelf & save my-cart & dir");
+    signIn(host);
+
+    hostBoot(host);
+
+    ConsoleAsk ask = {0};
+
+    for(s32 i = 0; i < 8 && ask.kind == CONSOLE_ASK_NONE; i++)
+        ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CART_SAVE);
+    assert(ask.name && strcmp(ask.name, "my-cart") == 0);
+
+    // The queued dir waits for the save's answer.
+    hostTick(host);
+    assert(!requestHeld());
+
+    hostAnswer(host, (ConsoleAnswer){
+                         .result = {FS_OK, "created on the shelf, 1/100 carts, 123 bytes/32 MB"},
+                         .name = "my-cart",
+                     });
+
+    assert(said(host, "cart my-cart saved!"));
+    assert(said(host, "created on the shelf"));
+    assert(said(host, "1/100 carts"));
+
+    hostFreeEx(host);
+    puts("console shelf save ok");
+}
+
+// A 401 ends the session and the next listing points at login.
+static void testShelfDirErrors(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "cd shelf & dir");
+    signIn(host);
+
+    hostBoot(host);
+
+    for(s32 i = 0; i < 8 && !requestHeld(); i++)
+        hostTick(host);
+
+    answerRequest(401, "{\"error\":\"invalid or expired token\"}");
+
+    assert(said(host, "the session ended, please sign in"));
+    assert(!tic_account_signedin(host->account));
+
+    hostFreeEx(host);
+    puts("console shelf 401 ok");
+}
+
+// A missing file on the site keeps the stat's answer, as before: the delete
+// never runs and its refusal does not replace the message.
+static void testDelMissingSite(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "del missing");
+    tic_fs_changedir(host->fs, TIC_HOST);
+
+    hostBoot(host);
+
+    ConsoleAsk ask = {0};
+
+    for(s32 i = 0; i < 4 && ask.kind == CONSOLE_ASK_NONE; i++)
+        ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CONFIRM);
+    hostAnswer(host, (ConsoleAnswer){.yes = true});
+
+    for(s32 i = 0; i < 4 && !netCallback; i++)
+        hostTick(host);
+
+    assert(netCallback);
+    answerNetDone("{\"folders\":[],\"files\":[]}", (s32)strlen("{\"folders\":[],\"files\":[]}"));
+
+    assert(said(host, "not found"));
+    assert(!said(host, "access denied"));
+
+    hostFreeEx(host);
+    puts("console del missing ok");
+}
+
+// The site enters by its absolute name too, from the root and with the
+// account's state playing no part.
+static void testSiteAbsoluteCd(void)
+{
+    char command[TICNAME_MAX + 8];
+    snprintf(command, sizeof command, "cd /%s & dir", TIC_HOST);
+
+    for(s32 account = 0; account < 2; account++)
+    {
+        Host* host = hostNewAt(consoleRoot(), command);
+
+        if(account)
+            signIn(host);
+
+        hostBoot(host);
+
+        for(s32 i = 0; i < 8 && !netCallback; i++)
+            hostTick(host);
+
+        char dir[TICNAME_MAX];
+        tic_fs_dir(host->fs, dir);
+        assert(strcmp(dir, TIC_HOST) == 0);
+        assert(netCallback);
+        assert(strcmp(netUrl, "/json?fn=dir&path=") == 0);
+
+        answerNetDone("{\"folders\":[],\"files\":[]}", (s32)strlen("{\"folders\":[],\"files\":[]}"));
+
+        hostFreeEx(host);
+    }
+
+    puts("console site absolute cd ok");
+}
+
 int main(void)
 {
     testMoves();
@@ -1400,6 +1906,20 @@ int main(void)
     testHelpFill();
     testExportHelp();
     testErrorLink();
+    testShelfLogin();
+    testShelfLoginLinks();
+    testShelfLoginDenied();
+    testShelfLogout();
+    testShelfDir();
+    testShelfRootListing();
+    testShelfRootSignedOut();
+    testShelfDelete();
+    testShelfLoad();
+    testShelfLoadMissing();
+    testShelfSave();
+    testShelfDirErrors();
+    testDelMissingSite();
+    testSiteAbsoluteCd();
     testFakeDir();
     testFakeCd();
     testFakeDelRefused();

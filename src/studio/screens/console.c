@@ -30,6 +30,9 @@
 #include "studio/embed.h"
 #include "studio/fs.h"
 #include "studio/net.h"
+#if !defined(__EMSCRIPTEN__)
+#include "studio/account.h"
+#endif
 #include "ext/png.h"
 #include "ext/json.h"
 #include "zip.h"
@@ -66,17 +69,24 @@
 #define CONSOLE_BACK_TEXT_COLOR     tic_color_grey
 #define CONSOLE_FRONT_TEXT_COLOR    tic_color_light_grey
 #define CONSOLE_ERROR_TEXT_COLOR    tic_color_red
-#define CONSOLE_LINK_TEXT_COLOR     tic_color_blue
+#define CONSOLE_LINK_TEXT_COLOR     tic_color_light_blue
 #define CONSOLE_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
 #define CONSOLE_CURSOR_DELAY        (TIC80_FRAMERATE / 2)
-#define CONSOLE_BUFFER_WIDTH        (STUDIO_TEXT_BUFFER_WIDTH)
-#define CONSOLE_BUFFER_HEIGHT       (STUDIO_TEXT_BUFFER_HEIGHT)
-#define CONSOLE_BUFFER_SCREENS      64
-#define CONSOLE_BUFFER_SCREEN       (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT)
-#define CONSOLE_BUFFER_SIZE         (CONSOLE_BUFFER_SCREEN * CONSOLE_BUFFER_SCREENS)
-#define CONSOLE_BUFFER_ROWS         (CONSOLE_BUFFER_SIZE / CONSOLE_BUFFER_WIDTH)
-#define CONSOLE_ERROR_UNSET         (-CONSOLE_BUFFER_SIZE - 1)
-#define DEFAULT_CHMOD               0755
+// The pairing's link opens where the platform has a browser; the code copies
+// everywhere.
+#if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__) || defined(__TIC_ANDROID__)
+#define CAN_OPEN_URL 1
+#else
+#define CAN_OPEN_URL 0
+#endif
+#define CONSOLE_BUFFER_WIDTH   (STUDIO_TEXT_BUFFER_WIDTH)
+#define CONSOLE_BUFFER_HEIGHT  (STUDIO_TEXT_BUFFER_HEIGHT)
+#define CONSOLE_BUFFER_SCREENS 64
+#define CONSOLE_BUFFER_SCREEN  (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT)
+#define CONSOLE_BUFFER_SIZE    (CONSOLE_BUFFER_SCREEN * CONSOLE_BUFFER_SCREENS)
+#define CONSOLE_BUFFER_ROWS    (CONSOLE_BUFFER_SIZE / CONSOLE_BUFFER_WIDTH)
+#define CONSOLE_ERROR_UNSET    (-CONSOLE_BUFFER_SIZE - 1)
+#define DEFAULT_CHMOD          0755
 
 // clang-format off
 #define IMPORT_CMD_LIST(macro)  \
@@ -572,6 +582,11 @@ static void consolePrintOffset(Console* console, const char* text, u8 color, s32
 
     console->cursor.pos = cursorPos(console);
 
+    // A run as wide as the line or wider cannot fit on a fresh one either: let
+    // the line's edge wrap it, keeping its pieces together.
+    bool inRun = false;
+    bool longRun = false;
+
     for(const char* ptr = text; *ptr; ptr++)
     {
         char symbol = *ptr;
@@ -579,21 +594,41 @@ static void consolePrintOffset(Console* console, const char* text, u8 color, s32
         scrollConsole(console);
 
         if(symbol == '\n')
+        {
             nextLine(console);
+            inRun = false;
+        }
         else
         {
-            if(!iswrap(symbol))
+            if(iswrap(symbol))
+                inRun = false;
+            else
             {
-                const char* cur = ptr;
-                s32 len = CONSOLE_BUFFER_WIDTH;
-
-                while(*cur && !iswrap(*cur++))
-                    len--;
-
-                if(len > 0 && len <= console->cursor.pos.x)
+                if(!inRun)
                 {
-                    nextLine(console);
-                    console->cursor.pos.x = wrapLineOffset;
+                    const char* cur = ptr;
+                    s32 run = 0;
+
+                    while(*cur && !iswrap(*cur++))
+                        run++;
+
+                    longRun = run >= CONSOLE_BUFFER_WIDTH;
+                    inRun = true;
+                }
+
+                if(!longRun)
+                {
+                    const char* cur = ptr;
+                    s32 len = CONSOLE_BUFFER_WIDTH;
+
+                    while(*cur && !iswrap(*cur++))
+                        len--;
+
+                    if(len > 0 && len <= console->cursor.pos.x)
+                    {
+                        nextLine(console);
+                        console->cursor.pos.x = wrapLineOffset;
+                    }
                 }
             }
 
@@ -715,6 +750,17 @@ static void fsBegin(Console* console)
     console->fsPending = true;
 }
 
+// A login in progress holds the next command until the pairing answers.
+static bool commandPending(const Console* console)
+{
+#if !defined(__EMSCRIPTEN__)
+    return console->loginPending;
+#else
+    (void)console;
+    return false;
+#endif
+}
+
 // The one result renderer: a session that ended points at signing in.
 static void printFsError(Console* console, fs_result result)
 {
@@ -732,9 +778,11 @@ static void printFsUsage(Console* console, const fs_usage* usage)
 {
     if(usage && usage->has_usage)
     {
+        char used[32], limit[32];
         char line[96];
-        snprintf(line, sizeof line, "\n%d/%d carts, %lld/%lld bytes", usage->count, usage->max_count,
-                 (long long)usage->bytes, (long long)usage->max_bytes);
+        snprintf(line, sizeof line, "\n%d/%d carts, %s/%s", usage->count, usage->max_count,
+                 tic_fs_size_text(usage->bytes, used, sizeof used),
+                 tic_fs_size_text(usage->max_bytes, limit, sizeof limit));
         printBack(console, line);
     }
 }
@@ -1571,7 +1619,7 @@ static bool printFilename(const fs_item* item, void* ctx)
     PrintFileNameData* data = ctx;
 
     data->items = realloc(data->items, (data->count + 1) * sizeof *data->items);
-    data->items[data->count++] = (FileItem){strdup(item->name), item->dir};
+    data->items[data->count++] = (FileItem){strdup(item->dir && item->title ? item->title : item->name), item->dir};
 
     return true;
 }
@@ -1653,6 +1701,7 @@ typedef struct
 {
     Console* console;
     char* name;
+    bool absolute;
 } ChangeDirData;
 
 static void onChangeDirectoryDone(const fs_item* item, fs_result result, void* data)
@@ -1665,7 +1714,13 @@ static void onChangeDirectoryDone(const fs_item* item, fs_result result, void* d
     else if(!item->dir)
         printBack(console, "\nnot a folder");
     else
+    {
+        // An absolute name enters a mount: the cwd is the root, then the name.
+        if(changeDirData->absolute)
+            tic_fs_homedir(console->fs);
+
         tic_fs_changedir(console->fs, changeDirData->name);
+    }
 
     free(changeDirData->name);
     free(changeDirData);
@@ -1699,9 +1754,14 @@ static void onChangeDirectory(Console* console)
                 return;
             }
 
-            *data = (ChangeDirData){console, strdup(param)};
+            bool absolute = param[0] == '/';
+            const char* name = absolute ? param + 1 : param;
+
+            *data = (ChangeDirData){console, strdup(name), absolute};
             fsBegin(console);
-            tic_fs_stat(console->fs, param, onChangeDirectoryDone, data);
+
+            // The stat sees the absolute spelling: the mount name is root-level.
+            tic_fs_stat(console->fs, absolute ? param : name, onChangeDirectoryDone, data);
             return;
         }
     }
@@ -2905,6 +2965,13 @@ static void onSaved(Console* console, const ConsoleAnswer* answer)
         printBack(console, "\ncart ");
         printFront(console, answer->name);
         printBack(console, " saved!\n");
+
+        // The shelf answers its status and the account's usage with the save.
+        if(answer->result.message)
+        {
+            printBack(console, answer->result.message);
+            printLine(console);
+        }
     }
     else
         printFsError(console, answer->result);
@@ -2949,6 +3016,15 @@ static void onSaveChecked(const fs_item* item, fs_result result, void* data)
             };
 
         confirmCommand(console, Rows, COUNT_OF(Rows), onSaveCommandConfirmed, NULL);
+        free(check);
+        return;
+    }
+
+    // A mount without the stat operation cannot answer the overwrite
+    // question; the server's answer reports create versus replace.
+    if(result.code == FS_UNSUPPORTED)
+    {
+        askSave(console, console->desc->count ? console->desc->params->key : NULL);
         free(check);
         return;
     }
@@ -3076,7 +3152,16 @@ static void onDeleteDone(fs_result result, void* data)
     Console* console = del->console;
 
     if(result.code == FS_OK)
+    {
         printBack(console, del->dir ? "\ndir successfully deleted" : "\nfile successfully deleted");
+
+        // The shelf answers the account's usage with the delete.
+        if(result.message)
+        {
+            printLine(console);
+            printBack(console, result.message);
+        }
+    }
     else
         printFsError(console, result);
 
@@ -3088,7 +3173,9 @@ static void onDeleteStat(const fs_item* item, fs_result result, void* data)
 {
     DeleteData* del = data;
 
-    if(result.code != FS_OK)
+    // A mount without the stat operation still lets the delete answer; a
+    // missing file keeps the stat's answer, as it always did.
+    if(result.code != FS_OK && result.code != FS_UNSUPPORTED)
     {
         printFsError(del->console, result);
         commandDone(del->console);
@@ -3096,7 +3183,7 @@ static void onDeleteStat(const fs_item* item, fs_result result, void* data)
         return;
     }
 
-    del->dir = item->dir;
+    del->dir = result.code == FS_OK ? item->dir : false;
     tic_fs_delete(del->console->fs, del->name, onDeleteDone, del);
 }
 
@@ -3273,6 +3360,147 @@ static void onGetCommand(Console* console)
 
 #endif
 
+#if !defined(__EMSCRIPTEN__)
+static void onLoginAnswer(account_pairing_state state, const char* text, void* data)
+{
+    Console* console = data;
+
+    switch(state)
+    {
+        case account_pairing_code:
+        {
+            char buffer[512];
+            snprintf(buffer, sizeof buffer, "%s", text ? text : "");
+
+            char* code = strchr(buffer, '\n');
+            if(code)
+                *code++ = '\0';
+
+            memset(&console->login, 0, sizeof console->login);
+
+            // Where the platform has a browser, the code rides in the link and
+            // one click finishes the pairing. Otherwise both are shown.
+            char target[768];
+
+#if CAN_OPEN_URL
+            if(code && code[0])
+            {
+                snprintf(target, sizeof target, "%s%scode=%s", buffer, strchr(buffer, '?') ? "&" : "?", code);
+                code = NULL;
+            }
+            else
+#endif
+                snprintf(target, sizeof target, "%s", buffer);
+
+            // Both texts are the server's: copy what fits and print the copy.
+            s32 urlLength = snprintf(console->login.url, sizeof console->login.url, "%.*s",
+                                     (s32)sizeof console->login.url - 1, target);
+
+            printBack(console, "\nopen");
+
+            // A link that does not fit after the word moves to a fresh line
+            // first, so the recorded block starts where the link is drawn.
+            bool ownLine = urlLength >= CONSOLE_BUFFER_WIDTH - (console->cursor.pos.x + 1);
+
+            printBack(console, ownLine ? "\n" : " ");
+            console->login.urlBlock = cursorOffset(console);
+            console->login.urlSize = urlLength;
+            consolePrint(console, console->login.url, CONSOLE_LINK_TEXT_COLOR);
+            printLine(console);
+
+            if(code && code[0])
+            {
+                s32 codeLength = snprintf(console->login.code, sizeof console->login.code, "%.*s",
+                                          (s32)sizeof console->login.code - 1, code);
+
+                printBack(console, "\nenter the code ");
+                console->login.codeBlock = cursorOffset(console);
+                console->login.codeSize = codeLength;
+                printFront(console, console->login.code);
+                printLine(console);
+            }
+
+            printBack(console, "\npress ESC to cancel\n");
+            break;
+        }
+        case account_pairing_approved:
+            printBack(console, "\nsigned in as ");
+            printFront(console, text ? text : "");
+            printLine(console);
+            break;
+        case account_pairing_denied:
+            printBack(console, "\nthe pairing was denied\n");
+            break;
+        case account_pairing_expired:
+            printBack(console, "\nthe code expired, run `login` again\n");
+            break;
+        case account_pairing_error:
+            printBack(console, "\n");
+            printBack(console, text && text[0] ? text : "the network is unavailable");
+            printBack(console, "\n");
+            break;
+    }
+
+    // The code is the pairing's first answer, not its end: the command stays
+    // pending until the member approves, denies, or presses ESC.
+    if(console->loginPending && state != account_pairing_code)
+    {
+        console->loginPending = false;
+        commandDone(console);
+    }
+}
+
+static void onLoginCommand(Console* console)
+{
+    if(!console->account)
+    {
+        printError(console, "\naccount is not available\n");
+        commandDone(console);
+        return;
+    }
+
+    if(tic_account_signedin(console->account))
+    {
+        printBack(console, "\nalready signed in as ");
+        printFront(console, tic_account_user(console->account));
+        printLine(console);
+        commandDone(console);
+        return;
+    }
+
+    memset(&console->login, 0, sizeof console->login);
+    console->loginPending = true;
+
+    if(!tic_account_login(console->account, onLoginAnswer, console))
+    {
+        console->loginPending = false;
+        printBack(console, "\na pairing is already running, press ESC to cancel\n");
+        commandDone(console);
+    }
+}
+
+static void onLogoutCommand(Console* console)
+{
+    if(!console->account || !tic_account_signedin(console->account))
+    {
+        printBack(console, "\nnot signed in\n");
+    }
+    else
+    {
+        tic_account_logout(console->account);
+        printBack(console, "\nsigned out\n");
+    }
+
+    commandDone(console);
+}
+
+// The pairing's message is clickable while the pairing runs.
+static bool loginLinkActive(Console* console)
+{
+    return console->account && tic_account_login_active(console->account);
+}
+#endif
+
 // Declare this here to resolve a cyclic dependency with COMMANDS_LIST.
 static void tabCompleteHelp(TabCompleteData* data);
 
@@ -3325,6 +3553,32 @@ static const char HelpUsage[] = "help [<text>"
 // clang-format on
 #else
 #define SURF_CMD(macro)
+#endif
+
+// The account commands are a native-build feature: the web IDE's own change
+// decides between the pairing and the site session (shelf spec).
+#if !defined(__EMSCRIPTEN__)
+// clang-format off
+#define ACCOUNT_CMDS(macro)                                                             \
+    macro("login",                                                                      \
+        NULL,                                                                           \
+        "Sign in to your TIC-80 account.\n"                                            \
+        "Open the printed page on a phone or a PC and approve the code.",               \
+        NULL,                                                                           \
+        onLoginCommand,                                                                 \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("logout",                                                                     \
+        NULL,                                                                           \
+        "Sign out of your TIC-80 account.",                                             \
+        NULL,                                                                           \
+        onLogoutCommand,                                                                \
+        NULL,                                                                           \
+        NULL)
+// clang-format on
+#else
+#define ACCOUNT_CMDS(macro)
 #endif
 
 // clang-format off
@@ -3502,6 +3756,8 @@ static const char HelpUsage[] = "help [<text>"
         NULL)                                                                           \
                                                                                         \
     SURF_CMD(macro)                                                                     \
+                                                                                        \
+    ACCOUNT_CMDS(macro)                                                                 \
                                                                                         \
     macro("menu",                                                                       \
         NULL,                                                                           \
@@ -4739,6 +4995,29 @@ static void copyToClipboard(Console* console)
 {
     char* text = getSelectionText(console);
 
+#if !defined(__EMSCRIPTEN__)
+    // Nothing selected during the pairing: the link and the code are what the
+    // member is trying to copy.
+    if(!text && loginLinkActive(console) && console->login.url[0])
+    {
+        char pair[1024];
+
+        if(console->login.code[0])
+        {
+            snprintf(pair, sizeof pair, "%s\n%s", console->login.url, console->login.code);
+            tic_sys_clipboard_set(pair);
+            printBack(console, "\nthe link and the code are in the clipboard\n");
+        }
+        else
+        {
+            tic_sys_clipboard_set(console->login.url);
+            printBack(console, "\nthe link is in the clipboard\n");
+        }
+
+        return;
+    }
+#endif
+
     if(text)
     {
         tic_sys_clipboard_set(text);
@@ -4822,12 +5101,24 @@ static void processMouse(Console* console)
 
     tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
     bool over = mouse_over(tic, &rect);
+    s32 pointerOffset = errorLinkOffset(console, tic_api_mouse(tic));
 
     console->errors.hover = over && !console->mouse[tic_mouse_left].down && !console->view->pointerOwned
-                                ? errorLinkAt(console, errorLinkOffset(console, tic_api_mouse(tic)))
+                                ? errorLinkAt(console, pointerOffset)
                                 : -1;
 
-    if(console->errors.hover >= 0)
+    bool loginHover = false;
+#if !defined(__EMSCRIPTEN__)
+    loginHover = over && !console->mouse[tic_mouse_left].down && !console->view->pointerOwned &&
+                 loginLinkActive(console) &&
+                 ((CAN_OPEN_URL &&
+                   pointerOffset >= console->login.urlBlock &&
+                   pointerOffset < console->login.urlBlock + console->login.urlSize) ||
+                  (pointerOffset >= console->login.codeBlock &&
+                   pointerOffset < console->login.codeBlock + console->login.codeSize));
+#endif
+
+    if(console->errors.hover >= 0 || loginHover)
         ui_cursor(tic, tic_cursor_hand);
     else if(over)
         ui_cursor(tic, tic_cursor_ibeam);
@@ -4849,6 +5140,21 @@ static void processMouse(Console* console)
                 console->ask = (ConsoleAsk){.kind = CONSOLE_ASK_CODE, .line = console->errors.items[index].line};
                 console->onAnswer = NULL;
             }
+#if !defined(__EMSCRIPTEN__)
+            else if(loginLinkActive(console))
+            {
+                if(CAN_OPEN_URL &&
+                   start >= console->login.urlBlock &&
+                   start < console->login.urlBlock + console->login.urlSize)
+                    tic_sys_open_url(console->login.url);
+                else if(start >= console->login.codeBlock &&
+                        start < console->login.codeBlock + console->login.codeSize)
+                {
+                    tic_sys_clipboard_set(console->login.code);
+                    printBack(console, "\nthe code is in the clipboard\n");
+                }
+            }
+#endif
         }
     }
 
@@ -5121,6 +5427,28 @@ static void tick(Console* console)
 {
     tic_mem* tic = console->tic;
 
+#if !defined(__EMSCRIPTEN__)
+    if(console->account)
+    {
+        // The pairing polls at the server's interval; the tick is the clock.
+        tic_account_update(console->account, 1000 / TIC80_FRAMERATE);
+
+        if(tic_account_login_active(console->account) &&
+           keyboard_pressed_once(console->tic, tic_key_escape))
+        {
+            tic_account_cancel_login(console->account);
+            printBack(console, "\npairing cancelled\n");
+            printLine(console);
+
+            if(console->loginPending)
+            {
+                console->loginPending = false;
+                commandDone(console);
+            }
+        }
+    }
+#endif
+
     processMouse(console);
     processKeyboard(console);
 #if defined(BUILD_SURF)
@@ -5181,7 +5509,7 @@ static void tick(Console* console)
         // cart's name, say — is served, and answered, before the next command
         // starts, or the first ask of a frame would be lost to the second. A
         // filesystem operation holds the next command the same way.
-        bool ready = console->ask.kind == CONSOLE_ASK_NONE && !console->waiting && !console->fsPending;
+        bool ready = console->ask.kind == CONSOLE_ASK_NONE && !console->waiting && !console->fsPending && !commandPending(console);
 
         if(console->active && ready)
         {
@@ -5197,7 +5525,7 @@ static void tick(Console* console)
                 // effect counts as run when that has answered: `run` hands the
                 // whole of it over, and runGame reads this count on the spot
                 // for the rewind --keepcmd does.
-                if(console->ask.kind == CONSOLE_ASK_NONE && !console->waiting && !console->fsPending)
+                if(console->ask.kind == CONSOLE_ASK_NONE && !console->waiting && !console->fsPending && !commandPending(console))
                     console->commands.current++;
                 else
                     console->counting = true;
@@ -5232,6 +5560,9 @@ Console* console_create(const ConsoleDeps* deps)
     console->view = deps->view;
     console->fs = deps->fs;
     console->net = deps->net;
+#if !defined(__EMSCRIPTEN__)
+    console->account = deps->account;
+#endif
     console->config = deps->config;
     console->mouse = deps->mouse;
     console->args.cmd = deps->args.cmd;

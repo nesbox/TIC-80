@@ -205,6 +205,7 @@ if(BUILD_TESTS)
     add_executable(console-test
         ${CMAKE_SOURCE_DIR}/tests/console.c
         ${CMAKE_SOURCE_DIR}/src/studio/screens/console.c
+        ${CMAKE_SOURCE_DIR}/src/studio/account.c
         ${CMAKE_SOURCE_DIR}/src/studio/keyboard.c
         ${CMAKE_SOURCE_DIR}/src/studio/mouse.c
         ${CMAKE_SOURCE_DIR}/src/studio/ui.c
@@ -215,6 +216,9 @@ if(BUILD_TESTS)
     )
 
     target_include_directories(console-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    # The console is an editors screen, and the filesystem's remote mounts are
+    # compiled under the same condition.
+    target_compile_definitions(console-test PRIVATE BUILD_EDITORS)
     target_link_libraries(console-test PRIVATE tic80core zip)
     tic80_add_test(console-test)
 
@@ -254,6 +258,53 @@ if(BUILD_TESTS)
         message(FATAL_ERROR "fs-test must not link the studio")
     endif()
     tic80_add_test(fs-test)
+
+    # The get bridge over the request primitive: tests/net.c holds the fake
+    # primitive, net.c built with NET_TEST supplies only tic_net_get, and the
+    # translation of 200, a 4xx status, a transport error and progress is
+    # asserted. No backend, no core, no socket.
+    add_executable(net-test
+        ${CMAKE_SOURCE_DIR}/tests/net.c
+        ${CMAKE_SOURCE_DIR}/src/studio/net.c
+    )
+
+    target_compile_definitions(net-test PRIVATE NET_TEST)
+    tic80_add_test(net-test)
+
+    # The desktop transport over the wire: the naett backend against a local
+    # HTTP server started by the test, which checks the method, the headers and
+    # the body it receives, and that a 200 and a 409 both deliver their status
+    # and body. A closed port is the transport error.
+    if(USE_NAETT)
+        add_executable(net-naett-test
+            ${CMAKE_SOURCE_DIR}/tests/net_naett.c
+            ${CMAKE_SOURCE_DIR}/src/studio/net.c
+        )
+
+        target_compile_definitions(net-naett-test PRIVATE USE_NAETT)
+        target_link_libraries(net-naett-test PRIVATE naett)
+
+        if(UNIX AND NOT APPLE)
+            target_link_libraries(net-naett-test PRIVATE pthread)
+        endif()
+
+        tic80_add_test(net-naett-test)
+    endif()
+
+    # The account without the studio: the token file under the unversioned
+    # path, the pairing state machine over a held fake network, logout's
+    # revoke and the 401 path. The filesystem is a real one on a temporary
+    # root; no studio.c, no socket.
+    add_executable(account-test
+        ${CMAKE_SOURCE_DIR}/tests/account.c
+        ${CMAKE_SOURCE_DIR}/src/studio/account.c
+        ${CMAKE_SOURCE_DIR}/src/studio/fs.c
+        ${CMAKE_SOURCE_DIR}/src/ext/json.c
+    )
+
+    target_include_directories(account-test PRIVATE ${CMAKE_BINARY_DIR} ${THIRDPARTY_DIR}/jsmn)
+    target_compile_definitions(account-test PRIVATE BUILD_EDITORS)
+    tic80_add_test(account-test)
 
     # The code editor's text model links with the history module alone: the
     # buffer, the state array, the cap and the caret are driven without the

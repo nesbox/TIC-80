@@ -81,6 +81,9 @@ static MapView mapFrame(Studio* studio);
 #include "screens/mainmenu.h"
 
 #include "fs.h"
+#if !defined(__EMSCRIPTEN__)
+#include "account.h"
+#endif
 
 #include "argparse.h"
 
@@ -310,6 +313,10 @@ struct Studio
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     tic_net* net;
+#if !defined(__EMSCRIPTEN__)
+    // The member's account: NULL in the wasm IDE, which has its own change.
+    tic_account* account;
+#endif
 #endif
 
     Start* start;
@@ -3436,6 +3443,12 @@ void exitGame(Studio* studio)
 void studio_delete(Studio* studio)
 {
     {
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+        // The transport goes first: a pending request's callback must not
+        // reach a screen or the account after they are freed.
+        tic_net_close(studio->net);
+#endif
+
 #if defined(BUILD_EDITORS)
         for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
         {
@@ -3457,6 +3470,10 @@ void studio_delete(Studio* studio)
         surf_free(studio->surf);
 #endif
 
+#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(__EMSCRIPTEN__)
+        tic_account_close(studio->account);
+#endif
+
         start_free(studio->start);
         run_free(studio->run);
         freeConfig(studio->config);
@@ -3467,9 +3484,6 @@ void studio_delete(Studio* studio)
 
     tic_core_close(studio->tic);
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-    tic_net_close(studio->net);
-#endif
 #if defined(BUILD_EDITORS)
     free(studio->video.buffer);
     if(studio->bytebattle.exp) free(studio->bytebattle.exp);
@@ -3723,6 +3737,10 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
         }
     }
 
+#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(__EMSCRIPTEN__)
+    studio->account = tic_account_create(studio->fs, studio->net);
+#endif
+
     {
 
 #if defined(BUILD_EDITORS)
@@ -3839,6 +3857,9 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
         .tic = studio->tic,
         .fs = studio->fs,
         .net = studio->net,
+#if !defined(__EMSCRIPTEN__)
+        .account = studio->account,
+#endif
         .config = getConfig(studio),
         .mouse = studio->mouse.state,
         .view = &studio->consoleView,

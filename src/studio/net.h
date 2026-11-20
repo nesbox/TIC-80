@@ -26,6 +26,63 @@
 
 typedef struct tic_net tic_net;
 
+typedef enum
+{
+    net_method_get,
+    net_method_post,
+    net_method_put,
+    net_method_delete,
+} net_method;
+
+typedef struct
+{
+    const char* name;
+    const char* value;
+} net_header;
+
+// One request's answer: a completed HTTP answer (its status and body, 4xx and
+// 5xx included), a progress tick, or a transport error. The body is valid
+// during the callback, as the get path's is today; the request's headers and
+// body must stay valid until the callback.
+typedef struct
+{
+    enum
+    {
+        net_request_progress,
+        net_request_done,
+        net_request_error,
+    } type;
+
+    union
+    {
+        struct
+        {
+            s32 size;
+            s32 total;
+        } progress;
+
+        struct
+        {
+            s32 status;
+            s32 size;
+            u8* data;
+        } done;
+
+        struct
+        {
+            s32 code;
+        } error;
+    };
+
+    void* calldata;
+    const char* url;
+
+} net_request_data;
+
+typedef void (*net_request_callback)(const net_request_data*);
+
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata);
+
 typedef struct
 {
     enum

@@ -30,10 +30,18 @@
 
 #define URL_SIZE 2048
 
+// A net outlives the workers it starts: they read its tick lock and its
+// closing flag, so close joins them before the net goes.
+#define NET_THREADS 8
+
 struct tic_net
 {
     LightLock tick_lock;
     const char* host;
+
+    bool closing;
+    Thread threads[NET_THREADS];
+    s32 threadCount;
 };
 
 typedef struct
@@ -42,18 +50,38 @@ typedef struct
 
     tic_net* net;
     httpcContext httpc;
-    net_get_data data;
-    net_get_callback callback;
+    net_request_data data;
+    net_request_callback callback;
+
+    net_method method;
+    const net_header* headers;
+    s32 headersCount;
+    const void* body;
+    s32 bodySize;
 
     void* buffer;
     s32 size;
+    s32 status;
 } net_ctx;
 
 // #define DEBUG
 
-static int n3ds_net_setup_context(httpcContext* httpc, const char* url)
+static HTTPC_RequestMethod n3ds_method(net_method method)
 {
-    if(httpcOpenContext(httpc, HTTPC_METHOD_GET, url, 1)) return -101;
+    switch(method)
+    {
+        case net_method_post: return HTTPC_METHOD_POST;
+        case net_method_put: return HTTPC_METHOD_PUT;
+        case net_method_delete: return HTTPC_METHOD_DELETE;
+        default: return HTTPC_METHOD_GET;
+    }
+}
+
+static int n3ds_net_setup_context(net_ctx* ctx)
+{
+    httpcContext* httpc = &ctx->httpc;
+
+    if(httpcOpenContext(httpc, n3ds_method(ctx->method), ctx->url, 1)) return -101;
     if(httpcSetSSLOpt(httpc, SSLCOPT_DisableVerify))
     {
         httpcCloseContext(httpc);
@@ -74,6 +102,25 @@ static int n3ds_net_setup_context(httpcContext* httpc, const char* url)
         httpcCloseContext(httpc);
         return -105;
     }
+
+    for(s32 i = 0; i < ctx->headersCount; i++)
+    {
+        if(httpcAddRequestHeaderField(httpc, ctx->headers[i].name, ctx->headers[i].value))
+        {
+            httpcCloseContext(httpc);
+            return -106;
+        }
+    }
+
+    if(ctx->body)
+    {
+        if(httpcAddPostDataRaw(httpc, (const u32*)ctx->body, (u32)ctx->bodySize))
+        {
+            httpcCloseContext(httpc);
+            return -107;
+        }
+    }
+
     return 0;
 }
 
@@ -81,6 +128,17 @@ static int n3ds_net_setup_context(httpcContext* httpc, const char* url)
 
 static inline bool ctx_resize_buf(net_ctx* ctx, s32 new_size)
 {
+    // realloc(p, 0) frees the block and answers NULL on newlib: an empty body
+    // (a 204, or a 4xx a proxy answers without one) would be a double free and
+    // a transport error instead of its status.
+    if(new_size <= 0)
+    {
+        free(ctx->buffer);
+        ctx->buffer = NULL;
+        ctx->size = 0;
+        return true;
+    }
+
     if(ctx->buffer == NULL)
     {
         ctx->buffer = malloc(new_size);
@@ -106,12 +164,12 @@ static inline bool ctx_resize_buf(net_ctx* ctx, s32 new_size)
 
 // clang-format off
 #define NET_EXEC_ERROR_CHECK \
-    if (status_code != 200) \
+    if (status_code < 0) \
     { \
         printf("net_httpc: error %d\n", status_code); \
         if (ctx->callback != NULL) \
         { \
-            ctx->data.type = net_get_error; \
+            ctx->data.type = net_request_error; \
             ctx->data.error.code = status_code; \
             if (!ignore_lock) LightLock_Lock(&ctx->net->tick_lock); \
             ctx->callback(&ctx->data); \
@@ -139,7 +197,7 @@ static void n3ds_net_execute(net_ctx* ctx, bool ignore_lock)
 #endif
         redirecting = false;
 
-        status_code = n3ds_net_setup_context(&ctx->httpc, ctx->url);
+        status_code = n3ds_net_setup_context(ctx);
         if(status_code < 0)
         {
             break;
@@ -175,9 +233,11 @@ static void n3ds_net_execute(net_ctx* ctx, bool ignore_lock)
 
     NET_EXEC_ERROR_CHECK;
 
+    ctx->status = status_code;
+
     u32 state = HTTPC_RESULTCODE_DOWNLOADPENDING;
     u32 read_size = 0;
-    while(state == HTTPC_RESULTCODE_DOWNLOADPENDING)
+    while(state == HTTPC_RESULTCODE_DOWNLOADPENDING && !ctx->net->closing)
     {
         s32 old_size = ctx->size;
         if(!ctx_resize_buf(ctx, ctx->size + NET_PAGE_SIZE))
@@ -191,11 +251,11 @@ static void n3ds_net_execute(net_ctx* ctx, bool ignore_lock)
         if(state == HTTPC_RESULTCODE_DOWNLOADPENDING || state == 0)
         {
             ctx_resize_buf(ctx, old_size + (s32)read_size);
-            if(ctx->callback != NULL)
+            if(ctx->callback != NULL && !ctx->net->closing)
             {
                 if(ignore_lock || !LightLock_TryLock(&ctx->net->tick_lock))
                 {
-                    ctx->data.type = net_get_progress;
+                    ctx->data.type = net_request_progress;
                     u32 size = 0, total = 0;
                     if(!httpcGetDownloadSizeState(&ctx->httpc, &size, &total))
                     {
@@ -218,15 +278,16 @@ static void n3ds_net_execute(net_ctx* ctx, bool ignore_lock)
     printf("downloaded: %d bytes\n", ctx->size);
 #endif
 
-    if(status_code == 200 && state != 0)
+    if(state != 0)
     {
         status_code = -6;
     }
     NET_EXEC_ERROR_CHECK;
 
-    if(ctx->callback != NULL)
+    if(ctx->callback != NULL && !ctx->net->closing)
     {
-        ctx->data.type = net_get_done;
+        ctx->data.type = net_request_done;
+        ctx->data.done.status = ctx->status;
         ctx->data.done.data = ctx->buffer;
         ctx->data.done.size = ctx->size;
         if(!ignore_lock) LightLock_Lock(&ctx->net->tick_lock);
@@ -284,24 +345,54 @@ tic_net* tic_net_create(const char* host)
     return net;
 }
 
-void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
 {
     net_ctx ctx =
         {
             .net = net,
             .callback = callback,
             .data = {.calldata = calldata},
+            .method = method,
+            .headers = headers,
+            .headersCount = headersCount,
+            .body = body,
+            .bodySize = bodySize,
         };
 
     n3ds_net_apply_url(&ctx, url);
 
     s32 priority;
     svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
-    threadCreate((ThreadFunc)n3ds_net_get_thread, MOVE(ctx), 16 * 1024, priority - 1, -1, true);
+    Thread thread = threadCreate((ThreadFunc)n3ds_net_get_thread, MOVE(ctx), 16 * 1024, priority - 1, -1, false);
+
+    if(!thread)
+        return;
+
+    if(net->threadCount >= (s32)COUNT_OF(net->threads))
+    {
+        // More requests than the table holds: wait for the oldest batch, then
+        // reuse the slots.
+        for(s32 i = 0; i < net->threadCount; i++)
+            threadJoin(net->threads[i], U64_MAX);
+
+        net->threadCount = 0;
+    }
+
+    net->threads[net->threadCount++] = thread;
 }
 
 void tic_net_close(tic_net* net)
 {
+    // The workers leave on the closing flag at the next page read (or the
+    // httpc timeout); joining them is what makes the net and the callbacks
+    // they would call safe to free.
+    net->closing = true;
+
+    for(s32 i = 0; i < net->threadCount; i++)
+        threadJoin(net->threads[i], U64_MAX);
+
+    net->threadCount = 0;
+
     n3ds_net_free(net);
     free(net);
 }

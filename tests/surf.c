@@ -108,9 +108,10 @@ static void fakeOpenItemPage(void* host, s32 token)
 
 // The fake filesystem's answers: two folders and a cart at the root, three
 // carts with the mount's tokens on the site, one folder that fails to list.
-static const char* RootNames[] = {TIC_HOST, "zzz", "bad", "local.tic"};
-static const bool RootDirs[] = {true, true, true, false};
-static const s32 RootTokens[] = {0, 0, 0, 0};
+static const char* RootNames[] = {TIC_HOST, "zzz", "bad", "local.tic", "shelf"};
+static const char* RootTitles[] = {NULL, NULL, NULL, NULL, NULL};
+static const bool RootDirs[] = {true, true, true, false, true};
+static const s32 RootTokens[] = {0, 0, 0, 0, 0};
 
 static const char* SiteNames[] = {"demo.tic", "b.tic", "c.tic"};
 static const char* SiteTitles[] = {"Demo.tic", "B.tic", "C.tic"};
@@ -137,7 +138,13 @@ static void fakeList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_li
     tic_fs_dir(fs, dir);
 
     if(strcmp(dir, "") == 0)
-        fakeEmit(RootNames, NULL, RootDirs, RootTokens, COUNT_OF(RootNames), onItem, data);
+        fakeEmit(RootNames, RootTitles, RootDirs, RootTokens, COUNT_OF(RootNames), onItem, data);
+    else if(strcmp(dir, "shelf") == 0)
+    {
+        static const char* ShelfNames[] = {"shelf-cart.tic"};
+        static const bool ShelfDirs[] = {false};
+        fakeEmit(ShelfNames, NULL, ShelfDirs, NULL, COUNT_OF(ShelfNames), onItem, data);
+    }
     else if(strcmp(dir, TIC_HOST) == 0)
         fakeEmit(SiteNames, SiteTitles, SiteDirs, SiteTokens, COUNT_OF(SiteNames), onItem, data);
     else if(strcmp(dir, "bad") == 0)
@@ -257,6 +264,21 @@ static const fs_mount_ops FakeMount = {
 
 // The screen must never reach the net for a cart or a cover: the fake mount
 // answers everything, so a request here is the screen's bug.
+void tic_net_request(tic_net* net, net_method method, const char* url, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
+{
+    (void)net;
+    (void)method;
+    (void)url;
+    (void)headers;
+    (void)headersCount;
+    (void)body;
+    (void)bodySize;
+    (void)callback;
+    (void)calldata;
+
+    assert(false);
+}
+
 void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
 {
     (void)net;
@@ -402,7 +424,8 @@ enum
     RootSubIndex = 1,
     RootBadIndex = 2,
     RootCartIndex = 3,
-    RootCount = 4,
+    RootShelfIndex = 4,
+    RootCount = 5,
 };
 
 // The screen's cover retry, five seconds: see COVER_RETRY_TICKS in surf.c.
@@ -645,6 +668,41 @@ static void testCoverCap(void)
     puts("cover cap ok");
 }
 
+// The shelf is a folder at the root like the site's, titled [shelf]; its carts
+// are keys, and a selection plays through the same host load.
+static void testShelfFolder(void)
+{
+    setup();
+
+    assert(strcmp(Screen->menu.items[RootShelfIndex].name, "shelf") == 0);
+    assert(Screen->menu.items[RootShelfIndex].dir);
+    assert(strcmp(Screen->menu.items[RootShelfIndex].label, "[shelf]") == 0);
+
+    moveTo(RootShelfIndex);
+    press(tic_key_return);
+    settle();
+
+    assert(strcmp(dirName(), "shelf") == 0);
+    assert(Screen->menu.count == 2);
+    assert(strcmp(Screen->menu.items[1].name, "shelf-cart.tic") == 0);
+    assert(strcmp(Screen->menu.items[1].label, "shelf-cart") == 0);
+
+    press(tic_key_down);
+    settle();
+    press(tic_key_return);
+    settle();
+
+    assert(LoadCartCalls == 1);
+    assert(strcmp(LoadedName, "shelf-cart.tic") == 0);
+    assert(RunCalls == 0);
+
+    LoadDone((fs_result){FS_OK, NULL}, LoadDoneData);
+    assert(RunCalls == 1);
+
+    teardown();
+    puts("shelf folder ok");
+}
+
 static void testLocalCart(void)
 {
     setup();
@@ -766,6 +824,7 @@ int main(void)
     testFailedLoad();
     testFailedListing();
     testCoverCap();
+    testShelfFolder();
     testLocalCart();
     testConfirm();
     testSubfolder();

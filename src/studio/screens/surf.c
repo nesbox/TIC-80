@@ -229,7 +229,7 @@ static bool addMenuItem(const fs_item* entry, void* ptr)
         if(entry->dir)
         {
             char folder[TICNAME_MAX];
-            sprintf(folder, "[%s]", name);
+            sprintf(folder, "[%s]", entry->title ? entry->title : name);
             item->label = strdup(folder);
         }
         else
@@ -737,6 +737,23 @@ static inline bool isIdle(Surf* surf)
     return surf->anim.movie == &surf->anim.idle;
 }
 
+// The message sits on the yellow playfield: a dark outline keeps the red
+// glyphs apart from it.
+static void drawMessage(Surf* surf)
+{
+    tic_mem* tic = surf->tic;
+    s32 size = tic_api_print(tic, surf->message, 0, -TIC_FONT_HEIGHT, tic_color_red, true, 1, false);
+    s32 x = (TIC80_WIDTH - size) / 2;
+    s32 y = TIC80_HEIGHT - 2 * MENU_HEIGHT - TIC_FONT_HEIGHT;
+
+    static const s8 Outline[][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+    for(s32 i = 0; i < COUNT_OF(Outline); i++)
+        tic_api_print(tic, surf->message, x + Outline[i][0], y + Outline[i][1], tic_color_black, true, 1, false);
+
+    tic_api_print(tic, surf->message, x, y, tic_color_red, true, 1, false);
+}
+
 static void tick(Surf* surf)
 {
     processAnim(surf->anim.movie, surf);
@@ -795,11 +812,7 @@ static void tick(Surf* surf)
         drawBottomToolbar(surf, 0, TIC80_HEIGHT - surf->anim.val.bottomBarY);
 
         if(surf->message[0])
-        {
-            s32 size = tic_api_print(tic, surf->message, 0, -TIC_FONT_HEIGHT, tic_color_red, true, 1, false);
-            tic_api_print(tic, surf->message, (TIC80_WIDTH - size) / 2,
-                          TIC80_HEIGHT - 2 * MENU_HEIGHT - TIC_FONT_HEIGHT, tic_color_red, true, 1, false);
-        }
+            drawMessage(surf);
     }
 }
 

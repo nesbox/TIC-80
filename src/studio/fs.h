@@ -71,6 +71,9 @@ typedef struct
     s64 max_bytes;
 } fs_usage;
 
+// A byte count the member reads: bytes below 1 KB, then KB, MB or GB.
+const char* tic_fs_size_text(s64 bytes, char* out, s32 size);
+
 typedef bool (*fs_list_item_cb)(const fs_item* item, void* data);
 typedef void (*fs_list_done_cb)(const fs_usage* usage, fs_result result, void* data);
 typedef void (*fs_load_done_cb)(const char* name, const u8* bytes, s32 size, fs_result result, void* data);
@@ -89,6 +92,26 @@ void tic_fs_openfolder(tic_fs* fs, const char* path, fs_done_cb onDone, void* da
 void tic_fs_cover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data);
 
 tic_fs* tic_fs_create(const char* path, struct tic_net* net);
+
+// The shelf is the account's remote mount, always listed at the root.
+#define TIC_SHELF_DIR "shelf"
+
+// The remote mounts' inputs: the account, injected so a test can drive a
+// remote mount with no studio, no socket and no account. A NULL signed_in is
+// signed out.
+typedef struct
+{
+    bool (*signed_in)(void* data);
+    const char* (*token)(void* data);
+    // A 401 from the shelf carries the token that request used: the account
+    // clears its token only when it is still the current one, so an answer to
+    // an old request cannot sign out a newer session.
+    void (*unauthorized)(void* data, const char* token);
+    void* data;
+} tic_fs_remote;
+
+void tic_fs_set_remote(tic_fs* fs, const tic_fs_remote* remote);
+bool tic_fs_signedin(tic_fs* fs);
 
 // App storage: config, options, cache, persistent data and the token; local and sync.
 const char* tic_fs_path(tic_fs* fs, const char* name);

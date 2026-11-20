@@ -44,6 +44,14 @@ if(BUILD_EDITORS OR BUILD_SURF)
     set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
         ${TIC80LIB_DIR}/studio/net.c
     )
+
+    # The account is a native-build feature: the web IDE's own change decides
+    # between the pairing and the site session, so the wasm build carries none.
+    if(NOT EMSCRIPTEN)
+        set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
+            ${TIC80LIB_DIR}/studio/account.c
+        )
+    endif()
 endif()
 
 if(BUILD_SURF)
