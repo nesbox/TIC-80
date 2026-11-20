@@ -2189,6 +2189,22 @@ static void testShelfList(void)
     }
 
     {
+        // A mount with no token sends no Authorization header: the web IDE's
+        // site session is the authentication.
+        shelf.account.token[0] = '\0';
+
+        Answer list = {0};
+        tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
+        assert(Held.held);
+        assert(Held.authorization[0] == '\0');
+
+        answerRequest(200, "{\"carts\":[],\"count\":0,\"bytes\":0,\"max_count\":100,\"max_bytes\":33554432}");
+        assert(list.result.code == FS_OK);
+
+        snprintf(shelf.account.token, sizeof shelf.account.token, "tok123");
+    }
+
+    {
         // A 401 ends the session the request was sent with.
         Answer list = {0};
         tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
@@ -2422,107 +2438,50 @@ static void testShelfCover(void)
     shelfSetup(&shelf, true);
     tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
 
-    u8* buffer = malloc(TIC_CART_SAVE_SIZE);
-    assert(buffer);
-    s32 size = coverCartBytes(buffer);
+    static const u8 Gif[] = "GIF89a the server drew this";
 
     {
+        // One small GET to the server's cover route, no cart download.
         Answer cover = {0};
         tic_fs_cover(shelf.fs, "my-game.tic", onCover, &cover);
 
         assert(Held.held);
         assert(Held.method == net_method_get);
-        assert(strcmp(Held.url, "/api/v1/client/shelf/my-game/cart.tic") == 0);
+        assert(strcmp(Held.url, "/api/v1/client/shelf/my-game/cover.gif") == 0);
+        assert(strcmp(Held.authorization, "Bearer tok123") == 0);
 
-        answerRequestBytes(200, buffer, size);
+        answerRequestBytes(200, Gif, sizeof Gif - 1);
         assert(cover.result.code == FS_OK);
-        assert(cover.size > 0);
-
-        gif_image* image = gif_read_data(CoverBytes, cover.size);
-        assert(image);
-        assert(image->width == TIC80_WIDTH);
-        assert(image->height == TIC80_HEIGHT);
-
-        for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-            assert(image->buffer[i] == coverPixel(i));
-
-        gif_close(image);
+        assert(cover.size == (s32)sizeof Gif - 1);
+        assert(memcmp(CoverBytes, Gif, sizeof Gif - 1) == 0);
     }
 
     {
-        // A cart whose screen is empty has no cover.
-        static tic_cartridge empty;
-        memset(&empty, 0, sizeof empty);
-
-        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
-            empty.bank0.palette.vbank0.colors[i] = (tic_rgb){i * 16, 255 - i * 16, i * 8};
-
-        s32 emptySize = tic_cart_save(&empty, buffer);
-        assert(emptySize > 0);
-
+        // A 401 ends the session the request was sent with.
         Answer cover = {0};
-        tic_fs_cover(shelf.fs, "empty.tic", onCover, &cover);
+        tic_fs_cover(shelf.fs, "my-game.tic", onCover, &cover);
+        answerRequest(401, "{\"error\":\"token revoked\"}");
 
-        assert(Held.held);
-        answerRequestBytes(200, buffer, emptySize);
-        assert(cover.result.code == FS_NOT_FOUND);
-    }
-
-    {
-        // A 200 with no body is no cover either.
-        Answer cover = {0};
-        tic_fs_cover(shelf.fs, "blank.tic", onCover, &cover);
-
-        assert(Held.held);
-        answerRequestBytes(200, NULL, 0);
-        assert(cover.result.code == FS_NOT_FOUND);
+        assert(cover.result.code == FS_SESSION);
+        assert(shelf.account.unauthorizedCalls == 1);
+        assert(strcmp(shelf.account.unauthorizedToken, "tok123") == 0);
     }
 
     {
         // The server's own refusal passes through.
         Answer cover = {0};
         tic_fs_cover(shelf.fs, "gone.tic", onCover, &cover);
-
-        assert(Held.held);
         answerRequest(404, "{\"error\":\"no such cart\"}");
+
         assert(cover.result.code == FS_NOT_FOUND);
         assert(strcmp(cover.message, "no such cart") == 0);
     }
 
     {
-        // A foreign body must not reach the parser as a cart.
-        static const u8 Foreign[] = "{\"error\":\"a proxy answered\"}";
+        // A 200 with no body is no cover.
         Answer cover = {0};
-        tic_fs_cover(shelf.fs, "foreign.tic", onCover, &cover);
-
-        assert(Held.held);
-        answerRequestBytes(200, Foreign, sizeof Foreign - 1);
-        assert(cover.result.code == FS_NOT_FOUND);
-    }
-
-    {
-        // A chunk claiming more than the body holds is cut at the body's end,
-        // and a binary chunk in a bank the cart lacks is skipped.
-        static const u8 Oversized[] = {2, 0xff, 0xff, 0};        // sprites, 64K claimed
-        static const u8 BinaryBank[] = {19 | (7 << 5), 0, 0, 0}; // binary, bank 7 of 4
-        static const u8 Tiny[] = {0x54};                         // shorter than a header
-
-        Answer cover = {0};
-        tic_fs_cover(shelf.fs, "oversized.tic", onCover, &cover);
-        assert(Held.held);
-        answerRequestBytes(200, Oversized, sizeof Oversized);
-        assert(cover.result.code == FS_NOT_FOUND);
-
-        cover = (Answer){0};
-        tic_fs_cover(shelf.fs, "binary.tic", onCover, &cover);
-        assert(Held.held);
-        answerRequestBytes(200, BinaryBank, sizeof BinaryBank);
-        assert(cover.result.code == FS_NOT_FOUND);
-
-        cover = (Answer){0};
-        tic_fs_cover(shelf.fs, "tiny.tic", onCover, &cover);
-        assert(Held.held);
-        answerRequestBytes(200, Tiny, sizeof Tiny);
+        tic_fs_cover(shelf.fs, "blank.tic", onCover, &cover);
+        answerRequestBytes(200, NULL, 0);
         assert(cover.result.code == FS_NOT_FOUND);
     }
 
@@ -2536,7 +2495,6 @@ static void testShelfCover(void)
         assert(!Held.held);
     }
 
-    free(buffer);
     shelfTeardown(&shelf);
     puts("shelf cover ok");
 }

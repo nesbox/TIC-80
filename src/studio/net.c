@@ -51,24 +51,54 @@
 // every other request of the studio queues behind it.
 #define FETCH_TIMEOUT_MSEC 15000
 
-// Only the small requests of the studio — the listings and the covers — carry
-// that deadline. A cartridge is what the user waits for and can be megabytes,
-// and the deadline is a total one, so a slow download must be left alone.
-static bool isShortRequest(const char* path)
+// Only the small requests of the studio — the listings, the covers and the
+// pairing — carry that deadline. A cartridge is what the user waits for and
+// can be megabytes, and the deadline is a total one, so a slow download and
+// an upload must be left alone.
+static bool isShortRequest(net_method method, const char* path)
 {
-    return strncmp(path, "/json", 5) == 0 || strstr(path, "cover.gif") != NULL;
+    if(strncmp(path, "/json", 5) == 0 || strstr(path, "cover.gif") != NULL)
+        return true;
+
+    static const char ShelfApi[] = "/api/v1/client/shelf";
+    static const char DeviceApi[] = "/api/v1/client/device";
+    const s32 shelfLen = (s32)sizeof ShelfApi - 1;
+    const s32 deviceLen = (s32)sizeof DeviceApi - 1;
+
+    // The listing and the delete; a shelf cart's GET and PUT are the large ones.
+    if(method == net_method_get && strncmp(path, ShelfApi, shelfLen) == 0)
+        return path[shelfLen] == '\0';
+
+    if(method == net_method_delete && strncmp(path, ShelfApi, shelfLen) == 0 && path[shelfLen] == '/')
+        return true;
+
+    // The pairing start and its poll.
+    if(method == net_method_post && strncmp(path, DeviceApi, deviceLen) == 0 && path[deviceLen] == '\0')
+        return true;
+
+    if(method == net_method_get && strncmp(path, DeviceApi, deviceLen) == 0 && path[deviceLen] == '/')
+        return true;
+
+    return false;
 }
 
 typedef struct
 {
     net_request_callback callback;
     void* calldata;
+    const char** headers; // the fetch's key/value pairs, live until the answer
 } FetchData;
 
 struct tic_net
 {
     emscripten_fetch_attr_t attr;
 };
+
+static void freeFetchData(FetchData* data)
+{
+    free((void*)data->headers);
+    free(data);
+}
 
 static void downloadSucceeded(emscripten_fetch_t* fetch)
 {
@@ -92,7 +122,7 @@ static void downloadSucceeded(emscripten_fetch_t* fetch)
     // The body lives with the fetch and emscripten_fetch_close() frees it:
     // freeing it here as well was a double free on every answered request,
     // which is what a release dlmalloc eats in silence.
-    free(data);
+    freeFetchData(data);
 
     emscripten_fetch_close(fetch);
 }
@@ -124,7 +154,7 @@ static void downloadFailed(emscripten_fetch_t* fetch)
 
     data->callback(&requestData);
 
-    free(data);
+    freeFetchData(data);
 
     emscripten_fetch_close(fetch);
 }
@@ -148,16 +178,30 @@ static void downloadProgress(emscripten_fetch_t* fetch)
     data->callback(&requestData);
 }
 
-// The browser build carries the primitive's GET half: the web IDE's own change
-// decides the rest, so every other method answers an error here.
+static const char* methodName(net_method method)
+{
+    switch(method)
+    {
+        case net_method_post:
+            return "POST";
+        case net_method_put:
+            return "PUT";
+        case net_method_delete:
+            return "DELETE";
+        default:
+            return "GET";
+    }
+}
+
+// The primitive's method, header and body half over the browser: the cookie
+// session of a same-origin site rides along with withCredentials, the header
+// array is key/value pairs as emscripten_fetch wants them, and the body is the
+// caller's bytes, which it keeps until the answer.
 void tic_net_request(tic_net* net, net_method method, const char* path, const net_header* headers, s32 headersCount, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
 {
-    (void)headers;
-    (void)headersCount;
-    (void)body;
-    (void)bodySize;
+    FetchData* data = calloc(1, sizeof(FetchData));
 
-    if(method != net_method_get)
+    if(!data)
     {
         net_request_data requestData =
             {
@@ -171,18 +215,54 @@ void tic_net_request(tic_net* net, net_method method, const char* path, const ne
         return;
     }
 
-    FetchData* data = calloc(1, sizeof(FetchData));
-    *data = (FetchData){
-        .callback = callback,
-        .calldata = calldata,
-    };
+    data->callback = callback;
+    data->calldata = calldata;
 
-    net->attr.userData = data;
-    net->attr.timeoutMSecs = isShortRequest(path) ? FETCH_TIMEOUT_MSEC : 0;
+    if(headersCount > 0)
+    {
+        data->headers = calloc((size_t)headersCount * 2 + 1, sizeof(char*));
+
+        if(!data->headers)
+        {
+            net_request_data requestData =
+                {
+                    .type = net_request_error,
+                    .error = {.code = -1},
+                    .calldata = calldata,
+                    .url = path,
+                };
+
+            callback(&requestData);
+            freeFetchData(data);
+            return;
+        }
+
+        for(s32 i = 0; i < headersCount; i++)
+        {
+            data->headers[i * 2] = headers[i].name;
+            data->headers[i * 2 + 1] = headers[i].value;
+        }
+    }
+
+    // The fetch copies the attr when it starts, so the shared one is safe:
+    // concurrent requests keep their own method, headers, body and userData.
+    emscripten_fetch_attr_t* attr = &net->attr;
+    emscripten_fetch_attr_init(attr);
+    strcpy(attr->requestMethod, methodName(method));
+    attr->attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    attr->onsuccess = downloadSucceeded;
+    attr->onerror = downloadFailed;
+    attr->onprogress = downloadProgress;
+    attr->withCredentials = 1;
+    attr->userData = data;
+    attr->requestHeaders = data->headers;
+    attr->requestData = body;
+    attr->requestDataSize = bodySize;
+    attr->timeoutMSecs = isShortRequest(method, path) ? FETCH_TIMEOUT_MSEC : 0;
 
     // A fetch that could not even start answers like a failed one, so no
     // caller is left waiting on a callback that will never come.
-    if(!emscripten_fetch(&net->attr, path))
+    if(!emscripten_fetch(attr, path))
     {
         net_request_data requestData =
             {
@@ -193,7 +273,7 @@ void tic_net_request(tic_net* net, net_method method, const char* path, const ne
             };
 
         callback(&requestData);
-        free(data);
+        freeFetchData(data);
     }
 }
 
@@ -209,14 +289,7 @@ void tic_net_end(tic_net* net)
 tic_net* tic_net_create(const char* host)
 {
     (void)host;
-    tic_net* net = (tic_net*)malloc(sizeof(tic_net));
-
-    emscripten_fetch_attr_init(&net->attr);
-    strcpy(net->attr.requestMethod, "GET");
-    net->attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
-    net->attr.onsuccess = downloadSucceeded;
-    net->attr.onerror = downloadFailed;
-    net->attr.onprogress = downloadProgress;
+    tic_net* net = (tic_net*)calloc(1, sizeof(tic_net));
 
     return net;
 }

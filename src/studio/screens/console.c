@@ -767,7 +767,11 @@ static void printFsError(Console* console, fs_result result)
     printError(console, "\n");
 
     if(result.code == FS_SESSION)
+#if defined(__EMSCRIPTEN__)
+        printError(console, "sign in on tic80.com");
+#else
         printError(console, "the session ended, please sign in");
+#endif
     else
         printError(console, result.message ? result.message : "the operation failed");
 
@@ -3578,7 +3582,25 @@ static const char HelpUsage[] = "help [<text>"
         NULL)
 // clang-format on
 #else
-#define ACCOUNT_CMDS(macro)
+// The web IDE signs in through the site: `login` opens the site's page, and
+// the site's nav owns sign-out.
+static void onWebLoginCommand(Console* console)
+{
+    tic_sys_open_url("/signin");
+    printBack(console, "\nsign in on tic80.com\n");
+    commandDone(console);
+}
+
+// clang-format off
+#define ACCOUNT_CMDS(macro)                                                             \
+    macro("login",                                                                      \
+        NULL,                                                                           \
+        "Sign in to tic80.com: open the site's sign-in page.",                          \
+        NULL,                                                                           \
+        onWebLoginCommand,                                                              \
+        NULL,                                                                           \
+        NULL)
+// clang-format on
 #endif
 
 // clang-format off

@@ -120,6 +120,22 @@ static MapView mapFrame(Studio* studio);
 #define TIC_EDITOR_BANKS 1
 #endif
 
+#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && defined(__EMSCRIPTEN__)
+// The web IDE has no token: the site's session is the shelf's identity, so
+// every request is attempted and a 401 is the sign-in hint.
+static bool webSignedIn(void* data)
+{
+    (void)data;
+    return true;
+}
+
+static const char* webToken(void* data)
+{
+    (void)data;
+    return "";
+}
+#endif
+
 typedef struct
 {
     u8 data[MD5_HASHSIZE];
@@ -3739,6 +3755,11 @@ Studio* studio_create(s32 argc, char** argv, s32 samplerate, tic80_pixel_color_f
 
 #if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(__EMSCRIPTEN__)
     studio->account = tic_account_create(studio->fs, studio->net);
+#elif (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && defined(__EMSCRIPTEN__)
+    tic_fs_set_remote(studio->fs, &(tic_fs_remote){
+                                      .signed_in = webSignedIn,
+                                      .token = webToken,
+                                  });
 #endif
 
     {
