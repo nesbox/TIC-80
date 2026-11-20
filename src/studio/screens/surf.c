@@ -323,27 +323,53 @@ static void updateMenuItemCover(Surf* surf, s32 pos, const u8* cover, s32 size)
 
     gif_image* image = gif_read_data(cover, size);
 
-    if(image)
+    if(!image)
+        return;
+
+    // A cover that is not a 240x136 palette image is not a cover.
+    if(image->width != TIC80_WIDTH || image->height != TIC80_HEIGHT || image->colors > TIC_PALETTE_SIZE)
     {
-        // zeroed: the cover is poked a nibble at a time, and a poke reads the
-        // byte around the nibble it writes
-        item->cover = calloc(1, sizeof(tic_screen));
-        item->palette = malloc(sizeof(tic_palette));
-
-        if(image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT && image->colors <= TIC_PALETTE_SIZE)
-        {
-            memcpy(item->palette, image->palette, image->colors * sizeof(tic_rgb));
-
-            for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-                tic_tool_poke4(item->cover->data, i, image->buffer[i]);
-        }
-        else
-        {
-            memset(item->cover, 0, sizeof(tic_screen));
-            memset(item->palette, 0, sizeof(tic_palette));
-        }
-
         gif_close(image);
+        return;
+    }
+
+    // zeroed: the cover is poked a nibble at a time, and a poke reads the
+    // byte around the nibble it writes
+    item->cover = calloc(1, sizeof(tic_screen));
+    item->palette = malloc(sizeof(tic_palette));
+
+    if(!item->cover || !item->palette)
+    {
+        FREE(item->cover);
+        FREE(item->palette);
+        item->cover = NULL;
+        item->palette = NULL;
+        gif_close(image);
+        return;
+    }
+
+    memcpy(item->palette, image->palette, image->colors * sizeof(tic_rgb));
+
+    // The server draws a blank frame for a cart with no screen: leave the
+    // background there rather than a black cover.
+    bool blank = true;
+
+    for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
+    {
+        if(image->buffer[i])
+            blank = false;
+
+        tic_tool_poke4(item->cover->data, i, image->buffer[i]);
+    }
+
+    gif_close(image);
+
+    if(blank)
+    {
+        free(item->cover);
+        free(item->palette);
+        item->cover = NULL;
+        item->palette = NULL;
     }
 }
 

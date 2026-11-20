@@ -78,10 +78,10 @@
 
 static const char* PublicDir = TIC_HOST;
 
-// The shelf mount is a native-build feature: the web IDE's own change decides
-// between the pairing and the site session, so it carries none of this, and a
-// bare-metal build has no transport to mount.
-#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(__EMSCRIPTEN__) && !defined(BAREMETALPI)
+// The shelf mount is a native-build and tic80.com-web-IDE feature: the web
+// build authenticates with the site's session, the editorless export and the
+// bare-metal build have no shelf. The web IDE's change owns its auth.
+#if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(BAREMETALPI)
 #define TIC_SHELF_MOUNT
 #endif
 
@@ -1763,10 +1763,21 @@ static void shelfRequest(tic_fs* fs, net_method method, const char* path, const 
 
     const char* token = fs->remote.token ? fs->remote.token(fs->remote.data) : "";
     snprintf(call->token, sizeof call->token, "%s", token ? token : "");
-    snprintf(call->authorization, sizeof call->authorization, "Bearer %s", call->token);
-    call->header = (net_header){"Authorization", call->authorization};
 
-    tic_net_request(fs->net, method, path, &call->header, 1, body, bodySize, shelfAnswer, call);
+    // A mount with no token — the web IDE's site session — sends no header:
+    // an empty bearer authenticates nothing and would hide the cookie.
+    s32 headersCount = 0;
+    net_header* headers = NULL;
+
+    if(call->token[0])
+    {
+        snprintf(call->authorization, sizeof call->authorization, "Bearer %s", call->token);
+        call->header = (net_header){"Authorization", call->authorization};
+        headers = &call->header;
+        headersCount = 1;
+    }
+
+    tic_net_request(fs->net, method, path, headers, headersCount, body, bodySize, shelfAnswer, call);
 }
 
 static s32 shelfStatus(const net_request_data* answer)
@@ -1794,7 +1805,12 @@ static fs_result shelfFailure(s32 status, const char* message)
 {
     switch(status)
     {
-        case 401: return (fs_result){FS_SESSION, "the session ended, use `login`"};
+        case 401:
+#if defined(__EMSCRIPTEN__)
+            return (fs_result){FS_SESSION, "sign in on tic80.com"};
+#else
+            return (fs_result){FS_SESSION, "the session ended, use `login`"};
+#endif
         case 404: return (fs_result){FS_NOT_FOUND, message ? message : "no such cart"};
         case 409:
         case 413: return (fs_result){FS_QUOTA, message ? message : "the shelf is full"};
@@ -2224,52 +2240,45 @@ typedef struct
     void* data;
 } ShelfCover;
 
-// The shelf stores no cover of its own: the cart's bytes carry its screen, and
-// the cover is drawn from them as the local mount draws it.
-static void onShelfCoverCart(const char* name, const u8* bytes, s32 size, fs_result result, void* data)
+// The server draws the cover from the cart it stores: one small GET, no cart
+// download and no cart parsing here.
+static void onShelfCover(const net_request_data* answer)
 {
-    (void)name;
+    if(answer->type == net_request_progress)
+        return;
 
-    ShelfCover* cover = data;
+    ShelfCover* cover = answer->calldata;
+    s32 status = shelfStatus(answer);
+    char error[256] = {0};
+    const char* message = shelfMessage(answer, error, sizeof error);
 
-    if(result.code == FS_OK)
+    if(status == 200)
     {
-        if(bytes)
-        {
-            tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
-
-            if(cart)
-            {
-                tic_cart_load(cart, bytes, size);
-
-                if(!EMPTY(cart->bank0.screen.data) && !EMPTY(cart->bank0.palette.vbank0.data))
-                {
-                    s32 gifSize = 0;
-                    u8* gif = gifCover(cart->bank0.screen.data, cart->bank0.palette.vbank0.colors, &gifSize);
-
-                    if(gif)
-                    {
-                        cover->onDone(gif, gifSize, (fs_result){FS_OK, NULL}, cover->data);
-                        free(gif);
-                        free(cart);
-                        free(cover);
-                        return;
-                    }
-                }
-
-                free(cart);
-            }
-        }
-
-        result = localError(FS_NOT_FOUND);
+        if(answer->done.data && answer->done.size > 0)
+            cover->onDone(answer->done.data, answer->done.size, (fs_result){FS_OK, NULL}, cover->data);
+        else
+            cover->onDone(NULL, 0, (fs_result){FS_NOT_FOUND, "no cover"}, cover->data);
     }
+    else
+        cover->onDone(NULL, 0, shelfFailure(status, message), cover->data);
 
-    cover->onDone(NULL, 0, result, cover->data);
     free(cover);
 }
 
 static void shelfCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
 {
+    if(!shelfSignedIn(fs))
+    {
+        onDone(NULL, 0, ShelfRefused, data);
+        return;
+    }
+
+    char key[TICNAME_MAX];
+    shelfStem(path, key, sizeof key);
+
+    char url[TICNAME_MAX * 2];
+    shelfPath(url, sizeof url, key, "/cover.gif");
+
     ShelfCover* cover = calloc(1, sizeof(ShelfCover));
 
     if(!cover)
@@ -2281,7 +2290,7 @@ static void shelfCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, vo
     cover->onDone = onDone;
     cover->data = data;
 
-    shelfLoad(fs, path, onShelfCoverCart, cover);
+    shelfRequest(fs, net_method_get, url, NULL, 0, onShelfCover, cover);
 }
 
 static const fs_mount_ops ShelfOps = {
