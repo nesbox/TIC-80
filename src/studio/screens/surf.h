@@ -81,6 +81,7 @@ struct Surf
     bool init;
     bool loading;
     bool likePending;
+    bool messageGreen; // the message is good news; an error is red
     bool messageShown; // the message popup is on screen
     s32 messageTicks;  // the popup's frame, from its slide-in to its slide-out
     s32 ticks;

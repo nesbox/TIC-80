@@ -166,7 +166,7 @@ static void hideMessage(Surf* surf)
     surf->anim.val.messageY = -POPUP_HEIGHT;
 }
 
-static void showMessage(Surf* surf, const char* text)
+static void showMessage(Surf* surf, bool green, const char* text)
 {
     memset(surf->message, 0, sizeof surf->message);
     snprintf(surf->message, sizeof surf->message, "%s", text);
@@ -174,6 +174,7 @@ static void showMessage(Surf* surf, const char* text)
     for(char* c = surf->message; *c; c++)
         *c = (char)toupper((u8)*c);
 
+    surf->messageGreen = green;
     surf->messageShown = true;
     surf->messageTicks = 0;
     surf->anim.val.messageY = -POPUP_HEIGHT;
@@ -338,7 +339,7 @@ static void addMenuItemsDone(const fs_usage* usage, fs_result result, void* data
         surf->loading = false;
 
         if(result.code != FS_OK)
-            showMessage(surf, result.message ? result.message : "could not list the folder");
+            showMessage(surf, false, result.message ? result.message : "could not list the folder");
         else
             hideMessage(surf);
     }
@@ -642,7 +643,7 @@ static void onCartLoaded(fs_result result, void* data)
 
     if(result.code != FS_OK)
     {
-        showMessage(surf, result.message ? result.message : "cart not loaded");
+        showMessage(surf, false, result.message ? result.message : "cart not loaded");
 
         // The play movie is over without a cart: the browser comes back.
         surf->anim.movie = resetMovie(&surf->anim.show);
@@ -673,10 +674,10 @@ static void onCartLiked(bool created, s32 rating, fs_result result, void* data)
         else
             snprintf(text, sizeof text, "already liked");
 
-        showMessage(surf, text);
+        showMessage(surf, true, text);
     }
     else
-        showMessage(surf, result.message ? result.message : "the like did not go through");
+        showMessage(surf, false, result.message ? result.message : "the like did not go through");
 }
 
 static void likeCart(Surf* surf)
@@ -849,13 +850,14 @@ static inline bool isIdle(Surf* surf)
     return surf->anim.movie == &surf->anim.idle;
 }
 
-// The classic popup: a red bar with the white uppercase message, like the studio's.
+// The classic popup: a green bar for a message, a red one for an error.
 static void drawMessage(Surf* surf)
 {
     tic_mem* tic = surf->tic;
     s32 y = surf->anim.val.messageY;
+    u8 bg = surf->messageGreen ? tic_color_green : tic_color_red;
 
-    tic_api_rect(tic, 0, y, TIC80_WIDTH, POPUP_HEIGHT, tic_color_red);
+    tic_api_rect(tic, 0, y, TIC80_WIDTH, POPUP_HEIGHT, bg);
     tic_api_print(tic, surf->message,
                   (TIC80_WIDTH - (s32)strlen(surf->message) * TIC_FONT_WIDTH) / 2,
                   y + 1, tic_color_white, true, 1, false);
