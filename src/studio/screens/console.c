@@ -1686,7 +1686,8 @@ static void onDirDone(const fs_usage* usage, fs_result result, void* ctx)
         free((void*)item->name);
     }
 
-    if(data->count == 0)
+    // The demo writes the working directory's files directly: only a local folder takes it.
+    if(data->count == 0 && fs_isdir(tic_fs_path(console->fs, "")))
     {
         printBack(console, "\n\nuse ");
         printFront(console, "DEMO");

@@ -1662,6 +1662,44 @@ static void testShelfLogout(void)
 }
 
 // The listing shows the keys with the cart extension and the server's usage.
+// The demo hint belongs to a local folder; the shelf does not take the command.
+static void testDemoHint(void)
+{
+    {
+        Host* host = hostNewAt(consoleRoot(), "mkdir empty & cd empty & dir");
+        hostBoot(host);
+
+        for(s32 i = 0; i < 8 && !said(host, "use DEMO"); i++)
+            hostTick(host);
+
+        assert(said(host, "use DEMO"));
+        hostFreeEx(host);
+    }
+
+    {
+        char command[TICNAME_MAX];
+        shelfCommand(command, sizeof command, "dir");
+
+        Host* host = hostNewAt(consoleRoot(), command);
+        signIn(host);
+        hostBoot(host);
+        answerSiteRoot(host);
+
+        for(s32 i = 0; i < 8 && !requestHeld(); i++)
+            hostTick(host);
+
+        assert(requestHeld());
+        answerRequest(200, "{\"carts\":[],\"count\":0,\"bytes\":0,\"max_count\":100,\"max_bytes\":33554432}");
+
+        assert(said(host, "0/100 carts"));
+        assert(!said(host, "use DEMO"));
+
+        hostFreeEx(host);
+    }
+
+    puts("demo hint ok");
+}
+
 static void testShelfDir(void)
 {
     char command[TICNAME_MAX];
@@ -2006,6 +2044,7 @@ int main(void)
     testDelMissingSite();
     testSiteAbsoluteCd();
     testPromptRefresh();
+    testDemoHint();
     testFakeDir();
     testFakeCd();
     testFakeDelRefused();
