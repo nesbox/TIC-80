@@ -1612,6 +1612,16 @@ static inline double edgeFn(const Vec2* a, const Vec2* b, const Vec2* c)
     return (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
 }
 
+// Exactly (s32)floor(v), including values outside the s32 range. ARMv7 has no
+// rounding instruction, so floor() is a libm call there, and the texture
+// loops below make two of them per pixel.
+static inline s32 floorToInt(double v)
+{
+    s32 i = (s32)v;
+    if(v < (double)i && i != INT32_MIN) --i;
+    return i;
+}
+
 // Forced into the per-texture wrappers so their literal shaders inline.
 static DRAW_ALWAYS_INLINE void drawTriBody(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
 {
@@ -1620,7 +1630,7 @@ static DRAW_ALWAYS_INLINE void drawTriBody(tic_mem* tic, const Vec2* v0, const V
     tic_core* core = (tic_core*)tic;
     const struct ClipRect* clip = &core->state.clip;
 
-    tic_point min = {(s32)(floor(MIN3(a.v[0]->x, a.v[1]->x, a.v[2]->x))), (s32)(floor(MIN3(a.v[0]->y, a.v[1]->y, a.v[2]->y)))};
+    tic_point min = {floorToInt(MIN3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), floorToInt(MIN3(a.v[0]->y, a.v[1]->y, a.v[2]->y))};
     tic_point max = {(s32)(ceil(MAX3(a.v[0]->x, a.v[1]->x, a.v[2]->x))), (s32)(ceil(MAX3(a.v[0]->y, a.v[1]->y, a.v[2]->y)))};
 
     min.x = MAX(min.x, clip->l);
@@ -1631,7 +1641,7 @@ static DRAW_ALWAYS_INLINE void drawTriBody(tic_mem* tic, const Vec2* v0, const V
     if(min.x >= max.x || min.y >= max.y) return;
 
     double area = edgeFn(a.v[0], a.v[1], a.v[2]);
-    if((s32)floor(area) == 0) return;
+    if(floorToInt(area) == 0) return;
     if(area < 0.0)
     {
         SWAP(a.v[1], a.v[2], const Vec2*);
@@ -1708,7 +1718,7 @@ static void drawTriSpans(tic_mem* tic, const Vec2* v[3], u8 c1, u8 c2, u16 patte
 
     double area = (v[1]->x - v[0]->x) * (v[2]->y - v[0]->y) - (v[1]->y - v[0]->y) * (v[2]->x - v[0]->x);
 
-    if((s32)floor(area) == 0)
+    if(floorToInt(area) == 0)
         return;
 
     double miny = v[0]->y, maxy = v[0]->y;
@@ -1719,7 +1729,7 @@ static void drawTriSpans(tic_mem* tic, const Vec2* v[3], u8 c1, u8 c2, u16 patte
         if(v[i]->y > maxy) maxy = v[i]->y;
     }
 
-    s32 top = (s32)floor(miny);
+    s32 top = floorToInt(miny);
     s32 bottom = (s32)ceil(maxy);
 
     if(top < clip->t) top = clip->t;
@@ -1767,7 +1777,7 @@ static void drawTriSpans(tic_mem* tic, const Vec2* v[3], u8 c1, u8 c2, u16 patte
             continue;
 
         s32 left = (s32)ceil(lo - center);
-        s32 right = (s32)floor(hi - center) + 1;
+        s32 right = floorToInt(hi - center) + 1;
 
         if(left < clip->l) left = clip->l;
         if(right > clip->r) right = clip->r;
@@ -1933,8 +1943,8 @@ static tic_color triTexMapShader(const ShaderAttr* a, s32 pixel)
         HMask = TIC_SPRITESIZE - 1
     };
 
-    s32 iu = mapWrap((s32)(floor(vars.x)), MapWidth);
-    s32 iv = mapWrap((s32)(floor(vars.y)), MapHeight);
+    s32 iu = mapWrap(floorToInt(vars.x), MapWidth);
+    s32 iv = mapWrap(floorToInt(vars.y), MapHeight);
 
     u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
 
@@ -1959,8 +1969,8 @@ static tic_color triTexTileShader(const ShaderAttr* a, s32 pixel)
         HMask = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1
     };
 
-    s32 tx = (s32)floor(vars.x) & (TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1);
-    s32 ty = (s32)floor(vars.y) & HMask;
+    s32 tx = floorToInt(vars.x) & (TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1);
+    s32 ty = floorToInt(vars.y) & HMask;
 
     return shaderEnd(a, &vars, pixel, data->mapping[data->sheet4 ? sheetPix4(data, tx, ty) : tic_tilesheet_getpix(&data->sheet, tx, ty)]);
 }
@@ -1973,8 +1983,8 @@ static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
     if(!shaderStart(a, &vars, pixel))
         return TRANSPARENT_COLOR;
 
-    s32 iu = mapWrap((s32)(floor(vars.x)), TIC80_WIDTH);
-    s32 iv = mapWrap((s32)(floor(vars.y)), TIC80_HEIGHT);
+    s32 iu = mapWrap(floorToInt(vars.x), TIC80_WIDTH);
+    s32 iv = mapWrap(floorToInt(vars.y), TIC80_HEIGHT);
 
     return shaderEnd(a, &vars, pixel, data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)]);
 }
@@ -2000,8 +2010,8 @@ static tic_color triTexTileShaderFlat(const ShaderAttr* a, s32 pixel)
     Vec3 vars;
     shaderUV(a, &vars);
 
-    s32 u = (s32)floor(vars.x);
-    s32 v = (s32)floor(vars.y);
+    s32 u = floorToInt(vars.x);
+    s32 v = floorToInt(vars.y);
 
     return data->mapping[tic_tilesheet_getpix(&data->sheet, u & (TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1), v & (TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1))];
 }
@@ -2036,8 +2046,8 @@ static tic_color triTexMapShaderFlat(const ShaderAttr* a, s32 pixel)
         HMask = TIC_SPRITESIZE - 1
     };
 
-    s32 iu = mapWrap((s32)(floor(vars.x)), MapWidth);
-    s32 iv = mapWrap((s32)(floor(vars.y)), MapHeight);
+    s32 iu = mapWrap(floorToInt(vars.x), MapWidth);
+    s32 iv = mapWrap(floorToInt(vars.y), MapHeight);
 
     u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
 
@@ -2059,8 +2069,8 @@ static tic_color triTexVbankShaderFlat(const ShaderAttr* a, s32 pixel)
     Vec3 vars;
     shaderUV(a, &vars);
 
-    s32 iu = mapWrap((s32)(floor(vars.x)), TIC80_WIDTH);
-    s32 iv = mapWrap((s32)(floor(vars.y)), TIC80_HEIGHT);
+    s32 iu = mapWrap(floorToInt(vars.x), TIC80_WIDTH);
+    s32 iv = mapWrap(floorToInt(vars.y), TIC80_HEIGHT);
 
     return data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)];
 }
@@ -2125,7 +2135,7 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
 
     double area = (v[1]->_.x - v[0]->_.x) * (v[2]->_.y - v[0]->_.y) - (v[1]->_.y - v[0]->_.y) * (v[2]->_.x - v[0]->_.x);
 
-    if((s32)floor(area) == 0)
+    if(floorToInt(area) == 0)
         return false;
 
     if(area < 0.0)
@@ -2158,7 +2168,7 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
         if(v[i]->_.y > maxy) maxy = v[i]->_.y;
     }
 
-    s32 top = (s32)floor(miny);
+    s32 top = floorToInt(miny);
     s32 bottom = (s32)ceil(maxy);
 
     if(top < clip->t) top = clip->t;
@@ -2207,7 +2217,7 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
             continue;
 
         s32 left = (s32)ceil(lo - center);
-        s32 right = (s32)floor(hi - center) + 1;
+        s32 right = floorToInt(hi - center) + 1;
 
         if(left < clip->l) left = clip->l;
         if(right > clip->r) right = clip->r;
@@ -2248,8 +2258,8 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
 
                     for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
                     {
-                        s32 iu = (s32)floor(u) & maskU;
-                        s32 iv = (s32)floor(vv) & maskV;
+                        s32 iu = floorToInt(u) & maskU;
+                        s32 iv = floorToInt(vv) & maskV;
                         u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) + ((iu & 127) >> 3);
                         u32 pix = ((u32)iu & 7) + ((u32)iv & 7) * 8;
                         u8 color = data->mapping[tic_tool_peek4(data->sheet.ptr, tile * 64 + pix)];
@@ -2266,8 +2276,8 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
 
                     for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
                     {
-                        s32 iu = (s32)floor(u) & maskU;
-                        s32 iv = (s32)floor(vv) & maskV;
+                        s32 iu = floorToInt(u) & maskU;
+                        s32 iv = floorToInt(vv) & maskV;
                         u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) +
                                    (((((iu >> 7) + (s32)pageOrig) & 1)) << 3) + ((iu & 127) >> 4);
                         u32 pix = ((u32)iu & 15) + ((u32)iv & 7) * 16;
@@ -2285,8 +2295,8 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
 
                     for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
                     {
-                        s32 iu = (s32)floor(u) & maskU;
-                        s32 iv = (s32)floor(vv) & maskV;
+                        s32 iu = floorToInt(u) & maskU;
+                        s32 iv = floorToInt(vv) & maskV;
                         u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) +
                                    (((((iu >> 7) + (s32)pageOrig) & 3)) << 2) + ((iu & 127) >> 5);
                         u32 pix = ((u32)iu & 31) + ((u32)iv & 7) * 32;
@@ -2300,8 +2310,8 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
                 {
                     for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
                     {
-                        s32 iu = (s32)floor(u) & maskU;
-                        s32 iv = (s32)floor(vv) & maskV;
+                        s32 iu = floorToInt(u) & maskU;
+                        s32 iv = floorToInt(vv) & maskV;
                         u8 color = data->mapping[tic_tilesheet_getpix(&data->sheet, iu, iv)];
 
                         if(color != TRANSPARENT_COLOR)
@@ -2313,8 +2323,8 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
             case tic_map_texture:
                 for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
                 {
-                    s32 iu = mapWrap((s32)floor(u), MapWidth);
-                    s32 iv = mapWrap((s32)floor(vv), MapHeight);
+                    s32 iu = mapWrap(floorToInt(u), MapWidth);
+                    s32 iv = mapWrap(floorToInt(vv), MapHeight);
                     u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
                     u32 tile = data->bankOrig * 256 + ((u32)idx >> 4) * 16 + ((u32)idx & 15);
                     u32 pix = ((u32)iu & 7) + ((u32)iv & 7) * 8;
@@ -2328,8 +2338,8 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
             case tic_vbank_texture:
                 for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
                 {
-                    s32 iu = mapWrap((s32)floor(u), TIC80_WIDTH);
-                    s32 iv = mapWrap((s32)floor(vv), TIC80_HEIGHT);
+                    s32 iu = mapWrap(floorToInt(u), TIC80_WIDTH);
+                    s32 iv = mapWrap(floorToInt(vv), TIC80_HEIGHT);
                     u8 color = data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)];
 
                     if(color != TRANSPARENT_COLOR)
