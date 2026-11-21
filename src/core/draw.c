@@ -1843,8 +1843,25 @@ typedef struct
     const tic_vram* vram;
     bool depth;
     bool tile4;
+    bool sheet4; // a normal one-page 4bpp sprite sheet
     u32 bankOrig;
 } TexData;
+
+// tic_tilesheet_getpix(sheet, x, y) for a one-page 4bpp sheet (data->sheet4), x in 0..127, y >= 0
+static inline u8 sheetPix4(const TexData* data, s32 x, s32 y)
+{
+    u32 tile = ((((y >> 7) + data->bankOrig) & 1) << 8) + (((y & 127) >> 3) << 4) + ((x & 127) >> 3);
+
+    return tic_tool_peek4(data->sheet.ptr, tile * 64 + ((u32)x & 7) + ((u32)y & 7) * 8);
+}
+
+// The pixel (px, py) of map tile idx for a 4bpp sheet (data->tile4)
+static inline u8 mapTilePix4(const TexData* data, u8 idx, s32 px, s32 py)
+{
+    u32 tile = data->bankOrig * 256 + idx;
+
+    return tic_tool_peek4(data->sheet.ptr, tile * 64 + (u32)px + (u32)py * 8);
+}
 
 static inline bool shaderStart(const ShaderAttr* a, Vec3* vars, s32 pixel)
 {
@@ -1920,6 +1937,10 @@ static tic_color triTexMapShader(const ShaderAttr* a, s32 pixel)
     s32 iv = mapWrap((s32)(floor(vars.y)), MapHeight);
 
     u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
+
+    if(data->tile4)
+        return shaderEnd(a, &vars, pixel, data->mapping[mapTilePix4(data, idx, iu & WMask, iv & HMask)]);
+
     tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
 
     return shaderEnd(a, &vars, pixel, data->mapping[tic_tilesheet_gettilepix(&tile, iu & WMask, iv & HMask)]);
@@ -1938,7 +1959,10 @@ static tic_color triTexTileShader(const ShaderAttr* a, s32 pixel)
         HMask = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1
     };
 
-    return shaderEnd(a, &vars, pixel, data->mapping[tic_tilesheet_getpix(&data->sheet, (s32)floor(vars.x) & (TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1), (s32)floor(vars.y) & HMask)]);
+    s32 tx = (s32)floor(vars.x) & (TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1);
+    s32 ty = (s32)floor(vars.y) & HMask;
+
+    return shaderEnd(a, &vars, pixel, data->mapping[data->sheet4 ? sheetPix4(data, tx, ty) : tic_tilesheet_getpix(&data->sheet, tx, ty)]);
 }
 
 static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
@@ -2050,6 +2074,40 @@ static DRAW_NOINLINE void drawTtriMapFlat(tic_mem* tic, const TexVert* t, TexDat
 static DRAW_NOINLINE void drawTtriVbankFlat(tic_mem* tic, const TexVert* t, TexData* data)
 {
     drawTriBody(tic, (const Vec2*)&t[0], (const Vec2*)&t[1], (const Vec2*)&t[2], triTexVbankShaderFlat, data);
+}
+
+// The depth path too: drawTri() is shared by all of them, so it calls its
+// shader through a pointer for every pixel.
+static DRAW_NOINLINE void drawTtriTileDepth(tic_mem* tic, const TexVert* t, TexData* data)
+{
+    drawTriBody(tic, (const Vec2*)&t[0], (const Vec2*)&t[1], (const Vec2*)&t[2], triTexTileShader, data);
+}
+
+static DRAW_NOINLINE void drawTtriMapDepth(tic_mem* tic, const TexVert* t, TexData* data)
+{
+    drawTriBody(tic, (const Vec2*)&t[0], (const Vec2*)&t[1], (const Vec2*)&t[2], triTexMapShader, data);
+}
+
+static DRAW_NOINLINE void drawTtriVbankDepth(tic_mem* tic, const TexVert* t, TexData* data)
+{
+    drawTriBody(tic, (const Vec2*)&t[0], (const Vec2*)&t[1], (const Vec2*)&t[2], triTexVbankShader, data);
+}
+
+// Kept out of tic_api_ttri, so the flat span fill inlined there compiles as before.
+static DRAW_NOINLINE void drawTtriDepth(tic_mem* tic, const TexVert* t, TexData* data, u32 src)
+{
+    const tic_blit_segment* seg = data->sheet.segment;
+
+    data->sheet4 = seg->peek == tic_tool_peek4 && seg->ptr_size == sizeof(tic_tile) &&
+                   seg->tile_width == TIC_SPRITESIZE && seg->nb_pages == 1 && seg->page_orig == 0;
+
+    switch(src)
+    {
+        case tic_tiles_texture: drawTtriTileDepth(tic, t, data); break;
+        case tic_map_texture: drawTtriMapDepth(tic, t, data); break;
+        case tic_vbank_texture: drawTtriVbankDepth(tic, t, data); break;
+        default: break;
+    }
 }
 
 // The scanline span fill for the flat textured triangle: one inside
@@ -2341,14 +2399,7 @@ void tic_api_ttri(tic_mem* tic,
     if(depth)
     {
         ZBufferDirty = true;
-
-        switch(src)
-        {
-            case tic_tiles_texture: DRAW_TTRI(triTexTileShader); break;
-            case tic_map_texture: DRAW_TTRI(triTexMapShader); break;
-            case tic_vbank_texture: DRAW_TTRI(triTexVbankShader); break;
-            default: break;
-        }
+        drawTtriDepth(tic, t, &texData, src);
     }
     else if(!drawTtriSpans(tic, t, &texData, src))
     {
