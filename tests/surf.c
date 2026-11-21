@@ -857,6 +857,13 @@ static void testLikeNothing(void)
     pressButton(1 << 6);
     assert(LikeCalls == 0);
 
+    // A shelf cart is a file with token 0: X asks nothing.
+    press(tic_key_return);
+    settle();
+    moveTo(1);
+    pressButton(1 << 6);
+    assert(LikeCalls == 0);
+
     teardown();
     puts("like nothing ok");
 }

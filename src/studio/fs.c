@@ -1091,7 +1091,7 @@ static void clientAnswer(const net_request_data* answer)
     ClientCall* call = answer->calldata;
 
     if(answer->type == net_request_done && answer->done.status == 401 &&
-       call->fs->remote.unauthorized)
+       call->token[0] && call->fs->remote.unauthorized)
         call->fs->remote.unauthorized(call->fs->remote.data, call->token);
 
     net_request_data out = *answer;
@@ -1203,6 +1203,12 @@ static void onClientLike(const net_request_data* answer)
 
 void tic_fs_like(tic_fs* fs, s32 cart, fs_like_done_cb onDone, void* data)
 {
+    if(!tic_fs_signedin(fs))
+    {
+        onDone(false, 0, (fs_result){FS_DENIED, "likes need a sign-in, use `login`"}, data);
+        return;
+    }
+
     ClientLike* like = calloc(1, sizeof(ClientLike));
 
     if(!like)
@@ -1480,6 +1486,10 @@ static void onSiteClientListing(const net_request_data* answer)
     else
         result = clientFailure(0, NULL);
 
+    // A failed listing must not leave the previous likes rows loadable.
+    if(result.code != FS_OK)
+        siteCacheClear(request->fs);
+
     request->done(request->fs, items, count, result, request->data);
     free(request);
 }
@@ -1488,6 +1498,7 @@ static void siteFetchListing(tic_fs* fs, const char* dir, SiteListingDone done, 
 {
     if(strcmp(dir, SITE_LIKES_DIR) == 0 && !tic_fs_signedin(fs))
     {
+        siteCacheClear(fs);
         done(fs, NULL, 0, (fs_result){FS_DENIED, "likes need a sign-in, use `login`"}, data);
         return;
     }
@@ -2040,6 +2051,20 @@ typedef struct
     void* data;
 } ShelfList;
 
+// The shelf's own fallback texts; a body the server sent still wins.
+static fs_result shelfFailure(s32 status, const char* message)
+{
+    switch(status)
+    {
+        case 401: return clientFailure(status, message);
+        case 404: return (fs_result){FS_NOT_FOUND, message ? message : "no such cart"};
+        case 409:
+        case 413: return (fs_result){FS_QUOTA, message ? message : "the shelf is full"};
+        case 0: return (fs_result){FS_OFFLINE, "the shelf needs a network"};
+        default: return (fs_result){FS_IO, message ? message : "the shelf request failed"};
+    }
+}
+
 static void onShelfList(const net_request_data* answer)
 {
     // A progress tick is not an answer: the request is still the transport's.
@@ -2055,7 +2080,7 @@ static void onShelfList(const net_request_data* answer)
     fs_result result = (fs_result){FS_OK, NULL};
 
     if(status != 200)
-        result = clientFailure(status, message);
+        result = shelfFailure(status, message);
     else if(answer->done.data == NULL || !json_parse((const char*)answer->done.data, answer->done.size))
         result = (fs_result){FS_IO, "the shelf answer could not be read"};
     else
@@ -2133,7 +2158,7 @@ static void onShelfLoad(const net_request_data* answer)
     if(status == 200)
         load->onDone(load->name, answer->done.data, answer->done.size, (fs_result){FS_OK, NULL}, load->data);
     else
-        load->onDone(load->name, NULL, 0, clientFailure(status, message), load->data);
+        load->onDone(load->name, NULL, 0, shelfFailure(status, message), load->data);
 
     free(load);
 }
@@ -2210,7 +2235,7 @@ static void onShelfSave(const net_request_data* answer)
         save->onDone(key[0] ? key : save->key, (fs_result){FS_OK, text}, save->data);
     }
     else
-        save->onDone(NULL, clientFailure(status, message), save->data);
+        save->onDone(NULL, shelfFailure(status, message), save->data);
 
     free(save->bytes);
     free(save);
@@ -2304,7 +2329,7 @@ static void onShelfDelete(const net_request_data* answer)
         del->onDone((fs_result){FS_OK, text}, del->data);
     }
     else
-        del->onDone(clientFailure(status, message), del->data);
+        del->onDone(shelfFailure(status, message), del->data);
 
     free(del);
 }
@@ -2386,7 +2411,7 @@ static void onShelfCover(const net_request_data* answer)
             cover->onDone(NULL, 0, (fs_result){FS_NOT_FOUND, "no cover"}, cover->data);
     }
     else
-        cover->onDone(NULL, 0, clientFailure(status, message), cover->data);
+        cover->onDone(NULL, 0, shelfFailure(status, message), cover->data);
 
     free(cover);
 }

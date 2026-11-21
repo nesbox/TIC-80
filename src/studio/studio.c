@@ -1025,8 +1025,7 @@ static void surfLoadCart(void* host, const char* name, s32 token, fs_done_cb don
     studioLoadCartAsync(host, name, token, done, data);
 }
 
-// The like carries the listed item's token; the filesystem adds the account's
-// bearer itself.
+// The like carries the item's token; the filesystem adds the account's bearer.
 static void surfLikeCart(void* host, s32 token, SurfLikeDone done, void* data)
 {
     tic_fs_like(studio_fs(host), token, done, data);

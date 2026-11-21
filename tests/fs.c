@@ -1220,6 +1220,36 @@ static void testLocalShelfFolder(void)
     puts("local shelf folder ok");
 }
 
+// A local folder called likes is just a folder; the private source is the site's.
+static void testLocalLikesFolder(void)
+{
+    char* root = makeRoot("tic80-fs-local-likes");
+    tic_fs* fs = tic_fs_create(root, NULL);
+    assert(fs);
+
+    Contract contract = {fs, false};
+
+    assert(makeDir(&contract, "likes").result.code == FS_OK);
+
+    Answer list = listPath(&contract, "");
+    assert(list.result.code == FS_OK);
+    assert(hasItem(&list, "likes"));
+
+    tic_fs_changedir(fs, "likes");
+    char dir[TICNAME_MAX];
+    tic_fs_dir(fs, dir);
+    assert(strcmp(dir, "likes") == 0);
+
+    Answer inside = listPath(&contract, "");
+    assert(inside.result.code == FS_OK);
+    assert(inside.count == 0);
+
+    tic_fs_homedir(fs);
+    tic_fs_deldir(fs, "likes");
+    tic_fs_deldir(fs, "");
+    puts("local likes folder ok");
+}
+
 static void testFakeRemoteContract(void)
 {
     char* root = makeRoot("tic80-fs-remote");
@@ -2031,8 +2061,8 @@ static void testSiteErrors(void)
 
 static const char LikesListing[] =
     "{\"folders\":[],\"files\":["
-    "{\"name\":\"Older\",\"hash\":\"abc\",\"filename\":\"dup.tic\",\"id\":21,\"lang\":\"lua\"},"
-    "{\"name\":\"Newer\",\"hash\":\"def\",\"filename\":\"dup.tic\",\"id\":22,\"lang\":\"lua\"}]}";
+    "{\"name\":\"Older.tic\",\"hash\":\"abc\",\"filename\":\"dup.tic\",\"id\":21,\"lang\":\"lua\"},"
+    "{\"name\":\"Newer.tic\",\"hash\":\"def\",\"filename\":\"dup.tic\",\"id\":22,\"lang\":\"lua\"}]}";
 
 typedef struct
 {
@@ -2067,11 +2097,11 @@ static void likesSetup(Likes* likes, bool signedIn)
     snprintf(likes->account.token, sizeof likes->account.token, "tok123");
 
     tic_fs_set_remote(likes->site.fs, &(tic_fs_remote){
-                                      .signed_in = accountSignedIn,
-                                      .token = accountToken,
-                                      .unauthorized = accountUnauthorized,
-                                      .data = &likes->account,
-                                  });
+                                          .signed_in = accountSignedIn,
+                                          .token = accountToken,
+                                          .unauthorized = accountUnauthorized,
+                                          .data = &likes->account,
+                                      });
 
     Held.held = false;
 }
@@ -2103,9 +2133,9 @@ static void testLikesListing(void)
         assert(list.result.code == FS_OK);
         assert(list.count == 2);
         assert(strcmp(list.items[0].name, "dup.tic") == 0);
-        assert(strcmp(list.items[0].title, "Older") == 0);
+        assert(strcmp(list.items[0].title, "Older.tic") == 0);
         assert(strcmp(list.items[1].name, "dup.tic") == 0);
-        assert(strcmp(list.items[1].title, "Newer") == 0);
+        assert(strcmp(list.items[1].title, "Newer.tic") == 0);
         assert(list.items[0].token == 21);
         assert(list.items[1].token == 22);
         assert(!list.items[0].dir && !list.items[1].dir);
@@ -2134,6 +2164,19 @@ static void testLikesListing(void)
         snprintf(likes.account.token, sizeof likes.account.token, "tok123");
     }
 
+    // A nested site folder named likes is the public tree's, not this source.
+    {
+        tic_fs_homedir(likes.site.fs);
+        tic_fs_changedir(likes.site.fs, TIC_HOST);
+        tic_fs_changedir(likes.site.fs, "play");
+
+        Answer list = {0};
+        tic_fs_list(likes.site.fs, "likes", onItem, onListDone, &list);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=play/likes") == 0);
+        answerJson("{\"folders\":[],\"files\":[]}");
+        assert(list.result.code == FS_OK);
+    }
+
     likesTeardown(&likes);
     puts("likes listing ok");
 }
@@ -2153,6 +2196,14 @@ static void testLikesSignedOut(void)
     assert(strstr(list.message, "login") != NULL);
     assert(!Held.held);
     assert(!NetCallback);
+
+    // A like while signed out answers the hint without a request.
+    LikeAnswer like = {0};
+    tic_fs_like(likes.site.fs, 21, onLike, &like);
+    assert(like.done);
+    assert(like.result.code == FS_DENIED);
+    assert(strstr(like.message, "likes need a sign-in") != NULL);
+    assert(!Held.held);
 
     likesTeardown(&likes);
     puts("likes signed out ok");
@@ -2354,7 +2405,7 @@ static void testLikeRequest(void)
         LikeAnswer like = {0};
         tic_fs_like(likes.site.fs, 21, onLike, &like);
         answerRequest(429, "{\"error\":\"too many requests\"}");
-        assert(like.result.code != FS_OK);
+        assert(like.result.code == FS_DENIED);
         assert(strcmp(like.message, "too many requests") == 0);
     }
 
@@ -2732,7 +2783,7 @@ static void testShelfList(void)
         answerRequestError(-1);
 
         assert(list.result.code == FS_OFFLINE);
-        assert(strstr(list.message, "network"));
+        assert(strcmp(list.message, "the shelf needs a network") == 0);
     }
 
     shelfTeardown(&shelf);
@@ -3050,6 +3101,7 @@ int main(void)
     testLocalLoadName();
     testLocalListOrder();
     testLocalShelfFolder();
+    testLocalLikesFolder();
     testFakeRemoteContract();
     testHeldOperations();
     testSiteListing();

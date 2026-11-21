@@ -46,8 +46,7 @@ typedef struct SurfItem
 // The confirm the host asks: the screen hands its answer back through it.
 typedef void (*SurfConfirm)(void* host, bool yes, void* data);
 
-// The like's answer: whether the like was created, the cart's rating and the
-// result the message line reports.
+// The like's answer: created, the rating and the result the message line reports.
 typedef void (*SurfLikeDone)(bool created, s32 rating, fs_result result, void* data);
 
 // What the browser gets once: the machine, its filesystem and config, and the
@@ -64,7 +63,7 @@ typedef struct
     void (*autoSave)(void* host);
     bool (*cartChanged)(void* host);
     void (*confirmLoadCart)(void* host, SurfConfirm callback, void* data);
-    void (*openItemPage)(void* host, s32 token); // the page for a listed cart's token
+    void (*openItemPage)(void* host, s32 token);                            // the page for a listed cart's token
     void (*likeCart)(void* host, s32 token, SurfLikeDone done, void* data); // the token, never the credential
     void (*run)(void* host);
     void (*exit)(void* host);

@@ -60,7 +60,13 @@
 
 // Cover requests the browser may have in flight at once.
 #define COVERS_IN_FLIGHT 2
-#define CAN_OPEN_URL     (__TIC_WINDOWS__ || __TIC_LINUX__ || __TIC_MACOSX__ || __TIC_ANDROID__)
+
+// The platforms whose system layer can open a URL; the web IDE uses window.open.
+#if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__) || defined(__TIC_ANDROID__) || defined(__EMSCRIPTEN__)
+#define CAN_OPEN_URL 1
+#else
+#define CAN_OPEN_URL 0
+#endif
 
 static const char* PngExt = PNG_EXT;
 
@@ -165,7 +171,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
         tiles2ram(tic->ram, &surf->config->cart->bank0.tiles);
 
-#ifdef CAN_OPEN_URL
+#if CAN_OPEN_URL
         tic_api_spr(tic, 15, SiteX, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
         {
             static const char Label[] = "WEBSITE";
@@ -175,7 +181,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 #endif
 
         // The like hint sits left of the page hint, or alone at the right edge.
-#ifdef CAN_OPEN_URL
+#if CAN_OPEN_URL
         s32 likeX = LikeX;
 #else
         s32 likeX = EdgeX;
@@ -395,6 +401,7 @@ typedef struct
 {
     Surf* surf;
     s32 pos;
+    s32 token;
     char name[TICNAME_MAX];
     char dir[TICNAME_MAX];
 } CoverLoadingData;
@@ -411,7 +418,10 @@ static SurfItem* coverItem(Surf* surf, const CoverLoadingData* data)
     char dir[TICNAME_MAX];
     tic_fs_dir(surf->fs, dir);
 
-    return strcmp(dir, data->dir) == 0 && strcmp(item->name, data->name) == 0 ? item : NULL;
+    return strcmp(dir, data->dir) == 0 && strcmp(item->name, data->name) == 0 &&
+                   item->token == data->token
+               ? item
+               : NULL;
 }
 
 static void coverLoaded(const u8* bytes, s32 size, fs_result result, void* data)
@@ -450,7 +460,7 @@ static void requestCover(Surf* surf, SurfItem* item)
         return;
     }
 
-    *data = (CoverLoadingData){.surf = surf, .pos = surf->menu.pos};
+    *data = (CoverLoadingData){.surf = surf, .pos = surf->menu.pos, .token = item->token};
     snprintf(data->name, sizeof data->name, "%s", item->name);
     tic_fs_dir(surf->fs, data->dir);
 
@@ -791,7 +801,7 @@ static void processGamepad(Surf* surf)
             if(tic_api_btnp(tic, X, -1, -1) || tic_api_keyp(tic, tic_key_x, -1, -1))
                 likeCart(surf);
 
-#ifdef CAN_OPEN_URL
+#if CAN_OPEN_URL
 
             if(tic_api_btnp(tic, Y, -1, -1))
             {
@@ -902,6 +912,7 @@ static void resume(Surf* surf)
 {
     surf->anim.movie = resetMovie(&surf->anim.show);
     surf->message[0] = '\0';
+    surf->likePending = false;
 }
 
 // The cover's palette is faded in as its cart is picked.
