@@ -106,17 +106,18 @@ static void fakeOpenItemPage(void* host, s32 token)
     OpenPageToken = token;
 }
 
-// The fake filesystem's answers: two folders and a cart at the root, three
-// carts with the mount's tokens on the site, one folder that fails to list.
-static const char* RootNames[] = {TIC_HOST, "zzz", "bad", "local.tic", "shelf"};
-static const char* RootTitles[] = {NULL, NULL, NULL, NULL, NULL};
-static const bool RootDirs[] = {true, true, true, false, true};
-static const s32 RootTokens[] = {0, 0, 0, 0, 0};
+// The fake filesystem's answers: the site and three local items at the root,
+// the site's folders and carts, the shelf's carts under the site, one folder
+// that fails to list.
+static const char* RootNames[] = {TIC_HOST, "zzz", "bad", "local.tic"};
+static const char* RootTitles[] = {NULL, NULL, NULL, NULL};
+static const bool RootDirs[] = {true, true, true, false};
+static const s32 RootTokens[] = {0, 0, 0, 0};
 
-static const char* SiteNames[] = {"demo.tic", "b.tic", "c.tic"};
-static const char* SiteTitles[] = {"Demo.tic", "B.tic", "C.tic"};
-static const bool SiteDirs[] = {false, false, false};
-static const s32 SiteTokens[] = {11, 12, 13};
+static const char* SiteNames[] = {"play", "devs", TIC_SHELF_DIR, "demo.tic", "b.tic", "c.tic"};
+static const char* SiteTitles[] = {"Play", "Devs", "Shelf", "Demo.tic", "B.tic", "C.tic"};
+static const bool SiteDirs[] = {true, true, true, false, false, false};
+static const s32 SiteTokens[] = {0, 0, 0, 11, 12, 13};
 
 static void fakeEmit(const char* const* names, const char* const* titles, const bool* dirs, const s32* tokens,
                      s32 count, fs_list_item_cb onItem, void* data)
@@ -139,7 +140,7 @@ static void fakeList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_li
 
     if(strcmp(dir, "") == 0)
         fakeEmit(RootNames, RootTitles, RootDirs, RootTokens, COUNT_OF(RootNames), onItem, data);
-    else if(strcmp(dir, "shelf") == 0)
+    else if(strcmp(dir, TIC_HOST "/" TIC_SHELF_DIR) == 0)
     {
         static const char* ShelfNames[] = {"shelf-cart.tic"};
         static const bool ShelfDirs[] = {false};
@@ -147,6 +148,13 @@ static void fakeList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_li
     }
     else if(strcmp(dir, TIC_HOST) == 0)
         fakeEmit(SiteNames, SiteTitles, SiteDirs, SiteTokens, COUNT_OF(SiteNames), onItem, data);
+    else if(strcmp(dir, TIC_HOST "/play") == 0)
+    {
+        static const char* PlayNames[] = {"new", "recent"};
+        static const char* PlayTitles[] = {"New", "Recent"};
+        static const bool PlayDirs[] = {true, true};
+        fakeEmit(PlayNames, PlayTitles, PlayDirs, NULL, COUNT_OF(PlayNames), onItem, data);
+    }
     else if(strcmp(dir, "bad") == 0)
     {
         onDone(NULL, (fs_result){FS_OFFLINE, "no network"}, data);
@@ -424,8 +432,19 @@ enum
     RootSubIndex = 1,
     RootBadIndex = 2,
     RootCartIndex = 3,
-    RootShelfIndex = 4,
-    RootCount = 5,
+    RootCount = 4,
+};
+
+// The site's entries in the browser's order: the step back, the site's
+// folders (the shelf included) and its carts.
+enum
+{
+    SiteBackIndex = 0,
+    SitePlayIndex = 1,
+    SiteDevsIndex = 2,
+    SiteShelfIndex = 3,
+    SiteDemoIndex = 4,
+    SiteCount = 7,
 };
 
 // The screen's cover retry, five seconds: see COVER_RETRY_TICKS in surf.c.
@@ -481,6 +500,9 @@ static void testListing(void)
 
     assert(strcmp(Screen->menu.items[RootSiteIndex].name, TIC_HOST) == 0);
     assert(Screen->menu.items[RootSiteIndex].dir);
+    char siteLabel[TICNAME_MAX];
+    sprintf(siteLabel, "[%s]", TIC_HOST);
+    assert(strcmp(Screen->menu.items[RootSiteIndex].label, siteLabel) == 0);
     assert(strcmp(Screen->menu.items[RootSubIndex].name, "zzz") == 0);
     assert(Screen->menu.items[RootSubIndex].dir);
     assert(strcmp(Screen->menu.items[RootBadIndex].name, "bad") == 0);
@@ -506,20 +528,20 @@ static void testSiteCart(void)
 
     openSiteFolder();
 
-    // The listing opens on "..", the step back to the root; the carts follow.
-    assert(Screen->menu.count == 4);
-    assert(strcmp(Screen->menu.items[0].name, "..") == 0);
-    assert(strcmp(Screen->menu.items[1].name, "demo.tic") == 0);
+    // The listing opens on "..", the step back to the root; the folders and
+    // the carts follow.
+    assert(Screen->menu.count == SiteCount);
+    assert(strcmp(Screen->menu.items[SiteBackIndex].name, "..") == 0);
+    assert(strcmp(Screen->menu.items[SiteDemoIndex].name, "demo.tic") == 0);
 
     // The server's name is the title plus the extension; the menu shows the title.
-    assert(strcmp(Screen->menu.items[1].label, "Demo") == 0);
+    assert(strcmp(Screen->menu.items[SiteDemoIndex].label, "Demo") == 0);
 
     // The mount's token travels with the item.
-    assert(Screen->menu.items[1].token == 11);
+    assert(Screen->menu.items[SiteDemoIndex].token == 11);
 
-    press(tic_key_down);
+    moveTo(SiteDemoIndex);
     assert(channelNote() == 3 + 12);
-    settle();
 
     // Y asks the host for the site's page of this cart.
     pressButton(1 << 7);
@@ -580,8 +602,7 @@ static void testFailedLoad(void)
     setup();
 
     openSiteFolder();
-    press(tic_key_down);
-    settle();
+    moveTo(SiteDemoIndex);
 
     press(tic_key_return);
     settle();
@@ -594,7 +615,7 @@ static void testFailedLoad(void)
 
     assert(RunCalls == 0);
     assert(strcmp(dirName(), TIC_HOST) == 0);
-    assert(Screen->menu.count == 4);
+    assert(Screen->menu.count == SiteCount);
     assert(strcmp(Screen->message, "no network") == 0);
 
     // The next load clears the message and plays.
@@ -644,8 +665,7 @@ static void testCoverCap(void)
     openSiteFolder();
     assert(CoverRequests == 0); // ".." is a folder
 
-    press(tic_key_down); // demo
-    settle();
+    moveTo(SiteDemoIndex); // demo
     assert(CoverRequests == 1);
 
     press(tic_key_down); // b
@@ -668,21 +688,56 @@ static void testCoverCap(void)
     puts("cover cap ok");
 }
 
-// The shelf is a folder at the root like the site's, titled [shelf]; its carts
-// are keys, and a selection plays through the same host load.
+// The site's folders are shown by their titles and entered by their names.
+static void testSiteFolders(void)
+{
+    setup();
+    openSiteFolder();
+
+    assert(Screen->menu.count == SiteCount);
+    assert(strcmp(Screen->menu.items[SitePlayIndex].name, "play") == 0);
+    assert(Screen->menu.items[SitePlayIndex].dir);
+    assert(strcmp(Screen->menu.items[SitePlayIndex].label, "[Play]") == 0);
+    assert(strcmp(Screen->menu.items[SiteDevsIndex].name, "devs") == 0);
+    assert(Screen->menu.items[SiteDevsIndex].dir);
+    assert(strcmp(Screen->menu.items[SiteDevsIndex].label, "[Devs]") == 0);
+    assert(strcmp(Screen->menu.items[SiteShelfIndex].name, TIC_SHELF_DIR) == 0);
+    assert(Screen->menu.items[SiteShelfIndex].dir);
+    assert(strcmp(Screen->menu.items[SiteShelfIndex].label, "[Shelf]") == 0);
+
+    // Entering a folder takes its lowercase name.
+    moveTo(SitePlayIndex);
+    press(tic_key_return);
+    settle();
+
+    assert(strcmp(dirName(), TIC_HOST "/play") == 0);
+    assert(Screen->menu.count == 3);
+    assert(strcmp(Screen->menu.items[1].name, "new") == 0);
+    assert(strcmp(Screen->menu.items[1].label, "[New]") == 0);
+    assert(strcmp(Screen->menu.items[2].name, "recent") == 0);
+    assert(strcmp(Screen->menu.items[2].label, "[Recent]") == 0);
+
+    teardown();
+    puts("site folders ok");
+}
+
+// The shelf is a folder inside the site, titled [Shelf]; its carts are keys,
+// and a selection plays through the same host load.
 static void testShelfFolder(void)
 {
     setup();
 
-    assert(strcmp(Screen->menu.items[RootShelfIndex].name, "shelf") == 0);
-    assert(Screen->menu.items[RootShelfIndex].dir);
-    assert(strcmp(Screen->menu.items[RootShelfIndex].label, "[shelf]") == 0);
+    openSiteFolder();
 
-    moveTo(RootShelfIndex);
+    assert(strcmp(Screen->menu.items[SiteShelfIndex].name, TIC_SHELF_DIR) == 0);
+    assert(Screen->menu.items[SiteShelfIndex].dir);
+    assert(strcmp(Screen->menu.items[SiteShelfIndex].label, "[Shelf]") == 0);
+
+    moveTo(SiteShelfIndex);
     press(tic_key_return);
     settle();
 
-    assert(strcmp(dirName(), "shelf") == 0);
+    assert(strcmp(dirName(), TIC_HOST "/" TIC_SHELF_DIR) == 0);
     assert(Screen->menu.count == 2);
     assert(strcmp(Screen->menu.items[1].name, "shelf-cart.tic") == 0);
     assert(strcmp(Screen->menu.items[1].label, "shelf-cart") == 0);
@@ -820,6 +875,7 @@ int main(void)
     assert(Tic);
 
     testListing();
+    testSiteFolders();
     testSiteCart();
     testFailedLoad();
     testFailedListing();

@@ -541,6 +541,7 @@ static void testCart(tic_mem* tic, tic_fs* fs)
                                   .signed_in = remoteSignedIn,
                                   .token = remoteToken,
                               });
+        tic_fs_changedir(fs, TIC_HOST);
         tic_fs_changedir(fs, TIC_SHELF_DIR);
 
         char shelfCart[TIC_CART_SAVE_SIZE];
