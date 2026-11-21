@@ -1520,7 +1520,7 @@ static void siteFetchListing(tic_fs* fs, const char* dir, SiteListingDone done, 
         clientRequest(fs, net_method_get, SITE_LIKES_API, NULL, 0, onSiteClientListing, request);
     else
     {
-        char url[TICNAME_MAX + 16];
+        char url[sizeof "/json?fn=dir&path=" + TICNAME_MAX];
         snprintf(url, sizeof url, "/json?fn=dir&path=%s", dir);
 
         tic_net_get(fs->net, url, onSiteListing, request);
