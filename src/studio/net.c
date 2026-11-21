@@ -61,9 +61,20 @@ static bool isShortRequest(net_method method, const char* path)
         return true;
 
     static const char ShelfApi[] = "/api/v1/client/shelf";
+    static const char LikesApi[] = "/api/v1/client/likes";
+    static const char LikeApi[] = "/api/v1/client/like/";
     static const char DeviceApi[] = "/api/v1/client/device";
     const s32 shelfLen = (s32)sizeof ShelfApi - 1;
+    const s32 likesLen = (s32)sizeof LikesApi - 1;
+    const s32 likeLen = (s32)sizeof LikeApi - 1;
     const s32 deviceLen = (s32)sizeof DeviceApi - 1;
+
+    // The likes listing and the like are small like the shelf's.
+    if(method == net_method_get && strncmp(path, LikesApi, likesLen) == 0 && path[likesLen] == '\0')
+        return true;
+
+    if(method == net_method_put && strncmp(path, LikeApi, likeLen) == 0)
+        return true;
 
     // The listing and the delete; a shelf cart's GET and PUT are the large ones.
     if(method == net_method_get && strncmp(path, ShelfApi, shelfLen) == 0)

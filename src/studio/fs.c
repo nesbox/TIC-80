@@ -23,7 +23,7 @@
 #include "studio/paths.h"
 #include "studio/system.h"
 #include "fs.h"
-#include "fs_internal.h"
+#include "fsmount.h"
 #include "net.h"
 #include "ext/json.h"
 #include "cart.h"
@@ -83,6 +83,7 @@ static const char* PublicDir = TIC_HOST;
 // bare-metal build have no shelf. The web IDE's change owns its auth.
 #if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(BAREMETALPI)
 #define TIC_SHELF_MOUNT
+#define TIC_SHELF_ROOT TIC_HOST "/" TIC_SHELF_DIR
 #endif
 
 // One entry of the site's last listing: the name, display title, fetch hash
@@ -176,10 +177,10 @@ static bool isPublic(tic_fs* fs)
 }
 
 #if defined(TIC_SHELF_MOUNT)
-// The shelf is a flat store: its cwd is the mount name itself.
+// The shelf is a flat store: its cwd is its nested root.
 static bool isShelf(tic_fs* fs)
 {
-    return strcmp(fs->work, TIC_SHELF_DIR) == 0;
+    return strcmp(fs->work, TIC_SHELF_ROOT) == 0;
 }
 #endif
 
@@ -554,7 +555,6 @@ typedef struct
 {
     LocalEntry* items;
     s32 count;
-    bool root;
 } LocalListData;
 
 static bool localListItem(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
@@ -564,12 +564,6 @@ static bool localListItem(const char* name, const char* title, const char* hash,
     (void)id;
 
     LocalListData* list = data;
-
-#if defined(TIC_SHELF_MOUNT)
-    // The mount shadows a local folder of its name at the root.
-    if(list->root && strcmp(name, TIC_SHELF_DIR) == 0)
-        return true;
-#endif
 
     list->items = realloc(list->items, sizeof(LocalEntry) * (list->count + 1));
 
@@ -617,7 +611,7 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
     copyString(resolved, sizeof resolved, localPath(fs, path));
     bool root = isRoot(fs) && (!*path || (path[0] == '/' && !path[1]));
 
-    LocalListData list = {.root = root};
+    LocalListData list = {0};
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     if(root)
@@ -631,17 +625,6 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
             list.items[list.count].title = NULL;
             list.items[list.count++].dir = true;
         }
-
-#if defined(TIC_SHELF_MOUNT)
-        // The shelf is always listed, signed in or out.
-        if((items = realloc(list.items, sizeof(LocalEntry) * (list.count + 1))))
-        {
-            list.items = items;
-            snprintf(list.items[list.count].name, sizeof list.items[list.count].name, "%s", TIC_SHELF_DIR);
-            list.items[list.count].title = NULL;
-            list.items[list.count++].dir = true;
-        }
-#endif
     }
 #else
     (void)root;
@@ -672,8 +655,10 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
     onDone(NULL, (fs_result){FS_OK, NULL}, data);
 }
 
-static void localLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
+static void localLoad(tic_fs* fs, const char* path, s32 token, fs_load_done_cb onDone, void* data)
 {
+    (void)token;
+
     char resolved[TICNAME_MAX];
     copyString(resolved, sizeof resolved, localPath(fs, path));
 
@@ -794,30 +779,13 @@ static void localStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     {
         // The site answers its name at the root and in the absolute form from
-        // anywhere, as the shelf does.
+        // anywhere.
         const char* mount = *path == '/' ? path + 1 : path;
 
         if(strcmp(mount, PublicDir) == 0 && (*path == '/' || isRoot(fs)))
         {
             fs_item item = {PublicDir, NULL, true, -1, 0, 0};
             onDone(&item, (fs_result){FS_OK, NULL}, data);
-            return;
-        }
-    }
-#endif
-
-#if defined(TIC_SHELF_MOUNT)
-    {
-        // The mount name is root-level: a local folder called "shelf" inside a
-        // folder is that folder, and only the absolute name names the mount.
-        // The mount shadows such a folder at the root, signed in or out.
-        const char* mount = *path == '/' ? path + 1 : path;
-
-        if(strcmp(mount, TIC_SHELF_DIR) == 0 && (*path == '/' || isRoot(fs)))
-        {
-            fs_item item = {TIC_SHELF_DIR, NULL, true, -1, 0, 0};
-            onDone(&item, (fs_result){FS_OK, NULL}, data);
-
             return;
         }
     }
@@ -1022,8 +990,10 @@ fail:
     return NULL;
 }
 
-static void localCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
+static void localCover(tic_fs* fs, const char* path, s32 token, fs_cover_done_cb onDone, void* data)
 {
+    (void)token;
+
     char resolved[TICNAME_MAX];
     copyString(resolved, sizeof resolved, localPath(fs, path));
 
@@ -1099,6 +1069,166 @@ static const fs_mount_ops LocalOps = {
 };
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+// ---- the client API: the bearer request the site's likes and the shelf share ----
+
+// One client request: the call owns the header value the transport keeps until
+// the callback, and the trampoline frees it with the final answer.
+typedef struct
+{
+    tic_fs* fs;
+    net_request_callback callback;
+    void* calldata;
+    net_header header;
+    char token[96];
+    char authorization[128];
+} ClientCall;
+
+// clientAnswer watches the one status every handler shares: a 401 ends the
+// session the request was sent with — the token travels with the call, so an
+// answer to an old token cannot clear a newer one.
+static void clientAnswer(const net_request_data* answer)
+{
+    ClientCall* call = answer->calldata;
+
+    if(answer->type == net_request_done && answer->done.status == 401 &&
+       call->token[0] && call->fs->remote.unauthorized)
+        call->fs->remote.unauthorized(call->fs->remote.data, call->token);
+
+    net_request_data out = *answer;
+    out.calldata = call->calldata;
+    call->callback(&out);
+
+    if(answer->type != net_request_progress)
+        free(call);
+}
+
+static void clientRequest(tic_fs* fs, net_method method, const char* path, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
+{
+    ClientCall* call = calloc(1, sizeof(ClientCall));
+    call->fs = fs;
+    call->callback = callback;
+    call->calldata = calldata;
+
+    const char* token = fs->remote.token ? fs->remote.token(fs->remote.data) : "";
+    snprintf(call->token, sizeof call->token, "%s", token ? token : "");
+
+    // A mount with no token — the web IDE's site session — sends no header:
+    // an empty bearer authenticates nothing and would hide the cookie.
+    s32 headersCount = 0;
+    net_header* headers = NULL;
+
+    if(call->token[0])
+    {
+        snprintf(call->authorization, sizeof call->authorization, "Bearer %s", call->token);
+        call->header = (net_header){"Authorization", call->authorization};
+        headers = &call->header;
+        headersCount = 1;
+    }
+
+    tic_net_request(fs->net, method, path, headers, headersCount, body, bodySize, clientAnswer, call);
+}
+
+static s32 clientStatus(const net_request_data* answer)
+{
+    return answer->type == net_request_done ? answer->done.status : 0;
+}
+
+// The server's own message when its body carries one, valid during the
+// answer's callback.
+static const char* clientMessage(const net_request_data* answer, char* buffer, s32 size)
+{
+    if(answer->type != net_request_done || answer->done.data == NULL)
+        return NULL;
+
+    if(!json_parse((const char*)answer->done.data, answer->done.size))
+        return NULL;
+
+    if(!json_has("error", 0) || !json_string("error", 0, buffer, size))
+        return NULL;
+
+    return buffer;
+}
+
+static fs_result clientFailure(s32 status, const char* message)
+{
+    switch(status)
+    {
+        case 401:
+#if defined(__EMSCRIPTEN__)
+            return (fs_result){FS_SESSION, "sign in on tic80.com"};
+#else
+            return (fs_result){FS_SESSION, "the session ended, use `login`"};
+#endif
+        case 403: return (fs_result){FS_DENIED, message ? message : "access denied"};
+        case 404: return (fs_result){FS_NOT_FOUND, message ? message : "not found"};
+        case 409:
+        case 413: return (fs_result){FS_QUOTA, message ? message : "the limit refused it"};
+        case 429: return (fs_result){FS_DENIED, message ? message : "too many requests"};
+        case 0: return (fs_result){FS_OFFLINE, "no network"};
+        default: return (fs_result){FS_IO, message ? message : "the request failed"};
+    }
+}
+
+typedef struct
+{
+    fs_like_done_cb onDone;
+    void* data;
+} ClientLike;
+
+static void onClientLike(const net_request_data* answer)
+{
+    if(answer->type == net_request_progress)
+        return;
+
+    ClientLike* like = answer->calldata;
+    s32 status = clientStatus(answer);
+
+    if(status == 200 && answer->done.data && answer->done.size > 0 &&
+       json_parse((const char*)answer->done.data, answer->done.size))
+    {
+        like->onDone(json_bool("created", 0), json_int("rating", 0), (fs_result){FS_OK, NULL}, like->data);
+    }
+    else if(status == 200)
+        like->onDone(false, 0, (fs_result){FS_IO, "the like answer could not be read"}, like->data);
+    else
+    {
+        char error[256] = {0};
+        const char* message = clientMessage(answer, error, sizeof error);
+
+        like->onDone(false, 0, clientFailure(status, message), like->data);
+    }
+
+    free(like);
+}
+
+void tic_fs_like(tic_fs* fs, s32 cart, fs_like_done_cb onDone, void* data)
+{
+    if(!tic_fs_signedin(fs))
+    {
+        onDone(false, 0, (fs_result){FS_DENIED, "likes need a sign-in, use `login`"}, data);
+        return;
+    }
+
+    ClientLike* like = calloc(1, sizeof(ClientLike));
+
+    if(!like)
+    {
+        onDone(false, 0, (fs_result){FS_IO, "out of memory"}, data);
+        return;
+    }
+
+    like->onDone = onDone;
+    like->data = data;
+
+    char url[64];
+    snprintf(url, sizeof url, "/api/v1/client/like/%d", cart);
+
+    clientRequest(fs, net_method_put, url, NULL, 0, onClientLike, like);
+}
+
+#define SITE_LIKES_DIR "likes"
+#define SITE_LIKES_API "/api/v1/client/likes"
+
 static void siteCacheClear(tic_fs* fs)
 {
     free(fs->site.items);
@@ -1145,10 +1275,37 @@ static bool siteParseListing(tic_fs* fs, const char* dir, const char* json, s32 
             {
                 SiteEntry entry = {0};
                 snprintf(entry.name, sizeof entry.name, "%s", name);
+                snprintf(entry.title, sizeof entry.title, "%s", name);
+
+                for(char* p = entry.name; *p; p++)
+                    *p = (char)tolower((u8)*p);
+
                 entry.dir = true;
                 ok = siteAddEntry(&list, &listCount, &entry);
             }
         }
+    }
+
+#if defined(TIC_SHELF_MOUNT)
+    if(ok && *dir == '\0')
+    {
+        // The site's root carries the shelf after the server's folders.
+        SiteEntry entry = {0};
+        snprintf(entry.name, sizeof entry.name, "%s", TIC_SHELF_DIR);
+        snprintf(entry.title, sizeof entry.title, "%s", "Shelf");
+        entry.dir = true;
+        ok = siteAddEntry(&list, &listCount, &entry);
+    }
+#endif
+
+    if(ok && *dir == '\0')
+    {
+        // The member's likes sit beside the shelf, signed in or out.
+        SiteEntry entry = {0};
+        snprintf(entry.name, sizeof entry.name, "%s", SITE_LIKES_DIR);
+        snprintf(entry.title, sizeof entry.title, "%s", "Likes");
+        entry.dir = true;
+        ok = siteAddEntry(&list, &listCount, &entry);
     }
 
     {
@@ -1299,8 +1456,53 @@ static void onSiteListing(const net_get_data* netData)
     free(request);
 }
 
+static void onSiteClientListing(const net_request_data* answer)
+{
+    SiteListingRequest* request = answer->calldata;
+
+    if(answer->type == net_request_progress)
+        return;
+
+    SiteEntry* items = NULL;
+    s32 count = 0;
+    fs_result result;
+
+    if(answer->type == net_request_done)
+    {
+        if(answer->done.status == 200)
+        {
+            result = siteParseListing(request->fs, request->dir, (const char*)answer->done.data, answer->done.size, &items, &count)
+                         ? (fs_result){FS_OK, NULL}
+                         : (fs_result){FS_IO, "invalid listing"};
+        }
+        else
+        {
+            char error[256] = {0};
+            const char* message = clientMessage(answer, error, sizeof error);
+
+            result = clientFailure(answer->done.status, message);
+        }
+    }
+    else
+        result = clientFailure(0, NULL);
+
+    // A failed listing must not leave the previous likes rows loadable.
+    if(result.code != FS_OK)
+        siteCacheClear(request->fs);
+
+    request->done(request->fs, items, count, result, request->data);
+    free(request);
+}
+
 static void siteFetchListing(tic_fs* fs, const char* dir, SiteListingDone done, void* data)
 {
+    if(strcmp(dir, SITE_LIKES_DIR) == 0 && !tic_fs_signedin(fs))
+    {
+        siteCacheClear(fs);
+        done(fs, NULL, 0, (fs_result){FS_DENIED, "likes need a sign-in, use `login`"}, data);
+        return;
+    }
+
     SiteListingRequest* request = calloc(1, sizeof(SiteListingRequest));
 
     if(!request)
@@ -1314,10 +1516,15 @@ static void siteFetchListing(tic_fs* fs, const char* dir, SiteListingDone done, 
     request->done = done;
     request->data = data;
 
-    char url[TICNAME_MAX + 16];
-    snprintf(url, sizeof url, "/json?fn=dir&path=%s", dir);
+    if(strcmp(dir, SITE_LIKES_DIR) == 0)
+        clientRequest(fs, net_method_get, SITE_LIKES_API, NULL, 0, onSiteClientListing, request);
+    else
+    {
+        char url[sizeof "/json?fn=dir&path=" + TICNAME_MAX];
+        snprintf(url, sizeof url, "/json?fn=dir&path=%s", dir);
 
-    tic_net_get(fs->net, url, onSiteListing, request);
+        tic_net_get(fs->net, url, onSiteListing, request);
+    }
 }
 
 typedef struct
@@ -1338,7 +1545,7 @@ static void onSiteList(tic_fs* fs, SiteEntry* items, s32 count, fs_result result
     {
         for(s32 i = 0; i < count; i++)
         {
-            fs_item item = {items[i].name, items[i].dir ? NULL : items[i].title, items[i].dir, -1, 0,
+            fs_item item = {items[i].name, items[i].title[0] ? items[i].title : NULL, items[i].dir, -1, 0,
                             items[i].dir ? 0 : items[i].id};
 
             if(!request->onItem(&item, request->data))
@@ -1381,6 +1588,7 @@ typedef struct SiteRequest
     char name[TICNAME_MAX];
     char hash[TICNAME_MAX];
     char title[TICNAME_MAX];
+    s32 token;
     bool dirEntry;
     bool allowDir;
 
@@ -1417,6 +1625,27 @@ static bool siteFindEntry(const SiteEntry* items, s32 count, const char* name, b
     return false;
 }
 
+static bool siteFindToken(const SiteEntry* items, s32 count, s32 token, SiteEntry* entry)
+{
+    for(s32 i = 0; i < count; i++)
+    {
+        if(!items[i].dir && items[i].id == token)
+        {
+            *entry = items[i];
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool siteFind(SiteRequest* request, const SiteEntry* items, s32 count, SiteEntry* entry)
+{
+    return request->token
+               ? siteFindToken(items, count, request->token, entry)
+               : siteFindEntry(items, count, request->name, request->allowDir, entry);
+}
+
 static void onSiteResolve(tic_fs* fs, SiteEntry* items, s32 count, fs_result result, void* data)
 {
     (void)fs;
@@ -1428,7 +1657,7 @@ static void onSiteResolve(tic_fs* fs, SiteEntry* items, s32 count, fs_result res
     {
         SiteEntry entry;
 
-        if(siteFindEntry(items, count, request->name, request->allowDir, &entry))
+        if(siteFind(request, items, count, &entry))
         {
             siteTake(request, &entry);
             result = (fs_result){FS_OK, NULL};
@@ -1449,7 +1678,7 @@ static void siteResolve(SiteRequest* request, void (*found)(SiteRequest*, fs_res
     {
         SiteEntry entry;
 
-        if(siteFindEntry(request->fs->site.items, request->fs->site.count, request->name, request->allowDir, &entry))
+        if(siteFind(request, request->fs->site.items, request->fs->site.count, &entry))
         {
             siteTake(request, &entry);
 
@@ -1462,7 +1691,7 @@ static void siteResolve(SiteRequest* request, void (*found)(SiteRequest*, fs_res
             return;
         }
 
-        // A name the cache predates: list the folder again before refusing.
+        // A name or token the cache predates: list again before refusing.
     }
 
     SiteResolve* resolve = calloc(1, sizeof(SiteResolve));
@@ -1604,7 +1833,7 @@ static void siteCoverFound(SiteRequest* request, fs_result result)
     tic_net_get(request->fs->net, url, onSiteCover, request);
 }
 
-static void siteLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
+static void siteLoad(tic_fs* fs, const char* path, s32 token, fs_load_done_cb onDone, void* data)
 {
     SiteRequest* request = calloc(1, sizeof(SiteRequest));
 
@@ -1615,6 +1844,7 @@ static void siteLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void*
     }
 
     request->fs = fs;
+    request->token = token;
     request->loadDone = onDone;
     request->data = data;
 
@@ -1622,7 +1852,7 @@ static void siteLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void*
     siteResolve(request, siteLoadFound);
 }
 
-static void siteCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
+static void siteCover(tic_fs* fs, const char* path, s32 token, fs_cover_done_cb onDone, void* data)
 {
     SiteRequest* request = calloc(1, sizeof(SiteRequest));
 
@@ -1633,6 +1863,7 @@ static void siteCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, voi
     }
 
     request->fs = fs;
+    request->token = token;
     request->coverDone = onDone;
     request->data = data;
 
@@ -1722,102 +1953,6 @@ static bool shelfSignedIn(tic_fs* fs)
 }
 
 #define SHELF_API "/api/v1/client/shelf"
-
-// One shelf request: the call owns the header value the transport keeps until
-// the callback, and the trampoline frees it with the final answer.
-typedef struct
-{
-    tic_fs* fs;
-    net_request_callback callback;
-    void* calldata;
-    net_header header;
-    char token[96];
-    char authorization[128];
-} ShelfCall;
-
-// shelfAnswer watches the one status every handler shares: a 401 ends the
-// session the request was sent with — the token travels with the call, so an
-// answer to an old token cannot clear a newer one.
-static void shelfAnswer(const net_request_data* answer)
-{
-    ShelfCall* call = answer->calldata;
-
-    if(answer->type == net_request_done && answer->done.status == 401 &&
-       call->fs->remote.unauthorized)
-        call->fs->remote.unauthorized(call->fs->remote.data, call->token);
-
-    net_request_data out = *answer;
-    out.calldata = call->calldata;
-    call->callback(&out);
-
-    if(answer->type != net_request_progress)
-        free(call);
-}
-
-static void shelfRequest(tic_fs* fs, net_method method, const char* path, const void* body, s32 bodySize, net_request_callback callback, void* calldata)
-{
-    ShelfCall* call = calloc(1, sizeof(ShelfCall));
-    call->fs = fs;
-    call->callback = callback;
-    call->calldata = calldata;
-
-    const char* token = fs->remote.token ? fs->remote.token(fs->remote.data) : "";
-    snprintf(call->token, sizeof call->token, "%s", token ? token : "");
-
-    // A mount with no token — the web IDE's site session — sends no header:
-    // an empty bearer authenticates nothing and would hide the cookie.
-    s32 headersCount = 0;
-    net_header* headers = NULL;
-
-    if(call->token[0])
-    {
-        snprintf(call->authorization, sizeof call->authorization, "Bearer %s", call->token);
-        call->header = (net_header){"Authorization", call->authorization};
-        headers = &call->header;
-        headersCount = 1;
-    }
-
-    tic_net_request(fs->net, method, path, headers, headersCount, body, bodySize, shelfAnswer, call);
-}
-
-static s32 shelfStatus(const net_request_data* answer)
-{
-    return answer->type == net_request_done ? answer->done.status : 0;
-}
-
-// The server's own message when its body carries one, valid during the
-// answer's callback.
-static const char* shelfMessage(const net_request_data* answer, char* buffer, s32 size)
-{
-    if(answer->type != net_request_done || answer->done.data == NULL)
-        return NULL;
-
-    if(!json_parse((const char*)answer->done.data, answer->done.size))
-        return NULL;
-
-    if(!json_has("error", 0) || !json_string("error", 0, buffer, size))
-        return NULL;
-
-    return buffer;
-}
-
-static fs_result shelfFailure(s32 status, const char* message)
-{
-    switch(status)
-    {
-        case 401:
-#if defined(__EMSCRIPTEN__)
-            return (fs_result){FS_SESSION, "sign in on tic80.com"};
-#else
-            return (fs_result){FS_SESSION, "the session ended, use `login`"};
-#endif
-        case 404: return (fs_result){FS_NOT_FOUND, message ? message : "no such cart"};
-        case 409:
-        case 413: return (fs_result){FS_QUOTA, message ? message : "the shelf is full"};
-        case 0: return (fs_result){FS_OFFLINE, "the shelf needs a network"};
-        default: return (fs_result){FS_IO, message ? message : "the shelf request failed"};
-    }
-}
 
 static const fs_result ShelfRefused = {FS_DENIED, "the shelf is not signed in, use `login`"};
 
@@ -1916,6 +2051,20 @@ typedef struct
     void* data;
 } ShelfList;
 
+// The shelf's own fallback texts; a body the server sent still wins.
+static fs_result shelfFailure(s32 status, const char* message)
+{
+    switch(status)
+    {
+        case 401: return clientFailure(status, message);
+        case 404: return (fs_result){FS_NOT_FOUND, message ? message : "no such cart"};
+        case 409:
+        case 413: return (fs_result){FS_QUOTA, message ? message : "the shelf is full"};
+        case 0: return (fs_result){FS_OFFLINE, "the shelf needs a network"};
+        default: return (fs_result){FS_IO, message ? message : "the shelf request failed"};
+    }
+}
+
 static void onShelfList(const net_request_data* answer)
 {
     // A progress tick is not an answer: the request is still the transport's.
@@ -1923,9 +2072,9 @@ static void onShelfList(const net_request_data* answer)
         return;
 
     ShelfList* list = answer->calldata;
-    s32 status = shelfStatus(answer);
+    s32 status = clientStatus(answer);
     char error[256] = {0};
-    const char* message = shelfMessage(answer, error, sizeof error);
+    const char* message = clientMessage(answer, error, sizeof error);
 
     fs_usage usage = {0};
     fs_result result = (fs_result){FS_OK, NULL};
@@ -1986,7 +2135,7 @@ static void shelfList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
     list->onDone = onDone;
     list->data = data;
 
-    shelfRequest(fs, net_method_get, SHELF_API, NULL, 0, onShelfList, list);
+    clientRequest(fs, net_method_get, SHELF_API, NULL, 0, onShelfList, list);
 }
 
 typedef struct
@@ -2002,9 +2151,9 @@ static void onShelfLoad(const net_request_data* answer)
         return;
 
     ShelfLoad* load = answer->calldata;
-    s32 status = shelfStatus(answer);
+    s32 status = clientStatus(answer);
     char error[256] = {0};
-    const char* message = shelfMessage(answer, error, sizeof error);
+    const char* message = clientMessage(answer, error, sizeof error);
 
     if(status == 200)
         load->onDone(load->name, answer->done.data, answer->done.size, (fs_result){FS_OK, NULL}, load->data);
@@ -2014,8 +2163,10 @@ static void onShelfLoad(const net_request_data* answer)
     free(load);
 }
 
-static void shelfLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
+static void shelfLoad(tic_fs* fs, const char* path, s32 token, fs_load_done_cb onDone, void* data)
 {
+    (void)token;
+
     if(!shelfSignedIn(fs))
     {
         onDone(NULL, NULL, 0, ShelfRefused, data);
@@ -2034,7 +2185,7 @@ static void shelfLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void
     load->data = data;
     snprintf(load->name, sizeof load->name, "%s" CART_EXT, key);
 
-    shelfRequest(fs, net_method_get, url, NULL, 0, onShelfLoad, load);
+    clientRequest(fs, net_method_get, url, NULL, 0, onShelfLoad, load);
 }
 
 typedef struct
@@ -2051,9 +2202,9 @@ static void onShelfSave(const net_request_data* answer)
         return;
 
     ShelfSave* save = answer->calldata;
-    s32 status = shelfStatus(answer);
+    s32 status = clientStatus(answer);
     char error[256] = {0};
-    const char* message = shelfMessage(answer, error, sizeof error);
+    const char* message = clientMessage(answer, error, sizeof error);
 
     char key[TICNAME_MAX] = {0};
     s32 count = 0, maxCount = 0;
@@ -2137,7 +2288,7 @@ static void shelfSave(tic_fs* fs, const char* path, const void* bytes, s32 size,
         return;
     }
 
-    shelfRequest(fs, net_method_put, url, save->bytes, size, onShelfSave, save);
+    clientRequest(fs, net_method_put, url, save->bytes, size, onShelfSave, save);
 }
 
 typedef struct
@@ -2152,9 +2303,9 @@ static void onShelfDelete(const net_request_data* answer)
         return;
 
     ShelfDelete* del = answer->calldata;
-    s32 status = shelfStatus(answer);
+    s32 status = clientStatus(answer);
     char error[256] = {0};
-    const char* message = shelfMessage(answer, error, sizeof error);
+    const char* message = clientMessage(answer, error, sizeof error);
 
     s32 count = 0, maxCount = 0;
     s64 bytes = 0, maxBytes = 0;
@@ -2201,7 +2352,7 @@ static void shelfDelete(tic_fs* fs, const char* path, fs_done_cb onDone, void* d
     del->onDone = onDone;
     del->data = data;
 
-    shelfRequest(fs, net_method_delete, url, NULL, 0, onShelfDelete, del);
+    clientRequest(fs, net_method_delete, url, NULL, 0, onShelfDelete, del);
 }
 
 static void shelfStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void* data)
@@ -2248,9 +2399,9 @@ static void onShelfCover(const net_request_data* answer)
         return;
 
     ShelfCover* cover = answer->calldata;
-    s32 status = shelfStatus(answer);
+    s32 status = clientStatus(answer);
     char error[256] = {0};
-    const char* message = shelfMessage(answer, error, sizeof error);
+    const char* message = clientMessage(answer, error, sizeof error);
 
     if(status == 200)
     {
@@ -2265,8 +2416,10 @@ static void onShelfCover(const net_request_data* answer)
     free(cover);
 }
 
-static void shelfCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
+static void shelfCover(tic_fs* fs, const char* path, s32 token, fs_cover_done_cb onDone, void* data)
 {
+    (void)token;
+
     if(!shelfSignedIn(fs))
     {
         onDone(NULL, 0, ShelfRefused, data);
@@ -2290,7 +2443,7 @@ static void shelfCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, vo
     cover->onDone = onDone;
     cover->data = data;
 
-    shelfRequest(fs, net_method_get, url, NULL, 0, onShelfCover, cover);
+    clientRequest(fs, net_method_get, url, NULL, 0, onShelfCover, cover);
 }
 
 static const fs_mount_ops ShelfOps = {
@@ -2311,14 +2464,14 @@ static const fs_mount_ops* fsMount(tic_fs* fs)
     if(fs->mount)
         return fs->mount;
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-    if(isPublic(fs))
-        return &SiteOps;
-#endif
-
 #if defined(TIC_SHELF_MOUNT)
     if(isShelf(fs))
         return &ShelfOps;
+#endif
+
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+    if(isPublic(fs))
+        return &SiteOps;
 #endif
 
     return &LocalOps;
@@ -2336,7 +2489,12 @@ void tic_fs_list(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_list_d
 
 void tic_fs_load(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
 {
-    fsMount(fs)->load(fs, path, onDone, data);
+    tic_fs_load_token(fs, path, 0, onDone, data);
+}
+
+void tic_fs_load_token(tic_fs* fs, const char* path, s32 token, fs_load_done_cb onDone, void* data)
+{
+    fsMount(fs)->load(fs, path, token, onDone, data);
 }
 
 void tic_fs_save(tic_fs* fs, const char* path, const void* bytes, s32 size, fs_save_done_cb onDone, void* data)
@@ -2366,7 +2524,12 @@ void tic_fs_openfolder(tic_fs* fs, const char* path, fs_done_cb onDone, void* da
 
 void tic_fs_cover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
 {
-    fsMount(fs)->cover(fs, path, onDone, data);
+    tic_fs_cover_token(fs, path, 0, onDone, data);
+}
+
+void tic_fs_cover_token(tic_fs* fs, const char* path, s32 token, fs_cover_done_cb onDone, void* data)
+{
+    fsMount(fs)->cover(fs, path, token, onDone, data);
 }
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
@@ -2375,47 +2538,31 @@ typedef struct
     fs_list_callback item;
     fs_done_callback done;
     void* data;
-} NetDirData;
+} SiteLegacy;
 
-static void onDirResponse(const net_get_data* netData)
+// The legacy listing replays the parsed listing, so both listings cannot diverge.
+static void onSiteLegacyListing(tic_fs* fs, SiteEntry* items, s32 count, fs_result result, void* data)
 {
-    NetDirData* netDirData = (NetDirData*)netData->calldata;
+    (void)fs;
 
-    if(netData->type == net_get_done)
+    SiteLegacy* legacy = data;
+
+    if(result.code == FS_OK)
     {
-        if(json_parse((char*)netData->done.data, netData->done.size))
+        for(s32 i = 0; i < count; i++)
         {
-            typedef char string[TICNAME_MAX];
+            SiteEntry* entry = &items[i];
 
-            string name, hash, filename;
-
-            s32 folders = json_array("folders", 0);
-            for(s32 i = 0, size = json_array_size(folders); i < size; i++)
-            {
-                if(json_string("name", json_array_item(folders, i), name, sizeof name))
-                    netDirData->item(name, NULL, NULL, 0, netDirData->data, true);
-            }
-
-            s32 files = json_array("files", 0);
-            for(s32 i = 0, size = json_array_size(files); i < size; i++)
-            {
-                s32 item = json_array_item(files, i);
-
-                if(json_string("name", item, name, sizeof name) && json_string("hash", item, hash, sizeof hash) && json_string("filename", item, filename, sizeof filename))
-                    netDirData->item(filename, name, hash, json_int("id", item), netDirData->data, false);
-            }
+            if(!legacy->item(entry->name, entry->title[0] ? entry->title : NULL,
+                             entry->dir ? NULL : entry->hash, entry->dir ? 0 : entry->id,
+                             legacy->data, entry->dir))
+                break;
         }
     }
 
-    switch(netData->type)
-    {
-        case net_get_done:
-        case net_get_error:
-            netDirData->done(netDirData->data);
-            free(netDirData);
-            break;
-        default: break;
-    }
+    legacy->done(legacy->data);
+    free(items);
+    free(legacy);
 }
 #endif
 
@@ -2530,25 +2677,6 @@ static void shelfLegacyDone(const fs_usage* usage, fs_result result, void* data)
 }
 #endif
 
-#if defined(TIC_SHELF_MOUNT)
-// The root lists the mount in place of a local folder of its name.
-typedef struct
-{
-    fs_list_callback item;
-    void* data;
-} RootFilter;
-
-static bool rootFilterItem(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
-{
-    RootFilter* filter = data;
-
-    if(strcmp(name, TIC_SHELF_DIR) == 0)
-        return true;
-
-    return filter->item(name, title, hash, id, filter->data, dir);
-}
-#endif
-
 void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data)
 {
 #ifndef BAREMETALPI
@@ -2557,30 +2685,6 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
         onDone(data);
         return;
     }
-
-#if defined(TIC_SHELF_MOUNT)
-    if(isRoot(fs) && !onItem(TIC_SHELF_DIR, NULL, NULL, 0, data, true))
-    {
-        onDone(data);
-        return;
-    }
-#endif
-
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-    if(isPublic(fs))
-    {
-        // An old-style listing still invalidates the hash cache it could contradict.
-        siteCacheClear(fs);
-
-        char request[TICNAME_MAX];
-        snprintf(request, sizeof request, "/json?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
-
-        NetDirData netDirData = {onItem, onDone, data};
-        tic_net_get(fs->net, request, onDirResponse, MOVE(netDirData));
-
-        return;
-    }
-#endif
 
 #if defined(TIC_SHELF_MOUNT)
     if(isShelf(fs))
@@ -2596,22 +2700,29 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
     }
 #endif
 
-#endif
-
-    const char* path = tic_fs_path(fs, "");
-
-#if defined(TIC_SHELF_MOUNT)
-    if(isRoot(fs))
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+    if(isPublic(fs))
     {
-        RootFilter filter = {onItem, data};
-        fs_enum(path, rootFilterItem, &filter);
+        // An old-style listing still invalidates the hash cache it could contradict.
+        siteCacheClear(fs);
+
+        SiteLegacy* legacy = calloc(1, sizeof(SiteLegacy));
+        legacy->item = onItem;
+        legacy->done = onDone;
+        legacy->data = data;
+
+        char dir[TICNAME_MAX];
+        siteDirOf(fs, "", dir, sizeof dir);
+
+        siteFetchListing(fs, dir, onSiteLegacyListing, legacy);
+
+        return;
     }
-    else
-        fs_enum(path, onItem, data);
-#else
-    fs_enum(path, onItem, data);
 #endif
 
+#endif
+
+    fs_enum(tic_fs_path(fs, ""), onItem, data);
     onDone(data);
 }
 
@@ -2766,10 +2877,6 @@ bool tic_fs_isdir(tic_fs* fs, const char* name)
 {
     if(*name == '.') return false;
     if(isRoot(fs) && strcmp(name, PublicDir) == 0) return true;
-
-#if defined(TIC_SHELF_MOUNT)
-    if(isRoot(fs) && strcmp(name, TIC_SHELF_DIR) == 0) return true;
-#endif
 
 #if defined(BAREMETALPI)
     dbg("fsIsDirSync %s\n", name);

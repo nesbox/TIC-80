@@ -138,7 +138,7 @@ static void asyncLoadDone(const char* name, const u8* bytes, s32 size, fs_result
     free(load);
 }
 
-void rom_load_cart_async(const RomDeps* deps, const char* path, fs_done_cb done, void* data)
+void rom_load_cart_async(const RomDeps* deps, const char* path, s32 token, fs_done_cb done, void* data)
 {
     LoadCartData* load = malloc(sizeof(LoadCartData));
 
@@ -151,7 +151,7 @@ void rom_load_cart_async(const RomDeps* deps, const char* path, fs_done_cb done,
 
     *load = (LoadCartData){deps, done, data};
 
-    tic_fs_load(deps->fs, path, asyncLoadDone, load);
+    tic_fs_load_token(deps->fs, path, token, asyncLoadDone, load);
 }
 
 // The launch and a drop load a local path; a remote answer would come later.

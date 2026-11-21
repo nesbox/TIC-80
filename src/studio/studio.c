@@ -1020,9 +1020,15 @@ void gotoCode(Studio* studio)
 #if defined(BUILD_SURF)
 // The browser's host side: the cart loads and the exits it asks for, as
 // one-line wrappers, so the screen keeps its decisions.
-static void surfLoadCart(void* host, const char* name, fs_done_cb done, void* data)
+static void surfLoadCart(void* host, const char* name, s32 token, fs_done_cb done, void* data)
 {
-    studioLoadCartAsync(host, name, done, data);
+    studioLoadCartAsync(host, name, token, done, data);
+}
+
+// The like carries the item's token; the filesystem adds the account's bearer.
+static void surfLikeCart(void* host, s32 token, SurfLikeDone done, void* data)
+{
+    tic_fs_like(studio_fs(host), token, done, data);
 }
 
 static void surfAutoSave(void* host)
@@ -1099,6 +1105,7 @@ static SurfDeps surfDeps(Studio* studio)
         .cartChanged = surfCartChanged,
         .confirmLoadCart = surfConfirmLoadCart,
         .openItemPage = surfOpenPage,
+        .likeCart = surfLikeCart,
         .run = surfRun,
         .exit = surfExit,
         .isActive = surfIsActive,
@@ -1264,16 +1271,16 @@ static void menuEnter(Studio* studio, EditorMode from)
 static void consoleEnter(Studio* studio, EditorMode from)
 {
 #if defined(BUILD_SURF)
-    // The console hands the browser over: end its command, or its active flag
-    // stays false and the shortcuts it gates never come back.
+    // The console hands the browser over: end its command so the shortcuts return.
     if(from == TIC_SURF_MODE)
+    {
         console_done(studio->console);
-    else
-        (void)studio;
-#else
-    (void)studio;
-    (void)from;
+        return;
+    }
 #endif
+
+    console_refresh(studio->console);
+    (void)from;
 }
 
 static void worldEnter(Studio* studio, EditorMode from)
@@ -3197,9 +3204,9 @@ bool studioLoadCart(Studio* studio, const char* path)
     return rom_load_cart(&studio->romDeps, path);
 }
 
-void studioLoadCartAsync(Studio* studio, const char* path, fs_done_cb done, void* data)
+void studioLoadCartAsync(Studio* studio, const char* path, s32 token, fs_done_cb done, void* data)
 {
-    rom_load_cart_async(&studio->romDeps, path, done, data);
+    rom_load_cart_async(&studio->romDeps, path, token, done, data);
 }
 
 void studioReloadCart(Studio* studio)

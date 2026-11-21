@@ -722,6 +722,8 @@ static void commandDoneLine(Console* console, bool newLine)
 
         char dir[TICNAME_MAX];
         tic_fs_dir(console->fs, dir);
+        snprintf(console->promptDir, sizeof console->promptDir, "%s", dir);
+
         if(strlen(dir))
             printBack(console, dir);
 
@@ -1623,7 +1625,7 @@ static bool printFilename(const fs_item* item, void* ctx)
     PrintFileNameData* data = ctx;
 
     data->items = realloc(data->items, (data->count + 1) * sizeof *data->items);
-    data->items[data->count++] = (FileItem){strdup(item->dir && item->title ? item->title : item->name), item->dir};
+    data->items[data->count++] = (FileItem){strdup(item->name), item->dir};
 
     return true;
 }
@@ -1684,7 +1686,8 @@ static void onDirDone(const fs_usage* usage, fs_result result, void* ctx)
         free((void*)item->name);
     }
 
-    if(data->count == 0)
+    // The demo writes the working directory's files directly: only a local folder takes it.
+    if(data->count == 0 && fs_isdir(tic_fs_path(console->fs, "")))
     {
         printBack(console, "\n\nuse ");
         printFront(console, "DEMO");
@@ -5699,6 +5702,19 @@ void console_answer(Console* console, const ConsoleAnswer* answer)
 void console_done(Console* console)
 {
     commandDone(console);
+}
+
+// Enters the console: a path a browser left behind gets a fresh prompt.
+void console_refresh(Console* console)
+{
+    if(console->args.cli || console->fsPending || console->counting)
+        return;
+
+    char dir[TICNAME_MAX];
+    tic_fs_dir(console->fs, dir);
+
+    if(strcmp(dir, console->promptDir) != 0)
+        commandDoneLine(console, true);
 }
 
 bool console_active(const Console* console)

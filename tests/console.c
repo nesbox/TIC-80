@@ -7,7 +7,7 @@
 #include "studio/screens/console.h"
 #include "studio/account.h"
 #include "studio/fs.h"
-#include "studio/fs_internal.h"
+#include "studio/fsmount.h"
 #include "core/core.h"
 #include "tools.h"
 #include <assert.h>
@@ -1118,9 +1118,10 @@ static void fakeListOp(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_
         fakePump();
 }
 
-static void fakeLoadOp(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
+static void fakeLoadOp(tic_fs* fs, const char* path, s32 token, fs_load_done_cb onDone, void* data)
 {
     (void)fs;
+    (void)token;
     fakePush(FakeLoad, path, data)->onLoadDone = onDone;
 
     if(Fake.inlineAnswers)
@@ -1168,10 +1169,11 @@ static void fakeOpenOp(tic_fs* fs, const char* path, fs_done_cb onDone, void* da
     (void)path;
 }
 
-static void fakeCoverOp(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
+static void fakeCoverOp(tic_fs* fs, const char* path, s32 token, fs_cover_done_cb onDone, void* data)
 {
     (void)fs;
     (void)path;
+    (void)token;
     onDone(NULL, 0, (fs_result){FS_NOT_FOUND, "no cover"}, data);
 }
 
@@ -1478,11 +1480,50 @@ static void hostBoot(Host* host)
     hostAnswer(host, (ConsoleAnswer){.name = ""});
 }
 
+// The site's root listing a cd into the shelf asks for; the parser adds the
+// shelf row to an empty answer.
+static void answerSiteRoot(Host* host)
+{
+    for(s32 i = 0; i < 8 && !netCallback; i++)
+        hostTick(host);
+
+    assert(netCallback);
+    assert(strcmp(netUrl, "/json?fn=dir&path=") == 0);
+
+    answerNetDone("{\"folders\":[],\"files\":[]}", (s32)strlen("{\"folders\":[],\"files\":[]}"));
+}
+
+// The command that enters the site and then its shelf folder.
+static void shelfCommand(char* command, s32 size, const char* rest)
+{
+    snprintf(command, size, "cd /%s & cd shelf & %s", TIC_HOST, rest);
+}
+
 // The first frame of a session: the launch asks for the cart's name.
 static void hostFreeEx(Host* host)
 {
     tic_fs_deldir(host->fs, "");
     hostFree(host);
+}
+
+// A prompt printed before the browser moved the working directory is refreshed
+// when the console comes back.
+static void testPromptRefresh(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "cd /" TIC_HOST);
+    hostBoot(host);
+
+    for(s32 i = 0; i < 8 && !said(host, TIC_HOST ">"); i++)
+        hostTick(host);
+
+    assert(said(host, TIC_HOST ">"));
+
+    tic_fs_changedir(host->fs, TIC_SHELF_DIR);
+    console_refresh(host->console);
+    assert(said(host, TIC_HOST "/" TIC_SHELF_DIR ">"));
+
+    hostFree(host);
+    puts("prompt refresh ok");
 }
 
 static void onPairingNoop(account_pairing_state state, const char* text, void* data)
@@ -1621,13 +1662,54 @@ static void testShelfLogout(void)
 }
 
 // The listing shows the keys with the cart extension and the server's usage.
+// The demo hint belongs to a local folder; the shelf does not take the command.
+static void testDemoHint(void)
+{
+    {
+        Host* host = hostNewAt(consoleRoot(), "mkdir empty & cd empty & dir");
+        hostBoot(host);
+
+        for(s32 i = 0; i < 8 && !said(host, "use DEMO"); i++)
+            hostTick(host);
+
+        assert(said(host, "use DEMO"));
+        hostFreeEx(host);
+    }
+
+    {
+        char command[TICNAME_MAX];
+        shelfCommand(command, sizeof command, "dir");
+
+        Host* host = hostNewAt(consoleRoot(), command);
+        signIn(host);
+        hostBoot(host);
+        answerSiteRoot(host);
+
+        for(s32 i = 0; i < 8 && !requestHeld(); i++)
+            hostTick(host);
+
+        assert(requestHeld());
+        answerRequest(200, "{\"carts\":[],\"count\":0,\"bytes\":0,\"max_count\":100,\"max_bytes\":33554432}");
+
+        assert(said(host, "0/100 carts"));
+        assert(!said(host, "use DEMO"));
+
+        hostFreeEx(host);
+    }
+
+    puts("demo hint ok");
+}
+
 static void testShelfDir(void)
 {
-    // The menubar's shortcut runs the absolute form.
-    Host* host = hostNewAt(consoleRoot(), "cd /shelf & dir");
+    char command[TICNAME_MAX];
+    shelfCommand(command, sizeof command, "dir");
+
+    Host* host = hostNewAt(consoleRoot(), command);
     signIn(host);
 
     hostBoot(host);
+    answerSiteRoot(host);
 
     for(s32 i = 0; i < 8 && !requestHeld(); i++)
         hostTick(host);
@@ -1648,39 +1730,60 @@ static void testShelfDir(void)
     puts("console shelf dir ok");
 }
 
-// The root names the mount [shelf] signed in and signed out alike.
+// The filesystem root lists the site only; the site's root names the mount
+// [shelf] signed in and signed out alike.
 static void testShelfRootListing(void)
 {
-    Host* host = hostNewAt(consoleRoot(), "dir");
-    signIn(host);
-
-    hostBoot(host);
-    hostTick(host);
-
     char site[TICNAME_MAX + 3];
     snprintf(site, sizeof site, "[%s]", TIC_HOST);
 
-    assert(said(host, "[shelf]"));
-    assert(said(host, site));
+    for(s32 account = 0; account < 2; account++)
+    {
+        Host* host = hostNewAt(consoleRoot(), "dir");
 
-    hostFreeEx(host);
+        if(account)
+            signIn(host);
 
-    host = hostNewAt(consoleRoot(), "dir");
-    hostBoot(host);
-    hostTick(host);
+        hostBoot(host);
+        hostTick(host);
 
-    assert(said(host, "[shelf]"));
+        assert(said(host, site));
+        assert(!said(host, "[shelf]"));
 
-    hostFreeEx(host);
+        hostFreeEx(host);
+    }
+
+    for(s32 account = 0; account < 2; account++)
+    {
+        char command[TICNAME_MAX + 16];
+        snprintf(command, sizeof command, "cd /%s & dir", TIC_HOST);
+
+        Host* host = hostNewAt(consoleRoot(), command);
+
+        if(account)
+            signIn(host);
+
+        hostBoot(host);
+        answerSiteRoot(host);
+
+        assert(said(host, "[shelf]"));
+
+        hostFreeEx(host);
+    }
+
     puts("console shelf root ok");
 }
 
-// Signed out, the shelf is listed and can be entered; its listing answers the
-// sign-in hint.
+// Signed out, the site's root lists the shelf and the mount can be entered;
+// its listing answers the sign-in hint.
 static void testShelfRootSignedOut(void)
 {
-    Host* host = hostNewAt(consoleRoot(), "cd shelf & dir");
+    char command[TICNAME_MAX];
+    shelfCommand(command, sizeof command, "dir");
+
+    Host* host = hostNewAt(consoleRoot(), command);
     hostBoot(host);
+    answerSiteRoot(host);
 
     for(s32 i = 0; i < 8 && !said(host, "the shelf is not signed in"); i++)
         hostTick(host);
@@ -1691,7 +1794,7 @@ static void testShelfRootSignedOut(void)
 
     char dir[TICNAME_MAX];
     tic_fs_dir(host->fs, dir);
-    assert(strcmp(dir, "shelf") == 0);
+    assert(strcmp(dir, TIC_HOST "/" TIC_SHELF_DIR) == 0);
 
     hostFreeEx(host);
     puts("console shelf signed out ok");
@@ -1699,10 +1802,14 @@ static void testShelfRootSignedOut(void)
 
 static void testShelfDelete(void)
 {
-    Host* host = hostNewAt(consoleRoot(), "cd shelf & del my-game");
+    char command[TICNAME_MAX];
+    shelfCommand(command, sizeof command, "del my-game");
+
+    Host* host = hostNewAt(consoleRoot(), command);
     signIn(host);
 
     hostBoot(host);
+    answerSiteRoot(host);
 
     ConsoleAsk ask = {0};
 
@@ -1730,10 +1837,14 @@ static void testShelfDelete(void)
 
 static void testShelfLoad(void)
 {
-    Host* host = hostNewAt(consoleRoot(), "cd shelf & load my-game.tic");
+    char command[TICNAME_MAX];
+    shelfCommand(command, sizeof command, "load my-game.tic");
+
+    Host* host = hostNewAt(consoleRoot(), command);
     signIn(host);
 
     hostBoot(host);
+    answerSiteRoot(host);
 
     for(s32 i = 0; i < 8 && !requestHeld(); i++)
         hostTick(host);
@@ -1757,10 +1868,14 @@ static void testShelfLoad(void)
 
 static void testShelfLoadMissing(void)
 {
-    Host* host = hostNewAt(consoleRoot(), "cd shelf & load gone");
+    char command[TICNAME_MAX];
+    shelfCommand(command, sizeof command, "load gone");
+
+    Host* host = hostNewAt(consoleRoot(), command);
     signIn(host);
 
     hostBoot(host);
+    answerSiteRoot(host);
 
     for(s32 i = 0; i < 8 && !requestHeld(); i++)
         hostTick(host);
@@ -1775,10 +1890,14 @@ static void testShelfLoadMissing(void)
 // The save ask is the host's, and it stays pending until the answer comes.
 static void testShelfSave(void)
 {
-    Host* host = hostNewAt(consoleRoot(), "cd shelf & save my-cart & dir");
+    char command[TICNAME_MAX];
+    shelfCommand(command, sizeof command, "save my-cart & dir");
+
+    Host* host = hostNewAt(consoleRoot(), command);
     signIn(host);
 
     hostBoot(host);
+    answerSiteRoot(host);
 
     ConsoleAsk ask = {0};
 
@@ -1808,10 +1927,14 @@ static void testShelfSave(void)
 // A 401 ends the session and the next listing points at login.
 static void testShelfDirErrors(void)
 {
-    Host* host = hostNewAt(consoleRoot(), "cd shelf & dir");
+    char command[TICNAME_MAX];
+    shelfCommand(command, sizeof command, "dir");
+
+    Host* host = hostNewAt(consoleRoot(), command);
     signIn(host);
 
     hostBoot(host);
+    answerSiteRoot(host);
 
     for(s32 i = 0; i < 8 && !requestHeld(); i++)
         hostTick(host);
@@ -1920,6 +2043,8 @@ int main(void)
     testShelfDirErrors();
     testDelMissingSite();
     testSiteAbsoluteCd();
+    testPromptRefresh();
+    testDemoHint();
     testFakeDir();
     testFakeCd();
     testFakeDelRefused();

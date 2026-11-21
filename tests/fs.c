@@ -7,7 +7,7 @@
  * Target fs-test in cmake/tests.cmake; `ctest -R fs-test` runs it.
  */
 #include "studio/fs.h"
-#include "studio/fs_internal.h"
+#include "studio/fsmount.h"
 #include "studio/net.h"
 #include "studio/paths.h"
 #include "studio/system.h"
@@ -758,9 +758,10 @@ static void fakeList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_li
     op->onListDone = onDone;
 }
 
-static void fakeLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
+static void fakeLoad(tic_fs* fs, const char* path, s32 token, fs_load_done_cb onDone, void* data)
 {
     (void)fs;
+    (void)token;
     fakePush(FakeLoad, path, data)->onLoad = onDone;
 }
 
@@ -800,9 +801,10 @@ static void fakeOpen(tic_fs* fs, const char* path, fs_done_cb onDone, void* data
     fakePush(FakeOpen, path, data)->onDone = onDone;
 }
 
-static void fakeCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
+static void fakeCover(tic_fs* fs, const char* path, s32 token, fs_cover_done_cb onDone, void* data)
 {
     (void)fs;
+    (void)token;
     fakePush(FakeCover, path, data)->onCover = onDone;
 }
 
@@ -1156,6 +1158,98 @@ static void testLocalListOrder(void)
     puts("local list order ok");
 }
 
+// The root has no mount name: a local folder called shelf is just a folder.
+static void testLocalShelfFolder(void)
+{
+    char* root = makeRoot("tic80-fs-local-shelf");
+    tic_fs* fs = tic_fs_create(root, NULL);
+    assert(fs);
+
+    Contract contract = {fs, false};
+
+    {
+        Answer list = listPath(&contract, "");
+        assert(list.result.code == FS_OK);
+        assert(hasItem(&list, TIC_HOST));
+        assert(!hasItem(&list, TIC_SHELF_DIR));
+
+        Answer stat = statPath(&contract, TIC_SHELF_DIR);
+        assert(stat.result.code == FS_NOT_FOUND);
+
+        stat = statPath(&contract, "/" TIC_SHELF_DIR);
+        assert(stat.result.code == FS_NOT_FOUND);
+    }
+
+    {
+        assert(makeDir(&contract, TIC_SHELF_DIR).result.code == FS_OK);
+
+        Answer list = listPath(&contract, "");
+        assert(list.result.code == FS_OK);
+        assert(hasItem(&list, TIC_HOST));
+
+        s32 shelves = 0;
+        for(s32 i = 0; i < list.count; i++)
+            if(strcmp(list.items[i].name, TIC_SHELF_DIR) == 0)
+                shelves++;
+
+        assert(shelves == 1);
+
+        Answer stat = statPath(&contract, TIC_SHELF_DIR);
+        assert(stat.result.code == FS_OK);
+        assert(stat.item.dir);
+
+        stat = statPath(&contract, "/" TIC_SHELF_DIR);
+        assert(stat.result.code == FS_OK);
+        assert(stat.item.dir);
+
+        // It enters and lists as a local folder.
+        tic_fs_changedir(fs, TIC_SHELF_DIR);
+        char dir[TICNAME_MAX];
+        tic_fs_dir(fs, dir);
+        assert(strcmp(dir, TIC_SHELF_DIR) == 0);
+
+        Answer inside = listPath(&contract, "");
+        assert(inside.result.code == FS_OK);
+        assert(inside.count == 0);
+
+        tic_fs_homedir(fs);
+    }
+
+    tic_fs_deldir(fs, TIC_SHELF_DIR);
+    tic_fs_deldir(fs, "");
+    puts("local shelf folder ok");
+}
+
+// A local folder called likes is just a folder; the private source is the site's.
+static void testLocalLikesFolder(void)
+{
+    char* root = makeRoot("tic80-fs-local-likes");
+    tic_fs* fs = tic_fs_create(root, NULL);
+    assert(fs);
+
+    Contract contract = {fs, false};
+
+    assert(makeDir(&contract, "likes").result.code == FS_OK);
+
+    Answer list = listPath(&contract, "");
+    assert(list.result.code == FS_OK);
+    assert(hasItem(&list, "likes"));
+
+    tic_fs_changedir(fs, "likes");
+    char dir[TICNAME_MAX];
+    tic_fs_dir(fs, dir);
+    assert(strcmp(dir, "likes") == 0);
+
+    Answer inside = listPath(&contract, "");
+    assert(inside.result.code == FS_OK);
+    assert(inside.count == 0);
+
+    tic_fs_homedir(fs);
+    tic_fs_deldir(fs, "likes");
+    tic_fs_deldir(fs, "");
+    puts("local likes folder ok");
+}
+
 static void testFakeRemoteContract(void)
 {
     char* root = makeRoot("tic80-fs-remote");
@@ -1355,14 +1449,20 @@ static void testSiteListing(void)
         answerJson(SiteListing);
         assert(list.done);
         assert(list.result.code == FS_OK);
-        assert(list.count == 2);
+        assert(list.count == 4);
         assert(strcmp(list.items[0].name, "games") == 0 && list.items[0].dir);
-        assert(strcmp(list.items[1].name, "demo.tic") == 0 && !list.items[1].dir);
-        assert(strcmp(list.items[1].title, "Demo") == 0);
+        assert(strcmp(list.items[1].name, TIC_SHELF_DIR) == 0 && list.items[1].dir);
+        assert(strcmp(list.items[1].title, "Shelf") == 0);
+        assert(strcmp(list.items[2].name, "likes") == 0 && list.items[2].dir);
+        assert(strcmp(list.items[2].title, "Likes") == 0);
+        assert(strcmp(list.items[3].name, "demo.tic") == 0 && !list.items[3].dir);
+        assert(strcmp(list.items[3].title, "Demo") == 0);
 
         // The site's own id travels as an opaque token; a folder has none.
         assert(list.items[0].token == 0);
-        assert(list.items[1].token == 7);
+        assert(list.items[1].token == 0);
+        assert(list.items[2].token == 0);
+        assert(list.items[3].token == 7);
 
         assert(!list.hasUsage);
     }
@@ -1419,6 +1519,95 @@ static void testSiteListing(void)
     puts("site listing ok");
 }
 
+static const char SiteFoldersListing[] =
+    "{\"folders\":[{\"name\":\"Play\"},{\"name\":\"Devs\"},{\"name\":\"WIP\"}],"
+    "\"files\":[{\"name\":\"Demo\",\"hash\":\"abc\",\"filename\":\"demo.tic\",\"id\":7}]}";
+
+static const char SiteCategoryListing[] =
+    "{\"folders\":[{\"name\":\"New\"},{\"name\":\"Recent\"}],"
+    "\"files\":[{\"name\":\"Top Cart\",\"hash\":\"top\",\"filename\":\"top.tic\",\"id\":9}]}";
+
+static const char SiteDevListing[] = "{\"folders\":[{\"name\":\"Nesbox\"}],\"files\":[]}";
+
+// The site's folder rows are paths: a lowercase name and the server's title.
+static void testSiteFolderNames(void)
+{
+    Site site;
+    siteSetup(&site);
+
+    {
+        Answer list = {0};
+        tic_fs_list(site.fs, "", onItem, onListDone, &list);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+        answerJson(SiteFoldersListing);
+
+        assert(list.result.code == FS_OK);
+        assert(list.count == 6);
+
+        assert(strcmp(list.items[0].name, "play") == 0 && list.items[0].dir);
+        assert(strcmp(list.items[0].title, "Play") == 0);
+        assert(strcmp(list.items[1].name, "devs") == 0);
+        assert(strcmp(list.items[1].title, "Devs") == 0);
+        assert(strcmp(list.items[2].name, "wip") == 0);
+        assert(strcmp(list.items[2].title, "WIP") == 0);
+
+        // The site's root carries the shelf after the server's folders.
+        assert(strcmp(list.items[3].name, TIC_SHELF_DIR) == 0);
+        assert(strcmp(list.items[3].title, "Shelf") == 0);
+        assert(list.items[3].dir);
+
+        // And the likes beside it.
+        assert(strcmp(list.items[4].name, "likes") == 0);
+        assert(strcmp(list.items[4].title, "Likes") == 0);
+        assert(list.items[4].dir);
+
+        // A cart keeps the delivered name and title.
+        assert(strcmp(list.items[5].name, "demo.tic") == 0);
+        assert(strcmp(list.items[5].title, "Demo") == 0);
+        assert(!list.items[5].dir);
+    }
+
+    // A category's sorts are New and Recent; its Top carts are files.
+    {
+        tic_fs_changedir(site.fs, "play");
+
+        Answer list = {0};
+        tic_fs_list(site.fs, "", onItem, onListDone, &list);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=play") == 0);
+        answerJson(SiteCategoryListing);
+
+        assert(list.result.code == FS_OK);
+        assert(list.count == 3);
+        assert(strcmp(list.items[0].name, "new") == 0);
+        assert(strcmp(list.items[0].title, "New") == 0);
+        assert(strcmp(list.items[1].name, "recent") == 0);
+        assert(strcmp(list.items[1].title, "Recent") == 0);
+        assert(strcmp(list.items[2].name, "top.tic") == 0);
+        assert(!hasItem(&list, "top"));
+        assert(!hasItem(&list, "Top"));
+
+        tic_fs_dirback(site.fs);
+    }
+
+    // A dev's folder keeps the account's spelling in the title.
+    {
+        tic_fs_changedir(site.fs, "devs");
+
+        Answer list = {0};
+        tic_fs_list(site.fs, "", onItem, onListDone, &list);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=devs") == 0);
+        answerJson(SiteDevListing);
+
+        assert(list.result.code == FS_OK);
+        assert(list.count == 1);
+        assert(strcmp(list.items[0].name, "nesbox") == 0);
+        assert(strcmp(list.items[0].title, "Nesbox") == 0);
+    }
+
+    siteTeardown(&site);
+    puts("site folder names ok");
+}
+
 static const char UpdatedSiteListing[] =
     "{\"folders\":[],\"files\":["
     "{\"name\":\"Demo\",\"hash\":\"def\",\"filename\":\"demo.tic\",\"id\":7},"
@@ -1428,17 +1617,26 @@ typedef struct
 {
     s32 items;
     bool done;
+    char names[8][TICNAME_MAX];
+    char titles[8][TICNAME_MAX];
+    bool dirs[8];
 } LegacyListing;
 
 static bool onLegacyItem(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
-    (void)name;
-    (void)title;
     (void)hash;
     (void)id;
-    (void)dir;
 
-    ((LegacyListing*)data)->items++;
+    LegacyListing* legacy = data;
+
+    if(legacy->items < (s32)COUNT_OF(legacy->names))
+    {
+        snprintf(legacy->names[legacy->items], TICNAME_MAX, "%s", name ? name : "");
+        snprintf(legacy->titles[legacy->items], TICNAME_MAX, "%s", title ? title : "");
+        legacy->dirs[legacy->items] = dir;
+    }
+
+    legacy->items++;
     return true;
 }
 
@@ -1498,35 +1696,38 @@ static void testSiteLegacyListing(void)
         assert(list.result.code == FS_OK);
     }
 
-    // The legacy listing sees a newer catalog; its cached hashes must not survive.
+    // The legacy listing sees a newer catalog and replays it into the same
+    // parser and cache; the cached hashes are the newer ones.
     {
         LegacyListing legacy = {0};
         tic_fs_enum(site.fs, onLegacyItem, onLegacyDone, &legacy);
         assert(netCallbackPending());
+        assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
         answerJson(UpdatedSiteListing);
         assert(legacy.done);
-        assert(legacy.items == 2);
+        assert(legacy.items == 4); // the injected shelf and likes rows and two carts
     }
 
-    // The load lists again: the old hash is gone and the new one is fetched.
+    // The load resolves from the cache the legacy listing left: only the cart
+    // is fetched.
     {
         static const u8 Cart[] = {9, 8, 7};
         Answer load = {0};
 
         tic_fs_load(site.fs, "demo.tic", onLoad, &load);
-        assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
-        answerJson(UpdatedSiteListing);
         assert(strcmp(NetUrl, "/cart/def/demo.tic") == 0);
         answerData(Cart, sizeof Cart);
         assert(load.result.code == FS_OK);
     }
 
-    // A cart the newer listing added is found from the listing the load read.
+    // The next load lists again and finds the cart the newer listing added.
     {
         static const u8 Cart[] = {6, 5};
         Answer load = {0};
 
         tic_fs_load(site.fs, "new.tic", onLoad, &load);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+        answerJson(UpdatedSiteListing);
         assert(strcmp(NetUrl, "/cart/ghi/new.tic") == 0);
         answerData(Cart, sizeof Cart);
         assert(load.result.code == FS_OK);
@@ -1534,6 +1735,49 @@ static void testSiteLegacyListing(void)
 
     siteTeardown(&site);
     puts("site legacy listing ok");
+}
+
+// The legacy enumeration presents the same rows as the path-based listing.
+static void testSiteLegacyNames(void)
+{
+    Site site;
+    siteSetup(&site);
+
+    LegacyListing legacy = {0};
+    tic_fs_enum(site.fs, onLegacyItem, onLegacyDone, &legacy);
+    assert(netCallbackPending());
+    assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+    answerJson(SiteFoldersListing);
+
+    assert(legacy.done);
+    assert(legacy.items == 6);
+    assert(strcmp(legacy.names[0], "play") == 0 && legacy.dirs[0]);
+    assert(strcmp(legacy.titles[0], "Play") == 0);
+    assert(strcmp(legacy.names[1], "devs") == 0);
+    assert(strcmp(legacy.titles[1], "Devs") == 0);
+    assert(strcmp(legacy.names[2], "wip") == 0);
+    assert(strcmp(legacy.titles[2], "WIP") == 0);
+    assert(strcmp(legacy.names[3], TIC_SHELF_DIR) == 0 && legacy.dirs[3]);
+    assert(strcmp(legacy.titles[3], "Shelf") == 0);
+    assert(strcmp(legacy.names[4], "likes") == 0 && legacy.dirs[4]);
+    assert(strcmp(legacy.titles[4], "Likes") == 0);
+    assert(strcmp(legacy.names[5], "demo.tic") == 0 && !legacy.dirs[5]);
+    assert(strcmp(legacy.titles[5], "Demo") == 0);
+
+    // The cache the legacy listing filled resolves the cart with no second
+    // listing request.
+    {
+        static const u8 Cart[] = {1};
+        Answer load = {0};
+
+        tic_fs_load(site.fs, "demo.tic", onLoad, &load);
+        assert(strcmp(NetUrl, "/cart/abc/demo.tic") == 0);
+        answerData(Cart, sizeof Cart);
+        assert(load.result.code == FS_OK);
+    }
+
+    siteTeardown(&site);
+    puts("site legacy names ok");
 }
 
 static void testSiteLookupWithoutListing(void)
@@ -1813,6 +2057,389 @@ static void testSiteErrors(void)
     puts("site errors ok");
 }
 
+// ---- the member's likes: the site provider's private folder ----
+
+static const char LikesListing[] =
+    "{\"folders\":[],\"files\":["
+    "{\"name\":\"Older.tic\",\"hash\":\"abc\",\"filename\":\"dup.tic\",\"id\":21,\"lang\":\"lua\"},"
+    "{\"name\":\"Newer.tic\",\"hash\":\"def\",\"filename\":\"dup.tic\",\"id\":22,\"lang\":\"lua\"}]}";
+
+typedef struct
+{
+    Site site;
+    TestAccount account;
+} Likes;
+
+typedef struct
+{
+    bool done;
+    bool created;
+    s32 rating;
+    fs_result result;
+    char message[TICNAME_MAX];
+} LikeAnswer;
+
+static void onLike(bool created, s32 rating, fs_result result, void* data)
+{
+    LikeAnswer* like = data;
+    like->done = true;
+    like->created = created;
+    like->rating = rating;
+    like->result = result;
+    snprintf(like->message, sizeof like->message, "%s", result.message ? result.message : "");
+}
+
+static void likesSetup(Likes* likes, bool signedIn)
+{
+    siteSetup(&likes->site);
+
+    likes->account = (TestAccount){.signedIn = signedIn};
+    snprintf(likes->account.token, sizeof likes->account.token, "tok123");
+
+    tic_fs_set_remote(likes->site.fs, &(tic_fs_remote){
+                                          .signed_in = accountSignedIn,
+                                          .token = accountToken,
+                                          .unauthorized = accountUnauthorized,
+                                          .data = &likes->account,
+                                      });
+
+    Held.held = false;
+}
+
+static void likesTeardown(Likes* likes)
+{
+    tic_fs_set_remote(likes->site.fs, NULL);
+    siteTeardown(&likes->site);
+}
+
+static void testLikesListing(void)
+{
+    Likes likes;
+    likesSetup(&likes, true);
+    tic_fs_changedir(likes.site.fs, "likes");
+
+    {
+        Answer list = {0};
+        tic_fs_list(likes.site.fs, "", onItem, onListDone, &list);
+
+        assert(Held.held);
+        assert(Held.method == net_method_get);
+        assert(strcmp(Held.url, "/api/v1/client/likes") == 0);
+        assert(strcmp(Held.authorization, "Bearer tok123") == 0);
+        assert(!list.done);
+
+        answerRequest(200, LikesListing);
+        assert(list.done);
+        assert(list.result.code == FS_OK);
+        assert(list.count == 2);
+        assert(strcmp(list.items[0].name, "dup.tic") == 0);
+        assert(strcmp(list.items[0].title, "Older.tic") == 0);
+        assert(strcmp(list.items[1].name, "dup.tic") == 0);
+        assert(strcmp(list.items[1].title, "Newer.tic") == 0);
+        assert(list.items[0].token == 21);
+        assert(list.items[1].token == 22);
+        assert(!list.items[0].dir && !list.items[1].dir);
+    }
+
+    // An empty answer is an empty folder, not an error.
+    {
+        Answer list = {0};
+        tic_fs_list(likes.site.fs, "", onItem, onListDone, &list);
+        answerRequest(200, "{\"folders\":[],\"files\":[]}");
+        assert(list.result.code == FS_OK);
+        assert(list.count == 0);
+    }
+
+    // The web IDE's site session sends no Authorization header.
+    {
+        likes.account.token[0] = '\0';
+
+        Answer list = {0};
+        tic_fs_list(likes.site.fs, "", onItem, onListDone, &list);
+        assert(Held.held);
+        assert(Held.authorization[0] == '\0');
+        answerRequest(200, "{\"folders\":[],\"files\":[]}");
+        assert(list.result.code == FS_OK);
+
+        snprintf(likes.account.token, sizeof likes.account.token, "tok123");
+    }
+
+    // A nested site folder named likes is the public tree's, not this source.
+    {
+        tic_fs_homedir(likes.site.fs);
+        tic_fs_changedir(likes.site.fs, TIC_HOST);
+        tic_fs_changedir(likes.site.fs, "play");
+
+        Answer list = {0};
+        tic_fs_list(likes.site.fs, "likes", onItem, onListDone, &list);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=play/likes") == 0);
+        answerJson("{\"folders\":[],\"files\":[]}");
+        assert(list.result.code == FS_OK);
+    }
+
+    likesTeardown(&likes);
+    puts("likes listing ok");
+}
+
+// Signed out, the likes folder answers its hint without a request.
+static void testLikesSignedOut(void)
+{
+    Likes likes;
+    likesSetup(&likes, false);
+    tic_fs_changedir(likes.site.fs, "likes");
+
+    Answer list = {0};
+    tic_fs_list(likes.site.fs, "", onItem, onListDone, &list);
+
+    assert(list.result.code == FS_DENIED);
+    assert(strstr(list.message, "likes need a sign-in") != NULL);
+    assert(strstr(list.message, "login") != NULL);
+    assert(!Held.held);
+    assert(!NetCallback);
+
+    // A like while signed out answers the hint without a request.
+    LikeAnswer like = {0};
+    tic_fs_like(likes.site.fs, 21, onLike, &like);
+    assert(like.done);
+    assert(like.result.code == FS_DENIED);
+    assert(strstr(like.message, "likes need a sign-in") != NULL);
+    assert(!Held.held);
+
+    likesTeardown(&likes);
+    puts("likes signed out ok");
+}
+
+// A 401 from the private listing is the sign-in hint and ends the session the
+// request was sent with.
+static void testLikes401(void)
+{
+    Likes likes;
+    likesSetup(&likes, true);
+    tic_fs_changedir(likes.site.fs, "likes");
+
+    Answer list = {0};
+    tic_fs_list(likes.site.fs, "", onItem, onListDone, &list);
+    answerRequest(401, "{\"error\":\"sign in first\"}");
+
+    assert(list.result.code == FS_SESSION);
+    assert(strstr(list.message, "login") != NULL);
+    assert(likes.account.unauthorizedCalls == 1);
+    assert(strcmp(likes.account.unauthorizedToken, "tok123") == 0);
+
+    likesTeardown(&likes);
+    puts("likes 401 ok");
+}
+
+// Two carts with one file name load and cover their own bytes by token.
+static void testLikesTokenLookup(void)
+{
+    Likes likes;
+    likesSetup(&likes, true);
+    tic_fs_changedir(likes.site.fs, "likes");
+
+    {
+        Answer list = {0};
+        tic_fs_list(likes.site.fs, "", onItem, onListDone, &list);
+        answerRequest(200, LikesListing);
+        assert(list.result.code == FS_OK);
+    }
+
+    {
+        static const u8 First[] = {0x11, 0x12};
+        Answer load = {0};
+
+        tic_fs_load_token(likes.site.fs, "dup.tic", 21, onLoad, &load);
+        assert(!Held.held);
+        assert(strcmp(NetUrl, "/cart/abc/dup.tic") == 0);
+        answerData(First, sizeof First);
+
+        assert(load.result.code == FS_OK);
+        assert(strcmp(load.name, "dup.tic") == 0);
+        assert(load.size == (s32)sizeof First && load.bytes[0] == 0x11);
+    }
+
+    // The load consumed the slot; the second token refetches the folder once.
+    {
+        static const u8 Second[] = {0x22, 0x23};
+        Answer load = {0};
+
+        tic_fs_load_token(likes.site.fs, "dup.tic", 22, onLoad, &load);
+        assert(Held.held);
+        assert(strcmp(Held.url, "/api/v1/client/likes") == 0);
+        answerRequest(200, LikesListing);
+        assert(strcmp(NetUrl, "/cart/def/dup.tic") == 0);
+        answerData(Second, sizeof Second);
+
+        assert(load.result.code == FS_OK);
+        assert(load.bytes[0] == 0x22);
+    }
+
+    // A cover does not consume the slot: the token resolves in it.
+    {
+        Answer list = {0};
+        tic_fs_list(likes.site.fs, "", onItem, onListDone, &list);
+        answerRequest(200, LikesListing);
+    }
+
+    {
+        static const u8 Cover[] = {0x47, 0x49, 0x46};
+        Answer cover = {0};
+
+        tic_fs_cover_token(likes.site.fs, "dup.tic", 22, onCover, &cover);
+        assert(!Held.held);
+        assert(strcmp(NetUrl, "/cart/def/cover.gif") == 0);
+        answerData(Cover, sizeof Cover);
+        assert(cover.result.code == FS_OK);
+    }
+
+    // Token 0 is the old name lookup: the first row with that name wins.
+    tic_fs_homedir(likes.site.fs);
+    tic_fs_delfile(likes.site.fs, TIC_CACHE "abc.tic");
+    tic_fs_changedir(likes.site.fs, TIC_HOST);
+    tic_fs_changedir(likes.site.fs, "likes");
+
+    {
+        static const u8 First[] = {0x11};
+        Answer load = {0};
+
+        tic_fs_load(likes.site.fs, "dup.tic", onLoad, &load);
+        assert(!Held.held);
+        assert(strcmp(NetUrl, "/cart/abc/dup.tic") == 0);
+        answerData(First, sizeof First);
+        assert(load.result.code == FS_OK);
+    }
+
+    // A missing token refetches the folder once and then refuses: no fallback
+    // to the name the row carries.
+    {
+        Answer list = {0};
+        tic_fs_list(likes.site.fs, "", onItem, onListDone, &list);
+        answerRequest(200, LikesListing);
+    }
+
+    {
+        Answer load = {0};
+        tic_fs_load_token(likes.site.fs, "dup.tic", 99, onLoad, &load);
+        assert(Held.held);
+        answerRequest(200, LikesListing);
+
+        assert(load.result.code == FS_NOT_FOUND);
+        assert(!NetCallback);
+    }
+
+    tic_fs_homedir(likes.site.fs);
+    tic_fs_delfile(likes.site.fs, TIC_CACHE "abc.tic");
+    tic_fs_delfile(likes.site.fs, TIC_CACHE "def.tic");
+    tic_fs_delfile(likes.site.fs, TIC_CACHE "def.gif");
+
+    likesTeardown(&likes);
+    puts("likes token lookup ok");
+}
+
+// The like is one idempotent PUT through the client API.
+static void testLikeRequest(void)
+{
+    Likes likes;
+    likesSetup(&likes, true);
+
+    {
+        LikeAnswer like = {0};
+        tic_fs_like(likes.site.fs, 21, onLike, &like);
+
+        assert(Held.held);
+        assert(Held.method == net_method_put);
+        assert(strcmp(Held.url, "/api/v1/client/like/21") == 0);
+        assert(strcmp(Held.authorization, "Bearer tok123") == 0);
+        assert(Held.bodySize == 0);
+
+        answerRequest(200, "{\"rating\":5,\"created\":true}");
+        assert(like.done);
+        assert(like.result.code == FS_OK);
+        assert(like.created);
+        assert(like.rating == 5);
+    }
+
+    {
+        // A repeat is not an error: the server reports the current rating.
+        LikeAnswer like = {0};
+        tic_fs_like(likes.site.fs, 21, onLike, &like);
+        answerRequest(200, "{\"rating\":5,\"created\":false}");
+        assert(like.result.code == FS_OK);
+        assert(!like.created);
+        assert(like.rating == 5);
+    }
+
+    {
+        // The web session sends no bearer; the cookie authenticates.
+        likes.account.token[0] = '\0';
+
+        LikeAnswer like = {0};
+        tic_fs_like(likes.site.fs, 22, onLike, &like);
+        assert(Held.held);
+        assert(Held.authorization[0] == '\0');
+        answerRequest(200, "{\"rating\":3,\"created\":true}");
+        assert(like.result.code == FS_OK);
+
+        snprintf(likes.account.token, sizeof likes.account.token, "tok123");
+    }
+
+    {
+        // The member's own cart: the server's message is the failure's text.
+        LikeAnswer like = {0};
+        tic_fs_like(likes.site.fs, 7, onLike, &like);
+        answerRequest(403, "{\"error\":\"you cannot like your own cart\"}");
+        assert(like.result.code == FS_DENIED);
+        assert(strcmp(like.message, "you cannot like your own cart") == 0);
+        assert(!like.created);
+    }
+
+    {
+        LikeAnswer like = {0};
+        tic_fs_like(likes.site.fs, 404, onLike, &like);
+        answerRequest(404, "{\"error\":\"no such cart\"}");
+        assert(like.result.code == FS_NOT_FOUND);
+        assert(strcmp(like.message, "no such cart") == 0);
+    }
+
+    {
+        LikeAnswer like = {0};
+        tic_fs_like(likes.site.fs, 21, onLike, &like);
+        answerRequest(429, "{\"error\":\"too many requests\"}");
+        assert(like.result.code == FS_DENIED);
+        assert(strcmp(like.message, "too many requests") == 0);
+    }
+
+    {
+        // A 401 ends the session the request was sent with.
+        LikeAnswer like = {0};
+        tic_fs_like(likes.site.fs, 21, onLike, &like);
+        answerRequest(401, "{\"error\":\"sign in first\"}");
+        assert(like.result.code == FS_SESSION);
+        assert(strstr(like.message, "login") != NULL);
+        assert(likes.account.unauthorizedCalls == 1);
+        assert(strcmp(likes.account.unauthorizedToken, "tok123") == 0);
+    }
+
+    {
+        // An answer that cannot be read is an I/O failure, not a like.
+        LikeAnswer like = {0};
+        tic_fs_like(likes.site.fs, 21, onLike, &like);
+        answerRequestBytes(200, NULL, 0);
+        assert(like.result.code == FS_IO);
+    }
+
+    {
+        // No transport is the offline result.
+        LikeAnswer like = {0};
+        tic_fs_like(likes.site.fs, 21, onLike, &like);
+        answerRequestError(-1);
+        assert(like.result.code == FS_OFFLINE);
+    }
+
+    likesTeardown(&likes);
+    puts("like request ok");
+}
+
 // The local cover is the cart's screen, answered as the GIF the site's cover is.
 static u8 coverPixel(s32 pos)
 {
@@ -1934,30 +2561,6 @@ typedef struct
     TestAccount account;
 } Shelf;
 
-// The legacy root listing, counted by name: the mount must appear once.
-typedef struct
-{
-    s32 shelves;
-    bool done;
-} ShelfEnum;
-
-static bool onShelfEnumItem(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
-{
-    (void)title;
-    (void)hash;
-    (void)id;
-
-    if(strcmp(name, TIC_SHELF_DIR) == 0 && dir)
-        ((ShelfEnum*)data)->shelves++;
-
-    return true;
-}
-
-static void onShelfEnumDone(void* data)
-{
-    ((ShelfEnum*)data)->done = true;
-}
-
 static void shelfSetup(Shelf* shelf, bool signedIn)
 {
     snprintf(shelf->root, sizeof shelf->root, "%s", makeRoot("tic80-fs-shelf"));
@@ -1983,83 +2586,104 @@ static void shelfTeardown(Shelf* shelf)
     tic_fs_deldir(shelf->fs, "");
 }
 
-// The root always lists the shelf, and the mount name answers a cd signed in
-// or out; a listing inside a signed-out shelf answers the sign-in hint.
-static void testShelfMount(void)
+static void shelfEnter(Shelf* shelf)
+{
+    tic_fs_changedir(shelf->fs, TIC_HOST);
+    tic_fs_changedir(shelf->fs, TIC_SHELF_DIR);
+}
+
+// The mount lives at the site's `shelf`: the site's root lists it signed in
+// or out, and entering it is the ordinary next step.
+static void testShelfInsideSite(void)
 {
     Shelf shelf;
     shelfSetup(&shelf, false);
 
     {
+        // Signed out: the site's root lists the shelf, and the cache answers
+        // its stat without a second request.
+        tic_fs_changedir(shelf.fs, TIC_HOST);
+
         Answer list = {0};
         tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
+        assert(NetCallback);
+        answerJson("{\"folders\":[],\"files\":[]}");
         assert(list.result.code == FS_OK);
-
-        s32 found = -1;
-        for(s32 i = 0; i < list.count; i++)
-            if(strcmp(list.items[i].name, TIC_SHELF_DIR) == 0)
-                found = i;
-
-        assert(found >= 0);
-        assert(list.items[found].dir);
-        assert(list.items[found].title == NULL); // the name is the title
+        assert(list.count == 2);
+        assert(strcmp(list.items[0].name, TIC_SHELF_DIR) == 0);
+        assert(strcmp(list.items[0].title, "Shelf") == 0);
+        assert(list.items[0].dir);
+        assert(list.items[0].token == 0);
+        assert(strcmp(list.items[1].name, "likes") == 0);
+        assert(strcmp(list.items[1].title, "Likes") == 0);
+        assert(list.items[1].dir);
 
         Answer stat = {0};
         tic_fs_stat(shelf.fs, TIC_SHELF_DIR, onStat, &stat);
         assert(stat.result.code == FS_OK);
         assert(stat.item.dir);
-        assert(strcmp(stat.item.name, TIC_SHELF_DIR) == 0);
+        assert(!NetCallback);
 
         tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
 
+        char dir[TICNAME_MAX];
+        tic_fs_dir(shelf.fs, dir);
+        assert(strcmp(dir, TIC_HOST "/" TIC_SHELF_DIR) == 0);
+
+        // A signed-out listing inside answers the sign-in hint with no request.
         Answer inside = {0};
         tic_fs_list(shelf.fs, "", onItem, onListDone, &inside);
         assert(inside.result.code == FS_DENIED);
         assert(strstr(inside.message, "login"));
+        assert(!Held.held);
+
+        // cd .. returns to the site's root, and once more to the filesystem root.
+        tic_fs_dirback(shelf.fs);
+        tic_fs_dir(shelf.fs, dir);
+        assert(strcmp(dir, TIC_HOST) == 0);
 
         tic_fs_dirback(shelf.fs);
+        tic_fs_dir(shelf.fs, dir);
+        assert(dir[0] == '\0');
     }
 
     shelf.account.signedIn = true;
 
     {
+        // Signed in: the row is the same and the mount lists its carts.
+        tic_fs_changedir(shelf.fs, TIC_HOST);
+
         Answer list = {0};
         tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
+        answerJson("{\"folders\":[],\"files\":[]}");
         assert(list.result.code == FS_OK);
-
-        s32 found = -1;
-        for(s32 i = 0; i < list.count; i++)
-            if(strcmp(list.items[i].name, TIC_SHELF_DIR) == 0)
-                found = i;
-
-        assert(found >= 0);
-        assert(list.items[found].dir);
-        assert(list.items[found].title == NULL);
-
-        // A leading slash still names the mount, for `cd /shelf`.
-        Answer stat = {0};
-        tic_fs_stat(shelf.fs, "/" TIC_SHELF_DIR, onStat, &stat);
-        assert(stat.result.code == FS_OK);
-        assert(stat.item.dir);
-        assert(strcmp(stat.item.name, TIC_SHELF_DIR) == 0);
+        assert(list.count == 2);
+        assert(strcmp(list.items[0].name, TIC_SHELF_DIR) == 0);
+        assert(strcmp(list.items[0].title, "Shelf") == 0);
+        assert(strcmp(list.items[1].name, "likes") == 0);
+        assert(strcmp(list.items[1].title, "Likes") == 0);
 
         tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
-        char dir[TICNAME_MAX];
-        tic_fs_dir(shelf.fs, dir);
-        assert(strcmp(dir, TIC_SHELF_DIR) == 0);
 
-        tic_fs_dirback(shelf.fs);
-        tic_fs_dir(shelf.fs, dir);
-        assert(strcmp(dir, "") == 0);
+        Answer inside = {0};
+        tic_fs_list(shelf.fs, "", onItem, onListDone, &inside);
+        assert(Held.held);
+        answerRequest(200,
+                      "{\"carts\":[{\"key\":\"my-game\",\"size\":123}],"
+                      "\"count\":1,\"bytes\":123,\"max_count\":100,\"max_bytes\":33554432}");
+        assert(inside.result.code == FS_OK);
+        assert(inside.count == 1);
+        assert(strcmp(inside.items[0].name, "my-game.tic") == 0);
+
+        tic_fs_homedir(shelf.fs);
     }
 
     shelfTeardown(&shelf);
-    puts("shelf mount ok");
+    puts("shelf inside the site ok");
 }
 
-// The mount name is root-level: a folder called "shelf" inside a folder is a
-// real folder, and only the absolute name names the mount.
-static void testShelfShadow(void)
+// The site's name takes both spellings, from a folder too.
+static void testSiteNameStat(void)
 {
     Shelf shelf;
     shelfSetup(&shelf, true);
@@ -2067,97 +2691,34 @@ static void testShelfShadow(void)
     assert(tic_fs_makedir(shelf.fs, "sub") == 0);
     tic_fs_changedir(shelf.fs, "sub");
 
-    {
-        // No local "sub/shelf": the relative name is not the mount.
-        Answer stat = {0};
-        tic_fs_stat(shelf.fs, TIC_SHELF_DIR, onStat, &stat);
-        assert(stat.result.code == FS_NOT_FOUND);
-    }
+    Answer relative = {0};
+    Answer absolute = {0};
 
-    {
-        // The absolute name still names the mount from anywhere.
-        Answer stat = {0};
-        tic_fs_stat(shelf.fs, "/" TIC_SHELF_DIR, onStat, &stat);
-        assert(stat.result.code == FS_OK);
-        assert(stat.item.dir);
-    }
+    tic_fs_stat(shelf.fs, TIC_HOST, onStat, &relative);
+    tic_fs_stat(shelf.fs, "/" TIC_HOST, onStat, &absolute);
 
-    {
-        // The site's name takes both spellings, from a folder too.
-        Answer relative = {0};
-        Answer absolute = {0};
-
-        tic_fs_stat(shelf.fs, TIC_HOST, onStat, &relative);
-        tic_fs_stat(shelf.fs, "/" TIC_HOST, onStat, &absolute);
-
-        assert(relative.result.code == FS_NOT_FOUND); // not at the root from here
-        assert(absolute.result.code == FS_OK);
-        assert(absolute.item.dir);
-        assert(strcmp(absolute.item.name, TIC_HOST) == 0);
-
-        tic_fs_homedir(shelf.fs);
-        Answer root = {0};
-        tic_fs_stat(shelf.fs, TIC_HOST, onStat, &root);
-        assert(root.result.code == FS_OK);
-        assert(root.item.dir);
-        assert(strcmp(root.item.name, absolute.item.name) == 0);
-
-        tic_fs_changedir(shelf.fs, "sub");
-    }
-
-    {
-        // A real local folder of that name is that folder.
-        assert(tic_fs_makedir(shelf.fs, TIC_SHELF_DIR) == 0);
-
-        Answer stat = {0};
-        tic_fs_stat(shelf.fs, TIC_SHELF_DIR, onStat, &stat);
-        assert(stat.result.code == FS_OK);
-        assert(stat.item.dir);
-
-        assert(tic_fs_deldir(shelf.fs, TIC_SHELF_DIR) == 0);
-    }
-
-    {
-        // At the root the mount shadows a local folder of its name: one shelf,
-        // in the unified listing and in the legacy one, signed in or out.
-        tic_fs_homedir(shelf.fs);
-        assert(tic_fs_makedir(shelf.fs, TIC_SHELF_DIR) == 0);
-
-        for(s32 account = 0; account < 2; account++)
-        {
-            shelf.account.signedIn = account != 0;
-
-            Answer list = {0};
-            tic_fs_list(shelf.fs, "", onItem, onListDone, &list);
-            assert(list.result.code == FS_OK);
-
-            s32 shelves = 0;
-            for(s32 i = 0; i < list.count; i++)
-                if(strcmp(list.items[i].name, TIC_SHELF_DIR) == 0)
-                    shelves++;
-
-            assert(shelves == 1);
-
-            ShelfEnum legacy = {0};
-            tic_fs_enum(shelf.fs, onShelfEnumItem, onShelfEnumDone, &legacy);
-            assert(legacy.done);
-            assert(legacy.shelves == 1);
-        }
-
-        assert(tic_fs_deldir(shelf.fs, TIC_SHELF_DIR) == 0);
-    }
+    assert(relative.result.code == FS_NOT_FOUND); // not at the root from here
+    assert(absolute.result.code == FS_OK);
+    assert(absolute.item.dir);
+    assert(strcmp(absolute.item.name, TIC_HOST) == 0);
 
     tic_fs_homedir(shelf.fs);
+    Answer root = {0};
+    tic_fs_stat(shelf.fs, TIC_HOST, onStat, &root);
+    assert(root.result.code == FS_OK);
+    assert(root.item.dir);
+    assert(strcmp(root.item.name, absolute.item.name) == 0);
+
     tic_fs_deldir(shelf.fs, "sub");
     shelfTeardown(&shelf);
-    puts("shelf shadow ok");
+    puts("site name stat ok");
 }
 
 static void testShelfList(void)
 {
     Shelf shelf;
     shelfSetup(&shelf, true);
-    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+    shelfEnter(&shelf);
 
     {
         Answer list = {0};
@@ -2222,7 +2783,7 @@ static void testShelfList(void)
         answerRequestError(-1);
 
         assert(list.result.code == FS_OFFLINE);
-        assert(strstr(list.message, "network"));
+        assert(strcmp(list.message, "the shelf needs a network") == 0);
     }
 
     shelfTeardown(&shelf);
@@ -2233,7 +2794,7 @@ static void testShelfLoad(void)
 {
     Shelf shelf;
     shelfSetup(&shelf, true);
-    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+    shelfEnter(&shelf);
 
     {
         static const u8 Cart[] = {0x54, 0x49, 0x43};
@@ -2275,7 +2836,7 @@ static void testShelfSave(void)
 {
     Shelf shelf;
     shelfSetup(&shelf, true);
-    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+    shelfEnter(&shelf);
 
     static const u8 Cart[] = {0x54, 0x49, 0x43, 0x00};
 
@@ -2364,7 +2925,7 @@ static void testShelfDelete(void)
 {
     Shelf shelf;
     shelfSetup(&shelf, true);
-    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+    shelfEnter(&shelf);
 
     {
         Answer del = {0};
@@ -2401,7 +2962,7 @@ static void testShelfStatAndShape(void)
 {
     Shelf shelf;
     shelfSetup(&shelf, true);
-    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+    shelfEnter(&shelf);
 
     {
         Answer stat = {0};
@@ -2436,7 +2997,7 @@ static void testShelfCover(void)
 {
     Shelf shelf;
     shelfSetup(&shelf, true);
-    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+    shelfEnter(&shelf);
 
     static const u8 Gif[] = "GIF89a the server drew this";
 
@@ -2504,7 +3065,7 @@ static void testShelfSignedOut(void)
 {
     Shelf shelf;
     shelfSetup(&shelf, false);
-    tic_fs_changedir(shelf.fs, TIC_SHELF_DIR);
+    shelfEnter(&shelf);
 
     {
         Answer list = {0};
@@ -2539,20 +3100,29 @@ int main(void)
     testHostPathConfined();
     testLocalLoadName();
     testLocalListOrder();
+    testLocalShelfFolder();
+    testLocalLikesFolder();
     testFakeRemoteContract();
     testHeldOperations();
     testSiteListing();
+    testSiteFolderNames();
     testSiteCacheFresh();
     testSiteLegacyListing();
+    testSiteLegacyNames();
     testSiteLookupWithoutListing();
     testSiteLoadListsMiss();
     testSiteStat();
     testSiteCover();
     testSiteWrites();
     testSiteErrors();
+    testLikesListing();
+    testLikesSignedOut();
+    testLikes401();
+    testLikesTokenLookup();
+    testLikeRequest();
     testLocalCover();
-    testShelfMount();
-    testShelfShadow();
+    testShelfInsideSite();
+    testSiteNameStat();
     testShelfList();
     testShelfLoad();
     testShelfSave();
