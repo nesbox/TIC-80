@@ -211,6 +211,7 @@ struct Console
     void (*onAnswer)(Console*, const ConsoleAnswer*);
 
     char loadedName[TICNAME_MAX]; // the resolved name the host is told about
+    char promptDir[TICNAME_MAX];  // the path the last printed prompt names
 
     struct
     {
@@ -297,6 +298,7 @@ void console_free(Console* console);
 void console_tick(Console* console);
 void console_answer(Console* console, const ConsoleAnswer* answer);
 void console_done(Console* console);
+void console_refresh(Console* console);
 bool console_active(const Console* console);
 void console_trace(Console* console, const char* text, u8 color);
 void console_error(Console* console, const char* info);

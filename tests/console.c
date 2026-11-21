@@ -7,7 +7,7 @@
 #include "studio/screens/console.h"
 #include "studio/account.h"
 #include "studio/fs.h"
-#include "studio/fs_internal.h"
+#include "studio/fsmount.h"
 #include "core/core.h"
 #include "tools.h"
 #include <assert.h>
@@ -1506,6 +1506,26 @@ static void hostFreeEx(Host* host)
     hostFree(host);
 }
 
+// A prompt printed before the browser moved the working directory is refreshed
+// when the console comes back.
+static void testPromptRefresh(void)
+{
+    Host* host = hostNewAt(consoleRoot(), "cd /" TIC_HOST);
+    hostBoot(host);
+
+    for(s32 i = 0; i < 8 && !said(host, TIC_HOST ">"); i++)
+        hostTick(host);
+
+    assert(said(host, TIC_HOST ">"));
+
+    tic_fs_changedir(host->fs, TIC_SHELF_DIR);
+    console_refresh(host->console);
+    assert(said(host, TIC_HOST "/" TIC_SHELF_DIR ">"));
+
+    hostFree(host);
+    puts("prompt refresh ok");
+}
+
 static void onPairingNoop(account_pairing_state state, const char* text, void* data)
 {
     (void)state;
@@ -1985,6 +2005,7 @@ int main(void)
     testShelfDirErrors();
     testDelMissingSite();
     testSiteAbsoluteCd();
+    testPromptRefresh();
     testFakeDir();
     testFakeCd();
     testFakeDelRefused();

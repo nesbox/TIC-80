@@ -7,7 +7,7 @@
  * Target fs-test in cmake/tests.cmake; `ctest -R fs-test` runs it.
  */
 #include "studio/fs.h"
-#include "studio/fs_internal.h"
+#include "studio/fsmount.h"
 #include "studio/net.h"
 #include "studio/paths.h"
 #include "studio/system.h"

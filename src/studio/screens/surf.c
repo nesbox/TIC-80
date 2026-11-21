@@ -61,6 +61,11 @@
 // Cover requests the browser may have in flight at once.
 #define COVERS_IN_FLIGHT 2
 
+// The message popup: it slides in, holds, and slides out.
+#define MESSAGE_IN   10
+#define MESSAGE_HOLD (TIC80_FRAMERATE * 2)
+#define MESSAGE_OUT  10
+
 // The platforms whose system layer can open a URL; the web IDE uses window.open.
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__) || defined(__TIC_ANDROID__) || defined(__EMSCRIPTEN__)
 #define CAN_OPEN_URL 1
@@ -103,8 +108,9 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
     enum
     {
         Gap = 10,
-        TipX = 150,
-        SelectWidth = 54
+        TipX = 70,
+        SelectWidth = 54,
+        BackWidth = 42
     };
 
     u8 colorkey = 0;
@@ -116,11 +122,23 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
         tic_api_print(tic, Label, TipX + Gap, y + 2, tic_color_white, true, 1, false);
     }
 
-    tic_api_spr(tic, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+    s32 backX = TipX + SelectWidth;
+    tic_api_spr(tic, 13, backX, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
     {
         static const char Label[] = "BACK";
-        tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 3, tic_color_black, true, 1, false);
-        tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 2, tic_color_white, true, 1, false);
+        tic_api_print(tic, Label, backX + Gap, y + 3, tic_color_black, true, 1, false);
+        tic_api_print(tic, Label, backX + Gap, y + 2, tic_color_white, true, 1, false);
+    }
+
+    if(surf->menu.count > 0 && surf->menu.items[surf->menu.pos].token)
+    {
+        s32 likeX = backX + BackWidth;
+        tic_api_spr(tic, 14, likeX, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+        {
+            static const char Label[] = "+1";
+            tic_api_print(tic, Label, likeX + Gap, y + 3, tic_color_black, true, 1, false);
+            tic_api_print(tic, Label, likeX + Gap, y + 2, tic_color_white, true, 1, false);
+        }
     }
 }
 
@@ -132,6 +150,22 @@ static void surfSfx(Surf* surf)
 static SurfItem* getMenuItem(Surf* surf)
 {
     return &surf->menu.items[surf->menu.pos];
+}
+
+static void hideMessage(Surf* surf)
+{
+    surf->message[0] = '\0';
+    surf->messageShown = false;
+    surf->anim.val.messageY = -MENU_HEIGHT;
+}
+
+static void showMessage(Surf* surf, bool green, const char* text)
+{
+    snprintf(surf->message, sizeof surf->message, "%s", text);
+    surf->messageGreen = green;
+    surf->messageShown = true;
+    surf->messageTicks = 0;
+    surf->anim.val.messageY = -MENU_HEIGHT;
 }
 
 static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
@@ -157,43 +191,27 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
         tic_api_print(tic, label, xl, yl, tic_color_white, true, 1, false);
     }
 
+#if CAN_OPEN_URL
     if(surf->menu.count > 0 && getMenuItem(surf)->token)
     {
         enum
         {
             Gap = 10,
-            SiteX = 188,
-            LikeX = 148,
-            EdgeX = TIC80_WIDTH - (8 + Gap + 8) - MAIN_OFFSET
+            SiteX = 188
         };
 
         u8 colorkey = 0;
 
         tiles2ram(tic->ram, &surf->config->cart->bank0.tiles);
 
-#if CAN_OPEN_URL
         tic_api_spr(tic, 15, SiteX, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
         {
             static const char Label[] = "WEBSITE";
             tic_api_print(tic, Label, SiteX + Gap, y + 3, tic_color_black, true, 1, false);
             tic_api_print(tic, Label, SiteX + Gap, y + 2, tic_color_white, true, 1, false);
         }
-#endif
-
-        // The like hint sits left of the page hint, or alone at the right edge.
-#if CAN_OPEN_URL
-        s32 likeX = LikeX;
-#else
-        s32 likeX = EdgeX;
-#endif
-
-        tic_api_spr(tic, 14, likeX, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
-        {
-            static const char Label[] = "+1";
-            tic_api_print(tic, Label, likeX + Gap, y + 3, tic_color_black, true, 1, false);
-            tic_api_print(tic, Label, likeX + Gap, y + 2, tic_color_white, true, 1, false);
-        }
     }
+#endif
 }
 
 static void drawMenu(Surf* surf, s32 x, s32 y)
@@ -309,13 +327,9 @@ static void addMenuItemsDone(const fs_usage* usage, fs_result result, void* data
         surf->loading = false;
 
         if(result.code != FS_OK)
-        {
-            snprintf(surf->message, sizeof surf->message, "%s",
-                     result.message ? result.message : "could not list the folder");
-            surf->messageGreen = false;
-        }
+            showMessage(surf, false, result.message ? result.message : "could not list the folder");
         else
-            surf->message[0] = '\0';
+            hideMessage(surf);
     }
     else
         freeMenuItems(addMenuItemData->items, addMenuItemData->count);
@@ -617,16 +631,14 @@ static void onCartLoaded(fs_result result, void* data)
 
     if(result.code != FS_OK)
     {
-        snprintf(surf->message, sizeof surf->message, "%s",
-                 result.message ? result.message : "cart not loaded");
-        surf->messageGreen = false;
+        showMessage(surf, false, result.message ? result.message : "cart not loaded");
 
         // The play movie is over without a cart: the browser comes back.
         surf->anim.movie = resetMovie(&surf->anim.show);
         return;
     }
 
-    surf->message[0] = '\0';
+    hideMessage(surf);
 
     if(surf->config->data.options.autosave)
     {
@@ -643,19 +655,17 @@ static void onCartLiked(bool created, s32 rating, fs_result result, void* data)
 
     if(result.code == FS_OK)
     {
-        if(created)
-            snprintf(surf->message, sizeof surf->message, "+1, %d", rating);
-        else
-            snprintf(surf->message, sizeof surf->message, "already liked");
+        char text[32];
 
-        surf->messageGreen = true;
+        if(created)
+            snprintf(text, sizeof text, "+1, %d", rating);
+        else
+            snprintf(text, sizeof text, "already liked");
+
+        showMessage(surf, true, text);
     }
     else
-    {
-        snprintf(surf->message, sizeof surf->message, "%s",
-                 result.message ? result.message : "the like did not go through");
-        surf->messageGreen = false;
-    }
+        showMessage(surf, false, result.message ? result.message : "the like did not go through");
 }
 
 static void likeCart(Surf* surf)
@@ -828,22 +838,38 @@ static inline bool isIdle(Surf* surf)
     return surf->anim.movie == &surf->anim.idle;
 }
 
-// The message sits on the yellow playfield: a dark outline keeps the glyphs
-// apart from it, and a success is green while a failure is red.
+// The message is a popup over the top bar: it slides in, holds, and leaves.
 static void drawMessage(Surf* surf)
 {
     tic_mem* tic = surf->tic;
+    s32 y = surf->anim.val.messageY;
     u8 color = surf->messageGreen ? tic_color_green : tic_color_red;
+
+    tic_api_rect(tic, 0, y, TIC80_WIDTH, MENU_HEIGHT, tic_color_black);
+    tic_api_rect(tic, 0, y + MENU_HEIGHT, TIC80_WIDTH, 1, tic_color_grey);
+
     s32 size = tic_api_print(tic, surf->message, 0, -TIC_FONT_HEIGHT, color, true, 1, false);
     s32 x = (TIC80_WIDTH - size) / 2;
-    s32 y = TIC80_HEIGHT - 2 * MENU_HEIGHT - TIC_FONT_HEIGHT;
+    s32 ty = y + (MENU_HEIGHT - TIC_FONT_HEIGHT) / 2;
 
-    static const s8 Outline[][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    tic_api_print(tic, surf->message, x, ty, color, true, 1, false);
+}
 
-    for(s32 i = 0; i < COUNT_OF(Outline); i++)
-        tic_api_print(tic, surf->message, x + Outline[i][0], y + Outline[i][1], tic_color_black, true, 1, false);
+static void processMessage(Surf* surf)
+{
+    if(!surf->messageShown)
+        return;
 
-    tic_api_print(tic, surf->message, x, y, color, true, 1, false);
+    s32 t = ++surf->messageTicks;
+
+    if(t <= MESSAGE_IN)
+        surf->anim.val.messageY = -MENU_HEIGHT + t * MENU_HEIGHT / MESSAGE_IN;
+    else if(t <= MESSAGE_IN + MESSAGE_HOLD)
+        surf->anim.val.messageY = 0;
+    else if(t <= MESSAGE_IN + MESSAGE_HOLD + MESSAGE_OUT)
+        surf->anim.val.messageY = -(t - MESSAGE_IN - MESSAGE_HOLD) * MENU_HEIGHT / MESSAGE_OUT;
+    else
+        hideMessage(surf);
 }
 
 static void tick(Surf* surf)
@@ -861,6 +887,7 @@ static void tick(Surf* surf)
     tic_api_cls(tic, TIC_COLOR_BG);
 
     menu_anim(surf->tic, surf->ticks++);
+    processMessage(surf);
 
     if(isIdle(surf))
     {
@@ -903,7 +930,7 @@ static void tick(Surf* surf)
         drawTopToolbar(surf, 0, surf->anim.val.topBarY - MENU_HEIGHT);
         drawBottomToolbar(surf, 0, TIC80_HEIGHT - surf->anim.val.bottomBarY);
 
-        if(surf->message[0])
+        if(surf->messageShown)
             drawMessage(surf);
     }
 }
@@ -911,7 +938,7 @@ static void tick(Surf* surf)
 static void resume(Surf* surf)
 {
     surf->anim.movie = resetMovie(&surf->anim.show);
-    surf->message[0] = '\0';
+    hideMessage(surf);
     surf->likePending = false;
 }
 

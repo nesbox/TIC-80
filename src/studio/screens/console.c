@@ -722,6 +722,8 @@ static void commandDoneLine(Console* console, bool newLine)
 
         char dir[TICNAME_MAX];
         tic_fs_dir(console->fs, dir);
+        snprintf(console->promptDir, sizeof console->promptDir, "%s", dir);
+
         if(strlen(dir))
             printBack(console, dir);
 
@@ -5699,6 +5701,19 @@ void console_answer(Console* console, const ConsoleAnswer* answer)
 void console_done(Console* console)
 {
     commandDone(console);
+}
+
+// Enters the console: a path a browser left behind gets a fresh prompt.
+void console_refresh(Console* console)
+{
+    if(console->args.cli || console->fsPending || console->counting)
+        return;
+
+    char dir[TICNAME_MAX];
+    tic_fs_dir(console->fs, dir);
+
+    if(strcmp(dir, console->promptDir) != 0)
+        commandDoneLine(console, true);
 }
 
 bool console_active(const Console* console)

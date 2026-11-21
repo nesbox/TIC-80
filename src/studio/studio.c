@@ -1271,16 +1271,16 @@ static void menuEnter(Studio* studio, EditorMode from)
 static void consoleEnter(Studio* studio, EditorMode from)
 {
 #if defined(BUILD_SURF)
-    // The console hands the browser over: end its command, or its active flag
-    // stays false and the shortcuts it gates never come back.
+    // The console hands the browser over: end its command so the shortcuts return.
     if(from == TIC_SURF_MODE)
+    {
         console_done(studio->console);
-    else
-        (void)studio;
-#else
-    (void)studio;
-    (void)from;
+        return;
+    }
 #endif
+
+    console_refresh(studio->console);
+    (void)from;
 }
 
 static void worldEnter(Studio* studio, EditorMode from)

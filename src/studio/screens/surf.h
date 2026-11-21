@@ -82,6 +82,8 @@ struct Surf
     bool loading;
     bool likePending;
     bool messageGreen; // the last message was a success, not a failure
+    bool messageShown; // the message popup is on screen
+    s32 messageTicks;  // the popup's frame, from its slide-in to its slide-out
     s32 ticks;
     s32 coversInFlight; // cover requests the screen may keep pending at once
 
@@ -105,6 +107,7 @@ struct Surf
             s32 menuHeight;
             s32 coverFade;
             s32 pos;
+            s32 messageY;
         } val;
 
         Movie* movie;

@@ -9,7 +9,7 @@
 #include "studio/screens/surf.h"
 #include "studio/config.h"
 #include "studio/fs.h"
-#include "studio/fs_internal.h"
+#include "studio/fsmount.h"
 #include "studio/net.h"
 #include "studio/paths.h"
 #include "studio/system.h"
@@ -834,6 +834,13 @@ static void testSiteLike(void)
     answerLike(false, 0, (fs_result){FS_SESSION, "sign in on tic80.com"});
     assert(strcmp(Screen->message, "sign in on tic80.com") == 0);
     assert(!Screen->messageGreen);
+
+    // The message is a popup: it leaves when its animation is over.
+    for(s32 i = 0; i < TIC80_FRAMERATE * 4; i++)
+        frame();
+
+    assert(Screen->message[0] == '\0');
+    assert(!Screen->messageShown);
 
     teardown();
     puts("site like ok");

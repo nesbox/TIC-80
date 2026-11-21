@@ -23,7 +23,7 @@
 #include "studio/paths.h"
 #include "studio/system.h"
 #include "fs.h"
-#include "fs_internal.h"
+#include "fsmount.h"
 #include "net.h"
 #include "ext/json.h"
 #include "cart.h"
