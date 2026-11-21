@@ -118,6 +118,14 @@ void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, flo
     const u8* map = memory->ram->map.data;
     tic_tilesheet sheet = getTileSheetFromSegment(memory, memory->ram->vram.blit.segment);
 
+    // A normal one-page 4bpp sheet: its loops below read the pixels directly
+    // instead of through the segment's tile lookup.
+    const tic_blit_segment* seg = sheet.segment;
+    const bool sheet4 = seg->peek == tic_tool_peek4 && seg->ptr_size == sizeof(tic_tile) &&
+                        seg->tile_width == TIC_SPRITESIZE && seg->nb_pages == 1 && seg->page_orig == 0;
+    const bool map4 = sheet4 && seg->sheet_width == TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE;
+    const u32 bankOrig = seg->bank_orig;
+
     V0.x = x1;
     V0.y = y1;
     V0.u = u1;
@@ -180,7 +188,34 @@ void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, flo
                 left = core->state.clip.l;
             }
             //  are we drawing from the map . ok then at least check before the inner loop
-            if(use_map == true)
+            if(use_map == true && map4)
+            {
+                for(s32 x = left; x < right; ++x)
+                {
+                    enum
+                    {
+                        MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE,
+                        MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE
+                    };
+                    s32 iu = (u >> 16) % MapWidth;
+                    s32 iv = (v >> 16) % MapHeight;
+
+                    while(iu < 0)
+                        iu += MapWidth;
+                    while(iv < 0)
+                        iv += MapHeight;
+
+                    u8 tileindex = map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
+                    u32 tile = bankOrig * 256 + tileindex;
+
+                    u8 color = mapping[tic_tool_peek4(sheet.ptr, tile * 64 + (u32)(iu & 7) + (u32)(iv & 7) * 8)];
+                    if(color != TRANSPARENT_COLOR)
+                        setPixel(core, x, y, color);
+                    u += dudxs;
+                    v += dvdxs;
+                }
+            }
+            else if(use_map == true)
             {
                 for(s32 x = left; x < right; ++x)
                 {
@@ -201,6 +236,27 @@ void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, flo
                     tic_tileptr tile = tic_tilesheet_gettile(&sheet, tileindex, true);
 
                     u8 color = mapping[tic_tilesheet_gettilepix(&tile, iu & 7, iv & 7)];
+                    if(color != TRANSPARENT_COLOR)
+                        setPixel(core, x, y, color);
+                    u += dudxs;
+                    v += dvdxs;
+                }
+            }
+            else if(sheet4)
+            {
+                //  direct from tile ram, a 4bpp sheet
+                for(s32 x = left; x < right; ++x)
+                {
+                    enum
+                    {
+                        SheetWidth = TIC_SPRITESHEET_SIZE,
+                        SheetHeight = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS
+                    };
+                    s32 iu = (u >> 16) & (SheetWidth - 1);
+                    s32 iv = (v >> 16) & (SheetHeight - 1);
+                    u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) + ((iu & 127) >> 3);
+
+                    u8 color = mapping[tic_tool_peek4(sheet.ptr, tile * 64 + (u32)(iu & 7) + (u32)(iv & 7) * 8)];
                     if(color != TRANSPARENT_COLOR)
                         setPixel(core, x, y, color);
                     u += dudxs;
