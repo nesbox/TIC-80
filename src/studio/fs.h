@@ -93,7 +93,7 @@ void tic_fs_cover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* d
 
 tic_fs* tic_fs_create(const char* path, struct tic_net* net);
 
-// The shelf is the account's remote mount, always listed at the root.
+// The shelf's path inside the site: the mount root is TIC_HOST "/shelf".
 #define TIC_SHELF_DIR "shelf"
 
 // The remote mounts' inputs: the account, injected so a test can drive a

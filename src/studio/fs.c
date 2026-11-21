@@ -83,6 +83,7 @@ static const char* PublicDir = TIC_HOST;
 // bare-metal build have no shelf. The web IDE's change owns its auth.
 #if (defined(BUILD_EDITORS) || defined(BUILD_SURF)) && !defined(BAREMETALPI)
 #define TIC_SHELF_MOUNT
+#define TIC_SHELF_ROOT TIC_HOST "/" TIC_SHELF_DIR
 #endif
 
 // One entry of the site's last listing: the name, display title, fetch hash
@@ -176,10 +177,10 @@ static bool isPublic(tic_fs* fs)
 }
 
 #if defined(TIC_SHELF_MOUNT)
-// The shelf is a flat store: its cwd is the mount name itself.
+// The shelf is a flat store: its cwd is its nested root.
 static bool isShelf(tic_fs* fs)
 {
-    return strcmp(fs->work, TIC_SHELF_DIR) == 0;
+    return strcmp(fs->work, TIC_SHELF_ROOT) == 0;
 }
 #endif
 
@@ -554,7 +555,6 @@ typedef struct
 {
     LocalEntry* items;
     s32 count;
-    bool root;
 } LocalListData;
 
 static bool localListItem(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
@@ -564,12 +564,6 @@ static bool localListItem(const char* name, const char* title, const char* hash,
     (void)id;
 
     LocalListData* list = data;
-
-#if defined(TIC_SHELF_MOUNT)
-    // The mount shadows a local folder of its name at the root.
-    if(list->root && strcmp(name, TIC_SHELF_DIR) == 0)
-        return true;
-#endif
 
     list->items = realloc(list->items, sizeof(LocalEntry) * (list->count + 1));
 
@@ -617,7 +611,7 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
     copyString(resolved, sizeof resolved, localPath(fs, path));
     bool root = isRoot(fs) && (!*path || (path[0] == '/' && !path[1]));
 
-    LocalListData list = {.root = root};
+    LocalListData list = {0};
 
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     if(root)
@@ -631,17 +625,6 @@ static void localList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_l
             list.items[list.count].title = NULL;
             list.items[list.count++].dir = true;
         }
-
-#if defined(TIC_SHELF_MOUNT)
-        // The shelf is always listed, signed in or out.
-        if((items = realloc(list.items, sizeof(LocalEntry) * (list.count + 1))))
-        {
-            list.items = items;
-            snprintf(list.items[list.count].name, sizeof list.items[list.count].name, "%s", TIC_SHELF_DIR);
-            list.items[list.count].title = NULL;
-            list.items[list.count++].dir = true;
-        }
-#endif
     }
 #else
     (void)root;
@@ -794,30 +777,13 @@ static void localStat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void
 #if defined(BUILD_EDITORS) || defined(BUILD_SURF)
     {
         // The site answers its name at the root and in the absolute form from
-        // anywhere, as the shelf does.
+        // anywhere.
         const char* mount = *path == '/' ? path + 1 : path;
 
         if(strcmp(mount, PublicDir) == 0 && (*path == '/' || isRoot(fs)))
         {
             fs_item item = {PublicDir, NULL, true, -1, 0, 0};
             onDone(&item, (fs_result){FS_OK, NULL}, data);
-            return;
-        }
-    }
-#endif
-
-#if defined(TIC_SHELF_MOUNT)
-    {
-        // The mount name is root-level: a local folder called "shelf" inside a
-        // folder is that folder, and only the absolute name names the mount.
-        // The mount shadows such a folder at the root, signed in or out.
-        const char* mount = *path == '/' ? path + 1 : path;
-
-        if(strcmp(mount, TIC_SHELF_DIR) == 0 && (*path == '/' || isRoot(fs)))
-        {
-            fs_item item = {TIC_SHELF_DIR, NULL, true, -1, 0, 0};
-            onDone(&item, (fs_result){FS_OK, NULL}, data);
-
             return;
         }
     }
@@ -1145,11 +1111,28 @@ static bool siteParseListing(tic_fs* fs, const char* dir, const char* json, s32 
             {
                 SiteEntry entry = {0};
                 snprintf(entry.name, sizeof entry.name, "%s", name);
+                snprintf(entry.title, sizeof entry.title, "%s", name);
+
+                for(char* p = entry.name; *p; p++)
+                    *p = (char)tolower((u8)*p);
+
                 entry.dir = true;
                 ok = siteAddEntry(&list, &listCount, &entry);
             }
         }
     }
+
+#if defined(TIC_SHELF_MOUNT)
+    if(ok && *dir == '\0')
+    {
+        // The site's root carries the shelf after the server's folders.
+        SiteEntry entry = {0};
+        snprintf(entry.name, sizeof entry.name, "%s", TIC_SHELF_DIR);
+        snprintf(entry.title, sizeof entry.title, "%s", "Shelf");
+        entry.dir = true;
+        ok = siteAddEntry(&list, &listCount, &entry);
+    }
+#endif
 
     {
         s32 files = json_array("files", 0);
@@ -1338,7 +1321,7 @@ static void onSiteList(tic_fs* fs, SiteEntry* items, s32 count, fs_result result
     {
         for(s32 i = 0; i < count; i++)
         {
-            fs_item item = {items[i].name, items[i].dir ? NULL : items[i].title, items[i].dir, -1, 0,
+            fs_item item = {items[i].name, items[i].title[0] ? items[i].title : NULL, items[i].dir, -1, 0,
                             items[i].dir ? 0 : items[i].id};
 
             if(!request->onItem(&item, request->data))
@@ -2311,14 +2294,14 @@ static const fs_mount_ops* fsMount(tic_fs* fs)
     if(fs->mount)
         return fs->mount;
 
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-    if(isPublic(fs))
-        return &SiteOps;
-#endif
-
 #if defined(TIC_SHELF_MOUNT)
     if(isShelf(fs))
         return &ShelfOps;
+#endif
+
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+    if(isPublic(fs))
+        return &SiteOps;
 #endif
 
     return &LocalOps;
@@ -2375,47 +2358,31 @@ typedef struct
     fs_list_callback item;
     fs_done_callback done;
     void* data;
-} NetDirData;
+} SiteLegacy;
 
-static void onDirResponse(const net_get_data* netData)
+// The legacy listing replays the parsed listing, so both listings cannot diverge.
+static void onSiteLegacyListing(tic_fs* fs, SiteEntry* items, s32 count, fs_result result, void* data)
 {
-    NetDirData* netDirData = (NetDirData*)netData->calldata;
+    (void)fs;
 
-    if(netData->type == net_get_done)
+    SiteLegacy* legacy = data;
+
+    if(result.code == FS_OK)
     {
-        if(json_parse((char*)netData->done.data, netData->done.size))
+        for(s32 i = 0; i < count; i++)
         {
-            typedef char string[TICNAME_MAX];
+            SiteEntry* entry = &items[i];
 
-            string name, hash, filename;
-
-            s32 folders = json_array("folders", 0);
-            for(s32 i = 0, size = json_array_size(folders); i < size; i++)
-            {
-                if(json_string("name", json_array_item(folders, i), name, sizeof name))
-                    netDirData->item(name, NULL, NULL, 0, netDirData->data, true);
-            }
-
-            s32 files = json_array("files", 0);
-            for(s32 i = 0, size = json_array_size(files); i < size; i++)
-            {
-                s32 item = json_array_item(files, i);
-
-                if(json_string("name", item, name, sizeof name) && json_string("hash", item, hash, sizeof hash) && json_string("filename", item, filename, sizeof filename))
-                    netDirData->item(filename, name, hash, json_int("id", item), netDirData->data, false);
-            }
+            if(!legacy->item(entry->name, entry->title[0] ? entry->title : NULL,
+                             entry->dir ? NULL : entry->hash, entry->dir ? 0 : entry->id,
+                             legacy->data, entry->dir))
+                break;
         }
     }
 
-    switch(netData->type)
-    {
-        case net_get_done:
-        case net_get_error:
-            netDirData->done(netDirData->data);
-            free(netDirData);
-            break;
-        default: break;
-    }
+    legacy->done(legacy->data);
+    free(items);
+    free(legacy);
 }
 #endif
 
@@ -2530,25 +2497,6 @@ static void shelfLegacyDone(const fs_usage* usage, fs_result result, void* data)
 }
 #endif
 
-#if defined(TIC_SHELF_MOUNT)
-// The root lists the mount in place of a local folder of its name.
-typedef struct
-{
-    fs_list_callback item;
-    void* data;
-} RootFilter;
-
-static bool rootFilterItem(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
-{
-    RootFilter* filter = data;
-
-    if(strcmp(name, TIC_SHELF_DIR) == 0)
-        return true;
-
-    return filter->item(name, title, hash, id, filter->data, dir);
-}
-#endif
-
 void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data)
 {
 #ifndef BAREMETALPI
@@ -2557,30 +2505,6 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
         onDone(data);
         return;
     }
-
-#if defined(TIC_SHELF_MOUNT)
-    if(isRoot(fs) && !onItem(TIC_SHELF_DIR, NULL, NULL, 0, data, true))
-    {
-        onDone(data);
-        return;
-    }
-#endif
-
-#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
-    if(isPublic(fs))
-    {
-        // An old-style listing still invalidates the hash cache it could contradict.
-        siteCacheClear(fs);
-
-        char request[TICNAME_MAX];
-        snprintf(request, sizeof request, "/json?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
-
-        NetDirData netDirData = {onItem, onDone, data};
-        tic_net_get(fs->net, request, onDirResponse, MOVE(netDirData));
-
-        return;
-    }
-#endif
 
 #if defined(TIC_SHELF_MOUNT)
     if(isShelf(fs))
@@ -2596,22 +2520,29 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
     }
 #endif
 
-#endif
-
-    const char* path = tic_fs_path(fs, "");
-
-#if defined(TIC_SHELF_MOUNT)
-    if(isRoot(fs))
+#if defined(BUILD_EDITORS) || defined(BUILD_SURF)
+    if(isPublic(fs))
     {
-        RootFilter filter = {onItem, data};
-        fs_enum(path, rootFilterItem, &filter);
+        // An old-style listing still invalidates the hash cache it could contradict.
+        siteCacheClear(fs);
+
+        SiteLegacy* legacy = calloc(1, sizeof(SiteLegacy));
+        legacy->item = onItem;
+        legacy->done = onDone;
+        legacy->data = data;
+
+        char dir[TICNAME_MAX];
+        siteDirOf(fs, "", dir, sizeof dir);
+
+        siteFetchListing(fs, dir, onSiteLegacyListing, legacy);
+
+        return;
     }
-    else
-        fs_enum(path, onItem, data);
-#else
-    fs_enum(path, onItem, data);
 #endif
 
+#endif
+
+    fs_enum(tic_fs_path(fs, ""), onItem, data);
     onDone(data);
 }
 
@@ -2766,10 +2697,6 @@ bool tic_fs_isdir(tic_fs* fs, const char* name)
 {
     if(*name == '.') return false;
     if(isRoot(fs) && strcmp(name, PublicDir) == 0) return true;
-
-#if defined(TIC_SHELF_MOUNT)
-    if(isRoot(fs) && strcmp(name, TIC_SHELF_DIR) == 0) return true;
-#endif
 
 #if defined(BAREMETALPI)
     dbg("fsIsDirSync %s\n", name);
