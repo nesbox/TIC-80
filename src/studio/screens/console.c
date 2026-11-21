@@ -1623,7 +1623,7 @@ static bool printFilename(const fs_item* item, void* ctx)
     PrintFileNameData* data = ctx;
 
     data->items = realloc(data->items, (data->count + 1) * sizeof *data->items);
-    data->items[data->count++] = (FileItem){strdup(item->dir && item->title ? item->title : item->name), item->dir};
+    data->items[data->count++] = (FileItem){strdup(item->name), item->dir};
 
     return true;
 }
