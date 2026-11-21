@@ -644,7 +644,7 @@ static void testFailedLoad(void)
     assert(RunCalls == 0);
     assert(strcmp(dirName(), TIC_HOST) == 0);
     assert(Screen->menu.count == SiteCount);
-    assert(strcmp(Screen->message, "no network") == 0);
+    assert(strcmp(Screen->message, "NO NETWORK") == 0);
 
     // The next load clears the message and plays.
     press(tic_key_return);
@@ -671,7 +671,7 @@ static void testFailedListing(void)
     assert(strcmp(dirName(), "bad") == 0);
     assert(Screen->menu.count == 1);
     assert(strcmp(Screen->menu.items[0].name, "..") == 0);
-    assert(strcmp(Screen->message, "no network") == 0);
+    assert(strcmp(Screen->message, "NO NETWORK") == 0);
 
     press(tic_key_backspace);
     settle();
@@ -809,10 +809,9 @@ static void testSiteLike(void)
     pressButton(1 << 6);
     assert(LikeCalls == 1);
 
-    // A fresh like reports the new rating in green.
+    // A fresh like reports the new rating.
     answerLike(true, 5, (fs_result){FS_OK, NULL});
     assert(strcmp(Screen->message, "+1, 5") == 0);
-    assert(Screen->messageGreen);
 
     // The keyboard key sends the same like.
     press(tic_key_x);
@@ -820,20 +819,17 @@ static void testSiteLike(void)
     assert(LikeToken == 11);
 
     answerLike(false, 5, (fs_result){FS_OK, NULL});
-    assert(strcmp(Screen->message, "already liked") == 0);
-    assert(Screen->messageGreen);
+    assert(strcmp(Screen->message, "ALREADY LIKED") == 0);
 
-    // A refusal is the server's message, in red.
+    // A refusal is the server's message.
     press(tic_key_x);
     answerLike(false, 0, (fs_result){FS_DENIED, "you cannot like your own cart"});
-    assert(strcmp(Screen->message, "you cannot like your own cart") == 0);
-    assert(!Screen->messageGreen);
+    assert(strcmp(Screen->message, "YOU CANNOT LIKE YOUR OWN CART") == 0);
 
-    // A gone session points at the sign-in, in red.
+    // A gone session points at the sign-in.
     press(tic_key_x);
     answerLike(false, 0, (fs_result){FS_SESSION, "sign in on tic80.com"});
-    assert(strcmp(Screen->message, "sign in on tic80.com") == 0);
-    assert(!Screen->messageGreen);
+    assert(strcmp(Screen->message, "SIGN IN ON TIC80.COM") == 0);
 
     // The message is a popup: it leaves when its animation is over.
     for(s32 i = 0; i < TIC80_FRAMERATE * 4; i++)
