@@ -81,19 +81,25 @@ typedef void (*fs_save_done_cb)(const char* name, fs_result result, void* data);
 typedef void (*fs_done_cb)(fs_result result, void* data);
 typedef void (*fs_stat_done_cb)(const fs_item* item, fs_result result, void* data);
 typedef void (*fs_cover_done_cb)(const u8* bytes, s32 size, fs_result result, void* data);
+typedef void (*fs_like_done_cb)(bool created, s32 rating, fs_result result, void* data);
 
 void tic_fs_list(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_list_done_cb onDone, void* data);
 void tic_fs_load(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data);
+void tic_fs_load_token(tic_fs* fs, const char* path, s32 token, fs_load_done_cb onDone, void* data);
 void tic_fs_save(tic_fs* fs, const char* path, const void* bytes, s32 size, fs_save_done_cb onDone, void* data);
 void tic_fs_delete(tic_fs* fs, const char* path, fs_done_cb onDone, void* data);
 void tic_fs_stat(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void* data);
 void tic_fs_mkdir(tic_fs* fs, const char* path, fs_done_cb onDone, void* data);
 void tic_fs_openfolder(tic_fs* fs, const char* path, fs_done_cb onDone, void* data);
 void tic_fs_cover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data);
+void tic_fs_cover_token(tic_fs* fs, const char* path, s32 token, fs_cover_done_cb onDone, void* data);
+
+// A like is a client-API action on the listed cart's opaque token.
+void tic_fs_like(tic_fs* fs, s32 cart, fs_like_done_cb onDone, void* data);
 
 tic_fs* tic_fs_create(const char* path, struct tic_net* net);
 
-// The shelf's path inside the site: the mount root is TIC_HOST "/shelf".
+// The shelf's path inside the site; the site's root lists it beside likes.
 #define TIC_SHELF_DIR "shelf"
 
 // The remote mounts' inputs: the account, injected so a test can drive a
@@ -103,9 +109,10 @@ typedef struct
 {
     bool (*signed_in)(void* data);
     const char* (*token)(void* data);
-    // A 401 from the shelf carries the token that request used: the account
-    // clears its token only when it is still the current one, so an answer to
-    // an old request cannot sign out a newer session.
+    // A 401 from the client API (the shelf or the likes) carries the token
+    // that request used: the account clears its token only when it is still
+    // the current one, so an answer to an old request cannot sign out a newer
+    // session.
     void (*unauthorized)(void* data, const char* token);
     void* data;
 } tic_fs_remote;

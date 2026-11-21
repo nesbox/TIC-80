@@ -1118,9 +1118,10 @@ static void fakeListOp(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_
         fakePump();
 }
 
-static void fakeLoadOp(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
+static void fakeLoadOp(tic_fs* fs, const char* path, s32 token, fs_load_done_cb onDone, void* data)
 {
     (void)fs;
+    (void)token;
     fakePush(FakeLoad, path, data)->onLoadDone = onDone;
 
     if(Fake.inlineAnswers)
@@ -1168,10 +1169,11 @@ static void fakeOpenOp(tic_fs* fs, const char* path, fs_done_cb onDone, void* da
     (void)path;
 }
 
-static void fakeCoverOp(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
+static void fakeCoverOp(tic_fs* fs, const char* path, s32 token, fs_cover_done_cb onDone, void* data)
 {
     (void)fs;
     (void)path;
+    (void)token;
     onDone(NULL, 0, (fs_result){FS_NOT_FOUND, "no cover"}, data);
 }
 

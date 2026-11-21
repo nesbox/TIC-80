@@ -28,13 +28,13 @@
 typedef struct fs_mount_ops
 {
     void (*list)(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_list_done_cb onDone, void* data);
-    void (*load)(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data);
+    void (*load)(tic_fs* fs, const char* path, s32 token, fs_load_done_cb onDone, void* data);
     void (*save)(tic_fs* fs, const char* path, const void* bytes, s32 size, fs_save_done_cb onDone, void* data);
     void (*delete)(tic_fs* fs, const char* path, fs_done_cb onDone, void* data);
     void (*stat)(tic_fs* fs, const char* path, fs_stat_done_cb onDone, void* data);
     void (*mkdir)(tic_fs* fs, const char* path, fs_done_cb onDone, void* data);
     void (*openfolder)(tic_fs* fs, const char* path, fs_done_cb onDone, void* data);
-    void (*cover)(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data);
+    void (*cover)(tic_fs* fs, const char* path, s32 token, fs_cover_done_cb onDone, void* data);
 } fs_mount_ops;
 
 // The provider seam the contract test installs its fake remote mount through.
