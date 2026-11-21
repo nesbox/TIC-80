@@ -400,7 +400,7 @@ static void testCart(tic_mem* tic, tic_fs* fs)
         s32 loaded = host.loaded;
         LoadAnswer answer = {0};
 
-        rom_load_cart_async(&deps, "site.tic", onLoadAnswer, &answer);
+        rom_load_cart_async(&deps, "site.tic", 0, onLoadAnswer, &answer);
         assert(!answer.done);
         assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
 
@@ -430,7 +430,7 @@ static void testCart(tic_mem* tic, tic_fs* fs)
             s32 before = host.loaded;
             LoadAnswer missing = {0};
 
-            rom_load_cart_async(&deps, "missing.tic", onLoadAnswer, &missing);
+            rom_load_cart_async(&deps, "missing.tic", 0, onLoadAnswer, &missing);
             assert(!missing.done);
             assert(NetCallback);
             assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
@@ -459,6 +459,47 @@ static void testCart(tic_mem* tic, tic_fs* fs)
         tic_fs_homedir(fs);
     }
 
+    // The listing's token reaches the provider through the one loader: a token
+    // load picks its row, not the first file with that name.
+    {
+        u8* buffer = malloc(TIC_CART_SAVE_SIZE);
+        assert(buffer);
+
+        tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0x9);
+        s32 size = tic_cart_save(&tic->cart, buffer);
+        assert(size > 0);
+
+        tic_fs_changedir(fs, TIC_HOST);
+
+        s32 loaded = host.loaded;
+        LoadAnswer answer = {0};
+
+        rom_load_cart_async(&deps, "dup.tic", 12, onLoadAnswer, &answer);
+        assert(!answer.done);
+        assert(NetCallback);
+        assert(strcmp(NetUrl, "/json?fn=dir&path=") == 0);
+
+        answerNetJson("{\"folders\":[],\"files\":["
+                      "{\"name\":\"First\",\"hash\":\"h1\",\"filename\":\"dup.tic\",\"id\":11},"
+                      "{\"name\":\"Second\",\"hash\":\"h2\",\"filename\":\"dup.tic\",\"id\":12}]}");
+        assert(strcmp(NetUrl, "/cart/h2/dup.tic") == 0);
+
+        answerNetData(buffer, size);
+        assert(answer.done);
+        assert(answer.result.code == FS_OK);
+        assert(host.loaded == loaded + 1);
+        assert(strcmp(cart.name, "dup.tic") == 0);
+        assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0x9);
+
+        // The later checks keep the smoke cart's byte as the machine's cart.
+        tic_tool_poke4(tic->cart.bank0.tiles.data[3].data, 0, 0xa);
+
+        free(buffer);
+
+        tic_fs_homedir(fs);
+        tic_fs_delfile(fs, TIC_CACHE "h2.tic");
+    }
+
     // A file that is not a cart is refused; the machine keeps its cart.
     {
         static const char Notes[] = "not a cartridge";
@@ -470,7 +511,7 @@ static void testCart(tic_mem* tic, tic_fs* fs)
         assert(tic_tool_peek4(tic->cart.bank0.tiles.data[3].data, 0) == 0xa);
 
         LoadAnswer answer = {0};
-        rom_load_cart_async(&deps, "notes.txt", onLoadAnswer, &answer);
+        rom_load_cart_async(&deps, "notes.txt", 0, onLoadAnswer, &answer);
         assert(answer.done);
         assert(answer.result.code == FS_UNSUPPORTED);
         assert(host.loaded == loaded);
@@ -489,7 +530,7 @@ static void testCart(tic_mem* tic, tic_fs* fs)
         assert(host.loaded == loaded);
 
         LoadAnswer answer = {0};
-        rom_load_cart_async(&deps, "bad.png", onLoadAnswer, &answer);
+        rom_load_cart_async(&deps, "bad.png", 0, onLoadAnswer, &answer);
         assert(answer.done);
         assert(answer.result.code == FS_UNSUPPORTED);
         assert(host.loaded == loaded);
@@ -552,7 +593,7 @@ static void testCart(tic_mem* tic, tic_fs* fs)
         s32 loaded = host.loaded;
         LoadAnswer answer = {0};
 
-        rom_load_cart_async(&deps, "my-game.tic", onLoadAnswer, &answer);
+        rom_load_cart_async(&deps, "my-game.tic", 0, onLoadAnswer, &answer);
         assert(!answer.done);
         assert(RequestCallback);
         assert(strcmp(RequestUrl, "/api/v1/client/shelf/my-game/cart.tic") == 0);

@@ -40,23 +40,41 @@ static s32 ConfirmCalls;
 static s32 CoverRequests;
 static s32 OpenPageCalls;
 static s32 OpenPageToken;
+static s32 LoadToken;
+static s32 CoverToken;
+static s32 LikeCalls;
+static s32 LikeToken;
 
 static char LoadedName[TICNAME_MAX];
 
 static fs_done_cb LoadDone;
 static void* LoadDoneData;
 
+static SurfLikeDone LikeDone;
+static void* LikeDoneData;
+
 static SurfConfirm ConfirmAnswer;
 static void* ConfirmAnswerData;
 
 // The host load answers through the completion, held until the cart is "in".
-static void fakeLoadCart(void* host, const char* name, fs_done_cb done, void* data)
+static void fakeLoadCart(void* host, const char* name, s32 token, fs_done_cb done, void* data)
 {
     (void)host;
     LoadCartCalls++;
+    LoadToken = token;
     snprintf(LoadedName, sizeof LoadedName, "%s", name);
     LoadDone = done;
     LoadDoneData = data;
+}
+
+// The host like answers through the completion, held until the test answers.
+static void fakeLikeCart(void* host, s32 token, SurfLikeDone done, void* data)
+{
+    (void)host;
+    LikeCalls++;
+    LikeToken = token;
+    LikeDone = done;
+    LikeDoneData = data;
 }
 
 static void fakeAutoSave(void* host)
@@ -169,10 +187,11 @@ static void fakeList(tic_fs* fs, const char* path, fs_list_item_cb onItem, fs_li
     onDone(NULL, (fs_result){FS_OK, NULL}, data);
 }
 
-static void fakeLoad(tic_fs* fs, const char* path, fs_load_done_cb onDone, void* data)
+static void fakeLoad(tic_fs* fs, const char* path, s32 token, fs_load_done_cb onDone, void* data)
 {
     (void)fs;
     (void)path;
+    (void)token;
 
     onDone(NULL, NULL, 0, (fs_result){FS_NOT_FOUND, "not found"}, data);
 }
@@ -240,12 +259,13 @@ static void answerHeldCover(void)
     held.onDone(NULL, 0, (fs_result){FS_NOT_FOUND, "no cover"}, held.data);
 }
 
-static void fakeCover(tic_fs* fs, const char* path, fs_cover_done_cb onDone, void* data)
+static void fakeCover(tic_fs* fs, const char* path, s32 token, fs_cover_done_cb onDone, void* data)
 {
     (void)fs;
     (void)path;
 
     CoverRequests++;
+    CoverToken = token;
 
     if(HoldCovers)
     {
@@ -330,11 +350,15 @@ static void setup(void)
     RunCalls = ExitCalls = ConfirmCalls = 0;
     CoverRequests = 0;
     OpenPageCalls = OpenPageToken = 0;
+    LoadToken = CoverToken = 0;
+    LikeCalls = LikeToken = 0;
     HoldCovers = false;
     HeldCoverCount = 0;
     LoadedName[0] = '\0';
     LoadDone = NULL;
     LoadDoneData = NULL;
+    LikeDone = NULL;
+    LikeDoneData = NULL;
     ConfirmAnswer = NULL;
     ConfirmAnswerData = NULL;
 
@@ -361,6 +385,7 @@ static void setup(void)
                           .cartChanged = fakeCartChanged,
                           .confirmLoadCart = fakeConfirmLoadCart,
                           .openItemPage = fakeOpenItemPage,
+                          .likeCart = fakeLikeCart,
                           .run = fakeRun,
                           .exit = fakeExit,
                           .isActive = fakeIsActive,
@@ -557,8 +582,10 @@ static void testSiteCart(void)
     press(tic_key_down);
     settle();
 
-    // The cover is the filesystem's answer; a missing one is asked again later.
+    // The cover is the filesystem's answer, asked for with the item's token; a
+    // missing one is asked again later.
     assert(CoverRequests == 1);
+    assert(CoverToken == 11);
 
     for(s32 i = 0; i <= CoverRetryTicks; i++)
         frame();
@@ -570,6 +597,7 @@ static void testSiteCart(void)
 
     assert(LoadCartCalls == 1);
     assert(strcmp(LoadedName, "demo.tic") == 0);
+    assert(LoadToken == 11);
     assert(RunCalls == 0);
 
     LoadDone((fs_result){FS_OK, NULL}, LoadDoneData);
@@ -749,6 +777,7 @@ static void testShelfFolder(void)
 
     assert(LoadCartCalls == 1);
     assert(strcmp(LoadedName, "shelf-cart.tic") == 0);
+    assert(LoadToken == 0);
     assert(RunCalls == 0);
 
     LoadDone((fs_result){FS_OK, NULL}, LoadDoneData);
@@ -756,6 +785,80 @@ static void testShelfFolder(void)
 
     teardown();
     puts("shelf folder ok");
+}
+
+static void answerLike(bool created, s32 rating, fs_result result)
+{
+    assert(LikeDone);
+    LikeDone(created, rating, result, LikeDoneData);
+}
+
+// X likes the selected site cart through the host; the answer is the message.
+static void testSiteLike(void)
+{
+    setup();
+    openSiteFolder();
+
+    moveTo(SiteDemoIndex);
+    pressButton(1 << 6);
+
+    assert(LikeCalls == 1);
+    assert(LikeToken == 11);
+
+    // A second press while the first is pending asks nothing.
+    pressButton(1 << 6);
+    assert(LikeCalls == 1);
+
+    // A fresh like reports the new rating in green.
+    answerLike(true, 5, (fs_result){FS_OK, NULL});
+    assert(strcmp(Screen->message, "+1, 5") == 0);
+    assert(Screen->messageGreen);
+
+    // The keyboard key sends the same like.
+    press(tic_key_x);
+    assert(LikeCalls == 2);
+    assert(LikeToken == 11);
+
+    answerLike(false, 5, (fs_result){FS_OK, NULL});
+    assert(strcmp(Screen->message, "already liked") == 0);
+    assert(Screen->messageGreen);
+
+    // A refusal is the server's message, in red.
+    press(tic_key_x);
+    answerLike(false, 0, (fs_result){FS_DENIED, "you cannot like your own cart"});
+    assert(strcmp(Screen->message, "you cannot like your own cart") == 0);
+    assert(!Screen->messageGreen);
+
+    // A gone session points at the sign-in, in red.
+    press(tic_key_x);
+    answerLike(false, 0, (fs_result){FS_SESSION, "sign in on tic80.com"});
+    assert(strcmp(Screen->message, "sign in on tic80.com") == 0);
+    assert(!Screen->messageGreen);
+
+    teardown();
+    puts("site like ok");
+}
+
+// A local cart and a folder carry no token: X asks nothing.
+static void testLikeNothing(void)
+{
+    setup();
+
+    moveTo(RootCartIndex);
+    pressButton(1 << 6);
+    assert(LikeCalls == 0);
+
+    teardown();
+
+    setup();
+    openSiteFolder();
+
+    moveTo(SiteShelfIndex);
+    pressButton(1 << 6);
+    assert(LikeCalls == 0);
+
+    teardown();
+    puts("like nothing ok");
 }
 
 static void testLocalCart(void)
@@ -768,6 +871,7 @@ static void testLocalCart(void)
 
     assert(LoadCartCalls == 1);
     assert(strcmp(LoadedName, "local.tic") == 0);
+    assert(LoadToken == 0);
     assert(RunCalls == 0);
 
     LoadDone((fs_result){FS_OK, NULL}, LoadDoneData);
@@ -881,6 +985,8 @@ int main(void)
     testFailedListing();
     testCoverCap();
     testShelfFolder();
+    testSiteLike();
+    testLikeNothing();
     testLocalCart();
     testConfirm();
     testSubfolder();

@@ -38,13 +38,17 @@ typedef struct SurfItem
 
     bool coverLoading;
     s32 coverRetry;
-    s32 token; // the site's page handle, 0 when the item has no page
+    s32 token; // the item's opaque handle, 0 when the item carries none
     bool dir;
     bool project;
 } SurfItem;
 
 // The confirm the host asks: the screen hands its answer back through it.
 typedef void (*SurfConfirm)(void* host, bool yes, void* data);
+
+// The like's answer: whether the like was created, the cart's rating and the
+// result the message line reports.
+typedef void (*SurfLikeDone)(bool created, s32 rating, fs_result result, void* data);
 
 // What the browser gets once: the machine, its filesystem and config, and the
 // host actions it asks for.
@@ -56,11 +60,12 @@ typedef struct
     struct Config* config;
 
     // The one load entry for every mount; the host answers with the load result.
-    void (*loadCart)(void* host, const char* name, fs_done_cb done, void* data);
+    void (*loadCart)(void* host, const char* name, s32 token, fs_done_cb done, void* data);
     void (*autoSave)(void* host);
     bool (*cartChanged)(void* host);
     void (*confirmLoadCart)(void* host, SurfConfirm callback, void* data);
     void (*openItemPage)(void* host, s32 token); // the page for a listed cart's token
+    void (*likeCart)(void* host, s32 token, SurfLikeDone done, void* data); // the token, never the credential
     void (*run)(void* host);
     void (*exit)(void* host);
     bool (*isActive)(void* host);
@@ -76,10 +81,12 @@ struct Surf
 
     bool init;
     bool loading;
+    bool likePending;
+    bool messageGreen; // the last message was a success, not a failure
     s32 ticks;
     s32 coversInFlight; // cover requests the screen may keep pending at once
 
-    char message[TICNAME_MAX]; // the last failure the browser has to report
+    char message[TICNAME_MAX]; // the last message the browser has to report
 
     struct
     {
