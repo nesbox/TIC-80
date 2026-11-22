@@ -3589,7 +3589,18 @@ static const char HelpUsage[] = "help [<text>"
 // the site's nav owns sign-out.
 static void onWebLoginCommand(Console* console)
 {
-    tic_sys_open_url("/signin");
+    // A home-screen app has its own cookie jar: a new window would sign in Safari, not the app.
+    // clang-format off
+    EM_ASM({
+        if(navigator.standalone)
+        {
+            var next = location.pathname + location.search;
+            location.assign('/signin?next=' + encodeURIComponent(next));
+        }
+        else
+            window.open('/signin', '_blank');
+    });
+    // clang-format on
     printBack(console, "\nsign in on tic80.com\n");
     commandDone(console);
 }
