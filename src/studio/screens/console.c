@@ -238,7 +238,7 @@ static const struct HotkeysRowSpriteEditor
         {"CTRL+C/X/V", "Copy, cut or paste the selection; the right-click color stays empty."},
         {"[]", "Choose previous/next palette color."},
         {"-/=", "Change brush size."},
-        {"SCROLL", "Sheet: canvas; canvas: brush."},
+        {"SCROLL", "Change the canvas size (8x8, 16x16, 32x32, 64x64)."},
         {"1", "Select brush."},
         {"2", "Select color picker."},
         {"3", "Select selection tool."},
