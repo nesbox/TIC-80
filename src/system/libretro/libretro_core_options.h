@@ -64,6 +64,17 @@ struct retro_core_option_definition option_defs_us[] = {
       "disabled"
    },
    {
+      "tic80_fast_triangles",
+      "Fast Triangles",
+      "Draw tri() and ttri() with a faster integer rasterizer (triangles sharing an edge never leave gaps). Triangle edges may differ by a pixel from the reference TIC-80 renderer.",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+   {
       "tic80_pointer_device",
       "Pointer Device",
       "Select physical device to use for emulated mouse input.",

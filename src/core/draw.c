@@ -1694,6 +1694,235 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     drawTriBody(tic, v0, v1, v2, shader, data);
 }
 
+// ---------------------------------------------------------------------------------------------
+// Optional integer rasterizer for tri() and ttri(), off by default. tic_core_set_fast_triangles()
+// switches it on; the libretro core exposes it as the "Fast Triangles" core option.
+//
+// The reference rasterizers above work in doubles: drawTriBody() steps barycentric weights by
+// repeated addition over the bounding box, and the span fills intersect the edges per row. This
+// one snaps vertices to a 1/256 pixel grid and uses exact 64-bit integer edge functions with the
+// top-left fill rule, like GPUs:
+//  - watertight: triangles sharing an edge (same vertices) never leave a gap or draw a pixel
+//    twice - an edge seen from the other triangle has exactly the negated edge function, and
+//    a pixel centre exactly on it belongs only to the triangle for which it is a top/left edge;
+//  - the covered span of each row is computed exactly and then filled, so pixels outside the
+//    triangle cost nothing.
+// Edges may differ from the reference rasterizers by a pixel, so it is off by default.
+// Only degenerate (zero area) triangles are skipped - the reference also drops triangles under
+// 1 pixel^2, which can leave holes in fine meshes.
+// ---------------------------------------------------------------------------------------------
+static bool FastTriangles = false;
+
+void tic_core_set_fast_triangles(bool enabled)
+{
+    FastTriangles = enabled;
+}
+
+enum
+{
+    FxBits = 8,
+    FxOne = 1 << FxBits,
+    FxHalf = FxOne / 2,
+};
+
+typedef struct
+{
+    s32 x0, x1, y0, y1; // clipped pixel bounding box, [x0, x1) x [y0, y1)
+    s64 e[3];           // edge functions at the centre of pixel (x0, y0), fill-rule bias included
+    s64 bias[3];        // 0 for top/left edges, 1 otherwise
+    s64 a[3], b[3];     // edge function step per pixel in x and in y
+    s64 area;           // edge function of the whole triangle (twice the area), > 0
+    s32 order[3];       // which input vertex ended up in each slot (winding fix swaps 1 and 2)
+} FxTri;
+
+// floor(v) as s64. ARMv7 has no floor instruction (floor() is a libm call); values that fit
+// 32 bits use a conversion + correction, which gives exactly the same result.
+static inline s64 fxFloor(double v)
+{
+    if(v > -2147483648.0 && v < 2147483647.0)
+    {
+        s32 i = (s32)v;
+        if(v < (double)i) --i;
+        return i;
+    }
+    return (s64)floor(v);
+}
+
+static inline bool fxCoord(double v, s64* out)
+{
+    // NaN and coordinates beyond +-1M pixels are left to the reference rasterizer
+    if(!(v > -1048576.0 && v < 1048576.0)) return false;
+    *out = fxFloor(v * FxOne + 0.5);
+    return true;
+}
+
+// ceil(n / 256) for any sign (>> floors for negative numbers with GCC/Clang)
+static inline s64 fxCeilDiv256(s64 n)
+{
+    return -((-n) >> FxBits);
+}
+
+// Returns false if the triangle must go to the reference rasterizer. Otherwise *t is set up and
+// the return value is true; t->x0 >= t->x1 means there is nothing to draw.
+static bool fxSetup(tic_core* core, const Vec2* p0, const Vec2* p1, const Vec2* p2, FxTri* t)
+{
+    const Vec2* p[3] = {p0, p1, p2};
+    s64 v[3][2];
+
+    for(s32 i = 0; i < 3; i++)
+        if(!fxCoord(p[i]->x, &v[i][0]) || !fxCoord(p[i]->y, &v[i][1]))
+            return false;
+
+    t->order[0] = 0, t->order[1] = 1, t->order[2] = 2;
+    // empty until proven otherwise: callers check x0 >= x1 before using anything else
+    t->x0 = t->x1 = t->y0 = t->y1 = 0;
+
+    s64 area = (v[1][0] - v[0][0]) * (v[2][1] - v[0][1]) - (v[1][1] - v[0][1]) * (v[2][0] - v[0][0]);
+    if(area == 0) return true;
+    if(area < 0)
+    {
+        for(s32 k = 0; k < 2; k++)
+            SWAP(v[1][k], v[2][k], s64);
+        t->order[1] = 2, t->order[2] = 1;
+        area = -area;
+    }
+    t->area = area;
+
+    // pixels whose centre (x * 256 + 128) lies within the vertices' extent
+    s64 minx = MIN(MIN(v[0][0], v[1][0]), v[2][0]), maxx = MAX(MAX(v[0][0], v[1][0]), v[2][0]);
+    s64 miny = MIN(MIN(v[0][1], v[1][1]), v[2][1]), maxy = MAX(MAX(v[0][1], v[1][1]), v[2][1]);
+    s64 x0 = fxCeilDiv256(minx - FxHalf), x1 = ((maxx - FxHalf) >> FxBits) + 1;
+    s64 y0 = fxCeilDiv256(miny - FxHalf), y1 = ((maxy - FxHalf) >> FxBits) + 1;
+    x0 = MAX(x0, core->state.clip.l), x1 = MIN(x1, core->state.clip.r);
+    y0 = MAX(y0, core->state.clip.t), y1 = MIN(y1, core->state.clip.b);
+    if(x0 >= x1 || y0 >= y1) return true;
+    t->x0 = (s32)x0, t->x1 = (s32)x1, t->y0 = (s32)y0, t->y1 = (s32)y1;
+
+    const s64 cx = x0 * FxOne + FxHalf, cy = y0 * FxOne + FxHalf;
+    for(s32 i = 0; i < 3; i++)
+    {
+        // edge i is the one opposite vertex i, oriented so it is positive inside
+        const s64* a = v[(i + 1) % 3];
+        const s64* b = v[(i + 2) % 3];
+        s64 dx = b[0] - a[0], dy = b[1] - a[1];
+        t->a[i] = -dy * FxOne;
+        t->b[i] = dx * FxOne;
+        // top-left rule: inside grows to the right (dy < 0) = left edge; horizontal edge with
+        // the inside below it (dx > 0) = top edge. Other edges don't own pixels exactly on them.
+        bool topLeft = dy < 0 || (dy == 0 && dx > 0);
+        t->bias[i] = topLeft ? 0 : 1;
+        t->e[i] = dx * (cy - a[1]) - dy * (cx - a[0]) - t->bias[i];
+    }
+    return true;
+}
+
+// Row spans. A pixel at column offset k of a row is inside edge i when E + A*k >= 0 (E = the
+// edge function at offset 0, A = its x step). For A > 0 that holds for k >= kmin = ceil(-E/A),
+// for A < 0 for k <= kmax = floor(E/-A). Instead of dividing for every row (64-bit division is
+// a slow library call on ARMv7), each edge keeps its bound k and the exact remainder
+// R = E + A*k (A > 0) or E - |A|*k (A < 0), 0 <= R < |A|, and steps both from row to row with
+// the precomputed quotient and remainder of the row step B = q*|A| + r. Exactly the same
+// result as dividing, with two divisions per edge per triangle.
+typedef struct
+{
+    s32 kind;    // 1: lower bound (A > 0), -1: upper bound (A < 0), 0: A == 0
+    s64 k, R;    // current bound and remainder (kind 0: R holds E)
+    s64 d, q, r; // |A|, row step quotient and remainder (kind 0: r holds B)
+} FxEdgeStep;
+
+static inline s64 fxFloorDiv(s64 n, s64 d) // d > 0
+{
+    s64 q = n / d;
+    if(n % d != 0 && n < 0) --q;
+    return q;
+}
+
+static void fxEdgesInit(const FxTri* t, FxEdgeStep* s)
+{
+    for(s32 i = 0; i < 3; i++)
+    {
+        const s64 A = t->a[i], B = t->b[i], E = t->e[i];
+        if(A > 0)
+        {
+            s[i].kind = 1, s[i].d = A;
+            s[i].k = -fxFloorDiv(E, A); // ceil(-E / A)
+            s[i].R = E + A * s[i].k;
+        }
+        else if(A < 0)
+        {
+            s[i].kind = -1, s[i].d = -A;
+            s[i].k = fxFloorDiv(E, -A);
+            s[i].R = E + A * s[i].k;
+        }
+        else
+        {
+            s[i].kind = 0, s[i].R = E, s[i].r = B;
+            continue;
+        }
+        s[i].q = fxFloorDiv(B, s[i].d);
+        s[i].r = B - s[i].q * s[i].d;
+    }
+}
+
+// Columns [*xs, *xe) of the current row that are inside; then advances the edges to the next row.
+static inline bool fxStepSpan(const FxTri* t, FxEdgeStep* s, s32* xs, s32* xe)
+{
+    s64 lo = 0, hi = t->x1 - t->x0; // offsets from x0
+    bool inside = true;
+    for(s32 i = 0; i < 3; i++)
+    {
+        FxEdgeStep* e = &s[i];
+        if(e->kind > 0)
+        {
+            if(e->k > lo) lo = e->k;
+            // E += B: the smallest k with E + A*k >= 0 moves by -q (and one more if R overflows)
+            e->k -= e->q, e->R += e->r;
+            if(e->R >= e->d) e->R -= e->d, e->k--;
+        }
+        else if(e->kind < 0)
+        {
+            if(e->k + 1 < hi) hi = e->k + 1;
+            e->k += e->q, e->R += e->r;
+            if(e->R >= e->d) e->R -= e->d, e->k++;
+        }
+        else
+        {
+            if(e->R < 0) inside = false;
+            e->R += e->r;
+        }
+    }
+    if(!inside || lo >= hi) return false;
+    *xs = (s32)(t->x0 + lo), *xe = (s32)(t->x0 + hi);
+    return true;
+}
+
+static bool fxFlatTri(tic_core* core, const Vec2* p0, const Vec2* p1, const Vec2* p2, u8 c1, u8 c2, u16 pattern)
+{
+    FxTri t;
+    if(!fxSetup(core, p0, p1, p2, &t)) return false;
+    if(t.x0 >= t.x1) return true; // degenerate (zero area) or clipped away
+
+    FxEdgeStep es[3];
+    fxEdgesInit(&t, es);
+    for(s32 y = t.y0; y < t.y1; y++)
+    {
+        s32 xs, xe;
+        if(fxStepSpan(&t, es, &xs, &xe))
+        {
+            if(pattern)
+                drawHLineFill(core, xs, y, xe - xs, c1, c2, pattern);
+            else
+                drawHLine(core, xs, y, xe - xs, c1);
+        }
+    }
+    return true;
+}
+
+static inline void pokeScreen(tic_core* core, s32 pixel, u8 color)
+{
+    tic_tool_poke4(screenData(core), (u32)pixel, color);
+}
+
 static tic_color triColorShader(const ShaderAttr* a, s32 pixel)
 {
     (void)pixel;
@@ -1797,6 +2026,9 @@ void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3,
     u16 pattern = fillPattern(color);
     u8 c1 = fillPrimary(tic, color);
     u8 c2 = pattern ? fillSecondary(tic, color) : TRANSPARENT_COLOR;
+
+    if(FastTriangles && fxFlatTri((tic_core*)tic, &(Vec2){{x1, y1}}, &(Vec2){{x2, y2}}, &(Vec2){{x3, y3}}, c1, c2, pattern))
+        return;
 
     if(!isfinite(x1) || !isfinite(y1) || !isfinite(x2) || !isfinite(y2) || !isfinite(x3) || !isfinite(y3) ||
        fabsf(x1) > 32768 || fabsf(y1) > 32768 || fabsf(x2) > 32768 || fabsf(y2) > 32768 || fabsf(x3) > 32768 || fabsf(y3) > 32768)
@@ -2103,13 +2335,16 @@ static DRAW_NOINLINE void drawTtriVbankDepth(tic_mem* tic, const TexVert* t, Tex
     drawTriBody(tic, (const Vec2*)&t[0], (const Vec2*)&t[1], (const Vec2*)&t[2], triTexVbankShader, data);
 }
 
+static inline bool isSheet4(const tic_blit_segment* seg)
+{
+    return seg->peek == tic_tool_peek4 && seg->ptr_size == sizeof(tic_tile) &&
+           seg->tile_width == TIC_SPRITESIZE && seg->nb_pages == 1 && seg->page_orig == 0;
+}
+
 // Kept out of tic_api_ttri, so the flat span fill inlined there compiles as before.
 static DRAW_NOINLINE void drawTtriDepth(tic_mem* tic, const TexVert* t, TexData* data, u32 src)
 {
-    const tic_blit_segment* seg = data->sheet.segment;
-
-    data->sheet4 = seg->peek == tic_tool_peek4 && seg->ptr_size == sizeof(tic_tile) &&
-                   seg->tile_width == TIC_SPRITESIZE && seg->nb_pages == 1 && seg->page_orig == 0;
+    data->sheet4 = isSheet4(data->sheet.segment);
 
     switch(src)
     {
@@ -2118,6 +2353,229 @@ static DRAW_NOINLINE void drawTtriDepth(tic_mem* tic, const TexVert* t, TexData*
         case tic_vbank_texture: drawTtriVbankDepth(tic, t, data); break;
         default: break;
     }
+}
+
+// Fast rasterizer for ttri(): same texture lookups and depth test as the shaders
+// above, attributes interpolated across each span (u/z, v/z, 1/z when depth is on).
+// texel at integer texture coordinates (iu, iv) = floor(u), floor(v); same lookups as the shaders
+static DRAW_ALWAYS_INLINE u8 fxTexelInt(const TexData* data, const u32 src, s32 iu, s32 iv)
+{
+    switch(src)
+    {
+        case tic_tiles_texture:
+        {
+            enum
+            {
+                HMask = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1
+            };
+            s32 tx = iu & (TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1);
+            s32 ty = iv & HMask;
+            return data->sheet4 ? sheetPix4(data, tx, ty) : tic_tilesheet_getpix(&data->sheet, tx, ty);
+        }
+        case tic_map_texture:
+        {
+            enum
+            {
+                MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE,
+                MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE
+            };
+            iu = mapWrap(iu, MapWidth);
+            iv = mapWrap(iv, MapHeight);
+            u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
+            if(data->tile4) return mapTilePix4(data, idx, iu & 7, iv & 7);
+            tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
+            return tic_tilesheet_gettilepix(&tile, iu & 7, iv & 7);
+        }
+        default: // tic_vbank_texture
+        {
+            iu = mapWrap(iu, TIC80_WIDTH);
+            iv = mapWrap(iv, TIC80_HEIGHT);
+            return tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu);
+        }
+    }
+}
+
+static DRAW_ALWAYS_INLINE u8 fxTexel(const TexData* data, const u32 src, double u, double v)
+{
+    return fxTexelInt(data, src, floorToInt(u), floorToInt(v));
+}
+
+static DRAW_ALWAYS_INLINE void fxTexRows(tic_core* core, const FxTri* t, const TexData* data,
+                                         const u32 src, const double* q0, const double* qx, const double* qy)
+{
+    const bool depth = data->depth;
+    FxEdgeStep es[3];
+    fxEdgesInit(t, es);
+    for(s32 y = t->y0; y < t->y1; y++)
+    {
+        s32 xs, xe;
+        if(fxStepSpan(t, es, &xs, &xe))
+        {
+            double dx = xs - t->x0, dy = y - t->y0;
+            double u = q0[0] + qx[0] * dx + qy[0] * dy;
+            double v = q0[1] + qx[1] * dx + qy[1] * dy;
+            double z = q0[2] + qx[2] * dx + qy[2] * dy;
+            for(s32 x = xs, pixel = y * TIC80_WIDTH + xs; x < xe; x++, pixel++, u += qx[0], v += qx[1], z += qx[2])
+            {
+                double tu = u, tv = v;
+                if(depth)
+                {
+                    if(!(ZBuffer[pixel] < z)) continue;
+                    tu /= z, tv /= z;
+                }
+                u8 color = data->mapping[fxTexel(data, src, tu, tv)];
+                if(color != TRANSPARENT_COLOR)
+                {
+                    pokeScreen(core, pixel, color);
+                    if(depth)
+                        ZBuffer[pixel] = z;
+                }
+            }
+        }
+    }
+}
+
+// Texture coordinates in 16.16 fixed point. floor() of the value is (value >> 16).
+enum
+{
+    TexBits = 16,
+    PerspSpan = 8, // exact perspective division every 8 pixels, linear in between
+};
+
+static inline s64 texFixed(double v)
+{
+    return fxFloor(v * (1 << TexBits));
+}
+
+// No depth: u and v are linear across the triangle. Each span starts from the exact value and
+// steps in 16.16 fixed point - no floating point per pixel.
+static DRAW_ALWAYS_INLINE void fxTexRowsAffine(tic_core* core, const FxTri* t, const TexData* data,
+                                               const u32 src, const double* q0, const double* qx, const double* qy)
+{
+    const s64 du = texFixed(qx[0] + 0.5 / (1 << TexBits)), dv = texFixed(qx[1] + 0.5 / (1 << TexBits));
+    FxEdgeStep es[3];
+    fxEdgesInit(t, es);
+    for(s32 y = t->y0; y < t->y1; y++)
+    {
+        s32 xs, xe;
+        if(fxStepSpan(t, es, &xs, &xe))
+        {
+            double dx = xs - t->x0, dy = y - t->y0;
+            s64 u = texFixed(q0[0] + qx[0] * dx + qy[0] * dy);
+            s64 v = texFixed(q0[1] + qx[1] * dx + qy[1] * dy);
+            for(s32 pixel = y * TIC80_WIDTH + xs, end = y * TIC80_WIDTH + xe; pixel < end; pixel++, u += du, v += dv)
+            {
+                u8 color = data->mapping[fxTexelInt(data, src, (s32)(u >> TexBits), (s32)(v >> TexBits))];
+                if(color != TRANSPARENT_COLOR)
+                    pokeScreen(core, pixel, color);
+            }
+        }
+    }
+}
+
+// Depth: u/z, v/z and 1/z are linear; u and v are divided exactly every PerspSpan pixels and
+// stepped in 16.16 fixed point in between. 1/z itself stays a double: it is compared with and
+// stored in the depth buffer, which the reference rasterizer shares.
+static DRAW_ALWAYS_INLINE void fxTexRowsPersp(tic_core* core, const FxTri* t, const TexData* data,
+                                              const u32 src, const double* q0, const double* qx, const double* qy)
+{
+    FxEdgeStep es[3];
+    fxEdgesInit(t, es);
+    for(s32 y = t->y0; y < t->y1; y++)
+    {
+        s32 xs, xe;
+        if(fxStepSpan(t, es, &xs, &xe))
+        {
+            double dx = xs - t->x0, dy = y - t->y0;
+            double uz = q0[0] + qx[0] * dx + qy[0] * dy;
+            double vz = q0[1] + qx[1] * dx + qy[1] * dy;
+            double z = q0[2] + qx[2] * dx + qy[2] * dy;
+            s64 u = 0, v = 0;
+            if(z > 0)
+            {
+                double rz = 1.0 / z;
+                u = texFixed(uz * rz), v = texFixed(vz * rz);
+            }
+
+            for(s32 x = xs, pixel = y * TIC80_WIDTH + xs; x < xe;)
+            {
+                s32 n = MIN(PerspSpan, xe - x);
+                double uz2 = uz + qx[0] * n, vz2 = vz + qx[1] * n, z2 = z + qx[2] * n;
+                s64 u2 = u, v2 = v;
+                if(z2 > 0)
+                {
+                    double rz = 1.0 / z2;
+                    u2 = texFixed(uz2 * rz), v2 = texFixed(vz2 * rz);
+                }
+                s64 du = n == PerspSpan ? (u2 - u) / PerspSpan : (u2 - u) / n;
+                s64 dv = n == PerspSpan ? (v2 - v) / PerspSpan : (v2 - v) / n;
+
+                double zz = z;
+                for(s32 k = 0; k < n; k++, pixel++, zz += qx[2], u += du, v += dv)
+                {
+                    if(!(ZBuffer[pixel] < zz)) continue;
+                    u8 color = data->mapping[fxTexelInt(data, src, (s32)(u >> TexBits), (s32)(v >> TexBits))];
+                    if(color != TRANSPARENT_COLOR)
+                    {
+                        pokeScreen(core, pixel, color);
+                        ZBuffer[pixel] = zz;
+                    }
+                }
+
+                x += n, uz = uz2, vz = vz2, z = z2, u = u2, v = v2;
+            }
+        }
+    }
+}
+
+// t[] are the ttri vertices (screen x,y first, then u,v,z - already divided by z for depth)
+static bool fxTexturedTri(tic_core* core, const TexVert* tv, const TexData* data, u32 src)
+{
+    FxTri t;
+    if(!fxSetup(core, (const Vec2*)&tv[0], (const Vec2*)&tv[1], (const Vec2*)&tv[2], &t)) return false;
+    if(t.x0 >= t.x1) return true;
+
+    // attribute planes: weight of slot i = (unbiased edge i) / area
+    double q0[3] = {0, 0, 0}, qx[3] = {0, 0, 0}, qy[3] = {0, 0, 0};
+    const double inv = 1.0 / (double)t.area;
+    for(s32 i = 0; i < 3; i++)
+    {
+        const Vec3* d = &tv[t.order[i]].d;
+        double w0 = (double)(t.e[i] + t.bias[i]) * inv, wx = (double)t.a[i] * inv, wy = (double)t.b[i] * inv;
+        for(s32 k = 0; k < 3; k++)
+        {
+            q0[k] += w0 * d->d[k];
+            qx[k] += wx * d->d[k];
+            qy[k] += wy * d->d[k];
+        }
+    }
+
+    // Fixed point needs texture coordinates that fit 16.16 in 64 bits; inside the triangle they
+    // stay within the vertices' range. Huge or NaN coordinates use the double-precision loop.
+    bool fixedOk = true;
+    for(s32 i = 0; i < 3; i++)
+    {
+        const Vec3* d = &tv[i].d;
+        double u = data->depth ? d->x / d->z : d->x, v = data->depth ? d->y / d->z : d->y;
+        if(!(fabs(u) < 1e9 && fabs(v) < 1e9)) fixedOk = false;
+    }
+
+#define FX_TEX_ROWS(SRC)                                 \
+    if(!fixedOk)                                         \
+        fxTexRows(core, &t, data, SRC, q0, qx, qy);      \
+    else if(data->depth)                                 \
+        fxTexRowsPersp(core, &t, data, SRC, q0, qx, qy); \
+    else                                                 \
+        fxTexRowsAffine(core, &t, data, SRC, q0, qx, qy)
+
+    switch(src)
+    {
+        case tic_tiles_texture: FX_TEX_ROWS(tic_tiles_texture); break;
+        case tic_map_texture: FX_TEX_ROWS(tic_map_texture); break;
+        default: FX_TEX_ROWS(tic_vbank_texture); break;
+    }
+#undef FX_TEX_ROWS
+    return true;
 }
 
 // The scanline span fill for the flat textured triangle: one inside
@@ -2405,6 +2863,17 @@ void tic_api_ttri(tic_mem* tic,
         return;
 
 #define DRAW_TTRI(SHADER) drawTri(tic, (const Vec2*)&t[0], (const Vec2*)&t[1], (const Vec2*)&t[2], SHADER, &texData)
+
+    if(FastTriangles)
+    {
+        texData.sheet4 = isSheet4(texData.sheet.segment);
+
+        if(depth)
+            ZBufferDirty = true;
+
+        if(fxTexturedTri((tic_core*)tic, t, &texData, src))
+            return;
+    }
 
     if(depth)
     {

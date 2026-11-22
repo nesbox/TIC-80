@@ -999,6 +999,11 @@ void tic80_libretro_variables(bool startup)
     struct retro_variable var;
     bool lastCropBorder = state->cropBorder;
 
+    // Fast Triangles (see tic_core_set_fast_triangles)
+    var.key = "tic80_fast_triangles";
+    var.value = NULL;
+    tic_core_set_fast_triangles(environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value && strcmp(var.value, "enabled") == 0);
+
     // Crop Border
     state->cropBorder = false;
     var.key = "tic80_crop_border";
