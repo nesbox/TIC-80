@@ -41,6 +41,10 @@ bool keyboard_enter(tic_mem* tic, s32 hold, s32 period)
 
 static bool textMuted = false;
 
+// A character read ahead for an Alt shortcut, handed back to the next
+// keyboard_text() so the editor still types it.
+static char pendingText = '\0';
+
 void keyboard_mute_text(bool mute)
 {
     textMuted = mute;
@@ -48,6 +52,13 @@ void keyboard_mute_text(bool mute)
 
 char keyboard_text(tic_mem* tic)
 {
+    if(pendingText)
+    {
+        char text = pendingText;
+        pendingText = '\0';
+        return text;
+    }
+
     if(textMuted)
         return '\0';
 
@@ -98,6 +109,16 @@ char keyboard_text(tic_mem* tic)
     }
 
     return text;
+}
+
+bool keyboard_text_typed(tic_mem* tic)
+{
+    char text = keyboard_text(tic);
+
+    if(text > ' ')
+        pendingText = text;
+
+    return text > ' ';
 }
 
 ClipboardEvent keyboard_clipboard(tic_mem* tic)

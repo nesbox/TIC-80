@@ -2495,7 +2495,8 @@ static void processShortcuts(Studio* studio)
     {
         if(enterWasPressedOnce(studio)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
-        else if(studio->mode != TIC_RUN_MODE && studio->config->data.keyboardLayout != tic_layout_azerty)
+        else if(studio->mode != TIC_RUN_MODE && studio->config->data.keyboardLayout != tic_layout_azerty && !ctrl &&
+                (studio->mode != TIC_CODE_MODE || !keyboard_text_typed(studio->tic)))
         {
 #ifndef KEYBOARD_LAYOUT_ES
             if(keyboard_pressed_once(studio->tic, tic_key_grave))

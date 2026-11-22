@@ -53,6 +53,11 @@ bool keyboard_pressed_once(tic_mem* tic, s32 key);
 bool keyboard_enter(tic_mem* tic, s32 hold, s32 period);
 char keyboard_text(tic_mem* tic);
 
+// Whether the platform typed a printable character this frame; the character
+// is kept for the editor's next keyboard_text(). An Alt shortcut checks this
+// so a layout that types with Alt keeps its characters.
+bool keyboard_text_typed(tic_mem* tic);
+
 // Hides typed text for one frame: the key that ran a menu item must not type
 // into the screen the item just opened.
 void keyboard_mute_text(bool mute);

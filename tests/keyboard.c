@@ -138,6 +138,24 @@ static void testSystemText(tic_mem* tic)
     puts("system text ok");
 }
 
+static void testTextTyped(tic_mem* tic)
+{
+    press(tic, tic_key_3);
+    alsoDown(tic, tic_key_alt);
+
+    systemTextOwned = true;
+    systemText = '#';
+    assert(keyboard_text_typed(tic));
+    assert(keyboard_text(tic) == '#');
+    assert(!keyboard_text_typed(tic));
+
+    systemText = '\0';
+    assert(!keyboard_text_typed(tic));
+
+    systemTextOwned = false;
+    puts("typed text ok");
+}
+
 static void testClipboard(tic_mem* tic)
 {
     press(tic, tic_key_c);
@@ -168,6 +186,7 @@ int main(void)
     testEnter(tic);
     testText(tic);
     testSystemText(tic);
+    testTextTyped(tic);
     testClipboard(tic);
 
     tic_core_close(tic);
