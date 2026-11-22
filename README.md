@@ -7,7 +7,6 @@
   - [Features](#features)
 - [Binary Downloads](#binary-downloads)
   - [Nightly builds](#nightly-builds)
-  - [Unofficial Linux/arm64 nightly builds](#unofficial-builds)
 - [Pro Version](#pro-version)
   - [Pro Features](#pro-features)
 - [Community](#community)
@@ -15,30 +14,25 @@
 - [Build Instructions](#build-instructions)
   - [Windows](#windows)
     - [MSVC (Microsoft Visual C++)](#msvc-microsoft-visual-c)
-      - [Windows XP / Windows 7 32-bit (x86)](#windows-xp--windows-7-32-bit-x86)
       - [Windows 10 / 11 64-bit (x64)](#windows-10--11-64-bit-x64)
+      - [Windows XP / Windows 7 32-bit (x86)](#windows-xp--windows-7-32-bit-x86)
     - [MSYS2 / MINGW](#msys2--mingw)
       - [Windows 10 / 11 64-bit (x64)](#windows-10--11-64-bit-x64-1)
   - [Linux](#linux)
-    - [Ubuntu](#ubuntu)
-      - [Ubuntu 22.04 (Jammy Jellyfish)](#ubuntu-2204-jammy-jellyfish)
-      - [Ubuntu 24.04 (Noble Numbat)](#ubuntu-2404-noble-numbat)
+    - [Ubuntu 22.04 / 24.04](#ubuntu-2204--2404)
     - [Arch](#arch)
-    - [Fedora](#fedora)
-      - [Fedora 36](#fedora-36)
-      - [Fedora 40](#fedora-40)
+    - [Fedora 40+](#fedora-40)
     - [openSUSE](#opensuse)
-      - [openSUSE Tumbleweed / Leap 16.0](#opensuse-tumbleweed--leap-160)
-    - [Raspberry Pi](#raspberry-pi)
-      - [Raspberry Pi OS (64-Bit) (Bookworm)](#raspberry-pi-os-64-bit-bookworm)
-      - [Raspberry Pi (Retropie)](#raspberry-pi-retropie)
+    - [Raspberry Pi OS (64-Bit)](#raspberry-pi-os-64-bit)
   - [Mac](#mac)
   - [FreeBSD](#freebsd)
+  - [Other platforms](#other-platforms)
 - [Install Instructions](#install-instructions)
   - [Linux](#linux-1)
   - [Android](#android)
-  - [iOS / tvOS](#ios--tvos)
+  - [Legacy iOS / tvOS](#legacy-ios--tvos)
   - [Credits](#credits)
+- [License](#license)
 
 # About
 TIC-80 is a free and open source fantasy computer for making, playing and sharing tiny games.
@@ -54,17 +48,24 @@ To make a retro styled game, the whole process of creation and execution takes p
 ### Features
 - Multiple programming languages: [Lua](https://www.lua.org),
   [Moonscript](https://moonscript.org),
+  [YueScript](https://yuescript.org),
   [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
+  [Fennel](https://fennel-lang.org),
+  [Scheme](https://www.scheme.org/),
+  [Squirrel](https://www.squirrel-lang.org),
   [Ruby](https://www.ruby-lang.org/en),
   [Wren](https://wren.io/),
-  [Fennel](https://fennel-lang.org),
-  [Squirrel](https://www.squirrel-lang.org),
-  [Janet](https://janet-lang.org), and
-  [Python](https://www.python.org).
+  [Janet](https://janet-lang.org),
+  [Python](https://www.python.org),
+  [MiniScript](https://miniscript.org/),
+  [Gravity](https://marcobambini.github.io/gravity/), and
+  [Forth](https://forth-standard.org/), plus languages that compile to
+  [WASM](https://github.com/nesbox/TIC-80/wiki/WASM).
 - Games can have mouse and keyboard as input
 - Games can have up to 4 controllers as input (with up to 8 buttons, each)
 - Built-in editors: for code, sprites, world maps, sound effects and music
-- An additional memory bank: load different assets from your cartridge while your game is executing
+- Memory banks: up to 8 banks in a cart (PRO) to swap assets while a game runs
+- Native builds for Windows, Linux (x64/arm64), macOS (Apple Silicon/Intel), Android, FreeBSD, Raspberry Pi, Nintendo 3DS, Nintendo Switch, Tanmatsu and libretro; the web player runs through WebGL or WebGPU
 - Moderated community
 
 # Binary Downloads
@@ -75,18 +76,15 @@ You can download compiled versions for the major operating systems directly from
 ## Nightly Builds
 Can be downloaded from official [nightly.link](https://nightly.link/nesbox/TIC-80/workflows/build/main) page or from the [Github Actions](https://github.com/nesbox/TIC-80/actions?query=branch%3Amain) page.
 
-## Unofficial Builds
-Linux (arm64) builds can be downloaded from _aliceisjustplaying_ [nightly.link](https://nightly.link/aliceisjustplaying/TIC-80/workflows/build-linux-arm64/main?preview) page. Tested on Raspberry Pi OS (64-bit) (Bookworm), Asahi Linux (Fedora Remix), Ubuntu 22.04 and Fedora 40.
-
 # Pro Version
 To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic80).
 
 This version has a few additional features and binaries can only be downloaded on our itch.io page.
 
-For users who can't afford the program can easily build the pro version from the source code using `cmake .. -DBUILD_PRO=On` command.
+Users who can't afford the program can easily build the pro version from the source code using the `cmake .. -DBUILD_PRO=On` command.
 
 ## Pro Features
-- Save/load cartridges in text format, and create your game in any editor you want, also useful for version control systems.
+- Save/load cartridges as text projects, and create your game in any editor you want, also useful for version control systems.
 - Even more memory banks: instead of having only 1 memory bank you have 8.
 - Export your game without editors, and then publish it to app stores.
 
@@ -108,11 +106,45 @@ The wiki holds TIC-80 documentation, code snippets and game development tutorial
 
 ### MSVC (Microsoft Visual C++)
 
+#### Windows 10 / 11 64-bit (x64)
+This guide assumes you're running PowerShell with an elevated prompt.
+
+- Install [Git](https://git-scm.com/download/win), [CMake](https://cmake.org/download), [Visual Studio 2022 Build Tools](https://winstall.app/apps/Microsoft.VisualStudio.2022.BuildTools) and [Ruby+Devkit 2.7.8 x64](https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.8-1/rubyinstaller-devkit-2.7.8-1-x64.exe) manually or with [WinGet](https://github.com/microsoft/winget-cli):
+```
+winget install Git.Git Kitware.CMake Microsoft.VisualStudio.2022.BuildTools RubyInstallerTeam.RubyWithDevKit.2.7
+```
+- Install the necessary dependencies within VS2022:
+  - Launch "Visual Studio Installer"
+  - Click "Modify"
+  - Check "Desktop Development with C++"
+  - Make sure the following components are installed:
+    - Windows 10/11 SDK
+    - MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)
+  - Click "Modify"
+- Run `ridk install` with options `1,3` to set up [MSYS2](https://www.msys2.org) and development toolchain
+- Add MSYS2's [`gcc`](https://gcc.gnu.org) at `C:\Ruby27-x64\msys64\mingw64\bin` to your `$PATH` [manually](https://www.java.com/en/download/help/path.html#:~:text=Mac%20OS%20X.-,Windows,-Windows%2010%20and) or with the following PowerShell command:
+
+```
+[Environment]::SetEnvironmentVariable('Path', $env:Path + ';C:\Ruby27-x64\msys64\mingw64\bin', [EnvironmentVariableTarget]::Machine)
+```
+
+- Open a new elevated prompt and run the following commands:
+
+```
+git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
+cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+cmake --build . --config Release --parallel
+```
+
+You'll find `tic80.exe` in `TIC-80\build\bin`.
+
+The default system layer is sokol. To build the SDL version instead, add `-DBUILD_SDL=On -DBUILD_SOKOL=Off -DBUILD_SDLGPU=On` to the `cmake` line.
+
 #### Windows XP / Windows 7 32-bit (x86)
-The build process has been tested on Windows 11 64-bit (x64); all this should run on Windows 7 SP1 32-bit (x86) as well. This guide assumes you're running an elevated Command Prompt.
+This is a legacy target and is not exercised by CI. The build process was tested on Windows 11 64-bit (x64); it should run on Windows 7 SP1 32-bit (x86) as well. This guide assumes you're running an elevated Command Prompt.
 
 - Install [Git](https://git-scm.com/download/win), [CMake](https://cmake.org/download), [Visual Studio 2019 Build Tools](https://winstall.app/apps/Microsoft.VisualStudio.2019.BuildTools) and [Ruby+Devkit 2.7.8 x86](https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.8-1/rubyinstaller-devkit-2.7.8-1-x86.exe)
-- Install the neccessary dependencies within VS2019:
+- Install the necessary dependencies within VS2019:
   - Launch "Visual Studio Installer"
   - Click "Modify"
   - Check "Desktop Development with C++"
@@ -129,41 +161,8 @@ The build process has been tested on Windows 11 64-bit (x64); all this should ru
 
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
-copy /y .\build\janet\janetconf.h .\vendor\janet\src\conf\janetconf.h
-cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On ..
-cmake --build . --parallel
-```
-
-You'll find `tic80.exe` in `TIC-80\build\bin`.
-
-#### Windows 10 / 11 64-bit (x64)
-This guide assumes you're running PowerShell with an elevated prompt.
-
-- Install [Git](https://git-scm.com/download/win), [CMake](https://cmake.org/download), [Visual Studio 2019 Build Tools](https://winstall.app/apps/Microsoft.VisualStudio.2019.BuildTools) and [Ruby+Devkit 2.7.8 x64](https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.8-1/rubyinstaller-devkit-2.7.8-1-x64.exe) manually or with [WinGet](https://github.com/microsoft/winget-cli):
-```
-winget install Git.Git Kitware.CMake Microsoft.VisualStudio.2019.BuildTools RubyInstallerTeam.RubyWithDevKit.2.7
-```
-- Install the neccessary dependencies within VS2019:
-  - Launch "Visual Studio Installer"
-  - Click "Modify"
-  - Check "Desktop Development with C++"
-  - Make sure the following components are installed:
-    - Windows 10 SDK (10.0.19041.0)
-    - MSVC v142 - VS 2019 C+ + x64/x86 build tools (Latest)
-  - Click "Modify"
-- Run `ridk install` with options `1,3` to set up [MSYS2](https://www.msys2.org) and development toolchain
-- Add MSYS2's [`gcc`](https://gcc.gnu.org) at `C:\Ruby27-x64\msys64\mingw64\bin` to your `$PATH` [manually](https://www.java.com/en/download/help/path.html#:~:text=Mac%20OS%20X.-,Windows,-Windows%2010%20and) or with the following PowerShell command:
-
-```
-[Environment]::SetEnvironmentVariable('Path', $env:Path + ';C:\Ruby27-x64\msys64\mingw64\bin', [EnvironmentVariableTarget]::Machine)
-```
-
-- Open a new elevated prompt and run the following commands:
-
-```
-git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
-cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
-cmake --build . --parallel
+cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=On -DBUILD_SOKOL=Off -DBUILD_WITH_ALL=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+cmake --build . --config Release --parallel
 ```
 
 You'll find `tic80.exe` in `TIC-80\build\bin`.
@@ -188,7 +187,7 @@ winget install Git.Git Kitware.CMake RubyInstallerTeam.RubyWithDevKit.2.7
 
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
-cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
+cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
 $numCPUs = [Environment]::ProcessorCount
 mingw32-make "-j$numCPUs"
 ```
@@ -197,169 +196,97 @@ You'll find `tic80.exe` in `TIC-80\build\bin`.
 
 ## Linux
 
-### Ubuntu
+The commands below build with GLES (`-DUSE_GLES2=On`), as the release Linux binaries do: sokol then needs the X11/Xi/Xcursor, EGL/GLES and ALSA headers. Drop that flag on a machine that can provide an OpenGL 4.3 core context (the GL build uses GLX). Pulse/audio/samplerate are optional audio backends the package lists also carry. For the SDL build instead, configure with `-DBUILD_SDL=On -DBUILD_SOKOL=Off` (and `-DBUILD_SDLGPU=On` for the GPU renderer).
 
-#### Ubuntu 22.04 (Jammy Jellyfish)
+### Ubuntu 22.04 / 24.04
 Run the following commands from a terminal:
 
 ```
-# Install the latest CMake from https://apt.kitware.com
-test -f /usr/share/doc/kitware-archive-keyring/copyright ||
-wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
-sudo apt-get update
-test -f /usr/share/doc/kitware-archive-keyring/copyright ||
-sudo rm /usr/share/keyrings/kitware-archive-keyring.gpg
-sudo apt-get install kitware-archive-keyring
-
-sudo apt update && sudo apt -y install build-essential cmake git libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev libcurl4-openssl-dev
+sudo apt update && sudo apt -y install build-essential cmake pkg-config git libx11-dev libxi-dev libxcursor-dev libegl1-mesa-dev libgles2-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev ruby-dev rake
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On .. && cmake --build . --parallel
-```
-
-Install with [Install Instructions](#install-instructions)
-
-#### Ubuntu 24.04 (Noble Numbat)
-Run the following commands from a terminal:
-
-```
-sudo apt update && sudo apt -y install build-essential cmake git libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On -DBUILD_STATIC=On .. && cmake --build . --parallel
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On -DUSE_GLES2=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. && cmake --build . --parallel
 ```
 
 Install with [Install Instructions](#install-instructions)
 
 ### Arch
-run the following commands in the Terminal
+Run the following commands in the Terminal:
+
 ```
-sudo pacman -S cmake ruby ruby-rake mesa libglvnd glu
+sudo pacman -S --needed base-devel cmake git ruby ruby-rake libx11 libxi libxcursor mesa libglvnd alsa-lib libpulse curl
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_WITH_ALL=On .. && cmake --build . --parallel
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On -DUSE_GLES2=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. && cmake --build . --parallel
 ```
 
 Install with [Install Instructions](#install-instructions)
 
-### Fedora
-
-#### Fedora 36
-run the following commands in the Terminal
-```
-sudo dnf -y groupinstall "Development Tools" "Development Libraries"
-sudo dnf -y install ruby rubygem-{tk{,-doc},rake,test-unit} cmake libglvnd-devel libglvnd-gles freeglut-devel clang libXext-devel SDL_sound pipewire-devel pipewire-jack-audio-connection-kit-devel pulseaudio-libs-devel
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DCMAKE_CXX_COMPILER=clang++ -DSDL_ALSA=On -DBUILD_WITH_ALL=On ..
-```
-
-Install with [Install Instructions](#install-instructions)
-
-#### Fedora 40
+### Fedora 40+
 Run the following commands from a terminal:
+
 ```
-sudo dnf -y groupinstall "Development Tools" "Development Libraries"
-sudo dnf -y install ruby-devel rubygem-rake cmake clang pipewire-devel SDL2-devel SDL2_sound-devel SDL2_gfx-devel wayland-devel libXext-devel pipewire-jack-audio-connection-kit-devel pipewire-jack-audio-connection-kit-devel pulseaudio-libs-devel rubygems-devel libdecor-devel libdrm-devel mesa-libgbm-devel esound-devel freeglut-devel
+sudo dnf -y groupinstall "Development Tools"
+sudo dnf -y install cmake git ruby ruby-devel rubygem-rake libX11-devel libXi-devel libXcursor-devel libglvnd-devel mesa-libEGL-devel alsa-lib-devel pulseaudio-libs-devel libcurl-devel
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
-cmake --build . --parallel
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On -DUSE_GLES2=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. && cmake --build . --parallel
 ```
 
 Install with [Install Instructions](#install-instructions)
 
 ### openSUSE
-
-#### openSUSE Tumbleweed / Leap 16.0
 Run the following commands from a terminal:
+
 ```
 sudo zypper refresh
 sudo zypper install --no-confirm --type pattern devel_basis
-sudo zypper install --no-confirm cmake glu-devel libXext-devel pipewire-devel libcurl-devel
+sudo zypper install --no-confirm cmake git ruby ruby-devel rubygem-rake libX11-devel libXi-devel libXcursor-devel Mesa-libEGL-devel Mesa-libGLESv2-devel alsa-devel libpulse-devel libcurl-devel
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On .. && cmake --build . --parallel
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On -DUSE_GLES2=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. && cmake --build . --parallel
 ```
 
 Install with [Install Instructions](#install-instructions)
 
-### Raspberry Pi
-
-#### Raspberry Pi OS (64-Bit) (Bookworm)
+### Raspberry Pi OS (64-Bit)
 Run the following commands from a terminal:
 
 ```
-sudo apt update && sudo apt -y install cmake libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev
+sudo apt update && sudo apt -y install build-essential cmake pkg-config git libx11-dev libxi-dev libxcursor-dev libegl1-mesa-dev libgles2-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev ruby-dev rake
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On .. && cmake --build . --parallel 2
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On -DUSE_GLES2=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 .. && cmake --build . --parallel 2
 ```
 
 Install with [Install Instructions](#install-instructions)
 
-#### Raspberry Pi (Retropie)
-First, add jessie-backports repo to your `/etc/apt/sources.list`
-
-`deb [check-valid-until=no] http://archive.debian.org/debian jessie-backports main`
-
-Then run the following commands in the Terminal
-
-```
-# required public keys
-gpg --keyserver pgpkeys.mit.edu --recv-key  8B48AD6246925553
-gpg -a --export 8B48AD6246925553 | sudo apt-key add -
-gpg --keyserver pgpkeys.mit.edu --recv-key 7638D0442B90D010
-gpg -a --export 7638D0442B90D010 | sudo apt-key add -
-
-# upgrade system
-sudo apt-get update
-sudo apt-get dist-upgrade
-
-# install software
-sudo apt-get install git build-essential ruby-full libsdl2-dev zlib1g-dev
-sudo apt-get install -t jessie-backports liblua5.3-dev
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_WITH_ALL=On ..
-
-# install software ubuntu 22.04.3 LTS
-sudo apt-get install git build-essential ruby-full libsdl2-dev zlib1g-dev
-sudo apt-get install liblua5.3-dev
-sudo apt-get install libcurl4-openssl-dev
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_WITH_ALL=On ..
-```
-
-Install with [Install Instructions](#install-instructions)
-
-_Note:_ If you are using a normal Raspberry Pi image (not Retropie) you may not
-have OpenGL drivers enabled. Run `sudo raspi-config`, then select 7
-for "Advanced Options", followed by 6 for "GL Drivers", and enable "GL
-(Fake KMS) Desktop Driver". After changing this setting, reboot.
+The bare-metal Raspberry Pi builds (Circle) live in `src/system/baremetalpi` and are produced by the `rpi-baremetal` jobs in the build workflow.
 
 ## Mac
 install `Command Line Tools for Xcode` and `brew` package manager
 
-### Standard SDL2 Build
-run the following commands in the Terminal
+### Standard build (sokol)
+Run the following commands in the Terminal:
 ```
 brew install git cmake
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_WITH_ALL=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
-make -j4
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+cmake --build . --parallel
 ```
 
 ### Native Apple Backend (Metal / AppKit / Swift)
-TIC-80 also includes an optional native Apple backend built with Metal, AppKit, AVFoundation, GameController, and Swift:
+TIC-80 also includes an optional native Apple backend built with Metal, AppKit, AVFoundation, GameController, and Swift. It is a macOS backend; it does not build for iOS or tvOS. The `-G Xcode` generator needs a full Xcode installation, not only the Command Line Tools:
 ```
 brew install git cmake
-git clone --recursive https://github.com/nesbox/TIC-80
-cmake -G Xcode -B build -DBUILD_APPLE=ON -DBUILD_STATIC=ON -DBUILD_RENDER_CACHE=ON -DBUILD_SDLGPU=OFF -DBUILD_WITH_ALL=ON
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80
+cmake -G Xcode -B build -DBUILD_APPLE=ON -DBUILD_STATIC=ON -DBUILD_RENDER_CACHE=ON -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 cmake --build build --config Release
 ```
 
-to create application icon for development version
+To create an application icon for a development version, use the plist that the configure step generates and the icon shipped in `build/macosx`. The Xcode generator puts the binary in the `Release` configuration folder:
 ```
 mkdir -p ~/Applications/tic80dev.app/Contents/{MacOS,Resources}
-cp -f macosx/tic80.plist ~/Applications/tic80dev.app/Contents/Info.plist
-cp -f macosx/tic80.icns ~/Applications/tic80dev.app/Contents/Resources
+cp -f build/macosx/tic80.plist ~/Applications/tic80dev.app/Contents/Info.plist
+cp -f build/macosx/tic80.icns ~/Applications/tic80dev.app/Contents/Resources
 cat > ~/Applications/tic80dev.app/Contents/MacOS/tic80 <<EOF
 #!/bin/sh
-exec /Users/nesbox/projects/TIC-80/build/bin/tic80 --skip >/dev/null
+exec "$PWD/build/bin/Release/tic80" --skip >/dev/null
 EOF
 chmod +x ~/Applications/tic80dev.app/Contents/MacOS/tic80
 ```
@@ -369,8 +296,8 @@ run the following commands in the Terminal
 ```
 sudo pkg install gcc git cmake ruby libglvnd libglu freeglut mesa-devel mesa-dri alsa-lib
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_WITH_ALL=On ..
-make -j4
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_ALL=On -DCMAKE_POLICY_VERSION_MINIMUM=3.5 ..
+cmake --build . --parallel
 ```
 
 Mesa looks for swrast_dri.so from the wrong path, so also symlink it:
@@ -379,17 +306,24 @@ Mesa looks for swrast_dri.so from the wrong path, so also symlink it:
 sudo ln -s /usr/local/lib/dri/swrast_dri.so /usr/local/lib/dri-devel/
 ```
 
+## Other platforms
+
+- **libretro**: configure with `-DBUILD_LIBRETRO=On`.
+- **Nintendo 3DS / Nintendo Switch**: devkitPro toolchains; see the `nintendo-3ds` and `nintendo-switch` jobs in `.github/workflows/build.yml`.
+- **Tanmatsu / Konsool**: the ESP-IDF project in `src/system/tanmatsu` and its README.
+- **Android**: the SDL build is the Gradle project in `build/android`, the sokol build is `build/android-sokol` with its `apk.sh`; see the `android` and `sdl-android` jobs in `.github/workflows/build.yml`.
+
 # Install instructions
 
 ## Linux
-- To make an executable file `./tic80` without installation run `make` and locate the output in `TIC-80/build/bin`.
-- To install system-wide run `sudo make install`
-- You can append `-j4` if you have a modern system, or `-j2` for a Raspberry Pi to speed up the process.
+- Build with `cmake --build . --parallel` and locate the binary at `TIC-80/build/bin/tic80`.
+- To install system-wide run `sudo cmake --install .` from the build directory.
 
 TIC-80 can now be run with `tic80` (if installed) or `./tic80` (with no installation).
 
-## iOS / tvOS
-You can find iOS/tvOS version here
+## Legacy iOS / tvOS
+There is no iOS or tvOS build in the releases; the native Apple backend is macOS only. These community forks were built from much older versions:
+
 - 0.60.3: https://github.com/brunophilipe/TIC-80
 - 0.45.0: https://github.com/CliffsDover/TIC-80
 
@@ -434,3 +368,7 @@ You can find the compiled version ready download and install [on F-Droid](https:
 * Li Jin — [Github @pigpigyyy](https://github.com/pigpigyyy)
 * Dania Rifki — [Github @Kaleidosium](https://github.com/Kaleidosium)
 * Carsten Teibes — [GitHub @carstene1ns](https://github.com/carstene1ns)
+
+# License
+
+TIC-80 is released under the MIT License; see [LICENSE](LICENSE). The vendored third-party components and their licenses are listed in [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) and the [LICENSES](LICENSES) folder.
