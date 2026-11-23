@@ -100,6 +100,7 @@ if(BUILD_SOKOL)
 
     set(TIC80_SRC
         ${CMAKE_SOURCE_DIR}/src/system/sokol/main.c
+        ${CMAKE_SOURCE_DIR}/src/system/sokol/keylayout.c
         ${CMAKE_SOURCE_DIR}/src/system/sokol/render.c)
 
     # The on-screen controls are their own module, and only a build that wants
@@ -139,6 +140,12 @@ if(BUILD_SOKOL)
         ${THIRDPARTY_DIR}/sokol)
 
     target_link_libraries(${TIC80_TARGET} PRIVATE tic80studio sokol)
+
+    if(APPLE)
+        # The keyboard layout query reads the current input source, which is
+        # Carbon's Text Input Sources API.
+        target_link_libraries(${TIC80_TARGET} PRIVATE "-framework Carbon")
+    endif()
 
     if(BUILD_TOUCH_INPUT)
         # The same name the SDL layer's touch input is compiled under.

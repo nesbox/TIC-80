@@ -25,6 +25,7 @@
 #include "tools.h"
 #include "tilesheet.h"
 #include "render.h"
+#include "keylayout.h"
 #if defined(TOUCH_INPUT_SUPPORT)
 #include "controls.h"
 #endif
@@ -93,10 +94,6 @@ static struct
         char queue[64];
         s32 head, tail;
         bool taken;
-
-        // A CHAR event carries no key code, so the key it belongs to is the
-        // one that went down last.
-        sapp_keycode lastCode;
     } keyboard;
 
 #if defined(TOUCH_INPUT_SUPPORT)
@@ -128,7 +125,7 @@ static struct
     bool started;
 
     bool fullscreen;
-    bool layoutKnown;
+    tic_layout layout; // the layout the OS last reported for the key positions
 
     // The menu button — the on-screen control or a pad's own — as it was last
     // frame: the ESC it stands for is written on its edge.
@@ -254,7 +251,7 @@ static void make_folder(const char* path)
 #endif
 
 // sokol's key codes are physical positions, the same as SDL's scancodes, so
-// this table is the whole keyboard translation.
+// this table names the position; keylayout.c then asks the OS what it prints.
 static const u8 Keymap[] =
     {
         [SAPP_KEYCODE_SPACE] = tic_key_space,
@@ -362,8 +359,59 @@ static const u8 Keymap[] =
 static tic_key translate_key(sapp_keycode code)
 {
     const u32 key = (u32)code;
+    const tic_key position = key < (u32)COUNT_OF(Keymap) ? (tic_key)Keymap[key] : tic_key_unknown;
 
-    return key < (u32)COUNT_OF(Keymap) ? (tic_key)Keymap[key] : tic_key_unknown;
+    return position == tic_key_unknown ? position : tic_sys_layout_key(position);
+}
+
+// Asks the OS for the layout again and moves the keys held across a change to
+// the slots their new characters name; a release then finds them.
+static void refresh_layout(void)
+{
+    enum
+    {
+        CharKeys = tic_key_space - tic_key_a + 1,
+    };
+
+    tic_key before[CharKeys], after[CharKeys];
+
+    for(s32 i = 0; i < CharKeys; i++)
+        before[i] = tic_sys_layout_key((tic_key)(tic_key_a + i));
+
+    const tic_layout layout = tic_sys_layout_refresh();
+
+    bool moved = false;
+
+    for(s32 i = 0; i < CharKeys; i++)
+    {
+        after[i] = tic_sys_layout_key((tic_key)(tic_key_a + i));
+        moved = moved || after[i] != before[i];
+    }
+
+    if(moved)
+    {
+        bool state[tic_keys_count], pressed[tic_keys_count];
+
+        memcpy(state, platform.keyboard.state, sizeof state);
+        memcpy(pressed, platform.keyboard.pressed, sizeof pressed);
+
+        // The character slots are rebuilt from the positions; the rest stay.
+        for(s32 i = tic_key_a; i <= tic_key_space; i++)
+            platform.keyboard.state[i] = platform.keyboard.pressed[i] = false;
+
+        for(s32 i = 0; i < CharKeys; i++)
+            if(after[i] != tic_key_unknown && before[i] != tic_key_unknown)
+            {
+                platform.keyboard.state[after[i]] |= state[before[i]];
+                platform.keyboard.pressed[after[i]] |= pressed[before[i]];
+            }
+    }
+
+    if(platform.studio && layout != platform.layout)
+    {
+        platform.layout = layout;
+        studio_keymapchanged(platform.studio, layout);
+    }
 }
 
 static void handle_key(sapp_keycode code, bool down)
@@ -929,38 +977,6 @@ static s32 max_scale(void)
     return scale > 0 ? scale : 1;
 }
 
-// Which layout the keyboard is in, guessed from a typed character: sokol's key
-// codes are positions, so a position that types something else names the layout.
-static void learn_layout(sapp_keycode code, uint32_t unicode)
-{
-    static const struct
-    {
-        sapp_keycode code;
-        char us;
-        tic_layout layout;
-    } Probes[] =
-        {
-            {SAPP_KEYCODE_Q, 'q', tic_layout_qwerty},
-            {SAPP_KEYCODE_W, 'w', tic_layout_qwerty},
-            {SAPP_KEYCODE_Q, 'a', tic_layout_azerty},
-            {SAPP_KEYCODE_W, 'z', tic_layout_azerty},
-            {SAPP_KEYCODE_Y, 'z', tic_layout_qwertz},
-            {SAPP_KEYCODE_Q, 'x', tic_layout_de_neo},
-            {SAPP_KEYCODE_Q, 'j', tic_layout_de_bone},
-        };
-
-    if(platform.layoutKnown || unicode > 0x7f)
-        return;
-
-    for(s32 i = 0; i < COUNT_OF(Probes); i++)
-        if(Probes[i].code == code && (char)unicode == Probes[i].us)
-        {
-            platform.layoutKnown = true;
-            studio_keymapchanged(platform.studio, Probes[i].layout);
-            return;
-        }
-}
-
 // A browser starts the audio context suspended, and only a gesture may start
 // it. sokol's own hook is one-shot and listens on the release, so a gesture
 // that lands while the module is still loading — or a resume the browser
@@ -1073,12 +1089,15 @@ static void event_cb(const sapp_event* event)
     switch(event->type)
     {
         case SAPP_EVENTTYPE_KEY_DOWN:
+            // A layout the OS switched to applies to the key going down now.
+            if(!event->key_repeat)
+                refresh_layout();
+
             // A key the browser repeats is the same press, and the audio context
             // has been asked already.
             if(!platform.keyboard.state[translate_key(event->key_code)])
                 resume_audio();
 
-            platform.keyboard.lastCode = event->key_code;
             handle_key(event->key_code, true);
 
             // A Cmd press after a focus change can evade sokol's flag tracking,
@@ -1104,8 +1123,6 @@ static void event_cb(const sapp_event* event)
             // Control characters are keys of their own, not text.
             if(event->char_code >= 32 && event->char_code < 127 && platform.keyboard.head - platform.keyboard.tail < (s32)COUNT_OF(platform.keyboard.queue))
                 platform.keyboard.queue[platform.keyboard.head++ % COUNT_OF(platform.keyboard.queue)] = (char)event->char_code;
-
-            learn_layout(platform.keyboard.lastCode, event->char_code);
             break;
 
         case SAPP_EVENTTYPE_UNFOCUSED:
@@ -1410,8 +1427,10 @@ static void set_window_icon(void)
 // The studio, made the same way by the windowed run and the console-only one.
 static Studio* create_studio(s32 scale)
 {
+    const tic_layout layout = platform.layout == tic_layout_unknown ? tic_layout_qwerty : platform.layout;
+
     return studio_create(platform.argc, platform.argv, TIC80_SAMPLERATE,
-                         TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, scale, tic_layout_qwerty);
+                         TIC80_PIXEL_COLOR_RGBA8888, platform.appFolder, scale, layout);
 }
 
 static void init_cb(void)
@@ -1534,6 +1553,10 @@ static sapp_desc app_desc(void)
 // mounting is asynchronous — so the application starts from the callback.
 EMSCRIPTEN_KEEPALIVE void sokol_start(void)
 {
+    // Before sokol listens for keys: the layout listener has to see a key
+    // before the key handler asks what it prints.
+    platform.layout = tic_sys_layout_refresh();
+
     sapp_desc desc = app_desc();
     sapp_run(&desc);
 }
@@ -1625,6 +1648,8 @@ sapp_desc sokol_main(int argc, char* argv[])
     platform.appFolder = getAppFolder();
 
     make_folder(platform.appFolder);
+
+    platform.layout = tic_sys_layout_refresh();
 
     // The window starts windowed, as the SDL build's does, and the window's
     // own thread is where that is said.
@@ -1780,6 +1805,8 @@ int main(int argc, char* argv[])
 #if defined(_WIN32)
     win32_console_detach_if_gui(cli || command);
 #endif
+
+    platform.layout = tic_sys_layout_refresh();
 
     sapp_desc desc = app_desc();
     sapp_run(&desc);
@@ -2005,8 +2032,8 @@ void tic_sys_update_config(void)
 
 void tic_sys_default_mapping(tic_mapping* mapping)
 {
-    // sokol's key codes are physical positions, so the default keys are the
-    // positions themselves whatever the layout types on them.
+    // The keys are labels now: a default press is the key the layout prints
+    // that letter on, as the keyboard itself does.
     static const tic_key Keys[] =
         {
             tic_key_up,
