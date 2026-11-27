@@ -697,8 +697,9 @@ static tic_tilesheet refSheet(u8 segment)
     switch(segment)
     {
         case 0:
+            return tic_tilesheet_get(0, (u8*)&Tic->ram->font);
         case 1:
-            return tic_tilesheet_get(segment, (u8*)&Tic->ram->font);
+            return tic_tilesheet_get(1, (u8*)&Tic->ram->fontAlt);
         default:
             return tic_tilesheet_get(segment, (u8*)&Tic->ram->tiles.data);
     }
@@ -725,8 +726,8 @@ static void refGlyph(const tic_tilesheet* face, s32 index, s32 x, s32 y, s32 sca
 
 static void refPrintFixed(const char* text, s32 x, s32 y, u8 color, s32 scale, bool alt)
 {
-    tic_tilesheet face = refSheet(1);
-    const tic_font_data* font = alt ? &Tic->ram->font.alt : &Tic->ram->font.regular;
+    tic_tilesheet face = refSheet(alt ? 1 : 0);
+    const tic_font_data* font = alt ? &Tic->ram->fontAlt : &Tic->ram->font;
     s32 pos = x;
 
     for(const char* p = text; *p; p++)
@@ -740,7 +741,7 @@ static void refPrintFixed(const char* text, s32 x, s32 y, u8 color, s32 scale, b
             continue;
         }
 
-        refGlyph(&face, (alt ? TIC_FONT_CHARS : 0) + (u8)sym, pos, y, scale, true, color);
+        refGlyph(&face, (u8)sym, pos, y, scale, true, color);
         pos += font->width * scale;
     }
 }
@@ -766,7 +767,7 @@ static void refFontFixed(const char* text, s32 x, s32 y, s32 w, s32 h, s32 scale
             continue;
         }
 
-        refGlyph(&face, (alt ? TIC_FONT_CHARS : 0) + (u8)sym, pos, y, scale, false, 0);
+        refGlyph(&face, (alt ? TIC_BANK_SPRITES / 2 : 0) + (u8)sym, pos, y, scale, false, 0);
         pos += w * scale;
     }
 }
@@ -2030,8 +2031,8 @@ static void testEllipseBorders(void)
 // by the trimmed width plus one.
 static void refPrintNonFixed(const char* text, s32 x, s32 y, u8 color, s32 scale, bool alt)
 {
-    tic_tilesheet face = refSheet(1);
-    const tic_font_data* font = alt ? &Tic->ram->font.alt : &Tic->ram->font.regular;
+    tic_tilesheet face = refSheet(alt ? 1 : 0);
+    const tic_font_data* font = alt ? &Tic->ram->fontAlt : &Tic->ram->font;
     s32 width = font->width - 2;
     s32 pos = x;
 
@@ -2046,7 +2047,7 @@ static void refPrintNonFixed(const char* text, s32 x, s32 y, u8 color, s32 scale
             continue;
         }
 
-        tic_tileptr tile = tic_tilesheet_gettile(&face, (alt ? TIC_FONT_CHARS : 0) + (u8)sym, true);
+        tic_tileptr tile = tic_tilesheet_gettile(&face, (u8)sym, true);
         s32 start = 0, end = TIC_SPRITESIZE, j;
 
         for(s32 i = 0; i < TIC_SPRITESIZE; i++)
@@ -2143,6 +2144,70 @@ static void testPrintFont(void)
     tic_api_font(Tic, "A", 10, 10, NULL, 0, 8, 8, true, 2, true);
     refFontFixed("A", 10, 10, 8, 8, 2, true);
     expectFrame("font alt scale frame");
+
+    reset();
+    refReset();
+    tic_api_print(Tic, "A", 10, 10, 15, true, 2, true);
+    refPrintFixed("A", 10, 10, 15, 2, true);
+    expectFrame("print alt scale frame");
+
+    // The extension bytes: one glyph each, in the page the face selects.
+    reset();
+    refReset();
+    tic_api_print(Tic, "\xB3\xDB", 10, 10, 15, true, 1, false);
+    refPrintFixed("\xB3\xDB", 10, 10, 15, 1, false);
+    expectFrame("print extension frame");
+
+    reset();
+    refReset();
+    tic_api_print(Tic, "\xB3\xDB", 10, 10, 15, true, 1, true);
+    refPrintFixed("\xB3\xDB", 10, 10, 15, 1, true);
+    expectFrame("print extension alt frame");
+
+    // All 128 extension bytes at once: 16 a row, 8 rows, each its own glyph.
+    {
+        char ext[128 + 8 + 1];
+        s32 n = 0;
+
+        for(s32 i = 0; i < 128; i++)
+        {
+            ext[n++] = (char)(0x7F + i);
+
+            if(i % 16 == 15 && i != 127)
+                ext[n++] = '\n';
+        }
+
+        ext[n] = 0;
+
+        reset();
+        refReset();
+        tic_api_print(Tic, ext, 0, 0, 15, true, 1, false);
+        refPrintFixed(ext, 0, 0, 15, 1, false);
+        expectFrame("print extension table frame");
+
+        reset();
+        refReset();
+        tic_api_print(Tic, ext, 0, 0, 15, true, 1, true);
+        refPrintFixed(ext, 0, 0, 15, 1, true);
+        expectFrame("print extension alt table frame");
+    }
+
+    // Neighbours share their edges: a fixed run of box glyphs has no gap.
+    reset();
+    tic_api_print(Tic, "\xC4\xC4\xC4\xC4", 10, 20, 15, true, 1, false);
+    for(s32 i = 0; i < 4 * TIC_FONT_WIDTH; i++)
+        assert(tic_tool_peek4(screen(), (20 + 2) * TIC80_WIDTH + 10 + i));
+
+    reset();
+    tic_api_print(Tic, "\xC4\xC4\xC4\xC4", 10, 30, 15, true, 1, true);
+    for(s32 i = 0; i < 4 * TIC_ALTFONT_WIDTH; i++)
+        assert(tic_tool_peek4(screen(), (30 + 2) * TIC80_WIDTH + 10 + i));
+
+    reset();
+    refReset();
+    tic_api_print(Tic, "\xC9\xCD\xCD\xBB\n\xBA  \xBA\n\xC8\xCD\xCD\xBC", 10, 40, 15, true, 1, false);
+    refPrintFixed("\xC9\xCD\xCD\xBB\n\xBA  \xBA\n\xC8\xCD\xCD\xBC", 10, 40, 15, 1, false);
+    expectFrame("print box table frame");
 
     memset(Tic->ram->sprites.data, 0, sizeof(Tic->ram->sprites));
     reset();
