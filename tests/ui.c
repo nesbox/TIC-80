@@ -9,14 +9,14 @@
 static tic_tiles Tiles;
 
 // The cell rows at literal addresses: the cart packs four 1bpp cells to a
-// sprite, a byte a row. Cell 5 is the second cell of sprite 1, cell 200 the
-// third of sprite 194, cell 261 the second of sprite 5 in page 1 and cell 456
-// the third of sprite 198 there. A wrong reader formula fails here; one
-// copied into the test would not.
+// sprite, a byte a row. Cell 5 is the second byte of sprite 1 and cells 6-7
+// the third and fourth; on page 1 they are sprite 5 and cells 10-11 sprite 6.
+// Cell 200 is the first byte of sprite 194, or sprite 198 on page 1. A wrong
+// reader formula fails here; one copied into the test would not.
 static const u8 Cell5[] = {1, 5, 9, 13, 17, 21, 25, 29};
+static const u8 Cell6[] = {2, 6, 10, 14, 18, 22, 26, 30};
+static const u8 Cell7[] = {3, 7, 11, 15, 19, 23, 27, 31};
 static const u8 Cell200[] = {0, 4, 8, 12, 16, 20, 24, 28};
-static const u8 Cell261[] = {1, 5, 9, 13, 17, 21, 25, 29};
-static const u8 Cell456[] = {0, 4, 8, 12, 16, 20, 24, 28};
 
 static void inkCell(tic_tile* sprite, const u8* rows, u8 bits)
 {
@@ -85,14 +85,33 @@ static void testCellPages(void)
     };
 
     memset(&Tiles, 0, sizeof Tiles);
-    inkCell(&Tiles.data[5], Cell261, 0xff);
-    inkCell(&Tiles.data[198], Cell456, 0xff);
+    inkCell(&Tiles.data[1], Cell6, 0xff);
+    inkCell(&Tiles.data[1], Cell7, 0xff);
+    inkCell(&Tiles.data[5], Cell5, 0xff);
+    inkCell(&Tiles.data[6], Cell6, 0xff);
+    inkCell(&Tiles.data[6], Cell7, 0xff);
+    inkCell(&Tiles.data[198], Cell200, 0xff);
 
     for(s32 row = 0; row < TIC_SPRITESIZE; row++)
     {
+        // Page 0 cells 6 and 7 are the third and fourth byte of sprite 1.
+        assert(ui_cell_row(&Tiles, 6, row) == 0xff);
+        assert(ui_cell_row(&Tiles, 7, row) == 0xff);
+
+        // Page 1 cell 5 is sprite 5, cells 10 and 11 sprite 6.
         assert(ui_cell_row(&Tiles, PageOne + Second, row) == 0xff);
-        assert(ui_cell_row(&Tiles, PageOne + Third, row) == 0xff);
+        assert(ui_cell_row(&Tiles, PageOne + 10, row) == 0xff);
+        assert(ui_cell_row(&Tiles, PageOne + 11, row) == 0xff);
+
+        // A by-page reader disagrees with these: page 1 cells 5-7 are not in
+        // sprite 1, and page 0 cells 10 and 11 are zero.
+        assert(ui_cell_row(&Tiles, PageOne + 6, row) == 0x00);
+        assert(ui_cell_row(&Tiles, PageOne + 7, row) == 0x00);
+        assert(ui_cell_row(&Tiles, 10, row) == 0x00);
+        assert(ui_cell_row(&Tiles, 11, row) == 0x00);
         assert(ui_cell_row(&Tiles, Second, row) == 0x00);
+
+        assert(ui_cell_row(&Tiles, PageOne + Third, row) == 0xff);
         assert(ui_cell_row(&Tiles, Third, row) == 0x00);
     }
 

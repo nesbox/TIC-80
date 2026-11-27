@@ -25,6 +25,15 @@
 #include "cart.h"
 #include "studio/ui.h"
 
+static bool hasInk(const u8* data, s32 size)
+{
+    for(s32 i = 0; i < size; i++)
+        if(data[i])
+            return true;
+
+    return false;
+}
+
 static bool writeInl(const char* path, const u8* data, s32 size)
 {
     FILE* file = fopen(path, "wb");
@@ -68,9 +77,15 @@ int main(int argc, char** argv)
                     tic_font font;
                     ui_font_cells(&font, &cart->bank0.sprites);
 
-                    if(writeInl(argv[2], font.regular.data, sizeof font.regular.data) &&
-                       writeInl(argv[3], font.alt.data, sizeof font.alt.data))
-                        res = 0;
+                    // A cart without a font would write blank arrays in silence.
+                    if(hasInk(font.regular.data, sizeof font.regular.data) && hasInk(font.alt.data, sizeof font.alt.data))
+                    {
+                        if(writeInl(argv[2], font.regular.data, sizeof font.regular.data) &&
+                           writeInl(argv[3], font.alt.data, sizeof font.alt.data))
+                            res = 0;
+                    }
+                    else
+                        printf("no system font in the cartridge\n");
 
                     free(cart);
                 }

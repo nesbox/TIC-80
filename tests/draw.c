@@ -1264,7 +1264,7 @@ static void testTrib(void)
 static u8 refTilePixSeg(s32 index, bool local, s32 x, s32 y)
 {
     u8 segmentId = Tic->ram->vram.blit.segment;
-    u8* base = segmentId <= 1 ? (u8*)&Tic->ram->font : (u8*)&Tic->ram->tiles.data;
+    u8* base = segmentId <= 1 ? (u8*)(segmentId ? &Tic->ram->fontAlt : &Tic->ram->font) : (u8*)&Tic->ram->tiles.data;
     tic_tilesheet sheet = tic_tilesheet_get(segmentId, base);
     const tic_blit_segment* segment = sheet.segment;
 
@@ -1456,7 +1456,7 @@ static void drawTtriZ(tic_texture_src src, float z, float u1, float v1, float u2
 static u8 refSheetPix(s32 x, s32 y)
 {
     u8 segmentId = Tic->ram->vram.blit.segment;
-    u8* base = segmentId <= 1 ? (u8*)&Tic->ram->font : (u8*)&Tic->ram->tiles.data;
+    u8* base = segmentId <= 1 ? (u8*)(segmentId ? &Tic->ram->fontAlt : &Tic->ram->font) : (u8*)&Tic->ram->tiles.data;
     tic_tilesheet sheet = tic_tilesheet_get(segmentId, base);
     const tic_blit_segment* segment = sheet.segment;
 
@@ -1471,7 +1471,7 @@ static u8 refSheetPix(s32 x, s32 y)
 static u8 refSampleTile(s32 iu, s32 iv)
 {
     u8 segmentId = Tic->ram->vram.blit.segment;
-    u8* base = segmentId <= 1 ? (u8*)&Tic->ram->font : (u8*)&Tic->ram->tiles.data;
+    u8* base = segmentId <= 1 ? (u8*)(segmentId ? &Tic->ram->fontAlt : &Tic->ram->font) : (u8*)&Tic->ram->tiles.data;
     tic_tilesheet sheet = tic_tilesheet_get(segmentId, base);
     s32 maskU = TIC_SPRITESHEET_SIZE * sheet.segment->nb_pages - 1;
     s32 maskV = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1;
@@ -2105,7 +2105,8 @@ static void testPrintFont(void)
     // The custom font reads the sprite sheet (segment 2 -> fg bank); the
     // fixed frame covers the face and the alt index.
     reset();
-    memset(Tic->ram->sprites.data, 0x77, sizeof(Tic->ram->sprites));
+    for(s32 i = 0; i < TIC_BANK_SPRITES; i++)
+        patternTile(&Tic->ram->sprites.data[i], i);
     Tic->ram->vram.blit.segment = 2;
     width = tic_api_font(Tic, "A", 10, 10, NULL, 0, 8, 8, true, 1, false);
     assert(width == 8);
@@ -2131,15 +2132,20 @@ static void testPrintFont(void)
 
     reset();
     refReset();
-    memset(Tic->ram->sprites.data, 0x77, sizeof(Tic->ram->sprites));
+    for(s32 i = 0; i < TIC_BANK_SPRITES; i++)
+        patternTile(&Tic->ram->sprites.data[i], i);
     Tic->ram->vram.blit.segment = 2;
     tic_api_font(Tic, "AB", 10, 10, NULL, 0, 8, 8, true, 1, false);
     refFontFixed("AB", 10, 10, 8, 8, 1, false);
     expectFrame("font sprite sheet frame");
 
+    // A different pattern on every sprite makes font()'s +128 alt offset
+    // visible: byte 'A' reads sprite 65 from the regular half and 193 from
+    // the alt half.
     reset();
     refReset();
-    memset(Tic->ram->sprites.data, 0x77, sizeof(Tic->ram->sprites));
+    for(s32 i = 0; i < TIC_BANK_SPRITES; i++)
+        patternTile(&Tic->ram->sprites.data[i], i);
     Tic->ram->vram.blit.segment = 2;
     tic_api_font(Tic, "A", 10, 10, NULL, 0, 8, 8, true, 2, true);
     refFontFixed("A", 10, 10, 8, 8, 2, true);
@@ -2192,16 +2198,31 @@ static void testPrintFont(void)
         expectFrame("print extension alt table frame");
     }
 
-    // Neighbours share their edges: a fixed run of box glyphs has no gap.
+    // Neighbours share their edges: every column of a fixed run of box
+    // glyphs has ink somewhere in the row of cells, so no seam shows.
     reset();
     tic_api_print(Tic, "\xC4\xC4\xC4\xC4", 10, 20, 15, true, 1, false);
     for(s32 i = 0; i < 4 * TIC_FONT_WIDTH; i++)
-        assert(tic_tool_peek4(screen(), (20 + 2) * TIC80_WIDTH + 10 + i));
+    {
+        bool ink = false;
+
+        for(s32 row = 0; row < TIC_FONT_HEIGHT; row++)
+            ink = ink || tic_tool_peek4(screen(), (20 + row) * TIC80_WIDTH + 10 + i);
+
+        assert(ink);
+    }
 
     reset();
     tic_api_print(Tic, "\xC4\xC4\xC4\xC4", 10, 30, 15, true, 1, true);
     for(s32 i = 0; i < 4 * TIC_ALTFONT_WIDTH; i++)
-        assert(tic_tool_peek4(screen(), (30 + 2) * TIC80_WIDTH + 10 + i));
+    {
+        bool ink = false;
+
+        for(s32 row = 0; row < TIC_FONT_HEIGHT; row++)
+            ink = ink || tic_tool_peek4(screen(), (30 + row) * TIC80_WIDTH + 10 + i);
+
+        assert(ink);
+    }
 
     reset();
     refReset();

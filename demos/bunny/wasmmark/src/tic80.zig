@@ -58,6 +58,7 @@ pub const PERSISTENT_RAM: *[1024]u8 = @as(*[1024]u8, @ptrFromInt(0x14004));
 pub const PERSISTENT_RAM_u32: *[256]u32 = @as(*[256]u32, @ptrFromInt(0x14004));
 pub const SPRITE_FLAGS: *[512]u8 = @as(*[512]u8, @ptrFromInt(0x14404));
 pub const SYSTEM_FONT: *[2048]u8 = @as(*[2048]u8, @ptrFromInt(0x14604));
+pub const SYSTEM_FONT_ALT: *[2048]u8 = @as(*[2048]u8, @ptrFromInt(0x14EA4));
 
 // vbank 0
 
