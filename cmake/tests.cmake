@@ -98,6 +98,12 @@ if(BUILD_TESTS)
     target_link_libraries(ui-test PRIVATE tic80core)
     tic80_add_test(ui-test)
 
+    # The UTF-8 to Latin-1 mapping the JS and Python bindings do before the
+    # core sees a string: the byte mapping alone, no runtime.
+    add_executable(tools-test ${CMAKE_SOURCE_DIR}/tests/tools.c)
+    target_link_libraries(tools-test PRIVATE tic80core)
+    tic80_add_test(tools-test)
+
     # The keyboard links with the core alone as well, and the platform call it
     # makes is the test's own to answer. That call is declared in system.h,
     # which wants the generated version.h, so this one keeps the build dir.

@@ -114,6 +114,10 @@ void tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
 void tic_tool_buf2str(const void* data, s32 size, char* str, bool flip);
 void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip);
 
+// A UTF-8 string with the code points U+0080-U+00FF as single bytes, for the
+// byte-oriented bindings; NULL when there is nothing to map or on failure.
+char* tic_tool_utf8_latin1(const char* text);
+
 u32 tic_tool_zip(void* dest, s32 destSize, const void* source, s32 size);
 u32 tic_tool_unzip(void* dest, s32 bufSize, const void* source, s32 size);
 

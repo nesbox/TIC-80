@@ -260,6 +260,45 @@ void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip)
     }
 }
 
+char* tic_tool_utf8_latin1(const char* text)
+{
+    if(!text)
+        return NULL;
+
+    const s32 size = (s32)strlen(text);
+    s32 mapped = 0;
+
+    for(s32 i = 0; i + 1 < size; i++)
+        if(((u8)text[i] == 0xC2 || (u8)text[i] == 0xC3) && ((u8)text[i + 1] & 0xC0) == 0x80)
+            mapped++;
+
+    if(!mapped)
+        return NULL;
+
+    char* copy = malloc(size + 1);
+
+    if(!copy)
+        return NULL;
+
+    s32 j = 0;
+
+    for(s32 i = 0; i < size; i++)
+    {
+        const u8 symbol = (u8)text[i];
+
+        if((symbol == 0xC2 || symbol == 0xC3) && i + 1 < size && ((u8)text[i + 1] & 0xC0) == 0x80)
+        {
+            copy[j++] = (char)(((symbol & 0x1F) << 6) | ((u8)text[i + 1] & 0x3F));
+            i++;
+        }
+        else
+            copy[j++] = (char)symbol;
+    }
+
+    copy[j] = 0;
+    return copy;
+}
+
 const char* tic_tool_metatag(const char* code, const char* tag, const char* comment)
 {
     const char* start = NULL;

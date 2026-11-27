@@ -108,6 +108,13 @@ int main(void)
     Script->eval(tic, "pmem(8, Number(123n) + /tic/i.test('TIC'));");
     assert(ErrorCount == 0);
     assert(tic->ram->persistent.data[8] == 124);
+
+    // A Latin-1 code point is one system-font byte, not its UTF-8 pair.
+    Script->eval(tic, "pmem(9, print('\\u00B3', 0, 0, 15, true));"
+                      "pmem(10, font('\\u00B3', 0, 20, -1, 6, 6, true));");
+    assert(ErrorCount == 0);
+    assert(tic->ram->persistent.data[9] == 6);
+    assert(tic->ram->persistent.data[10] == 6);
     Script->tick(tic);
     assert(tic->ram->persistent.data[3] == 2);
 

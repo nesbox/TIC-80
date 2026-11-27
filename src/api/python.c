@@ -1,4 +1,5 @@
 #include "core/core.h"
+#include "tools.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -237,7 +238,9 @@ static bool py_print(int argc, py_Ref argv)
     bool alt = py_tobool(py_arg(6));
 
     tic_core* core = get_core();
-    s32 ps = core->api.print((tic_mem*)core, text, x, y, color, fixed, scale, alt);
+    char* latin1 = tic_tool_utf8_latin1(text);
+    s32 ps = core->api.print((tic_mem*)core, latin1 ? latin1 : text, x, y, color, fixed, scale, alt);
+    free(latin1);
 
     py_pop();
     py_newint(py_retval(), ps);
@@ -426,8 +429,10 @@ static bool py_font(int argc, py_Ref argv)
     bool alt = py_tobool(py_arg(8));
 
     tic_core* core = get_core();
-    s32 res = core->api.font((tic_mem*)core, text, x, y, &chromakey,
+    char* latin1 = tic_tool_utf8_latin1(text);
+    s32 res = core->api.font((tic_mem*)core, latin1 ? latin1 : text, x, y, &chromakey,
                              1, char_width, char_height, fixed, scale, alt);
+    free(latin1);
     py_newint(py_retval(), res);
     return true;
 }

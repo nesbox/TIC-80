@@ -206,8 +206,12 @@ static JSValue js_print(JSContext* ctx, JSValueConst this_val, s32 argc, JSValue
     s32 scale = getInteger2(ctx, argv[5], 1);
     bool alt = JS_ToBool(ctx, argv[6]);
 
-    s32 size = core->api.print(tic, text ? text : "nil", x, y, (u8)(color), fixed, scale, alt);
+    const char* source = text ? text : "nil";
+    char* latin1 = tic_tool_utf8_latin1(source);
 
+    s32 size = core->api.print(tic, latin1 ? latin1 : source, x, y, (u8)(color), fixed, scale, alt);
+
+    free(latin1);
     JS_FreeCString(ctx, text);
 
     return JS_NewInt32(ctx, size);
@@ -940,8 +944,11 @@ static JSValue js_font(JSContext* ctx, JSValueConst this_val, s32 argc, JSValueC
     s32 scale = getInteger2(ctx, argv[7], 1);
     bool alt = JS_ToBool(ctx, argv[8]);
 
-    s32 size = scale ? core->api.font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt) : 0;
+    char* latin1 = tic_tool_utf8_latin1(text);
 
+    s32 size = scale ? core->api.font(tic, latin1 ? latin1 : text, x, y, &chromakey, 1, width, height, fixed, scale, alt) : 0;
+
+    free(latin1);
     JS_FreeCString(ctx, text);
     return JS_NewInt32(ctx, size);
 }
