@@ -4035,19 +4035,46 @@ static const KeyRow KeyRows[] =
         {94, "NUMPERIOD"},
 };
 
+// The RAM/VRAM tables share one 37-column layout: 7 / 19 / 7, a byte a glyph.
+static char* boxRepeat(char* ptr, u8 symbol, s32 count)
+{
+    while(count--)
+        *ptr++ = (char)symbol;
+
+    return ptr;
+}
+
+static char* boxRule(char* ptr, u8 left, u8 fill, u8 join, u8 right)
+{
+    *ptr++ = (char)left;
+    ptr = boxRepeat(ptr, fill, 7);
+    *ptr++ = (char)join;
+    ptr = boxRepeat(ptr, fill, 19);
+    *ptr++ = (char)join;
+    ptr = boxRepeat(ptr, fill, 7);
+    *ptr++ = (char)right;
+    return ptr;
+}
+
 static s32 createRamTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n+-----------------------------------+"
-                        "\n|           96KB RAM LAYOUT         |"
-                        "\n+-------+-------------------+-------+"
-                        "\n| ADDR  | INFO              | BYTES |"
-                        "\n+-------+-------------------+-------+");
+
+    *ptr++ = '\n';
+    ptr = boxRule(ptr, 0xC9, 0xCD, 0xCD, 0xBB);
+    ptr += sprintf(ptr, "\n\xBA           96KB RAM LAYOUT         \xBA");
+    *ptr++ = '\n';
+    ptr = boxRule(ptr, 0xCC, 0xCD, 0xCB, 0xB9);
+    ptr += sprintf(ptr, "\n\xBA ADDR  \xBA INFO              \xBA BYTES \xBA");
+    *ptr++ = '\n';
+    ptr = boxRule(ptr, 0xCC, 0xCD, 0xCE, 0xB9);
 
     for(const RamRow *row = RamRows, *end = row + COUNT_OF(RamRows) - 1; row < end; row++)
-        ptr += sprintf(ptr, "\n| %05X | %-17s | %-5i |", row->addr, row->info, (row + 1)->addr - row->addr);
+        ptr += sprintf(ptr, "\n\xBA %05X \xBA %-17s \xBA %-5i \xBA", row->addr, row->info, (row + 1)->addr - row->addr);
 
-    ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
+    *ptr++ = '\n';
+    ptr = boxRule(ptr, 0xC8, 0xCD, 0xCA, 0xBC);
+    *ptr++ = '\n';
 
     return (s32)(ptr - buf);
 }
@@ -4055,16 +4082,22 @@ static s32 createRamTable(char* buf)
 static s32 createVRamTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n+-----------------------------------+"
-                        "\n|          16KB VRAM LAYOUT         |"
-                        "\n+-------+-------------------+-------+"
-                        "\n| ADDR  | INFO              | BYTES |"
-                        "\n+-------+-------------------+-------+");
+
+    *ptr++ = '\n';
+    ptr = boxRule(ptr, 0xC9, 0xCD, 0xCD, 0xBB);
+    ptr += sprintf(ptr, "\n\xBA          16KB VRAM LAYOUT         \xBA");
+    *ptr++ = '\n';
+    ptr = boxRule(ptr, 0xCC, 0xCD, 0xCB, 0xB9);
+    ptr += sprintf(ptr, "\n\xBA ADDR  \xBA INFO              \xBA BYTES \xBA");
+    *ptr++ = '\n';
+    ptr = boxRule(ptr, 0xCC, 0xCD, 0xCE, 0xB9);
 
     for(const RamRow *row = VRamRows, *end = row + COUNT_OF(VRamRows) - 1; row < end; row++)
-        ptr += sprintf(ptr, "\n| %05X | %-17s | %-5i |", row->addr, row->info, (row + 1)->addr - row->addr);
+        ptr += sprintf(ptr, "\n\xBA %05X \xBA %-17s \xBA %-5i \xBA", row->addr, row->info, (row + 1)->addr - row->addr);
 
-    ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
+    *ptr++ = '\n';
+    ptr = boxRule(ptr, 0xC8, 0xCD, 0xCA, 0xBC);
+    *ptr++ = '\n';
 
     return (s32)(ptr - buf);
 }
@@ -4476,15 +4509,42 @@ static void onHelp_fill(Console* console)
     printLine(console);
 }
 
+#ifndef BAREMETALPI
+// The console buffer keeps a byte a glyph; the CLI prints UTF-8, so the CP437
+// box bytes become their Unicode characters there.
+// clang-format off
+static const u16 BoxCodepoints[] =
+{
+    0x2502, 0x2524, 0x2561, 0x2562, 0x2556, 0x2555, 0x2563, 0x2551,
+    0x2557, 0x255D, 0x255C, 0x255B, 0x2510, 0x2514, 0x2534, 0x252C,
+    0x251C, 0x2500, 0x253C, 0x255E, 0x255F, 0x255A, 0x2554, 0x2569,
+    0x2566, 0x2560, 0x2550, 0x256C, 0x2567, 0x2568, 0x2564, 0x2565,
+    0x2559, 0x2558, 0x2552, 0x2553, 0x256B, 0x256A, 0x2518, 0x250C,
+};
+// clang-format on
+
+static void printSymbol(u8 symbol)
+{
+    if(symbol >= 0xB3 && symbol <= 0xDA)
+    {
+        const u16 cp = BoxCodepoints[symbol - 0xB3];
+        printf("%c%c%c", (char)(0xE0 | (cp >> 12)), (char)(0x80 | ((cp >> 6) & 0x3F)), (char)(0x80 | (cp & 0x3F)));
+    }
+    else
+        putchar(symbol);
+}
+#endif
+
 static void printTable(Console* console, const char* text)
 {
 #ifndef BAREMETALPI
-    printf("%s", text);
+    for(const char* symbol = text; *symbol; symbol++)
+        printSymbol((u8)*symbol);
 #endif
 
     for(const char *textPointer = text, *endText = textPointer + strlen(text); textPointer != endText;)
     {
-        char symbol = *textPointer++;
+        u8 symbol = (u8)*textPointer++;
 
         scrollConsole(console);
 
@@ -4492,20 +4552,12 @@ static void printTable(Console* console, const char* text)
             nextLine(console);
         else
         {
-            u8 color = 0;
+            u8 color = CONSOLE_FRONT_TEXT_COLOR;
 
-            switch(symbol)
-            {
-                case '+':
-                case '|':
-                case '-':
-                    color = tic_color_dark_grey;
-                    break;
-                default:
-                    color = CONSOLE_FRONT_TEXT_COLOR;
-            }
+            if(symbol == '+' || symbol == '|' || symbol == '-' || (symbol >= 0xB3 && symbol <= 0xDA))
+                color = tic_color_dark_grey;
 
-            setSymbol(console, symbol, color, cursorOffset(console));
+            setSymbol(console, (char)symbol, color, cursorOffset(console));
 
             console->cursor.pos.x++;
 

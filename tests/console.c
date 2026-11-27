@@ -260,6 +260,18 @@ static bool said(Host* host, const char* text)
     return false;
 }
 
+// The buffer offset of `text`, or -1.
+static s32 found(Host* host, const char* text)
+{
+    const s32 len = (s32)strlen(text);
+
+    for(s32 i = 0; i + len <= ConsoleSpan; i++)
+        if(memcmp(host->console->text + i, text, len) == 0)
+            return i;
+
+    return -1;
+}
+
 // The console's non-blank rows from the one holding `from`, trailing blanks
 // trimmed: the screen the user sees there, without the banner above it.
 static void screenFrom(Host* host, const char* from, char* out, size_t size)
@@ -710,6 +722,46 @@ static void testHelpFill(void)
 
     assert(said(host, "`help fill`"));
     assert(!said(host, "$FILL_PATTERNS$"));
+
+    hostFree(host);
+}
+
+// The RAM and VRAM layouts draw with the extended box bytes, one byte a
+// glyph: the rules are 37 cells wide, so the sizes the rows report stay put.
+static void testHelpRam(void)
+{
+    Host* host = hostNew("help ram");
+    ConsoleAsk ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+
+    hostTick(host);
+
+    assert(said(host, "\xC9\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xBB"));
+
+    const s32 rule = found(host, "\xC9\xCD");
+    assert(rule >= 0 && host->console->color[rule] == tic_color_dark_grey);
+    assert(said(host, "\xCC\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCB"));
+    assert(said(host, "\xCC\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCE"));
+    assert(said(host, "\xBA ADDR  \xBA INFO              \xBA BYTES \xBA"));
+    assert(said(host, "\xBA 14604 \xBA FONT"));
+    assert(said(host, "\xBA 14EA4 \xBA ALT FONT"));
+    assert(!said(host, "+-----------------------------------+"));
+
+    hostFree(host);
+
+    host = hostNew("help vram");
+    ask = hostTick(host);
+
+    assert(ask.kind == CONSOLE_ASK_CART_LOADED);
+    hostAnswer(host, (ConsoleAnswer){.name = ""});
+
+    hostTick(host);
+
+    assert(said(host, "\xBA          16KB VRAM LAYOUT         \xBA"));
+    assert(said(host, "\xBA 00000 \xBA SCREEN"));
+    assert(!said(host, "+-------+-------------------+-------+"));
 
     hostFree(host);
 }
@@ -2027,6 +2079,7 @@ int main(void)
     testExport(false);
     testHelpAlias();
     testHelpFill();
+    testHelpRam();
     testExportHelp();
     testErrorLink();
     testShelfLogin();
@@ -2055,7 +2108,7 @@ int main(void)
     testFakeLoad();
     testFakeSession();
 
-    puts("moves ok / confirm ok / load ok / save ok / config ok / export ok / replay ok / run / help fill / error link / fs ok");
+    puts("moves ok / confirm ok / load ok / save ok / config ok / export ok / replay ok / run / help fill / help ram / error link / fs ok");
 
     return 0;
 }
