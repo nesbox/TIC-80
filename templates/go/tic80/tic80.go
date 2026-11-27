@@ -213,6 +213,7 @@ var (
 	PERSISTENT_RAM  = (*[1024]uint8)(unsafe.Pointer(uintptr(0x14004)))
 	SPRITE_FLAGS    = (*[512]uint8)(unsafe.Pointer(uintptr(0x14404)))
 	SYSTEM_FONT     = (*[2048]uint8)(unsafe.Pointer(uintptr(0x14604)))
+	SYSTEM_FONT_ALT = (*[2048]uint8)(unsafe.Pointer(uintptr(0x14EA4)))
 
 	// Free memory above TIC-80's RAM (160 KiB, up to the 256 KiB limit).
 	WASM_FREE_RAM = (*[160 * 1024]uint8)(unsafe.Pointer(uintptr(0x18000)))

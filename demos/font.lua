@@ -7,9 +7,22 @@
 cls(12)
 local text="The quick brown fox\njumps over the lazy dog!"
 
-font(text,8,8,5)
-font(text,8,32,5,8,8,true)
-font(text,8,58,5,5,8,false,2)
+font(text,8,4,5)
+font(text,8,20,5,8,8,true)
+font(text,8,44,5,5,8,false,2)
+
+-- The system font's extended bytes, 0x7f-0xfe, in both faces.
+for i=0x7f,0xfe do
+    local n=i-0x7f
+    print(string.char(i), 4+(n%16)*6, 78+(n//16)*6, 5, true)
+    print(string.char(i), 104+(n%16)*4, 78+(n//16)*6, 5, true, 1, true)
+end
+
+-- Box glyphs join into a table when printed with fixed=true.
+local box={0xc9,0xcd,0xcd,0xbb, 0xba,0x20,0x20,0xba, 0xc8,0xcd,0xcd,0xbc}
+for i=1,#box do
+    print(string.char(box[i]), 176+((i-1)%4)*12, 78+((i-1)//4)*12, 5, true, 2)
+end
 
 function TIC()end
 

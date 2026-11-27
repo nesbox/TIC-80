@@ -186,6 +186,9 @@ enum
         "will be printed in a `box` of the same size, "                                                                 \
         "so the character `i` will occupy the same width as the character `w` for example.\n"                           \
         "When fixed width is false, there will be a single space between each character.\n"                             \
+        "Bytes 0x7F-0xFE print the extended glyphs: 0xB0-0xFE follow CP437's positions "                                \
+        "(shades, box drawing, blocks, Greek and math), 0x7F-0xAF are arrows, shapes and icons, and 0xFF stays "        \
+        "reserved. Draw box and block glyphs with fixed=true so they join.\n"                                           \
         "\nTips:\n"                                                                                                     \
         "- To use a custom rastered font, check out `font()`.\n"                                                        \
         "- To print to the console, check out `trace()`.",                                                              \

@@ -71,6 +71,7 @@ const
   PersistentMemory*: ptr uint8 = cast[ptr uint8](0x14004)
   SpriteFlags*: ptr uint8 = cast[ptr uint8](0x14404)
   SystemFont*: ptr uint8 = cast[ptr uint8](0x14604)
+  SystemFontAlt*: ptr uint8 = cast[ptr uint8](0x14ea4)
   WasmFreeRam*: ptr uint8 = cast[ptr uint8](0x18000)
 
 ##  160kb
@@ -98,6 +99,7 @@ const
   PersistentMemorySize*: uint32 = 1024
   SpriteFlagsSize*: uint32 = 512
   SystemFontSize*: uint32 = 2048
+  SystemFontAltSize*: uint32 = 2048
   WasmFreeRamSize*: uint32 = 163840
 
 ##  160kb

@@ -181,6 +181,7 @@ uint8_t* STEREO_VOLUME = (uint8_t*)0x14000;
 uint8_t* PERSISTENT_MEMORY = (uint8_t*)0x14004;
 uint8_t* SPRITE_FLAGS = (uint8_t*)0x14404;
 uint8_t* SYSTEM_FONT = (uint8_t*)0x14604;
+uint8_t* SYSTEM_FONT_ALT = (uint8_t*)0x14EA4;
 uint8_t* WASM_FREE_RAM = (uint8_t*)0x18000; // 160kb
 
 // ---------------------------
@@ -204,6 +205,7 @@ const uint32_t STEREO_VOLUME_SIZE = 4;
 const uint32_t PERSISTENT_MEMORY_SIZE = 1024;
 const uint32_t SPRITE_FLAGS_SIZE = 512;
 const uint32_t SYSTEM_FONT_SIZE = 2048;
+const uint32_t SYSTEM_FONT_ALT_SIZE = 2048;
 const uint32_t WASM_FREE_RAM_SIZE = 163840; // 160kb
 
 // ---------------------------
