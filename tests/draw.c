@@ -2151,6 +2151,29 @@ static void testPrintFont(void)
     refFontFixed("A", 10, 10, 8, 8, 2, true);
     expectFrame("font alt scale frame");
 
+    // A poked blit segment 0 or 1 read the system font block before; alt still
+    // picks the face and the byte indexes the page.
+    reset();
+    refReset();
+    Tic->ram->vram.blit.segment = 0;
+    tic_api_font(Tic, "A", 10, 10, NULL, 0, 8, 8, true, 1, false);
+    {
+        tic_tilesheet face = refSheet(0);
+        refGlyph(&face, 'A', 10, 10, 1, false, 0);
+    }
+    expectFrame("font system segment frame");
+
+    reset();
+    refReset();
+    Tic->ram->vram.blit.segment = 1;
+    tic_api_font(Tic, "A", 10, 10, NULL, 0, 8, 8, true, 1, true);
+    {
+        tic_tilesheet face = refSheet(1);
+        refGlyph(&face, 'A', 10, 10, 1, false, 0);
+    }
+    expectFrame("font system segment alt frame");
+    Tic->ram->vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
+
     reset();
     refReset();
     tic_api_print(Tic, "A", 10, 10, 15, true, 2, true);

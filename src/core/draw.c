@@ -937,8 +937,21 @@ s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8* trans_colo
     while(segment >>= 1)
         flipmask <<= 1;
 
-    tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram->vram.blit.segment ^ flipmask);
-    return drawText((tic_core*)memory, &font_face, text, x, y, w, h, fixed, mapping, scale, alt ? TIC_BANK_SPRITES / 2 : 0);
+    u8 page = memory->ram->vram.blit.segment ^ flipmask;
+    s32 offset = alt ? TIC_BANK_SPRITES / 2 : 0;
+    tic_tilesheet font_face;
+
+    // A poked segment 0 or 1 keeps the old aliased-block target: alt picks the
+    // face and the byte indexes the page.
+    if(page <= 1)
+    {
+        font_face = getTileSheetFromSegment(memory, alt ? 1 : 0);
+        offset = 0;
+    }
+    else
+        font_face = getTileSheetFromSegment(memory, page);
+
+    return drawText((tic_core*)memory, &font_face, text, x, y, w, h, fixed, mapping, scale, offset);
 }
 
 s32 tic_api_print(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt)
