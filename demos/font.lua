@@ -11,11 +11,12 @@ font(text,8,4,5)
 font(text,8,20,5,8,8,true)
 font(text,8,44,5,5,8,false,2)
 
--- The system font's extended bytes, 0x7f-0xfe, in both faces.
+-- The system font's extended bytes, 0x7f-0xfe, in both faces. The regular
+-- box glyphs reach a seventh row, so the lines sit 7 pixels apart.
 for i=0x7f,0xfe do
     local n=i-0x7f
-    print(string.char(i), 4+(n%16)*6, 78+(n//16)*6, 5, true)
-    print(string.char(i), 104+(n%16)*4, 78+(n//16)*6, 5, true, 1, true)
+    print(string.char(i), 4+(n%16)*6, 78+(n//16)*7, 5, true)
+    print(string.char(i), 104+(n%16)*4, 78+(n//16)*7, 5, true, 1, true)
 end
 
 -- Box glyphs join into a table when printed with fixed=true.
