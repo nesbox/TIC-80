@@ -70,6 +70,8 @@ To make a retro styled game, the whole process of creation and execution takes p
 
 # Binary Downloads
 
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org). See the [code signing policy](CODE_SIGNING_POLICY.md).
+
 ## Stable Builds
 You can download compiled versions for the major operating systems directly from our [Releases](https://github.com/nesbox/TIC-80/releases) page.
 
