@@ -1622,6 +1622,17 @@ static inline s32 floorToInt(double v)
     return i;
 }
 
+// Exactly (s32)ceil(v). Inside the s32 range ceil() is the truncation, or the truncation + 1 when
+// v is above it; outside it (and for NaN) the conversion differs between CPUs, so ceil() decides.
+static inline s32 ceilToInt(double v)
+{
+    if(!(v > -2147483648.0 && v < 2147483647.0))
+        return (s32)ceil(v);
+
+    s32 i = (s32)v;
+    return v > (double)i ? i + 1 : i;
+}
+
 // Forced into the per-texture wrappers so their literal shaders inline.
 static DRAW_ALWAYS_INLINE void drawTriBody(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
 {
@@ -2120,6 +2131,203 @@ static DRAW_NOINLINE void drawTtriDepth(tic_mem* tic, const TexVert* t, TexData*
     }
 }
 
+// The span fill's texels. Each returns the palette index of the texel at the
+// floored texture coordinates (iu, iv), exactly as the reference loops pick it.
+
+// A one-page 4bpp sheet (iu in 0..127, iv in 0..255): the nibble that
+// tic_tilesheet_getpix() reads, assembled from the bit fields of iu and iv.
+static DRAW_ALWAYS_INLINE u8 spanTexelSheet4(const u8* sheet, u32 bank, s32 iu, s32 iv)
+{
+    u32 x = (u32)iu & 127, y = (u32)iv & 255;
+    u32 nibble = (((y & 0xf8) << 7) | ((y & 7) << 3) | ((x & 0x78) << 3) | (x & 7)) ^ bank;
+
+    return tic_tool_peek4(sheet, nibble);
+}
+
+// A two-page 2bpp sheet, with the reference loop's arithmetic.
+static DRAW_ALWAYS_INLINE u8 spanTexelSheet2(const u8* sheet, u32 bankOrig, u32 pageOrig, s32 iu, s32 iv)
+{
+    iu &= TIC_SPRITESHEET_SIZE * 2 - 1;
+    iv &= TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1;
+
+    u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) + (((((iu >> 7) + (s32)pageOrig) & 1)) << 3) + ((iu & 127) >> 4);
+
+    return tic_tool_peek2(sheet, tile * 128 + ((u32)iu & 15) + ((u32)iv & 7) * 16);
+}
+
+// A four-page 1bpp sheet, with the reference loop's arithmetic.
+static DRAW_ALWAYS_INLINE u8 spanTexelSheet1(const u8* sheet, u32 bankOrig, u32 pageOrig, s32 iu, s32 iv)
+{
+    iu &= TIC_SPRITESHEET_SIZE * 4 - 1;
+    iv &= TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1;
+
+    u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) + (((((iu >> 7) + (s32)pageOrig) & 3)) << 2) + ((iu & 127) >> 5);
+
+    return tic_tool_peek1(sheet, tile * 256 + ((u32)iu & 31) + ((u32)iv & 7) * 32);
+}
+
+static DRAW_ALWAYS_INLINE u8 spanTexelMap4(const u8* sheet, const u8* map, u32 bankOrig, s32 iu, s32 iv)
+{
+    enum
+    {
+        MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE,
+        MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE
+    };
+
+    iu = mapWrap(iu, MapWidth);
+    iv = mapWrap(iv, MapHeight);
+
+    u32 tile = bankOrig * 256 + map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
+
+    return tic_tool_peek4(sheet, tile * 64 + ((u32)iu & 7) + ((u32)iv & 7) * 8);
+}
+
+static DRAW_ALWAYS_INLINE u8 spanTexelVbank(const u8* vram, s32 iu, s32 iv)
+{
+    iu = mapWrap(iu, TIC80_WIDTH);
+    iv = mapWrap(iv, TIC80_HEIGHT);
+
+    return tic_tool_peek4(vram, (u32)(iv * TIC80_WIDTH + iu));
+}
+
+// What a span reads from: one kind per texture source and sheet format.
+typedef enum
+{
+    SpanSheet4, // a one-page 4bpp sprite sheet
+    SpanSheet2, // a two-page 2bpp sprite sheet
+    SpanSheet1, // a four-page 1bpp sprite sheet
+    SpanSheet,  // any other sprite sheet, through tic_tilesheet_getpix()
+    SpanMap,    // the map, on a 4bpp sheet
+    SpanVbank,
+} SpanKind;
+
+typedef struct
+{
+    SpanKind kind;
+    const u8* mapping; // in locals: a pixel write through u8* could alias them otherwise
+    const u8* sheet;
+    const u8* map;
+    const u8* vram;
+    const tic_tilesheet* tilesheet; // SpanSheet
+    s32 maskU;                      // SpanSheet
+    u32 bank;                       // SpanSheet4: the bank bit of the nibble index; the others: the bank
+    u32 page;
+} SpanTexture;
+
+// Forced: each row loop below passes a constant kind, and only inlined is the switch gone.
+static DRAW_ALWAYS_INLINE u8 spanTexel(const SpanTexture* tex, const SpanKind kind, s32 iu, s32 iv)
+{
+    switch(kind)
+    {
+        case SpanSheet4: return spanTexelSheet4(tex->sheet, tex->bank, iu, iv);
+        case SpanSheet2: return spanTexelSheet2(tex->sheet, tex->bank, tex->page, iu, iv);
+        case SpanSheet1: return spanTexelSheet1(tex->sheet, tex->bank, tex->page, iu, iv);
+        case SpanSheet: return tic_tilesheet_getpix(tex->tilesheet, iu & tex->maskU, iv & (TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1));
+        case SpanMap: return spanTexelMap4(tex->sheet, tex->map, tex->bank, iu, iv);
+        default: return spanTexelVbank(tex->vram, iu, iv);
+    }
+}
+
+// True when u + k * du, stepped as the span steps it, stays >= 0 for all k < count, so
+// floor() is the truncation. The values are monotonic along the span, so the ends decide;
+// the margin covers the rounding of the stepping and of this estimate.
+static inline bool spanNonNegative(double u, double du, s32 count)
+{
+    double end = u + du * (double)(count - 1);
+
+    return (du >= 0.0 ? u >= 0.0 : end >= 1e-4) && u < 1e9 && end < 1e9;
+}
+
+// One row of the flat textured triangle. u and v step exactly as before, so every texel is
+// the same. trunc: floor() is the truncation (spanNonNegative). opaque: no palette entry is
+// transparent, so the pixels are written two to a byte.
+static DRAW_ALWAYS_INLINE void drawTtriSpan(u8* screen, s32 pixel, s32 count, double u, double v, double du, double dv,
+                                            const SpanTexture* tex, const SpanKind kind, const bool trunc, const bool opaque)
+{
+    // A local copy: its fields stay in registers. Read through tex, they would be reloaded for
+    // every pixel, as a pixel write through u8* may alias them.
+    const SpanTexture t = *tex;
+    const u8* mapping = t.mapping;
+
+#define SPAN_TEXEL(U, V) mapping[spanTexel(&t, kind, trunc ? (s32)(U) : floorToInt(U), trunc ? (s32)(V) : floorToInt(V))]
+
+    if(opaque)
+    {
+        if(count > 0 && (pixel & 1))
+        {
+            tic_tool_poke4(screen, (u32)pixel, SPAN_TEXEL(u, v));
+            pixel++, count--, u += du, v += dv;
+        }
+
+        for(; count >= 2; count -= 2, pixel += 2)
+        {
+            u8 c0 = SPAN_TEXEL(u, v);
+            u += du, v += dv;
+            u8 c1 = SPAN_TEXEL(u, v);
+            u += du, v += dv;
+            screen[pixel >> 1] = (u8)(c0 | (c1 << 4));
+        }
+
+        if(count > 0)
+            tic_tool_poke4(screen, (u32)pixel, SPAN_TEXEL(u, v));
+    }
+    else
+    {
+        for(; count > 0; count--, pixel++, u += du, v += dv)
+        {
+            u8 color = SPAN_TEXEL(u, v);
+
+            if(color != TRANSPARENT_COLOR)
+                tic_tool_poke4(screen, (u32)pixel, color);
+        }
+    }
+
+#undef SPAN_TEXEL
+}
+
+// The row loops, one function per texture kind: one copy per write mode and, for the
+// common kinds, per floor variant. Kept apart so each stays small enough for the compiler
+// to inline the texel reads (in one big function GCC 8 stops inlining them).
+#define SPAN_ROW(KIND, TRUNC) \
+    (opaque ? drawTtriSpan(screen, pixel, count, u, v, du, dv, tex, KIND, TRUNC, true) : drawTtriSpan(screen, pixel, count, u, v, du, dv, tex, KIND, TRUNC, false))
+#define SPAN_KIND_TRUNC(NAME, KIND)                                                                                                                 \
+    static DRAW_NOINLINE void NAME(u8* screen, s32 pixel, s32 count, double u, double v, double du, double dv, const SpanTexture* tex, bool opaque) \
+    {                                                                                                                                               \
+        if(spanNonNegative(u, du, count) && spanNonNegative(v, dv, count))                                                                          \
+            SPAN_ROW(KIND, true);                                                                                                                   \
+        else                                                                                                                                        \
+            SPAN_ROW(KIND, false);                                                                                                                  \
+    }
+#define SPAN_KIND(NAME, KIND)                                                                                                                       \
+    static DRAW_NOINLINE void NAME(u8* screen, s32 pixel, s32 count, double u, double v, double du, double dv, const SpanTexture* tex, bool opaque) \
+    {                                                                                                                                               \
+        SPAN_ROW(KIND, false);                                                                                                                      \
+    }
+
+SPAN_KIND_TRUNC(drawTtriSpanSheet4, SpanSheet4)
+SPAN_KIND_TRUNC(drawTtriSpanMap, SpanMap)
+SPAN_KIND_TRUNC(drawTtriSpanVbank, SpanVbank)
+SPAN_KIND(drawTtriSpanSheet2, SpanSheet2)
+SPAN_KIND(drawTtriSpanSheet1, SpanSheet1)
+SPAN_KIND(drawTtriSpanSheet, SpanSheet)
+
+#undef SPAN_KIND
+#undef SPAN_KIND_TRUNC
+#undef SPAN_ROW
+
+static void drawTtriSpanAny(u8* screen, s32 pixel, s32 count, double u, double v, double du, double dv, const SpanTexture* tex, bool opaque)
+{
+    switch(tex->kind)
+    {
+        case SpanSheet4: drawTtriSpanSheet4(screen, pixel, count, u, v, du, dv, tex, opaque); break;
+        case SpanMap: drawTtriSpanMap(screen, pixel, count, u, v, du, dv, tex, opaque); break;
+        case SpanVbank: drawTtriSpanVbank(screen, pixel, count, u, v, du, dv, tex, opaque); break;
+        case SpanSheet2: drawTtriSpanSheet2(screen, pixel, count, u, v, du, dv, tex, opaque); break;
+        case SpanSheet1: drawTtriSpanSheet1(screen, pixel, count, u, v, du, dv, tex, opaque); break;
+        default: drawTtriSpanSheet(screen, pixel, count, u, v, du, dv, tex, opaque); break;
+    }
+}
+
 // The scanline span fill for the flat textured triangle: one inside
 // interval per row, with the UV stepped along it.
 static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 src)
@@ -2152,13 +2360,7 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
     if(src == tic_map_texture && !data->tile4)
         return false;
 
-    s32 maskU = 0, maskV = 0;
-
-    if(src == tic_tiles_texture)
-    {
-        maskU = (s32)(TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1);
-        maskV = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1;
-    }
+    const s32 maskU = (s32)(TIC_SPRITESHEET_SIZE * data->sheet.segment->nb_pages - 1);
 
     double miny = v[0]->_.y, maxy = v[0]->_.y;
 
@@ -2169,7 +2371,7 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
     }
 
     s32 top = floorToInt(miny);
-    s32 bottom = (s32)ceil(maxy);
+    s32 bottom = ceilToInt(maxy);
 
     if(top < clip->t) top = clip->t;
     if(bottom > clip->b) bottom = clip->b;
@@ -2179,6 +2381,52 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
 
     const double center = 0.5 - FLT_EPSILON;
     u8* screen = screenData(core);
+
+    // The UV step along a row is the same for every row: computed once, with the same
+    // expressions the rows used, so the values are identical.
+    double dw[3];
+
+    for(s32 i = 0; i < 3; i++)
+    {
+        const Vec2* a = &v[(i + 1) % 3]->_;
+        const Vec2* b = &v[(i + 2) % 3]->_;
+
+        dw[i] = (a->y - b->y) / area;
+    }
+
+    const double du = dw[0] * v[0]->d.x + dw[1] * v[1]->d.x + dw[2] * v[2]->d.x;
+    const double dv = dw[0] * v[0]->d.y + dw[1] * v[1]->d.y + dw[2] * v[2]->d.y;
+
+    const tic_blit_segment* seg = data->sheet.segment;
+    SpanTexture tex = {
+        .mapping = data->mapping,
+        .sheet = data->sheet.ptr,
+        .map = data->map,
+        .vram = data->vram->data,
+        .tilesheet = &data->sheet,
+        .maskU = maskU,
+        .bank = seg->bank_orig,
+        .page = seg->page_orig,
+    };
+
+    if(src == tic_map_texture)
+        tex.kind = SpanMap, tex.bank = data->bankOrig;
+    else if(src == tic_vbank_texture)
+        tex.kind = SpanVbank;
+    else if(seg->peek == tic_tool_peek4 && seg->tile_width == TIC_SPRITESIZE && seg->nb_pages == 1 && seg->page_orig == 0)
+        tex.kind = SpanSheet4, tex.bank = (seg->bank_orig & 1) << 14;
+    else if(seg->peek == tic_tool_peek2 && seg->tile_width == TIC_SPRITESIZE * 2 && seg->nb_pages == 2)
+        tex.kind = SpanSheet2;
+    else if(seg->peek == tic_tool_peek1 && seg->tile_width == TIC_SPRITESIZE * 4 && seg->nb_pages == 4)
+        tex.kind = SpanSheet1;
+    else
+        tex.kind = SpanSheet;
+
+    bool opaque = true;
+
+    for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+        if(data->mapping[i] == TRANSPARENT_COLOR)
+            opaque = false;
 
     for(s32 y = top; y < bottom; y++)
     {
@@ -2216,7 +2464,7 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
         if(!hit)
             continue;
 
-        s32 left = (s32)ceil(lo - center);
+        s32 left = ceilToInt(lo - center);
         s32 right = floorToInt(hi - center) + 1;
 
         if(left < clip->l) left = clip->l;
@@ -2226,7 +2474,7 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
             continue;
 
         double px = left + center;
-        double w[3], dw[3];
+        double w[3];
 
         for(s32 i = 0; i < 3; i++)
         {
@@ -2234,122 +2482,12 @@ static bool drawTtriSpans(tic_mem* tic, const TexVert t[3], TexData* data, u32 s
             const Vec2* b = &v[(i + 2) % 3]->_;
 
             w[i] = ((b->x - a->x) * (yc - a->y) - (b->y - a->y) * (px - a->x)) / area;
-            dw[i] = (a->y - b->y) / area;
         }
 
         double u = w[0] * v[0]->d.x + w[1] * v[1]->d.x + w[2] * v[2]->d.x;
         double vv = w[0] * v[0]->d.y + w[1] * v[1]->d.y + w[2] * v[2]->d.y;
-        double du = dw[0] * v[0]->d.x + dw[1] * v[1]->d.x + dw[2] * v[2]->d.x;
-        double dv = dw[0] * v[0]->d.y + dw[1] * v[1]->d.y + dw[2] * v[2]->d.y;
 
-        enum
-        {
-            MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE,
-            MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE
-        };
-
-        switch(src)
-        {
-            case tic_tiles_texture:
-                if(data->sheet.segment->peek == tic_tool_peek4 && data->sheet.segment->tile_width == TIC_SPRITESIZE &&
-                   data->sheet.segment->nb_pages == 1 && data->sheet.segment->page_orig == 0)
-                {
-                    u32 bankOrig = data->sheet.segment->bank_orig;
-
-                    for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
-                    {
-                        s32 iu = floorToInt(u) & maskU;
-                        s32 iv = floorToInt(vv) & maskV;
-                        u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) + ((iu & 127) >> 3);
-                        u32 pix = ((u32)iu & 7) + ((u32)iv & 7) * 8;
-                        u8 color = data->mapping[tic_tool_peek4(data->sheet.ptr, tile * 64 + pix)];
-
-                        if(color != TRANSPARENT_COLOR)
-                            tic_tool_poke4(screen, (u32)pixel, color);
-                    }
-                }
-                else if(data->sheet.segment->peek == tic_tool_peek2 && data->sheet.segment->tile_width == TIC_SPRITESIZE * 2 &&
-                        data->sheet.segment->nb_pages == 2)
-                {
-                    u32 bankOrig = data->sheet.segment->bank_orig;
-                    u32 pageOrig = data->sheet.segment->page_orig;
-
-                    for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
-                    {
-                        s32 iu = floorToInt(u) & maskU;
-                        s32 iv = floorToInt(vv) & maskV;
-                        u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) +
-                                   (((((iu >> 7) + (s32)pageOrig) & 1)) << 3) + ((iu & 127) >> 4);
-                        u32 pix = ((u32)iu & 15) + ((u32)iv & 7) * 16;
-                        u8 color = data->mapping[tic_tool_peek2(data->sheet.ptr, tile * 128 + pix)];
-
-                        if(color != TRANSPARENT_COLOR)
-                            tic_tool_poke4(screen, (u32)pixel, color);
-                    }
-                }
-                else if(data->sheet.segment->peek == tic_tool_peek1 && data->sheet.segment->tile_width == TIC_SPRITESIZE * 4 &&
-                        data->sheet.segment->nb_pages == 4)
-                {
-                    u32 bankOrig = data->sheet.segment->bank_orig;
-                    u32 pageOrig = data->sheet.segment->page_orig;
-
-                    for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
-                    {
-                        s32 iu = floorToInt(u) & maskU;
-                        s32 iv = floorToInt(vv) & maskV;
-                        u32 tile = ((((iv >> 7) + bankOrig) & 1) << 8) + (((iv & 127) >> 3) << 4) +
-                                   (((((iu >> 7) + (s32)pageOrig) & 3)) << 2) + ((iu & 127) >> 5);
-                        u32 pix = ((u32)iu & 31) + ((u32)iv & 7) * 32;
-                        u8 color = data->mapping[tic_tool_peek1(data->sheet.ptr, tile * 256 + pix)];
-
-                        if(color != TRANSPARENT_COLOR)
-                            tic_tool_poke4(screen, (u32)pixel, color);
-                    }
-                }
-                else
-                {
-                    for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
-                    {
-                        s32 iu = floorToInt(u) & maskU;
-                        s32 iv = floorToInt(vv) & maskV;
-                        u8 color = data->mapping[tic_tilesheet_getpix(&data->sheet, iu, iv)];
-
-                        if(color != TRANSPARENT_COLOR)
-                            tic_tool_poke4(screen, (u32)pixel, color);
-                    }
-                }
-                break;
-
-            case tic_map_texture:
-                for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
-                {
-                    s32 iu = mapWrap(floorToInt(u), MapWidth);
-                    s32 iv = mapWrap(floorToInt(vv), MapHeight);
-                    u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
-                    u32 tile = data->bankOrig * 256 + ((u32)idx >> 4) * 16 + ((u32)idx & 15);
-                    u32 pix = ((u32)iu & 7) + ((u32)iv & 7) * 8;
-                    u8 color = data->mapping[tic_tool_peek4(data->sheet.ptr, tile * 64 + pix)];
-
-                    if(color != TRANSPARENT_COLOR)
-                        tic_tool_poke4(screen, (u32)pixel, color);
-                }
-                break;
-
-            case tic_vbank_texture:
-                for(s32 x = left, pixel = y * TIC80_WIDTH + left; x < right; x++, pixel++, u += du, vv += dv)
-                {
-                    s32 iu = mapWrap(floorToInt(u), TIC80_WIDTH);
-                    s32 iv = mapWrap(floorToInt(vv), TIC80_HEIGHT);
-                    u8 color = data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)];
-
-                    if(color != TRANSPARENT_COLOR)
-                        tic_tool_poke4(screen, (u32)pixel, color);
-                }
-                break;
-
-            default:
-                break;
-        }
+        drawTtriSpanAny(screen, y * TIC80_WIDTH + left, right - left, u, vv, du, dv, &tex, opaque);
     }
 
     return true;
