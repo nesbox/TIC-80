@@ -728,6 +728,28 @@ static void testHelpFill(void)
 
 // The RAM and VRAM layouts draw with the extended box bytes, one byte a
 // glyph: the rules are 37 cells wide, so the sizes the rows report stay put.
+static void assertTablePrompt(Host* host)
+{
+    const char* bottom = "\xC8"
+                         "\xCD\xCD\xCD\xCD\xCD\xCD\xCD"
+                         "\xCA"
+                         "\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD\xCD"
+                         "\xCA"
+                         "\xCD\xCD\xCD\xCD\xCD\xCD\xCD"
+                         "\xBC";
+    s32 at = found(host, bottom);
+    assert(at >= 0);
+
+    const char* buffer = host->console->text;
+    s32 i = at - at % ConsoleRow + ConsoleRow;
+
+    for(; i < ConsoleSpan && buffer[i] != '>'; i++)
+        assert(buffer[i] == '\0' || buffer[i] == ' ');
+
+    assert(i < ConsoleSpan);
+    assert(host->console->input.text == buffer + i + 1);
+}
+
 static void testHelpRam(void)
 {
     Host* host = hostNew("help ram");
@@ -748,6 +770,7 @@ static void testHelpRam(void)
     assert(said(host, "\xBA 14604 \xBA FONT"));
     assert(said(host, "\xBA 14EA4 \xBA ALT FONT"));
     assert(!said(host, "+-----------------------------------+"));
+    assertTablePrompt(host);
 
     hostFree(host);
 
@@ -762,6 +785,7 @@ static void testHelpRam(void)
     assert(said(host, "\xBA          16KB VRAM LAYOUT         \xBA"));
     assert(said(host, "\xBA 00000 \xBA SCREEN"));
     assert(!said(host, "+-------+-------------------+-------+"));
+    assertTablePrompt(host);
 
     hostFree(host);
 }

@@ -4075,6 +4075,7 @@ static s32 createRamTable(char* buf)
     *ptr++ = '\n';
     ptr = boxRule(ptr, 0xC8, 0xCD, 0xCA, 0xBC);
     *ptr++ = '\n';
+    *ptr = '\0';
 
     return (s32)(ptr - buf);
 }
@@ -4098,6 +4099,7 @@ static s32 createVRamTable(char* buf)
     *ptr++ = '\n';
     ptr = boxRule(ptr, 0xC8, 0xCD, 0xCA, 0xBC);
     *ptr++ = '\n';
+    *ptr = '\0';
 
     return (s32)(ptr - buf);
 }
