@@ -106,7 +106,7 @@
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
 #define SFX_NOTES      {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
-#define TIC_FONT_CHARS 128
+#define TIC_FONT_CHARS 256
 
 #define TIC_UNUSED(x) (void)x
 
@@ -537,6 +537,7 @@ typedef struct
     };
 } tic_font_data;
 
+// The two faces together for the studio; tic_ram keeps each on its own.
 typedef struct
 {
     tic_font_data regular;
@@ -645,9 +646,10 @@ typedef union
         tic_stereo_volume stereo;
         tic_persistent persistent;
         tic_flags flags;
-        tic_font font;
+        tic_font_data font;
         tic_mapping mapping;
         tic_pcm pcm;
+        tic_font_data fontAlt;
 
         u8 free;
     };

@@ -30,8 +30,8 @@ static const tic_blit_segment segments[] = {
     //   |  +bank +bank_size
     //   |  |  |  |     +sheet_width
     //   |  |  |  |     |   +tile_width
-    {0, 0, 1, 256, 16, 8, TIC_SPRITESIZE, tic_tool_peek1, tic_tool_poke1},   // system gfx
-    {0, 0, 1, 256, 16, 8, TIC_SPRITESIZE, tic_tool_peek1, tic_tool_poke1},   // system font
+    {0, 0, 1, 256, 16, 8, TIC_SPRITESIZE, tic_tool_peek1, tic_tool_poke1},   // system font regular
+    {0, 0, 1, 256, 16, 8, TIC_SPRITESIZE, tic_tool_peek1, tic_tool_poke1},   // system font alt
     {0, 0, 1, 256, 16, 8, sizeof(tic_tile), tic_tool_peek4, tic_tool_poke4}, // 4bpp p0 bg
     {0, 1, 1, 256, 16, 8, sizeof(tic_tile), tic_tool_peek4, tic_tool_poke4}, // 4bpp p0 fg
 

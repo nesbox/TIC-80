@@ -11,7 +11,7 @@
 
 #define RAM_A_SIZE   offsetof(tic_ram, input)
 #define RAM_B_OFFSET offsetof(tic_ram, flags)
-#define RAM_B_SIZE   (offsetof(tic_ram, pcm) - offsetof(tic_ram, flags))
+#define RAM_B_SIZE   (offsetof(tic_ram, free) - offsetof(tic_ram, flags))
 
 struct tic_draw_cache
 {

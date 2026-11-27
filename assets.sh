@@ -37,7 +37,7 @@ BUILD_DIR=${1:-build}       # where the tools were built
 BIN="$BUILD_DIR/bin"
 OUT=build                   # fixed: "../build/assets/…" is what the sources include
 
-for tool in prj2cart wasmp2cart bin2txt; do
+for tool in prj2cart wasmp2cart bin2txt font2inl; do
     if [ ! -x "$BIN/$tool" ]; then
         echo "assets.sh: no $BIN/$tool — configure with -DBUILD_TOOLS=ON and build first" >&2
         exit 1
@@ -118,6 +118,10 @@ demos/bunny/squirrelmark.nut            squirrelmark
 demos/bunny/wrenmark.wren               wrenmark
 demos/bunny/yuemark.yue                 yuemark
 CARTS
+
+# The two system font faces as C arrays, from the config cart's 1bpp pages:
+# builds without the studio print what the config cart ships.
+"$BIN/font2inl" "$OUT/config.tic" src/core/font.inl src/core/altfont.inl
 
 # <source.wasmp> <binary.wasm> <name> — the wasm carts carry the compiled
 # module as a second source, which is why they do not fit the list above.

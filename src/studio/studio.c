@@ -2903,42 +2903,10 @@ static void updateSystemFont(Studio* studio)
 {
     tic_mem* tic = studio->tic;
 
-    studio->systemFont = (tic_font){
-        .regular =
-            {
-                {0},
-                {
-                    {
-                        .width = TIC_FONT_WIDTH,
-                        .height = TIC_FONT_HEIGHT,
-                    },
-                },
-            },
-        .alt =
-            {
-                {0},
-                {
-                    {
-                        .width = TIC_ALTFONT_WIDTH,
-                        .height = TIC_FONT_HEIGHT,
-                    },
-                },
-            }};
+    ui_font_cells(&studio->systemFont, &studio->config->cart->bank0.sprites);
 
-    u8* dst = (u8*)&studio->systemFont;
-    const tic_tiles* sprites = &studio->config->cart->bank0.sprites;
-
-    for(s32 i = 0; i < TIC_FONT_CHARS * 2; i++)
-    {
-        // The last cell of each bank carries the width/height pair, not a glyph.
-        if(i % TIC_FONT_CHARS == TIC_FONT_CHARS - 1)
-            continue;
-
-        for(s32 y = 0; y < TIC_SPRITESIZE; y++)
-            dst[i * BITS_IN_BYTE + y] = ui_cell_row(sprites, i, y);
-    }
-
-    tic->ram->font = studio->systemFont;
+    tic->ram->font = studio->systemFont.regular;
+    tic->ram->fontAlt = studio->systemFont.alt;
 }
 
 static void configChanged(void* host)
@@ -3326,7 +3294,8 @@ void studio_tick(Studio* studio, tic80_input input)
         if(studio->mode != TIC_RUN_MODE)
         {
             memcpy(tic->ram->vram.palette.data, getConfig(studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
-            tic->ram->font = studio->systemFont;
+            tic->ram->font = studio->systemFont.regular;
+            tic->ram->fontAlt = studio->systemFont.alt;
         }
 
 #if defined(BUILD_RENDER_CACHE)

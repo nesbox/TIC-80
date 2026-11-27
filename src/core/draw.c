@@ -50,8 +50,10 @@ static tic_tilesheet getTileSheetFromSegment(tic_mem* memory, u8 segment)
     switch(segment)
     {
         case 0:
-        case 1:
             src = (u8*)&memory->ram->font;
+            break;
+        case 1:
+            src = (u8*)&memory->ram->fontAlt;
             break;
         default:
             src = (u8*)&memory->ram->tiles.data;
@@ -830,13 +832,13 @@ static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 sc
 
 #undef GLYPH
 
-static s32 drawText(tic_core* core, tic_tilesheet* font_face, const char* text, s32 x, s32 y, s32 width, s32 height, bool fixed, u8* mapping, s32 scale, bool alt)
+static s32 drawText(tic_core* core, tic_tilesheet* font_face, const char* text, s32 x, s32 y, s32 width, s32 height, bool fixed, u8* mapping, s32 scale, s32 offset)
 {
     s32 pos = x;
     s32 MAX = x;
-    char sym = 0;
+    u8 sym = 0;
 
-    while((sym = *text++))
+    while((sym = (u8)*text++))
     {
         if(sym == '\n')
         {
@@ -848,7 +850,7 @@ static s32 drawText(tic_core* core, tic_tilesheet* font_face, const char* text, 
         }
         else
         {
-            tic_tileptr font_char = tic_tilesheet_gettile(font_face, alt * TIC_FONT_CHARS + sym, true);
+            tic_tileptr font_char = tic_tilesheet_gettile(font_face, offset + sym, true);
             s32 size = drawChar(core, &font_char, pos, y, scale, fixed, mapping);
             pos += ((!fixed && size) ? size + 1 : width) * scale;
         }
@@ -936,20 +938,20 @@ s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8* trans_colo
         flipmask <<= 1;
 
     tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram->vram.blit.segment ^ flipmask);
-    return drawText((tic_core*)memory, &font_face, text, x, y, w, h, fixed, mapping, scale, alt);
+    return drawText((tic_core*)memory, &font_face, text, x, y, w, h, fixed, mapping, scale, alt ? TIC_BANK_SPRITES / 2 : 0);
 }
 
 s32 tic_api_print(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt)
 {
     u8 mapping[] = {255, color};
-    tic_tilesheet font_face = getTileSheetFromSegment(memory, 1);
+    tic_tilesheet font_face = getTileSheetFromSegment(memory, alt ? 1 : 0);
 
-    const tic_font_data* font = alt ? &memory->ram->font.alt : &memory->ram->font.regular;
+    const tic_font_data* font = alt ? &memory->ram->fontAlt : &memory->ram->font;
     s32 width = font->width;
 
     // Compatibility : print uses reduced width for non-fixed space
     if(!fixed) width -= 2;
-    return drawText((tic_core*)memory, &font_face, text, x, y, width, font->height, fixed, mapping, scale, alt);
+    return drawText((tic_core*)memory, &font_face, text, x, y, width, font->height, fixed, mapping, scale, 0);
 }
 
 void tic_api_spr(tic_mem* memory, s32 index, s32 x, s32 y, s32 w, s32 h, u8* trans_colors, u8 trans_count, s32 scale, tic_flip flip, tic_rotate rotate)

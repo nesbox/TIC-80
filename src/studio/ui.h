@@ -28,9 +28,13 @@
 // What every screen draws and points with, out of the shell's file: the bar
 // needs both, and the panels use them too.
 
-// A row of the 1bpp cell `id` in a config-cart bank. The cart packs four cells
-// to a sprite in the sprite editor's page 1 order: a byte a cell row.
+// A row of the 1bpp cell `id` in a config-cart bank. Ids 0-255 address page 0
+// and 256-511 page 1; the cart packs four cells to a sprite, a byte a row.
 u8 ui_cell_row(const tic_tiles* tiles, s32 id, s32 row);
+
+// Fills both faces of `font` from the config cart's 512 cells; each face's
+// last cell carries the width/height pair and is skipped.
+void ui_font_cells(tic_font* font, const tic_tiles* tiles);
 
 // Blits the 1bpp cell `id` of `tiles` at x, y; its zero pixels leave the
 // screen alone.

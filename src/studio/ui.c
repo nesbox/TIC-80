@@ -21,15 +21,58 @@
 // SOFTWARE.
 
 #include "ui.h"
+#include "tic_assert.h"
 
-// Four cells to a sprite, laid out as the sprite editor's 1bpp page 1.
+// Four cells to a sprite; the page picks the four sprites after the first.
 #define UI_CELLS_PER_SPRITE 4
+
+// The copy below writes the faces through a byte pointer.
+static_assert(sizeof(tic_font) == sizeof(tic_font_data) * 2, "tic_font");
 
 u8 ui_cell_row(const tic_tiles* tiles, s32 id, s32 row)
 {
-    const tic_tile* cell = &tiles->data[(id / TIC_SPRITESHEET_COLS) * TIC_SPRITESHEET_COLS + (id % TIC_SPRITESHEET_COLS) / UI_CELLS_PER_SPRITE];
+    const s32 page = id / TIC_FONT_CHARS;
+    const s32 cell = id % TIC_FONT_CHARS;
+    const tic_tile* tile = &tiles->data[(cell / TIC_SPRITESHEET_COLS) * TIC_SPRITESHEET_COLS + page * UI_CELLS_PER_SPRITE + (cell % TIC_SPRITESHEET_COLS) / UI_CELLS_PER_SPRITE];
 
-    return cell->data[row * UI_CELLS_PER_SPRITE + id % UI_CELLS_PER_SPRITE];
+    return tile->data[row * UI_CELLS_PER_SPRITE + cell % UI_CELLS_PER_SPRITE];
+}
+
+void ui_font_cells(tic_font* font, const tic_tiles* tiles)
+{
+    *font = (tic_font){
+        .regular =
+            {
+                {0},
+                {
+                    {
+                        .width = TIC_FONT_WIDTH,
+                        .height = TIC_FONT_HEIGHT,
+                    },
+                },
+            },
+        .alt =
+            {
+                {0},
+                {
+                    {
+                        .width = TIC_ALTFONT_WIDTH,
+                        .height = TIC_FONT_HEIGHT,
+                    },
+                },
+            }};
+
+    u8* dst = (u8*)font;
+
+    for(s32 i = 0; i < TIC_FONT_CHARS * 2; i++)
+    {
+        // The last cell of each page carries the width/height pair, not a glyph.
+        if(i % TIC_FONT_CHARS == TIC_FONT_CHARS - 1)
+            continue;
+
+        for(s32 y = 0; y < TIC_SPRITESIZE; y++)
+            dst[i * BITS_IN_BYTE + y] = ui_cell_row(tiles, i, y);
+    }
 }
 
 void ui_icon(tic_mem* tic, const tic_tiles* tiles, s32 id, s32 x, s32 y, u8 color)

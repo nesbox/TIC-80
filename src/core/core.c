@@ -54,6 +54,11 @@ static_assert(sizeof(tic_palette) == 48, "tic_palette");
 static_assert(sizeof(((tic_vram*)0)->vars) == 4, "tic_vram vars");
 static_assert(sizeof(tic_vram) == TIC_VRAM_SIZE, "tic_vram");
 static_assert(sizeof(tic_ram) == TIC_RAM_SIZE, "tic_ram");
+static_assert(offsetof(tic_ram, font) == 0x14604, "tic_ram font");
+static_assert(offsetof(tic_ram, mapping) == 0x14E04, "tic_ram mapping");
+static_assert(offsetof(tic_ram, pcm) == 0x14E24, "tic_ram pcm");
+static_assert(offsetof(tic_ram, fontAlt) == 0x14EA4, "tic_ram fontAlt");
+static_assert(sizeof(tic_font_data) == 2048, "tic_font_data");
 
 u8 tic_api_peek(tic_mem* memory, s32 address, s32 bits)
 {
@@ -324,29 +329,27 @@ static void resetVbank(tic_mem* memory)
 
 static void font2ram(tic_mem* memory)
 {
-    memory->ram->font = (tic_font){
-        .regular =
-            {
-                .data =
-                    {
+    memory->ram->font =
+        (tic_font_data){
+            .data =
+                {
 #include "font.inl"
-                    },
-                {{
-                    .width = TIC_FONT_WIDTH,
-                    .height = TIC_FONT_HEIGHT,
-                }}},
+                },
+            {{
+                .width = TIC_FONT_WIDTH,
+                .height = TIC_FONT_HEIGHT,
+            }}};
 
-        .alt =
-            {
-                .data =
-                    {
+    memory->ram->fontAlt =
+        (tic_font_data){
+            .data =
+                {
 #include "altfont.inl"
-                    },
-                {{
-                    .width = TIC_ALTFONT_WIDTH,
-                    .height = TIC_FONT_HEIGHT,
-                }}},
-    };
+                },
+            {{
+                .width = TIC_ALTFONT_WIDTH,
+                .height = TIC_FONT_HEIGHT,
+            }}};
 }
 
 void tic_api_reset(tic_mem* memory)

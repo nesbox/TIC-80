@@ -56,6 +56,15 @@ if(BUILD_TOOLS)
     add_executable(bin2txt ${TOOLS_DIR}/bin2txt.c)
     target_link_libraries(bin2txt zlib)
 
+    # The two system font faces as C arrays, read through the studio's own
+    # cell layout so the config cart and the fallback cannot disagree.
+    add_executable(font2inl
+        ${TOOLS_DIR}/font2inl.c
+        ${CMAKE_SOURCE_DIR}/src/studio/ui.c)
+
+    target_include_directories(font2inl PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
+    target_link_libraries(font2inl tic80core)
+
     add_executable(xplode
         ${TOOLS_DIR}/xplode.c
         ${CMAKE_SOURCE_DIR}/src/ext/png.c
